@@ -194,6 +194,25 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
+  const handleDiscordCallback = useCallback(async (code: string, state: string) => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    try {
+      const response = await fetch(AUTH_ENDPOINTS.DISCORD_CALLBACK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, state }),
+      });
+      await handleAuthResponse(response);
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Discord authentication failed',
+      }));
+      throw error;
+    }
+  }, [handleAuthResponse]);
+
   useEffect(() => {
     initializeAuth();
     return () => {
@@ -209,7 +228,8 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     refreshToken,
     clearError: () => setState(prev => ({ ...prev, error: null })),
     startDiscordOAuth,
-  }), [state, login, logout, refreshToken, startDiscordOAuth]);
+    handleDiscordCallback,
+  }), [state, login, logout, refreshToken, startDiscordOAuth, handleDiscordCallback]);
 
   return (
     <AuthContext.Provider value={contextValue}>

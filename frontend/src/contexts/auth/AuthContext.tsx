@@ -12,4 +12,5 @@ export const AuthContext = createContext<AuthContextValue>({
   refreshToken: async () => {},
   clearError: () => {},
   startDiscordOAuth: async () => {},
+  handleDiscordCallback: async () => {},
 }); 

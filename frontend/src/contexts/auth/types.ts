@@ -31,6 +31,7 @@ export interface AuthContextValue extends AuthState {
   refreshToken: () => Promise<void>;
   clearError: () => void;
   startDiscordOAuth: () => Promise<void>;
+  handleDiscordCallback: (code: string, state: string) => Promise<void>;
 }
 
 export interface AuthProviderProps {
@@ -40,4 +41,14 @@ export interface AuthProviderProps {
 export interface TokenPair {
   accessToken: string;
   refreshToken: string;
+}
+
+export interface DiscordCallbackParams {
+  code: string;
+  state: string;
+}
+
+export interface DiscordAuthResponse {
+  url: string;
+  state: string;
 } 

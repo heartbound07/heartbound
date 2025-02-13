@@ -5,4 +5,5 @@ export const AUTH_ENDPOINTS = {
   LOGOUT: '/api/auth/logout',
   REFRESH: '/api/auth/refresh',
   DISCORD_AUTHORIZE: '/api/auth/discord/authorize',
+  DISCORD_CALLBACK: '/api/oauth2/callback/discord',
 } as const;
