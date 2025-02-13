@@ -13,7 +13,10 @@ export default {
           700: '#374151',
           600: '#4B5563',
         }
-      }
+      },
+      fontFamily: {
+        grandstander: ['Grandstander', 'cursive'],
+      },
     },
   },
   plugins: [],

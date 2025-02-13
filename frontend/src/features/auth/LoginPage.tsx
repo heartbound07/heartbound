@@ -20,7 +20,7 @@ export function LoginPage() {
       <Navigation />
 
       <main className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-80px)] px-4 text-center">
-        <h1 className="text-7xl font-bold text-white mb-2 tracking-wide">
+        <h1 className="font-grandstander text-7xl font-bold text-white mb-2 tracking-wide">
           heartbound
         </h1>
         <p className="text-2xl text-white/90 mb-12">
