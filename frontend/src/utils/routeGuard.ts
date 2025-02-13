@@ -1,0 +1,19 @@
+const PUBLIC_PATHS = ['/', '/login'];
+const AUTH_PATHS = ['/auth', '/api/auth'];
+const PROTECTED_PATHS = ['/dashboard', '/profile', '/lfg', '/find-a-duo'];
+
+export const isPublicPath = (pathname: string): boolean => {
+  return PUBLIC_PATHS.some(path => pathname.startsWith(path));
+};
+
+export const isAuthPath = (pathname: string): boolean => {
+  return AUTH_PATHS.some(path => pathname.startsWith(path));
+};
+
+export const isProtectedPath = (pathname: string): boolean => {
+  return PROTECTED_PATHS.some(path => pathname.startsWith(path));
+};
+
+export const requiresAuth = (pathname: string): boolean => {
+  return isProtectedPath(pathname) && !isPublicPath(pathname) && !isAuthPath(pathname);
+}; 
