@@ -1,13 +1,10 @@
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth';
-import { LoginRequest } from '@/contexts/auth/types';
+import { CloudBackground } from '@/components/backgrounds/CloudBackground';
+import { CustomButton } from '@/components/CustomButton';
+import { Navigation } from '@/components/Navigation';
 
 export function LoginPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { login, startDiscordOAuth, error } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const { startDiscordOAuth } = useAuth();
 
   const handleDiscordLogin = async () => {
     try {
@@ -17,43 +14,28 @@ export function LoginPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    const formData = new FormData(e.currentTarget);
-    const credentials: LoginRequest = {
-      username: formData.get('username') as string,
-      password: formData.get('password') as string,
-    };
-
-    try {
-      await login(credentials);
-      const returnUrl = location.state?.returnUrl || '/dashboard';
-      navigate(returnUrl);
-    } catch (error) {
-      console.error('Login failed:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h1>Login</h1>
-        {error && <div className="auth-error">{error}</div>}
-        <form onSubmit={handleSubmit}>
-          <input type="text" name="username" placeholder="Username" required />
-          <input type="password" name="password" placeholder="Password" required />
-          <button type="submit" disabled={isLoading}>
-            {isLoading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
-        <button onClick={handleDiscordLogin}>
-          Login with Discord
-        </button>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-[#6B5BE6] to-[#8878f0] relative overflow-hidden">
+      <CloudBackground />
+      <Navigation />
+
+      <main className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-80px)] px-4 text-center">
+        <h1 className="text-7xl font-bold text-white mb-2 tracking-wide">
+          heartbound
+        </h1>
+        <p className="text-2xl text-white/90 mb-12">
+          find your perfect duo!
+        </p>
+        
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-lg w-[340px] mx-auto">
+          <CustomButton
+            onClick={handleDiscordLogin}
+            className="w-full py-3 flex items-center justify-center gap-2 rounded-full backdrop-blur-sm"
+          >
+            Continue with Discord
+          </CustomButton>
+        </div>
+      </main>
     </div>
   );
 } 

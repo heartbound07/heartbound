@@ -1,0 +1,58 @@
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  @apply bg-gray-900 text-white min-h-screen;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Auth styles */
+.auth-container {
+  @apply min-h-screen flex items-center justify-center p-4;
+}
+
+.auth-card {
+  @apply bg-gray-800 rounded-lg p-8 w-full max-w-md;
+}
+
+.auth-card h1 {
+  @apply text-2xl font-bold mb-6 text-center;
+}
+
+.auth-error {
+  @apply bg-red-500/20 text-red-300 p-4 rounded-lg mb-4;
+}
+
+.auth-loading {
+  @apply flex items-center justify-center min-h-screen text-lg;
+}
+
+/* Form styles */
+form {
+  @apply space-y-4;
+}
+
+input {
+  @apply w-full px-4 py-2 bg-gray-700 rounded-lg border border-gray-600
+         focus:border-purple-500 focus:outline-none;
+}
+
+button {
+  @apply w-full px-4 py-2 bg-purple-600 text-white rounded-lg
+         hover:bg-purple-700 transition-colors
+         disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.backdrop-blur-sm {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.backdrop-blur-md {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+} 

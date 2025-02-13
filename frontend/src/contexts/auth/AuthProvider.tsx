@@ -153,7 +153,10 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const initializeAuth = useCallback(async () => {
     try {
       const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (!storedAuth) return;
+      if (!storedAuth) {
+        setState(prev => ({ ...prev, isLoading: false }));
+        return;
+      }
 
       const { user, tokens } = JSON.parse(storedAuth);
       if (!isUserInfo(user) || !tokens?.accessToken) {
@@ -167,6 +170,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       }
 
       scheduleTokenRefresh(decodedToken.exp - Math.floor(Date.now() / 1000));
+      setTokens(tokens);
       setState(prev => ({
         ...prev,
         user,
