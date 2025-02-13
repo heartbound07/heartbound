@@ -1,9 +1,10 @@
-export { AuthProvider } from './AuthProvider';
 export { AuthContext } from './AuthContext';
-export { useAuth } from './useAuth'; // We'll create this
+export { AuthProvider } from './AuthProvider';
+export { useAuth } from './useAuth';
 export type { 
   AuthContextValue, 
   UserInfo, 
   LoginRequest, 
-  RegisterRequest 
+  RegisterRequest,
+  ProfileStatus 
 } from './types';
