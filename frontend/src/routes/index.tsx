@@ -1,5 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthGuard } from '@/components/AuthGuard';
+import { LoginPage } from '@/features/auth/LoginPage';
+import { AuthErrorPage } from '@/features/auth/AuthErrorPage';
+import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { DiscordCallback } from '@/features/auth/DiscordCallback';
 
 export function AppRoutes() {
