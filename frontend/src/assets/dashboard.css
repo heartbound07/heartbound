@@ -1,0 +1,31 @@
+.dashboard-container {
+  @apply min-h-screen bg-gradient-to-br from-[#6B5BE6] to-[#8878f0] p-6;
+}
+
+.dashboard-nav {
+  @apply fixed top-0 left-0 h-full w-64 bg-white/10 backdrop-blur-md p-4;
+}
+
+.dashboard-content {
+  @apply ml-64 p-6;
+}
+
+.dashboard-card {
+  @apply bg-white/10 backdrop-blur-md rounded-lg p-6 shadow-lg;
+}
+
+.stats-grid {
+  @apply grid grid-cols-1 md:grid-cols-3 gap-6 mt-6;
+}
+
+.nav-item {
+  @apply w-full text-left px-4 py-2 rounded-lg transition-colors;
+}
+
+.nav-item.active {
+  @apply bg-white/20;
+}
+
+.logout-button {
+  @apply mt-auto w-full bg-red-500/20 hover:bg-red-500/30 text-red-100 rounded-lg py-2;
+} 
