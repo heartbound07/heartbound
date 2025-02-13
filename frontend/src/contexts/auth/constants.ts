@@ -7,3 +7,11 @@ export const AUTH_ENDPOINTS = {
   DISCORD_AUTHORIZE: '/api/auth/discord/authorize',
   DISCORD_CALLBACK: '/api/oauth2/callback/discord',
 } as const;
+
+export const AUTH_ERRORS = {
+  INVALID_STATE: 'Invalid authentication state',
+  MISSING_CODE: 'Missing authorization code',
+  TOKEN_EXPIRED: 'Authentication session expired',
+  NETWORK_ERROR: 'Network error occurred',
+  UNAUTHORIZED: 'Please log in to access this page',
+} as const;
