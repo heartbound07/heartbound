@@ -3,6 +3,7 @@ import { AuthContextValue } from './types';
 
 export const AuthContext = createContext<AuthContextValue>({
   user: null,
+  profile: null,
   isAuthenticated: false,
   isLoading: false,
   error: null,
@@ -13,4 +14,5 @@ export const AuthContext = createContext<AuthContextValue>({
   clearError: () => {},
   startDiscordOAuth: async () => {},
   handleDiscordCallback: async () => {},
+  updateProfile: () => {},
 }); 

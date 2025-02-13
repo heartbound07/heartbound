@@ -7,6 +7,7 @@ import {
   TokenPair,
   UserInfo,
   AuthProviderProps,
+  ProfileStatus,
 } from './types';
 import { AUTH_STORAGE_KEY, TOKEN_REFRESH_MARGIN, AUTH_ENDPOINTS } from './constants';
 
@@ -20,6 +21,7 @@ declare global {
 const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const [state, setState] = useState<AuthState>({
     user: null,
+    profile: null,
     isAuthenticated: false,
     isLoading: true,
     error: null,
@@ -213,6 +215,13 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
   }, [handleAuthResponse]);
 
+  const updateProfile = useCallback((profile: ProfileStatus) => {
+    setState(prev => ({
+      ...prev,
+      profile,
+    }));
+  }, []);
+
   useEffect(() => {
     initializeAuth();
     return () => {
@@ -229,7 +238,8 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     clearError: () => setState(prev => ({ ...prev, error: null })),
     startDiscordOAuth,
     handleDiscordCallback,
-  }), [state, login, logout, refreshToken, startDiscordOAuth, handleDiscordCallback]);
+    updateProfile,
+  }), [state, login, logout, refreshToken, startDiscordOAuth, handleDiscordCallback, updateProfile]);
 
   return (
     <AuthContext.Provider value={contextValue}>
@@ -246,4 +256,4 @@ function parseJwt(token: string) {
   }
 }
 
-export default AuthProvider; 
+export { AuthProvider }; 
