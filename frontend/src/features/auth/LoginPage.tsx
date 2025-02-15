@@ -5,9 +5,7 @@ import { DiscordLoginButton } from '@/components/ui/DiscordLoginButton';
 
 export function LoginPage() {
   const { startDiscordOAuth } = useAuth();
-
-  // We no longer need a separate click handler since the DiscordLoginButton
-  // integrates the styling and placeholder logic.
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#6B5BE6] to-[#8878f0] relative overflow-hidden">
       <Navigation className="font-grandstander" />
