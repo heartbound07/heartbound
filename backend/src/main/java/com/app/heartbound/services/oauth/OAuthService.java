@@ -2,9 +2,11 @@ package com.app.heartbound.services.oauth;
 
 import com.app.heartbound.dto.oauth.OAuthRefreshRequest;
 import com.app.heartbound.dto.oauth.OAuthTokenResponse;
+import com.app.heartbound.dto.oauth.UserDTO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -48,5 +50,19 @@ public class OAuthService {
         }
         
         return tokenResponse;
+    }
+    
+    // New method to retrieve user details using the access token
+    public UserDTO getUserInfo(String accessToken) {
+        RestTemplate restTemplate = new RestTemplate();
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        final String DISCORD_USER_URL = "https://discord.com/api/users/@me";
+        
+        return restTemplate.exchange(DISCORD_USER_URL, HttpMethod.GET, entity, UserDTO.class).getBody();
     }
 }

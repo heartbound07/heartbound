@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpSession;
 
 import com.app.heartbound.dto.oauth.OAuthRefreshRequest;
 import com.app.heartbound.dto.oauth.OAuthTokenResponse;
+import com.app.heartbound.dto.oauth.UserDTO;
 import com.app.heartbound.services.oauth.OAuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,7 +48,7 @@ public class OAuthController {
     private static final String SESSION_STATE = "DISCORD_OAUTH_STATE";
 
     @Autowired
-    private OAuthService oauthService;  // Inject your service that handles token exchanges
+    private OAuthService oauthService;  // Handles both token exchanges and user info retrieval
 
     @GetMapping("/auth/discord/authorize")
     public RedirectView authorize(HttpSession session) {
@@ -117,8 +118,17 @@ public class OAuthController {
             return new RedirectView("/login?error=Token+exchange+failed");
         }
 
-        // TODO: Use tokenResponse for authentication (e.g., establish a session, create a user record, etc.)
-
+        // Retrieve user details using the access token
+        UserDTO userDTO = null;
+        try {
+            userDTO = oauthService.getUserInfo(tokenResponse.getAccessToken());
+            System.out.println("User details retrieved: " + userDTO);
+            // TODO: Use userDTO to create/update your local user records or start a user session
+        } catch (Exception e) {
+            System.err.println("Failed to retrieve user details: " + e.getMessage());
+            return new RedirectView("/login?error=User+information+retrieval+failed");
+        }
+        
         // Redirect to dashboard (or any post-login page)
         return new RedirectView("/dashboard");
     }
