@@ -31,7 +31,7 @@ export function DiscordLoginButton() {
       <CustomButton
         onClick={handleDiscordLogin}
         disabled={isLoading}
-        className="w-full h-12 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-full text-base font-semibold shadow-md transition-transform duration-200 hover:scale-105 gap-3 relative"
+        className="w-full h-12 bg-[#5865F2] hover:bg-[#4752C4] text-white font-grandstander rounded-full text-base font-semibold shadow-md transition-transform duration-200 hover:scale-105 gap-3 relative"
       >
         <DiscordIcon className="w-6 h-6" />
         {isLoading ? (
