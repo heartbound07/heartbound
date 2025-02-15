@@ -4,14 +4,21 @@ import java.math.BigInteger;
 import java.security.SecureRandom;
 import jakarta.servlet.http.HttpSession;
 
+import com.app.heartbound.dto.oauth.OAuthRefreshRequest;
 import com.app.heartbound.dto.oauth.OAuthTokenResponse;
+import com.app.heartbound.services.oauth.OAuthService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
@@ -38,6 +45,9 @@ public class OAuthController {
 
     // Session key for storing CSRF state
     private static final String SESSION_STATE = "DISCORD_OAUTH_STATE";
+
+    @Autowired
+    private OAuthService oauthService;  // Inject your service that handles token exchanges
 
     @GetMapping("/auth/discord/authorize")
     public RedirectView authorize(HttpSession session) {
@@ -111,5 +121,17 @@ public class OAuthController {
 
         // Redirect to dashboard (or any post-login page)
         return new RedirectView("/dashboard");
+    }
+    
+    @PostMapping("/oauth2/refresh/discord")
+    public ResponseEntity<OAuthTokenResponse> refreshToken(@RequestBody OAuthRefreshRequest refreshRequest) {
+        try {
+            OAuthTokenResponse tokenResponse = oauthService.refreshAccessToken(refreshRequest);
+            System.out.println("Token refresh successful. New access token: " + tokenResponse.getAccessToken());
+            return ResponseEntity.ok(tokenResponse);
+        } catch (Exception e) {
+            System.err.println("Token refresh failed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
     }
 }
