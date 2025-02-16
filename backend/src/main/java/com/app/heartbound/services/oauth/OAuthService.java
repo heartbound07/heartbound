@@ -1,8 +1,9 @@
 package com.app.heartbound.services.oauth;
 
+import com.app.heartbound.dto.UserDTO;
 import com.app.heartbound.dto.oauth.OAuthRefreshRequest;
 import com.app.heartbound.dto.oauth.OAuthTokenResponse;
-import com.app.heartbound.dto.oauth.UserDTO;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;

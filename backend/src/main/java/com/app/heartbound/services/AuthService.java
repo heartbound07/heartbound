@@ -1,7 +1,8 @@
 package com.app.heartbound.services;
 
 import com.app.heartbound.config.security.JWTTokenProvider;
-import com.app.heartbound.dto.oauth.UserDTO;
+import com.app.heartbound.dto.UserDTO;
+
 import org.springframework.stereotype.Service;
 
 @Service
