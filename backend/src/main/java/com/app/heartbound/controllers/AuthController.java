@@ -2,6 +2,11 @@ package com.app.heartbound.controllers;
 
 import com.app.heartbound.dto.UserDTO;
 import com.app.heartbound.services.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,29 +22,39 @@ public class AuthController {
         this.authService = authService;
     }
 
-    /**
-     * Endpoint to log a user in by generating a JWT token from the provided user data.
-     * Expects a JSON payload with user details.
-     */
+    @Operation(summary = "Log in a user", description = "Generates a JWT token for the given user details")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200",
+                     description = "JWT token generated successfully",
+                     content = @Content(schema = @Schema(implementation = Map.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid user details provided", content = @Content)
+    })
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody UserDTO userDTO) {
         String token = authService.generateTokenForUser(userDTO);
         return ResponseEntity.ok(Map.of("token", token));
     }
 
-    /**
-     * Endpoint to log out a user.
-     * Since JWT tokens are stateless, this endpoint instructs the client to simply remove the token.
-     */
+    @Operation(summary = "Log out the current user", description = "Instructs the client to remove the stored JWT token")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200",
+                     description = "Logged out successfully",
+                     content = @Content(schema = @Schema(implementation = Map.class)))
+    })
     @PostMapping("/logout")
     public ResponseEntity<?> logout() {
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
 
-    /**
-     * Endpoint to validate a provided JWT token.
-     * Expects a "token" query parameter.
-     */
+    @Operation(summary = "Validate JWT token", description = "Validates the provided JWT token and returns the associated user information if valid")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200",
+                     description = "Token is valid",
+                     content = @Content(schema = @Schema(implementation = Map.class))),
+        @ApiResponse(responseCode = "400",
+                     description = "Token is invalid",
+                     content = @Content)
+    })
     @GetMapping("/validate")
     public ResponseEntity<?> validateToken(@RequestParam("token") String token) {
         if (authService.validateToken(token)) {
