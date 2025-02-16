@@ -17,14 +17,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> 
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Permit root and error pages.
+                // Permit swagger and OpenAPI endpoints (adjust based on context path)
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api/swagger-ui/**", "/api/v3/api-docs/**").permitAll()
+                // Permit error and root endpoints for proper error handling
                 .requestMatchers("/", "/error").permitAll()
-                // Permit endpoints for OAuth & Auth controllers.
-                .requestMatchers("/auth/**", "/oauth2/**").permitAll()
-                // All other requests must be authenticated.
+                // Permit endpoints for OAuth & Auth controllers
+                .requestMatchers("/auth/**", "/oauth2/**", "/api/auth/**", "/auth/discord/authorize", "/oauth2/callback/discord").permitAll()
+                // All other requests require authentication
                 .anyRequest().authenticated())
             .addFilterBefore(new JWTAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
 
