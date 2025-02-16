@@ -24,7 +24,7 @@ public class AuthService {
         return jwtTokenProvider.generateToken(userDTO.getId());
     }
     
-    /**
+    /**The project was not built due to "release 23 is not found in the system". Fix the problem, then try refreshing this project and building it since it may be inconsistent
      * Validates the provided JWT token.
      *
      * @param token - The JWT token to validate.
