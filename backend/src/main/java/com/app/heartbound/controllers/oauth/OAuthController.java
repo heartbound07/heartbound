@@ -4,10 +4,16 @@ import java.math.BigInteger;
 import java.security.SecureRandom;
 import jakarta.servlet.http.HttpSession;
 
+import com.app.heartbound.dto.UserDTO;
 import com.app.heartbound.dto.oauth.OAuthRefreshRequest;
 import com.app.heartbound.dto.oauth.OAuthTokenResponse;
-import com.app.heartbound.dto.oauth.UserDTO;
 import com.app.heartbound.services.oauth.OAuthService;
+import com.app.heartbound.services.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -48,8 +54,15 @@ public class OAuthController {
     private static final String SESSION_STATE = "DISCORD_OAUTH_STATE";
 
     @Autowired
-    private OAuthService oauthService;  // Handles both token exchanges and user info retrieval
+    private OAuthService oauthService;  // Handles token exchange and user info retrieval
 
+    @Autowired
+    private UserService userService; // Inject UserService to persist user details
+
+    @Operation(summary = "Authorize Discord User", description = "Generates a CSRF token and redirects the user to Discord for authorization")
+    @ApiResponses({
+        @ApiResponse(responseCode = "302", description = "Redirects to Discord authorization endpoint")
+    })
     @GetMapping("/auth/discord/authorize")
     public RedirectView authorize(HttpSession session) {
         // Generate a secure random state token for CSRF protection.
@@ -67,10 +80,18 @@ public class OAuthController {
         return new RedirectView(redirectUrl);
     }
 
+    @Operation(summary = "Discord OAuth Callback", description = "Handles the callback from Discord, exchanges code for a token, retrieves user info, and persists the user")
+    @ApiResponses({
+        @ApiResponse(responseCode = "302", description = "Redirects to dashboard on successful login"),
+        @ApiResponse(responseCode = "400", description = "Returns error if required parameters are missing or invalid")
+    })
     @GetMapping("/oauth2/callback/discord")
     public RedirectView callback(
+            @Parameter(description = "Authorization code returned from Discord", required = false)
             @RequestParam(name = "code", required = false) String code,
+            @Parameter(description = "CSRF state token", required = false)
             @RequestParam(name = "state", required = false) String state,
+            @Parameter(description = "Error response from Discord", required = false)
             @RequestParam(name = "error", required = false) String error,
             HttpSession session) {
 
@@ -123,16 +144,23 @@ public class OAuthController {
         try {
             userDTO = oauthService.getUserInfo(tokenResponse.getAccessToken());
             System.out.println("User details retrieved: " + userDTO);
-            // TODO: Use userDTO to create/update your local user records or start a user session
         } catch (Exception e) {
             System.err.println("Failed to retrieve user details: " + e.getMessage());
             return new RedirectView("/login?error=User+information+retrieval+failed");
         }
-        
+
+        // Persist the user details locally using UserService
+        userService.createOrUpdateUser(userDTO);
+
         // Redirect to dashboard (or any post-login page)
         return new RedirectView("/dashboard");
     }
-    
+
+    @Operation(summary = "Refresh Discord OAuth Token", description = "Refreshes the Discord access token using a provided refresh token")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Returns new access token"),
+        @ApiResponse(responseCode = "400", description = "Token refresh failed")
+    })
     @PostMapping("/oauth2/refresh/discord")
     public ResponseEntity<OAuthTokenResponse> refreshToken(@RequestBody OAuthRefreshRequest refreshRequest) {
         try {

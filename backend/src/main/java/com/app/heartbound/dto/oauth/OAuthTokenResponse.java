@@ -1,49 +1,35 @@
 package com.app.heartbound.dto.oauth;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Schema(description = "OAuth token response containing access token, refresh token, expiration time, and scope details.")
 public class OAuthTokenResponse {
-    private String access_token;
-    private String token_type;
-    private int expires_in;
-    private String refresh_token;
+
+    @JsonProperty("access_token")
+    @Schema(description = "Access token issued by the OAuth provider", example = "abcd1234")
+    private String accessToken;
+
+    @JsonProperty("token_type")
+    @Schema(description = "Token type (e.g., bearer)", example = "bearer")
+    private String tokenType;
+
+    @JsonProperty("expires_in")
+    @Schema(description = "Expiration duration of the access token in seconds", example = "3600")
+    private int expiresIn;
+
+    @JsonProperty("refresh_token")
+    @Schema(description = "Refresh token used to obtain new access tokens", example = "refresh1234")
+    private String refreshToken;
+
+    @Schema(description = "Scope of the access token", example = "identify email")
     private String scope;
-
-    public String getAccessToken() {
-        return access_token;
-    }
-
-    public void setAccessToken(String access_token) {
-        this.access_token = access_token;
-    }
-
-    public String getTokenType() {
-        return token_type;
-    }
-
-    public void setTokenType(String token_type) {
-        this.token_type = token_type;
-    }
-
-    public int getExpiresIn() {
-        return expires_in;
-    }
-
-    public void setExpiresIn(int expires_in) {
-        this.expires_in = expires_in;
-    }
-
-    public String getRefreshToken() {
-        return refresh_token;
-    }
-
-    public void setRefreshToken(String refresh_token) {
-        this.refresh_token = refresh_token;
-    }
-
-    public String getScope() {
-        return scope;
-    }
-
-    public void setScope(String scope) {
-        this.scope = scope;
-    }
 }
