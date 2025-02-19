@@ -13,7 +13,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -33,6 +34,8 @@ import org.springframework.web.servlet.view.RedirectView;
 
 @RestController
 public class OAuthController {
+
+    private static final Logger logger = LoggerFactory.getLogger(OAuthController.class);
 
     @Value("${discord.client-id}")
     private String discordClientId;
@@ -77,6 +80,7 @@ public class OAuthController {
                 discordScopes.replace(" ", "%20"),
                 state);
 
+        logger.info("Redirecting to Discord OAuth authorization with URL: {}", redirectUrl);
         return new RedirectView(redirectUrl);
     }
 
@@ -97,20 +101,20 @@ public class OAuthController {
 
         // Handle error returned from Discord
         if (error != null) {
-            System.err.println("Discord OAuth error: " + error);
+            logger.error("Discord OAuth error received: {}", error);
             return new RedirectView("/login?error=Discord+authorization+failed");
         }
 
         // Validate required parameters
         if (code == null || state == null) {
-            System.err.println("Missing required OAuth parameters.");
+            logger.error("Missing required OAuth parameters: code or state is null.");
             return new RedirectView("/login?error=Missing+code+or+state");
         }
 
         // Verify state token to prevent CSRF
         String sessionState = (String) session.getAttribute(SESSION_STATE);
         if (sessionState == null || !state.equals(sessionState)) {
-            System.err.println("Invalid state parameter. Possible CSRF detected.");
+            logger.error("Invalid state parameter. Possible CSRF detected. Received state: {}, expected: {}", state, sessionState);
             return new RedirectView("/login?error=Invalid+state");
         }
         // Remove state after validation
@@ -129,30 +133,30 @@ public class OAuthController {
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
 
-        // Exchange the authorization code for an access token
-        OAuthTokenResponse tokenResponse = null;
+        OAuthTokenResponse tokenResponse;
         try {
             tokenResponse = restTemplate.postForObject(DISCORD_TOKEN_URL, requestEntity, OAuthTokenResponse.class);
-            System.out.println("Token exchange successful. Access token: " + tokenResponse.getAccessToken());
+            logger.info("Token exchange successful. Access token acquired.");
         } catch (Exception e) {
-            System.err.println("Token exchange failed: " + e.getMessage());
+            logger.error("Token exchange failed: {}", e.getMessage());
             return new RedirectView("/login?error=Token+exchange+failed");
         }
 
         // Retrieve user details using the access token
-        UserDTO userDTO = null;
+        UserDTO userDTO;
         try {
             userDTO = oauthService.getUserInfo(tokenResponse.getAccessToken());
-            System.out.println("User details retrieved: " + userDTO);
+            logger.info("User details retrieved successfully: {}", userDTO);
         } catch (Exception e) {
-            System.err.println("Failed to retrieve user details: " + e.getMessage());
+            logger.error("Failed to retrieve user details: {}", e.getMessage());
             return new RedirectView("/login?error=User+information+retrieval+failed");
         }
 
         // Persist the user details locally using UserService
         userService.createOrUpdateUser(userDTO);
+        logger.info("User information persisted successfully for user: {}", userDTO.getUsername());
 
-        // Redirect to dashboard (or any post-login page)
+        // Redirect to dashboard on successful login
         return new RedirectView("/dashboard");
     }
 
@@ -165,10 +169,10 @@ public class OAuthController {
     public ResponseEntity<OAuthTokenResponse> refreshToken(@RequestBody OAuthRefreshRequest refreshRequest) {
         try {
             OAuthTokenResponse tokenResponse = oauthService.refreshAccessToken(refreshRequest);
-            System.out.println("Token refresh successful. New access token: " + tokenResponse.getAccessToken());
+            logger.info("Token refresh successful. New access token acquired.");
             return ResponseEntity.ok(tokenResponse);
         } catch (Exception e) {
-            System.err.println("Token refresh failed: " + e.getMessage());
+            logger.error("Token refresh failed: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
     }

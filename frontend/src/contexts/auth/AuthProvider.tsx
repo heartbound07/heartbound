@@ -188,16 +188,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   }, [clearAuthState, refreshToken, scheduleTokenRefresh]);
 
   const startDiscordOAuth = useCallback(async () => {
-    try {
-      const response = await fetch('/api/auth/discord/authorize');
-      const { url } = await response.json();
-      window.location.href = url;
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: 'Failed to start Discord OAuth flow',
-      }));
-    }
+    window.location.href = AUTH_ENDPOINTS.DISCORD_AUTHORIZE;
   }, []);
 
   const handleDiscordCallback = useCallback(async (code: string, state: string) => {
