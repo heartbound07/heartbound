@@ -20,13 +20,8 @@ services:
       - "8080:8080"
     depends_on:
       - postgres
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/heartbound
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
-      JWT_SECRET: your_development_secret_key
-      DISCORD_CLIENT_ID: your_discord_client_id
-      DISCORD_CLIENT_SECRET: your_discord_client_secret
+    env_file:
+      - ./backend/.env
 
   frontend:
     build:
@@ -37,8 +32,8 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    environment:
-      VITE_API_URL: http://localhost:8080/api
+    env_file:
+      - ./frontend/.env
 
 volumes:
   postgres_data:

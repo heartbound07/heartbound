@@ -14,6 +14,7 @@
     "@rollup/rollup-linux-x64-gnu": "npm:@rollup/wasm-node",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.0",
+    "frontend": "file:",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.0",
