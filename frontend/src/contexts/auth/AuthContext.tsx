@@ -14,5 +14,6 @@ export const AuthContext = createContext<AuthContextValue>({
   clearError: () => {},
   startDiscordOAuth: async () => {},
   handleDiscordCallback: async () => {},
+  handleDiscordCallbackWithToken: async () => {},
   updateProfile: () => {},
 }); 

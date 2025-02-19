@@ -38,6 +38,7 @@ export interface AuthContextValue extends AuthState {
   clearError: () => void;
   startDiscordOAuth: () => Promise<void>;
   handleDiscordCallback: (code: string, state: string) => Promise<void>;
+  handleDiscordCallbackWithToken: (accessToken: string) => Promise<void>;
   updateProfile: (profile: ProfileStatus) => void;
 }
 

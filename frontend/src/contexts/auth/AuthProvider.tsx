@@ -210,6 +210,27 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
   }, [handleAuthResponse]);
 
+  const handleDiscordCallbackWithToken = useCallback(async (accessToken: string) => {
+    // Decode the token using the existing helper
+    const decodedToken = parseJwt(accessToken);
+    // Extract user info from the decoded token (adjust as needed):
+    const user: UserInfo = {
+      id: decodedToken.sub || 'unknown',
+      username: decodedToken.username || 'unknown',
+      email: decodedToken.email || 'unknown',
+    };
+    // Persist auth state with the received access token; here refreshToken is left as an empty string
+    persistAuthState(user, { accessToken, refreshToken: '' });
+    scheduleTokenRefresh(decodedToken.exp - Math.floor(Date.now() / 1000));
+    setState(prev => ({
+      ...prev,
+      user,
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+    }));
+  }, [persistAuthState, scheduleTokenRefresh]);
+
   const updateProfile = useCallback((profile: ProfileStatus) => {
     setState(prev => ({
       ...prev,
@@ -233,8 +254,9 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     clearError: () => setState(prev => ({ ...prev, error: null })),
     startDiscordOAuth,
     handleDiscordCallback,
+    handleDiscordCallbackWithToken,
     updateProfile,
-  }), [state, login, logout, refreshToken, startDiscordOAuth, handleDiscordCallback, updateProfile]);
+  }), [state, login, logout, refreshToken, startDiscordOAuth, handleDiscordCallback, handleDiscordCallbackWithToken, updateProfile]);
 
   return (
     <AuthContext.Provider value={contextValue}>
