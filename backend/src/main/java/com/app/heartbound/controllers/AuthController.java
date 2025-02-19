@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +17,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthService authService;
 
@@ -31,7 +35,9 @@ public class AuthController {
     })
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody UserDTO userDTO) {
+        logger.info("Login attempt for user: {}", userDTO.getUsername());
         String token = authService.generateTokenForUser(userDTO);
+        logger.info("JWT token generated successfully for user: {}", userDTO.getUsername());
         return ResponseEntity.ok(Map.of("token", token));
     }
 
@@ -43,6 +49,7 @@ public class AuthController {
     })
     @PostMapping("/logout")
     public ResponseEntity<?> logout() {
+        logger.info("Logout request received.");
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
 
@@ -57,10 +64,13 @@ public class AuthController {
     })
     @GetMapping("/validate")
     public ResponseEntity<?> validateToken(@RequestParam("token") String token) {
+        logger.info("Validating provided JWT token.");
         if (authService.validateToken(token)) {
             String userId = authService.getUserIdFromToken(token);
+            logger.info("Token validation successful for userId: {}", userId);
             return ResponseEntity.ok(Map.of("valid", true, "userId", userId));
         } else {
+            logger.warn("Token validation failed.");
             return ResponseEntity.badRequest().body(Map.of("valid", false));
         }
     }
