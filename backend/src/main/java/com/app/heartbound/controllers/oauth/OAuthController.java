@@ -3,6 +3,8 @@ package com.app.heartbound.controllers.oauth;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import jakarta.servlet.http.HttpSession;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import com.app.heartbound.dto.UserDTO;
 import com.app.heartbound.dto.oauth.OAuthRefreshRequest;
@@ -156,8 +158,10 @@ public class OAuthController {
         userService.createOrUpdateUser(userDTO);
         logger.info("User information persisted successfully for user: {}", userDTO.getUsername());
 
-        // Redirect to dashboard on successful login
-        return new RedirectView("/dashboard");
+        // After persisting the user details
+        String tokenParam = URLEncoder.encode(tokenResponse.getAccessToken(), StandardCharsets.UTF_8);
+        String frontendRedirectUrl = String.format("http://localhost:3000/auth/discord/callback?accessToken=%s", tokenParam);
+        return new RedirectView(frontendRedirectUrl);
     }
 
     @Operation(summary = "Refresh Discord OAuth Token", description = "Refreshes the Discord access token using a provided refresh token")
