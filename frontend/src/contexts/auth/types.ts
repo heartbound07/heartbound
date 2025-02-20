@@ -30,7 +30,13 @@ export interface AuthState {
   error: string | null;
 }
 
+export interface TokenPair {
+  accessToken: string;
+  refreshToken: string;
+}
+
 export interface AuthContextValue extends AuthState {
+  tokens: TokenPair | null;
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
@@ -44,11 +50,6 @@ export interface AuthContextValue extends AuthState {
 
 export interface AuthProviderProps {
   children: React.ReactNode;
-}
-
-export interface TokenPair {
-  accessToken: string;
-  refreshToken: string;
 }
 
 export interface DiscordCallbackParams {

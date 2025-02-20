@@ -8,7 +8,7 @@ interface DashboardStats {
 }
 
 export function DashboardPage() {
-  const { user } = useAuth();
+  const { user, tokens } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,8 +16,16 @@ export function DashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Replace with actual API call
-        const response = await fetch('/api/dashboard/stats');
+        const response = await fetch('/api/dashboard/stats', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${tokens?.accessToken}`
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`Error: ${response.statusText}`);
+        }
         const data = await response.json();
         setStats(data);
       } catch (err) {
@@ -28,7 +36,7 @@ export function DashboardPage() {
     };
 
     fetchStats();
-  }, []);
+  }, [tokens]);
 
   if (isLoading) {
     return <div className="dashboard-loading">Loading dashboard...</div>;

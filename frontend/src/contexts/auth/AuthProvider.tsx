@@ -249,14 +249,15 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     ...state,
     login,
     logout,
-    register: login, // Implement actual registration flow
+    register: login,
     refreshToken,
+    tokens,
     clearError: () => setState(prev => ({ ...prev, error: null })),
     startDiscordOAuth,
     handleDiscordCallback,
     handleDiscordCallbackWithToken,
     updateProfile,
-  }), [state, login, logout, refreshToken, startDiscordOAuth, handleDiscordCallback, handleDiscordCallbackWithToken, updateProfile]);
+  }), [state, login, logout, refreshToken, tokens, startDiscordOAuth, handleDiscordCallback, handleDiscordCallbackWithToken, updateProfile]);
 
   return (
     <AuthContext.Provider value={contextValue}>
