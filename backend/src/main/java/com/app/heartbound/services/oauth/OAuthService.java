@@ -35,7 +35,9 @@ public class OAuthService {
         logger.info("Attempting to refresh access token using provided refresh token.");
         RestTemplate restTemplate = new RestTemplate();
 
-        // Build the request body for token refresh
+        // According to Discord's OAuth documentation,
+        // the refresh token request must include:
+        // client_id, client_secret, grant_type, refresh_token, and redirect_uri.
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("client_id", discordClientId);
         body.add("client_secret", discordClientSecret);
@@ -48,11 +50,22 @@ public class OAuthService {
 
         HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
 
-        OAuthTokenResponse tokenResponse = restTemplate.postForObject(DISCORD_TOKEN_URL, requestEntity, OAuthTokenResponse.class);
-        
+        // Log request parameters (avoid logging sensitive info in production)
+        logger.debug("Sending token refresh request with parameters: client_id={}, refresh_token={}, redirect_uri={}",
+                discordClientId, refreshRequest.getRefreshToken(), discordRedirectUri);
+
+        OAuthTokenResponse tokenResponse = restTemplate.postForObject(
+                DISCORD_TOKEN_URL, requestEntity, OAuthTokenResponse.class);
+
         if (tokenResponse == null) {
             logger.error("Token refresh failed; received null response from Discord.");
             throw new RuntimeException("Token refresh failed; received null response from Discord");
+        }
+        
+        // Ensure that the refresh token is present in the token response
+        if (tokenResponse.getRefreshToken() == null || tokenResponse.getRefreshToken().isEmpty()) {
+            logger.warn("Token exchange did not return a refresh token.");
+            // Optionally, you can throw an error or handle it otherwise.
         }
         
         logger.info("Token refresh successful. New access token acquired.");

@@ -160,9 +160,11 @@ public class OAuthController {
         userService.createOrUpdateUser(userDTO);
         logger.info("User information persisted successfully for user: {}", userDTO.getUsername());
 
-        // After persisting the user details
-        String tokenParam = URLEncoder.encode(tokenResponse.getAccessToken(), StandardCharsets.UTF_8);
-        String frontendRedirectUrl = String.format("http://localhost:3000/auth/discord/callback?accessToken=%s", tokenParam);
+        // After persisting the user details, include both access token and refresh token in the redirect URL
+        String accessTokenParam = URLEncoder.encode(tokenResponse.getAccessToken(), StandardCharsets.UTF_8);
+        String refreshTokenParam = URLEncoder.encode(tokenResponse.getRefreshToken(), StandardCharsets.UTF_8);
+        String frontendRedirectUrl = String.format("http://localhost:3000/auth/discord/callback?accessToken=%s&refreshToken=%s", 
+                accessTokenParam, refreshTokenParam);
         return new RedirectView(frontendRedirectUrl);
     }
 

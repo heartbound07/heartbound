@@ -63,6 +63,14 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     setRefreshTimeout(timeout);
   }, []);
 
+  const parseJwt = (token: string) => {
+    try {
+      return JSON.parse(atob(token.split('.')[1]));
+    } catch {
+      return { exp: 0 };
+    }
+  };
+
   const handleAuthResponse = useCallback(async (response: Response) => {
     if (!response.ok) {
       const errorData = await response.json();
@@ -76,7 +84,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
     const { accessToken, refreshToken, user } = data;
     const decodedToken = parseJwt(accessToken);
-    
+
     persistAuthState(user, { accessToken, refreshToken });
     scheduleTokenRefresh(decodedToken.exp - Math.floor(Date.now() / 1000));
 
@@ -133,11 +141,23 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
       if (!storedAuth) return;
 
-      const { refreshToken } = JSON.parse(storedAuth).tokens;
+      const { refreshToken: storedRefreshToken } = JSON.parse(storedAuth).tokens;
+      if (!storedRefreshToken) {
+        clearAuthState();
+        return;
+      }
+
       const response = await fetch(AUTH_ENDPOINTS.REFRESH, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${refreshToken}` },
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: storedRefreshToken }),
       });
+
+      // Explicitly check if the refresh token request failed
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Error refreshing token: ${response.statusText}`);
+      }
 
       await handleAuthResponse(response);
     } catch (error) {
@@ -211,16 +231,19 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   }, [handleAuthResponse]);
 
   const handleDiscordCallbackWithToken = useCallback(async (accessToken: string) => {
-    // Decode the token using the existing helper
+    // Retrieve the refresh token from the URL query parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const refreshTokenFromUrl = urlParams.get('refreshToken');
+    if (!refreshTokenFromUrl) {
+      throw new Error('Missing refresh token in OAuth callback');
+    }
     const decodedToken = parseJwt(accessToken);
-    // Extract user info from the decoded token (adjust as needed):
     const user: UserInfo = {
       id: decodedToken.sub || 'unknown',
       username: decodedToken.username || 'unknown',
       email: decodedToken.email || 'unknown',
     };
-    // Persist auth state with the received access token; here refreshToken is left as an empty string
-    persistAuthState(user, { accessToken, refreshToken: '' });
+    persistAuthState(user, { accessToken, refreshToken: refreshTokenFromUrl });
     scheduleTokenRefresh(decodedToken.exp - Math.floor(Date.now() / 1000));
     setState(prev => ({
       ...prev,
@@ -265,13 +288,5 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
-function parseJwt(token: string) {
-  try {
-    return JSON.parse(atob(token.split('.')[1]));
-  } catch {
-    return { exp: 0 };
-  }
-}
 
 export { AuthProvider }; 

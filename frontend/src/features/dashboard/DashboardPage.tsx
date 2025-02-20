@@ -24,12 +24,16 @@ export function DashboardPage() {
           }
         });
         if (!response.ok) {
+          if (response.status === 401) {
+            // If unauthorized, likely due to an expired session
+            throw new Error('Session expired. Please log in again.');
+          }
           throw new Error(`Error: ${response.statusText}`);
         }
         const data = await response.json();
         setStats(data);
       } catch (err) {
-        setError('Failed to load dashboard data');
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
       } finally {
         setIsLoading(false);
       }
