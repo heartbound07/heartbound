@@ -7,10 +7,10 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
 import com.app.heartbound.dto.UserDTO;
-import com.app.heartbound.dto.oauth.OAuthRefreshRequest;
 import com.app.heartbound.dto.oauth.OAuthTokenResponse;
 import com.app.heartbound.services.oauth.OAuthService;
 import com.app.heartbound.services.UserService;
+import com.app.heartbound.config.security.JWTTokenProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -21,15 +21,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
@@ -65,6 +61,9 @@ public class OAuthController {
 
     @Autowired
     private UserService userService; // Inject UserService to persist user details
+
+    @Autowired
+    private JWTTokenProvider jwtTokenProvider;
 
     @Operation(summary = "Authorize Discord User", description = "Generates a CSRF token and redirects the user to Discord for authorization")
     @ApiResponses({
@@ -103,28 +102,23 @@ public class OAuthController {
             @RequestParam(name = "error", required = false) String error,
             HttpSession session) {
 
-        // Handle error returned from Discord
         if (error != null) {
             logger.error("Discord OAuth error received: {}", error);
             return new RedirectView("/login?error=Discord+authorization+failed");
         }
 
-        // Validate required parameters
         if (code == null || state == null) {
             logger.error("Missing required OAuth parameters: code or state is null.");
             return new RedirectView("/login?error=Missing+code+or+state");
         }
 
-        // Verify state token to prevent CSRF
         String sessionState = (String) session.getAttribute(SESSION_STATE);
         if (sessionState == null || !state.equals(sessionState)) {
-            logger.error("Invalid state parameter. Possible CSRF detected. Received state: {}, expected: {}", state, sessionState);
+            logger.error("Invalid state parameter. Possible CSRF detected.");
             return new RedirectView("/login?error=Invalid+state");
         }
-        // Remove state after validation
         session.removeAttribute(SESSION_STATE);
 
-        // Prepare token exchange request
         RestTemplate restTemplate = new RestTemplate();
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("client_id", discordClientId);
@@ -140,13 +134,16 @@ public class OAuthController {
         OAuthTokenResponse tokenResponse;
         try {
             tokenResponse = restTemplate.postForObject(DISCORD_TOKEN_URL, requestEntity, OAuthTokenResponse.class);
+            if (tokenResponse == null || tokenResponse.getAccessToken() == null) {
+                logger.error("Token exchange failed: received null token response");
+                return new RedirectView("/login?error=Token+exchange+failed");
+            }
             logger.info("Token exchange successful. Access token acquired.");
         } catch (Exception e) {
             logger.error("Token exchange failed: {}", e.getMessage());
             return new RedirectView("/login?error=Token+exchange+failed");
         }
 
-        // Retrieve user details using the access token
         UserDTO userDTO;
         try {
             userDTO = oauthService.getUserInfo(tokenResponse.getAccessToken());
@@ -156,32 +153,13 @@ public class OAuthController {
             return new RedirectView("/login?error=User+information+retrieval+failed");
         }
 
-        // Persist the user details locally using UserService
         userService.createOrUpdateUser(userDTO);
         logger.info("User information persisted successfully for user: {}", userDTO.getUsername());
 
-        // After persisting the user details, include both access token and refresh token in the redirect URL
-        String accessTokenParam = URLEncoder.encode(tokenResponse.getAccessToken(), StandardCharsets.UTF_8);
-        String refreshTokenParam = URLEncoder.encode(tokenResponse.getRefreshToken(), StandardCharsets.UTF_8);
-        String frontendRedirectUrl = String.format("http://localhost:3000/auth/discord/callback?accessToken=%s&refreshToken=%s", 
-                accessTokenParam, refreshTokenParam);
+        // Generate a JWT using JWTTokenProvider with the user id.
+        String jwtToken = jwtTokenProvider.generateToken(userDTO.getId());
+        String jwtTokenParam = URLEncoder.encode(jwtToken, StandardCharsets.UTF_8);
+        String frontendRedirectUrl = String.format("http://localhost:3000/auth/discord/callback?token=%s", jwtTokenParam);
         return new RedirectView(frontendRedirectUrl);
-    }
-
-    @Operation(summary = "Refresh Discord OAuth Token", description = "Refreshes the Discord access token using a provided refresh token")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Returns new access token"),
-        @ApiResponse(responseCode = "400", description = "Token refresh failed")
-    })
-    @PostMapping("/oauth2/refresh/discord")
-    public ResponseEntity<OAuthTokenResponse> refreshToken(@RequestBody OAuthRefreshRequest refreshRequest) {
-        try {
-            OAuthTokenResponse tokenResponse = oauthService.refreshAccessToken(refreshRequest);
-            logger.info("Token refresh successful. New access token acquired.");
-            return ResponseEntity.ok(tokenResponse);
-        } catch (Exception e) {
-            logger.error("Token refresh failed: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
-        }
     }
 }

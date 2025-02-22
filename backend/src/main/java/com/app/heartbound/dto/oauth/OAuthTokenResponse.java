@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "OAuth token response containing access token, refresh token, expiration time, and scope details.")
+@Schema(description = "OAuth token response containing access token, expiration time, and scope details.")
 public class OAuthTokenResponse {
 
     @JsonProperty("access_token")
@@ -25,10 +25,6 @@ public class OAuthTokenResponse {
     @JsonProperty("expires_in")
     @Schema(description = "Expiration duration of the access token in seconds", example = "3600")
     private int expiresIn;
-
-    @JsonProperty("refresh_token")
-    @Schema(description = "Refresh token used to obtain new access tokens", example = "refresh1234")
-    private String refreshToken;
 
     @Schema(description = "Scope of the access token", example = "identify email")
     private String scope;

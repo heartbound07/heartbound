@@ -78,14 +78,14 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
 
     const data = await response.json();
-    if (!data.accessToken || !data.refreshToken || !isUserInfo(data.user)) {
+    if (!data.accessToken || !isUserInfo(data.user)) {
       throw new Error('Invalid authentication response');
     }
 
-    const { accessToken, refreshToken, user } = data;
+    const { accessToken, user } = data;
     const decodedToken = parseJwt(accessToken);
 
-    persistAuthState(user, { accessToken, refreshToken });
+    persistAuthState(user, { accessToken });
     scheduleTokenRefresh(decodedToken.exp - Math.floor(Date.now() / 1000));
 
     setState(prev => ({
@@ -100,21 +100,22 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const login = useCallback(async (credentials: LoginRequest) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(AUTH_ENDPOINTS.LOGIN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
       });
       await handleAuthResponse(response);
     } catch (error) {
+      clearAuthState();
       setState(prev => ({
         ...prev,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Login failed',
+        error: error instanceof Error ? error.message : 'Session initialization failed',
       }));
       throw error;
     }
-  }, [handleAuthResponse]);
+  }, [clearAuthState, handleAuthResponse]);
 
   const logout = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true }));
@@ -137,39 +138,15 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   }, [clearAuthState, refreshTimeout, tokens]);
 
   const refreshToken = useCallback(async () => {
-    try {
-      const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (!storedAuth) return;
-
-      const { tokens } = JSON.parse(storedAuth);
-      const storedRefreshToken = tokens?.refreshToken;
-      if (!storedRefreshToken) {
-        clearAuthState();
-        return;
-      }
-
-      const response = await fetch(AUTH_ENDPOINTS.REFRESH, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: storedRefreshToken }),
-      });
-
-      // Explicitly check if the refresh token request failed (e.g. 400 Bad Request)
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Error refreshing token: ${response.statusText}`);
-      }
-
-      await handleAuthResponse(response);
-    } catch (error) {
-      clearAuthState();
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: 'Session expired. Please log in again.',
-      }));
-    }
-  }, [clearAuthState, handleAuthResponse]);
+    // With a single JWT implementation, token refreshing is not supported.
+    // In the event of an expired token, we clear the auth state so users must re-authenticate.
+    clearAuthState();
+    setState(prev => ({
+      ...prev,
+      isLoading: false,
+      error: 'Session expired. Please log in again.',
+    }));
+  }, [clearAuthState]);
 
   const initializeAuth = useCallback(async () => {
     try {
@@ -232,19 +209,14 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   }, [handleAuthResponse]);
 
   const handleDiscordCallbackWithToken = useCallback(async (accessToken: string) => {
-    // Retrieve the refresh token from the URL query parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const refreshTokenFromUrl = urlParams.get('refreshToken');
-    if (!refreshTokenFromUrl) {
-      throw new Error('Missing refresh token in OAuth callback');
-    }
+    // Use the provided JWT directly without expecting a refresh token
     const decodedToken = parseJwt(accessToken);
     const user: UserInfo = {
       id: decodedToken.sub || 'unknown',
       username: decodedToken.username || 'unknown',
       email: decodedToken.email || 'unknown',
     };
-    persistAuthState(user, { accessToken, refreshToken: refreshTokenFromUrl });
+    persistAuthState(user, { accessToken });
     scheduleTokenRefresh(decodedToken.exp - Math.floor(Date.now() / 1000));
     setState(prev => ({
       ...prev,
@@ -274,14 +246,14 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     register: login,
-    refreshToken,
+    refreshToken: async () => {}, // No refresh logic used with single JWT
     tokens,
     clearError: () => setState(prev => ({ ...prev, error: null })),
     startDiscordOAuth,
     handleDiscordCallback,
     handleDiscordCallbackWithToken,
     updateProfile,
-  }), [state, login, logout, refreshToken, tokens, startDiscordOAuth, handleDiscordCallback, handleDiscordCallbackWithToken, updateProfile]);
+  }), [state, login, logout, tokens, startDiscordOAuth, handleDiscordCallback, handleDiscordCallbackWithToken, updateProfile]);
 
   return (
     <AuthContext.Provider value={contextValue}>
