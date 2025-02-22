@@ -141,7 +141,8 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
       if (!storedAuth) return;
 
-      const { refreshToken: storedRefreshToken } = JSON.parse(storedAuth).tokens;
+      const { tokens } = JSON.parse(storedAuth);
+      const storedRefreshToken = tokens?.refreshToken;
       if (!storedRefreshToken) {
         clearAuthState();
         return;
@@ -153,7 +154,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         body: JSON.stringify({ refreshToken: storedRefreshToken }),
       });
 
-      // Explicitly check if the refresh token request failed
+      // Explicitly check if the refresh token request failed (e.g. 400 Bad Request)
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || `Error refreshing token: ${response.statusText}`);
