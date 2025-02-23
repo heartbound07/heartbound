@@ -65,8 +65,23 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
   const parseJwt = (token: string) => {
     try {
-      return JSON.parse(atob(token.split('.')[1]));
-    } catch {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        console.error('JWT does not have 3 parts:', token);
+        return { exp: 0 };
+      }
+      const base64UrlPayload = parts[1];
+      console.log('Raw base64Url payload:', base64UrlPayload);
+      // Convert from base64url to base64
+      let base64 = base64UrlPayload.replace(/-/g, '+').replace(/_/g, '/');
+      while (base64.length % 4) {
+        base64 += '=';
+      }
+      const decodedPayload = atob(base64);
+      console.log('Decoded payload string:', decodedPayload);
+      return JSON.parse(decodedPayload);
+    } catch (error) {
+      console.error('Error while decoding JWT:', error);
       return { exp: 0 };
     }
   };
@@ -209,15 +224,20 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   }, [handleAuthResponse]);
 
   const handleDiscordCallbackWithToken = useCallback(async (accessToken: string) => {
-    // Use the provided JWT directly without expecting a refresh token
-    const decodedToken = parseJwt(accessToken);
+    console.log('Raw accessToken from URL:', accessToken);
+    // Explicitly decode the URI component before parsing.
+    const decodedTokenString = decodeURIComponent(accessToken);
+    console.log('Decoded token string after decodeURIComponent:', decodedTokenString);
+    const decodedToken = parseJwt(decodedTokenString);
+    console.log('Final decoded JWT object:', decodedToken);
     const user: UserInfo = {
       id: decodedToken.sub || 'unknown',
       username: decodedToken.username || 'unknown',
       email: decodedToken.email || 'unknown',
       avatar: decodedToken.avatar || '/default-avatar.png',
     };
-    persistAuthState(user, { accessToken });
+    // Persist the token along with the user info.
+    persistAuthState(user, { accessToken: decodedTokenString });
     scheduleTokenRefresh(decodedToken.exp - Math.floor(Date.now() / 1000));
     setState(prev => ({
       ...prev,
