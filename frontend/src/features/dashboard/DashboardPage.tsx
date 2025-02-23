@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/auth';
 import { GameCard } from '@/components/ui/GameCard';
 
+// Import images for game cards
+import valorantImage from '@/assets/images/valorant.jpg';
+import valorantLogo from '@/assets/images/valorant-logo.png';
+
 interface DashboardStats {
   totalPosts: number;
   followers: number;
@@ -22,35 +26,14 @@ export function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Static array of games to be displayed as game cards
+  // Static array of games to be displayed as game cards with imported images
   const games: Game[] = [
     {
       id: 'valorant',
       title: 'Valorant',
-      image: '/assets/images/valorant/valorant.jpg',
-      logo: '/assets/images/valorant/valorant-logo.png',
+      image: valorantImage,
+      logo: valorantLogo,
       alt: 'Valorant game'
-    },
-    {
-      id: 'league',
-      title: 'League of Legends',
-      image: '/images/leagueoflegends.jpg',
-      logo: '/images/leagueoflegends-logo.png',
-      alt: 'League of Legends game'
-    },
-    {
-      id: 'rocketleague',
-      title: 'Rocket League',
-      image: '/images/rocketleague.jpg',
-      logo: '/images/rocketleague-logo.png',
-      alt: 'Rocket League game'
-    },
-    {
-      id: 'dota2',
-      title: 'Dota 2',
-      image: '/images/dota2.jpg',
-      logo: '/images/dota2-logo.png',
-      alt: 'Dota 2 game'
     }
   ];
 
@@ -100,9 +83,9 @@ export function DashboardPage() {
             <GameCard
               key={game.id}
               title={game.title}
-              imageSrc={game.image}
-              logoSrc={game.logo}
-              altText={game.alt}
+              image={game.image}
+              logo={game.logo}
+              alt={game.alt}
             />
           ))}
         </div>
