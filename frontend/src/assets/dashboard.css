@@ -2,7 +2,7 @@
 
 /* Container for the entire dashboard */
 .dashboard-container {
-  @apply min-h-screen w-full bg-gradient-to-br from-indigo-800 to-purple-800 p-10 space-y-8 relative;
+  @apply min-h-screen w-full bg-gradient-to-br from-[#6B5BE6] to-[#8878f0] p-10 space-y-8 relative;
 }
 
 /* Navigation panel with a glassmorphic effect */

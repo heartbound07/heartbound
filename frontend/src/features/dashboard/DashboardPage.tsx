@@ -24,9 +24,12 @@ interface Game {
 /**
  * DashboardPage
  *
- * This page now features a more prominent greeting header,
+ * This page features a prominent greeting header,
  * refined grid layouts for game cards and statistic cards,
- * and updated card styles to match our modern design guidelines.
+ * and updated styles.
+ * 
+ * With this update, the background is provided by the DashboardLayout,
+ * which uses the same gradient theme as LoginPage.
  */
 export function DashboardPage() {
   const { user, tokens } = useAuth();
@@ -34,7 +37,7 @@ export function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Static array of games to be displayed as game cards with imported images
+  // Static array of games to be displayed
   const games: Game[] = [
     {
       id: 'valorant',
@@ -55,9 +58,9 @@ export function DashboardPage() {
             'Authorization': `Bearer ${tokens?.accessToken}`
           }
         });
+
         if (!response.ok) {
           if (response.status === 401) {
-            // If unauthorized, likely due to an expired session
             throw new Error('Session expired. Please log in again.');
           }
           throw new Error(`Error: ${response.statusText}`);
