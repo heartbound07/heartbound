@@ -1,13 +1,20 @@
 import { Outlet } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DashboardNavigation } from './DashboardNavigation';
+import '@/assets/dashboard.css';
 
+/**
+ * DashboardLayout
+ *
+ * The outer-most container for the dashboard. It now leverages updated container classes
+ * (defined in dashboard.css) for a modern, spacious, and responsive layout.
+ */
 export function DashboardLayout() {
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen bg-gradient-to-br from-[#6B5BE6] to-[#8878f0]">
+      <div className="dashboard-container">
         <DashboardNavigation />
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="dashboard-content overflow-y-auto">
           <Outlet />
         </main>
       </div>

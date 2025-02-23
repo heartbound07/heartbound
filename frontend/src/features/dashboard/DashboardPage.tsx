@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/auth';
 import { GameCard } from '@/components/ui/GameCard';
+import '@/assets/dashboard.css';
 
 // Import images for game cards
 import valorantImage from '@/assets/images/valorant.jpg';
@@ -20,6 +21,13 @@ interface Game {
   alt: string;
 }
 
+/**
+ * DashboardPage
+ *
+ * This page now features a more prominent greeting header,
+ * refined grid layouts for game cards and statistic cards,
+ * and updated card styles to match our modern design guidelines.
+ */
 export function DashboardPage() {
   const { user, tokens } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -67,16 +75,17 @@ export function DashboardPage() {
   }, [tokens]);
 
   if (isLoading) {
-    return <div className="dashboard-loading">Loading dashboard...</div>;
+    return <div className="dashboard-loading text-white text-center mt-8">Loading dashboard...</div>;
   }
 
   return (
     <>
-      <h1 className="text-4xl font-grandstander text-white">
+      <h1 className="dashboard-greeting animate-fadeSlideIn font-grandstander text-center text-5xl font-bold text-white mb-6">
         Welcome back, {user?.username}!
       </h1>
 
       <section className="games-section">
+        <h2 className="games-title">Choose Your Game</h2>
         <div className="games-grid">
           {games.map((game) => (
             <GameCard
@@ -90,21 +99,23 @@ export function DashboardPage() {
         </div>
       </section>
 
-      <div className="stats-grid mt-8">
-        {error && <div className="dashboard-error">{error}</div>}
+      {/*
+      <div className="stats-grid mt-10">
+        {error && <div className="dashboard-error text-red-400">{error}</div>}
         <div className="dashboard-card">
-          <h3>Total Posts</h3>
-          <p>{stats?.totalPosts || 0}</p>
+          <h3 className="card-title text-lg font-semibold mb-2">Total Posts</h3>
+          <p className="card-value text-2xl">{stats?.totalPosts || 0}</p>
         </div>
         <div className="dashboard-card">
-          <h3>Followers</h3>
-          <p>{stats?.followers || 0}</p>
+          <h3 className="card-title text-lg font-semibold mb-2">Followers</h3>
+          <p className="card-value text-2xl">{stats?.followers || 0}</p>
         </div>
         <div className="dashboard-card">
-          <h3>Following</h3>
-          <p>{stats?.following || 0}</p>
+          <h3 className="card-title text-lg font-semibold mb-2">Following</h3>
+          <p className="card-value text-2xl">{stats?.following || 0}</p>
         </div>
       </div>
+      */}
     </>
   );
 } 
