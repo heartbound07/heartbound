@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/auth';
 import { GameCard } from '@/components/ui/GameCard';
 import '@/assets/dashboard.css';
+import '@/assets/animations.css';
 
 // Import images for game cards
 import valorantImage from '@/assets/images/valorant.jpg';
@@ -36,6 +37,7 @@ export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [shouldSlideOut, setShouldSlideOut] = useState(false);
 
   // Static array of games to be displayed
   const games: Game[] = [
@@ -77,18 +79,26 @@ export function DashboardPage() {
     fetchStats();
   }, [tokens]);
 
+  // Trigger slide-out after 5 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShouldSlideOut(true);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
   if (isLoading) {
     return <div className="dashboard-loading text-white text-center mt-8">Loading dashboard...</div>;
   }
 
   return (
     <>
-      <h1 className="dashboard-greeting animate-fadeSlideIn font-grandstander text-center text-5xl font-bold text-white mb-6">
+      <h1 className={`dashboard-greeting ${shouldSlideOut ? "animate-fadeSlideOut" : "animate-fadeSlideIn"} font-grandstander text-center text-5xl font-bold text-white mb-6`}>
         Welcome back, {user?.username}!
       </h1>
 
       <section className="games-section">
-        <h2 className="games-title">Choose Your Game</h2>
+        <h2 className="games-title animate-fadeSlideIn">Choose Your Game</h2>
         <div className="games-grid">
           {games.map((game) => (
             <GameCard

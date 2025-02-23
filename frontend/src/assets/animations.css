@@ -1,0 +1,61 @@
+@keyframes fadeSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeSlideIn {
+  animation: fadeSlideIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeSlideOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+.animate-fadeSlideOut {
+  animation: fadeSlideOut 0.5s ease-out forwards;
+}
+
+/* Slide right animations for DashboardNavigation */
+
+@keyframes slideRightIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slideRightIn {
+  animation: slideRightIn 0.5s ease-out forwards;
+}
+
+@keyframes slideRightOut {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
+.animate-slideRightOut {
+  animation: slideRightOut 0.5s ease-out forwards;
+} 

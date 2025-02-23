@@ -25,7 +25,7 @@ export function DashboardNavigation() {
   };
 
   return (
-    <nav className="dashboard-nav flex flex-col h-full">
+    <nav className="dashboard-nav flex flex-col h-full animate-slideRightIn">
       <div className="user-info flex items-center gap-3 mb-8 p-4">
         <img 
           src={user?.avatar || '/default-avatar.png'} 

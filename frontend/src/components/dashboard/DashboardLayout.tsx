@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DashboardNavigation } from './DashboardNavigation';
 import '@/assets/dashboard.css';
+import '@/assets/animations.css';
 
 /**
  * DashboardLayout
