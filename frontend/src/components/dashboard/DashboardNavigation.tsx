@@ -1,6 +1,10 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth';
 import '@/assets/dashboard.css';
+import { MdDashboard } from 'react-icons/md';
+import { FaUserCircle } from 'react-icons/fa';
+import { IoSettingsSharp } from 'react-icons/io5';
+import { FiLogOut } from 'react-icons/fi';
 
 /**
  * DashboardNavigation
@@ -14,9 +18,9 @@ export function DashboardNavigation() {
   const { logout, user } = useAuth();
 
   const navItems = [
-    { path: '/dashboard', label: 'Overview' },
-    { path: '/dashboard/profile', label: 'Profile' },
-    { path: '/dashboard/settings', label: 'Settings' },
+    { path: '/dashboard', label: 'Overview', icon: <MdDashboard size={20} /> },
+    { path: '/dashboard/profile', label: 'Profile', icon: <FaUserCircle size={20} /> },
+    { path: '/dashboard/settings', label: 'Settings', icon: <IoSettingsSharp size={20} /> },
   ];
 
   const handleLogout = async () => {
@@ -42,12 +46,14 @@ export function DashboardNavigation() {
             onClick={() => navigate(item.path)}
             className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
           >
+            <span className="mr-2">{item.icon}</span>
             {item.label}
           </button>
         ))}
       </div>
 
-      <button onClick={handleLogout} className="logout-button">
+      <button onClick={handleLogout} className="logout-button flex items-center justify-center gap-2">
+        <FiLogOut size={20} />
         Logout
       </button>
     </nav>
