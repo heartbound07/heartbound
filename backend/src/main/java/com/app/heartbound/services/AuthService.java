@@ -24,7 +24,11 @@ public class AuthService {
      */
     public String generateTokenForUser(UserDTO userDTO) {
         logger.info("Generating JWT token for user with id: {}", userDTO.getId());
-        String token = jwtTokenProvider.generateToken(userDTO.getId());
+        String token = jwtTokenProvider.generateToken(
+                userDTO.getId(),
+                userDTO.getUsername(),
+                userDTO.getEmail()
+        );
         logger.info("JWT token generated successfully for user id: {}", userDTO.getId());
         return token;
     }

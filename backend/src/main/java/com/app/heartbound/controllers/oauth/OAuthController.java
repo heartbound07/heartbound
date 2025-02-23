@@ -156,8 +156,12 @@ public class OAuthController {
         userService.createOrUpdateUser(userDTO);
         logger.info("User information persisted successfully for user: {}", userDTO.getUsername());
 
-        // Generate a JWT using JWTTokenProvider with the user id.
-        String jwtToken = jwtTokenProvider.generateToken(userDTO.getId());
+        // Generate a JWT using JWTTokenProvider with user details.
+        String jwtToken = jwtTokenProvider.generateToken(
+                userDTO.getId(),
+                userDTO.getUsername(),
+                userDTO.getEmail()
+        );
         String jwtTokenParam = URLEncoder.encode(jwtToken, StandardCharsets.UTF_8);
         String frontendRedirectUrl = String.format("http://localhost:3000/auth/discord/callback?token=%s", jwtTokenParam);
         return new RedirectView(frontendRedirectUrl);

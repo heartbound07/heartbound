@@ -77,7 +77,6 @@ export function DashboardPage() {
       </h1>
 
       <section className="games-section">
-        <h2 className="games-title">Featured Games</h2>
         <div className="games-grid">
           {games.map((game) => (
             <GameCard

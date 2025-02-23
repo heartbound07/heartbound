@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 public class JWTTokenProvider {
@@ -25,21 +27,33 @@ public class JWTTokenProvider {
     private long jwtExpirationInMs;
 
     /**
-     * Generates a JWT token for the provided userId.
+     * Generates a JWT token for the provided user details.
      *
-     * @param userId - the user identifier (for example, Discord user id)
+     * @param userId   the user identifier (for example, Discord user id)
+     * @param username the username to be included as a claim
+     * @param email    the email to be included as a claim
      * @return the generated JWT token
      */
-    public String generateToken(String userId) {
+    public String generateToken(String userId, String username, String email) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
-        logger.info("Generating JWT token for user id: {}", userId);
+
+        // Create claims map and add additional user details
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("username", username);
+        claims.put("email", email);
+        // Future claims can be added here (e.g., roles, permissions, etc.)
+
+        logger.info("Generating JWT token for user id: {} with username: {}", userId, username);
+
         String token = Jwts.builder()
+                .setClaims(claims)
                 .setSubject(userId)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(SignatureAlgorithm.HS512, jwtSecret)
                 .compact();
+
         logger.info("JWT token generated successfully for user id: {}", userId);
         return token;
     }
@@ -47,7 +61,7 @@ public class JWTTokenProvider {
     /**
      * Extracts the userId (subject) from the JWT token.
      *
-     * @param token - the JWT token
+     * @param token the JWT token
      * @return the userId stored in the token
      */
     public String getUserIdFromJWT(String token) {
@@ -62,7 +76,7 @@ public class JWTTokenProvider {
     /**
      * Validates the JWT token.
      *
-     * @param token - the JWT token to validate
+     * @param token the JWT token to validate
      * @return true if the token is valid, false otherwise
      */
     public boolean validateToken(String token) {
