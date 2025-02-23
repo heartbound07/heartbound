@@ -215,6 +215,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       id: decodedToken.sub || 'unknown',
       username: decodedToken.username || 'unknown',
       email: decodedToken.email || 'unknown',
+      avatar: decodedToken.avatar || '/default-avatar.png',
     };
     persistAuthState(user, { accessToken });
     scheduleTokenRefresh(decodedToken.exp - Math.floor(Date.now() / 1000));

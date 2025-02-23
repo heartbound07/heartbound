@@ -27,7 +27,8 @@ public class AuthService {
         String token = jwtTokenProvider.generateToken(
                 userDTO.getId(),
                 userDTO.getUsername(),
-                userDTO.getEmail()
+                userDTO.getEmail(),
+                userDTO.getAvatar()
         );
         logger.info("JWT token generated successfully for user id: {}", userDTO.getId());
         return token;

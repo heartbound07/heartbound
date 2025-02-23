@@ -32,9 +32,10 @@ public class JWTTokenProvider {
      * @param userId   the user identifier (for example, Discord user id)
      * @param username the username to be included as a claim
      * @param email    the email to be included as a claim
+     * @param avatar   the avatar URL to be included as a claim
      * @return the generated JWT token
      */
-    public String generateToken(String userId, String username, String email) {
+    public String generateToken(String userId, String username, String email, String avatar) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
 
@@ -42,6 +43,7 @@ public class JWTTokenProvider {
         Map<String, Object> claims = new HashMap<>();
         claims.put("username", username);
         claims.put("email", email);
+        claims.put("avatar", avatar);
         // Future claims can be added here (e.g., roles, permissions, etc.)
 
         logger.info("Generating JWT token for user id: {} with username: {}", userId, username);

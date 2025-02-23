@@ -43,6 +43,20 @@ public class OAuthService {
         UserDTO userDTO = restTemplate.exchange(DISCORD_USER_URL, HttpMethod.GET, entity, UserDTO.class).getBody();
         if (userDTO != null) {
             logger.info("User information retrieved successfully for user id: {}", userDTO.getId());
+            // Build avatar URL using Discord's CDN endpoints.
+            String avatarUrl;
+            if (userDTO.getAvatar() != null && !userDTO.getAvatar().isEmpty()) {
+                // Custom avatar exists
+                avatarUrl = "https://cdn.discordapp.com/avatars/" + userDTO.getId() + "/" + userDTO.getAvatar() + ".png?size=128";
+            } else if (userDTO.getDiscriminator() != null) {
+                // Use default avatar based on discriminator
+                int defaultAvatar = Integer.parseInt(userDTO.getDiscriminator()) % 5;
+                avatarUrl = "https://cdn.discordapp.com/embed/avatars/" + defaultAvatar + ".png";
+            } else {
+                // Fallback to a hardcoded default (should ideally never occur)
+                avatarUrl = "/default-avatar.png";
+            }
+            userDTO.setAvatar(avatarUrl);
         } else {
             logger.error("Failed to retrieve user information; response was null.");
         }

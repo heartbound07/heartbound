@@ -160,7 +160,8 @@ public class OAuthController {
         String jwtToken = jwtTokenProvider.generateToken(
                 userDTO.getId(),
                 userDTO.getUsername(),
-                userDTO.getEmail()
+                userDTO.getEmail(),
+                userDTO.getAvatar()
         );
         String jwtTokenParam = URLEncoder.encode(jwtToken, StandardCharsets.UTF_8);
         String frontendRedirectUrl = String.format("http://localhost:3000/auth/discord/callback?token=%s", jwtTokenParam);
