@@ -1,13 +1,160 @@
+/* Profile Editor Styles */
 .profile-container {
-  @apply max-w-2xl mx-auto p-6;
+  @apply flex min-h-screen flex-col gap-8 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-800/50 p-6 text-white lg:flex-row;
+}
+
+.settings-panel {
+  @apply w-full flex flex-col gap-8 lg:w-1/2;
+}
+
+.settings-card {
+  @apply rounded-xl border border-white/5 bg-black/20 p-6 backdrop-blur-xl;
+}
+
+.settings-title {
+  @apply mb-6 text-lg font-medium text-zinc-200;
+}
+
+.settings-form .form-group {
+  @apply space-y-3;
+}
+
+.form-group {
+  @apply space-y-2;
+}
+
+.form-label {
+  @apply text-xs font-medium text-zinc-400;
+}
+
+.form-input {
+  @apply border-white/10 bg-white/5 text-sm transition-colors focus:border-white/20 focus:bg-white/10 w-full p-2 rounded;
+}
+
+.form-textarea {
+  @apply min-h-[120px] border-white/10 bg-white/5 text-sm transition-colors focus:border-white/20 focus:bg-white/10 w-full p-2 rounded;
+}
+
+.character-count {
+  @apply flex justify-end text-xs text-zinc-500;
+}
+
+/* Avatar group */
+.avatar-group {
+  @apply space-y-3;
+}
+
+.avatar-wrapper {
+  @apply relative h-24 w-24 cursor-pointer rounded-full;
+}
+
+.avatar {
+  @apply h-24 w-24 border-2 border-white/10 transition-all duration-200;
+}
+
+.avatar-overlay {
+  @apply absolute inset-0 flex items-center justify-center rounded-full bg-black/60 transition-opacity duration-200 opacity-0;
+}
+
+.avatar-overlay.visible {
+  @apply opacity-100;
+}
+
+/* Banner group */
+.banner-group {
+  @apply space-y-3;
+}
+
+.banner-wrapper {
+  @apply relative h-32 cursor-pointer overflow-hidden rounded-lg border border-white/10 bg-white/5;
+}
+
+.banner {
+  @apply h-full w-full;
+}
+
+.banner-overlay {
+  @apply absolute inset-0 flex items-center justify-center bg-black/60 transition-opacity duration-200 opacity-0;
+}
+
+.banner-overlay.visible {
+  @apply opacity-100;
+}
+
+/* Banner colors */
+.banner-colors {
+  @apply flex gap-2;
+}
+
+.color-swatch {
+  @apply h-8 w-8 cursor-pointer rounded-full border-2 border-white/10 transition-transform hover:scale-110;
+}
+
+.color-swatch.selected {
+  @apply border-white/20;
+}
+
+/* Save button */
+.save-button {
+  @apply mt-4;
+}
+
+/* Preview Panel */
+.preview-panel {
+  @apply w-full lg:w-1/2;
+}
+
+.preview-card {
+  @apply sticky top-6 overflow-hidden rounded-xl border border-white/5 bg-gradient-to-br from-zinc-900 to-zinc-800;
+}
+
+.preview-banner {
+  @apply relative h-32 bg-black/40;
+}
+
+.status-button {
+  @apply absolute right-4 top-4 gap-2 bg-white/10 backdrop-blur-md transition-colors hover:bg-white/20;
+}
+
+.preview-avatar-wrapper {
+  @apply absolute bottom-0 left-4 translate-y-1/2;
+}
+
+.preview-avatar {
+  @apply h-20 w-20 border-4 border-zinc-900 shadow-xl;
+}
+
+.preview-content {
+  @apply p-4 pt-12;
+}
+
+.preview-header {
+  @apply mb-4 flex items-center gap-2;
+}
+
+.preview-name {
+  @apply text-xl font-bold;
+}
+
+.preview-role {
+  @apply text-sm text-zinc-400;
+}
+
+.preview-about {
+  @apply text-sm text-zinc-400;
+}
+
+.example-button {
+  @apply mt-6 w-full bg-white/10 backdrop-blur-md transition-colors hover:bg-white/20;
+}
+
+/* Icon defaults */
+.icon {
+  @apply h-6 w-6;
 }
 
 .profile-form {
   @apply bg-white/10 backdrop-blur-md rounded-lg p-6 mt-6;
-}
-
-.form-group {
-  @apply mb-4;
 }
 
 .form-group label {
