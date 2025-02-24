@@ -28,8 +28,8 @@ export function AppRoutes() {
         <Route path="profile" element={<ProfilePage />} />
       </Route>
 
-      {/* Default redirect */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* Default redirect - now routes to /login */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 } 

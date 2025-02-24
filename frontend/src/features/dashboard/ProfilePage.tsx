@@ -27,7 +27,7 @@ export function ProfilePage() {
         {/* Settings Panel */}
         <div className="flex w-full flex-col gap-8 lg:w-1/2">
           <div className="rounded-2xl border border-white/10 bg-white/10 p-8 backdrop-blur-md shadow-lg">
-            <h2 className="mb-6 text-lg font-medium text-white">Profile Settings</h2>
+            <h2 className="mb-6 text-lg font-medium text-white">Profile</h2>
 
             <div className="space-y-6">
               <div className="space-y-2">
