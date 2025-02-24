@@ -64,15 +64,15 @@ export function ProfilePage() {
                   onMouseLeave={() => setAvatarHover(false)}
                 >
                   <Avatar className="h-24 w-24 border-2 border-white/10 transition-all duration-200 group-hover:border-white/20">
-                    <AvatarImage src="/placeholder.svg" />
-                    <AvatarFallback>P</AvatarFallback>
+                    <AvatarImage src={user?.avatar || "/placeholder.svg"} />
+                    <AvatarFallback>{user?.username ? user.username.charAt(0).toUpperCase() : "P"}</AvatarFallback>
                   </Avatar>
                   <div
                     className={`absolute inset-0 flex items-center justify-center rounded-full bg-black/60 transition-opacity duration-200 ${
                       avatarHover ? "opacity-100" : "opacity-0"
                     }`}
                   >
-                    <Camera className="h-6 w-6" />
+                    <Camera className="h-6 w-6 text-white" />
                   </div>
                 </div>
               </div>
