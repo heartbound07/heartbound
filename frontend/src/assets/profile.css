@@ -1,6 +1,6 @@
 /* Profile Editor Styles */
 .profile-container {
-  @apply flex min-h-screen flex-col gap-8 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-800/50 p-6 text-white lg:flex-row;
+  @apply flex min-h-screen flex-col gap-8 p-6 text-white lg:flex-row;
 }
 
 .settings-panel {
@@ -8,95 +8,74 @@
 }
 
 .settings-card {
-  @apply rounded-xl border border-white/5 bg-black/20 p-6 backdrop-blur-xl;
+  @apply rounded-xl border border-white/20 bg-white/15 p-6 backdrop-blur-xl shadow-lg transition-all duration-300;
 }
 
 .settings-title {
-  @apply mb-6 text-lg font-medium text-zinc-200;
-}
-
-.settings-form .form-group {
-  @apply space-y-3;
+  @apply mb-6 text-2xl font-semibold text-white;
 }
 
 .form-group {
-  @apply space-y-2;
+  @apply space-y-3;
 }
 
 .form-label {
-  @apply text-xs font-medium text-zinc-400;
+  @apply text-sm font-medium text-white/80 uppercase tracking-wide;
 }
 
-.form-input {
-  @apply border-white/10 bg-white/5 text-sm transition-colors focus:border-white/20 focus:bg-white/10 w-full p-2 rounded;
+.form-input, .form-textarea {
+  @apply w-full rounded-lg border border-white/20 bg-white/10 px-4 py-2 
+         text-white placeholder-white/50 backdrop-blur-md
+         transition-all duration-200
+         focus:border-white/30 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/20;
 }
 
 .form-textarea {
-  @apply min-h-[120px] border-white/10 bg-white/5 text-sm transition-colors focus:border-white/20 focus:bg-white/10 w-full p-2 rounded;
+  @apply min-h-[120px];
 }
 
 .character-count {
-  @apply flex justify-end text-xs text-zinc-500;
+  @apply flex justify-end text-xs text-white/60;
 }
 
-/* Avatar group */
-.avatar-group {
+/* Avatar and Banner Groups */
+.avatar-group, .banner-group {
   @apply space-y-3;
 }
 
 .avatar-wrapper {
-  @apply relative h-24 w-24 cursor-pointer rounded-full;
-}
-
-.avatar {
-  @apply h-24 w-24 border-2 border-white/10 transition-all duration-200;
-}
-
-.avatar-overlay {
-  @apply absolute inset-0 flex items-center justify-center rounded-full bg-black/60 transition-opacity duration-200 opacity-0;
-}
-
-.avatar-overlay.visible {
-  @apply opacity-100;
-}
-
-/* Banner group */
-.banner-group {
-  @apply space-y-3;
+  @apply relative h-24 w-24 cursor-pointer rounded-full 
+         border-2 border-white/20 transition-transform duration-200 
+         hover:scale-105 hover:border-white/40;
 }
 
 .banner-wrapper {
-  @apply relative h-32 cursor-pointer overflow-hidden rounded-lg border border-white/10 bg-white/5;
+  @apply relative h-32 cursor-pointer overflow-hidden rounded-lg 
+         border border-white/20 bg-white/10 transition-all duration-200
+         hover:border-white/40 hover:bg-white/15;
 }
 
-.banner {
-  @apply h-full w-full;
+.avatar-overlay, .banner-overlay {
+  @apply absolute inset-0 flex items-center justify-center 
+         bg-white/20 backdrop-blur-sm transition-opacity duration-200 opacity-0;
 }
 
-.banner-overlay {
-  @apply absolute inset-0 flex items-center justify-center bg-black/60 transition-opacity duration-200 opacity-0;
+.avatar-overlay {
+  @apply rounded-full;
 }
 
-.banner-overlay.visible {
-  @apply opacity-100;
-}
-
-/* Banner colors */
+/* Color Swatches */
 .banner-colors {
-  @apply flex gap-2;
+  @apply flex gap-3;
 }
 
 .color-swatch {
-  @apply h-8 w-8 cursor-pointer rounded-full border-2 border-white/10 transition-transform hover:scale-110;
+  @apply h-8 w-8 cursor-pointer rounded-full border-2 border-white/20 
+         transition-all duration-200 hover:scale-110 hover:border-white/40;
 }
 
 .color-swatch.selected {
-  @apply border-white/20;
-}
-
-/* Save button */
-.save-button {
-  @apply mt-4;
+  @apply border-white/60 ring-2 ring-white/40;
 }
 
 /* Preview Panel */
@@ -105,15 +84,17 @@
 }
 
 .preview-card {
-  @apply sticky top-6 overflow-hidden rounded-xl border border-white/5 bg-gradient-to-br from-zinc-900 to-zinc-800;
+  @apply sticky top-6 overflow-hidden rounded-xl border border-white/20 
+         bg-white/15 backdrop-blur-xl shadow-lg transition-all duration-300;
 }
 
 .preview-banner {
-  @apply relative h-32 bg-black/40;
+  @apply relative h-32 bg-white/10;
 }
 
 .status-button {
-  @apply absolute right-4 top-4 gap-2 bg-white/10 backdrop-blur-md transition-colors hover:bg-white/20;
+  @apply absolute right-4 top-4 gap-2 bg-white/20 backdrop-blur-md 
+         transition-colors hover:bg-white/30;
 }
 
 .preview-avatar-wrapper {
@@ -121,31 +102,39 @@
 }
 
 .preview-avatar {
-  @apply h-20 w-20 border-4 border-zinc-900 shadow-xl;
+  @apply h-20 w-20 border-4 border-white/20 shadow-xl;
 }
 
 .preview-content {
-  @apply p-4 pt-12;
+  @apply p-6 pt-16;
 }
 
 .preview-header {
-  @apply mb-4 flex items-center gap-2;
+  @apply mb-4 flex items-center gap-3;
 }
 
 .preview-name {
-  @apply text-xl font-bold;
+  @apply text-2xl font-bold text-white;
 }
 
 .preview-role {
-  @apply text-sm text-zinc-400;
+  @apply text-sm text-white/60;
 }
 
 .preview-about {
-  @apply text-sm text-zinc-400;
+  @apply text-base text-white/80;
 }
 
 .example-button {
-  @apply mt-6 w-full bg-white/10 backdrop-blur-md transition-colors hover:bg-white/20;
+  @apply mt-6 w-full bg-white/20 backdrop-blur-md 
+         transition-all duration-200 hover:bg-white/30;
+}
+
+/* Save Button */
+.save-button {
+  @apply mt-8 w-full py-3 bg-white/20 text-white 
+         backdrop-blur-md transition-all duration-200 
+         hover:bg-white/30 focus:ring-2 focus:ring-white/20;
 }
 
 /* Icon defaults */
