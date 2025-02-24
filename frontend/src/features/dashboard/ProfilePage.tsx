@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { Camera, Plus, Upload } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/profile/avatar"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/profile/button"
 import { Input } from "@/components/ui/profile/input"
 import { Label } from "@/components/ui/profile/label"
 import { Textarea } from "@/components/ui/profile/textarea"
@@ -117,12 +117,20 @@ export function ProfilePage() {
                   {["bg-white/10", "bg-blue-600", "bg-purple-600", "bg-rose-600", "bg-emerald-600"].map((color) => (
                     <Tooltip key={color}>
                       <TooltipTrigger>
-                        <div
-                          className={`h-8 w-8 cursor-pointer rounded-full border-2 border-white/20 transition-transform hover:scale-110 ${color}`}
+                        <Button
                           onClick={() => setBannerColor(color)}
-                        />
+                          variant="ghost"
+                          size="sm"
+                          className={`h-8 w-8 rounded-full border-2 border-white/20 transition-transform hover:scale-110 ${color}`}
+                        >
+                          <span className="sr-only">
+                            {color.replace("bg-", "").replace("/10", "")}
+                          </span>
+                        </Button>
                       </TooltipTrigger>
-                      <TooltipContent>{color.replace("bg-", "").replace("/10", "")}</TooltipContent>
+                      <TooltipContent>
+                        {color.replace("bg-", "").replace("/10", "")}
+                      </TooltipContent>
                     </Tooltip>
                   ))}
                 </div>

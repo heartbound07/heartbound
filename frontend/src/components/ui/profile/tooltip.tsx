@@ -6,10 +6,28 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 import { cn } from "@/utils/cn"
 
 const TooltipProvider = TooltipPrimitive.Provider
-
 const Tooltip = TooltipPrimitive.Root
 
-const TooltipTrigger = TooltipPrimitive.Trigger
+export interface TooltipTriggerProps extends React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Trigger> {
+  asChild?: boolean
+}
+
+export const TooltipTrigger = React.forwardRef<HTMLButtonElement, TooltipTriggerProps>(
+  ({ asChild = true, children, ...props }, ref) => {
+    if (asChild) {
+      return React.cloneElement(React.Children.only(children) as React.ReactElement, {
+        ...props,
+        ref,
+      })
+    }
+    return (
+      <TooltipPrimitive.Trigger {...props} ref={ref}>
+        {children}
+      </TooltipPrimitive.Trigger>
+    )
+  }
+)
+TooltipTrigger.displayName = "TooltipTrigger"
 
 const TooltipContent = React.forwardRef<
   React.ElementRef<typeof TooltipPrimitive.Content>,
@@ -27,4 +45,4 @@ const TooltipContent = React.forwardRef<
 ))
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
+export { Tooltip, TooltipContent, TooltipProvider }
