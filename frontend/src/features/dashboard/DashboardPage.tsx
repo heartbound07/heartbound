@@ -148,14 +148,17 @@ export function DashboardPage() {
         </h1>
       )}
 
-      <section className="games-section">
+      <section
+        className="games-section flex flex-col items-center justify-center"
+        style={{ minHeight: "calc(100vh - 425px)" }}
+      >
         <h2
           className="games-title animate-fadeSlideIn"
           style={{ fontFamily: "Grandstander, cursive", textShadow: "0px 2px 4px rgba(0,0,0,0.5)" }}
         >
           Choose Your Game
         </h2>
-        <div className="games-grid">
+        <div className="games-grid w-full">
           {games.map((game) => (
             <GameCard
               key={game.id}

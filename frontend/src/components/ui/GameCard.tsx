@@ -14,7 +14,7 @@ export function GameCard({ title, image, logo, alt, className }: GameCardProps) 
     <div
       className={cn(
         "group relative overflow-hidden rounded-2xl bg-black/10 backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:bg-black/20",
-        "border border-white/10 p-0.5 cursor-pointer w-full max-w-xs",
+        "border border-white/10 p-0.5 cursor-pointer w-64",
         "shadow-md hover:shadow-xl",
         "animate-gameCard",
         className
