@@ -25,6 +25,7 @@ export function DashboardNavigation() {
 
   const handleLogout = async () => {
     await logout();
+    sessionStorage.removeItem('hasSeenWelcome');
     navigate('/login');
   };
 

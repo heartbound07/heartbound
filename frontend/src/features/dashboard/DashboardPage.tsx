@@ -8,6 +8,15 @@ import '@/assets/animations.css';
 import valorantImage from '@/assets/images/valorant.jpg';
 import valorantLogo from '@/assets/images/valorant-logo.png';
 
+import leagueImage from '@/assets/images/league.jpg';
+import leagueLogo from '@/assets/images/league-logo.jpg';
+
+import fortniteImage from '@/assets/images/fortnite.jpg';
+import fortniteLogo from '@/assets/images/fortnite-logo.png';
+
+import dotaImage from '@/assets/images/dota.jpg';
+import dotaLogo from '@/assets/images/dota-logo.png';
+
 interface DashboardStats {
   totalPosts: number;
   followers: number;
@@ -38,6 +47,9 @@ export function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [shouldSlideOut, setShouldSlideOut] = useState(false);
+  
+  // Only show welcome header if it hasn't been seen this session.
+  const [showWelcome, setShowWelcome] = useState(() => !sessionStorage.getItem('hasSeenWelcome'));
 
   // Static array of games to be displayed
   const games: Game[] = [
@@ -47,6 +59,27 @@ export function DashboardPage() {
       image: valorantImage,
       logo: valorantLogo,
       alt: 'Valorant game'
+    },
+    {
+      id: 'league',
+      title: 'League of Legends',
+      image: leagueImage,
+      logo: leagueLogo,
+      alt: 'League of Legends game'
+    },
+    {
+      id: 'fortnite',
+      title: 'Fortnite',
+      image: fortniteImage,
+      logo: fortniteLogo,
+      alt: 'Fortnite game'
+    },
+    {
+      id: 'dota',
+      title: 'Dota',
+      image: dotaImage,
+      logo: dotaLogo,
+      alt: 'Dota game'
     }
   ];
 
@@ -87,18 +120,41 @@ export function DashboardPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Handle animation end: if fade-out finished, remove welcome message from DOM
+  const handleWelcomeAnimationEnd = (event: React.AnimationEvent<HTMLHeadingElement>) => {
+    if (shouldSlideOut && event.animationName === 'fadeSlideOut') {
+      sessionStorage.setItem('hasSeenWelcome', 'true');
+      setShowWelcome(false);
+    }
+  };
+
   if (isLoading) {
-    return <div className="dashboard-loading text-white text-center mt-8">Loading dashboard...</div>;
+    return (
+      <div className="dashboard-loading text-white text-center mt-8">
+        Loading dashboard...
+      </div>
+    );
   }
 
   return (
     <>
-      <h1 className={`dashboard-greeting ${shouldSlideOut ? "animate-fadeSlideOut" : "animate-fadeSlideIn"} font-grandstander text-center text-5xl font-bold text-white mb-6`}>
-        Welcome back, {user?.username}!
-      </h1>
+      {showWelcome && (
+        <h1
+          onAnimationEnd={handleWelcomeAnimationEnd}
+          className={`dashboard-greeting ${shouldSlideOut ? "animate-fadeSlideOut" : "animate-welcomeEnhanced"} font-grandstander text-center text-5xl font-bold text-white mb-6`}
+          style={{ textShadow: "0px 2px 4px rgba(0, 0, 0, 0.5)" }}
+        >
+          Welcome back, {user?.username}!
+        </h1>
+      )}
 
       <section className="games-section">
-        <h2 className="games-title animate-fadeSlideIn">Choose Your Game</h2>
+        <h2
+          className="games-title animate-fadeSlideIn"
+          style={{ fontFamily: "Grandstander, cursive", textShadow: "0px 2px 4px rgba(0,0,0,0.5)" }}
+        >
+          Choose Your Game
+        </h2>
         <div className="games-grid">
           {games.map((game) => (
             <GameCard
