@@ -10,6 +10,7 @@ import {
   ProfileStatus,
 } from './types';
 import { AUTH_STORAGE_KEY, TOKEN_REFRESH_MARGIN, AUTH_ENDPOINTS } from './constants';
+import * as partyService from '../valorant/partyService';
 
 // Update the type declaration
 declare global {
@@ -274,6 +275,12 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     handleDiscordCallback,
     handleDiscordCallbackWithToken,
     updateProfile,
+    createParty: partyService.createParty,
+    getParty: partyService.getParty,
+    listParties: partyService.listParties,
+    updateParty: partyService.updateParty,
+    deleteParty: partyService.deleteParty,
+    joinParty: partyService.joinParty,
   }), [state, login, logout, tokens, startDiscordOAuth, handleDiscordCallback, handleDiscordCallbackWithToken, updateProfile]);
 
   return (

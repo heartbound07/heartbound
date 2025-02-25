@@ -17,4 +17,10 @@ export const AuthContext = createContext<AuthContextValue>({
   handleDiscordCallback: async () => {},
   handleDiscordCallbackWithToken: async () => {},
   updateProfile: () => {},
+  createParty: async () => { throw new Error('Not implemented'); },
+  getParty: async () => { throw new Error('Not implemented'); },
+  listParties: async () => { throw new Error('Not implemented'); },
+  updateParty: async () => { throw new Error('Not implemented'); },
+  deleteParty: async () => { throw new Error('Not implemented'); },
+  joinParty: async () => { throw new Error('Not implemented'); },
 }); 

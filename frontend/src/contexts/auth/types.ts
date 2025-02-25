@@ -1,3 +1,5 @@
+import { CreatePartyRequestDTO, LFGPartyResponseDTO, ListPartiesParams, UpdatePartyRequestDTO } from '../valorant/partyService';
+
 export interface UserInfo {
   id: string;
   username: string;
@@ -46,6 +48,13 @@ export interface AuthContextValue extends AuthState {
   handleDiscordCallback: (code: string, state: string) => Promise<void>;
   handleDiscordCallbackWithToken: (accessToken: string) => Promise<void>;
   updateProfile: (profile: ProfileStatus) => void;
+  // Party service functions
+  createParty: (data: CreatePartyRequestDTO) => Promise<LFGPartyResponseDTO>;
+  getParty: (id: string) => Promise<LFGPartyResponseDTO>;
+  listParties: (params?: ListPartiesParams) => Promise<any>;
+  updateParty: (id: string, data: UpdatePartyRequestDTO) => Promise<LFGPartyResponseDTO>;
+  deleteParty: (id: string) => Promise<void>;
+  joinParty: (id: string) => Promise<string>;
 }
 
 export interface AuthProviderProps {
