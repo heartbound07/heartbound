@@ -3,6 +3,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation';
 import '@/assets/dashboard.css';
 import '@/assets/animations.css';
+import '@/assets/valorant.css';
 
 /**
  * ValorantPageLayout

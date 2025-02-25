@@ -38,14 +38,14 @@ export default function Home() {
               <TabsList className="bg-[#1F2731] p-1 rounded-lg">
                 <TabsTrigger
                   value="play"
-                  className="data-[state=active]:bg-[#FF4655] data-[state=active]:text-white rounded-md px-6 py-2 transition-all"
+                  className="bg-transparent text-white data-[state=active]:bg-[#FF4655] data-[state=active]:text-white rounded-md px-6 py-2 transition-all hover:bg-transparent hover:text-white"
                 >
                   <GamepadIcon className="w-4 h-4 mr-2" />
                   Play
                 </TabsTrigger>
                 <TabsTrigger
                   value="leaderboard"
-                  className="data-[state=active]:bg-[#FF4655] data-[state=active]:text-white rounded-md px-6 py-2 transition-all"
+                  className="bg-transparent text-white data-[state=active]:bg-[#FF4655] data-[state=active]:text-white rounded-md px-6 py-2 transition-all hover:bg-transparent hover:text-white"
                 >
                   <Trophy className="w-4 h-4 mr-2" />
                   Leaderboard
