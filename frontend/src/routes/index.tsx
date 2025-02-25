@@ -1,10 +1,12 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthGuard } from '@/components/AuthGuard';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
+import { ValorantPageLayout } from '@/components/valorant/ValorantPageLayout';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { AuthErrorPage } from '@/features/auth/AuthErrorPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { ProfilePage } from '@/features/dashboard/ProfilePage';
+import ValorantPage from '@/features/valorant/ValorantPage';
 import { DiscordCallback } from '@/features/auth/DiscordCallback';
 
 export function AppRoutes() {
@@ -26,6 +28,18 @@ export function AppRoutes() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="profile" element={<ProfilePage />} />
+      </Route>
+
+      {/* Valorant protected route using dedicated layout */}
+      <Route
+        path="/dashboard/valorant"
+        element={
+          <AuthGuard>
+            <ValorantPageLayout />
+          </AuthGuard>
+        }
+      >
+        <Route index element={<ValorantPage />} />
       </Route>
 
       {/* Default redirect - now routes to /login */}

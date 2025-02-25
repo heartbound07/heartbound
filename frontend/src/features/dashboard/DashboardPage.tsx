@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth';
 import { GameCard } from '@/components/ui/GameCard';
 import '@/assets/dashboard.css';
@@ -43,6 +44,7 @@ interface Game {
  */
 export function DashboardPage() {
   const { user, tokens } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -160,13 +162,22 @@ export function DashboardPage() {
         </h2>
         <div className="games-grid w-full">
           {games.map((game) => (
-            <GameCard
+            <div
               key={game.id}
-              title={game.title}
-              image={game.image}
-              logo={game.logo}
-              alt={game.alt}
-            />
+              onClick={() => {
+                // Redirect to the dedicated Valorant page when the valorant card is clicked.
+                if (game.id === 'valorant') {
+                  navigate('/dashboard/valorant');
+                }
+              }}
+            >
+              <GameCard
+                title={game.title}
+                image={game.image}
+                logo={game.logo}
+                alt={game.alt}
+              />
+            </div>
           ))}
         </div>
       </section>
