@@ -1,7 +1,7 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/valorant/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
 import { Button } from "@/components/ui/valorant/button"
-import { GamepadIcon, Share2, Trophy, Users, Plus } from "lucide-react"
+import { GamepadIcon, Trophy, Users, Plus } from "lucide-react"
 
 export default function Home() {
   return (
@@ -22,11 +22,6 @@ export default function Home() {
                 <span className="text-white font-bold text-xl">V</span>
               </div>
               <h1 className="text-2xl font-bold tracking-tight">VALORANT</h1>
-            </div>
-            <div className="flex items-center">
-              <button className="text-[#8B97A4] hover:text-white hover:bg-[#1F2731] p-2 rounded-full transition-colors">
-                <Share2 className="w-5 h-5" />
-              </button>
             </div>
           </div>
         </header>

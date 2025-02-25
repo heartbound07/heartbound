@@ -5,7 +5,17 @@
   min-height: 100vh;
   /* Use a flex layout to organize its children vertically */
   display: flex;
-  flex-direction: column;
+  flex-direction: column; /* Stack vertically on small screens */
+}
+
+@media (min-width: 768px) {
+  .valorant-container {
+    flex-direction: row; /* Sidebar + content side-by-side on larger screens */
+  }
+  .valorant-content {
+    /* Offset content so it doesn't go behind the fixed sidebar */
+    margin-left: var(--sidebar-width);
+  }
 }
 
 .valorant-content {

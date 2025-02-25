@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth';
-import '@/assets/dashboard.css';
+import '@/assets/dashboard-navigation.css';
 import { MdDashboard } from 'react-icons/md';
 import { FaUserCircle } from 'react-icons/fa';
 import { IoSettingsSharp } from 'react-icons/io5';

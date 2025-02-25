@@ -1,5 +1,8 @@
 /* Updated dashboard styles for a modern, aesthetic, and responsive design */
 
+/* Navigation-specific styles have been removed.
+   See dashboard-navigation.css for .dashboard-nav, .nav-item, .logout-button, etc. */
+
 /* Root variables for Navigation styling */
 :root {
   --primary-bg: #ffffff;
@@ -18,93 +21,6 @@
 .dashboard-container {
   @apply min-h-screen w-full bg-gradient-to-br from-[#6B5BE6] to-[#8878f0] p-10 space-y-8 relative;
 }
-
-/* === Updated Navigation Styles for Light/Glass Theme === */
-/* Navigation panel styled as a sidebar */
-.dashboard-nav {
-  width: var(--sidebar-width);
-  height: 100vh;
-  position: fixed;
-  top: 0;
-  left: 0;
-  background-color: var(--secondary-bg);
-  border-right: 1px solid var(--border-color);
-  backdrop-filter: blur(10px);
-  transition: width var(--transition-speed) ease;
-  overflow-x: hidden;
-  z-index: 1000;
-  padding: 1rem;
-}
-
-/* User info/logo section within the sidebar */
-.dashboard-nav .user-info {
-  padding: 1rem;
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.dashboard-nav .user-info img {
-  height: 80px;
-  width: auto;
-}
-
-/* Navigation list styling */
-.dashboard-nav ul {
-  list-style: none;
-  padding: 0;
-  margin: 1rem 0;
-}
-
-/* Navigation link (button) styling */
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  color: var(--text-primary);
-  text-decoration: none;
-  transition: background-color var(--transition-speed);
-  border-radius: 6px;
-  margin: 0.25rem 0.5rem;
-  background: transparent;
-  border: none;
-  width: calc(100% - 1rem);
-}
-
-.nav-item:hover {
-  background-color: var(--hover-bg);
-}
-
-.nav-item.active {
-  background-color: var(--hover-bg);
-  border-left: 4px solid var(--text-primary);
-}
-
-/* Logout button styling */
-.logout-button {
-  width: 100%;
-  padding: 0.75rem;
-  background-color: var(--secondary-bg);
-  color: var(--text-primary);
-  border: none;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: background-color var(--transition-speed);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  margin-top: 1rem;
-}
-
-.logout-button:hover {
-  background-color: var(--hover-bg);
-}
-
-/* === End Navigation Styles === */
 
 /* Content section for the dashboard */
 .dashboard-content {
@@ -155,12 +71,8 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .dashboard-nav {
-    width: var(--sidebar-collapsed-width);
-    padding: 0.5rem;
-  }
   .dashboard-content {
-    @apply ml-56 p-6;
+    @apply ml-0 p-6;
   }
   .dashboard-greeting {
     @apply text-4xl;

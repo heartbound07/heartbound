@@ -1,0 +1,90 @@
+.dashboard-nav {
+  width: var(--sidebar-width);
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: var(--secondary-bg);
+  border-right: 1px solid var(--border-color);
+  backdrop-filter: blur(10px);
+  transition: width var(--transition-speed) ease;
+  overflow-x: hidden;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.dashboard-nav .user-info {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dashboard-nav .user-info img {
+  height: 80px;
+  width: auto;
+}
+
+.dashboard-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background-color var(--transition-speed);
+  border-radius: 6px;
+  margin: 0.25rem 0.5rem;
+  background: transparent;
+  border: none;
+  width: calc(100% - 1rem);
+}
+
+.nav-item:hover {
+  background-color: var(--hover-bg);
+}
+
+.nav-item.active {
+  background-color: var(--hover-bg);
+  border-left: 4px solid var(--text-primary);
+}
+
+.logout-button {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: var(--secondary-bg);
+  color: var(--text-primary);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color var(--transition-speed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+.logout-button:hover {
+  background-color: var(--hover-bg);
+}
+
+@media (max-width: 768px) {
+  .dashboard-nav {
+    position: relative;
+    width: 100%;
+    height: auto;
+    top: auto;
+    left: auto;
+    padding: 1rem;
+    border-right: none;
+  }
+} 
