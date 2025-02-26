@@ -5,21 +5,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/valorant/button"
 import { GamepadIcon, Trophy, Plus } from "lucide-react"
 import httpClient from '@/lib/api/httpClient';
+import PostGroupModal from "@/features/GroupCreate";
 
 export default function Home() {
   const [parties, setParties] = useState<any[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newPartyData, setNewPartyData] = useState({
-    title: '',
-    description: '',
-    rank: '',
-    region: '',
-    voiceChat: false,
-    expiresIn: 30,
-    maxPlayers: 5
-  });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -40,59 +30,6 @@ export default function Home() {
     fetchParties();
   }, []);
 
-  // OnChange handler for the create party form inputs
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    let newValue: string | boolean = value;
-    if (e.target instanceof HTMLInputElement && e.target.type === 'checkbox') {
-      newValue = e.target.checked;
-    }
-    setNewPartyData(prev => ({
-      ...prev,
-      [name]: newValue,
-    }));
-  };
-
-  // Submit the new party (group) creation form and redirect to the party details page on success
-  const handleCreateParty = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    const payload = {
-      game: "Valorant",
-      title: newPartyData.title,
-      description: newPartyData.description,
-      requirements: {
-         rank: newPartyData.rank,
-         region: newPartyData.region,
-         voiceChat: newPartyData.voiceChat
-      },
-      expiresIn: parseInt(newPartyData.expiresIn.toString(), 10),
-      maxPlayers: parseInt(newPartyData.maxPlayers.toString(), 10)
-    };
-
-    try {
-      const res = await httpClient.post('/api/lfg/parties', payload);
-      // After the party is successfully created, redirect to the party details page
-      navigate(`/dashboard/valorant/${res.data.id}`);
-      setShowCreateForm(false);
-      setNewPartyData({
-        title: '',
-        description: '',
-        rank: '',
-        region: '',
-        voiceChat: false,
-        expiresIn: 30,
-        maxPlayers: 5
-      });
-    } catch (err) {
-      console.error("Error creating party:", err);
-      setError('Error creating group.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#0F1923] text-white font-sans">
       {/* Background elements */}
@@ -112,6 +49,11 @@ export default function Home() {
               </div>
               <h1 className="text-2xl font-bold tracking-tight">VALORANT</h1>
             </div>
+            {/* Create Group Button */}
+            <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Create Group
+            </Button>
           </div>
         </header>
 
@@ -137,7 +79,7 @@ export default function Home() {
               </TabsList>
             </Tabs>
 
-            {/* Filters and Create Group Button */}
+            {/* Filters */}
             <div className="flex items-center gap-4">
               <Select>
                 <SelectTrigger className="bg-[#1F2731] border-[#2C3A47] w-40 text-[#8B97A4]">
@@ -168,101 +110,7 @@ export default function Home() {
                   <SelectItem value="radiant">Radiant</SelectItem>
                 </SelectContent>
               </Select>
-
-              <Button onClick={() => setShowCreateForm(!showCreateForm)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Group
-              </Button>
             </div>
-
-            {/* Create Group Form */}
-            {showCreateForm && (
-              <form onSubmit={handleCreateParty} className="mt-4 space-y-4 bg-white/10 p-4 rounded-lg">
-                {error && <div className="text-red-400">{error}</div>}
-                <div>
-                  <label className="block text-sm mb-1">Group Title</label>
-                  <input
-                    type="text"
-                    name="title"
-                    value={newPartyData.title}
-                    onChange={handleInputChange}
-                    className="w-full p-2 rounded bg-gray-700"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Description</label>
-                  <textarea
-                    name="description"
-                    value={newPartyData.description}
-                    onChange={handleInputChange}
-                    className="w-full p-2 rounded bg-gray-700"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm mb-1">Rank</label>
-                    <input
-                      type="text"
-                      name="rank"
-                      value={newPartyData.rank}
-                      onChange={handleInputChange}
-                      className="w-full p-2 rounded bg-gray-700"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm mb-1">Region</label>
-                    <input
-                      type="text"
-                      name="region"
-                      value={newPartyData.region}
-                      onChange={handleInputChange}
-                      className="w-full p-2 rounded bg-gray-700"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      name="voiceChat"
-                      checked={newPartyData.voiceChat}
-                      onChange={handleInputChange}
-                      className="mr-2"
-                    />
-                    <label className="text-sm">Voice Chat</label>
-                  </div>
-                  <div>
-                    <label className="block text-sm mb-1">Expires In (mins)</label>
-                    <input
-                      type="number"
-                      name="expiresIn"
-                      value={newPartyData.expiresIn}
-                      onChange={handleInputChange}
-                      className="w-full p-2 rounded bg-gray-700"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm mb-1">Max Players</label>
-                    <input
-                      type="number"
-                      name="maxPlayers"
-                      value={newPartyData.maxPlayers}
-                      onChange={handleInputChange}
-                      className="w-full p-2 rounded bg-gray-700"
-                      required
-                    />
-                  </div>
-                </div>
-                <Button type="submit" disabled={loading}>
-                  {loading ? "Creating..." : "Create Group"}
-                </Button>
-              </form>
-            )}
 
             {/* Group Listings */}
             <div className="mt-8">
@@ -288,6 +136,11 @@ export default function Home() {
           </div>
         </main>
       </div>
+
+      {/* Group Create Modal */}
+      {showCreateForm && (
+        <PostGroupModal onClose={() => setShowCreateForm(false)} />
+      )}
     </div>
   )
 }

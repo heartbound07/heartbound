@@ -13,6 +13,11 @@ export interface CreatePartyRequestDTO {
   requirements: PartyRequirements;
   expiresIn: number;
   maxPlayers: number;
+  matchType: string;
+  gameMode: string;
+  teamSize: string;
+  voicePreference: string;
+  ageRestriction: string;
 }
 
 export interface UpdatePartyRequestDTO {
@@ -22,6 +27,11 @@ export interface UpdatePartyRequestDTO {
   requirements?: PartyRequirements;
   expiresIn?: number;
   maxPlayers?: number;
+  matchType?: string;
+  gameMode?: string;
+  teamSize?: string;
+  voicePreference?: string;
+  ageRestriction?: string;
 }
 
 export interface LFGPartyResponseDTO {
@@ -37,6 +47,11 @@ export interface LFGPartyResponseDTO {
   createdAt: string;
   expiresAt: string;
   participants: string[];
+  matchType: string;
+  gameMode: string;
+  teamSize: string;
+  voicePreference: string;
+  ageRestriction: string;
 }
 
 export interface ListPartiesParams {

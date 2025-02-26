@@ -12,6 +12,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.UuidGenerator;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
@@ -36,6 +40,10 @@ import java.util.UUID;
  * - expiresAt: Timestamp when the party will expire (computed).
  * - participants: Collection of user IDs who have joined the party.
  */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "lfg_parties")
 public class LFGParty {
@@ -67,6 +75,7 @@ public class LFGParty {
     @Column(name = "max_players", nullable = false)
     private int maxPlayers;
 
+    @Builder.Default
     @Column(nullable = false)
     private String status = "open";
 
@@ -76,128 +85,27 @@ public class LFGParty {
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
+    @Builder.Default
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "lfg_party_participants", joinColumns = @JoinColumn(name = "lfg_party_id"))
     @Column(name = "participant_id")
     private Set<String> participants = new HashSet<>();
 
-    // Constructors
+    // New fields for additional group information
+    @Column(name = "match_type", nullable = false)
+    private String matchType;
 
-    public LFGParty() {
-    }
+    @Column(name = "game_mode", nullable = false)
+    private String gameMode;
 
-    public LFGParty(String userId, String game, String title, String description,
-                    PartyRequirements requirements, int expiresIn, int maxPlayers,
-                    Instant createdAt, Instant expiresAt) {
-        this.userId = userId;
-        this.game = game;
-        this.title = title;
-        this.description = description;
-        this.requirements = requirements;
-        this.expiresIn = expiresIn;
-        this.maxPlayers = maxPlayers;
-        this.createdAt = createdAt;
-        this.expiresAt = expiresAt;
-        this.status = "open";
-    }
+    @Column(name = "team_size", nullable = false)
+    private String teamSize;
 
-    // Getters and Setters
+    @Column(name = "voice_preference", nullable = false)
+    private String voicePreference;
 
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    public String getGame() {
-        return game;
-    }
-
-    public void setGame(String game) {
-        this.game = game;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public PartyRequirements getRequirements() {
-        return requirements;
-    }
-
-    public void setRequirements(PartyRequirements requirements) {
-        this.requirements = requirements;
-    }
-
-    public int getExpiresIn() {
-        return expiresIn;
-    }
-
-    public void setExpiresIn(int expiresIn) {
-        this.expiresIn = expiresIn;
-    }
-
-    public int getMaxPlayers() {
-        return maxPlayers;
-    }
-
-    public void setMaxPlayers(int maxPlayers) {
-        this.maxPlayers = maxPlayers;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Instant getExpiresAt() {
-        return expiresAt;
-    }
-
-    public void setExpiresAt(Instant expiresAt) {
-        this.expiresAt = expiresAt;
-    }
-
-    public Set<String> getParticipants() {
-        return participants;
-    }
-
-    public void setParticipants(Set<String> participants) {
-        this.participants = participants;
-    }
+    @Column(name = "age_restriction", nullable = false)
+    private String ageRestriction;
 
     /**
      * PartyRequirements
@@ -208,6 +116,10 @@ public class LFGParty {
      * - region: Preferred region.
      * - voiceChat: Flag indicating if voice chat is required.
      */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     @Embeddable
     public static class PartyRequirements {
 
@@ -219,38 +131,5 @@ public class LFGParty {
 
         @Column(name = "req_voice_chat", nullable = false)
         private boolean voiceChat;
-
-        public PartyRequirements() {
-        }
-
-        public PartyRequirements(String rank, String region, boolean voiceChat) {
-            this.rank = rank;
-            this.region = region;
-            this.voiceChat = voiceChat;
-        }
-
-        public String getRank() {
-            return rank;
-        }
-
-        public void setRank(String rank) {
-            this.rank = rank;
-        }
-
-        public String getRegion() {
-            return region;
-        }
-
-        public void setRegion(String region) {
-            this.region = region;
-        }
-
-        public boolean isVoiceChat() {
-            return voiceChat;
-        }
-
-        public void setVoiceChat(boolean voiceChat) {
-            this.voiceChat = voiceChat;
-        }
     }
 }

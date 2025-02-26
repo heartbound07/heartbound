@@ -82,6 +82,11 @@ public class LFGPartyService {
         party.setCreatedAt(now);
         party.setExpiresAt(now.plus(dto.getExpiresIn(), ChronoUnit.MINUTES));
         party.setParticipants(new HashSet<>());
+        party.setMatchType(dto.getMatchType());
+        party.setGameMode(dto.getGameMode());
+        party.setTeamSize(dto.getTeamSize());
+        party.setVoicePreference(dto.getVoicePreference());
+        party.setAgeRestriction(dto.getAgeRestriction());
 
         LFGParty savedParty = lfgPartyRepository.save(party);
         return mapToResponseDTO(savedParty);
@@ -160,6 +165,23 @@ public class LFGPartyService {
         }
         if (dto.getMaxPlayers() != null) {
             party.setMaxPlayers(dto.getMaxPlayers());
+        }
+
+        // Update additional fields if provided
+        if (dto.getMatchType() != null) {
+            party.setMatchType(dto.getMatchType());
+        }
+        if (dto.getGameMode() != null) {
+            party.setGameMode(dto.getGameMode());
+        }
+        if (dto.getTeamSize() != null) {
+            party.setTeamSize(dto.getTeamSize());
+        }
+        if (dto.getVoicePreference() != null) {
+            party.setVoicePreference(dto.getVoicePreference());
+        }
+        if (dto.getAgeRestriction() != null) {
+            party.setAgeRestriction(dto.getAgeRestriction());
         }
 
         LFGParty updatedParty = lfgPartyRepository.save(party);
@@ -242,6 +264,11 @@ public class LFGPartyService {
                 .createdAt(party.getCreatedAt())
                 .expiresAt(party.getExpiresAt())
                 .participants(party.getParticipants())
+                .matchType(party.getMatchType())
+                .gameMode(party.getGameMode())
+                .teamSize(party.getTeamSize())
+                .voicePreference(party.getVoicePreference())
+                .ageRestriction(party.getAgeRestriction())
                 .build();
     }
 }
