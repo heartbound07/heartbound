@@ -1,27 +1,31 @@
 "use client"
 
-import React, { useState } from "react"
+import React from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { Users, GamepadIcon, Mic, Calendar, Trophy, Plus } from "lucide-react"
-
-interface PlayerSlot {
-  id: number
-  filled: boolean
-  number?: string
-  avatar?: string
-}
 
 interface ListingProps {
   party: any // Ideally, replace `any` with a specific Party type
 }
 
 export default function Listing({ party }: ListingProps) {
-  const [slots] = useState<PlayerSlot[]>([
-    { id: 1, filled: true, number: "17", avatar: "/placeholder.svg" },
-    { id: 2, filled: false },
-  ])
+  // Dynamically create player slots based on party.maxPlayers and party.participants.
+  // We assume party.participants is an array (default to empty array if undefined).
+  const participants = party.participants || []
+  const slots = Array.from({ length: party.maxPlayers }, (_, i) => {
+    const isFilled = i < participants.length
+    return {
+      id: i + 1,
+      filled: isFilled,
+      // For demonstration, we're just converting the slot number to a string.
+      // Replace with your desired participant details as needed.
+      number: isFilled ? (i + 1).toString() : "",
+      // Using a placeholder avatar for filled slots; you can use actual avatar URLs if available.
+      avatar: isFilled ? "/placeholder.svg" : undefined,
+    }
+  })
 
   return (
     <div className="w-full max-w-2xl mx-auto bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
@@ -43,7 +47,9 @@ export default function Listing({ party }: ListingProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
+                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors
+                  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
+                  [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
               >
                 <GamepadIcon className="h-4 w-4" />
               </Button>
@@ -59,7 +65,9 @@ export default function Listing({ party }: ListingProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
+                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors
+                  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
+                  [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
               >
                 <Users className="h-4 w-4" />
               </Button>
@@ -75,7 +83,9 @@ export default function Listing({ party }: ListingProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
+                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors
+                  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
+                  [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
               >
                 <Mic className="h-4 w-4" />
               </Button>
@@ -91,7 +101,9 @@ export default function Listing({ party }: ListingProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
+                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors
+                  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
+                  [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
               >
                 <Calendar className="h-4 w-4" />
               </Button>
@@ -107,7 +119,9 @@ export default function Listing({ party }: ListingProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
+                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors
+                  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
+                  [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
               >
                 <Trophy className="h-4 w-4" />
               </Button>
@@ -125,7 +139,9 @@ export default function Listing({ party }: ListingProps) {
             <Users className="h-4 w-4 text-zinc-400" />
             <span className="text-xs font-medium text-zinc-300">Players</span>
           </div>
-          <span className="text-xs font-medium text-zinc-400">1/2</span>
+          <span className="text-xs font-medium text-zinc-400">
+            {participants.length} / {party.maxPlayers}
+          </span>
         </div>
         <div className="flex space-x-2 mb-4">
           {slots.map((slot) => (
