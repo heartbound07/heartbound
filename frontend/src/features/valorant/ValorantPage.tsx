@@ -6,11 +6,13 @@ import { GamepadIcon, Trophy, Plus } from "lucide-react"
 import httpClient from '@/lib/api/httpClient';
 import PostGroupModal from "@/features/GroupCreate";
 import Listing from "@/features/Listing";
+import { useAuth } from '@/contexts/auth/useAuth';
 
 export default function Home() {
   const [parties, setParties] = useState<any[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
-
+  const [groupErrorMessage, setGroupErrorMessage] = useState<string | null>(null);
+  const { user } = useAuth();
 
   // Fetch parties from API on component mount using httpClient (which attaches the auth token)
   useEffect(() => {
@@ -28,6 +30,17 @@ export default function Home() {
     }
     fetchParties();
   }, []);
+
+  // Auto-dismiss error message after 3 seconds if set
+  useEffect(() => {
+    if (groupErrorMessage) {
+      const timer = setTimeout(() => setGroupErrorMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [groupErrorMessage]);
+
+  // Check if the current user already has a party
+  const userHasParty = user ? parties.some(party => party.userId === user.id) : false;
 
   return (
     <div className="min-h-screen bg-[#0F1923] text-white font-sans">
@@ -106,12 +119,25 @@ export default function Home() {
               </Select>
 
               <Button
-                onClick={() => setShowCreateForm(true)}
-                className="bg-[#FF4655] hover:bg-[#FF4655]/90 text-white rounded-full w-10 h-10 flex items-center justify-center"
+                onClick={() => {
+                  if (userHasParty) {
+                    setGroupErrorMessage("Error posting group: Error: You can only create one party");
+                  } else {
+                    setShowCreateForm(true);
+                  }
+                }}
+                className="text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 px-4 py-2 bg-[#FF4655] hover:bg-[#FF4655]/90 text-white rounded-full w-10 h-10 flex items-center justify-center"
               >
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
+
+            {/* Error Message Bubble */}
+            {groupErrorMessage && (
+              <div className="bg-red-200 text-red-900 border border-red-300 rounded-lg px-4 py-2 mt-4 text-center">
+                {groupErrorMessage}
+              </div>
+            )}
 
             {/* Group Listings */}
             <div className="mt-8">

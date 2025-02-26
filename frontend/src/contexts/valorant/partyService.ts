@@ -65,8 +65,13 @@ export interface ListPartiesParams {
 export const createParty = async (
   data: CreatePartyRequestDTO
 ): Promise<LFGPartyResponseDTO> => {
-  const response = await httpClient.post('/api/lfg/parties', data);
-  return response.data;
+  try {
+    const response = await httpClient.post('/api/lfg/parties', data);
+    return response.data;
+  } catch (error: any) {
+    // Propagate a user-friendly error message
+    throw new Error(error.response?.data?.message || "Failed to create party");
+  }
 };
 
 export const getParty = async (id: string): Promise<LFGPartyResponseDTO> => {

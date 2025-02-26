@@ -63,6 +63,10 @@ public class LFGPartyService {
     public LFGPartyResponseDTO createParty(CreatePartyRequestDTO dto) {
         String userId = getCurrentUserId();
 
+        if (lfgPartyRepository.findByUserId(userId).isPresent()) {
+            throw new IllegalStateException("You can only create one party");
+        }
+
         LFGParty party = new LFGParty();
         party.setUserId(userId);
         party.setGame(dto.getGame());
