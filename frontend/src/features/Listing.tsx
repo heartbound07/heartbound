@@ -175,7 +175,7 @@ export default function Listing({ party }: ListingProps) {
             </TooltipProvider>
           ))}
         </div>
-        <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white py-2 text-xs font-semibold tracking-wide transition-all duration-200 ease-in-out transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-opacity-50">
+        <Button className="w-full bg-[#FF4655] hover:bg-[#FF4655]/90 text-white py-2 text-xs font-semibold tracking-wide transition-all duration-200 ease-in-out transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-[#FF4655] focus:ring-opacity-50">
           Join Game
         </Button>
       </div>
