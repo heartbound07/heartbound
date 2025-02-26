@@ -35,6 +35,9 @@ export default function Listing({ party }: ListingProps) {
             <h1 className="text-sm font-semibold text-zinc-100 tracking-wide mt-2">
               {party.title}
             </h1>
+            <p className="text-xs text-zinc-400 mt-1">
+              {party.description}
+            </p>
           </div>
         </div>
       </div>
