@@ -1,11 +1,10 @@
 "use client"
 
-import React from "react"
-import { useState } from "react"
+import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
-import { Zap, Trophy, Mic, MapPin, Plus, Users } from "lucide-react"
+import { Users, GamepadIcon, Mic, Calendar, Trophy, Plus } from "lucide-react"
 
 interface PlayerSlot {
   id: number
@@ -28,71 +27,96 @@ export default function Listing({ party }: ListingProps) {
     <div className="w-full max-w-2xl mx-auto bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
       <div className="px-4 py-3 bg-gradient-to-r from-zinc-900 to-zinc-800 border-b border-zinc-700/50">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-700/50 transition-all duration-200"
-                  >
-                    <Zap className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Quick Match</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-700/50 transition-all duration-200"
-                  >
-                    <Trophy className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Tournaments</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-700/50 transition-all duration-200"
-                  >
-                    <Mic className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Voice Chat</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+          <div>
+            <h1 className="text-sm font-semibold text-zinc-100 tracking-wide mt-2">
+              Looking for players...
+            </h1>
           </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-1 bg-zinc-800/50 px-2 py-1 rounded-full hover:bg-zinc-700/50 transition-all duration-200 cursor-pointer">
-                  <MapPin className="h-3 w-3 text-zinc-400" />
-                  <span className="text-xs font-medium text-zinc-300">NA-WEST</span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Your current region</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         </div>
-        <h1 className="text-sm font-semibold text-zinc-100 tracking-wide mt-2">Looking for players...</h1>
+      </div>
+      
+      {/* Party Details Tooltip Row */}
+      <div className="flex items-center justify-start space-x-4 py-2 bg-zinc-800 pl-4">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
+              >
+                <GamepadIcon className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span>{party.gameMode || "Unrated"}</span>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
+              >
+                <Users className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span>{party.teamSize || "Duo"}</span>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
+              >
+                <Mic className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span>{party.voicePreference || "Discord"}</span>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
+              >
+                <Calendar className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span>{party.ageRestriction || "Any"}</span>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
+              >
+                <Trophy className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span>{party.matchType || "Casual"}</span>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       <div className="p-4">
@@ -116,12 +140,10 @@ export default function Listing({ party }: ListingProps) {
                     } transition-all duration-200 group cursor-pointer flex items-center justify-center`}
                   >
                     {slot.filled ? (
-                      <>
-                        <Avatar className="h-full w-full">
-                          <AvatarImage src={slot.avatar} />
-                          <AvatarFallback>P{slot.id}</AvatarFallback>
-                        </Avatar>
-                      </>
+                      <Avatar className="h-full w-full">
+                        <AvatarImage src={slot.avatar} />
+                        <AvatarFallback>P{slot.id}</AvatarFallback>
+                      </Avatar>
                     ) : (
                       <Plus className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400 transition-colors duration-200" />
                     )}
