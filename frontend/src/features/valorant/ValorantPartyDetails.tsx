@@ -7,12 +7,22 @@ import { Badge } from "@/components/ui/valorant/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate, useParams } from "react-router-dom"
-import { deleteParty } from "@/contexts/valorant/partyService"
+import { deleteParty, getParty } from "@/contexts/valorant/partyService"
 
 export default function ValorantPartyDetails() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { partyId } = useParams<{ partyId: string }>()
+  
+  const [party, setParty] = React.useState<any>(null)
+
+  React.useEffect(() => {
+    if (partyId) {
+      getParty(partyId)
+        .then((data) => setParty(data))
+        .catch((err) => console.error("Error fetching party:", err))
+    }
+  }, [partyId])
 
   const handleLeaveGroup = async () => {
     if (!partyId) {
@@ -29,12 +39,15 @@ export default function ValorantPartyDetails() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-b from-zinc-900 to-black text-white">
-        {/* Animated Background Gradient */}
-        <div className="fixed inset-0 bg-gradient-to-tr from-purple-500/10 via-transparent to-blue-500/10 animate-gradient-shift" />
+      <div className="min-h-screen bg-[#0F1923] text-white font-sans">
+        {/* Background elements */}
+        <div className="fixed inset-0 bg-[#0F1923] z-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#FF4655]/10 to-transparent opacity-50"></div>
+          <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-[#1F2731] to-transparent opacity-30"></div>
+        </div>
 
         {/* Content */}
-        <div className="relative">
+        <div className="relative z-10">
           {/* Header */}
           <div className="p-6">
             <Button
@@ -50,13 +63,13 @@ export default function ValorantPartyDetails() {
           {/* Main Content */}
           <div className="max-w-4xl mx-auto px-6">
             <div className="space-y-8">
-              {/* Game Info */}
+              {/* Game Info with Dynamic Badges */}
               <div className="flex flex-wrap gap-3 items-center backdrop-blur-sm bg-white/5 p-4 rounded-2xl">
                 <Badge
                   variant="secondary"
                   className="bg-white/10 hover:bg-white/20 transition-colors text-white px-4 py-1.5 text-sm rounded-full"
                 >
-                  Unrated
+                  {party?.matchType || "N/A"}
                 </Badge>
                 <Badge
                   variant="secondary"
@@ -66,11 +79,22 @@ export default function ValorantPartyDetails() {
                 </Badge>
                 <Badge
                   variant="secondary"
-                  className="bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors px-4 py-1.5 text-sm rounded-full"
+                  className="bg-white/10 hover:bg-white/20 transition-colors text-white px-4 py-1.5 text-sm rounded-full"
                 >
-                  VALORANT LFG
+                  {party?.teamSize || "N/A"}
                 </Badge>
-
+                <Badge
+                  variant="secondary"
+                  className="bg-white/10 hover:bg-white/20 transition-colors text-white px-4 py-1.5 text-sm rounded-full"
+                >
+                  {party?.voicePreference || "N/A"}
+                </Badge>
+                <Badge
+                  variant="secondary"
+                  className="bg-white/10 hover:bg-white/20 transition-colors text-white px-4 py-1.5 text-sm rounded-full"
+                >
+                  {party?.ageRestriction || "N/A"}
+                </Badge>
                 <div className="ml-auto flex gap-3">
                   <Tooltip>
                     <TooltipTrigger asChild>

@@ -233,14 +233,21 @@ export default function PostGroupModal({ onClose }: PostGroupModalProps) {
             className="h-10 border-0 bg-white/5 text-zinc-200 placeholder:text-zinc-500 ring-1 ring-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-violet-500"
           />
         </div>
-        <div className="mb-4 flex items-center">
-          <input
-            type="checkbox"
-            checked={voiceChat}
-            onChange={(e) => setVoiceChat(e.target.checked)}
-            className="mr-2"
-          />
-          <label className="text-white">Voice Chat Required?</label>
+        <div className="mb-4">
+          <label htmlFor="voiceChat" className="flex items-center space-x-3 cursor-pointer">
+            <div className="relative">
+              <input
+                id="voiceChat"
+                type="checkbox"
+                checked={voiceChat}
+                onChange={(e) => setVoiceChat(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-6 bg-gray-300 rounded-full transition-colors duration-200 peer-focus:ring-2 peer-focus:ring-violet-500 peer-checked:bg-[#FF4655]"></div>
+              <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 peer-checked:translate-x-4"></div>
+            </div>
+            <span className="text-sm font-medium text-white">Voice Chat Required?</span>
+          </label>
         </div>
         
         {/* The expiresIn and maxPlayers inputs have been removed.
