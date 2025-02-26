@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/lfg/parties")
+@RequestMapping("/lfg/parties")
 public class LFGPartyController {
 
     private final LFGPartyService partyService;

@@ -1,9 +1,98 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/valorant/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
 import { Button } from "@/components/ui/valorant/button"
-import { GamepadIcon, Trophy, Users, Plus } from "lucide-react"
+import { GamepadIcon, Trophy, Plus } from "lucide-react"
+import httpClient from '@/lib/api/httpClient';
 
 export default function Home() {
+  const [parties, setParties] = useState<any[]>([]);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newPartyData, setNewPartyData] = useState({
+    title: '',
+    description: '',
+    rank: '',
+    region: '',
+    voiceChat: false,
+    expiresIn: 30,
+    maxPlayers: 5
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
+
+  // Fetch parties from API on component mount using httpClient (which attaches the auth token)
+  useEffect(() => {
+    async function fetchParties() {
+      try {
+        const response = await httpClient.get('/api/lfg/parties');
+        const data = response.data;
+        const partiesArray = Array.isArray(data)
+          ? data
+          : data.content || [];
+        setParties(partiesArray);
+      } catch (err) {
+        console.error("Error fetching parties:", err);
+      }
+    }
+    fetchParties();
+  }, []);
+
+  // OnChange handler for the create party form inputs
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    let newValue: string | boolean = value;
+    if (e.target instanceof HTMLInputElement && e.target.type === 'checkbox') {
+      newValue = e.target.checked;
+    }
+    setNewPartyData(prev => ({
+      ...prev,
+      [name]: newValue,
+    }));
+  };
+
+  // Submit the new party (group) creation form and redirect to the party details page on success
+  const handleCreateParty = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    const payload = {
+      game: "Valorant",
+      title: newPartyData.title,
+      description: newPartyData.description,
+      requirements: {
+         rank: newPartyData.rank,
+         region: newPartyData.region,
+         voiceChat: newPartyData.voiceChat
+      },
+      expiresIn: parseInt(newPartyData.expiresIn.toString(), 10),
+      maxPlayers: parseInt(newPartyData.maxPlayers.toString(), 10)
+    };
+
+    try {
+      const res = await httpClient.post('/api/lfg/parties', payload);
+      // After the party is successfully created, redirect to the party details page
+      navigate(`/dashboard/valorant/${res.data.id}`);
+      setShowCreateForm(false);
+      setNewPartyData({
+        title: '',
+        description: '',
+        rank: '',
+        region: '',
+        voiceChat: false,
+        expiresIn: 30,
+        maxPlayers: 5
+      });
+    } catch (err) {
+      console.error("Error creating party:", err);
+      setError('Error creating group.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0F1923] text-white font-sans">
       {/* Background elements */}
@@ -80,23 +169,121 @@ export default function Home() {
                 </SelectContent>
               </Select>
 
-              <Button
-                className="bg-[#FF4655] hover:bg-[#FF4655]/90 text-white rounded-full w-10 h-10 flex items-center justify-center"
-                title="Create a group"
-              >
-                <Plus className="w-6 h-6" />
+              <Button onClick={() => setShowCreateForm(!showCreateForm)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Group
               </Button>
             </div>
 
-            {/* Group Listings / Empty State */}
-            <div className="bg-[#1F2731] rounded-lg border border-[#2C3A47] p-8 text-center">
-              <div className="flex flex-col items-center justify-center">
-                <div className="w-16 h-16 bg-[#2C3A47] rounded-full flex items-center justify-center mb-4">
-                  <Users className="w-8 h-8 text-[#8B97A4]" />
+            {/* Create Group Form */}
+            {showCreateForm && (
+              <form onSubmit={handleCreateParty} className="mt-4 space-y-4 bg-white/10 p-4 rounded-lg">
+                {error && <div className="text-red-400">{error}</div>}
+                <div>
+                  <label className="block text-sm mb-1">Group Title</label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={newPartyData.title}
+                    onChange={handleInputChange}
+                    className="w-full p-2 rounded bg-gray-700"
+                    required
+                  />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">No parties found</h3>
-                <p className="text-[#8B97A4]">Create a new party or adjust your filters to find more players</p>
-              </div>
+                <div>
+                  <label className="block text-sm mb-1">Description</label>
+                  <textarea
+                    name="description"
+                    value={newPartyData.description}
+                    onChange={handleInputChange}
+                    className="w-full p-2 rounded bg-gray-700"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm mb-1">Rank</label>
+                    <input
+                      type="text"
+                      name="rank"
+                      value={newPartyData.rank}
+                      onChange={handleInputChange}
+                      className="w-full p-2 rounded bg-gray-700"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Region</label>
+                    <input
+                      type="text"
+                      name="region"
+                      value={newPartyData.region}
+                      onChange={handleInputChange}
+                      className="w-full p-2 rounded bg-gray-700"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="voiceChat"
+                      checked={newPartyData.voiceChat}
+                      onChange={handleInputChange}
+                      className="mr-2"
+                    />
+                    <label className="text-sm">Voice Chat</label>
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Expires In (mins)</label>
+                    <input
+                      type="number"
+                      name="expiresIn"
+                      value={newPartyData.expiresIn}
+                      onChange={handleInputChange}
+                      className="w-full p-2 rounded bg-gray-700"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Max Players</label>
+                    <input
+                      type="number"
+                      name="maxPlayers"
+                      value={newPartyData.maxPlayers}
+                      onChange={handleInputChange}
+                      className="w-full p-2 rounded bg-gray-700"
+                      required
+                    />
+                  </div>
+                </div>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Creating..." : "Create Group"}
+                </Button>
+              </form>
+            )}
+
+            {/* Group Listings */}
+            <div className="mt-8">
+              {parties.length === 0 ? (
+                <div className="text-center text-gray-400">No available groups at the moment.</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {parties.map((party) => (
+                    <div key={party.id} className="bg-white/10 backdrop-blur-md rounded-lg p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <h2 className="text-xl font-bold text-white">{party.title}</h2>
+                        <span className={`px-3 py-1 rounded-full text-sm ${party.status === 'open' ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
+                          {party.status}
+                        </span>
+                      </div>
+                      <p className="mb-4">{party.description}</p>
+                      {/* Additional party details could be displayed here */}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </main>

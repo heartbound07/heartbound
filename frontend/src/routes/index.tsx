@@ -7,6 +7,7 @@ import { AuthErrorPage } from '@/features/auth/AuthErrorPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { ProfilePage } from '@/features/dashboard/ProfilePage';
 import ValorantPage from '@/features/valorant/ValorantPage';
+import ValorantPartyDetails from '@/features/valorant/ValorantPartyDetails';
 import { DiscordCallback } from '@/features/auth/DiscordCallback';
 
 export function AppRoutes() {
@@ -30,7 +31,7 @@ export function AppRoutes() {
         <Route path="profile" element={<ProfilePage />} />
       </Route>
 
-      {/* Valorant protected route using dedicated layout */}
+      {/* Valorant protected routes with nested routing */}
       <Route
         path="/dashboard/valorant"
         element={
@@ -40,6 +41,7 @@ export function AppRoutes() {
         }
       >
         <Route index element={<ValorantPage />} />
+        <Route path=":partyId" element={<ValorantPartyDetails />} />
       </Route>
 
       {/* Default redirect - now routes to /login */}
