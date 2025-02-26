@@ -61,7 +61,7 @@ export default function Listing({ party }: ListingProps) {
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
+    <div className="w-full max-w-4xl mx-auto bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
       <div className="px-4 py-3 bg-gradient-to-r from-zinc-900 to-zinc-800 border-b border-zinc-700/50">
         <div className="flex items-center justify-between">
           <div>

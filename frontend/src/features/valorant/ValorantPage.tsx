@@ -114,7 +114,7 @@ export default function Home() {
                   <SelectItem value="DIAMOND">Diamond</SelectItem>
                   <SelectItem value="ASCENDANT">Ascendant</SelectItem>
                   <SelectItem value="IMMORTAL">Immortal</SelectItem>
-                  <SelectItem value="RADIANT">Radint</SelectItem>
+                  <SelectItem value="RADIANT">Radiant</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -146,7 +146,7 @@ export default function Home() {
                   No available groups at the moment.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 gap-6">
                   {parties.map((party) => (
                     <Listing key={party.id} party={party} />
                   ))}
