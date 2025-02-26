@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { X, Users, GamepadIcon, Mic, Calendar, Trophy } from "lucide-react"
 import { Button } from "@/components/ui/valorant/groupcreatebutton"
@@ -16,8 +16,12 @@ export default function PostGroupModal({ onClose }: PostGroupModalProps) {
   // State for basic group information
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [expiresIn, setExpiresIn] = useState(30)
-  const [maxPlayers, setMaxPlayers] = useState(5)
+  
+  // Set expiresIn default to 10 minutes
+  const [expiresIn, setExpiresIn] = useState(10)
+  
+  // Default maxPlayers is derived from teamSize (duo by default)
+  const [maxPlayers, setMaxPlayers] = useState(2)
 
   // State for party requirements
   const [reqRank, setReqRank] = useState('')
@@ -33,6 +37,19 @@ export default function PostGroupModal({ onClose }: PostGroupModalProps) {
 
   // Import useNavigate to allow redirection after group creation
   const navigate = useNavigate()
+
+  // Auto-update maxPlayers based on selected teamSize
+  useEffect(() => {
+    if (teamSize === 'duo') {
+      setMaxPlayers(2)
+    } else if (teamSize === 'trio') {
+      setMaxPlayers(3)
+    } else if (teamSize === 'five-stack') {
+      setMaxPlayers(5)
+    } else if (teamSize === 'ten-man') {
+      setMaxPlayers(10)
+    }
+  }, [teamSize])
 
   // Dropdown configurations
   const dropdowns = [
@@ -108,8 +125,8 @@ export default function PostGroupModal({ onClose }: PostGroupModalProps) {
         region: reqRegion,
         voiceChat,
       },
-      expiresIn,
-      maxPlayers,
+      expiresIn,    // will always be 10 minutes
+      maxPlayers,   // auto-calculated based on teamSize
       matchType,
       gameMode,
       teamSize,
@@ -225,38 +242,16 @@ export default function PostGroupModal({ onClose }: PostGroupModalProps) {
           />
           <label className="text-white">Voice Chat Required?</label>
         </div>
-        <div className="mb-4">
-          <Input
-            type="number"
-            placeholder="Expires in (minutes)"
-            value={expiresIn}
-            onChange={(e) => setExpiresIn(Number(e.target.value))}
-            className="h-10 border-0 bg-white/5 text-zinc-200 placeholder:text-zinc-500 ring-1 ring-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-violet-500"
-          />
-        </div>
-        <div className="mb-4">
-          <Input
-            type="number"
-            placeholder="Max Players"
-            value={maxPlayers}
-            onChange={(e) => setMaxPlayers(Number(e.target.value))}
-            className="h-10 border-0 bg-white/5 text-zinc-200 placeholder:text-zinc-500 ring-1 ring-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-violet-500"
-          />
-        </div>
-
+        
+        {/* The expiresIn and maxPlayers inputs have been removed.
+            Their values are now auto-set (expiresIn = 10, maxPlayers based on teamSize) */}
+        
         {/* Submission Button */}
-        <Button
-          onClick={handlePostGroup}
-          className="group relative w-full overflow-hidden rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-violet-500 active:scale-[0.99]"
-        >
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-violet-400/0 via-violet-400/40 to-violet-400/0"
-            initial={{ x: "-100%" }}
-            whileHover={{ x: "100%" }}
-            transition={{ duration: 0.75, repeat: Number.POSITIVE_INFINITY, repeatDelay: 0.5 }}
-          />
-          Post Group
-        </Button>
+        <div className="mt-6">
+          <Button onClick={handlePostGroup} className="w-full py-2 bg-primary text-primary-foreground hover:bg-primary/90">
+            Post Group
+          </Button>
+        </div>
       </motion.div>
     </motion.div>
   )
