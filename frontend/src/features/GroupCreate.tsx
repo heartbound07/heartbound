@@ -160,7 +160,7 @@ export default function PostGroupModal({ onClose }: PostGroupModalProps) {
       >
         <Button
           onClick={onClose}
-          className="absolute right-4 top-4 p-2 text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
+          className="absolute right-4 top-4 p-2"
           variant="ghost"
           size="icon"
         >
@@ -169,8 +169,8 @@ export default function PostGroupModal({ onClose }: PostGroupModalProps) {
         </Button>
 
         <div className="mb-6 flex items-center justify-center gap-3">
-          <div className="rounded-xl bg-violet-500/10 p-2">
-            <GamepadIcon className="h-6 w-6 text-violet-500" />
+          <div className="rounded-xl bg-[#FF4655]/10 p-2">
+            <GamepadIcon className="h-6 w-6 text-[#FF4655]" />
           </div>
           <h2 className="bg-gradient-to-r from-white to-white/80 bg-clip-text text-xl font-semibold text-transparent">
             Post your group
@@ -185,7 +185,7 @@ export default function PostGroupModal({ onClose }: PostGroupModalProps) {
               defaultValue={dropdown.defaultValue}
               onValueChange={(value: string) => dropdown.setter(value)}
             >
-              <SelectTrigger className="h-10 w-[calc(20%-0.6rem)] min-w-[120px] border-0 bg-white/5 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-white/10 focus:ring-2 focus:ring-violet-500">
+              <SelectTrigger className="h-10 w-[calc(20%-0.6rem)] min-w-[120px] border-0 bg-white/5 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-white/10 focus:ring-2 focus:ring-[#FF4655]">
                 <dropdown.icon className="mr-2 h-4 w-4 text-zinc-400" />
                 <SelectValue />
               </SelectTrigger>
@@ -206,7 +206,7 @@ export default function PostGroupModal({ onClose }: PostGroupModalProps) {
             placeholder="Group Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="h-10 border-0 bg-white/5 text-zinc-200 placeholder:text-zinc-500 ring-1 ring-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-violet-500"
+            className="h-10 border-0 bg-white/5 text-zinc-200 placeholder:text-zinc-500 ring-1 ring-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-[#FF4655]"
           />
         </div>
         <div className="mb-4">
@@ -214,7 +214,7 @@ export default function PostGroupModal({ onClose }: PostGroupModalProps) {
             placeholder="Group Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="h-10 border-0 bg-white/5 text-zinc-200 placeholder:text-zinc-500 ring-1 ring-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-violet-500"
+            className="h-10 border-0 bg-white/5 text-zinc-200 placeholder:text-zinc-500 ring-1 ring-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-[#FF4655]"
           />
         </div>
         <div className="mb-4">
@@ -222,7 +222,7 @@ export default function PostGroupModal({ onClose }: PostGroupModalProps) {
             placeholder="Required Rank"
             value={reqRank}
             onChange={(e) => setReqRank(e.target.value)}
-            className="h-10 border-0 bg-white/5 text-zinc-200 placeholder:text-zinc-500 ring-1 ring-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-violet-500"
+            className="h-10 border-0 bg-white/5 text-zinc-200 placeholder:text-zinc-500 ring-1 ring-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-[#FF4655]"
           />
         </div>
         <div className="mb-4">
@@ -230,7 +230,7 @@ export default function PostGroupModal({ onClose }: PostGroupModalProps) {
             placeholder="Preferred Region"
             value={reqRegion}
             onChange={(e) => setReqRegion(e.target.value)}
-            className="h-10 border-0 bg-white/5 text-zinc-200 placeholder:text-zinc-500 ring-1 ring-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-violet-500"
+            className="h-10 border-0 bg-white/5 text-zinc-200 placeholder:text-zinc-500 ring-1 ring-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-[#FF4655]"
           />
         </div>
         <div className="mb-4">
@@ -243,7 +243,7 @@ export default function PostGroupModal({ onClose }: PostGroupModalProps) {
                 onChange={(e) => setVoiceChat(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-10 h-6 bg-gray-300 rounded-full transition-colors duration-200 peer-focus:ring-2 peer-focus:ring-violet-500 peer-checked:bg-[#FF4655]"></div>
+              <div className="w-10 h-6 bg-gray-300 rounded-full transition-colors duration-200 peer-focus:ring-2 peer-focus:ring-[#FF4655] peer-checked:bg-[#FF4655]"></div>
               <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 peer-checked:translate-x-4"></div>
             </div>
             <span className="text-sm font-medium text-white">Voice Chat Required?</span>
@@ -255,7 +255,7 @@ export default function PostGroupModal({ onClose }: PostGroupModalProps) {
         
         {/* Submission Button */}
         <div className="mt-6">
-          <Button onClick={handlePostGroup} className="w-full py-2 bg-primary text-primary-foreground hover:bg-primary/90">
+          <Button onClick={handlePostGroup} className="w-full py-2">
             Post Group
           </Button>
         </div>

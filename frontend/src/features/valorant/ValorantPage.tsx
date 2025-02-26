@@ -75,7 +75,7 @@ export default function Home() {
             {/* Filters and Create Group Button */}
             <div className="flex items-center gap-4 mt-4">
               <Select>
-                <SelectTrigger className="bg-[#1F2731] border-[#2C3A47] w-40 text-[#8B97A4]">
+                <SelectTrigger className="bg-[#1F2731] border-[#2C3A47] w-40 text-[#8B97A4] transition-colors hover:bg-[#FF4655]/10 hover:text-white">
                   <SelectValue placeholder="All Servers" />
                 </SelectTrigger>
                 <SelectContent>
@@ -87,7 +87,7 @@ export default function Home() {
               </Select>
 
               <Select>
-                <SelectTrigger className="bg-[#1F2731] border-[#2C3A47] w-40 text-[#8B97A4]">
+                <SelectTrigger className="bg-[#1F2731] border-[#2C3A47] w-40 text-[#8B97A4] transition-colors hover:bg-[#FF4655]/10 hover:text-white">
                   <SelectValue placeholder="All Ranks" />
                 </SelectTrigger>
                 <SelectContent>
