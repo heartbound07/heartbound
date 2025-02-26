@@ -1,10 +1,13 @@
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { Users, GamepadIcon, Mic, Calendar, Trophy, Plus } from "lucide-react"
+import { joinParty } from "@/contexts/valorant/partyService"
+import { useAuth } from "@/contexts/auth/useAuth"
+import { useNavigate } from "react-router-dom"
 
 interface ListingProps {
   party: any // Ideally, replace `any` with a specific Party type
@@ -26,6 +29,36 @@ export default function Listing({ party }: ListingProps) {
       avatar: isFilled ? "/placeholder.svg" : undefined,
     }
   })
+
+  // Local state to manage the join process
+  const [isJoining, setIsJoining] = useState(false)
+  const { user } = useAuth()
+  const navigate = useNavigate()
+
+  // Determine if the current user is the party owner
+  const isOwner = user?.id === party.userId
+
+  // Handle the Join Game Button click for non-owners
+  const handleJoinGame = async () => {
+    setIsJoining(true)
+    try {
+      // Call the joinParty function with the party ID
+      const result = await joinParty(party.id)
+      console.log("Joined party successfully:", result)
+      // Optionally update local state or provide feedback to the user here
+    } catch (error) {
+      console.error("Error joining the party", error)
+      // Optionally display an error notification here
+    } finally {
+      setIsJoining(false)
+    }
+  }
+
+  // Handle the "View Party" navigation for owners
+  const handleViewParty = () => {
+    // Redirect owners to the party details page using the correct route
+    navigate(`/dashboard/valorant/${party.id}`)
+  }
 
   return (
     <div className="w-full max-w-2xl mx-auto bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
@@ -175,8 +208,12 @@ export default function Listing({ party }: ListingProps) {
             </TooltipProvider>
           ))}
         </div>
-        <Button className="w-full bg-[#FF4655] hover:bg-[#FF4655]/90 text-white py-2 text-xs font-semibold tracking-wide transition-all duration-200 ease-in-out transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-[#FF4655] focus:ring-opacity-50">
-          Join Game
+        <Button
+          onClick={isOwner ? handleViewParty : handleJoinGame}
+          disabled={isJoining}
+          className="w-full bg-[#FF4655] hover:bg-[#FF4655]/90 text-white py-2 text-xs font-semibold tracking-wide transition-all duration-200 ease-in-out transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-[#FF4655] focus:ring-opacity-50"
+        >
+          {isOwner ? "View Party" : (isJoining ? "Joining..." : "Join Game")}
         </Button>
       </div>
     </div>
