@@ -50,14 +50,16 @@ export default function ValorantPartyDetails() {
         <div className="relative z-10">
           {/* Header */}
           <div className="p-6">
-            <Button
-              variant="ghost"
-              className="text-white gap-2 hover:bg-white/10 transition-all duration-300 rounded-full"
-              onClick={() => navigate("/dashboard/valorant")}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              <span className="font-medium">Back to list</span>
-            </Button>
+            <div className="absolute top-4 left-4 z-20">
+              <Button
+                variant="ghost"
+                className="bg-transparent text-white gap-2 hover:bg-white/10 transition-all duration-300 rounded-full"
+                onClick={() => navigate("/dashboard/valorant")}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span className="font-medium">Back to list</span>
+              </Button>
+            </div>
           </div>
 
           {/* Main Content */}
@@ -123,11 +125,11 @@ export default function ValorantPartyDetails() {
                       className="bg-white/10 text-white px-3 py-1 rounded-full flex items-center gap-2"
                     >
                       <Users className="h-4 w-4" />
-                      <span>1 / 5</span>
+                      <span>1 / {party?.maxPlayers || "?"}</span>
                     </Badge>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-                    {/* Active Player Slot for Party Owner */}
+                    {/* Active Player Slot for Party Leader */}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="relative group">
@@ -151,9 +153,8 @@ export default function ValorantPartyDetails() {
                       </TooltipTrigger>
                       <TooltipContent>Party Leader</TooltipContent>
                     </Tooltip>
-
                     {/* Empty Slots */}
-                    {[...Array(4)].map((_, i) => (
+                    {(party?.maxPlayers ? Array.from({ length: party.maxPlayers - 1 }) : []).map((_, i) => (
                       <Tooltip key={i}>
                         <TooltipTrigger asChild>
                           <div className="relative group cursor-pointer">
@@ -171,13 +172,6 @@ export default function ValorantPartyDetails() {
                     ))}
                   </div>
                 </div>
-              </div>
-
-              {/* Auto Join Button */}
-              <div className="flex justify-center pt-8 pb-12">
-                <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-full px-12 py-6 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5">
-                  Automatic Join Party
-                </Button>
               </div>
             </div>
           </div>
