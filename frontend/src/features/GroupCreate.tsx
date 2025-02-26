@@ -10,9 +10,10 @@ import { createParty } from '@/contexts/valorant/partyService'
 
 interface PostGroupModalProps {
   onClose: () => void;
+  onPartyCreated?: (newParty: any) => void;
 }
 
-export default function PostGroupModal({ onClose }: PostGroupModalProps) {
+export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupModalProps) {
   // State for basic group information
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -136,6 +137,8 @@ export default function PostGroupModal({ onClose }: PostGroupModalProps) {
 
     try {
       const newParty = await createParty(payload)
+      // Call onPartyCreated if provided
+      onPartyCreated && onPartyCreated(newParty)
       // Redirect to the party details page using the new party's id
       navigate(`/dashboard/valorant/${newParty.id}`)
     } catch (error) {
@@ -249,9 +252,6 @@ export default function PostGroupModal({ onClose }: PostGroupModalProps) {
             <span className="text-sm font-medium text-white">Voice Chat Required?</span>
           </label>
         </div>
-        
-        {/* The expiresIn and maxPlayers inputs have been removed.
-            Their values are now auto-set (expiresIn = 10, maxPlayers based on teamSize) */}
         
         {/* Submission Button */}
         <div className="mt-6">

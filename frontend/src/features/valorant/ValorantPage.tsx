@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/valorant/button"
 import { GamepadIcon, Trophy, Plus } from "lucide-react"
 import httpClient from '@/lib/api/httpClient';
 import PostGroupModal from "@/features/GroupCreate";
+import Listing from "@/features/Listing";
 
 export default function Home() {
   const [parties, setParties] = useState<any[]>([]);
@@ -115,20 +116,13 @@ export default function Home() {
             {/* Group Listings */}
             <div className="mt-8">
               {parties.length === 0 ? (
-                <div className="text-center text-gray-400">No available groups at the moment.</div>
+                <div className="text-center text-gray-400">
+                  No available groups at the moment.
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {parties.map((party) => (
-                    <div key={party.id} className="bg-white/10 backdrop-blur-md rounded-lg p-6">
-                      <div className="flex justify-between items-start mb-4">
-                        <h2 className="text-xl font-bold text-white">{party.title}</h2>
-                        <span className={`px-3 py-1 rounded-full text-sm ${party.status === 'open' ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
-                          {party.status}
-                        </span>
-                      </div>
-                      <p className="mb-4">{party.description}</p>
-                      {/* Additional party details could be displayed here */}
-                    </div>
+                    <Listing key={party.id} party={party} />
                   ))}
                 </div>
               )}
@@ -139,7 +133,14 @@ export default function Home() {
 
       {/* Group Create Modal */}
       {showCreateForm && (
-        <PostGroupModal onClose={() => setShowCreateForm(false)} />
+        <PostGroupModal
+          onClose={() => setShowCreateForm(false)}
+          onPartyCreated={(newParty) => {
+            // Mark the new party as 'isNew' and add it to the top of our parties list
+            setParties((prevParties) => [{ ...newParty, isNew: true }, ...prevParties]);
+            setShowCreateForm(false);
+          }}
+        />
       )}
     </div>
   )
