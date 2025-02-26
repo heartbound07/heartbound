@@ -1,5 +1,7 @@
 package com.app.heartbound.dto.lfg;
 
+import com.app.heartbound.enums.Rank;
+import com.app.heartbound.enums.Region;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -49,8 +51,8 @@ public class LFGPartyResponseDTO {
     @AllArgsConstructor
     @Builder
     public static class PartyRequirementsDTO {
-        private String rank;
-        private String region;
+        private Rank rank;
+        private Region region;
         private Boolean voiceChat;
     }
 }

@@ -106,15 +106,15 @@ export default function Home() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Ranks</SelectItem>
-                  <SelectItem value="iron">Iron</SelectItem>
-                  <SelectItem value="bronze">Bronze</SelectItem>
-                  <SelectItem value="silver">Silver</SelectItem>
-                  <SelectItem value="gold">Gold</SelectItem>
-                  <SelectItem value="platinum">Platinum</SelectItem>
-                  <SelectItem value="diamond">Diamond</SelectItem>
-                  <SelectItem value="ascendant">Ascendant</SelectItem>
-                  <SelectItem value="immortal">Immortal</SelectItem>
-                  <SelectItem value="radiant">Radiant</SelectItem>
+                  <SelectItem value="IRON">Iron</SelectItem>
+                  <SelectItem value="BRONZE">Bronze</SelectItem>
+                  <SelectItem value="SILVER">Silver</SelectItem>
+                  <SelectItem value="GOLD">Gold</SelectItem>
+                  <SelectItem value="PLATINUM">Platinum</SelectItem>
+                  <SelectItem value="DIAMOND">Diamond</SelectItem>
+                  <SelectItem value="ASCENDANT">Ascendant</SelectItem>
+                  <SelectItem value="IMMORTAL">Immortal</SelectItem>
+                  <SelectItem value="RADIANT">Radint</SelectItem>
                 </SelectContent>
               </Select>
 

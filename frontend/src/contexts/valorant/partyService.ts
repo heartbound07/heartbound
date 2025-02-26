@@ -1,8 +1,11 @@
 import httpClient from '../../lib/api/httpClient';
 
+export type Rank = 'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'ASCENDANT' | 'IMMORTAL' | 'RADIANT';
+export type Region = 'NA_EAST' | 'NA_WEST' | 'NA_CENTRAL' | 'LATAM' | 'BR' | 'EU' | 'KR' | 'AP';
+
 export interface PartyRequirements {
-  rank: string;
-  region: string;
+  rank: Rank;
+  region: Region;
   voiceChat: boolean;
 }
 

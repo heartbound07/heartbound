@@ -1,5 +1,7 @@
 package com.app.heartbound.dto.lfg;
 
+import com.app.heartbound.enums.Rank;
+import com.app.heartbound.enums.Region;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -85,11 +87,11 @@ public class CreatePartyRequestDTO {
     @Builder
     public static class PartyRequirementsDTO {
 
-        @NotBlank(message = "Rank is required")
-        private String rank;
+        @NotNull(message = "Rank is required")
+        private Rank rank;
 
-        @NotBlank(message = "Region is required")
-        private String region;
+        @NotNull(message = "Region is required")
+        private Region region;
 
         @NotNull(message = "Voice chat flag is required")
         private Boolean voiceChat;

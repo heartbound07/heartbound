@@ -77,7 +77,13 @@ export default function ValorantPartyDetails() {
                   variant="secondary"
                   className="bg-white/10 hover:bg-white/20 transition-colors text-white px-4 py-1.5 text-sm rounded-full"
                 >
-                  NA
+                  {party?.requirements?.rank || "N/A"}
+                </Badge>
+                <Badge
+                  variant="secondary"
+                  className="bg-white/10 hover:bg-white/20 transition-colors text-white px-4 py-1.5 text-sm rounded-full"
+                >
+                  {party?.requirements?.region || "N/A"}
                 </Badge>
                 <Badge
                   variant="secondary"

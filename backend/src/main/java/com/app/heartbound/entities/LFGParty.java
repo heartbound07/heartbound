@@ -1,11 +1,15 @@
 package com.app.heartbound.entities;
 
+import com.app.heartbound.enums.Rank;
+import com.app.heartbound.enums.Region;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
@@ -122,12 +126,13 @@ public class LFGParty {
     @AllArgsConstructor
     @Embeddable
     public static class PartyRequirements {
-
+        @Enumerated(EnumType.STRING)
         @Column(name = "req_rank", nullable = false)
-        private String rank;
+        private Rank rank;
 
+        @Enumerated(EnumType.STRING)
         @Column(name = "req_region", nullable = false)
-        private String region;
+        private Region region;
 
         @Column(name = "req_voice_chat", nullable = false)
         private boolean voiceChat;

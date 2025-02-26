@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/valorant/groupcreatebutton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
 import { Input } from "@/components/ui/profile/input"
 import { motion } from "framer-motion"
-import { createParty } from '@/contexts/valorant/partyService'
+import { createParty, type Rank, type Region } from '@/contexts/valorant/partyService'
 
 interface PostGroupModalProps {
   onClose: () => void;
@@ -25,8 +25,8 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
   const [maxPlayers, setMaxPlayers] = useState(2)
 
   // State for party requirements
-  const [reqRank, setReqRank] = useState('')
-  const [reqRegion, setReqRegion] = useState('')
+  const [reqRank, setReqRank] = useState<'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'ASCENDANT' | 'IMMORTAL' | 'RADIANT'>('IRON')
+  const [reqRegion, setReqRegion] = useState<'NA_EAST' | 'NA_WEST' | 'NA_CENTRAL' | 'LATAM' | 'BR' | 'EU' | 'KR' | 'AP'>('NA_EAST')
   const [voiceChat, setVoiceChat] = useState(false)
 
   // State for additional group creation fields
@@ -221,20 +221,45 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
           />
         </div>
         <div className="mb-4">
-          <Input
-            placeholder="Required Rank"
+          <Select
             value={reqRank}
-            onChange={(e) => setReqRank(e.target.value)}
-            className="h-10 border-0 bg-white/5 text-zinc-200 placeholder:text-zinc-500 ring-1 ring-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-[#FF4655]"
-          />
+            onValueChange={(value: string) => setReqRank(value as Rank)}
+          >
+            <SelectTrigger className="h-10 w-[calc(20%-0.6rem)] min-w-[120px] border-0 bg-white/5 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-white/10 focus:ring-2 focus:ring-[#FF4655]">
+              <SelectValue placeholder="Select Rank" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="IRON">Iron</SelectItem>
+              <SelectItem value="BRONZE">Bronze</SelectItem>
+              <SelectItem value="SILVER">Silver</SelectItem>
+              <SelectItem value="GOLD">Gold</SelectItem>
+              <SelectItem value="PLATINUM">Platinum</SelectItem>
+              <SelectItem value="DIAMOND">Diamond</SelectItem>
+              <SelectItem value="ASCENDANT">Ascendant</SelectItem>
+              <SelectItem value="IMMORTAL">Immortal</SelectItem>
+              <SelectItem value="RADIANT">Radiant</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="mb-4">
-          <Input
-            placeholder="Preferred Region"
+          <Select
             value={reqRegion}
-            onChange={(e) => setReqRegion(e.target.value)}
-            className="h-10 border-0 bg-white/5 text-zinc-200 placeholder:text-zinc-500 ring-1 ring-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-[#FF4655]"
-          />
+            onValueChange={(value: string) => setReqRegion(value as Region)}
+          >
+            <SelectTrigger className="h-10 w-[calc(20%-0.6rem)] min-w-[120px] border-0 bg-white/5 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-white/10 focus:ring-2 focus:ring-[#FF4655]">
+              <SelectValue placeholder="Select Region" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="NA_EAST">NA East</SelectItem>
+              <SelectItem value="NA_WEST">NA West</SelectItem>
+              <SelectItem value="NA_CENTRAL">NA Central</SelectItem>
+              <SelectItem value="LATAM">LATAM</SelectItem>
+              <SelectItem value="BR">BR</SelectItem>
+              <SelectItem value="EU">EU</SelectItem>
+              <SelectItem value="KR">KR</SelectItem>
+              <SelectItem value="AP">AP</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="mb-4">
           <label htmlFor="voiceChat" className="flex items-center space-x-3 cursor-pointer">

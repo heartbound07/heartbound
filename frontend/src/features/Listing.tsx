@@ -4,7 +4,7 @@ import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
-import { Users, GamepadIcon, Mic, Calendar, Trophy, Plus } from "lucide-react"
+import { Users, GamepadIcon, Mic, Calendar, Trophy, Plus, Award, Globe } from "lucide-react"
 import { joinParty } from "@/contexts/valorant/partyService"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate } from "react-router-dom"
@@ -164,6 +164,44 @@ export default function Listing({ party }: ListingProps) {
             </TooltipTrigger>
             <TooltipContent>
               <span>{party.matchType || "Casual"}</span>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        {/* Rank Tooltip */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors 
+                  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 
+                  [&_svg]:pointer-events-none h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
+              >
+                <Award className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span>{party?.requirements?.rank || "N/A"}</span>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        {/* Region Tooltip */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors 
+                  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 
+                  [&_svg]:pointer-events-none h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
+              >
+                <Globe className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span>{party?.requirements?.region || "N/A"}</span>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
