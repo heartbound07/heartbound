@@ -1,18 +1,30 @@
 "use client"
 
 import * as React from "react"
-import { ChevronLeft, Copy, Share2, Users, Crown } from "lucide-react"
+import { ChevronLeft, Users, Crown, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/valorant/buttonparty"
 import { Badge } from "@/components/ui/valorant/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
-import { cn } from "@/utils/cn"
-	
-export default function ValorantPartyDetails() {
-  const [copied, setCopied] = React.useState(false)
+import { useAuth } from "@/contexts/auth/useAuth"
+import { useNavigate, useParams } from "react-router-dom"
+import { deleteParty } from "@/contexts/valorant/partyService"
 
-  const copyLink = () => {
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+export default function ValorantPartyDetails() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const { partyId } = useParams<{ partyId: string }>()
+
+  const handleLeaveGroup = async () => {
+    if (!partyId) {
+      console.error("Party ID is not available")
+      return
+    }
+    try {
+      await deleteParty(partyId)
+      navigate("/dashboard/valorant")
+    } catch (error) {
+      console.error("Error leaving group:", error)
+    }
   }
 
   return (
@@ -28,6 +40,7 @@ export default function ValorantPartyDetails() {
             <Button
               variant="ghost"
               className="text-white gap-2 hover:bg-white/10 transition-all duration-300 rounded-full"
+              onClick={() => navigate("/dashboard/valorant")}
             >
               <ChevronLeft className="h-4 w-4" />
               <span className="font-medium">Back to list</span>
@@ -63,30 +76,14 @@ export default function ValorantPartyDetails() {
                     <TooltipTrigger asChild>
                       <Button
                         variant="secondary"
-                        className={cn(
-                          "gap-2 bg-white/10 hover:bg-white/20 transition-all duration-300 rounded-full",
-                          copied && "bg-green-500/20 text-green-400",
-                        )}
-                        onClick={copyLink}
-                      >
-                        <Copy className="h-4 w-4" />
-                        {copied ? "Copied!" : "Copy group link"}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Copy invite link to clipboard</TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="secondary"
                         size="icon"
+                        onClick={handleLeaveGroup}
                         className="bg-white/10 hover:bg-white/20 transition-all duration-300 rounded-full"
                       >
-                        <Share2 className="h-4 w-4" />
+                        <LogOut className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Share group</TooltipContent>
+                    <TooltipContent>Leave group</TooltipContent>
                   </Tooltip>
                 </div>
               </div>
@@ -106,7 +103,7 @@ export default function ValorantPartyDetails() {
                     </Badge>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-                    {/* Active Player Slot */}
+                    {/* Active Player Slot for Party Owner */}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="relative group">
@@ -114,7 +111,7 @@ export default function ValorantPartyDetails() {
                           <div className="relative w-full aspect-square rounded-full border-2 border-white/20 p-1 bg-zinc-900">
                             <div className="w-full h-full rounded-full overflow-hidden">
                               <img
-                                src="https://v0.dev/placeholder.svg?height=400&width=400"
+                                src={user?.avatar || "https://v0.dev/placeholder.svg?height=400&width=400"}
                                 alt="Player avatar"
                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                               />
@@ -124,7 +121,7 @@ export default function ValorantPartyDetails() {
                             </div>
                           </div>
                           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-zinc-800/90 px-3 py-1 rounded-full text-sm font-medium shadow-lg">
-                            You
+                            {user?.username || "You"}
                           </div>
                         </div>
                       </TooltipTrigger>
