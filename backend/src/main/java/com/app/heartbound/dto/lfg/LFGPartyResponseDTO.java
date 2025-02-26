@@ -27,6 +27,13 @@ public class LFGPartyResponseDTO {
     private Instant createdAt;
     private Instant expiresAt;
     private Set<String> participants;
+    
+    // New fields for additional group information
+    private String matchType;
+    private String gameMode;
+    private String teamSize;
+    private String voicePreference;
+    private String ageRestriction;
 
     /**
      * PartyRequirementsDTO

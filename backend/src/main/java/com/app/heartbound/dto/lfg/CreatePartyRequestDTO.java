@@ -25,7 +25,12 @@ import lombok.NoArgsConstructor;
  *     "voiceChat": true
  *   },
  *   "expiresIn": 30,
- *   "maxPlayers": 5
+ *   "maxPlayers": 5,
+ *   "matchType": "casual",
+ *   "gameMode": "unrated",
+ *   "teamSize": "duo",
+ *   "voicePreference": "discord",
+ *   "ageRestriction": "any"
  * }
  */
 @Data
@@ -52,6 +57,21 @@ public class CreatePartyRequestDTO {
 
     @Positive(message = "Max players must be a positive number")
     private int maxPlayers;
+
+    @NotBlank(message = "Match type is required")
+    private String matchType;
+
+    @NotBlank(message = "Game mode is required")
+    private String gameMode;
+
+    @NotBlank(message = "Team size is required")
+    private String teamSize;
+
+    @NotBlank(message = "Voice preference is required")
+    private String voicePreference;
+
+    @NotBlank(message = "Age restriction is required")
+    private String ageRestriction;
 
     /**
      * PartyRequirementsDTO

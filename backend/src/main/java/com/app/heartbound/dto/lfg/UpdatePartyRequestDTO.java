@@ -22,6 +22,13 @@ public class UpdatePartyRequestDTO {
     // Using wrapper types for optional fields
     private Integer expiresIn;
     private Integer maxPlayers;
+    
+    // New optional fields for additional group creation values
+    private String matchType;
+    private String gameMode;
+    private String teamSize;
+    private String voicePreference;
+    private String ageRestriction;
 
     /**
      * PartyRequirementsDTO
