@@ -29,7 +29,7 @@ export default function Listing({ party }: ListingProps) {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-sm font-semibold text-zinc-100 tracking-wide mt-2">
-              Looking for players...
+              {party.title}
             </h1>
           </div>
         </div>
