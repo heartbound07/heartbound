@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { X, Users, GamepadIcon, Mic, Calendar, Trophy } from "lucide-react"
-import { Button } from "@/components/ui/valorant/button"
+import { Button } from "@/components/ui/valorant/groupcreatebutton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
 import { Input } from "@/components/ui/profile/input"
 import { motion } from "framer-motion"
@@ -141,13 +141,15 @@ export default function PostGroupModal({ onClose }: PostGroupModalProps) {
         transition={{ duration: 0.2 }}
         className="relative w-full max-w-2xl overflow-hidden rounded-xl bg-gradient-to-b from-zinc-800/90 to-zinc-900/90 p-6 shadow-2xl ring-1 ring-white/10"
       >
-        <button 
+        <Button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-2 text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
+          className="absolute right-4 top-4 p-2 text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
+          variant="ghost"
+          size="icon"
         >
           <X className="h-5 w-5" />
           <span className="sr-only">Close</span>
-        </button>
+        </Button>
 
         <div className="mb-6 flex items-center justify-center gap-3">
           <div className="rounded-xl bg-violet-500/10 p-2">

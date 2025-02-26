@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/valorant/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
 import { Button } from "@/components/ui/valorant/button"
@@ -11,7 +10,6 @@ export default function Home() {
   const [parties, setParties] = useState<any[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
-  const navigate = useNavigate();
 
   // Fetch parties from API on component mount using httpClient (which attaches the auth token)
   useEffect(() => {
@@ -49,11 +47,6 @@ export default function Home() {
               </div>
               <h1 className="text-2xl font-bold tracking-tight">VALORANT</h1>
             </div>
-            {/* Create Group Button */}
-            <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Create Group
-            </Button>
           </div>
         </header>
 
@@ -79,8 +72,8 @@ export default function Home() {
               </TabsList>
             </Tabs>
 
-            {/* Filters */}
-            <div className="flex items-center gap-4">
+            {/* Filters and Create Group Button */}
+            <div className="flex items-center gap-4 mt-4">
               <Select>
                 <SelectTrigger className="bg-[#1F2731] border-[#2C3A47] w-40 text-[#8B97A4]">
                   <SelectValue placeholder="All Servers" />
@@ -110,6 +103,13 @@ export default function Home() {
                   <SelectItem value="radiant">Radiant</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Button
+                onClick={() => setShowCreateForm(true)}
+                className="bg-[#FF4655] hover:bg-[#FF4655]/90 text-white rounded-full w-10 h-10 flex items-center justify-center"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
             </div>
 
             {/* Group Listings */}
