@@ -26,6 +26,13 @@ public class JWTTokenProvider {
     @Value("${jwt.access-token-expiration-ms}")
     private long jwtExpirationInMs;
 
+    // Now using a dedicated refresh secret property
+    @Value("${jwt.refresh-secret}")
+    private String refreshTokenSecret;
+
+    @Value("${jwt.refresh-token-expiration-ms}")
+    private long refreshTokenExpiryInMs;
+
     /**
      * Generates a JWT token for the provided user details.
      *
@@ -58,6 +65,25 @@ public class JWTTokenProvider {
 
         logger.info("JWT token generated successfully for user id: {}", userId);
         return token;
+    }
+
+    /**
+     * Generates a refresh token for the provided user id.
+     *
+     * @param userId the user identifier
+     * @return the generated refresh token
+     */
+    public String generateRefreshToken(String userId) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + refreshTokenExpiryInMs);
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", userId);
+        return Jwts.builder()
+                .setClaims(claims)
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .signWith(SignatureAlgorithm.HS512, refreshTokenSecret)
+                .compact();
     }
 
     /**
@@ -98,5 +124,9 @@ public class JWTTokenProvider {
             logger.error("JWT token compact of handler are invalid: {}", ex.getMessage());
         }
         return false;
+    }
+
+    public long getTokenExpiryInMs() {
+        return jwtExpirationInMs;
     }
 }

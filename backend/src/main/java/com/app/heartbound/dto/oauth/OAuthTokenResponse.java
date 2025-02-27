@@ -11,12 +11,16 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "OAuth token response containing access token, expiration time, and scope details.")
+@Schema(description = "OAuth token response containing access token, refresh token, expiration time, and scope details.")
 public class OAuthTokenResponse {
 
     @JsonProperty("access_token")
     @Schema(description = "Access token issued by the OAuth provider", example = "abcd1234")
     private String accessToken;
+
+    @JsonProperty("refresh_token")
+    @Schema(description = "Refresh token for obtaining new access tokens", example = "efgh5678")
+    private String refreshToken;
 
     @JsonProperty("token_type")
     @Schema(description = "Token type (e.g., bearer)", example = "bearer")

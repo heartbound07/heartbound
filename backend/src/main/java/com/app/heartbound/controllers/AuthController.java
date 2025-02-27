@@ -1,6 +1,8 @@
 package com.app.heartbound.controllers;
 
 import com.app.heartbound.dto.UserDTO;
+import com.app.heartbound.dto.oauth.OAuthRefreshRequest;
+import com.app.heartbound.dto.oauth.OAuthTokenResponse;
 import com.app.heartbound.services.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -72,6 +74,20 @@ public class AuthController {
         } else {
             logger.warn("Token validation failed.");
             return ResponseEntity.badRequest().body(Map.of("valid", false));
+        }
+    }
+
+    @Operation(summary = "Refresh an expired access token")
+    @ApiResponse(responseCode = "200", description = "New token pair issued")
+    @ApiResponse(responseCode = "401", description = "Invalid or expired refresh token")
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestBody OAuthRefreshRequest refreshRequest) {
+        try {
+            OAuthTokenResponse tokenResponse = authService.refreshToken(refreshRequest.getRefreshToken());
+            return ResponseEntity.ok(tokenResponse);
+        } catch (Exception e) {
+            logger.error("Refresh token failed: {}", e.getMessage());
+            return ResponseEntity.status(401).body("Invalid refresh token");
         }
     }
 }
