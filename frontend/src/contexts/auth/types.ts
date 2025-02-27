@@ -34,7 +34,10 @@ export interface AuthState {
 
 export interface TokenPair {
   accessToken: string;
-  // refreshToken removed for single JWT implementation
+  refreshToken: string;
+  tokenType: string;
+  expiresIn: number;
+  scope: string;
 }
 
 export interface AuthContextValue extends AuthState {

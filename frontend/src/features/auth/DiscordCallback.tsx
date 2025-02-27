@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/auth';
 export function DiscordCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { handleDiscordCallbackWithToken } = useAuth();
+  const { handleDiscordCallback, handleDiscordCallbackWithToken } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -16,14 +16,29 @@ export function DiscordCallback() {
       return;
     }
 
-    const token = searchParams.get('token');
-    if (!token) {
-      setError('Missing token parameter');
+    const accessToken = searchParams.get('accessToken');
+    if (accessToken) {
+      handleDiscordCallbackWithToken(accessToken)
+        .then(() => {
+          navigate('/dashboard');
+        })
+        .catch((err: any) => {
+          setError(err.message);
+          setTimeout(() => navigate('/login'), 3000);
+        });
+      return;
+    }
+
+    const code = searchParams.get('code');
+    const state = searchParams.get('state');
+
+    if (!code || !state) {
+      setError('Missing required OAuth parameters');
       setTimeout(() => navigate('/login'), 3000);
       return;
     }
 
-    handleDiscordCallbackWithToken(token)
+    handleDiscordCallback(code, state)
       .then(() => {
         navigate('/dashboard');
       })
@@ -31,7 +46,7 @@ export function DiscordCallback() {
         setError(err.message);
         setTimeout(() => navigate('/login'), 3000);
       });
-  }, [searchParams, navigate, handleDiscordCallbackWithToken]);
+  }, [searchParams, navigate, handleDiscordCallback, handleDiscordCallbackWithToken]);
 
   if (error) {
     return <div className="auth-error">Authentication failed: {error}</div>;
