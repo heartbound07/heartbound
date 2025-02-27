@@ -8,15 +8,27 @@ class WebSocketService {
     this.client = new Client({
       // Set up the WebSocket endpoint – ensure this matches the backend configuration.
       webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
-      reconnectDelay: 5000, // Attempts reconnection every 5000ms on disconnect.
+      // Built-in auto-reconnect (in milliseconds). This value can be adjusted or made dynamic for production.
+      reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
       debug: (msg: string) => {
-        // Uncomment the line below to enable debugging logs.
+        // Uncomment the line below to enable detailed debugging logs:
         // console.log('[STOMP DEBUG]', msg);
       },
       // Optional: add connection headers here (e.g., JWT token) if needed:
       // connectionHeaders: { Authorization: "Bearer " + token },
+      
+      // Enhanced error handling callbacks:
+      onWebSocketError: (evt: Event) => {
+        console.error('[WebSocket] Error occurred:', evt);
+      },
+      onWebSocketClose: (evt: CloseEvent) => {
+        console.error(
+          `[WebSocket] Connection closed (Code: ${evt.code}, Reason: ${evt.reason}). ` +
+          'Auto-reconnect is enabled; attempting to reconnect...'
+        );
+      }
     });
   }
 
@@ -26,23 +38,24 @@ class WebSocketService {
    */
   connect(callback: (message: any) => void) {
     this.client.onConnect = () => {
-      console.log('Connected to WebSocket broker');
+      console.info('[STOMP] Connected to WebSocket broker');
       // Subscribe to the topic for party updates.
       this.client.subscribe('/topic/party', (message: IMessage) => {
         try {
           const body = JSON.parse(message.body);
           callback(body);
         } catch (error) {
-          console.error('Error parsing message from WebSocket:', error);
+          console.error('[STOMP] Error parsing message from WebSocket:', error);
         }
       });
     };
 
     this.client.onStompError = (frame) => {
-      console.error('Broker reported error:', frame.headers['message']);
-      console.error('Error details:', frame.body);
+      console.error('[STOMP] Broker reported error:', frame.headers['message']);
+      console.error('[STOMP] Error details:', frame.body);
     };
 
+    // Activate the client to establish the WebSocket connection.
     this.client.activate();
   }
 
@@ -61,10 +74,14 @@ class WebSocketService {
    * @param body - The message payload to send.
    */
   send(destination: string, body: any) {
-    this.client.publish({
-      destination,
-      body: JSON.stringify(body),
-    });
+    try {
+      this.client.publish({
+        destination,
+        body: JSON.stringify(body),
+      });
+    } catch (error) {
+      console.error('[STOMP] Error sending message:', error);
+    }
   }
 }
 
