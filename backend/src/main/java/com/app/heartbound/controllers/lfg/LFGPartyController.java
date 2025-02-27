@@ -8,6 +8,7 @@ import com.app.heartbound.services.lfg.LFGPartyService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -17,9 +18,11 @@ import java.util.UUID;
 public class LFGPartyController {
 
     private final LFGPartyService partyService;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    public LFGPartyController(LFGPartyService partyService) {
+    public LFGPartyController(LFGPartyService partyService, SimpMessagingTemplate messagingTemplate) {
         this.partyService = partyService;
+        this.messagingTemplate = messagingTemplate;
     }
 
     /**
@@ -106,6 +109,8 @@ public class LFGPartyController {
      */
     @PostMapping("/{id}/join")
     public String joinParty(@PathVariable UUID id) {
-        return partyService.joinParty(id);
+        String result = partyService.joinParty(id);
+        messagingTemplate.convertAndSend("/topic/party", "Party update: User joined party " + id);
+        return result;
     }
 }

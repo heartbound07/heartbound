@@ -17,6 +17,7 @@
     "@radix-ui/react-tabs": "^1.1.3",
     "@radix-ui/react-tooltip": "^1.1.8",
     "@rollup/rollup-linux-x64-gnu": "npm:@rollup/wasm-node",
+    "@stomp/stompjs": "^7.0.0",
     "axios": "^1.7.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -27,6 +28,7 @@
     "react-dom": "^18.2.0",
     "react-icons": "^5.5.0",
     "react-router-dom": "^6.22.0",
+    "sockjs-client": "^1.6.1",
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7"
   },
@@ -34,6 +36,7 @@
     "@types/node": "^20.11.0",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
+    "@types/sockjs-client": "^1.5.4",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
@@ -41,7 +44,7 @@
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.2.2",
-    "vite": "^5.4.14"
+    "vite": "^6.2.0"
   },
   "resolutions": {
     "rollup": "npm:@rollup/wasm-node"
