@@ -68,7 +68,8 @@ export default function Listing({ party }: ListingProps) {
       // Call the joinParty function with the party ID
       const result = await joinParty(party.id)
       console.log("Joined party successfully:", result)
-      // Optionally update local state or provide feedback to the user here
+      // Redirect the user to the party details page
+      navigate(`/dashboard/valorant/${party.id}`)
     } catch (error) {
       console.error("Error joining the party", error)
       // Optionally display an error notification here

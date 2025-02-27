@@ -86,6 +86,7 @@ public class LFGPartyService {
         party.setCreatedAt(now);
         party.setExpiresAt(now.plus(dto.getExpiresIn(), ChronoUnit.MINUTES));
         party.setParticipants(new HashSet<>());
+        party.getParticipants().add(userId);
         party.setMatchType(dto.getMatchType());
         party.setGameMode(dto.getGameMode());
         party.setTeamSize(dto.getTeamSize());
