@@ -1,5 +1,6 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthGuard } from '@/components/AuthGuard';
+import PartyUpdatesProvider from '@/contexts/PartyUpdates';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ValorantPageLayout } from '@/components/valorant/ValorantPageLayout';
 import { LoginPage } from '@/features/auth/LoginPage';
@@ -10,6 +11,16 @@ import ValorantPage from '@/features/valorant/ValorantPage';
 import ValorantPartyDetails from '@/features/valorant/ValorantPartyDetails';
 import { DiscordCallback } from '@/features/auth/DiscordCallback';
 
+function ProtectedRoutes() {
+  return (
+    <AuthGuard>
+      <PartyUpdatesProvider>
+        <Outlet />
+      </PartyUpdatesProvider>
+    </AuthGuard>
+  );
+}
+
 export function AppRoutes() {
   return (
     <Routes>
@@ -19,29 +30,15 @@ export function AppRoutes() {
       <Route path="/auth/error" element={<AuthErrorPage />} />
 
       {/* Protected routes */}
-      <Route
-        path="/dashboard"
-        element={
-          <AuthGuard>
-            <DashboardLayout />
-          </AuthGuard>
-        }
-      >
-        <Route index element={<DashboardPage />} />
-        <Route path="profile" element={<ProfilePage />} />
-      </Route>
-
-      {/* Valorant protected routes with nested routing */}
-      <Route
-        path="/dashboard/valorant"
-        element={
-          <AuthGuard>
-            <ValorantPageLayout />
-          </AuthGuard>
-        }
-      >
-        <Route index element={<ValorantPage />} />
-        <Route path=":partyId" element={<ValorantPartyDetails />} />
+      <Route element={<ProtectedRoutes />}>
+        <Route path="/dashboard" element={<DashboardLayout />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+        </Route>
+        <Route path="/dashboard/valorant" element={<ValorantPageLayout />}>
+          <Route index element={<ValorantPage />} />
+          <Route path=":partyId" element={<ValorantPartyDetails />} />
+        </Route>
       </Route>
 
       {/* Default redirect - now routes to /login */}

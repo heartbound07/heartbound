@@ -51,28 +51,41 @@ class WebSocketService {
         console.error('[STOMP] Broker reported error:', frame.headers['message']);
         console.error('[STOMP] Error details:', frame.body);
 
-        // If the error is due to an invalid/expired JWT, attempt a token refresh.
         if (frame.body && frame.body.includes("Invalid JWT token")) {
           try {
-            const refreshToken = localStorage.getItem("refreshToken");
+            // Retrieve the refresh token from the stored auth object.
+            const authDataString = localStorage.getItem('heartbound_auth');
+            let refreshToken = '';
+            if (authDataString) {
+              const authData = JSON.parse(authDataString);
+              refreshToken = authData.tokens?.refreshToken || '';
+            }
             if (!refreshToken) {
               throw new Error('No refresh token available');
             }
-  
+
+            // Call the refresh endpoint.
             const response = await axios.post('http://localhost:8080/api/auth/refresh', {
               refreshToken,
             });
             const newAccessToken = response.data.accessToken;
-  
-            // Store the updated access token.
-            localStorage.setItem("accessToken", newAccessToken);
+
+            // Update the stored auth object with the new access token.
+            if (authDataString) {
+              const authData = JSON.parse(authDataString);
+              authData.tokens.accessToken = newAccessToken;
+              localStorage.setItem('heartbound_auth', JSON.stringify(authData));
+            } else {
+              // Alternatively, if no authData is found, you might store it directly.
+              localStorage.setItem('accessToken', newAccessToken);
+            }
             console.info("[WebSocket] Received new access token.");
-  
+
             // Update the connection headers with the new token.
             this.client.connectHeaders = {
               Authorization: "Bearer " + newAccessToken,
             };
-  
+
             // Force a disconnect then reactivate to use the new token.
             this.client.deactivate();
             this.client.activate();
