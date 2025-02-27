@@ -17,8 +17,9 @@ export function DiscordCallback() {
     }
 
     const accessToken = searchParams.get('accessToken');
+    const refreshToken = searchParams.get('refreshToken') || "";
     if (accessToken) {
-      handleDiscordCallbackWithToken(accessToken)
+      handleDiscordCallbackWithToken(accessToken, refreshToken)
         .then(() => {
           navigate('/dashboard');
         })

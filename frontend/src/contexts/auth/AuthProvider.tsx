@@ -235,28 +235,29 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
   }, [handleAuthResponse]);
 
-  const handleDiscordCallbackWithToken = useCallback(async (accessToken: string) => {
+  const handleDiscordCallbackWithToken = useCallback(async (accessToken: string, refreshToken?: string) => {
     console.log('Raw accessToken from URL:', accessToken);
     const decodedTokenString = decodeURIComponent(accessToken);
     console.log('Decoded token string after decodeURIComponent:', decodedTokenString);
     const decodedToken = parseJwt(decodedTokenString);
     console.log('Final decoded JWT object:', decodedToken);
+    
     const user: UserInfo = {
       id: decodedToken.sub || 'unknown',
       username: decodedToken.username || 'unknown',
       email: decodedToken.email || 'unknown',
       avatar: decodedToken.avatar || '/default-avatar.png',
     };
-    // In cases when only an access token is provided via URL,
-    // we create a minimal TokenPair using defaults
+    
     const expiresIn = decodedToken.exp - Math.floor(Date.now() / 1000);
     const tokenPair: TokenPair = {
       accessToken: decodedTokenString,
-      refreshToken: "", // default empty if not provided via URL
+      refreshToken: refreshToken || "", // Use provided refreshToken or default to an empty string
       tokenType: "bearer",
       expiresIn: expiresIn,
       scope: ""
     };
+    
     persistAuthState(user, tokenPair);
     scheduleTokenRefresh(expiresIn);
     setTokens(tokenPair);

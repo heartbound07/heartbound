@@ -31,7 +31,7 @@ public class AuthService {
                 userDTO.getEmail(),
                 userDTO.getAvatar()
         );
-        logger.info("JWT token generated successfully for user id: {}", userDTO.getId());
+        logger.info("JWT token generated successfully for user: {}", userDTO.getId());
         return token;
     }
     
@@ -66,11 +66,9 @@ public class AuthService {
     }
 
     public OAuthTokenResponse refreshToken(String refreshToken) {
-        // In a full implementation, you'd validate the refresh token separately.
-        // For simplicity, assume it is valid if not expired.
-        // Retrieve user identifier from the refresh token:
-        String userId = jwtTokenProvider.getUserIdFromJWT(refreshToken); // or have a dedicated method for refresh tokens
-        // Generate new tokens:
+        // Validate and decode the refresh token using the dedicated refresh method
+        String userId = jwtTokenProvider.getUserIdFromRefreshToken(refreshToken);
+        // In a full implementation, you would also verify that this refresh token is still valid
         String newAccessToken = jwtTokenProvider.generateToken(userId, "username", "email@example.com", "avatar.png");
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(userId);
         return OAuthTokenResponse.builder()

@@ -156,15 +156,25 @@ public class OAuthController {
         userService.createOrUpdateUser(userDTO);
         logger.info("User information persisted successfully for user: {}", userDTO.getUsername());
 
-        // Generate a JWT using JWTTokenProvider with user details.
-        String jwtToken = jwtTokenProvider.generateToken(
+        // Generate both the access token and the refresh token using JWTTokenProvider.
+        String accessToken = jwtTokenProvider.generateToken(
                 userDTO.getId(),
                 userDTO.getUsername(),
                 userDTO.getEmail(),
                 userDTO.getAvatar()
         );
-        String jwtTokenParam = URLEncoder.encode(jwtToken, StandardCharsets.UTF_8);
-        String frontendRedirectUrl = String.format("http://localhost:3000/auth/discord/callback?token=%s", jwtTokenParam);
+        String refreshToken = jwtTokenProvider.generateRefreshToken(userDTO.getId());
+
+        // URL-encode both tokens to safely include them in a redirect URL.
+        String encodedAccessToken = URLEncoder.encode(accessToken, StandardCharsets.UTF_8);
+        String encodedRefreshToken = URLEncoder.encode(refreshToken, StandardCharsets.UTF_8);
+
+        // Build the redirect URL to include both tokens as query parameters.
+        String frontendRedirectUrl = String.format(
+                "http://localhost:3000/auth/discord/callback?accessToken=%s&refreshToken=%s",
+                encodedAccessToken,
+                encodedRefreshToken
+        );
         return new RedirectView(frontendRedirectUrl);
     }
 }

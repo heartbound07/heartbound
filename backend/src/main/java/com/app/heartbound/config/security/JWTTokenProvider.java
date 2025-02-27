@@ -102,6 +102,21 @@ public class JWTTokenProvider {
     }
 
     /**
+     * Extracts the userId (subject) from the refresh token.
+     *
+     * @param token the refresh token
+     * @return the userId stored in the token
+     */
+    public String getUserIdFromRefreshToken(String token) {
+        Claims claims = Jwts.parser()
+                .setSigningKey(refreshTokenSecret)
+                .parseClaimsJws(token)
+                .getBody();
+        logger.debug("Extracted user id from refresh token: {}", claims.get("userId"));
+        return claims.get("userId", String.class);
+    }
+
+    /**
      * Validates the JWT token.
      *
      * @param token the JWT token to validate
