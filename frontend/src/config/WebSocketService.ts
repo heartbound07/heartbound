@@ -5,9 +5,25 @@ class WebSocketService {
   private client: Client;
 
   constructor() {
+    // Retrieve the JWT token from localStorage (or use your auth hook/context)
+    let accessToken = '';
+    const storedAuth = localStorage.getItem('heartbound_auth');
+    if (storedAuth) {
+      try {
+        const parsed = JSON.parse(storedAuth);
+        accessToken = parsed.tokens?.accessToken || '';
+      } catch (error) {
+        console.error('Error parsing authentication data from storage:', error);
+      }
+    }
+
     this.client = new Client({
-      // Set up the WebSocket endpoint – ensure this matches the backend configuration.
-      webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+      // Updated endpoint to include the /api context path
+      webSocketFactory: () => new SockJS('http://localhost:8080/api/ws'),
+      // Provide the token in connectHeaders so that the JWTChannelInterceptor can validate the connection.
+      connectHeaders: {
+        Authorization: `Bearer ${accessToken}`
+      },
       // Built-in auto-reconnect (in milliseconds). This value can be adjusted or made dynamic for production.
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
@@ -26,10 +42,18 @@ class WebSocketService {
       onWebSocketClose: (evt: CloseEvent) => {
         console.error(
           `[WebSocket] Connection closed (Code: ${evt.code}, Reason: ${evt.reason}). ` +
-          'Auto-reconnect is enabled; attempting to reconnect...'
+            'Auto-reconnect is enabled; attempting to reconnect...'
         );
       }
     });
+
+    this.client.onStompError = (frame) => {
+      console.error('[STOMP] Broker reported error:', frame.headers['message']);
+      console.error('[STOMP] Error details:', frame.body);
+    };
+
+    // Activate the client to establish the WebSocket connection.
+    this.client.activate();
   }
 
   /**

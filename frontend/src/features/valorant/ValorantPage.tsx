@@ -7,29 +7,39 @@ import httpClient from '@/lib/api/httpClient';
 import PostGroupModal from "@/features/GroupCreate";
 import Listing from "@/features/Listing";
 import { useAuth } from '@/contexts/auth/useAuth';
+import { usePartyUpdates } from '@/contexts/PartyUpdates';
 
 export default function Home() {
   const [parties, setParties] = useState<any[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [groupErrorMessage, setGroupErrorMessage] = useState<string | null>(null);
   const { user } = useAuth();
+  const { update } = usePartyUpdates();
 
-  // Fetch parties from API on component mount using httpClient (which attaches the auth token)
-  useEffect(() => {
-    async function fetchParties() {
-      try {
-        const response = await httpClient.get('/api/lfg/parties');
-        const data = response.data;
-        const partiesArray = Array.isArray(data)
-          ? data
-          : data.content || [];
-        setParties(partiesArray);
-      } catch (err) {
-        console.error("Error fetching parties:", err);
-      }
+  // Function to fetch parties from API
+  const fetchParties = async () => {
+    try {
+      const response = await httpClient.get('/api/lfg/parties');
+      const data = response.data;
+      const partiesArray = Array.isArray(data) ? data : data.content || [];
+      setParties(partiesArray);
+    } catch (err) {
+      console.error("Error fetching parties:", err);
     }
+  };
+
+  // Initial fetch on component mount
+  useEffect(() => {
     fetchParties();
   }, []);
+
+  // Listen for party update messages and re-fetch parties when received
+  useEffect(() => {
+    if (update) {
+      console.info("[ValorantPage] Received party update via WebSocket:", update);
+      fetchParties();
+    }
+  }, [update]);
 
   // Auto-dismiss error message after 3 seconds if set
   useEffect(() => {
