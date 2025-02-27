@@ -11,6 +11,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -33,7 +35,11 @@ public class LFGPartyController {
      */
     @PostMapping
     public LFGPartyResponseDTO createParty(@RequestBody CreatePartyRequestDTO dto) {
-        return partyService.createParty(dto);
+        LFGPartyResponseDTO createdParty = partyService.createParty(dto);
+        Map<String, String> updatePayload = new HashMap<>();
+        updatePayload.put("update", "Party update: New party created: " + createdParty.getId());
+        messagingTemplate.convertAndSend("/topic/party", updatePayload);
+        return createdParty;
     }
 
     /**
@@ -110,7 +116,9 @@ public class LFGPartyController {
     @PostMapping("/{id}/join")
     public String joinParty(@PathVariable UUID id) {
         String result = partyService.joinParty(id);
-        messagingTemplate.convertAndSend("/topic/party", "Party update: User joined party " + id);
+        Map<String, String> updatePayload = new HashMap<>();
+        updatePayload.put("update", "Party update: User joined party " + id);
+        messagingTemplate.convertAndSend("/topic/party", updatePayload);
         return result;
     }
 }
