@@ -42,7 +42,7 @@ public class JWTChannelInterceptor implements ChannelInterceptor {
                 throw new IllegalArgumentException("Missing Authorization header");
             }
             
-            // Expect the Authorization header to contain a Bearer token
+            // Extract the token, removing the "Bearer " prefix if present
             String token = authHeaders.get(0);
             if (token.startsWith("Bearer ")) {
                 token = token.substring(7);
@@ -54,7 +54,7 @@ public class JWTChannelInterceptor implements ChannelInterceptor {
                 throw new IllegalArgumentException("Invalid JWT token");
             }
             
-            // Retrieve the user identifier and set it as the Principal
+            // Retrieve the user identifier and set it as the Principal for downstream processing
             String userId = jwtTokenProvider.getUserIdFromJWT(token);
             logger.debug("JWT token validated successfully for user: {}", userId);
             Principal user = new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());

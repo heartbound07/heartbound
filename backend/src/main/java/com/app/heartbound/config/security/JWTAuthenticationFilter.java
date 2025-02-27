@@ -27,6 +27,15 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
                                     @NonNull HttpServletResponse response, 
                                     @NonNull FilterChain filterChain)
             throws ServletException, IOException {
+
+        // Skip JWT validation for WebSocket handshake endpoints (and SockJS fallback endpoints)
+        String servletPath = request.getServletPath();
+        if (servletPath.startsWith("/ws")) {
+            logger.debug("Skipping JWT filter for WebSocket handshake endpoint: {}", servletPath);
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String header = request.getHeader("Authorization");
 
         if (header != null && header.startsWith("Bearer ")) {

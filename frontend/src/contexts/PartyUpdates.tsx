@@ -7,6 +7,7 @@ import React, {
   useMemo,
 } from 'react';
 import webSocketService from '../config/WebSocketService';
+import { useAuth } from '@/contexts/auth/useAuth';
 
 interface PartyUpdatesContextProps {
   update: string | null;
@@ -20,10 +21,16 @@ interface PartyUpdatesProviderProps {
 }
 
 export const PartyUpdatesProvider = ({ children }: PartyUpdatesProviderProps) => {
+  const { isAuthenticated } = useAuth();
   const [update, setUpdate] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      // Do not connect to WebSocket if the user is not authenticated.
+      return;
+    }
+
     try {
       // Establish the WebSocket connection and subscribe to party updates
       webSocketService.connect((message: string) => {
@@ -39,7 +46,7 @@ export const PartyUpdatesProvider = ({ children }: PartyUpdatesProviderProps) =>
     return () => {
       webSocketService.disconnect();
     };
-  }, []);
+  }, [isAuthenticated]);
 
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({ update, error }), [update, error]);

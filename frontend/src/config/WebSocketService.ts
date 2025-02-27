@@ -2,14 +2,29 @@ import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import axios from 'axios';
 
+// Utility function to extract the current access token from localStorage.
+function getAccessToken(): string {
+  const authDataString = localStorage.getItem('heartbound_auth');
+  if (authDataString) {
+    try {
+      const authData = JSON.parse(authDataString);
+      return authData.tokens?.accessToken || '';
+    } catch (error) {
+      console.error('Error parsing authentication data from localStorage:', error);
+    }
+  }
+  return '';
+}
+
 class WebSocketService {
   private client: Client;
 
   constructor() {
     this.client = new Client({
-      // Set up the WebSocket endpoint – ensure this matches the backend configuration.
-      webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
-      // Built-in auto-reconnect (in milliseconds). This value can be adjusted or made dynamic for production.
+      // Make sure this matches the endpoint registered in WebSocketConfig ("/ws")
+      // DO NOT CHANGE FROM ("/api/ws") to ("/ws")! Backend Serverlet is set to /api
+      webSocketFactory: () => new SockJS('http://localhost:8080/api/ws'),
+      // Built-in auto-reconnect (in milliseconds). Adjust as needed.
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
@@ -17,12 +32,10 @@ class WebSocketService {
         // Uncomment the line below to enable detailed debugging logs:
         // console.log('[STOMP DEBUG]', msg);
       },
-      // Set up the connection header with the current access token.
-      // Here we assume the token is stored in localStorage by your auth flow.
+      // Use our utility function to set the proper Authorization header.
       connectHeaders: {
-        Authorization: "Bearer " + localStorage.getItem("accessToken"),
+        Authorization: "Bearer " + getAccessToken(),
       },
-      
       // Enhanced error handling callbacks:
       onWebSocketError: (evt: Event) => {
         console.error('[WebSocket] Error occurred:', evt);
@@ -38,10 +51,9 @@ class WebSocketService {
         console.error('[STOMP] Broker reported error:', frame.headers['message']);
         console.error('[STOMP] Error details:', frame.body);
 
-        // Check if the error is due to an invalid/expired JWT.
+        // If the error is due to an invalid/expired JWT, attempt a token refresh.
         if (frame.body && frame.body.includes("Invalid JWT token")) {
           try {
-            // Call your refresh token endpoint.
             const refreshToken = localStorage.getItem("refreshToken");
             if (!refreshToken) {
               throw new Error('No refresh token available');
@@ -61,8 +73,8 @@ class WebSocketService {
               Authorization: "Bearer " + newAccessToken,
             };
   
-            // Optionally force a disconnect then reactivate to use the new token.
-            this.client.forceDisconnect();
+            // Force a disconnect then reactivate to use the new token.
+            this.client.deactivate();
             this.client.activate();
           } catch (refreshError) {
             console.error("[WebSocket] Failed to refresh token:", refreshError);
@@ -90,6 +102,7 @@ class WebSocketService {
       });
     };
 
+    // Ensure the onStompError handler remains set.
     this.client.onStompError = this.client.onStompError;
 
     // Activate the client to establish the WebSocket connection.
