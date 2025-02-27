@@ -28,9 +28,6 @@ export default defineConfig(({ mode, command }) => {
       alias: {
         '@': path.resolve(__dirname, './src')
       }
-    },
-    define: {
-      global: 'window',
-    },
+    }
   }
 })

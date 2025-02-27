@@ -42,8 +42,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Permit swagger and OpenAPI endpoints and the websocket handshake
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api/swagger-ui/**", "/api/v3/api-docs/**", "/ws/**").permitAll()
+                // Permit swagger and OpenAPI endpoints
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api/swagger-ui/**", "/api/v3/api-docs/**").permitAll()
                 // Permit error and root endpoints for proper error handling
                 .requestMatchers("/", "/error").permitAll()
                 // Permit endpoints for OAuth & Auth controllers
