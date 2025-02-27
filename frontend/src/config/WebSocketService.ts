@@ -1,5 +1,6 @@
 import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import axios from 'axios';
 
 class WebSocketService {
   private client: Client;
@@ -16,8 +17,11 @@ class WebSocketService {
         // Uncomment the line below to enable detailed debugging logs:
         // console.log('[STOMP DEBUG]', msg);
       },
-      // Optional: add connection headers here (e.g., JWT token) if needed:
-      // connectionHeaders: { Authorization: "Bearer " + token },
+      // Set up the connection header with the current access token.
+      // Here we assume the token is stored in localStorage by your auth flow.
+      connectHeaders: {
+        Authorization: "Bearer " + localStorage.getItem("accessToken"),
+      },
       
       // Enhanced error handling callbacks:
       onWebSocketError: (evt: Event) => {
@@ -28,7 +32,43 @@ class WebSocketService {
           `[WebSocket] Connection closed (Code: ${evt.code}, Reason: ${evt.reason}). ` +
           'Auto-reconnect is enabled; attempting to reconnect...'
         );
-      }
+      },
+      // Enhanced error handling for STOMP errors.
+      onStompError: async (frame) => {
+        console.error('[STOMP] Broker reported error:', frame.headers['message']);
+        console.error('[STOMP] Error details:', frame.body);
+
+        // Check if the error is due to an invalid/expired JWT.
+        if (frame.body && frame.body.includes("Invalid JWT token")) {
+          try {
+            // Call your refresh token endpoint.
+            const refreshToken = localStorage.getItem("refreshToken");
+            if (!refreshToken) {
+              throw new Error('No refresh token available');
+            }
+  
+            const response = await axios.post('http://localhost:8080/api/auth/refresh', {
+              refreshToken,
+            });
+            const newAccessToken = response.data.accessToken;
+  
+            // Store the updated access token.
+            localStorage.setItem("accessToken", newAccessToken);
+            console.info("[WebSocket] Received new access token.");
+  
+            // Update the connection headers with the new token.
+            this.client.connectHeaders = {
+              Authorization: "Bearer " + newAccessToken,
+            };
+  
+            // Optionally force a disconnect then reactivate to use the new token.
+            this.client.forceDisconnect();
+            this.client.activate();
+          } catch (refreshError) {
+            console.error("[WebSocket] Failed to refresh token:", refreshError);
+          }
+        }
+      },
     });
   }
 
@@ -50,10 +90,7 @@ class WebSocketService {
       });
     };
 
-    this.client.onStompError = (frame) => {
-      console.error('[STOMP] Broker reported error:', frame.headers['message']);
-      console.error('[STOMP] Error details:', frame.body);
-    };
+    this.client.onStompError = this.client.onStompError;
 
     // Activate the client to establish the WebSocket connection.
     this.client.activate();
