@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/valorant/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
 import { Button } from "@/components/ui/valorant/button"
@@ -7,29 +7,40 @@ import httpClient from '@/lib/api/httpClient';
 import PostGroupModal from "@/features/GroupCreate";
 import Listing from "@/features/Listing";
 import { useAuth } from '@/contexts/auth/useAuth';
+import { usePartyUpdates } from '@/contexts/PartyUpdates';
 
 export default function Home() {
   const [parties, setParties] = useState<any[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [groupErrorMessage, setGroupErrorMessage] = useState<string | null>(null);
   const { user } = useAuth();
+  const { update } = usePartyUpdates();
 
-  // Fetch parties from API on component mount using httpClient (which attaches the auth token)
-  useEffect(() => {
-    async function fetchParties() {
-      try {
-        const response = await httpClient.get('/api/lfg/parties');
-        const data = response.data;
-        const partiesArray = Array.isArray(data)
-          ? data
-          : data.content || [];
-        setParties(partiesArray);
-      } catch (err) {
-        console.error("Error fetching parties:", err);
-      }
+  // Define a reusable function to fetch parties.
+  const fetchParties = useCallback(async () => {
+    try {
+      const response = await httpClient.get('/api/lfg/parties');
+      const data = response.data;
+      const partiesArray = Array.isArray(data)
+        ? data
+        : data.content || [];
+      setParties(partiesArray);
+    } catch (err) {
+      console.error("Error fetching parties:", err);
     }
-    fetchParties();
   }, []);
+
+  // On mount, fetch the initial list of parties.
+  useEffect(() => {
+    fetchParties();
+  }, [fetchParties]);
+
+  // Whenever a new party update is received via WebSocket, refetch the parties.
+  useEffect(() => {
+    if (update) {
+      fetchParties();
+    }
+  }, [update, fetchParties]);
 
   // Auto-dismiss error message after 3 seconds if set
   useEffect(() => {
@@ -121,7 +132,7 @@ export default function Home() {
               <Button
                 onClick={() => {
                   if (userHasParty) {
-                    setGroupErrorMessage("Error posting group: Error: You can only create one party");
+                    setGroupErrorMessage("Error: You can only create one party");
                   } else {
                     setShowCreateForm(true);
                   }
@@ -162,7 +173,7 @@ export default function Home() {
         <PostGroupModal
           onClose={() => setShowCreateForm(false)}
           onPartyCreated={(newParty) => {
-            // Mark the new party as 'isNew' and add it to the top of our parties list
+            // Optionally update the UI immediately while the WebSocket update refreshes the list.
             setParties((prevParties) => [{ ...newParty, isNew: true }, ...prevParties]);
             setShowCreateForm(false);
           }}
