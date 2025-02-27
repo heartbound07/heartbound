@@ -9,6 +9,29 @@ import { joinParty } from "@/contexts/valorant/partyService"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate } from "react-router-dom"
 
+// Helper function to format tooltip text for fields such as gameMode, teamSize, etc.
+const formatTooltipText = (text: string | undefined, defaultText: string = "N/A"): string => {
+  if (!text) return defaultText
+  // Handle region values e.g., "NA_EAST" should become "NA East"
+  if (text.includes("_")) {
+    const parts = text.split("_")
+    if (parts[0] === "NA" && parts.length === 2) {
+      return `NA ${parts[1].charAt(0) + parts[1].slice(1).toLowerCase()}`
+    }
+    // General case: split on underscores and capitalize each part
+    return parts.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(" ")
+  }
+  // For other values, simply capitalize the first letter
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase()
+}
+
+// New helper function to format age restrictions (e.g., "18-plus" -> "18+")
+const formatAgeRestriction = (text: string | undefined, defaultText: string = "Any"): string => {
+  if (!text) return defaultText
+  if (text.toLowerCase() === "any") return "Any"
+  return text.replace("-plus", "+")
+}
+
 interface ListingProps {
   party: any // Ideally, replace `any` with a specific Party type
 }
@@ -85,13 +108,13 @@ export default function Listing({ party }: ListingProps) {
                 size="icon"
                 className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors
                   focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
-                  [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
+                  [&_svg]:pointer-events-none h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
               >
                 <GamepadIcon className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <span>{party.gameMode || "Unrated"}</span>
+              <span>{formatTooltipText(party.gameMode, "Unrated")}</span>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -103,13 +126,13 @@ export default function Listing({ party }: ListingProps) {
                 size="icon"
                 className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors
                   focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
-                  [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
+                  [&_svg]:pointer-events-none h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
               >
                 <Users className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <span>{party.teamSize || "Duo"}</span>
+              <span>{formatTooltipText(party.teamSize, "Duo")}</span>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -121,7 +144,7 @@ export default function Listing({ party }: ListingProps) {
                 size="icon"
                 className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors
                   focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
-                  [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
+                  [&_svg]:pointer-events-none h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
               >
                 <Mic className="h-4 w-4" />
               </Button>
@@ -139,13 +162,13 @@ export default function Listing({ party }: ListingProps) {
                 size="icon"
                 className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors
                   focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
-                  [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
+                  [&_svg]:pointer-events-none h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
               >
                 <Calendar className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <span>{party.ageRestriction || "Any"}</span>
+              <span>{formatAgeRestriction(party.ageRestriction)}</span>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -157,13 +180,13 @@ export default function Listing({ party }: ListingProps) {
                 size="icon"
                 className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors
                   focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
-                  [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
+                  [&_svg]:pointer-events-none h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
               >
                 <Trophy className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <span>{party.matchType || "Casual"}</span>
+              <span>{formatTooltipText(party.matchType, "Casual")}</span>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -182,7 +205,7 @@ export default function Listing({ party }: ListingProps) {
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <span>{party?.requirements?.rank || "N/A"}</span>
+              <span>{formatTooltipText(party?.requirements?.rank)}</span>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -201,7 +224,7 @@ export default function Listing({ party }: ListingProps) {
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <span>{party?.requirements?.region || "N/A"}</span>
+              <span>{formatTooltipText(party?.requirements?.region)}</span>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
