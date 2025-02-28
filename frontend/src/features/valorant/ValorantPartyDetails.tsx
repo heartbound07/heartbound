@@ -15,7 +15,7 @@ export default function ValorantPartyDetails() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { partyId } = useParams<{ partyId: string }>()
-  const { update } = usePartyUpdates()
+  const { update, clearUpdate } = usePartyUpdates()
 
   const [party, setParty] = React.useState<any>(null)
   // State to hold the leader's profile (avatar and username)
@@ -33,22 +33,17 @@ export default function ValorantPartyDetails() {
     }
   }, [partyId])
 
-  // Listen for party updates via WebSocket and re-fetch party details when an update is received.
+  // Listen for party updates and re-fetch party details when an update is received.
   React.useEffect(() => {
-    if (update && party?.id) {
-      try {
-        // If update is already an object, use it directly; otherwise, parse it.
-        const updateObj = typeof update === "string" ? JSON.parse(update) : update
-        if (updateObj?.update && updateObj.update.includes(party.id)) {
-          getParty(party.id)
-            .then((data) => setParty(data))
-            .catch((err: any) => console.error("Error re-fetching party on update:", err))
-        }
-      } catch (error) {
-        console.error("Error parsing update in ValorantPartyDetails:", error)
-      }
+    if (update && party?.id && update.party && update.party.id === party.id) {
+      getParty(party.id)
+        .then((data) => {
+          setParty(data)
+          clearUpdate()
+        })
+        .catch((err: any) => console.error("Error re-fetching party on update:", err))
     }
-  }, [update, party?.id])
+  }, [update, party?.id, clearUpdate])
 
   // Fetch the party leader's profile if the current user is not the leader.
   React.useEffect(() => {

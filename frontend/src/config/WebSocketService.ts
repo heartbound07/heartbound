@@ -1,4 +1,4 @@
-import { Client, IMessage } from '@stomp/stompjs';
+import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import axios from 'axios';
 
@@ -18,8 +18,10 @@ function getAccessToken(): string {
 
 class WebSocketService {
   private client: Client;
+  private subscriptions: Map<string, StompSubscription> = new Map();
 
   constructor() {
+    // Initialize the STOMP client with configuration options.
     this.client = new Client({
       // Make sure this matches the endpoint registered in WebSocketConfig ("/ws")
       // DO NOT CHANGE FROM ("/api/ws") to ("/ws")! Backend Serverlet is set to /api
@@ -29,31 +31,26 @@ class WebSocketService {
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
       debug: (msg: string) => {
-        // Uncomment the line below to enable detailed debugging logs:
+        // Uncomment the next line to enable detailed logging:
         // console.log('[STOMP DEBUG]', msg);
       },
-      // Use our utility function to set the proper Authorization header.
       connectHeaders: {
         Authorization: "Bearer " + getAccessToken(),
       },
-      // Enhanced error handling callbacks:
       onWebSocketError: (evt: Event) => {
         console.error('[WebSocket] Error occurred:', evt);
       },
       onWebSocketClose: (evt: CloseEvent) => {
         console.error(
-          `[WebSocket] Connection closed (Code: ${evt.code}, Reason: ${evt.reason}). ` +
-          'Auto-reconnect is enabled; attempting to reconnect...'
+          `[WebSocket] Connection closed (Code: ${evt.code}, Reason: ${evt.reason}). Auto-reconnect is enabled; attempting to reconnect...`
         );
       },
-      // Enhanced error handling for STOMP errors.
       onStompError: async (frame) => {
         console.error('[STOMP] Broker reported error:', frame.headers['message']);
         console.error('[STOMP] Error details:', frame.body);
 
         if (frame.body && frame.body.includes("Invalid JWT token")) {
           try {
-            // Retrieve the refresh token from the stored auth object.
             const authDataString = localStorage.getItem('heartbound_auth');
             let refreshToken = '';
             if (authDataString) {
@@ -64,31 +61,29 @@ class WebSocketService {
               throw new Error('No refresh token available');
             }
 
-            // Call the refresh endpoint.
+            // Call the token refresh endpoint.
             const response = await axios.post('http://localhost:8080/api/auth/refresh', {
               refreshToken,
             });
             const newAccessToken = response.data.accessToken;
 
-            // Update the stored auth object with the new access token.
+            // Update the stored authentication data with the new access token.
             if (authDataString) {
               const authData = JSON.parse(authDataString);
               authData.tokens.accessToken = newAccessToken;
               localStorage.setItem('heartbound_auth', JSON.stringify(authData));
             } else {
-              // Alternatively, if no authData is found, you might store it directly.
               localStorage.setItem('accessToken', newAccessToken);
             }
             console.info("[WebSocket] Received new access token.");
 
-            // Update the connection headers with the new token.
+            // Update the connection headers with the new token and reconnect.
             this.client.connectHeaders = {
               Authorization: "Bearer " + newAccessToken,
             };
-
-            // Force a disconnect then reactivate to use the new token.
-            this.client.deactivate();
-            this.client.activate();
+            this.client.deactivate().then(() => {
+              this.client.activate();
+            });
           } catch (refreshError) {
             console.error("[WebSocket] Failed to refresh token:", refreshError);
           }
@@ -98,43 +93,68 @@ class WebSocketService {
   }
 
   /**
-   * Establishes a connection to the WebSocket broker and subscribes to a topic.
-   * @param callback - Function to be called with the parsed message payload on each received message.
+   * Establishes a connection to the WebSocket broker.
+   * Optionally subscribes to the default party updates topic if a callback is provided.
+   * @param callback - Function called on each received message from the default topic '/topic/party'.
    */
-  connect(callback: (message: any) => void) {
+  connect(callback?: (message: any) => void) {
     this.client.onConnect = () => {
       console.info('[STOMP] Connected to WebSocket broker');
-      // Subscribe to the topic for party updates.
-      this.client.subscribe('/topic/party', (message: IMessage) => {
-        try {
-          const body = JSON.parse(message.body);
-          callback(body);
-        } catch (error) {
-          console.error('[STOMP] Error parsing message from WebSocket:', error);
-        }
-      });
+      if (callback) {
+        // Subscribe to the default topic for party updates.
+        const subscription = this.client.subscribe('/topic/party', (message: IMessage) => {
+          try {
+            const body = JSON.parse(message.body);
+            callback(body);
+          } catch (error) {
+            console.error('[STOMP] Error parsing message from WebSocket:', error);
+          }
+        });
+        this.subscriptions.set('/topic/party', subscription);
+      }
     };
 
-    // Ensure the onStompError handler remains set.
-    this.client.onStompError = this.client.onStompError;
-
-    // Activate the client to establish the WebSocket connection.
+    // Activate the client to establish the connection.
     this.client.activate();
   }
 
   /**
-   * Disconnects the WebSocket connection.
+   * Allows subscribing to an additional topic.
+   * @param topic - The destination topic (e.g. "/topic/anotherTopic").
+   * @param callback - Function called on each message from the specified topic.
+   * @returns The subscription object.
+   */
+  subscribe(topic: string, callback: (message: any) => void): StompSubscription {
+    if (!this.client.connected) {
+      console.warn(`[WebSocket] Not connected. Cannot subscribe to ${topic} at this time.`);
+      throw new Error("WebSocket client is not connected.");
+    }
+    const subscription = this.client.subscribe(topic, (message: IMessage) => {
+      try {
+        const body = JSON.parse(message.body);
+        callback(body);
+      } catch (error) {
+        console.error(`[STOMP] Error parsing message from topic ${topic}:`, error);
+      }
+    });
+    this.subscriptions.set(topic, subscription);
+    return subscription;
+  }
+
+  /**
+   * Disconnects the WebSocket connection and clears all subscriptions.
    */
   disconnect() {
     if (this.client && this.client.active) {
       this.client.deactivate();
+      this.subscriptions.clear();
     }
   }
 
   /**
-   * Publishes a message to a specific destination.
-   * @param destination - The endpoint destination (e.g., "/app/party/update").
-   * @param body - The message payload to send.
+   * Publishes a message to the specified destination.
+   * @param destination - The endpoint destination (e.g. "/app/party/update").
+   * @param body - The message payload.
    */
   send(destination: string, body: any) {
     try {

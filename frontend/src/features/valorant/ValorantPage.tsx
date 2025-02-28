@@ -14,7 +14,7 @@ export default function Home() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [groupErrorMessage, setGroupErrorMessage] = useState<string | null>(null);
   const { user } = useAuth();
-  const { update } = usePartyUpdates();
+  const { update, clearUpdate } = usePartyUpdates();
 
   // Define a reusable function to fetch parties.
   const fetchParties = useCallback(async () => {
@@ -35,14 +35,15 @@ export default function Home() {
     fetchParties();
   }, [fetchParties]);
 
-  // Whenever a new party update is received via WebSocket, refetch the parties.
+  // Whenever an update is received via WebSocket, re-fetch the parties.
   useEffect(() => {
     if (update) {
       fetchParties();
+      clearUpdate();
     }
-  }, [update, fetchParties]);
+  }, [update, fetchParties, clearUpdate]);
 
-  // Auto-dismiss error message after 3 seconds if set
+  // Auto-dismiss error message after 3 seconds.
   useEffect(() => {
     if (groupErrorMessage) {
       const timer = setTimeout(() => setGroupErrorMessage(null), 3000);
@@ -50,7 +51,6 @@ export default function Home() {
     }
   }, [groupErrorMessage]);
 
-  // Check if the current user already has a party
   const userHasParty = user ? parties.some(party => party.userId === user.id) : false;
 
   return (
@@ -173,7 +173,6 @@ export default function Home() {
         <PostGroupModal
           onClose={() => setShowCreateForm(false)}
           onPartyCreated={(newParty) => {
-            // Optionally update the UI immediately while the WebSocket update refreshes the list.
             setParties((prevParties) => [{ ...newParty, isNew: true }, ...prevParties]);
             setShowCreateForm(false);
           }}
