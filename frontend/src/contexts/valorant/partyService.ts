@@ -106,3 +106,8 @@ export const joinParty = async (id: string): Promise<string> => {
   const response = await httpClient.post(`/api/lfg/parties/${id}/join`);
   return response.data;
 };
+
+export const leaveParty = async (id: string): Promise<string> => {
+  const response = await httpClient.post(`/api/lfg/parties/${id}/leave`);
+  return response.data;
+};

@@ -246,6 +246,31 @@ public class LFGPartyService {
     }
 
     /**
+     * Allows an authenticated user to leave a party.
+     *
+     * @param id the UUID of the party to leave
+     * @return success message if leave succeeds
+     */
+    public String leaveParty(UUID id) {
+        String userId = getCurrentUserId();
+        LFGParty party = lfgPartyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
+
+        // Prevent party leaders from "leaving" – they should delete the party instead.
+        if (party.getUserId().equals(userId)) {
+            throw new UnauthorizedOperationException("Party owner cannot leave the party. Delete the party instead.");
+        }
+
+        // Remove the user from participants.
+        if (party.getParticipants() != null && party.getParticipants().contains(userId)) {
+            party.getParticipants().remove(userId);
+            lfgPartyRepository.save(party);
+            return "Left party successfully.";
+        }
+        return "User was not a participant of this party.";
+    }
+
+    /**
      * Helper method to convert an LFGParty entity to its response DTO.
      *
      * @param party the LFGParty entity

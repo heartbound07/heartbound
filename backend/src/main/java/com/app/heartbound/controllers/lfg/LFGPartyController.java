@@ -139,4 +139,17 @@ public class LFGPartyController {
         messagingTemplate.convertAndSend("/topic/party", event);
         return result;
     }
+
+    @PostMapping("/{id}/leave")
+    public String leaveParty(@PathVariable UUID id) {
+        String result = partyService.leaveParty(id);
+        LFGPartyResponseDTO updatedParty = partyService.getPartyById(id);
+        LFGPartyEventDTO event = LFGPartyEventDTO.builder()
+              .eventType("PARTY_LEFT")
+              .party(updatedParty)
+              .message("Party update: User left party " + id)
+              .build();
+        messagingTemplate.convertAndSend("/topic/party", event);
+        return result;
+    }
 }

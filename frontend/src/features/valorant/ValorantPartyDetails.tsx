@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/valorant/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate, useParams } from "react-router-dom"
-import { deleteParty, getParty } from "@/contexts/valorant/partyService"
+import { deleteParty, getParty, leaveParty } from "@/contexts/valorant/partyService"
 import { usePartyUpdates } from "@/contexts/PartyUpdates"
 import httpClient from "@/lib/api/httpClient"
 
@@ -71,7 +71,13 @@ export default function ValorantPartyDetails() {
       return
     }
     try {
-      await deleteParty(partyId)
+      if (user && party && user.id === party.userId) {
+        // Party leader leaving: delete the party.
+        await deleteParty(partyId)
+      } else {
+        // Non-leader leaving: remove self from the party.
+        await leaveParty(partyId)
+      }
       navigate("/dashboard/valorant")
     } catch (error) {
       console.error("Error leaving group:", error)
