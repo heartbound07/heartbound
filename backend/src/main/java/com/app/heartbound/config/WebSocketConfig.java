@@ -17,6 +17,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private static final Logger logger = LoggerFactory.getLogger(WebSocketConfig.class);
 
+    // Well defined namespace for party events
+    public static final String PARTY_TOPIC = "/topic/party";
+    public static final String PARTY_APP_DESTINATION = "/app/party";
+    // Additional mapping for party updates to ensure consistency across controllers
+    public static final String PARTY_UPDATE = "/party/update";
+
     private final JWTChannelInterceptor jwtChannelInterceptor;
 
     @Autowired
@@ -28,18 +34,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         // Enable a simple in-memory broker for demonstration purposes.
-        // For production, you might consider an external broker (e.g., RabbitMQ).
+        // All topics under "/topic" are handled by the broker.
         config.enableSimpleBroker("/topic");
-        // All messages starting with /app should be routed to message-handling methods.
+        // All messages starting with /app are routed to message-handling methods.
         config.setApplicationDestinationPrefixes("/app");
-        logger.info("Message Broker configured: application destination prefix '/app' and simple broker '/topic'");
+        logger.info("Message Broker configured with application destination prefix '/app' and simple broker '/topic'");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Register the WebSocket endpoint and allow SockJS fallback.
         registry.addEndpoint("/ws")
-                .setAllowedOrigins("http://localhost:3000") // update with your frontend domain in production
+                .setAllowedOrigins("http://localhost:3000") // Update with your frontend domain in production.
                 .withSockJS();
         logger.info("STOMP endpoint '/ws' registered with SockJS fallback and allowed origins: http://localhost:3000");
     }

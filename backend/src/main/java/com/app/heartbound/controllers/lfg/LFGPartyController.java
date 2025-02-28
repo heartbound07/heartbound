@@ -3,6 +3,7 @@ package com.app.heartbound.controllers.lfg;
 import com.app.heartbound.dto.lfg.CreatePartyRequestDTO;
 import com.app.heartbound.dto.lfg.LFGPartyResponseDTO;
 import com.app.heartbound.dto.lfg.UpdatePartyRequestDTO;
+import com.app.heartbound.dto.lfg.LFGPartyEventDTO;
 import com.app.heartbound.entities.LFGParty;
 import com.app.heartbound.services.lfg.LFGPartyService;
 import org.springframework.data.domain.Page;
@@ -11,8 +12,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -36,9 +35,12 @@ public class LFGPartyController {
     @PostMapping
     public LFGPartyResponseDTO createParty(@RequestBody CreatePartyRequestDTO dto) {
         LFGPartyResponseDTO createdParty = partyService.createParty(dto);
-        Map<String, String> updatePayload = new HashMap<>();
-        updatePayload.put("update", "Party update: New party created: " + createdParty.getId());
-        messagingTemplate.convertAndSend("/topic/party", updatePayload);
+        LFGPartyEventDTO event = LFGPartyEventDTO.builder()
+              .eventType("PARTY_CREATED")
+              .party(createdParty)
+              .message("Party update: New party created: " + createdParty.getId())
+              .build();
+        messagingTemplate.convertAndSend("/topic/party", event);
         return createdParty;
     }
 
@@ -94,7 +96,14 @@ public class LFGPartyController {
     @PutMapping("/{id}")
     public LFGPartyResponseDTO updateParty(@PathVariable UUID id,
                                            @RequestBody UpdatePartyRequestDTO dto) {
-        return partyService.updateParty(id, dto);
+        LFGPartyResponseDTO updatedParty = partyService.updateParty(id, dto);
+        LFGPartyEventDTO event = LFGPartyEventDTO.builder()
+              .eventType("PARTY_UPDATED")
+              .party(updatedParty)
+              .message("Party update: Party " + id + " has been updated.")
+              .build();
+        messagingTemplate.convertAndSend("/topic/party", event);
+        return updatedParty;
     }
 
     /**
@@ -105,6 +114,11 @@ public class LFGPartyController {
     @DeleteMapping("/{id}")
     public void deleteParty(@PathVariable UUID id) {
         partyService.deleteParty(id);
+        LFGPartyEventDTO event = LFGPartyEventDTO.builder()
+              .eventType("PARTY_DELETED")
+              .message("Party update: Party " + id + " has been deleted.")
+              .build();
+        messagingTemplate.convertAndSend("/topic/party", event);
     }
 
     /**
@@ -116,9 +130,13 @@ public class LFGPartyController {
     @PostMapping("/{id}/join")
     public String joinParty(@PathVariable UUID id) {
         String result = partyService.joinParty(id);
-        Map<String, String> updatePayload = new HashMap<>();
-        updatePayload.put("update", "Party update: User joined party " + id);
-        messagingTemplate.convertAndSend("/topic/party", updatePayload);
+        LFGPartyResponseDTO updatedParty = partyService.getPartyById(id);
+        LFGPartyEventDTO event = LFGPartyEventDTO.builder()
+              .eventType("PARTY_JOINED")
+              .party(updatedParty)
+              .message("Party update: User joined party " + id)
+              .build();
+        messagingTemplate.convertAndSend("/topic/party", event);
         return result;
     }
 }
