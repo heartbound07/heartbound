@@ -49,47 +49,58 @@ class WebSocketService {
         console.error('[STOMP] Broker reported error:', frame.headers['message']);
         console.error('[STOMP] Error details:', frame.body);
 
+        // Enhance token refresh handling: if the error indicates an invalid token, attempt to refresh.
         if (frame.body && frame.body.includes("Invalid JWT token")) {
-          try {
-            const authDataString = localStorage.getItem('heartbound_auth');
-            let refreshToken = '';
-            if (authDataString) {
-              const authData = JSON.parse(authDataString);
-              refreshToken = authData.tokens?.refreshToken || '';
-            }
-            if (!refreshToken) {
-              throw new Error('No refresh token available');
-            }
-
-            // Call the token refresh endpoint.
-            const response = await axios.post('http://localhost:8080/api/auth/refresh', {
-              refreshToken,
-            });
-            const newAccessToken = response.data.accessToken;
-
-            // Update the stored authentication data with the new access token.
-            if (authDataString) {
-              const authData = JSON.parse(authDataString);
-              authData.tokens.accessToken = newAccessToken;
-              localStorage.setItem('heartbound_auth', JSON.stringify(authData));
-            } else {
-              localStorage.setItem('accessToken', newAccessToken);
-            }
-            console.info("[WebSocket] Received new access token.");
-
-            // Update the connection headers with the new token and reconnect.
+          const newAccessToken = await this.refreshAccessToken();
+          if (newAccessToken) {
+            console.info("[WebSocket] Received new access token. Reconnecting...");
+            // Update client headers and re-establish the connection.
             this.client.connectHeaders = {
               Authorization: "Bearer " + newAccessToken,
             };
             this.client.deactivate().then(() => {
               this.client.activate();
             });
-          } catch (refreshError) {
-            console.error("[WebSocket] Failed to refresh token:", refreshError);
+          } else {
+            console.error("[WebSocket] Failed to refresh token. Disconnecting WebSocket client.");
+            this.client.deactivate();
           }
         }
       },
     });
+  }
+
+  // Helper method to refresh the access token.
+  private async refreshAccessToken(): Promise<string | null> {
+    const authDataString = localStorage.getItem('heartbound_auth');
+    if (!authDataString) {
+      console.error("[WebSocket] No authentication data stored.");
+      return null;
+    }
+    try {
+      const authData = JSON.parse(authDataString);
+      const refreshToken = authData.tokens?.refreshToken;
+      if (!refreshToken) {
+        console.error("[WebSocket] No refresh token available.");
+        return null;
+      }
+      // Call the token refresh endpoint.
+      const response = await axios.post('http://localhost:8080/api/auth/refresh', {
+        refreshToken,
+      });
+      const newAccessToken = response.data.accessToken;
+      if (!newAccessToken) {
+        console.error("[WebSocket] No new access token returned from refresh endpoint.");
+        return null;
+      }
+      // Update stored authentication data with the new access token.
+      authData.tokens.accessToken = newAccessToken;
+      localStorage.setItem('heartbound_auth', JSON.stringify(authData));
+      return newAccessToken;
+    } catch (error) {
+      console.error("[WebSocket] Error refreshing token:", error);
+      return null;
+    }
   }
 
   /**
