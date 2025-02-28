@@ -221,23 +221,25 @@ public class LFGPartyService {
         LFGParty party = lfgPartyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
 
+        // If the party's status is anything but "open" (e.g., "closed"), joining is not allowed.
         if (!"open".equalsIgnoreCase(party.getStatus())) {
             throw new IllegalStateException("Party is not open for joining");
         }
-        if (party.getExpiresAt().isBefore(Instant.now())) {
-            throw new IllegalStateException("Party has expired");
-        }
+
+        // Additional validations
         if (party.getUserId().equals(userId)) {
             throw new IllegalArgumentException("Party owner cannot join their own party");
-        }
-        if (party.getParticipants().size() >= party.getMaxPlayers()) {
-            throw new IllegalStateException("Party is full");
         }
         if (party.getParticipants().contains(userId)) {
             throw new IllegalArgumentException("User has already joined the party");
         }
+        if (party.getParticipants().size() >= party.getMaxPlayers()) {
+            throw new IllegalStateException("Party is full");
+        }
+
         party.getParticipants().add(userId);
-        // If party reaches maximum capacity, mark it as closed.
+
+        // If the party reaches maximum capacity, mark it as closed.
         if (party.getParticipants().size() >= party.getMaxPlayers()) {
             party.setStatus("closed");
         }
@@ -264,6 +266,10 @@ public class LFGPartyService {
         // Remove the user from participants.
         if (party.getParticipants() != null && party.getParticipants().contains(userId)) {
             party.getParticipants().remove(userId);
+            // Reset status to "open" if the party now has available slots.
+            if (party.getParticipants().size() < party.getMaxPlayers()) {
+                party.setStatus("open");
+            }
             lfgPartyRepository.save(party);
             return "Left party successfully.";
         }

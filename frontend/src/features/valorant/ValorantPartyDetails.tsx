@@ -18,8 +18,11 @@ export default function ValorantPartyDetails() {
   const { update, clearUpdate } = usePartyUpdates()
 
   const [party, setParty] = React.useState<any>(null)
-  // State to hold the leader's profile (avatar and username)
-  const [leaderProfile, setLeaderProfile] = React.useState<any>(null)
+  // Removed dynamic fetching of leader profile; using default value instead.
+  const leaderProfile = {
+    avatar: "https://v0.dev/placeholder.svg?height=400&width=400",
+    username: "Leader",
+  }
 
   // Placeholder avatar for participants who don't have an available avatar.
   const placeholderAvatar = "https://v0.dev/placeholder.svg?height=400&width=400"
@@ -33,37 +36,26 @@ export default function ValorantPartyDetails() {
     }
   }, [partyId])
 
-  // Listen for party updates and re-fetch party details when an update is received.
+  // Listen for party updates.
+  // If the party update indicates deletion, redirect the user automatically.
   React.useEffect(() => {
     if (update && party?.id && update.party && update.party.id === party.id) {
-      getParty(party.id)
-        .then((data) => {
-          setParty(data)
-          clearUpdate()
-        })
-        .catch((err: any) => console.error("Error re-fetching party on update:", err))
-    }
-  }, [update, party?.id, clearUpdate])
-
-  // Fetch the party leader's profile if the current user is not the leader.
-  React.useEffect(() => {
-    if (party && party.userId) {
-      if (user && user.id === party.userId) {
-        // If the current user is the party leader, use their own profile.
-        setLeaderProfile(user)
+      if (update.eventType === "PARTY_DELETED") {
+        // Party was deleted. Redirect back to Valorant page.
+        navigate("/dashboard/valorant")
+        clearUpdate()
       } else {
-        // Otherwise, fetch the leader's profile from a (assumed) endpoint.
-        httpClient
-          .get(`/api/users/${party.userId}`)
-          .then((res: any) => setLeaderProfile(res.data))
-          .catch((err: any) => {
-            console.error("Error fetching leader profile:", err)
-            // Fallback to a placeholder if fetching fails.
-            setLeaderProfile({ avatar: placeholderAvatar, username: "Leader" })
+        getParty(party.id)
+          .then((data) => {
+            setParty(data)
+            clearUpdate()
           })
+          .catch((err: any) =>
+            console.error("Error re-fetching party on update:", err)
+          )
       }
     }
-  }, [party, user])
+  }, [update, party?.id, clearUpdate, navigate])
 
   const handleLeaveGroup = async () => {
     if (!partyId) {
@@ -156,7 +148,7 @@ export default function ValorantPartyDetails() {
                         <div className="relative w-full aspect-square rounded-full border-2 border-white/20 p-1 bg-zinc-900">
                           <div className="w-full h-full rounded-full overflow-hidden">
                             <img
-                              src={leaderProfile?.avatar || placeholderAvatar}
+                              src={leaderProfile.avatar || placeholderAvatar}
                               alt="Party Leader Avatar"
                               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                             />
@@ -166,7 +158,7 @@ export default function ValorantPartyDetails() {
                           </div>
                         </div>
                         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-zinc-800/90 px-3 py-1 rounded-full text-sm font-medium shadow-lg">
-                          {leaderProfile?.username || "Leader"}
+                          {leaderProfile.username || "Leader"}
                         </div>
                       </div>
                     </TooltipTrigger>
