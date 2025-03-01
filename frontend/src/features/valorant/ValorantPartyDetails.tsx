@@ -31,8 +31,15 @@ export default function ValorantPartyDetails() {
       getParty(partyId)
         .then((data) => {
           setParty(data)
-          // Fetch user profiles for leader and all participants
-          const userIdsToFetch = [...data.participants]
+          
+          // Ensure participants is handled as an array regardless of how it's received
+          const participants = data.participants || [];
+          // Add explicit type assertion and filter to ensure we only pass strings
+          const userIdsToFetch = (Array.isArray(participants) 
+            ? participants 
+            : (typeof participants === 'object' ? Object.values(participants) : []))
+            .filter((id): id is string => typeof id === 'string');
+          
           return getUserProfiles(userIdsToFetch)
         })
         .then((profiles) => {
@@ -52,7 +59,9 @@ export default function ValorantPartyDetails() {
       try {
         // If update is already an object, use it directly; otherwise, parse it.
         const updateObj = typeof update === "string" ? JSON.parse(update) : update
-        if (updateObj?.update && updateObj.update.includes(party.id)) {
+        
+        // Check for relevant event types rather than an "update" property
+        if (updateObj?.eventType && ["PARTY_JOINED", "PARTY_UPDATED", "PARTY_LEFT"].includes(updateObj.eventType)) {
           getParty(party.id)
             .then((data) => {
               setParty(data)
@@ -64,7 +73,9 @@ export default function ValorantPartyDetails() {
               )
               
               if (newParticipantIds.length > 0) {
-                return getUserProfiles(newParticipantIds).then(newProfiles => {
+                // Make sure we're filtering to get only string IDs
+                const validNewParticipantIds = newParticipantIds.filter((id): id is string => typeof id === 'string');
+                return getUserProfiles(validNewParticipantIds).then(newProfiles => {
                   setUserProfiles(prev => ({...prev, ...newProfiles}))
                 })
               }
@@ -98,9 +109,18 @@ export default function ValorantPartyDetails() {
     }
   }
 
+  // Add debug log before calculating participants details
+  console.debug("Party data:", party);
+  console.debug("Participants raw:", party?.participants);
+
   // Calculate participants details.
   const leaderId = party?.userId
-  const participants: string[] = party?.participants ? Array.from(party.participants) : []
+  // Ensure participants is always handled as an array
+  const participants: string[] = party?.participants 
+    ? (Array.isArray(party.participants) 
+       ? Array.from(party.participants) 
+       : Object.values(party.participants))
+    : [];
   const joinedParticipants = participants.filter((p) => p !== leaderId)
   // Total slots are party.maxPlayers. One slot is reserved for the leader.
   const emptySlotsCount = party?.maxPlayers - (1 + joinedParticipants.length)

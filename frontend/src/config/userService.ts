@@ -22,15 +22,23 @@ export const getUserProfile = async (userId: string): Promise<UserProfileDTO> =>
 
 // Get multiple user profiles at once
 export const getUserProfiles = async (userIds: string[]): Promise<Record<string, UserProfileDTO>> => {
+  // Filter out any non-string IDs or empty strings to prevent API errors
+  const validUserIds = userIds.filter(id => id && typeof id === 'string');
+  
+  // If no valid IDs, return empty object immediately
+  if (validUserIds.length === 0) {
+    return {};
+  }
+  
   try {
-    const response = await httpClient.post('/api/users/profiles', { userIds });
+    const response = await httpClient.post('/api/users/profiles', { userIds: validUserIds });
     return response.data;
   } catch (error) {
     console.error('Error fetching user profiles:', error);
     
     // Return fallback profiles
     const fallbackProfiles: Record<string, UserProfileDTO> = {};
-    userIds.forEach(id => {
+    validUserIds.forEach(id => {
       fallbackProfiles[id] = {
         id,
         username: "Unknown User",
