@@ -185,10 +185,35 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     try {
       console.log("Refreshing access token...");
       const response = await axios.post(AUTH_ENDPOINTS.REFRESH, { refreshToken: tokens.refreshToken });
-      const tokenResponse: TokenPair = response.data;
+      console.log("Raw token response:", response.data);
       
-      if (!tokenResponse.accessToken || !tokenResponse.refreshToken) {
-        throw new Error("Invalid token response from server");
+      // Handle potential response format differences
+      let tokenResponse: TokenPair;
+      
+      // Check if the response matches our expected structure
+      if (response.data.accessToken && response.data.refreshToken) {
+        tokenResponse = response.data;
+      } 
+      // Sometimes backend might wrap the token in another object
+      else if (response.data.tokens && response.data.tokens.accessToken) {
+        tokenResponse = response.data.tokens;
+      }
+      // Backend might return a different structure, adapt accordingly
+      else if (typeof response.data === 'object') {
+        // Try to adapt the response to our TokenPair structure
+        tokenResponse = {
+          accessToken: response.data.accessToken || response.data.access_token,
+          refreshToken: response.data.refreshToken || response.data.refresh_token,
+          tokenType: response.data.tokenType || response.data.token_type || "bearer",
+          expiresIn: response.data.expiresIn || response.data.expires_in || 3600,
+          scope: response.data.scope || ""
+        };
+      } else {
+        throw new Error("Unexpected response format from server");
+      }
+      
+      if (!tokenResponse.accessToken) {
+        throw new Error("No access token in response");
       }
       
       // Extract user info from the token to maintain consistency
@@ -214,10 +239,10 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         }
       }
       
-      // Return the new access token
       return tokenResponse.accessToken;
     } catch (error: any) {
       console.error("Failed to refresh token:", error);
+      console.error("Error details:", error.response?.data || error.message);
       // If refresh fails, log the user out as their session is no longer valid
       await logout();
       throw new Error(error.response?.data?.message || "Session expired. Please login again.");

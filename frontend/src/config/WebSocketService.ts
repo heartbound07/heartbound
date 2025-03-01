@@ -1,6 +1,7 @@
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import axios from 'axios';
+import { AUTH_ENDPOINTS } from '@/contexts/auth/constants';
 
 // Utility function to extract the current access token from localStorage.
 function getAccessToken(): string {
@@ -79,20 +80,30 @@ class WebSocketService {
     }
     
     try {
-      // Use the new httpClient with automatic token refresh
-      const response = await axios.post('http://localhost:8080/api/auth/refresh', {
+      // Use the AUTH_ENDPOINTS constant for consistency
+      const response = await axios.post(AUTH_ENDPOINTS.REFRESH, {
         refreshToken: JSON.parse(authDataString).tokens?.refreshToken,
       });
       
-      const newAccessToken = response.data.accessToken;
-      if (!newAccessToken) {
-        console.error("[WebSocket] No new access token returned from refresh endpoint.");
+      console.log("[WebSocket] Token refresh response:", response.data);
+      
+      // More flexible handling of response format
+      let newAccessToken: string;
+      if (response.data.accessToken) {
+        newAccessToken = response.data.accessToken;
+      } else if (response.data.access_token) {
+        newAccessToken = response.data.access_token;
+      } else {
+        console.error("[WebSocket] No access token found in response");
         return null;
       }
       
       // Update stored authentication data with the new tokens
       const authData = JSON.parse(authDataString);
-      authData.tokens = response.data;
+      authData.tokens = {
+        ...authData.tokens,
+        ...response.data
+      };
       localStorage.setItem('heartbound_auth', JSON.stringify(authData));
       
       return newAccessToken;
