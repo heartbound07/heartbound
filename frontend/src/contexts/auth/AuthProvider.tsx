@@ -1,4 +1,4 @@
-import { FC, useEffect, useState, useCallback, useMemo } from 'react';
+import { FC, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { AuthContext } from './AuthContext';
 import {
   AuthContextValue,
@@ -31,6 +31,9 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const [tokens, setTokens] = useState<TokenPair | null>(null);
   const [refreshTimeout, setRefreshTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
+  // First, update the ref type to explicitly allow the string return
+  const refreshTokenRef = useRef<(() => Promise<string | undefined>)>();
+
   const isUserInfo = (data: unknown): data is UserInfo => {
     return !!data && typeof data === 'object' && 'id' in data && 'username' in data;
   };
@@ -57,10 +60,14 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }));
   }, []);
 
+  // Define scheduleTokenRefresh without depending on refreshToken directly
   const scheduleTokenRefresh = useCallback((expiresIn: number) => {
     const refreshTime = expiresIn * 1000 - TOKEN_REFRESH_MARGIN;
     const timeout = setTimeout(() => {
-      refreshToken();
+      // Use the ref's current value, which will be set later
+      if (refreshTokenRef.current) {
+        refreshTokenRef.current();
+      }
     }, refreshTime);
     setRefreshTimeout(timeout);
   }, []);
@@ -142,13 +149,21 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const logout = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true }));
     try {
-      await fetch(AUTH_ENDPOINTS.LOGOUT, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${tokens?.accessToken}` },
-      });
+      if (tokens?.accessToken) {
+        await fetch(AUTH_ENDPOINTS.LOGOUT, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${tokens.accessToken}` },
+        });
+      }
+    } catch (error) {
+      console.error("Logout request failed:", error);
+      // Continue with local logout even if server logout fails
     } finally {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+        setRefreshTimeout(null);
+      }
       clearAuthState();
-      if (refreshTimeout) clearTimeout(refreshTimeout);
       setTokens(null);
       setState(prev => ({
         ...prev,
@@ -159,24 +174,60 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
   }, [clearAuthState, refreshTimeout, tokens]);
 
+  // Then ensure refreshToken returns the token
   const refreshToken = useCallback(async () => {
     if (!tokens?.refreshToken) {
-      throw new Error("No refresh token found");
+      console.error("No refresh token found");
+      await logout();
+      return undefined;
     }
+    
     try {
+      console.log("Refreshing access token...");
       const response = await axios.post(AUTH_ENDPOINTS.REFRESH, { refreshToken: tokens.refreshToken });
-      const data: TokenPair = response.data;
-      setTokens(data);
+      const tokenResponse: TokenPair = response.data;
+      
+      if (!tokenResponse.accessToken || !tokenResponse.refreshToken) {
+        throw new Error("Invalid token response from server");
+      }
+      
+      // Extract user info from the token to maintain consistency
+      const decodedToken = parseJwt(tokenResponse.accessToken);
+      
+      // Update tokens in state
+      setTokens(tokenResponse);
+      
+      // Get stored user data
       const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
       if (storedAuth) {
         const parsed = JSON.parse(storedAuth);
-        persistAuthState(parsed.user, data);
+        if (isUserInfo(parsed.user)) {
+          // Persist the updated tokens with the existing user info
+          persistAuthState(parsed.user, tokenResponse);
+          
+          // Calculate new expiration time and schedule refresh
+          const newExpiresIn = decodedToken.exp - Math.floor(Date.now() / 1000);
+          if (refreshTimeout) clearTimeout(refreshTimeout);
+          scheduleTokenRefresh(newExpiresIn);
+          
+          console.log("Token refresh successful, next refresh scheduled");
+        }
       }
+      
+      // Return the new access token
+      return tokenResponse.accessToken;
     } catch (error: any) {
       console.error("Failed to refresh token:", error);
-      // Optionally call logout if refresh fails
+      // If refresh fails, log the user out as their session is no longer valid
+      await logout();
+      throw new Error(error.response?.data?.message || "Session expired. Please login again.");
     }
-  }, [tokens, persistAuthState]);
+  }, [tokens, persistAuthState, scheduleTokenRefresh, logout]);
+
+  // Set the ref to the function after it's defined
+  useEffect(() => {
+    refreshTokenRef.current = refreshToken;
+  }, [refreshToken]);
 
   const initializeAuth = useCallback(async () => {
     try {
@@ -185,17 +236,32 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         setState(prev => ({ ...prev, isLoading: false }));
         return;
       }
-      const { user, tokens } = JSON.parse(storedAuth);
-      if (!isUserInfo(user) || !tokens?.accessToken) {
+      
+      const { user, tokens: storedTokens } = JSON.parse(storedAuth);
+      
+      if (!isUserInfo(user) || !storedTokens?.accessToken) {
         throw new Error('Invalid stored auth data');
       }
-      const decodedToken = parseJwt(tokens.accessToken);
-      if (decodedToken.exp * 1000 < Date.now()) {
-        await refreshToken();
-        return;
+      
+      const decodedToken = parseJwt(storedTokens.accessToken);
+      const currentTime = Math.floor(Date.now() / 1000);
+      
+      // If token is expired or will expire soon (within TOKEN_REFRESH_MARGIN milliseconds)
+      if (decodedToken.exp - currentTime < TOKEN_REFRESH_MARGIN / 1000) {
+        console.log("Token expired or expiring soon, attempting refresh");
+        setTokens(storedTokens); // Set tokens temporarily so refreshToken has access to the refresh token
+        try {
+          await refreshToken();
+          return; // refreshToken will handle setting the auth state
+        } catch (error) {
+          // refreshToken will handle logging the user out
+          return;
+        }
       }
-      scheduleTokenRefresh(decodedToken.exp - Math.floor(Date.now() / 1000));
-      setTokens(tokens);
+      
+      // Valid token with adequate time remaining
+      scheduleTokenRefresh(decodedToken.exp - currentTime);
+      setTokens(storedTokens);
       setState(prev => ({
         ...prev,
         user,

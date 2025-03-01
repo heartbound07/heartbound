@@ -45,7 +45,7 @@ export interface AuthContextValue extends AuthState {
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
-  refreshToken: () => Promise<void>;
+  refreshToken: () => Promise<string | undefined>;
   clearError: () => void;
   startDiscordOAuth: () => Promise<void>;
   handleDiscordCallback: (code: string, state: string) => Promise<void>;

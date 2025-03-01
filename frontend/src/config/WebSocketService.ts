@@ -77,28 +77,29 @@ class WebSocketService {
       console.error("[WebSocket] No authentication data stored.");
       return null;
     }
+    
     try {
-      const authData = JSON.parse(authDataString);
-      const refreshToken = authData.tokens?.refreshToken;
-      if (!refreshToken) {
-        console.error("[WebSocket] No refresh token available.");
-        return null;
-      }
-      // Call the token refresh endpoint.
+      // Use the new httpClient with automatic token refresh
       const response = await axios.post('http://localhost:8080/api/auth/refresh', {
-        refreshToken,
+        refreshToken: JSON.parse(authDataString).tokens?.refreshToken,
       });
+      
       const newAccessToken = response.data.accessToken;
       if (!newAccessToken) {
         console.error("[WebSocket] No new access token returned from refresh endpoint.");
         return null;
       }
-      // Update stored authentication data with the new access token.
-      authData.tokens.accessToken = newAccessToken;
+      
+      // Update stored authentication data with the new tokens
+      const authData = JSON.parse(authDataString);
+      authData.tokens = response.data;
       localStorage.setItem('heartbound_auth', JSON.stringify(authData));
+      
       return newAccessToken;
     } catch (error) {
       console.error("[WebSocket] Error refreshing token:", error);
+      // Signal authentication failure to the application
+      window.dispatchEvent(new CustomEvent('auth:expired'));
       return null;
     }
   }
