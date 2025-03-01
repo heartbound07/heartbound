@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronLeft, Users, Crown, LogOut } from "lucide-react"
+import { Users, Crown, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/valorant/buttonparty"
 import { Badge } from "@/components/ui/valorant/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
@@ -9,20 +9,17 @@ import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate, useParams } from "react-router-dom"
 import { deleteParty, getParty, leaveParty } from "@/contexts/valorant/partyService"
 import { usePartyUpdates } from "@/contexts/PartyUpdates"
-import httpClient from "@/lib/api/httpClient"
+import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 
 export default function ValorantPartyDetails() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { partyId } = useParams<{ partyId: string }>()
-  const { update, clearUpdate } = usePartyUpdates()
+  const { update } = usePartyUpdates()
 
   const [party, setParty] = React.useState<any>(null)
-  // Removed dynamic fetching of leader profile; using default value instead.
-  const leaderProfile = {
-    avatar: "https://v0.dev/placeholder.svg?height=400&width=400",
-    username: "Leader",
-  }
+  const [userProfiles, setUserProfiles] = React.useState<Record<string, UserProfileDTO>>({})
+  const [isLoading, setIsLoading] = React.useState(true)
 
   // Placeholder avatar for participants who don't have an available avatar.
   const placeholderAvatar = "https://v0.dev/placeholder.svg?height=400&width=400"
@@ -30,32 +27,57 @@ export default function ValorantPartyDetails() {
   // Initial party fetch
   React.useEffect(() => {
     if (partyId) {
+      setIsLoading(true)
       getParty(partyId)
-        .then((data) => setParty(data))
-        .catch((err: any) => console.error("Error fetching party:", err))
+        .then((data) => {
+          setParty(data)
+          // Fetch user profiles for leader and all participants
+          const userIdsToFetch = [...data.participants]
+          return getUserProfiles(userIdsToFetch)
+        })
+        .then((profiles) => {
+          setUserProfiles(profiles)
+          setIsLoading(false)
+        })
+        .catch((err: any) => {
+          console.error("Error fetching party:", err)
+          setIsLoading(false)
+        })
     }
   }, [partyId])
 
-  // Listen for party updates.
-  // If the party update indicates deletion, redirect the user automatically.
+  // Listen for party updates
   React.useEffect(() => {
-    if (update && party?.id && update.party && update.party.id === party.id) {
-      if (update.eventType === "PARTY_DELETED") {
-        // Party was deleted. Redirect back to Valorant page.
-        navigate("/dashboard/valorant")
-        clearUpdate()
-      } else {
-        getParty(party.id)
-          .then((data) => {
-            setParty(data)
-            clearUpdate()
-          })
-          .catch((err: any) =>
-            console.error("Error re-fetching party on update:", err)
-          )
+    if (update && party?.id) {
+      try {
+        // If update is already an object, use it directly; otherwise, parse it.
+        const updateObj = typeof update === "string" ? JSON.parse(update) : update
+        if (updateObj?.update && updateObj.update.includes(party.id)) {
+          getParty(party.id)
+            .then((data) => {
+              setParty(data)
+              
+              // Fetch profiles for any new participants
+              const currentProfileIds = Object.keys(userProfiles)
+              const newParticipantIds = data.participants.filter(
+                (id: string) => !currentProfileIds.includes(id)
+              )
+              
+              if (newParticipantIds.length > 0) {
+                return getUserProfiles(newParticipantIds).then(newProfiles => {
+                  setUserProfiles(prev => ({...prev, ...newProfiles}))
+                })
+              }
+            })
+            .catch((err: any) =>
+              console.error("Error re-fetching party on update:", err)
+            )
+        }
+      } catch (error) {
+        console.error("Error parsing update in ValorantPartyDetails:", error)
       }
     }
-  }, [update, party?.id, clearUpdate, navigate])
+  }, [update, party?.id, userProfiles])
 
   const handleLeaveGroup = async () => {
     if (!partyId) {
@@ -82,6 +104,20 @@ export default function ValorantPartyDetails() {
   const joinedParticipants = participants.filter((p) => p !== leaderId)
   // Total slots are party.maxPlayers. One slot is reserved for the leader.
   const emptySlotsCount = party?.maxPlayers - (1 + joinedParticipants.length)
+
+  // Get the leader profile
+  const leaderProfile = userProfiles[leaderId] || {
+    avatar: placeholderAvatar,
+    username: "Leader",
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0F1923] text-white font-sans flex items-center justify-center">
+        <div className="text-xl">Loading party details...</div>
+      </div>
+    )
+  }
 
   return (
     <TooltipProvider>
@@ -148,7 +184,7 @@ export default function ValorantPartyDetails() {
                         <div className="relative w-full aspect-square rounded-full border-2 border-white/20 p-1 bg-zinc-900">
                           <div className="w-full h-full rounded-full overflow-hidden">
                             <img
-                              src={leaderProfile.avatar || placeholderAvatar}
+                              src={leaderProfile.avatar}
                               alt="Party Leader Avatar"
                               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                             />
@@ -158,7 +194,7 @@ export default function ValorantPartyDetails() {
                           </div>
                         </div>
                         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-zinc-800/90 px-3 py-1 rounded-full text-sm font-medium shadow-lg">
-                          {leaderProfile.username || "Leader"}
+                          {leaderProfile.username}
                         </div>
                       </div>
                     </TooltipTrigger>
@@ -166,28 +202,36 @@ export default function ValorantPartyDetails() {
                   </Tooltip>
 
                   {/* Render Joined Participants */}
-                  {joinedParticipants.map((participant, index) => (
-                    <Tooltip key={index}>
-                      <TooltipTrigger asChild>
-                        <div className="relative group cursor-pointer">
-                          <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500 to-blue-500 rounded-full opacity-75 group-hover:opacity-100 transition duration-300 blur" />
-                          <div className="relative w-full aspect-square rounded-full border-2 border-white/20 p-1 bg-zinc-900">
-                            <div className="w-full h-full rounded-full overflow-hidden">
-                              <img
-                                src={participant === user?.id ? (user?.avatar || placeholderAvatar) : placeholderAvatar}
-                                alt="Participant Avatar"
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                              />
+                  {joinedParticipants.map((participantId, index) => {
+                    const participantProfile = userProfiles[participantId] || {
+                      id: participantId,
+                      username: participantId === user?.id ? "You" : "Player",
+                      avatar: participantId === user?.id ? (user?.avatar || placeholderAvatar) : placeholderAvatar
+                    }
+                    
+                    return (
+                      <Tooltip key={index}>
+                        <TooltipTrigger asChild>
+                          <div className="relative group cursor-pointer">
+                            <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500 to-blue-500 rounded-full opacity-75 group-hover:opacity-100 transition duration-300 blur" />
+                            <div className="relative w-full aspect-square rounded-full border-2 border-white/20 p-1 bg-zinc-900">
+                              <div className="w-full h-full rounded-full overflow-hidden">
+                                <img
+                                  src={participantProfile.avatar}
+                                  alt="Participant Avatar"
+                                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                />
+                              </div>
+                            </div>
+                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-zinc-800/90 px-3 py-1 rounded-full text-sm font-medium shadow-lg">
+                              {participantProfile.username}
                             </div>
                           </div>
-                          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-zinc-800/90 px-3 py-1 rounded-full text-sm font-medium shadow-lg">
-                            {participant === user?.id ? (user?.username || "You") : "Player"}
-                          </div>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>Participant</TooltipContent>
-                    </Tooltip>
-                  ))}
+                        </TooltipTrigger>
+                        <TooltipContent>Participant</TooltipContent>
+                      </Tooltip>
+                    )
+                  })}
 
                   {/* Render Empty Slots */}
                   {emptySlotsCount > 0 &&

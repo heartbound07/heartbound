@@ -73,14 +73,14 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         return { exp: 0 };
       }
       const base64UrlPayload = parts[1];
-      console.log('Raw base64Url payload:', base64UrlPayload);
+      console.log('Raw base64Url payload:');
       // Convert from base64url to base64
       let base64 = base64UrlPayload.replace(/-/g, '+').replace(/_/g, '/');
       while (base64.length % 4) {
         base64 += '=';
       }
       const decodedPayload = atob(base64);
-      console.log('Decoded payload string:', decodedPayload);
+      console.log('Decoded payload string:');
       return JSON.parse(decodedPayload);
     } catch (error) {
       console.error('Error while decoding JWT:', error);

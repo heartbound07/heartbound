@@ -48,6 +48,8 @@ public class SecurityConfig {
                 .requestMatchers("/", "/error", "/ws/**").permitAll()
                 // Permit endpoints for OAuth & authentication controllers
                 .requestMatchers("/auth/**", "/oauth2/**", "/api/auth/**", "/auth/discord/authorize", "/oauth2/callback/discord").permitAll()
+                // Permit user profile endpoints - updated paths
+                .requestMatchers("/users/*/profile", "/users/profiles").permitAll()
                 // All other requests require authentication
                 .anyRequest().authenticated()
             )
