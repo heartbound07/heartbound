@@ -1,11 +1,12 @@
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import axios from 'axios';
-import { AUTH_ENDPOINTS } from '@/contexts/auth/constants';
+import { AUTH_ENDPOINTS, AUTH_STORAGE_KEY } from '@/contexts/auth/constants';
 
 // Utility function to extract the current access token from localStorage.
+// This will be called whenever we need the token, not just once during initialization
 function getAccessToken(): string {
-  const authDataString = localStorage.getItem('heartbound_auth');
+  const authDataString = localStorage.getItem(AUTH_STORAGE_KEY);
   if (authDataString) {
     try {
       const authData = JSON.parse(authDataString);
@@ -20,6 +21,11 @@ function getAccessToken(): string {
 class WebSocketService {
   private client: Client;
   private subscriptions: Map<string, StompSubscription> = new Map();
+  private callback: ((message: any) => void) | null = null;
+  private connected: boolean = false;
+  private connecting: boolean = false;
+  private retryCount: number = 0;
+  private maxRetries: number = 3;
 
   constructor() {
     // Initialize the STOMP client with configuration options.
@@ -35,16 +41,27 @@ class WebSocketService {
         // Uncomment the next line to enable detailed logging:
         // console.log('[STOMP DEBUG]', msg);
       },
-      connectHeaders: {
-        Authorization: "Bearer " + getAccessToken(),
+      // We'll set connectHeaders dynamically before connecting
+      connectHeaders: {},
+      onConnect: () => {
+        console.info('[WebSocket] Connected successfully');
+        this.connected = true;
+        this.connecting = false;
+        this.retryCount = 0;
+        // If we have a callback stored, subscribe to the party topic
+        if (this.callback) {
+          this.subscribe('/topic/party', this.callback);
+        }
       },
       onWebSocketError: (evt: Event) => {
         console.error('[WebSocket] Error occurred:', evt);
+        this.connected = false;
       },
       onWebSocketClose: (evt: CloseEvent) => {
         console.error(
           `[WebSocket] Connection closed (Code: ${evt.code}, Reason: ${evt.reason}). Auto-reconnect is enabled; attempting to reconnect...`
         );
+        this.connected = false;
       },
       onStompError: async (frame) => {
         console.error('[STOMP] Broker reported error:', frame.headers['message']);
@@ -71,86 +88,62 @@ class WebSocketService {
     });
   }
 
-  // Helper method to refresh the access token.
-  private async refreshAccessToken(): Promise<string | null> {
-    const authDataString = localStorage.getItem('heartbound_auth');
-    if (!authDataString) {
-      console.error("[WebSocket] No authentication data stored.");
-      return null;
-    }
-    
-    try {
-      // Use the AUTH_ENDPOINTS constant for consistency
-      const response = await axios.post(AUTH_ENDPOINTS.REFRESH, {
-        refreshToken: JSON.parse(authDataString).tokens?.refreshToken,
-      });
-      
-      console.log("[WebSocket] Token refresh response:", response.data);
-      
-      // More flexible handling of response format
-      let newAccessToken: string;
-      if (response.data.accessToken) {
-        newAccessToken = response.data.accessToken;
-      } else if (response.data.access_token) {
-        newAccessToken = response.data.access_token;
-      } else {
-        console.error("[WebSocket] No access token found in response");
-        return null;
-      }
-      
-      // Update stored authentication data with the new tokens
-      const authData = JSON.parse(authDataString);
-      authData.tokens = {
-        ...authData.tokens,
-        ...response.data
-      };
-      localStorage.setItem('heartbound_auth', JSON.stringify(authData));
-      
-      return newAccessToken;
-    } catch (error) {
-      console.error("[WebSocket] Error refreshing token:", error);
-      // Signal authentication failure to the application
-      window.dispatchEvent(new CustomEvent('auth:expired'));
-      return null;
-    }
-  }
-
   /**
-   * Establishes a connection to the WebSocket broker.
-   * Optionally subscribes to the default party updates topic if a callback is provided.
-   * @param callback - Function called on each received message from the default topic '/topic/party'.
+   * Connect to the WebSocket server and subscribe to the party topic.
+   * This method ensures we have a token before attempting connection.
+   * @param callback Function to call when a message is received.
    */
-  connect(callback?: (message: any) => void) {
-    this.client.onConnect = () => {
-      console.info('[STOMP] Connected to WebSocket broker');
-      if (callback) {
-        // Subscribe to the default topic for party updates.
-        const subscription = this.client.subscribe('/topic/party', (message: IMessage) => {
-          try {
-            const body = JSON.parse(message.body);
-            callback(body);
-          } catch (error) {
-            console.error('[STOMP] Error parsing message from WebSocket:', error);
-          }
-        });
-        this.subscriptions.set('/topic/party', subscription);
+  connect(callback: (message: any) => void): void {
+    // Store the callback for later use if we need to reconnect
+    this.callback = callback;
+
+    // If already connected or connecting, don't try again
+    if (this.connected || this.connecting) {
+      console.info('[WebSocket] Already connected or connecting');
+      return;
+    }
+
+    // Get the current token before attempting to connect
+    const token = getAccessToken();
+    if (!token) {
+      console.warn('[WebSocket] No authentication token available. Delaying connection.');
+      // We'll retry in 1 second if we're within our retry limit
+      if (this.retryCount < this.maxRetries) {
+        this.retryCount++;
+        setTimeout(() => this.connect(callback), 1000);
+      } else {
+        console.error('[WebSocket] Max retries reached. Could not establish connection without token.');
       }
+      return;
+    }
+
+    // Update the connection headers with the current token
+    this.client.connectHeaders = {
+      Authorization: "Bearer " + token,
     };
 
-    // Activate the client to establish the connection.
-    this.client.activate();
+    console.info('[WebSocket] Connecting with token...');
+    this.connecting = true;
+
+    try {
+      // Activate the client connection
+      this.client.activate();
+    } catch (error) {
+      console.error('[WebSocket] Error activating client:', error);
+      this.connecting = false;
+    }
   }
 
   /**
-   * Allows subscribing to an additional topic.
-   * @param topic - The destination topic (e.g. "/topic/anotherTopic").
-   * @param callback - Function called on each message from the specified topic.
+   * Subscribe to a topic.
+   * @param topic The topic to subscribe to.
+   * @param callback Function to call when a message is received.
    * @returns The subscription object.
    */
-  subscribe(topic: string, callback: (message: any) => void): StompSubscription {
-    if (!this.client.connected) {
-      console.warn(`[WebSocket] Not connected. Cannot subscribe to ${topic} at this time.`);
-      throw new Error("WebSocket client is not connected.");
+  subscribe(topic: string, callback: (message: any) => void): StompSubscription | null {
+    if (!this.client.active) {
+      console.error(`[STOMP] Cannot subscribe to ${topic}: Client not connected`);
+      return null;
     }
     const subscription = this.client.subscribe(topic, (message: IMessage) => {
       try {
@@ -171,6 +164,8 @@ class WebSocketService {
     if (this.client && this.client.active) {
       this.client.deactivate();
       this.subscriptions.clear();
+      this.connected = false;
+      this.connecting = false;
     }
   }
 
@@ -181,12 +176,45 @@ class WebSocketService {
    */
   send(destination: string, body: any) {
     try {
+      if (!this.client.active) {
+        console.error('[STOMP] Cannot send message: Client not connected');
+        return;
+      }
       this.client.publish({
         destination,
         body: JSON.stringify(body),
       });
     } catch (error) {
       console.error('[STOMP] Error sending message:', error);
+    }
+  }
+
+  // Helper method to refresh the access token.
+  private async refreshAccessToken(): Promise<string | null> {
+    const authDataString = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!authDataString) {
+      console.error("[WebSocket] No authentication data stored.");
+      return null;
+    }
+    
+    try {
+      // Use the AUTH_ENDPOINTS constant for consistency
+      const response = await axios.post(AUTH_ENDPOINTS.REFRESH, {
+        refreshToken: JSON.parse(authDataString).tokens?.refreshToken,
+      });
+      
+      if (response.data && response.data.accessToken) {
+        // Update stored tokens
+        const authData = JSON.parse(authDataString);
+        authData.tokens = response.data;
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+        
+        return response.data.accessToken;
+      }
+      return null;
+    } catch (error) {
+      console.error("[WebSocket] Error refreshing token:", error);
+      return null;
     }
   }
 }

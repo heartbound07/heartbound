@@ -29,34 +29,47 @@ interface PartyUpdatesProviderProps {
 }
 
 export const PartyUpdatesProvider = ({ children }: PartyUpdatesProviderProps) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, tokens } = useAuth();
   const [update, setUpdate] = useState<LFGPartyEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   const clearUpdate = () => setUpdate(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      // Do not connect if the user is not authenticated.
+    if (!isAuthenticated || !tokens || !tokens.accessToken) {
+      // Do not connect if user is not authenticated or tokens aren't available
       return;
     }
 
-    try {
-      // Connect and subscribe to the default /topic/party endpoint.
-      webSocketService.connect((message: LFGPartyEvent) => {
-        console.info('[PartyUpdates] Received update:', message);
-        setUpdate(message);
-      });
-    } catch (err: any) {
-      console.error('[PartyUpdates] Error connecting to WebSocket:', err);
-      setError('WebSocket connection error');
-    }
+    // Prevent multiple connection attempts
+    if (isConnecting) return;
+    
+    setIsConnecting(true);
+    
+    // Small delay to ensure token is properly saved to localStorage
+    const connectionTimer = setTimeout(() => {
+      try {
+        // Connect and subscribe to the default /topic/party endpoint.
+        webSocketService.connect((message: LFGPartyEvent) => {
+          console.info('[PartyUpdates] Received update:', message);
+          setUpdate(message);
+        });
+      } catch (err: any) {
+        console.error('[PartyUpdates] Error connecting to WebSocket:', err);
+        setError('WebSocket connection error');
+      } finally {
+        setIsConnecting(false);
+      }
+    }, 500);
 
-    // Clean up the connection
+    // Clean up the connection and timer
     return () => {
+      clearTimeout(connectionTimer);
       webSocketService.disconnect();
+      setIsConnecting(false);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, tokens]);
 
   // Memoize to avoid unnecessary re-renders.
   const contextValue = useMemo(() => ({ update, error, clearUpdate }), [update, error]);
