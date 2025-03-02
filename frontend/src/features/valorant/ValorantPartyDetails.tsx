@@ -60,7 +60,17 @@ export default function ValorantPartyDetails() {
         // If update is already an object, use it directly; otherwise, parse it.
         const updateObj = typeof update === "string" ? JSON.parse(update) : update
         
-        // Check for relevant event types rather than an "update" property
+        // Handle party deletion event
+        if (updateObj?.eventType === "PARTY_DELETED") {
+          // Check if this deletion affects the current party
+          if (update.party?.id === party.id || !update.party) {
+            console.info("Party has been deleted, redirecting to dashboard")
+            navigate("/dashboard/valorant")
+            return  // Early return to avoid further processing
+          }
+        }
+        
+        // Check for other relevant event types
         if (updateObj?.eventType && ["PARTY_JOINED", "PARTY_UPDATED", "PARTY_LEFT"].includes(updateObj.eventType)) {
           getParty(party.id)
             .then((data) => {
@@ -80,15 +90,20 @@ export default function ValorantPartyDetails() {
                 })
               }
             })
-            .catch((err: any) =>
+            .catch((err: any) => {
               console.error("Error re-fetching party on update:", err)
-            )
+              // If we get a 404 error, the party might have been deleted
+              if (err.response?.status === 404) {
+                console.info("Party not found, redirecting to dashboard")
+                navigate("/dashboard/valorant")
+              }
+            })
         }
       } catch (error) {
         console.error("Error parsing update in ValorantPartyDetails:", error)
       }
     }
-  }, [update, party?.id, userProfiles])
+  }, [update, party?.id, userProfiles, navigate])  // Added navigate to dependency array
 
   const handleLeaveGroup = async () => {
     if (!partyId) {
