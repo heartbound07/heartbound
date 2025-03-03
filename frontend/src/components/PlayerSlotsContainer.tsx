@@ -154,8 +154,7 @@ export function PlayerSlotsContainer({
   const isFull = participants.length === maxPlayers;
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-900/80 to-zinc-900/40 p-6 md:p-8 shadow-xl ${className || ""}`}>
-      <div className="absolute inset-0 bg-zinc-950/70 backdrop-blur-sm" />
+    <div className={`relative overflow-hidden rounded-xl bg-zinc-900/40 p-5 backdrop-blur-sm border border-white/5 shadow-xl ${className || ""}`}>
       <div className="relative">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8">
           <div className="flex items-center gap-2 mb-3 sm:mb-0">
