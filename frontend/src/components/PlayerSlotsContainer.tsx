@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/valorant/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { type UserProfileDTO } from "@/config/userService"
 import { usePartyParticipants } from "@/hooks/usePartyParticipants"
+import "../assets/animations.css"
 
 // Individual PlayerSlot component to reduce duplication
 interface PlayerSlotProps {
@@ -17,6 +18,7 @@ interface PlayerSlotProps {
   onClick?: () => void;
   currentUserId?: string;
   participantId?: string;
+  isNewJoin?: boolean;
 }
 
 const PlayerSlot: React.FC<PlayerSlotProps> = ({
@@ -27,7 +29,8 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
   isEmpty = false,
   onClick,
   currentUserId,
-  participantId
+  participantId,
+  isNewJoin = false
 }) => {
   // Determine if this slot represents the current user
   const isCurrentUser = currentUserId && participantId && currentUserId === participantId;
@@ -49,12 +52,16 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
       : isCurrentUser
         ? "border-amber-500/50"
         : "border-zinc-500/50";
+        
+  // Animation classes
+  const animationClasses = isNewJoin ? "animate-partyJoin" : "";
+  const highlightClasses = isNewJoin ? "animate-joinHighlight" : "";
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <div 
-          className={`relative group ${!isEmpty ? "cursor-default" : "cursor-pointer"}`}
+          className={`relative group ${!isEmpty ? "cursor-default" : "cursor-pointer"} ${animationClasses}`}
           onClick={isEmpty ? onClick : undefined}
         >
           {!isEmpty && (
@@ -62,7 +69,7 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
               opacity-70 group-hover:opacity-100 transition duration-300 animate-pulse-slow blur-sm`} />
           )}
           
-          <div className={`relative w-full aspect-square rounded-full ${
+          <div className={`relative w-full aspect-square rounded-full ${highlightClasses} ${
             isEmpty 
               ? `border-2 border-[#FF4655]/20 p-1 bg-zinc-800/50 transition-all duration-300 
                 hover:border-[#FF4655]/40 hover:bg-zinc-800/70 group-hover:scale-105` 
@@ -140,6 +147,9 @@ export function PlayerSlotsContainer({
   onInviteClick,
   className,
 }: PlayerSlotsContainerProps) {
+  // Store previous participants for animation
+  const [prevParticipants, setPrevParticipants] = React.useState<string[]>([]);
+  
   // Use the hook directly in this component instead of receiving processed data
   const { joinedParticipants, emptySlotsCount, leaderProfile } = usePartyParticipants({
     participants,
@@ -149,6 +159,21 @@ export function PlayerSlotsContainer({
     placeholderAvatar,
     currentUser
   });
+  
+  // Find newly joined participants
+  const newJoins = React.useMemo(() => {
+    return participants.filter(id => !prevParticipants.includes(id));
+  }, [participants, prevParticipants]);
+  
+  // Update previous participants after checking for new joins
+  React.useEffect(() => {
+    // Set a small delay to ensure animation plays
+    const timer = setTimeout(() => {
+      setPrevParticipants(participants);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [participants]);
 
   // Calculate if party is full
   const isFull = participants.length === maxPlayers;
@@ -210,6 +235,7 @@ export function PlayerSlotsContainer({
             isLeader={true}
             participantId={leaderId}
             currentUserId={currentUser?.id}
+            isNewJoin={newJoins.includes(leaderId)}
           />
 
           {/* Render Joined Participants */}
@@ -228,6 +254,7 @@ export function PlayerSlotsContainer({
                 tooltipText={participantProfile.username}
                 participantId={participantId}
                 currentUserId={currentUser?.id}
+                isNewJoin={newJoins.includes(participantId)}
               />
             );
           })}
