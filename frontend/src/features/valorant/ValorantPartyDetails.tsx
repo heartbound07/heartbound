@@ -167,7 +167,7 @@ export default function ValorantPartyDetails() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        variant="destructive"
+                        className="bg-transparent hover:bg-[#FF4655]/10 text-[#FF4655] hover:text-white border border-[#FF4655]/30 hover:border-[#FF4655]/50 focus-visible:ring-1 focus-visible:ring-[#FF4655] focus-visible:ring-offset-2 transition-colors"
                         size="sm"
                         onClick={() => {
                           if (window.confirm("Are you sure you want to delete this party? This action cannot be undone.")) {
@@ -191,7 +191,7 @@ export default function ValorantPartyDetails() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        variant="outline"
+                        className="bg-transparent hover:bg-[#FF4655]/10 text-[#FF4655] hover:text-white border border-[#FF4655]/30 hover:border-[#FF4655]/50 focus-visible:ring-1 focus-visible:ring-[#FF4655] focus-visible:ring-offset-2 transition-colors"
                         size="sm"
                         onClick={() => {
                           if (window.confirm("Are you sure you want to leave this party?")) {
