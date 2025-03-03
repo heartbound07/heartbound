@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Users, Crown, Plus } from "lucide-react"
+import { Users, Crown, Plus, UserCheck } from "lucide-react"
 import { Badge } from "@/components/ui/valorant/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { type UserProfileDTO } from "@/config/userService"
@@ -150,6 +150,9 @@ export function PlayerSlotsContainer({
     currentUser
   });
 
+  // Calculate if party is full
+  const isFull = participants.length === maxPlayers;
+
   return (
     <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-900/80 to-zinc-900/40 p-6 md:p-8 shadow-xl ${className || ""}`}>
       <div className="absolute inset-0 bg-zinc-950/70 backdrop-blur-sm" />
@@ -161,14 +164,41 @@ export function PlayerSlotsContainer({
             </div>
             <h2 className="text-2xl font-bold text-white">Party Members</h2>
           </div>
-          <Badge
-            variant="valorantCount"
-            className="bg-zinc-800/80 text-white px-4 py-2 rounded-xl border border-[#FF4655]/20 flex items-center gap-3 shadow-md"
-          >
-            <span className="text-[#FF4655] font-bold">{participants.length}</span>
-            <span className="text-zinc-400">/</span>
-            <span className="text-white">{maxPlayers || "?"}</span>
-          </Badge>
+          
+          {/* Refined Player Count Badge - Smaller size with white text */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className={`relative overflow-hidden px-3 py-1.5 rounded-lg bg-gradient-to-br from-zinc-800/90 to-zinc-900/90 border ${isFull ? 'border-[#FF4655]/50' : 'border-zinc-700/30'} shadow-lg group transition-all duration-300 hover:shadow-xl`}>
+                {/* Animated background for full parties */}
+                {isFull && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#FF4655]/10 to-transparent animate-pulse-slow"></div>
+                )}
+                
+                <div className="relative flex items-center gap-2">
+                  <div className="flex items-center">
+                    <UserCheck className={`h-3.5 w-3.5 mr-1.5 ${isFull ? 'text-[#FF4655]' : 'text-zinc-400'}`} />
+                    <span className={`text-base font-bold ${isFull ? 'text-[#FF4655]' : 'text-white'}`}>
+                      {participants.length}
+                    </span>
+                    <span className="text-zinc-500 mx-1">/</span>
+                    <span className="text-white text-base font-medium">{maxPlayers || "?"}</span>
+                  </div>
+                  
+                  {/* Status indicator */}
+                  <div className={`hidden sm:block px-1.5 py-0.5 text-xs rounded-full font-medium ${
+                    isFull 
+                      ? 'bg-[#FF4655]/20 text-[#FF4655]' 
+                      : 'bg-zinc-700/30 text-zinc-300'
+                  }`}>
+                    {isFull ? 'FULL' : 'OPEN'}
+                  </div>
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent className="bg-zinc-900 border border-white/10">
+              <p className="text-sm">{isFull ? 'Party is full' : `${emptySlotsCount} slot${emptySlotsCount !== 1 ? 's' : ''} available`}</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         
         {/* Enhanced grid with better responsiveness */}
