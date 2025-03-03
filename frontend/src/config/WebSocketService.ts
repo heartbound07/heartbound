@@ -26,6 +26,8 @@ class WebSocketService {
   private connecting: boolean = false;
   private retryCount: number = 0;
   private maxRetries: number = 3;
+  private lastUsedToken: string | null = null;
+  private reconnectDebounceTimer: NodeJS.Timeout | null = null;
 
   constructor() {
     // Initialize the STOMP client with configuration options.
@@ -67,21 +69,17 @@ class WebSocketService {
         console.error('[STOMP] Broker reported error:', frame.headers['message']);
         console.error('[STOMP] Error details:', frame.body);
 
-        // Enhance token refresh handling: if the error indicates an invalid token, attempt to refresh.
+        // If the error indicates an invalid token, attempt to refresh.
         if (frame.body && frame.body.includes("Invalid JWT token")) {
           const newAccessToken = await this.refreshAccessToken();
           if (newAccessToken) {
             console.info("[WebSocket] Received new access token. Reconnecting...");
-            // Update client headers and re-establish the connection.
-            this.client.connectHeaders = {
-              Authorization: "Bearer " + newAccessToken,
-            };
-            this.client.deactivate().then(() => {
-              this.client.activate();
-            });
+            this.reconnectWithFreshToken();
           } else {
             console.error("[WebSocket] Failed to refresh token. Disconnecting WebSocket client.");
             this.client.deactivate();
+            this.connected = false;
+            this.connecting = false;
           }
         }
       },
@@ -97,9 +95,16 @@ class WebSocketService {
     // Store the callback for later use if we need to reconnect
     this.callback = callback;
 
-    // If already connected or connecting, don't try again
-    if (this.connected || this.connecting) {
-      console.info('[WebSocket] Already connected or connecting');
+    // If already connected, just subscribe again if needed
+    if (this.connected) {
+      console.info('[WebSocket] Already connected');
+      this.subscribe('/topic/party', callback);
+      return;
+    }
+    
+    // If in the process of connecting, don't try again
+    if (this.connecting) {
+      console.info('[WebSocket] Connection already in progress');
       return;
     }
 
@@ -121,13 +126,24 @@ class WebSocketService {
     this.client.connectHeaders = {
       Authorization: "Bearer " + token,
     };
+    
+    this.lastUsedToken = token;
 
     console.info('[WebSocket] Connecting with token...');
     this.connecting = true;
 
     try {
-      // Activate the client connection
-      this.client.activate();
+      // If the client is active but not connected, deactivate first
+      if (this.client.active && !this.client.connected) {
+        this.client.deactivate().then(() => {
+          setTimeout(() => {
+            this.client.activate();
+          }, 500);
+        });
+      } else {
+        // Activate the client connection
+        this.client.activate();
+      }
     } catch (error) {
       console.error('[WebSocket] Error activating client:', error);
       this.connecting = false;
@@ -198,24 +214,95 @@ class WebSocketService {
     }
     
     try {
+      // Parse token data just once to avoid potential inconsistencies
+      const authData = JSON.parse(authDataString);
+      const refreshToken = authData.tokens?.refreshToken;
+      
+      if (!refreshToken) {
+        console.error("[WebSocket] No refresh token found in stored auth data.");
+        return null;
+      }
+      
       // Use the AUTH_ENDPOINTS constant for consistency
       const response = await axios.post(AUTH_ENDPOINTS.REFRESH, {
-        refreshToken: JSON.parse(authDataString).tokens?.refreshToken,
+        refreshToken
       });
       
       if (response.data && response.data.accessToken) {
         // Update stored tokens
-        const authData = JSON.parse(authDataString);
         authData.tokens = response.data;
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
         
+        console.info("[WebSocket] Token refresh successful");
         return response.data.accessToken;
       }
+      
+      console.warn("[WebSocket] Token refresh response missing access token");
       return null;
     } catch (error) {
       console.error("[WebSocket] Error refreshing token:", error);
+      // Add more specific error handling
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("[WebSocket] Server returned error:", error.response.status, error.response.data);
+      }
       return null;
     }
+  }
+
+  /**
+   * Reconnects using the latest token from localStorage.
+   * This can be called after token refresh to ensure WebSocket uses the updated token.
+   */
+  public reconnectWithFreshToken(): void {
+    // Debounce rapid reconnection attempts
+    if (this.reconnectDebounceTimer) {
+      clearTimeout(this.reconnectDebounceTimer);
+    }
+    
+    this.reconnectDebounceTimer = setTimeout(() => {
+      // Get fresh token
+      const token = getAccessToken();
+      if (!token) {
+        console.warn('[WebSocket] No valid token available for reconnection');
+        return;
+      }
+      
+      // Skip if token hasn't changed
+      if (token === this.lastUsedToken && this.connected) {
+        console.info('[WebSocket] Token unchanged, skipping reconnection');
+        return;
+      }
+      
+      this.lastUsedToken = token;
+      console.info('[WebSocket] Reconnecting with fresh token...');
+      
+      // Update the connection headers with the current token
+      this.client.connectHeaders = {
+        Authorization: "Bearer " + token,
+      };
+      
+      // Only attempt reconnection if we're currently connected or connecting
+      if (this.client.active) {
+        this.connecting = true;
+        this.client.deactivate().then(() => {
+          // Small delay to ensure clean disconnect
+          setTimeout(() => {
+            this.client.activate();
+          }, 500);
+        }).catch(err => {
+          console.error('[WebSocket] Error during reconnection:', err);
+          this.connecting = false;
+        });
+      } else {
+        // If not already connecting, try to connect
+        if (this.callback) {
+          this.connect(this.callback);
+        } else {
+          console.warn('[WebSocket] Cannot reconnect - no callback function available');
+          this.connecting = false;
+        }
+      }
+    }, 300); // 300ms debounce
   }
 }
 

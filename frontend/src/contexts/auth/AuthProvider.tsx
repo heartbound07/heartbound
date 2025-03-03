@@ -12,6 +12,7 @@ import {
 import { AUTH_STORAGE_KEY, TOKEN_REFRESH_MARGIN, AUTH_ENDPOINTS } from './constants';
 import * as partyService from '../valorant/partyService';
 import axios from 'axios';
+import webSocketService from '../../config/WebSocketService';
 
 // Update the type declaration
 declare global {
@@ -236,6 +237,12 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           scheduleTokenRefresh(newExpiresIn);
           
           console.log("Token refresh successful, next refresh scheduled");
+          
+          // Add this section: Notify WebSocketService to reconnect with the fresh token
+          // Small delay ensures localStorage is properly updated first
+          setTimeout(() => {
+            webSocketService.reconnectWithFreshToken();
+          }, 300);
         }
       }
       
