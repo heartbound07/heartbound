@@ -229,11 +229,11 @@ export default function ValorantPartyDetails() {
                           </div>
                         </div>
                         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-zinc-800/90 px-3 py-1 rounded-full text-sm font-medium shadow-lg">
-                          {leaderProfile.username}
+                          {`${leaderProfile.username}`}
                         </div>
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent>Party Leader</TooltipContent>
+                    <TooltipContent>{`${leaderProfile.username} (Party Leader)`}</TooltipContent>
                   </Tooltip>
 
                   {/* Render Joined Participants */}
@@ -263,7 +263,7 @@ export default function ValorantPartyDetails() {
                             </div>
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent>Participant</TooltipContent>
+                        <TooltipContent>{participantProfile.username}</TooltipContent>
                       </Tooltip>
                     )
                   })}
