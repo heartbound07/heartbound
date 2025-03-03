@@ -1,75 +1,94 @@
+/* Import Tailwind directives first */
+@tailwind utilities;
+
 /* Updated dashboard styles for a modern, aesthetic, and responsive design */
 
 /* Navigation-specific styles have been removed.
    See dashboard-navigation.css for .dashboard-nav, .nav-item, .logout-button, etc. */
 
-/* Root variables for Navigation styling */
+/* Root variables for consistent styling */
 :root {
   --primary-bg: #ffffff;
   --secondary-bg: rgba(255, 255, 255, 0.15);
   --text-primary: #ffffff;
-  --text-secondary: #888888;
-  --hover-bg: rgba(255, 255, 255, 0.3);
-  --border-color: rgba(255, 255, 255, 0.3);
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --hover-bg: rgba(255, 255, 255, 0.25);
+  --border-color: rgba(255, 255, 255, 0.25);
   --sidebar-width: 260px;
   --sidebar-collapsed-width: 80px;
-  --header-height: 60px;
+  --header-height: 70px;
   --transition-speed: 0.3s;
+  --card-border-radius: 16px;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 25px -5px var(--shadow-color);
 }
 
 /* Container for the entire dashboard */
 .dashboard-container {
-  @apply min-h-screen w-full bg-gradient-to-br from-[#6B5BE6] to-[#8878f0] p-10 space-y-8 relative;
+  @apply min-h-screen w-full bg-gradient-to-br from-[#6B5BE6] to-[#8878f0] relative overflow-hidden;
 }
 
 /* Content section for the dashboard */
 .dashboard-content {
-  @apply ml-64 p-10;
+  @apply ml-64 p-8 md:p-10 lg:p-12 transition-all duration-300;
 }
 
-/* Loader style (if needed for dashboard loading state) */
+/* Loader style for dashboard loading state */
 .dashboard-loading {
-  @apply text-xl font-semibold;
+  @apply text-xl font-semibold flex items-center justify-center h-[50vh];
 }
 
 /* Card styling for stats and other cards */
 .dashboard-card {
-  @apply bg-white/20 backdrop-blur-xl rounded-xl p-6 shadow-xl transition-transform duration-300 ease-in-out transform hover:scale-105;
+  @apply bg-white/20 backdrop-blur-xl rounded-xl p-6 shadow-xl 
+         transition-all duration-300 hover:scale-[1.02] hover:bg-white/25
+         border border-white/15 hover:border-white/25;
 }
 
 /* Grid layout for stats cards */
 .stats-grid {
-  @apply grid grid-cols-1 md:grid-cols-3 gap-8;
+  @apply grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto;
 }
 
 /* Games section styling */
 .games-section {
-  @apply mt-10;
+  @apply mt-8 transition-all duration-300;
 }
 
 .games-title {
-  @apply text-3xl font-bold text-white text-center mb-6;
+  @apply text-3xl md:text-4xl font-bold text-white text-center mb-8;
 }
 
 .games-grid {
-  @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1;
+  @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6;
 }
 
-/* Additional utility classes for card titles and values */
+/* Additional utility classes */
 .card-title {
-  @apply text-white;
+  @apply text-white font-medium;
 }
 
 .card-value {
-  @apply text-white;
+  @apply text-white text-2xl font-bold;
 }
 
 /* Error message styling */
 .dashboard-error {
-  @apply text-center text-red-400 mb-4;
+  @apply text-center text-red-300 mb-6 p-4 rounded-lg bg-red-500/10 backdrop-blur-sm;
+}
+
+/* Dashboard greeting animation enhancement */
+.dashboard-greeting {
+  @apply transform transition-all duration-500;
 }
 
 /* Responsive adjustments */
+@media (max-width: 1280px) {
+  .games-grid {
+    @apply grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5;
+  }
+}
+
 @media (max-width: 768px) {
   .dashboard-content {
     @apply ml-0 p-6;
@@ -77,4 +96,18 @@
   .dashboard-greeting {
     @apply text-4xl;
   }
+  .games-grid {
+    @apply grid-cols-1 sm:grid-cols-2 gap-4;
+  }
 }
+
+@media (max-width: 640px) {
+  .games-grid {
+    @apply grid-cols-1;
+  }
+  .stats-grid {
+    @apply grid-cols-1 gap-4;
+  }
+}
+
+/* We can remove these custom utilities and use arbitrary values directly */

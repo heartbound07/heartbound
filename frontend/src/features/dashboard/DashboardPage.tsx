@@ -143,24 +143,31 @@ export function DashboardPage() {
       {showWelcome && (
         <h1
           onAnimationEnd={handleWelcomeAnimationEnd}
-          className={`dashboard-greeting ${shouldSlideOut ? "animate-fadeSlideOut" : "animate-welcomeEnhanced"} font-grandstander text-center text-5xl font-bold text-white mb-6`}
-          style={{ textShadow: "0px 2px 4px rgba(0, 0, 0, 0.5)" }}
+          className={`dashboard-greeting ${shouldSlideOut ? "animate-fadeSlideOut" : "animate-welcomeEnhanced"} font-grandstander text-center text-5xl md:text-6xl font-bold text-white mb-8`}
+          style={{ 
+            textShadow: "0px 2px 8px rgba(0, 0, 0, 0.3)", 
+            letterSpacing: "0.02em" 
+          }}
         >
           Welcome back, {user?.username}!
         </h1>
       )}
 
       <section
-        className="games-section flex flex-col items-center justify-center"
+        className="games-section flex flex-col items-center justify-center px-4 md:px-8"
         style={{ minHeight: "calc(100vh - 425px)" }}
       >
         <h2
-          className="games-title animate-fadeSlideIn"
-          style={{ fontFamily: "Grandstander, cursive", textShadow: "0px 2px 4px rgba(0,0,0,0.5)" }}
+          className="games-title animate-fadeSlideIn mb-10"
+          style={{ 
+            fontFamily: "Grandstander, cursive", 
+            textShadow: "0px 2px 6px rgba(0,0,0,0.4)",
+            letterSpacing: "0.03em"
+          }}
         >
           Choose Your Game
         </h2>
-        <div className="games-grid w-full">
+        <div className="games-grid w-full max-w-6xl mx-auto">
           {games.map((game) => (
             <div
               key={game.id}
@@ -170,6 +177,7 @@ export function DashboardPage() {
                   navigate('/dashboard/valorant');
                 }
               }}
+              className="flex justify-center p-3"
             >
               <GameCard
                 title={game.title}
