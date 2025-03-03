@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Users, Crown, LogOut, GamepadIcon, Trophy, Globe, Mic, Award } from "lucide-react"
+import { Users, Crown, LogOut, GamepadIcon, Trophy, Globe, Mic, Award, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/valorant/buttonparty"
 import { Badge } from "@/components/ui/valorant/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
@@ -13,23 +13,28 @@ import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 import { PlayerSlotsContainer } from "@/components/PlayerSlotsContainer"
 import { formatDisplayText, formatBooleanText } from "@/utils/formatters"
 
-// Gradient Badge Wrapper component to reduce repetition
-const GradientBadge: React.FC<React.PropsWithChildren<{
+// IconTooltipButton component for consistent badge styling with tooltips
+const IconTooltipButton: React.FC<{
   icon: React.ReactNode;
   label: string;
   className?: string;
-}>> = ({ icon, label, className }) => (
-  <div className="group relative">
-    <div className="absolute -inset-0.5 bg-gradient-to-r from-[#FF4655]/30 to-[#FF4655]/10 rounded-full opacity-75 group-hover:opacity-100 blur-sm transition duration-300"></div>
-    <Badge 
-      variant="valorant" 
-      size="xl"
-      icon={icon}
-      className={`relative w-full shadow-lg transition-all duration-300 inline-flex items-center justify-center gap-2 ${className || ""}`}
-    >
-      <span className="font-medium">{label}</span>
-    </Badge>
-  </div>
+}> = ({ icon, label, className }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Button
+        variant="ghost"
+        size="icon"
+        className={`bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors
+          focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
+          [&_svg]:pointer-events-none h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent ${className || ""}`}
+      >
+        {icon}
+      </Button>
+    </TooltipTrigger>
+    <TooltipContent>
+      <span>{label}</span>
+    </TooltipContent>
+  </Tooltip>
 );
 
 export default function ValorantPartyDetails() {
@@ -210,53 +215,53 @@ export default function ValorantPartyDetails() {
               </div>
             </div>
 
-            {/* Party details badges section - Simplified with GradientBadge component */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">
+            {/* Party details badges section with IconTooltipButton */}
+            <div className="flex flex-wrap items-center justify-start space-x-4 py-2 bg-zinc-900/30 px-4 rounded-lg mb-8">
               {/* Match Type Badge */}
-              <GradientBadge 
-                icon={<Trophy className="h-4 w-4 text-[#FF4655] group-hover:text-[#FF4655]/90 transition-colors" />} 
+              <IconTooltipButton 
+                icon={<Trophy className="h-4 w-4" />} 
                 label={formatDisplayText(party?.matchType)}
               />
               
               {/* Game Mode Badge */}
-              <GradientBadge 
-                icon={<GamepadIcon className="h-4 w-4 text-[#FF4655] group-hover:text-[#FF4655]/90 transition-colors" />} 
+              <IconTooltipButton 
+                icon={<GamepadIcon className="h-4 w-4" />} 
                 label={formatDisplayText(party?.gameMode)}
               />
               
               {/* Team Size Badge */}
-              <GradientBadge 
-                icon={<Users className="h-4 w-4 text-[#FF4655] group-hover:text-[#FF4655]/90 transition-colors" />} 
+              <IconTooltipButton 
+                icon={<Users className="h-4 w-4" />} 
                 label={formatDisplayText(party?.teamSize)}
               />
               
               {/* Voice Preference Badge */}
-              <GradientBadge 
-                icon={<Mic className="h-4 w-4 text-[#FF4655] group-hover:text-[#FF4655]/90 transition-colors" />} 
+              <IconTooltipButton 
+                icon={<Mic className="h-4 w-4" />} 
                 label={formatDisplayText(party?.voicePreference)}
               />
               
               {/* Age Restriction Badge */}
-              <GradientBadge 
-                icon={null} 
+              <IconTooltipButton 
+                icon={<Calendar className="h-4 w-4" />} 
                 label={formatDisplayText(party?.ageRestriction)}
               />
               
               {/* Required Rank Badge */}
-              <GradientBadge 
-                icon={<Award className="h-4 w-4 text-[#FF4655] group-hover:text-[#FF4655]/90 transition-colors" />} 
+              <IconTooltipButton 
+                icon={<Award className="h-4 w-4" />} 
                 label={formatDisplayText(party?.requirements?.rank)}
               />
               
               {/* Required Region Badge */}
-              <GradientBadge 
-                icon={<Globe className="h-4 w-4 text-[#FF4655] group-hover:text-[#FF4655]/90 transition-colors" />} 
+              <IconTooltipButton 
+                icon={<Globe className="h-4 w-4" />} 
                 label={formatDisplayText(party?.requirements?.region)}
               />
               
               {/* Voice Chat Required Badge */}
-              <GradientBadge 
-                icon={<Mic className="h-4 w-4 text-[#FF4655] group-hover:text-[#FF4655]/90 transition-colors" />} 
+              <IconTooltipButton 
+                icon={<Mic className="h-4 w-4" />} 
                 label={`Voice Chat: ${formatBooleanText(party?.requirements?.voiceChat)}`}
               />
             </div>
