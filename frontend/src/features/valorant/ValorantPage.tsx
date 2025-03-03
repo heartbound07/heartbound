@@ -120,7 +120,7 @@ export default function Home() {
                 <TabsContent value="play" className="mt-6">
                   {/* Filters and Create Group Button */}
                   <div className="flex flex-wrap items-center gap-4 mb-6">
-                    <div className="flex-1 min-w-[280px] flex items-center gap-3">
+                    <div className="flex items-center gap-3">
                       <Select>
                         <SelectTrigger className="bg-[#1F2731] border-[#2C3A47] w-full md:w-40 text-[#8B97A4] transition-colors hover:bg-[#FF4655]/10 hover:text-white">
                           <SelectValue placeholder="All Servers" />
@@ -150,20 +150,20 @@ export default function Home() {
                           <SelectItem value="RADIANT">Radiant</SelectItem>
                         </SelectContent>
                       </Select>
+                      
+                      <Button
+                        onClick={() => {
+                          if (userHasParty) {
+                            setGroupErrorMessage("Error: You can only create one party");
+                          } else {
+                            setShowCreateForm(true);
+                          }
+                        }}
+                        className="text-sm font-medium transition-all bg-[#FF4655] hover:bg-[#FF4655]/90 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
                     </div>
-
-                    <Button
-                      onClick={() => {
-                        if (userHasParty) {
-                          setGroupErrorMessage("Error: You can only create one party");
-                        } else {
-                          setShowCreateForm(true);
-                        }
-                      }}
-                      className="text-sm font-medium transition-all bg-[#FF4655] hover:bg-[#FF4655]/90 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
                   </div>
 
                   {/* Error Message Bubble */}
