@@ -11,6 +11,7 @@ import { deleteParty, getParty, leaveParty } from "@/contexts/valorant/partyServ
 import { usePartyUpdates } from "@/contexts/PartyUpdates"
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 import { PlayerSlotsContainer } from "@/components/PlayerSlotsContainer"
+import { formatDisplayText, formatBooleanText } from "@/utils/formatters"
 
 // Gradient Badge Wrapper component to reduce repetition
 const GradientBadge: React.FC<React.PropsWithChildren<{
@@ -111,38 +112,14 @@ export default function ValorantPartyDetails() {
               }
             })
             .catch((err: any) => {
-              console.error("Error re-fetching party on update:", err)
-              // If we get a 404 error, the party might have been deleted
-              if (err.response?.status === 404) {
-                console.info("Party not found, redirecting to dashboard")
-                navigate("/dashboard/valorant")
-              }
+              console.error("Error getting updated party:", err)
             })
         }
       } catch (error) {
-        console.error("Error parsing update in ValorantPartyDetails:", error)
+        console.error("Error processing update:", error)
       }
     }
-  }, [update, party?.id, userProfiles, navigate])  // Added navigate to dependency array
-
-  const handleLeaveGroup = async () => {
-    if (!partyId) {
-      console.error("Party ID is not available")
-      return
-    }
-    try {
-      if (user && party && user.id === party.userId) {
-        // Party leader leaving: delete the party.
-        await deleteParty(partyId)
-      } else {
-        // Non-leader leaving: remove self from the party.
-        await leaveParty(partyId)
-      }
-      navigate("/dashboard/valorant")
-    } catch (error) {
-      console.error("Error leaving group:", error)
-    }
-  }
+  }, [update, party?.id, navigate, userProfiles])
 
   // Add debug log before calculating participants details
   console.debug("Party data:", party);
@@ -166,27 +143,6 @@ export default function ValorantPartyDetails() {
     username: "Leader",
   }
 
-  // Helper function to format text for display
-  const formatDisplayText = (text: string | undefined, defaultText: string = "N/A"): string => {
-    if (!text) return defaultText;
-    
-    // Handle region values with underscores (e.g., "NA_EAST" to "NA East")
-    if (text.includes("_")) {
-      return text.split("_").map(part => 
-        part.charAt(0) + part.slice(1).toLowerCase()
-      ).join(" ");
-    }
-    
-    // Default case: capitalize first letter
-    return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
-  }
-
-  // Convert boolean to Yes/No text
-  const formatBooleanText = (value: boolean | undefined): string => {
-    if (value === undefined || value === null) return "N/A";
-    return value ? "Yes" : "No";
-  }
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0F1923] text-white font-sans flex items-center justify-center">
@@ -197,29 +153,29 @@ export default function ValorantPartyDetails() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-[#0F1923] text-white font-sans p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-              <h1 className="text-3xl font-bold text-white/90">
-                Party Details
-              </h1>
-              <div className="flex items-center gap-3 mt-4 md:mt-0">
-                {user?.id === leaderId ? (
+      <div className="min-h-screen bg-[#0F1923] text-white font-sans p-4 md:p-8">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="p-6 bg-zinc-900/50 rounded-lg border border-white/10 shadow-xl">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex space-x-2">
+                {party?.userId === user?.id ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="destructive" size="sm" onClick={() => {
-                        if (window.confirm("Are you sure you want to delete this party?")) {
-                          deleteParty(party.id)
-                            .then(() => {
-                              navigate("/dashboard/valorant")
-                            })
-                            .catch((err: any) => {
-                              console.error("Error deleting party:", err)
-                              alert("Failed to delete party")
-                            })
-                        }
-                      }}>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          if (window.confirm("Are you sure you want to delete this party? This action cannot be undone.")) {
+                            deleteParty(party.id)
+                              .then(() => {
+                                navigate("/dashboard/valorant")
+                              })
+                              .catch((err: any) => {
+                                console.error("Error deleting party:", err)
+                                alert("Failed to delete party")
+                              })
+                          }
+                        }}>
                         Delete Party
                       </Button>
                     </TooltipTrigger>
