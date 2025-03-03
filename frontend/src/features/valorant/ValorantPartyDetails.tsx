@@ -133,15 +133,6 @@ export default function ValorantPartyDetails() {
        ? Array.from(party.participants) 
        : Object.values(party.participants))
     : [];
-  const joinedParticipants = participants.filter((p) => p !== leaderId)
-  // Total slots are party.maxPlayers. One slot is reserved for the leader.
-  const emptySlotsCount = party?.maxPlayers - (1 + joinedParticipants.length)
-
-  // Get the leader profile
-  const leaderProfile = userProfiles[leaderId] || {
-    avatar: placeholderAvatar,
-    username: "Leader",
-  }
 
   if (isLoading) {
     return (
@@ -151,14 +142,23 @@ export default function ValorantPartyDetails() {
     )
   }
 
+  if (!party) {
+    return (
+      <div className="min-h-screen bg-[#0F1923] text-white font-sans flex items-center justify-center">
+        <div className="text-xl">Party not found.</div>
+      </div>
+    )
+  }
+
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-[#0F1923] text-white font-sans p-4 md:p-8">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div className="p-6 bg-zinc-900/50 rounded-lg border border-white/10 shadow-xl">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex space-x-2">
-                {party?.userId === user?.id ? (
+      <div className="min-h-screen bg-[#0F1923] text-white font-sans">
+        <div className="container mx-auto py-8">
+          <div className="max-w-5xl mx-auto">
+            <div className="mb-8 flex justify-between items-center">
+              <h1 className="text-3xl font-bold">{party.title || "Valorant Party"}</h1>
+              <div className="flex gap-2">
+                {user?.id === party.userId ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -175,7 +175,8 @@ export default function ValorantPartyDetails() {
                                 alert("Failed to delete party")
                               })
                           }
-                        }}>
+                        }}
+                      >
                         Delete Party
                       </Button>
                     </TooltipTrigger>
@@ -266,7 +267,7 @@ export default function ValorantPartyDetails() {
               maxPlayers={party?.maxPlayers || 5}
               leaderId={leaderId}
               userProfiles={userProfiles}
-              currentUser={user || undefined}
+              currentUser={user ? { id: user.id, avatar: user.avatar } : undefined}
               placeholderAvatar={placeholderAvatar}
               className="mt-8"
               onInviteClick={() => {

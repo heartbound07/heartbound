@@ -5,6 +5,7 @@ import { Users, Crown, Plus } from "lucide-react"
 import { Badge } from "@/components/ui/valorant/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { type UserProfileDTO } from "@/config/userService"
+import { usePartyParticipants } from "@/hooks/usePartyParticipants"
 
 // Individual PlayerSlot component to reduce duplication
 interface PlayerSlotProps {
@@ -92,14 +93,14 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
 };
 
 interface PlayerSlotsContainerProps {
-  participants: string[]
-  maxPlayers: number
-  leaderId: string
-  userProfiles: Record<string, UserProfileDTO>
-  currentUser?: { id: string; avatar?: string }
-  placeholderAvatar: string
-  onInviteClick?: () => void
-  className?: string
+  participants: string[];
+  maxPlayers: number;
+  leaderId: string;
+  userProfiles: Record<string, UserProfileDTO>;
+  currentUser?: { id: string; avatar?: string };
+  placeholderAvatar: string;
+  onInviteClick?: () => void;
+  className?: string;
 }
 
 export function PlayerSlotsContainer({
@@ -112,26 +113,15 @@ export function PlayerSlotsContainer({
   onInviteClick,
   className,
 }: PlayerSlotsContainerProps) {
-  // Calculate joined participants (excluding leader)
-  const joinedParticipants = React.useMemo(() => 
-    participants.filter((p) => p !== leaderId), 
-    [participants, leaderId]
-  );
-  
-  // Calculate empty slots count
-  const emptySlotsCount = React.useMemo(() => 
-    maxPlayers - (1 + joinedParticipants.length),
-    [maxPlayers, joinedParticipants.length]
-  );
-
-  // Get the leader profile
-  const leaderProfile = React.useMemo(() => 
-    userProfiles[leaderId] || {
-      avatar: placeholderAvatar,
-      username: "Leader",
-    },
-    [userProfiles, leaderId, placeholderAvatar]
-  );
+  // Use the hook directly in this component instead of receiving processed data
+  const { joinedParticipants, emptySlotsCount, leaderProfile } = usePartyParticipants({
+    participants,
+    leaderId,
+    maxPlayers,
+    userProfiles,
+    placeholderAvatar,
+    currentUser
+  });
 
   return (
     <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-900/50 to-blue-900/50 p-8 shadow-2xl ${className || ""}`}>
