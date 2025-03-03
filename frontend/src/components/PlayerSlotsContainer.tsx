@@ -32,23 +32,23 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
   // Determine if this slot represents the current user
   const isCurrentUser = currentUserId && participantId && currentUserId === participantId;
   
-  // Select appropriate styles based on slot type
+  // Updated gradient colors with premium red for leader
   const gradientColors = isLeader 
-    ? "from-indigo-600 via-blue-500 to-indigo-600" 
+    ? "from-red-900 via-red-700 to-red-800" 
     : isEmpty 
       ? "" 
       : isCurrentUser 
-        ? "from-amber-500 via-orange-500 to-amber-500"
-        : "from-emerald-500 via-teal-500 to-emerald-500";
+        ? "from-amber-600 via-amber-500 to-amber-700"
+        : "from-zinc-700 via-zinc-600 to-zinc-800";
 
-  // Determine border color based on slot type
+  // Updated border colors to match new gradients
   const borderColor = isLeader
-    ? "border-blue-400/50"
+    ? "border-red-600/50"
     : isEmpty
       ? "border-[#FF4655]/20"
       : isCurrentUser
-        ? "border-amber-400/50"
-        : "border-emerald-400/50";
+        ? "border-amber-500/50"
+        : "border-zinc-500/50";
 
   return (
     <Tooltip>
@@ -85,8 +85,8 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
             </div>
             
             {isLeader && (
-              <div className="absolute -top-1 -right-1 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full p-0.5 shadow-lg">
-                <Crown className="h-4 w-4 text-zinc-900" />
+              <div className="absolute -top-1 -right-1 bg-gradient-to-br from-red-700 to-red-900 rounded-full p-0.5 shadow-lg">
+                <Crown className="h-4 w-4 text-white" />
               </div>
             )}
             
