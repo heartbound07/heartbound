@@ -24,15 +24,26 @@ const DetailBadge = ({
   value: string;
 }) => {
   return (
-    <div className="bg-zinc-800/70 rounded-lg px-3 py-2 flex items-center gap-2 transition-all duration-300 hover:bg-zinc-700/50 group">
-      <div className="text-zinc-400 group-hover:text-[#FF4655] transition-colors">
-        {icon}
-      </div>
-      <div>
-        <div className="text-xs text-zinc-400">{label}</div>
-        <div className="text-sm font-medium text-white">{value}</div>
-      </div>
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="bg-zinc-800/70 rounded-lg px-3 py-2 flex items-center gap-2.5 transition-all duration-300 
+          hover:bg-zinc-700/50 group h-12 w-full shadow-sm hover:shadow-md">
+          <div className="text-zinc-400 group-hover:text-[#FF4655] transition-colors flex-shrink-0">
+            {icon}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs text-zinc-400 truncate">{label}</div>
+            <div className="text-sm font-medium text-white truncate">{value}</div>
+          </div>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent className="bg-zinc-900 border border-white/10">
+        <div>
+          <div className="font-medium">{label}</div>
+          <div className="text-zinc-300">{value}</div>
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 };
 
@@ -46,19 +57,19 @@ const PartyDetailsSection = ({ party }: { party: any }) => {
           <GamepadIcon className="mr-2 h-5 w-5 text-[#FF4655]" />
           Game Settings
         </h3>
-        <div className="flex flex-wrap gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <DetailBadge 
-            icon={<Trophy className="h-5 w-5" />} 
+            icon={<Trophy className="h-4 w-4" />} 
             label="Match Type" 
             value={formatDisplayText(party?.matchType)} 
           />
           <DetailBadge 
-            icon={<GamepadIcon className="h-5 w-5" />} 
+            icon={<GamepadIcon className="h-4 w-4" />} 
             label="Game Mode" 
             value={formatDisplayText(party?.gameMode)} 
           />
           <DetailBadge 
-            icon={<Users className="h-5 w-5" />} 
+            icon={<Users className="h-4 w-4" />} 
             label="Team Size" 
             value={formatDisplayText(party?.teamSize)} 
           />
@@ -71,29 +82,29 @@ const PartyDetailsSection = ({ party }: { party: any }) => {
           <Award className="mr-2 h-5 w-5 text-[#FF4655]" />
           Requirements
         </h3>
-        <div className="flex flex-wrap gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <DetailBadge 
-            icon={<Award className="h-5 w-5" />} 
+            icon={<Award className="h-4 w-4" />} 
             label="Rank" 
             value={formatDisplayText(party?.requirements?.rank)} 
           />
           <DetailBadge 
-            icon={<Globe className="h-5 w-5" />} 
+            icon={<Globe className="h-4 w-4" />} 
             label="Region" 
             value={formatDisplayText(party?.requirements?.region)} 
           />
           <DetailBadge 
-            icon={<Mic className="h-5 w-5" />} 
+            icon={<Mic className="h-4 w-4" />} 
             label="Voice Chat" 
             value={formatBooleanText(party?.requirements?.voiceChat)} 
           />
           <DetailBadge 
-            icon={<Calendar className="h-5 w-5" />} 
+            icon={<Calendar className="h-4 w-4" />} 
             label="Age" 
             value={formatDisplayText(party?.ageRestriction)} 
           />
           <DetailBadge 
-            icon={<Mic className="h-5 w-5" />} 
+            icon={<Mic className="h-4 w-4" />} 
             label="Voice Preference" 
             value={formatDisplayText(party?.voicePreference)} 
           />
