@@ -245,13 +245,13 @@ export default function ValorantPartyDetails() {
                 <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
                   {party.title || "Valorant Party"}
                 </h1>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   {user?.id === party.userId ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          className="bg-zinc-800/70 hover:bg-[#FF4655]/90 text-white border border-white/10 hover:border-[#FF4655]/50 
-                          shadow-md hover:shadow-[#FF4655]/20 transition-all duration-300 rounded-lg"
+                          className="bg-zinc-800/70 hover:bg-zinc-700/90 text-white border border-white/10 hover:border-white/30
+                          shadow-md hover:shadow-lg transition-all duration-300 rounded-lg"
                           size="sm"
                           onClick={() => {
                             if (window.confirm("Are you sure you want to delete this party? This action cannot be undone.")) {
@@ -267,18 +267,39 @@ export default function ValorantPartyDetails() {
                           }}
                         >
                           <span className="flex items-center gap-2">
-                            <span className="text-[#FF4655]">Delete Party</span>
+                            <span className="w-5 h-5 flex items-center justify-center text-zinc-400 group-hover:text-white transition-colors">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M3 6h18"></path>
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                              </svg>
+                            </span>
+                            <span className="font-medium">Delete Party</span>
                           </span>
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>Delete this party</TooltipContent>
+                      <TooltipContent>
+                        <p className="text-sm text-white">Permanently delete this party</p>
+                      </TooltipContent>
                     </Tooltip>
                   ) : (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          className="bg-zinc-800/70 hover:bg-[#FF4655]/90 text-white border border-white/10 hover:border-[#FF4655]/50 
-                          shadow-md hover:shadow-[#FF4655]/20 transition-all duration-300 rounded-lg"
+                          className="bg-zinc-800/70 hover:bg-zinc-700/90 text-white border border-white/10 hover:border-white/30
+                          shadow-md hover:shadow-lg transition-all duration-300 rounded-lg"
                           size="sm"
                           onClick={() => {
                             if (window.confirm("Are you sure you want to leave this party?")) {
@@ -294,12 +315,14 @@ export default function ValorantPartyDetails() {
                           }}
                         >
                           <span className="flex items-center gap-2">
-                            <LogOut className="h-4 w-4" />
-                            <span>Leave Party</span>
+                            <LogOut className="h-4 w-4 text-zinc-400 group-hover:text-white transition-colors" />
+                            <span className="font-medium">Leave Party</span>
                           </span>
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>Leave this party</TooltipContent>
+                      <TooltipContent>
+                        <p className="text-sm text-white">Leave this party</p>
+                      </TooltipContent>
                     </Tooltip>
                   )}
                 </div>
