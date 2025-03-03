@@ -1,9 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { Users, Crown, LogOut, GamepadIcon, Trophy, Globe, Mic, Award, Calendar } from "lucide-react"
+import { Users, LogOut, GamepadIcon, Trophy, Globe, Mic, Award, Calendar, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/valorant/buttonparty"
-import { Badge } from "@/components/ui/valorant/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate, useParams } from "react-router-dom"
@@ -12,6 +11,7 @@ import { usePartyUpdates } from "@/contexts/PartyUpdates"
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 import { PlayerSlotsContainer } from "@/components/PlayerSlotsContainer"
 import { formatDisplayText, formatBooleanText } from "@/utils/formatters"
+import { CountdownTimer } from "@/components/CountdownTimer"
 
 // DetailBadge component for displaying details with label and value
 const DetailBadge = ({ 
@@ -52,7 +52,7 @@ const PartyDetailsSection = ({ party }: { party: any }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Game Settings Group */}
-      <div className="bg-zinc-900/40 rounded-xl p-5 backdrop-blur-sm border border-white/5">
+      <div className="relative overflow-hidden bg-gradient-to-br from-zinc-900/80 to-zinc-900/40 backdrop-blur-md rounded-xl p-5 border border-white/5 shadow-xl">
         <h3 className="text-lg font-medium text-white/80 mb-4 flex items-center">
           <GamepadIcon className="mr-2 h-5 w-5 text-[#FF4655]" />
           Game Settings
@@ -77,36 +77,26 @@ const PartyDetailsSection = ({ party }: { party: any }) => {
       </div>
 
       {/* Requirements Group */}
-      <div className="bg-zinc-900/40 rounded-xl p-5 backdrop-blur-sm border border-white/5">
+      <div className="relative overflow-hidden bg-gradient-to-br from-zinc-900/80 to-zinc-900/40 backdrop-blur-md rounded-xl p-5 border border-white/5 shadow-xl">
         <h3 className="text-lg font-medium text-white/80 mb-4 flex items-center">
           <Award className="mr-2 h-5 w-5 text-[#FF4655]" />
           Requirements
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <DetailBadge 
-            icon={<Award className="h-4 w-4" />} 
-            label="Rank" 
-            value={formatDisplayText(party?.requirements?.rank)} 
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <DetailBadge 
             icon={<Globe className="h-4 w-4" />} 
             label="Region" 
-            value={formatDisplayText(party?.requirements?.region)} 
+            value={formatDisplayText(party?.region || "Any")} 
           />
           <DetailBadge 
             icon={<Mic className="h-4 w-4" />} 
-            label="Voice Chat" 
-            value={formatBooleanText(party?.requirements?.voiceChat)} 
+            label="Voice Required" 
+            value={formatBooleanText(party?.voicePreference)} 
           />
           <DetailBadge 
             icon={<Calendar className="h-4 w-4" />} 
-            label="Age" 
-            value={formatDisplayText(party?.ageRestriction)} 
-          />
-          <DetailBadge 
-            icon={<Mic className="h-4 w-4" />} 
-            label="Voice Preference" 
-            value={formatDisplayText(party?.voicePreference)} 
+            label="Age Restriction" 
+            value={party?.ageRestriction ? `${party.ageRestriction}+` : "None"} 
           />
         </div>
       </div>
@@ -123,6 +113,8 @@ export default function ValorantPartyDetails() {
   const [party, setParty] = React.useState<any>(null)
   const [userProfiles, setUserProfiles] = React.useState<Record<string, UserProfileDTO>>({})
   const [isLoading, setIsLoading] = React.useState(true)
+  const [leaderId, setLeaderId] = React.useState<string>("")
+  const [participants, setParticipants] = React.useState<string[]>([])
 
   // Placeholder avatar for participants who don't have an available avatar.
   const placeholderAvatar = "https://v0.dev/placeholder.svg?height=400&width=400"
@@ -134,13 +126,15 @@ export default function ValorantPartyDetails() {
       getParty(partyId)
         .then((data) => {
           setParty(data)
+          setLeaderId(data.userId)
+          setParticipants(data.participants || [])
           
           // Ensure participants is handled as an array regardless of how it's received
-          const participants = data.participants || [];
+          const participantsData = data.participants || [];
           // Add explicit type assertion and filter to ensure we only pass strings
-          const userIdsToFetch = (Array.isArray(participants) 
-            ? participants 
-            : (typeof participants === 'object' ? Object.values(participants) : []))
+          const userIdsToFetch = (Array.isArray(participantsData) 
+            ? participantsData 
+            : (typeof participantsData === 'object' ? Object.values(participantsData) : []))
             .filter((id): id is string => typeof id === 'string');
           
           return getUserProfiles(userIdsToFetch)
@@ -178,6 +172,8 @@ export default function ValorantPartyDetails() {
           getParty(party.id)
             .then((data) => {
               setParty(data)
+              setLeaderId(data.userId)
+              setParticipants(data.participants || [])
               
               // Fetch profiles for any new participants
               const currentProfileIds = Object.keys(userProfiles)
@@ -207,14 +203,18 @@ export default function ValorantPartyDetails() {
   console.debug("Party data:", party);
   console.debug("Participants raw:", party?.participants);
 
-  // Calculate participants details.
-  const leaderId = party?.userId
-  // Ensure participants is always handled as an array
-  const participants: string[] = party?.participants 
-    ? (Array.isArray(party.participants) 
-       ? Array.from(party.participants) 
-       : Object.values(party.participants))
-    : [];
+  // Handle party deletion
+  const handleDeleteParty = async () => {
+    if (window.confirm("Are you sure you want to delete this party? This action cannot be undone.")) {
+      try {
+        await deleteParty(party.id)
+        navigate("/dashboard/valorant")
+      } catch (err: any) {
+        console.error("Error deleting party:", err)
+        alert("Failed to delete party")
+      }
+    }
+  }
 
   if (isLoading) {
     return (
@@ -222,7 +222,7 @@ export default function ValorantPartyDetails() {
         <div className="p-8 rounded-xl bg-zinc-900/50 backdrop-blur-sm border border-white/5 shadow-lg flex flex-col items-center">
           <div className="w-12 h-12 rounded-full border-2 border-t-[#FF4655] border-r-[#FF4655]/50 border-b-[#FF4655]/20 border-l-transparent animate-spin mb-4"></div>
           <div className="text-xl font-medium text-white/90">Loading party details...</div>
-          <div className="text-sm text-white/60 mt-2">Please wait while we gather the information</div>
+          <div className="text-sm text-white/50 mt-2">Please wait while we retrieve the party information.</div>
         </div>
       </div>
     )
@@ -232,11 +232,12 @@ export default function ValorantPartyDetails() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0F1923] to-[#1A242F] text-white font-sans flex items-center justify-center">
         <div className="p-8 rounded-xl bg-zinc-900/50 backdrop-blur-sm border border-white/5 shadow-lg text-center">
-          <div className="text-xl font-medium text-white/90">Party not found</div>
-          <div className="text-sm text-white/60 mt-2">The party you are looking for may have been deleted</div>
-          <Button
-            className="mt-6 bg-[#FF4655]/90 hover:bg-[#FF4655] text-white"
-            onClick={() => navigate("/dashboard/valorant")}
+          <div className="text-5xl font-bold text-[#FF4655] mb-4">404</div>
+          <div className="text-xl font-medium text-white/90 mb-2">Party Not Found</div>
+          <div className="text-sm text-white/50 mb-6">The party you are looking for does not exist or has been deleted.</div>
+          <Button 
+            onClick={() => navigate("/dashboard/valorant")} 
+            className="bg-[#FF4655] hover:bg-[#FF4655]/90 text-white font-medium px-4 py-2 rounded-md transition-colors"
           >
             Return to Dashboard
           </Button>
@@ -245,122 +246,118 @@ export default function ValorantPartyDetails() {
     )
   }
 
+  // Check if current user is a participant of the party
+  const isUserParticipant = participants.includes(user?.id || '');
+  const isUserLeader = leaderId === user?.id;
+  
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-br from-[#0F1923] to-[#1A242F] text-white font-sans">
-        <div className="container mx-auto py-4 sm:py-6 md:py-8 px-4 sm:px-6">
-          <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6 md:space-y-8">
-            {/* Enhanced header with shadow and better spacing */}
-            <div className="bg-zinc-900/50 rounded-xl p-6 backdrop-blur-sm border border-white/5 shadow-lg">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
-                  {party.title || "Valorant Party"}
-                </h1>
-                <div className="flex gap-3">
-                  {user?.id === party.userId ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          className="bg-zinc-800/70 hover:bg-zinc-700/90 text-white border border-white/10 hover:border-white/30
-                          shadow-md hover:shadow-lg transition-all duration-300 rounded-lg"
-                          size="sm"
-                          onClick={() => {
-                            if (window.confirm("Are you sure you want to delete this party? This action cannot be undone.")) {
-                              deleteParty(party.id)
-                                .then(() => {
-                                  navigate("/dashboard/valorant")
-                                })
-                                .catch((err: any) => {
-                                  console.error("Error deleting party:", err)
-                                  alert("Failed to delete party")
-                                })
-                            }
-                          }}
-                        >
-                          <span className="flex items-center gap-2">
-                            <span className="w-5 h-5 flex items-center justify-center text-zinc-400 group-hover:text-white transition-colors">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M3 6h18"></path>
-                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                                <line x1="10" y1="11" x2="10" y2="17"></line>
-                                <line x1="14" y1="11" x2="14" y2="17"></line>
-                              </svg>
-                            </span>
-                            <span className="font-medium">Delete Party</span>
-                          </span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-sm text-white">Permanently delete this party</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          className="bg-zinc-800/70 hover:bg-zinc-700/90 text-white border border-white/10 hover:border-white/30
-                          shadow-md hover:shadow-lg transition-all duration-300 rounded-lg"
-                          size="sm"
-                          onClick={() => {
-                            if (window.confirm("Are you sure you want to leave this party?")) {
-                              leaveParty(party.id)
-                                .then(() => {
-                                  navigate("/dashboard/valorant")
-                                })
-                                .catch((err: any) => {
-                                  console.error("Error leaving party:", err)
-                                  alert("Failed to leave party")
-                                })
-                            }
-                          }}
-                        >
-                          <span className="flex items-center gap-2">
-                            <LogOut className="h-4 w-4 text-zinc-400 group-hover:text-white transition-colors" />
-                            <span className="font-medium">Leave Party</span>
-                          </span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-sm text-white">Leave this party</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
+      <div className="min-h-screen bg-gradient-to-br from-[#0F1923] to-[#1A242F] text-white font-sans flex flex-col p-6">
+        <div className="max-w-7xl mx-auto w-full space-y-8">
+          <div className="bg-gradient-to-br from-zinc-900/90 to-zinc-900/60 backdrop-blur-md rounded-xl p-6 border border-white/5 shadow-2xl">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-3 mb-2">
+                  <h1 className="text-3xl font-bold text-white mr-2 truncate">
+                    {party.title || "Unnamed Party"}
+                  </h1>
+                  <div className="flex gap-2 flex-wrap">
+                    <span className="py-1 px-3 rounded-full bg-[#FF4655]/10 text-[#FF4655] text-xs font-semibold border border-[#FF4655]/20">
+                      {formatDisplayText(party.game)}
+                    </span>
+                    <span className={`py-1 px-3 rounded-full text-xs font-semibold ${
+                      party.status === 'open' 
+                      ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
+                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                    }`}>
+                      {formatDisplayText(party.status)}
+                    </span>
+                    
+                    {/* Add CountdownTimer component here */}
+                    {party.expiresAt && (
+                      <div className="py-1 px-3 rounded-full bg-zinc-800/80 text-xs font-semibold border border-white/10">
+                        <CountdownTimer expiresAt={party.expiresAt} />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-              {party.description && (
-                <p className="text-zinc-400 mt-3 sm:mt-4 max-w-3xl">
-                  {party.description}
-                </p>
-              )}
+              
+              <div className="flex flex-wrap gap-2">
+                {isUserLeader ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        className="bg-zinc-800/70 hover:bg-zinc-700/90 text-white border border-white/10 hover:border-white/30
+                        shadow-md hover:shadow-lg transition-all duration-300 rounded-lg"
+                        size="sm"
+                        onClick={handleDeleteParty}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Trash2 className="h-4 w-4 text-zinc-400 group-hover:text-white transition-colors" />
+                          <span className="font-medium">Delete Party</span>
+                        </span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-sm text-white">Delete this party permanently</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        className="bg-zinc-800/70 hover:bg-zinc-700/90 text-white border border-white/10 hover:border-white/30
+                        shadow-md hover:shadow-lg transition-all duration-300 rounded-lg"
+                        size="sm"
+                        onClick={() => {
+                          if (window.confirm("Are you sure you want to leave this party?")) {
+                            leaveParty(party.id)
+                              .then(() => {
+                                navigate("/dashboard/valorant")
+                              })
+                              .catch((err: any) => {
+                                console.error("Error leaving party:", err)
+                                alert("Failed to leave party")
+                              })
+                          }
+                        }}
+                      >
+                        <span className="flex items-center gap-2">
+                          <LogOut className="h-4 w-4 text-zinc-400 group-hover:text-white transition-colors" />
+                          <span className="font-medium">Leave Party</span>
+                        </span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-sm text-white">Leave this party</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
             </div>
-            
-            {/* Reorganized party details section */}
-            <PartyDetailsSection party={party} />
-            
-            {/* Player slots container with improved styling */}
-            <PlayerSlotsContainer 
-              participants={participants}
-              maxPlayers={party?.maxPlayers || 5}
-              leaderId={leaderId}
-              userProfiles={userProfiles}
-              currentUser={user ? { id: user.id, avatar: user.avatar } : undefined}
-              placeholderAvatar={placeholderAvatar}
-              className="bg-gradient-to-br from-zinc-900/80 to-zinc-900/40 backdrop-blur-md
-                border border-white/5 shadow-xl"
-              onInviteClick={() => console.log("Invite player clicked")}
-            />
+            {party.description && (
+              <p className="text-zinc-400 mt-3 sm:mt-4 max-w-3xl">
+                {party.description}
+              </p>
+            )}
           </div>
+          
+          {/* Reorganized party details section */}
+          <PartyDetailsSection party={party} />
+          
+          {/* Player slots container with improved styling */}
+          <PlayerSlotsContainer 
+            participants={participants}
+            maxPlayers={party?.maxPlayers || 5}
+            leaderId={leaderId}
+            userProfiles={userProfiles}
+            currentUser={user ? { id: user.id, avatar: user.avatar } : undefined}
+            placeholderAvatar={placeholderAvatar}
+            className="bg-gradient-to-br from-zinc-900/80 to-zinc-900/40 backdrop-blur-md
+              border border-white/5 shadow-xl"
+            onInviteClick={() => console.log("Invite player clicked")}
+          />
         </div>
       </div>
     </TooltipProvider>
