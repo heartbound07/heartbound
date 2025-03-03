@@ -13,7 +13,7 @@ import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 import { PlayerSlotsContainer } from "@/components/PlayerSlotsContainer"
 import { formatDisplayText, formatBooleanText } from "@/utils/formatters"
 
-// IconTooltipButton component for consistent badge styling with tooltips
+// IconTooltipButton component with larger icons for better visibility
 const IconTooltipButton: React.FC<{
   icon: React.ReactNode;
   label: string;
@@ -26,7 +26,7 @@ const IconTooltipButton: React.FC<{
         size="icon"
         className={`bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors
           focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
-          [&_svg]:pointer-events-none h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent ${className || ""}`}
+          [&_svg]:h-8 [&_svg]:w-8 h-12 w-12 text-zinc-300 hover:text-white hover:bg-zinc-800/30 ${className || ""}`}
       >
         {icon}
       </Button>
@@ -219,49 +219,49 @@ export default function ValorantPartyDetails() {
             <div className="flex flex-wrap items-center justify-start space-x-4 py-2 bg-zinc-900/30 px-4 rounded-lg mb-8">
               {/* Match Type Badge */}
               <IconTooltipButton 
-                icon={<Trophy className="h-4 w-4" />} 
+                icon={<Trophy />} 
                 label={formatDisplayText(party?.matchType)}
               />
               
               {/* Game Mode Badge */}
               <IconTooltipButton 
-                icon={<GamepadIcon className="h-4 w-4" />} 
+                icon={<GamepadIcon />} 
                 label={formatDisplayText(party?.gameMode)}
               />
               
               {/* Team Size Badge */}
               <IconTooltipButton 
-                icon={<Users className="h-4 w-4" />} 
+                icon={<Users />} 
                 label={formatDisplayText(party?.teamSize)}
               />
               
               {/* Voice Preference Badge */}
               <IconTooltipButton 
-                icon={<Mic className="h-4 w-4" />} 
+                icon={<Mic />} 
                 label={formatDisplayText(party?.voicePreference)}
               />
               
               {/* Age Restriction Badge */}
               <IconTooltipButton 
-                icon={<Calendar className="h-4 w-4" />} 
+                icon={<Calendar />} 
                 label={formatDisplayText(party?.ageRestriction)}
               />
               
               {/* Required Rank Badge */}
               <IconTooltipButton 
-                icon={<Award className="h-4 w-4" />} 
+                icon={<Award />} 
                 label={formatDisplayText(party?.requirements?.rank)}
               />
               
               {/* Required Region Badge */}
               <IconTooltipButton 
-                icon={<Globe className="h-4 w-4" />} 
+                icon={<Globe />} 
                 label={formatDisplayText(party?.requirements?.region)}
               />
               
               {/* Voice Chat Required Badge */}
               <IconTooltipButton 
-                icon={<Mic className="h-4 w-4" />} 
+                icon={<Mic />} 
                 label={`Voice Chat: ${formatBooleanText(party?.requirements?.voiceChat)}`}
               />
             </div>
