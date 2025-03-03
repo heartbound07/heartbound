@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Users, Crown, Plus, Shield } from "lucide-react"
+import { Users, Crown, Plus } from "lucide-react"
 import { Badge } from "@/components/ui/valorant/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { type UserProfileDTO } from "@/config/userService"
@@ -90,12 +90,6 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
               </div>
             )}
             
-            {isCurrentUser && !isLeader && (
-              <div className="absolute -top-1 -left-1 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full p-0.5 shadow-lg">
-                <Shield className="h-4 w-4 text-zinc-900" />
-              </div>
-            )}
-            
             {!isEmpty && (
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-zinc-900/90 px-3 py-1 
                 rounded-full text-sm font-medium shadow-lg border border-white/10 truncate max-w-full"
@@ -109,12 +103,12 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
       <TooltipContent className="bg-zinc-900 border border-white/10 shadow-xl px-3 py-2">
         <div className="flex flex-col items-center">
           {isLeader && (
-            <Badge variant="valorant" size="sm" className="mb-1 bg-gradient-to-r from-yellow-500 to-amber-500 text-zinc-900 font-bold">
+            <Badge variant="valorant" size="sm" className="mb-1 bg-gradient-to-r from-[#FF4655] to-[#FF8F97] text-white font-bold">
               Party Leader
             </Badge>
           )}
           {isCurrentUser && !isLeader && (
-            <Badge variant="valorant" size="sm" className="mb-1 bg-gradient-to-r from-orange-500 to-amber-500 text-zinc-900 font-bold">
+            <Badge variant="valorant" size="sm" className="mb-1 bg-gradient-to-r from-[#FF4655] to-[#FF8F97] text-white font-bold">
               You
             </Badge>
           )}
