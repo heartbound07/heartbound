@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
@@ -8,6 +8,7 @@ import { Users, GamepadIcon, Mic, Calendar, Trophy, Plus, Award, Globe } from "l
 import { joinParty } from "@/contexts/valorant/partyService"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate } from "react-router-dom"
+import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 
 // Helper function to format tooltip text for fields such as gameMode, teamSize, etc.
 const formatTooltipText = (text: string | undefined, defaultText: string = "N/A"): string => {
@@ -25,38 +26,64 @@ const formatTooltipText = (text: string | undefined, defaultText: string = "N/A"
   return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase()
 }
 
-// New helper function to format age restrictions (e.g., "18-plus" -> "18+")
-const formatAgeRestriction = (text: string | undefined, defaultText: string = "Any"): string => {
-  if (!text) return defaultText
-  if (text.toLowerCase() === "any") return "Any"
-  return text.replace("-plus", "+")
+// Helper function to format age restriction text
+const formatAgeRestriction = (ageText: string | undefined): string => {
+  if (!ageText) return "All Ages"
+  return ageText === "18_PLUS" ? "18+" : formatTooltipText(ageText)
 }
 
-interface ListingProps {
-  party: any // Ideally, replace `any` with a specific Party type
+export interface ListingProps {
+  party: any; // Replace with a proper type for LFGPartyResponseDTO
 }
 
 export default function Listing({ party }: ListingProps) {
   // Dynamically create player slots based on party.maxPlayers and party.participants.
   // We assume party.participants is an array (default to empty array if undefined).
   const participants = party.participants || []
-  const slots = Array.from({ length: party.maxPlayers }, (_, i) => {
-    const isFilled = i < participants.length
-    return {
-      id: i + 1,
-      filled: isFilled,
-      // For demonstration, we're just converting the slot number to a string.
-      // Replace with your desired participant details as needed.
-      number: isFilled ? (i + 1).toString() : "",
-      // Using a placeholder avatar for filled slots; you can use actual avatar URLs if available.
-      avatar: isFilled ? "/placeholder.svg" : undefined,
-    }
-  })
-
+  
+  // State to hold user profiles for participants
+  const [userProfiles, setUserProfiles] = useState<Record<string, UserProfileDTO>>({})
+  
   // Local state to manage the join process
   const [isJoining, setIsJoining] = useState(false)
   const { user } = useAuth()
   const navigate = useNavigate()
+  
+  // Placeholder avatar for users without an avatar
+  const placeholderAvatar = "/placeholder.svg"
+  
+  // Fetch user profiles when participants change
+  useEffect(() => {
+    if (participants.length > 0) {
+      // Filter to ensure we only pass string IDs to the API
+      const validUserIds = participants.filter((id: any): id is string => typeof id === 'string' && !!id);
+      
+      if (validUserIds.length > 0) {
+        getUserProfiles(validUserIds)
+          .then(profiles => {
+            setUserProfiles(profiles);
+          })
+          .catch(error => {
+            console.error("Error fetching user profiles:", error);
+          });
+      }
+    }
+  }, [participants]);
+  
+  // Create slots array with profile data
+  const slots = Array.from({ length: party.maxPlayers }, (_, i) => {
+    const isFilled = i < participants.length;
+    const participantId = isFilled ? participants[i] : null;
+    const profile = participantId ? userProfiles[participantId] : null;
+    
+    return {
+      id: i + 1,
+      filled: isFilled,
+      participantId,
+      username: profile?.username || `Player ${i + 1}`,
+      avatar: profile?.avatar || placeholderAvatar,
+    }
+  });
 
   // Determine if the current user is the party owner
   const isOwner = user?.id === party.userId
@@ -264,7 +291,7 @@ export default function Listing({ party }: ListingProps) {
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{slot.filled ? `Player ${slot.number}` : "Empty Slot"}</p>
+                  <p>{slot.filled ? slot.username : "Empty Slot"}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
