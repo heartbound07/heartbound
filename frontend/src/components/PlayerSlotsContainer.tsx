@@ -165,7 +165,7 @@ export function PlayerSlotsContainer({
             <h2 className="text-2xl font-bold text-white">Party Members</h2>
           </div>
           
-          {/* Refined Player Count Badge - Smaller size with white text */}
+          {/* Refined Player Count Badge - All text red when full */}
           <Tooltip>
             <TooltipTrigger asChild>
               <div className={`relative overflow-hidden px-3 py-1.5 rounded-lg bg-gradient-to-br from-zinc-800/90 to-zinc-900/90 border ${isFull ? 'border-[#FF4655]/50' : 'border-zinc-700/30'} shadow-lg group transition-all duration-300 hover:shadow-xl`}>
@@ -180,8 +180,8 @@ export function PlayerSlotsContainer({
                     <span className={`text-base font-bold ${isFull ? 'text-[#FF4655]' : 'text-white'}`}>
                       {participants.length}
                     </span>
-                    <span className="text-zinc-500 mx-1">/</span>
-                    <span className="text-white text-base font-medium">{maxPlayers || "?"}</span>
+                    <span className={`mx-1 ${isFull ? 'text-[#FF4655]' : 'text-zinc-500'}`}>/</span>
+                    <span className={`text-base font-medium ${isFull ? 'text-[#FF4655]' : 'text-white'}`}>{maxPlayers || "?"}</span>
                   </div>
                   
                   {/* Status indicator */}
