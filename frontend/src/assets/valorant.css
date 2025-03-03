@@ -6,6 +6,10 @@
   /* Use a flex layout to organize its children vertically */
   display: flex;
   flex-direction: column; /* Stack vertically on small screens */
+  /* Add these to remove any default margins */
+  margin: 0;
+  overflow: hidden;
+  width: 100%;
 }
 
 @media (min-width: 768px) {
@@ -21,8 +25,9 @@
 .valorant-content {
   /* Allow the content area to fill the remaining space */
   flex: 1;
-  /* Add padding for proper spacing */
-  padding: 1.5rem;
+  /* Remove the padding that's causing the gap */
+  padding: 0;
   /* Allow scrolling if the content exceeds the view height */
   overflow-y: auto;
+  width: 100%;
 } 
