@@ -4,11 +4,19 @@ import { ClockIcon } from 'lucide-react';
 interface CountdownTimerProps {
   expiresAt: string;
   className?: string;
+  onExpire?: () => void;
+  isPaused?: boolean;
 }
 
-export const CountdownTimer: React.FC<CountdownTimerProps> = ({ expiresAt, className = '' }) => {
+export const CountdownTimer: React.FC<CountdownTimerProps> = ({ 
+  expiresAt, 
+  className = '',
+  onExpire,
+  isPaused = false
+}) => {
   const [timeLeft, setTimeLeft] = useState<{ minutes: number; seconds: number }>({ minutes: 0, seconds: 0 });
   const [isExpired, setIsExpired] = useState(false);
+  const [hasCalledOnExpire, setHasCalledOnExpire] = useState(false);
 
   useEffect(() => {
     // Function to calculate time remaining
@@ -20,6 +28,12 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({ expiresAt, class
       if (difference <= 0) {
         setIsExpired(true);
         setTimeLeft({ minutes: 0, seconds: 0 });
+        
+        // Call onExpire only once
+        if (onExpire && !hasCalledOnExpire) {
+          setHasCalledOnExpire(true);
+          onExpire();
+        }
         return;
       }
 
@@ -29,29 +43,37 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({ expiresAt, class
       setTimeLeft({ minutes, seconds });
     };
 
-    // Calculate immediately and then every second
-    calculateTimeLeft();
-    const timer = setInterval(calculateTimeLeft, 1000);
+    // Only run the timer if not paused
+    if (!isPaused) {
+      // Calculate immediately and then every second
+      calculateTimeLeft();
+      const timer = setInterval(calculateTimeLeft, 1000);
 
-    // Cleanup interval on unmount
-    return () => clearInterval(timer);
-  }, [expiresAt]);
+      // Cleanup interval on unmount
+      return () => clearInterval(timer);
+    }
+  }, [expiresAt, onExpire, isPaused, hasCalledOnExpire]);
 
   // Display formats based on status
   const getTimerColor = () => {
     if (isExpired) return 'text-red-500';
+    if (isPaused) return 'text-blue-400';
     if (timeLeft.minutes < 1) return 'text-amber-500';
     if (timeLeft.minutes < 3) return 'text-amber-400';
     return 'text-green-400';
   };
 
-  const formattedTime = `${timeLeft.minutes.toString().padStart(2, '0')}:${timeLeft.seconds.toString().padStart(2, '0')}`;
+  const getTimerText = () => {
+    if (isExpired) return 'Expired';
+    if (isPaused) return 'Paused';
+    return `${timeLeft.minutes.toString().padStart(2, '0')}:${timeLeft.seconds.toString().padStart(2, '0')}`;
+  };
   
   return (
     <div className={`flex items-center gap-1.5 ${getTimerColor()} ${className}`}>
       <ClockIcon className="h-4 w-4" />
       <span className="font-medium">
-        {isExpired ? 'Expired' : formattedTime}
+        {getTimerText()}
       </span>
     </div>
   );

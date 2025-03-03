@@ -226,6 +226,27 @@ export default function ValorantPartyDetails() {
     }
   }
 
+  // Check if party is full
+  const isPartyFull = party && party.participants && party.maxPlayers 
+    ? party.participants.length >= party.maxPlayers 
+    : false;
+
+  // Handle party expiration
+  const handlePartyExpire = () => {
+    // Only allow party leader to auto-delete
+    if (leaderId === user?.id && party) {
+      console.log("Party expired, auto-deleting...");
+      deleteParty(party.id)
+        .then(() => {
+          // Navigate away after deletion
+          navigate("/dashboard/valorant");
+        })
+        .catch((err) => {
+          console.error("Error auto-deleting expired party:", err);
+        });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0F1923] to-[#1A242F] text-white font-sans flex items-center justify-center">
@@ -283,10 +304,13 @@ export default function ValorantPartyDetails() {
                       {formatDisplayText(party.status)}
                     </span>
                     
-                    {/* Add CountdownTimer component here */}
-                    {party.expiresAt && (
+                    {/* Only show countdown timer when party is not full */}
+                    {party.expiresAt && !isPartyFull && (
                       <div className="py-1 px-3 rounded-full bg-zinc-800/80 text-xs font-semibold border border-white/10">
-                        <CountdownTimer expiresAt={party.expiresAt} />
+                        <CountdownTimer 
+                          expiresAt={party.expiresAt} 
+                          onExpire={handlePartyExpire}
+                        />
                       </div>
                     )}
                   </div>
