@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Users, Crown, LogOut } from "lucide-react"
+import { Users, Crown, LogOut, GamepadIcon, Trophy, Globe, Mic, Award } from "lucide-react"
 import { Button } from "@/components/ui/valorant/buttonparty"
 import { Badge } from "@/components/ui/valorant/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
@@ -146,6 +146,27 @@ export default function ValorantPartyDetails() {
     username: "Leader",
   }
 
+  // Helper function to format text for display
+  const formatDisplayText = (text: string | undefined, defaultText: string = "N/A"): string => {
+    if (!text) return defaultText;
+    
+    // Handle region values with underscores (e.g., "NA_EAST" to "NA East")
+    if (text.includes("_")) {
+      return text.split("_").map(part => 
+        part.charAt(0) + part.slice(1).toLowerCase()
+      ).join(" ");
+    }
+    
+    // Default case: capitalize first letter
+    return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+  }
+
+  // Convert boolean to Yes/No text
+  const formatBooleanText = (value: boolean | undefined): string => {
+    if (value === undefined || value === null) return "N/A";
+    return value ? "Yes" : "No";
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0F1923] text-white font-sans flex items-center justify-center">
@@ -167,19 +188,9 @@ export default function ValorantPartyDetails() {
         <div className="relative z-10">
           {/* Header and other sections omitted for brevity */}
           <div className="max-w-6xl mx-auto p-6">
-            {/* Other details section */}
-            <div className="flex items-center justify-between">
-              {/* Example badges and leave button */}
-              <Badge variant="secondary" className="bg-white/10 hover:bg-white/20 transition-colors text-white px-4 py-1.5 text-sm rounded-full">
-                {party?.teamSize || "N/A"}
-              </Badge>
-              <Badge variant="secondary" className="bg-white/10 hover:bg-white/20 transition-colors text-white px-4 py-1.5 text-sm rounded-full">
-                {party?.voicePreference || "N/A"}
-              </Badge>
-              <Badge variant="secondary" className="bg-white/10 hover:bg-white/20 transition-colors text-white px-4 py-1.5 text-sm rounded-full">
-                {party?.ageRestriction || "N/A"}
-              </Badge>
-              <div className="ml-auto flex gap-3">
+            {/* Leave button section */}
+            <div className="flex items-center justify-end mb-4">
+              <div className="flex gap-3">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -194,6 +205,56 @@ export default function ValorantPartyDetails() {
                   <TooltipContent>Leave group</TooltipContent>
                 </Tooltip>
               </div>
+            </div>
+
+            {/* Party details badges section */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-8">
+              {/* Match Type Badge */}
+              <Badge variant="secondary" className="bg-white/10 hover:bg-white/20 transition-colors text-white px-4 py-1.5 text-sm rounded-full inline-flex items-center gap-2">
+                <Trophy className="h-4 w-4" />
+                <span>{formatDisplayText(party?.matchType)}</span>
+              </Badge>
+              
+              {/* Game Mode Badge */}
+              <Badge variant="secondary" className="bg-white/10 hover:bg-white/20 transition-colors text-white px-4 py-1.5 text-sm rounded-full inline-flex items-center gap-2">
+                <GamepadIcon className="h-4 w-4" />
+                <span>{formatDisplayText(party?.gameMode)}</span>
+              </Badge>
+              
+              {/* Team Size Badge */}
+              <Badge variant="secondary" className="bg-white/10 hover:bg-white/20 transition-colors text-white px-4 py-1.5 text-sm rounded-full inline-flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span>{formatDisplayText(party?.teamSize)}</span>
+              </Badge>
+              
+              {/* Voice Preference Badge */}
+              <Badge variant="secondary" className="bg-white/10 hover:bg-white/20 transition-colors text-white px-4 py-1.5 text-sm rounded-full inline-flex items-center gap-2">
+                <Mic className="h-4 w-4" />
+                <span>{formatDisplayText(party?.voicePreference)}</span>
+              </Badge>
+              
+              {/* Age Restriction Badge */}
+              <Badge variant="secondary" className="bg-white/10 hover:bg-white/20 transition-colors text-white px-4 py-1.5 text-sm rounded-full inline-flex items-center gap-2">
+                <span>{formatDisplayText(party?.ageRestriction)}</span>
+              </Badge>
+              
+              {/* Required Rank Badge */}
+              <Badge variant="secondary" className="bg-white/10 hover:bg-white/20 transition-colors text-white px-4 py-1.5 text-sm rounded-full inline-flex items-center gap-2">
+                <Award className="h-4 w-4" />
+                <span>{formatDisplayText(party?.requirements?.rank)}</span>
+              </Badge>
+              
+              {/* Required Region Badge */}
+              <Badge variant="secondary" className="bg-white/10 hover:bg-white/20 transition-colors text-white px-4 py-1.5 text-sm rounded-full inline-flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                <span>{formatDisplayText(party?.requirements?.region)}</span>
+              </Badge>
+              
+              {/* Voice Chat Required Badge */}
+              <Badge variant="secondary" className="bg-white/10 hover:bg-white/20 transition-colors text-white px-4 py-1.5 text-sm rounded-full inline-flex items-center gap-2">
+                <Mic className="h-4 w-4" />
+                <span>Voice Chat: {formatBooleanText(party?.requirements?.voiceChat)}</span>
+              </Badge>
             </div>
 
             {/* Player Slots Container */}
