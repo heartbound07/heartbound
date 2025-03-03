@@ -82,21 +82,31 @@ const PartyDetailsSection = ({ party }: { party: any }) => {
           <Award className="mr-2 h-5 w-5 text-[#FF4655]" />
           Requirements
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <DetailBadge 
+            icon={<Award className="h-4 w-4" />} 
+            label="Rank" 
+            value={formatDisplayText(party?.requirements?.rank)} 
+          />
           <DetailBadge 
             icon={<Globe className="h-4 w-4" />} 
             label="Region" 
-            value={formatDisplayText(party?.region || "Any")} 
+            value={formatDisplayText(party?.requirements?.region)} 
           />
           <DetailBadge 
             icon={<Mic className="h-4 w-4" />} 
-            label="Voice Required" 
-            value={formatBooleanText(party?.voicePreference)} 
+            label="Voice Chat" 
+            value={formatBooleanText(party?.requirements?.voiceChat)} 
           />
           <DetailBadge 
             icon={<Calendar className="h-4 w-4" />} 
-            label="Age Restriction" 
-            value={party?.ageRestriction ? `${party.ageRestriction}+` : "None"} 
+            label="Age" 
+            value={formatDisplayText(party?.ageRestriction)} 
+          />
+          <DetailBadge 
+            icon={<Mic className="h-4 w-4" />} 
+            label="Voice Preference" 
+            value={formatDisplayText(party?.voicePreference)} 
           />
         </div>
       </div>
