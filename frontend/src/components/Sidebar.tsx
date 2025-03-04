@@ -3,13 +3,11 @@ import { useAuth } from "@/contexts/auth"
 import "@/assets/sidebar.css"
 import "@/assets/styles/fonts.css"
 import { MdDashboard } from "react-icons/md"
-import { FaUserCircle } from "react-icons/fa"
 import { IoSettingsSharp } from "react-icons/io5"
-import { FiLogOut } from "react-icons/fi"
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { ChevronDown, ChevronRight } from "lucide-react"
-
-// Import game logos
+import { ProfilePreview } from "@/components/ui/profile/ProfilePreview"
+import ReactDOM from "react-dom"
 import valorantLogo from '@/assets/images/valorant-logo.png'
 
 /**
@@ -24,11 +22,15 @@ import valorantLogo from '@/assets/images/valorant-logo.png'
 export function DashboardNavigation({ theme = 'default' }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { logout, user } = useAuth()
+  const { user } = useAuth()
   const [gamesExpanded, setGamesExpanded] = useState(() => {
     // Auto-expand if we're on a game page
     return location.pathname.includes('/dashboard/valorant')
   })
+  const [showProfilePreview, setShowProfilePreview] = useState(false)
+  const profileSectionRef = useRef<HTMLDivElement>(null)
+  const profilePreviewRef = useRef<HTMLDivElement>(null)
+  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 })
 
   // Define games submenu items
   const gameItems = [
@@ -44,20 +46,45 @@ export function DashboardNavigation({ theme = 'default' }) {
   const navItems = [
     { 
       path: "/dashboard", 
-      label: "Overview", 
+      label: "Discover", 
       icon: <MdDashboard size={20} />,
       hasSubmenu: true
     },
     { path: "/dashboard/settings", label: "Settings", icon: <IoSettingsSharp size={20} /> },
-    { path: "/dashboard/profile", label: "Profile", icon: <FaUserCircle size={20} /> },
+    // Profile tab removed as it's now integrated with the user profile section
   ]
-
-  const handleLogout = async () => {
-    await logout()
-    sessionStorage.removeItem("hasSeenWelcome")
-    navigate("/login")
-  }
-
+  
+  // Update popup position whenever profile section or visibility changes
+  useEffect(() => {
+    if (profileSectionRef.current && showProfilePreview) {
+      const rect = profileSectionRef.current.getBoundingClientRect();
+      setPopupPosition({
+        top: rect.top,
+        left: rect.right + 10 // 10px offset from the sidebar
+      });
+    }
+  }, [showProfilePreview, profileSectionRef.current]);
+  
+  // Close the profile preview when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        showProfilePreview &&
+        profilePreviewRef.current && 
+        profileSectionRef.current &&
+        !profilePreviewRef.current.contains(event.target as Node) &&
+        !profileSectionRef.current.contains(event.target as Node)
+      ) {
+        setShowProfilePreview(false)
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showProfilePreview])
+  
   // Set background color based on theme
   const sidebarBackground = theme === 'dashboard'
     ? "bg-gradient-to-b from-[#5b48e6]/90 to-[#7a67ed]/90" // Match dashboard gradient
@@ -68,6 +95,62 @@ export function DashboardNavigation({ theme = 'default' }) {
   
   // Determine if we're on a specific game page
   const onGamePage = gameItems.some(game => location.pathname.includes(game.id))
+
+  // Check if we're on the profile page
+  const isProfilePage = location.pathname === '/dashboard/profile'
+
+  const handleProfileClick = () => {
+    // Don't show the profile preview if we're already on the profile page
+    if (isProfilePage) {
+      // If on profile page, just navigate there (no need for preview)
+      navigate('/dashboard/profile');
+      return;
+    }
+    
+    // Otherwise toggle the preview as normal
+    setShowProfilePreview(!showProfilePreview);
+  }
+
+  // Profile Preview Portal Component
+  const ProfilePreviewPortal = () => {
+    // Don't render the portal at all if we're on the profile page
+    if (!showProfilePreview || isProfilePage) return null;
+    
+    return ReactDOM.createPortal(
+      <div 
+        ref={profilePreviewRef}
+        style={{
+          position: 'absolute',
+          top: popupPosition.top,
+          left: popupPosition.left,
+          zIndex: 9999 // High z-index to ensure it's above everything
+        }}
+        className="profile-preview-portal"
+      >
+        <div className="relative">
+          <ProfilePreview 
+            bannerColor="bg-gradient-to-r from-purple-700 to-blue-500"
+            name={user?.username || "User"}
+            about="Click Edit Profile to customize your profile!"
+            user={user}
+            onClick={() => {
+              setShowProfilePreview(false)
+              navigate('/dashboard/profile')
+            }}
+          />
+        </div>
+      </div>,
+      document.body
+    );
+  };
+
+  // Add this useEffect after other useEffects
+  useEffect(() => {
+    // Close the profile preview when on the profile page
+    if (isProfilePage && showProfilePreview) {
+      setShowProfilePreview(false);
+    }
+  }, [isProfilePage]);
 
   return (
     <aside className={`dashboard-nav h-full flex flex-col ${sidebarBackground} backdrop-blur-md border-r border-white/10 shadow-xl`}>
@@ -81,8 +164,13 @@ export function DashboardNavigation({ theme = 'default' }) {
         </h1>
       </div>
       
-      {/* User Profile Section */}
-      <div className="px-6 py-8 border-b border-white/10">
+      {/* User Profile Section - Made clickable */}
+      <div 
+        ref={profileSectionRef}
+        className={`relative px-6 py-8 border-b border-white/10 cursor-pointer transition-all duration-200 
+          ${isProfilePage ? 'bg-white/5' : 'hover:bg-white/5'}`}
+        onClick={handleProfileClick}
+      >
         <div className="flex items-center gap-4">
           <div className="relative">
             <img
@@ -98,6 +186,9 @@ export function DashboardNavigation({ theme = 'default' }) {
           </div>
         </div>
       </div>
+
+      {/* Render the profile preview portal */}
+      <ProfilePreviewPortal />
 
       {/* Navigation Links */}
       <nav className="flex-1 px-4 py-6">
@@ -186,17 +277,6 @@ export function DashboardNavigation({ theme = 'default' }) {
           })}
         </ul>
       </nav>
-      
-      {/* Logout Button */}
-      <div className="px-4 pb-6">
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
-        >
-          <FiLogOut size={20} />
-          <span>Logout</span>
-        </button>
-      </div>
     </aside>
   )
 }

@@ -1,6 +1,9 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/profile/avatar";
+import { Button } from "@/components/ui/profile/button";
+import { UserIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface ProfilePreviewProps {
   bannerColor: string;
@@ -11,12 +14,19 @@ interface ProfilePreviewProps {
 }
 
 export function ProfilePreview({ bannerColor, name, about, user, onClick }: ProfilePreviewProps) {
+  const navigate = useNavigate();
+  
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent the click from bubbling up
+    navigate('/dashboard/profile');
+  };
+
   return (
-    <div className="w-full lg:w-1/2" onClick={onClick}>
+    <div className="w-full" onClick={onClick}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="sticky top-6 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#6B5BE6] to-[#8878f0] shadow-lg"
+        className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#6B5BE6] to-[#8878f0] shadow-lg"
       >
         <div className={`relative h-32 ${bannerColor}`}>
           <div className="absolute bottom-0 left-4 translate-y-1/2">
@@ -26,6 +36,18 @@ export function ProfilePreview({ bannerColor, name, about, user, onClick }: Prof
                 <AvatarFallback>{user?.username ? user.username.charAt(0).toUpperCase() : "P"}</AvatarFallback>
               </Avatar>
             </div>
+          </div>
+          
+          {/* Edit Profile Button */}
+          <div className="absolute top-4 right-4">
+            <Button 
+              size="sm" 
+              className="bg-white/20 hover:bg-white/30 text-white flex items-center gap-2"
+              onClick={handleEditClick}
+            >
+              <UserIcon size={16} />
+              Edit Profile
+            </Button>
           </div>
         </div>
         <div className="p-4 pt-12">
