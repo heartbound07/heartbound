@@ -61,7 +61,7 @@ const IconBadge = ({
     <Tooltip delayDuration={100}>
       <TooltipTrigger asChild>
         <div 
-          className="p-2.5 rounded-full bg-transparent hover:bg-white/5 cursor-pointer"
+          className="p-2.5 rounded-full bg-transparent hover:bg-white/5 cursor-pointer group"
           style={{
             willChange: "background-color, transform",
             transition: "background-color 150ms ease, transform 200ms ease",
@@ -77,16 +77,10 @@ const IconBadge = ({
           }}
         >
           <div 
-            className="text-zinc-400" 
+            className="text-zinc-400 group-hover:text-[#FF4655]" 
             style={{ 
               transition: "color 150ms ease",
               contain: "layout style"
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "#FF4655";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "";
             }}
           >
             {icon}
@@ -96,7 +90,6 @@ const IconBadge = ({
       <TooltipContent 
         sideOffset={5} 
         className="bg-zinc-900 border border-white/10"
-        // Add hardware acceleration
         style={{ transform: "translateZ(0)" }}
       >
         <div>
