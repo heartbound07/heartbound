@@ -151,8 +151,7 @@ export function DashboardPage() {
       )}
 
       <section
-        className="games-section flex flex-col items-center justify-center"
-        style={{ minHeight: "min(100vh - 150px, 600px)" }}
+        className="games-section"
       >
         <h2
           className="games-title animate-fadeSlideIn"
@@ -160,12 +159,11 @@ export function DashboardPage() {
         >
           Choose Your Game
         </h2>
-        <div className="games-grid w-full">
+        <div className="games-grid">
           {games.map((game) => (
             <div
               key={game.id}
               onClick={() => {
-                // Redirect to the dedicated Valorant page when the valorant card is clicked.
                 if (game.id === 'valorant') {
                   navigate('/dashboard/valorant');
                 }
