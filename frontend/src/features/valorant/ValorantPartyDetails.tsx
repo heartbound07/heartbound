@@ -308,7 +308,7 @@ export default function ValorantPartyDetails() {
                       <TooltipTrigger asChild>
                         <Button
                           className="bg-[#1F2731] hover:bg-[#2C3A47] text-white border border-white/10 hover:border-white/30
-                          shadow-md hover:shadow-lg transition-all duration-300 rounded-lg"
+                          shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
                           size="sm"
                           onClick={handleDeleteParty}
                         >
@@ -316,7 +316,7 @@ export default function ValorantPartyDetails() {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent sideOffset={8} className="bg-[#1F2731] border border-white/10 z-[100]">
-                        <p className="text-sm text-white">Delete this party permanently</p>
+                        <p className="text-sm text-white">Delete this party?</p>
                       </TooltipContent>
                     </Tooltip>
                   ) : (
@@ -324,7 +324,7 @@ export default function ValorantPartyDetails() {
                       <TooltipTrigger asChild>
                         <Button
                           className="bg-[#1F2731] hover:bg-[#2C3A47] text-white border border-white/10 hover:border-white/30
-                          shadow-md hover:shadow-lg transition-all duration-300 rounded-lg"
+                          shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
                           size="sm"
                           onClick={() => {
                             if (window.confirm("Are you sure you want to leave this party?")) {
@@ -343,7 +343,7 @@ export default function ValorantPartyDetails() {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent sideOffset={8} className="bg-[#1F2731] border border-white/10 z-[100]">
-                        <p className="text-sm text-white">Leave this party</p>
+                        <p className="text-sm text-white">Leave this party?</p>
                       </TooltipContent>
                     </Tooltip>
                   )}
