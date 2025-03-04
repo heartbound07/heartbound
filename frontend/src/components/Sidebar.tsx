@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "@/contexts/auth"
 import "@/assets/sidebar.css"
+import "@/assets/styles/fonts.css"
 import { MdDashboard } from "react-icons/md"
 import { FaUserCircle } from "react-icons/fa"
 import { IoSettingsSharp } from "react-icons/io5"
@@ -39,6 +40,15 @@ export function DashboardNavigation({ theme = 'default' }) {
 
   return (
     <aside className={`dashboard-nav h-full flex flex-col ${sidebarBackground} backdrop-blur-md border-r border-white/10 shadow-xl`}>
+      {/* Brand Header */}
+      <div className="px-6 py-5 border-b border-white/10">
+        <h1 
+          className="text-center text-white text-xl font-bold"
+          style={{ fontFamily: "Grandstander, cursive" }}
+        >
+          heartbound
+        </h1>
+      </div>
       {/* User Profile Section */}
       <div className="px-6 py-8 border-b border-white/10">
         <div className="flex items-center gap-4">
@@ -87,17 +97,6 @@ export function DashboardNavigation({ theme = 'default' }) {
           })}
         </ul>
       </nav>
-
-      {/* Footer with Logout */}
-      <div className="p-4 mt-auto border-t border-white/10">
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300 hover:text-red-200 transition-all duration-200 text-sm font-medium"
-        >
-          <FiLogOut size={18} />
-          <span>Logout</span>
-        </button>
-      </div>
     </aside>
   )
 }

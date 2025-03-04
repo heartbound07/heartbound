@@ -13,13 +13,15 @@ import '@/assets/animations.css';
 export function DashboardLayout() {
   const location = useLocation();
   
-  // Check if we're on the main dashboard page
-  const isMainDashboard = location.pathname === '/dashboard' || location.pathname === '/dashboard/';
+  // Check if we're on any dashboard page except valorant
+  // This will match dashboard, profile, settings, etc.
+  const isDashboardSection = location.pathname.startsWith('/dashboard') && 
+                          !location.pathname.includes('/valorant');
   
   return (
     <ProtectedRoute>
       <div className="dashboard-container">
-        <DashboardNavigation theme={isMainDashboard ? 'dashboard' : 'default'} />
+        <DashboardNavigation theme={isDashboardSection ? 'dashboard' : 'default'} />
         <main className="dashboard-content">
           <Outlet />
         </main>
