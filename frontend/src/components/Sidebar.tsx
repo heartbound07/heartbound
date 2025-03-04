@@ -49,9 +49,7 @@ export function DashboardNavigation({ theme = 'default' }) {
       label: "Discover", 
       icon: <MdDashboard size={20} />,
       hasSubmenu: true
-    },
-    { path: "/dashboard/settings", label: "Settings", icon: <IoSettingsSharp size={20} /> },
-    // Profile tab removed as it's now integrated with the user profile section
+    }
   ]
   
   // Update popup position whenever profile section or visibility changes
@@ -98,6 +96,9 @@ export function DashboardNavigation({ theme = 'default' }) {
 
   // Check if we're on the profile page
   const isProfilePage = location.pathname === '/dashboard/profile'
+  
+  // Check if we're on the settings page
+  const isSettingsPage = location.pathname === '/dashboard/settings'
 
   const handleProfileClick = () => {
     // Don't show the profile preview if we're already on the profile page
@@ -278,6 +279,28 @@ export function DashboardNavigation({ theme = 'default' }) {
           })}
         </ul>
       </nav>
+
+      {/* Settings Footer */}
+      <div className="mt-auto px-4 pb-6 border-t border-white/10 pt-4">
+        <button
+          onClick={() => navigate('/dashboard/settings')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
+            ${
+              isSettingsPage
+                ? "bg-primary/20 text-white shadow-md"
+                : "text-slate-300 hover:bg-white/5 hover:text-white"
+            }`}
+          aria-current={isSettingsPage ? "page" : undefined}
+        >
+          <span
+            className={`transition-transform duration-200 ${isSettingsPage ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
+          >
+            <IoSettingsSharp size={20} />
+          </span>
+          <span>Settings</span>
+          {isSettingsPage && <div className="ml-auto w-1.5 h-5 bg-primary rounded-full"></div>}
+        </button>
+      </div>
     </aside>
   )
 }
