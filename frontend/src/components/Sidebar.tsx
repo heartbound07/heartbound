@@ -242,8 +242,8 @@ export function DashboardNavigation({ theme = 'default' }) {
                         className="ml-auto p-2 -mr-2 rounded-md hover:bg-white/10 cursor-pointer"
                       >
                         {gamesExpanded ? 
-                          <ChevronDown size={16} className="text-slate-400" /> : 
-                          <ChevronRight size={16} className="text-slate-400" />
+                          <ChevronDown size={16} className="text-slate-400 animate-rotate-down" /> : 
+                          <ChevronRight size={16} className="text-slate-400 animate-rotate-up" />
                         }
                       </div>
                     )}
@@ -251,34 +251,36 @@ export function DashboardNavigation({ theme = 'default' }) {
                     {isActive && !item.hasSubmenu && <div className="ml-auto w-1.5 h-5 bg-primary rounded-full"></div>}
                   </button>
                   
-                  {/* Games submenu */}
-                  {item.hasSubmenu && gamesExpanded && !isMainDashboard && (
-                    <ul className="mt-1 pl-8 space-y-1">
-                      {gameItems.map((game) => {
-                        const isGameActive = location.pathname.includes(game.path)
-                        return (
-                          <li key={game.path}>
-                            <button
-                              onClick={() => navigate(game.path)}
-                              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                                ${
-                                  isGameActive
-                                    ? "bg-primary/10 text-white"
-                                    : "text-slate-300 hover:bg-white/5 hover:text-white"
-                                }`}
-                            >
-                              <img 
-                                src={game.logo} 
-                                alt={`${game.label} logo`} 
-                                className="w-5 h-5 object-contain"
-                              />
-                              <span>{game.label}</span>
-                              {isGameActive && <div className="ml-auto w-1 h-4 bg-primary rounded-full"></div>}
-                            </button>
-                          </li>
-                        )
-                      })}
-                    </ul>
+                  {/* Games submenu - now with animation */}
+                  {item.hasSubmenu && !isMainDashboard && (
+                    <div className={gamesExpanded ? "animate-slideDown" : "animate-slideUp"}>
+                      <ul className="mt-1 pl-8 space-y-1">
+                        {gameItems.map((game) => {
+                          const isGameActive = location.pathname.includes(game.path)
+                          return (
+                            <li key={game.path}>
+                              <button
+                                onClick={() => navigate(game.path)}
+                                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                                  ${
+                                    isGameActive
+                                      ? "bg-primary/10 text-white"
+                                      : "text-slate-300 hover:bg-white/5 hover:text-white"
+                                  }`}
+                              >
+                                <img 
+                                  src={game.logo} 
+                                  alt={`${game.label} logo`} 
+                                  className="w-5 h-5 object-contain"
+                                />
+                                <span>{game.label}</span>
+                                {isGameActive && <div className="ml-auto w-1 h-4 bg-primary rounded-full"></div>}
+                              </button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
                   )}
                 </div>
               </li>
