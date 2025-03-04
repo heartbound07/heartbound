@@ -30,9 +30,8 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
   onClick,
   currentUserId,
   participantId,
-  isNewJoin = false
+  isNewJoin = false,
 }) => {
-  // Determine if this slot represents the current user
   const isCurrentUser = currentUserId && participantId && currentUserId === participantId;
   
   // Updated gradient colors with premium red for leader
@@ -42,7 +41,7 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
       ? "" 
       : isCurrentUser 
         ? "from-amber-600 via-amber-500 to-amber-700"
-        : "from-zinc-700 via-zinc-600 to-zinc-800";
+        : "from-[#1F2731] via-[#2C3A47] to-[#1F2731]";
 
   // Updated border colors to match new gradients
   const borderColor = isLeader
@@ -51,7 +50,7 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
       ? "border-[#FF4655]/20"
       : isCurrentUser
         ? "border-amber-500/50"
-        : "border-zinc-500/50";
+        : "border-[#1F2731]/50";
         
   // Animation classes
   const animationClasses = isNewJoin ? "animate-partyJoin" : "";
@@ -71,9 +70,9 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
           
           <div className={`relative w-full aspect-square rounded-full ${highlightClasses} ${
             isEmpty 
-              ? `border-2 border-[#FF4655]/20 p-1 bg-zinc-800/50 transition-all duration-300 
-                hover:border-[#FF4655]/40 hover:bg-zinc-800/70 group-hover:scale-105` 
-              : `border-2 ${borderColor} p-1 bg-zinc-900 group-hover:scale-105 transition-transform duration-300`
+              ? `border-2 border-[#FF4655]/20 p-1 bg-[#1F2731]/50 transition-all duration-300 
+                hover:border-[#FF4655]/40 hover:bg-[#1F2731]/70 group-hover:scale-105` 
+              : `border-2 ${borderColor} p-1 bg-[#0F1923] group-hover:scale-105 transition-transform duration-300`
           }`}>
             <div className="w-full h-full rounded-full overflow-hidden">
               {!isEmpty ? (
@@ -98,7 +97,7 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
             )}
             
             {!isEmpty && (
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-zinc-900/90 px-3 py-1 
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#1F2731]/90 px-3 py-1 
                 rounded-full text-sm font-medium shadow-lg border border-white/10 truncate max-w-full"
                 style={{ minWidth: '80%' }}>
                 <span className="truncate block text-center">{username}</span>
@@ -107,7 +106,7 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
           </div>
         </div>
       </TooltipTrigger>
-      <TooltipContent className="bg-zinc-900 border border-white/10 shadow-xl px-3 py-2">
+      <TooltipContent className="bg-[#1F2731] border border-white/10 shadow-xl px-3 py-2 z-[100]">
         <div className="flex flex-col items-center">
           {isLeader && (
             <Badge variant="valorant" size="sm" className="mb-1 bg-gradient-to-r from-[#FF4655] to-[#FF8F97] text-white font-bold">
@@ -179,7 +178,7 @@ export function PlayerSlotsContainer({
   const isFull = participants.length === maxPlayers;
 
   return (
-    <div className={`relative overflow-hidden rounded-xl bg-zinc-900/40 p-5 backdrop-blur-sm border border-white/5 shadow-xl ${className || ""}`}>
+    <div className={`relative overflow-hidden rounded-xl bg-[#1F2731]/40 p-5 backdrop-blur-sm border border-white/5 shadow-xl ${className || ""}`}>
       <div className="relative">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8">
           <div className="flex items-center gap-2 mb-3 sm:mb-0">
@@ -188,7 +187,7 @@ export function PlayerSlotsContainer({
           {/* Refined Player Count Badge - All text red when full */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className={`relative overflow-hidden px-3 py-1.5 rounded-lg bg-gradient-to-br from-zinc-800/90 to-zinc-900/90 border ${isFull ? 'border-[#FF4655]/50' : 'border-zinc-700/30'} shadow-lg group transition-all duration-300 hover:shadow-xl`}>
+              <div className={`relative overflow-hidden px-3 py-1.5 rounded-lg bg-gradient-to-br from-[#1F2731]/90 to-[#0F1923]/90 border ${isFull ? 'border-[#FF4655]/50' : 'border-[#8B97A4]/30'} shadow-lg group transition-all duration-300 hover:shadow-xl`}>
                 {/* Animated background for full parties */}
                 {isFull && (
                   <div className="absolute inset-0 bg-gradient-to-r from-[#FF4655]/10 to-transparent animate-pulse-slow"></div>
@@ -196,11 +195,11 @@ export function PlayerSlotsContainer({
                 
                 <div className="relative flex items-center gap-2">
                   <div className="flex items-center">
-                    <UserCheck className={`h-3.5 w-3.5 mr-1.5 ${isFull ? 'text-[#FF4655]' : 'text-zinc-400'}`} />
+                    <UserCheck className={`h-3.5 w-3.5 mr-1.5 ${isFull ? 'text-[#FF4655]' : 'text-[#8B97A4]'}`} />
                     <span className={`text-base font-bold ${isFull ? 'text-[#FF4655]' : 'text-white'}`}>
                       {participants.length}
                     </span>
-                    <span className={`mx-1 ${isFull ? 'text-[#FF4655]' : 'text-zinc-500'}`}>/</span>
+                    <span className={`mx-1 ${isFull ? 'text-[#FF4655]' : 'text-[#8B97A4]'}`}>/</span>
                     <span className={`text-base font-medium ${isFull ? 'text-[#FF4655]' : 'text-white'}`}>{maxPlayers || "?"}</span>
                   </div>
                   
@@ -208,14 +207,14 @@ export function PlayerSlotsContainer({
                   <div className={`hidden sm:block px-1.5 py-0.5 text-xs rounded-full font-medium ${
                     isFull 
                       ? 'bg-[#FF4655]/20 text-[#FF4655]' 
-                      : 'bg-zinc-700/30 text-zinc-300'
+                      : 'bg-[#1F2731]/70 text-[#8B97A4]'
                   }`}>
                     {isFull ? 'FULL' : 'OPEN'}
                   </div>
                 </div>
               </div>
             </TooltipTrigger>
-            <TooltipContent className="bg-zinc-900 border border-white/10">
+            <TooltipContent className="bg-[#1F2731] border border-white/10 z-[100]">
               <p className="text-sm">{isFull ? 'Party is full' : `${emptySlotsCount} slot${emptySlotsCount !== 1 ? 's' : ''} available`}</p>
             </TooltipContent>
           </Tooltip>
@@ -271,7 +270,7 @@ export function PlayerSlotsContainer({
         
         {/* Optional helper text for empty slots */}
         {emptySlotsCount > 0 && (
-          <div className="mt-6 text-center text-sm text-zinc-400 italic">
+          <div className="mt-6 text-center text-sm text-[#8B97A4] italic">
             Click on an empty slot to invite more players to your party
           </div>
         )}

@@ -24,13 +24,13 @@ const DetailBadge = ({
   value: string;
 }) => {
   return (
-    <div className="bg-zinc-800/70 rounded-lg px-3 py-2 flex items-center gap-2.5 transition-all duration-300 
-      hover:bg-zinc-700/50 group h-12 w-full shadow-sm hover:shadow-md">
-      <div className="text-zinc-400 group-hover:text-[#FF4655] transition-colors flex-shrink-0">
+    <div className="bg-[#1F2731] rounded-lg px-3 py-2 flex items-center gap-2.5 transition-all duration-300 
+      hover:bg-[#2C3A47] group h-12 w-full shadow-sm hover:shadow-md">
+      <div className="text-[#8B97A4] group-hover:text-[#FF4655] transition-colors flex-shrink-0">
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-xs text-zinc-400 truncate">{label}</div>
+        <div className="text-xs text-[#8B97A4] truncate">{label}</div>
         <div className="text-sm font-medium text-white truncate">{value}</div>
       </div>
     </div>
@@ -67,7 +67,7 @@ const IconBadge = ({
           }}
         >
           <div 
-            className="text-zinc-400 group-hover:text-[#FF4655]" 
+            className="text-[#8B97A4] group-hover:text-[#FF4655]" 
             style={{ 
               transition: "color 150ms ease",
               contain: "layout style"
@@ -79,12 +79,12 @@ const IconBadge = ({
       </TooltipTrigger>
       <TooltipContent 
         sideOffset={5} 
-        className="bg-zinc-900 border border-white/10 z-[100]"
+        className="bg-[#1F2731] border border-white/10 z-[100]"
         style={{ transform: "translateZ(0)" }}
       >
         <div>
           <div className="font-medium">{label}</div>
-          <div className="text-zinc-300">{value}</div>
+          <div className="text-[#8B97A4]">{value}</div>
         </div>
       </TooltipContent>
     </Tooltip>
@@ -260,12 +260,17 @@ export default function ValorantPartyDetails() {
   
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-br from-[#0F1923] to-[#1A242F] text-white font-sans flex flex-col p-6">
-        <div className="max-w-7xl mx-auto w-full space-y-8">
+      <div className="min-h-screen bg-[#0F1923] text-white font-sans flex flex-col p-6">
+        <div className="fixed inset-0 bg-[#0F1923] z-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#FF4655]/10 to-transparent opacity-50"></div>
+          <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-[#1F2731] to-transparent opacity-30"></div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto w-full space-y-8 relative z-10">
           {/* Combined Party Details and Game Settings Container */}
-          <div className="bg-gradient-to-br from-zinc-900/90 to-zinc-900/60 backdrop-blur-md rounded-xl overflow-hidden border border-white/5 shadow-2xl">
+          <div className="bg-[#1F2731]/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl">
             {/* Party Header Section */}
-            <div className="p-6 border-b border-white/5">
+            <div className="p-6 border-b border-white/10">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-3 mb-2">
@@ -286,7 +291,7 @@ export default function ValorantPartyDetails() {
                       
                       {/* Only show countdown timer when party is not full */}
                       {party.expiresAt && !isPartyFull && (
-                        <div className="py-1 px-3 rounded-full bg-zinc-800/80 text-xs font-semibold border border-white/10">
+                        <div className="py-1 px-3 rounded-full bg-[#1F2731] text-xs font-semibold border border-white/10">
                           <CountdownTimer 
                             expiresAt={party.expiresAt} 
                             onExpire={handlePartyExpire}
@@ -302,15 +307,15 @@ export default function ValorantPartyDetails() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          className="bg-zinc-800/70 hover:bg-zinc-700/90 text-white border border-white/10 hover:border-white/30
+                          className="bg-[#1F2731] hover:bg-[#2C3A47] text-white border border-white/10 hover:border-white/30
                           shadow-md hover:shadow-lg transition-all duration-300 rounded-lg"
                           size="sm"
                           onClick={handleDeleteParty}
                         >
-                          <Trash2 className="h-4 w-4 text-zinc-400 group-hover:text-white transition-colors" />
+                          <Trash2 className="h-4 w-4 text-[#8B97A4] group-hover:text-white transition-colors" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent sideOffset={8} className="bg-zinc-900 border border-white/10 z-[100]">
+                      <TooltipContent sideOffset={8} className="bg-[#1F2731] border border-white/10 z-[100]">
                         <p className="text-sm text-white">Delete this party permanently</p>
                       </TooltipContent>
                     </Tooltip>
@@ -318,7 +323,7 @@ export default function ValorantPartyDetails() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          className="bg-zinc-800/70 hover:bg-zinc-700/90 text-white border border-white/10 hover:border-white/30
+                          className="bg-[#1F2731] hover:bg-[#2C3A47] text-white border border-white/10 hover:border-white/30
                           shadow-md hover:shadow-lg transition-all duration-300 rounded-lg"
                           size="sm"
                           onClick={() => {
@@ -334,10 +339,10 @@ export default function ValorantPartyDetails() {
                             }
                           }}
                         >
-                          <LogOut className="h-4 w-4 text-zinc-400 group-hover:text-white transition-colors" />
+                          <LogOut className="h-4 w-4 text-[#8B97A4] group-hover:text-white transition-colors" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent sideOffset={8} className="bg-zinc-900 border border-white/10 z-[100]">
+                      <TooltipContent sideOffset={8} className="bg-[#1F2731] border border-white/10 z-[100]">
                         <p className="text-sm text-white">Leave this party</p>
                       </TooltipContent>
                     </Tooltip>
@@ -345,14 +350,14 @@ export default function ValorantPartyDetails() {
                 </div>
               </div>
               {party.description && (
-                <p className="text-zinc-400 mt-3 sm:mt-4 max-w-3xl">
+                <p className="text-[#8B97A4] mt-3 sm:mt-4 max-w-3xl">
                   {party.description}
                 </p>
               )}
             </div>
             
             {/* Combined Game Settings and Requirements */}
-            <div className="p-6 bg-zinc-900/40">
+            <div className="p-6 bg-[#1F2731]/80">
               {/* Party Requirements Icon Badges (now first) */}
               <div className="mb-4">
                 <div 
@@ -418,8 +423,7 @@ export default function ValorantPartyDetails() {
             userProfiles={userProfiles}
             currentUser={user ? { id: user.id, avatar: user.avatar } : undefined}
             placeholderAvatar={placeholderAvatar}
-            className="bg-gradient-to-br from-zinc-900/80 to-zinc-900/40 backdrop-blur-md
-              border border-white/5 shadow-xl"
+            className="bg-[#1F2731]/60 backdrop-blur-sm border border-white/5 shadow-xl"
             onInviteClick={() => console.log("Invite player clicked")}
           />
         </div>
