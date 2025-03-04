@@ -152,7 +152,7 @@ export function DashboardPage() {
 
       <section
         className="games-section flex flex-col items-center justify-center"
-        style={{ minHeight: "calc(100vh - 425px)" }}
+        style={{ minHeight: "min(100vh - 150px, 600px)" }}
       >
         <h2
           className="games-title animate-fadeSlideIn"

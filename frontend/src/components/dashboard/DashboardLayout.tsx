@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { DashboardNavigation } from './DashboardNavigation';
+import { DashboardNavigation } from '../Sidebar';
 import '@/assets/dashboard.css';
 import '@/assets/animations.css';
 
@@ -15,7 +15,7 @@ export function DashboardLayout() {
     <ProtectedRoute>
       <div className="dashboard-container">
         <DashboardNavigation />
-        <main className="dashboard-content overflow-y-auto">
+        <main className="dashboard-content">
           <Outlet />
         </main>
       </div>

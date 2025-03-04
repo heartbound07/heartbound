@@ -183,10 +183,6 @@ export function PlayerSlotsContainer({
       <div className="relative">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8">
           <div className="flex items-center gap-2 mb-3 sm:mb-0">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF4655] to-[#FF8F97] flex items-center justify-center shadow-lg">
-              <Users className="h-4 w-4 text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-white">Party Members</h2>
           </div>
           
           {/* Refined Player Count Badge - All text red when full */}

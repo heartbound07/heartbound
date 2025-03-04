@@ -47,17 +47,76 @@ const DetailBadge = ({
   );
 };
 
-// Party details section component for better organization
+// Create a new IconBadge component for simplified icon-only display with optimized animations
+const IconBadge = ({ 
+  icon, 
+  label, 
+  value 
+}: { 
+  icon: React.ReactNode; 
+  label: string; 
+  value: string;
+}) => {
+  return (
+    <Tooltip delayDuration={100}>
+      <TooltipTrigger asChild>
+        <div 
+          className="p-2.5 rounded-full bg-transparent hover:bg-white/5 cursor-pointer"
+          style={{
+            willChange: "background-color, transform",
+            transition: "background-color 150ms ease, transform 200ms ease",
+            transform: "translateZ(0)"
+          }}
+          onMouseEnter={(e) => {
+            const target = e.currentTarget;
+            target.style.transform = "translateZ(0) scale(1.05)";
+          }}
+          onMouseLeave={(e) => {
+            const target = e.currentTarget;
+            target.style.transform = "translateZ(0) scale(1)";
+          }}
+        >
+          <div 
+            className="text-zinc-400" 
+            style={{ 
+              transition: "color 150ms ease",
+              contain: "layout style"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "#FF4655";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "";
+            }}
+          >
+            {icon}
+          </div>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent 
+        sideOffset={5} 
+        className="bg-zinc-900 border border-white/10"
+        // Add hardware acceleration
+        style={{ transform: "translateZ(0)" }}
+      >
+        <div>
+          <div className="font-medium">{label}</div>
+          <div className="text-zinc-300">{value}</div>
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  );
+};
+
+// Party details section component with combined layout
 const PartyDetailsSection = ({ party }: { party: any }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* Game Settings Group */}
+    <div className="w-full">
+      {/* Combined Settings and Requirements Group */}
       <div className="relative overflow-hidden bg-gradient-to-br from-zinc-900/80 to-zinc-900/40 backdrop-blur-md rounded-xl p-5 border border-white/5 shadow-xl">
-        <h3 className="text-lg font-medium text-white/80 mb-4 flex items-center">
-          <GamepadIcon className="mr-2 h-5 w-5 text-[#FF4655]" />
-          Game Settings
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        
+        {/* Game Settings Detail Badges */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
           <DetailBadge 
             icon={<Trophy className="h-4 w-4" />} 
             label="Match Type" 
@@ -74,37 +133,35 @@ const PartyDetailsSection = ({ party }: { party: any }) => {
             value={formatDisplayText(party?.teamSize)} 
           />
         </div>
-      </div>
-
-      {/* Requirements Group */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-zinc-900/80 to-zinc-900/40 backdrop-blur-md rounded-xl p-5 border border-white/5 shadow-xl">
-        <h3 className="text-lg font-medium text-white/80 mb-4 flex items-center">
-          <Award className="mr-2 h-5 w-5 text-[#FF4655]" />
-          Requirements
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <DetailBadge 
-            icon={<Award className="h-4 w-4" />} 
+        
+        
+        {/* Requirements Icon Badges */}
+        <div 
+          className="flex flex-wrap items-center justify-center gap-5"
+          style={{ containIntrinsicSize: "0 80px", content: "layout" }}
+        >
+          <IconBadge 
+            icon={<Award className="h-5 w-5" />} 
             label="Rank" 
             value={formatDisplayText(party?.requirements?.rank)} 
           />
-          <DetailBadge 
-            icon={<Globe className="h-4 w-4" />} 
+          <IconBadge 
+            icon={<Globe className="h-5 w-5" />} 
             label="Region" 
             value={formatDisplayText(party?.requirements?.region)} 
           />
-          <DetailBadge 
-            icon={<Mic className="h-4 w-4" />} 
+          <IconBadge 
+            icon={<Mic className="h-5 w-5" />} 
             label="Voice Chat" 
             value={formatBooleanText(party?.requirements?.voiceChat)} 
           />
-          <DetailBadge 
-            icon={<Calendar className="h-4 w-4" />} 
+          <IconBadge 
+            icon={<Calendar className="h-5 w-5" />} 
             label="Age" 
             value={formatDisplayText(party?.ageRestriction)} 
           />
-          <DetailBadge 
-            icon={<Mic className="h-4 w-4" />} 
+          <IconBadge 
+            icon={<Mic className="h-5 w-5" />} 
             label="Voice Preference" 
             value={formatDisplayText(party?.voicePreference)} 
           />

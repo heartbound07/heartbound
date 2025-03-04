@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation';
+import { DashboardNavigation } from '@/components/Sidebar';
 import '@/assets/dashboard.css';
 import '@/assets/animations.css';
 import '@/assets/valorant.css';
