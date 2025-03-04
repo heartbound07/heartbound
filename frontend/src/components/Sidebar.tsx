@@ -86,7 +86,7 @@ export function DashboardNavigation({ theme = 'default' }) {
   // Set background color based on theme
   const sidebarBackground = theme === 'dashboard'
     ? "bg-gradient-to-b from-[#5b48e6]/90 to-[#7a67ed]/90" // Match dashboard gradient
-    : "bg-gradient-to-b from-slate-800/90 to-slate-900/90"
+    : "bg-gradient-to-b from-[#0F1923]/90 to-[#1F2731]/90" // Match Valorant colors
 
   // Determine if we're on the main dashboard page
   const isMainDashboard = location.pathname === '/dashboard' || location.pathname === '/dashboard/'
