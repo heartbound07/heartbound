@@ -146,6 +146,7 @@ export function ProfilePage() {
           name={name} 
           about={about} 
           user={user} 
+          showEditButton={false}
           onClick={() => {
             // For example, navigate to the user's detailed profile page.
           }}

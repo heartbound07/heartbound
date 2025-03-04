@@ -133,6 +133,7 @@ export function DashboardNavigation({ theme = 'default' }) {
             name={user?.username || "User"}
             about="Click Edit Profile to customize your profile!"
             user={user}
+            showEditButton={true}
             onClick={() => {
               setShowProfilePreview(false)
               navigate('/dashboard/profile')

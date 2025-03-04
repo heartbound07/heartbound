@@ -11,9 +11,17 @@ interface ProfilePreviewProps {
   about?: string;
   user?: { avatar?: string; username?: string } | null;
   onClick?: () => void;
+  showEditButton?: boolean;
 }
 
-export function ProfilePreview({ bannerColor, name, about, user, onClick }: ProfilePreviewProps) {
+export function ProfilePreview({ 
+  bannerColor, 
+  name, 
+  about, 
+  user, 
+  onClick,
+  showEditButton = true
+}: ProfilePreviewProps) {
   const navigate = useNavigate();
   
   const handleEditClick = (e: React.MouseEvent) => {
@@ -38,17 +46,18 @@ export function ProfilePreview({ bannerColor, name, about, user, onClick }: Prof
             </div>
           </div>
           
-          {/* Edit Profile Button */}
-          <div className="absolute top-4 right-4">
-            <Button 
-              size="sm" 
-              className="bg-white/20 hover:bg-white/30 text-white flex items-center gap-2"
-              onClick={handleEditClick}
-            >
-              <UserIcon size={16} />
-              Edit Profile
-            </Button>
-          </div>
+          {showEditButton && (
+            <div className="absolute top-4 right-4">
+              <Button 
+                size="sm" 
+                className="bg-white/20 hover:bg-white/30 text-white flex items-center gap-2"
+                onClick={handleEditClick}
+              >
+                <UserIcon size={16} />
+                Edit Profile
+              </Button>
+            </div>
+          )}
         </div>
         <div className="p-4 pt-12">
           <div className="mb-4 flex items-center gap-2">
