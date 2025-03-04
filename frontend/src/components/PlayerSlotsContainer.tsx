@@ -57,71 +57,52 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
   const highlightClasses = isNewJoin ? "animate-joinHighlight" : "";
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div 
-          className={`relative group ${!isEmpty ? "cursor-default" : "cursor-pointer"} ${animationClasses} max-w-[130px] mx-auto w-full`}
-          onClick={isEmpty ? onClick : undefined}
-        >
-          {!isEmpty && (
-            <div className={`absolute -inset-0.5 bg-gradient-to-r ${gradientColors} rounded-full 
-              opacity-70 group-hover:opacity-100 transition duration-300 animate-pulse-slow blur-sm`} />
-          )}
-          
-          <div className={`relative w-full aspect-square rounded-full ${highlightClasses} ${
-            isEmpty 
-              ? `border-2 border-[#FF4655]/20 p-2 bg-[#1F2731]/50 transition-all duration-300 
-                hover:border-[#FF4655]/40 hover:bg-[#1F2731]/70 group-hover:scale-105` 
-              : `border-3 ${borderColor} p-2 bg-[#0F1923] group-hover:scale-105 transition-transform duration-300`
-          }`}>
-            <div className="w-full h-full rounded-full overflow-hidden">
-              {!isEmpty ? (
-                <img
-                  src={avatarUrl}
-                  alt={`${isLeader ? "Party Leader" : "Participant"} Avatar`}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                />
-              ) : (
-                <div className="w-full h-full rounded-full flex items-center justify-center">
-                  <div className="text-[#FF4655]/40 group-hover:text-[#FF4655]/80 transition-colors duration-300">
-                    <Plus className="h-7 w-7" />
-                  </div>
-                </div>
-              )}
+    <div 
+      className={`relative group ${!isEmpty ? "cursor-default" : "cursor-pointer"} ${animationClasses} max-w-[130px] mx-auto w-full`}
+      onClick={isEmpty ? onClick : undefined}
+    >
+      {!isEmpty && (
+        <div className={`absolute -inset-0.5 bg-gradient-to-r ${gradientColors} rounded-full 
+          opacity-70 group-hover:opacity-100 transition duration-300 animate-pulse-slow blur-sm`} />
+      )}
+      
+      <div className={`relative w-full aspect-square rounded-full ${highlightClasses} ${
+        isEmpty 
+          ? `border-2 border-[#FF4655]/20 p-2 bg-[#1F2731]/50 transition-all duration-300 
+            hover:border-[#FF4655]/40 hover:bg-[#1F2731]/70 group-hover:scale-105` 
+          : `border-3 ${borderColor} p-2 bg-[#0F1923] group-hover:scale-105 transition-transform duration-300`
+      }`}>
+        <div className="w-full h-full rounded-full overflow-hidden">
+          {!isEmpty ? (
+            <img
+              src={avatarUrl}
+              alt={`${isLeader ? "Party Leader" : "Participant"} Avatar`}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+            />
+          ) : (
+            <div className="w-full h-full rounded-full flex items-center justify-center">
+              <div className="text-[#FF4655]/40 group-hover:text-[#FF4655]/80 transition-colors duration-300">
+                <Plus className="h-7 w-7" />
+              </div>
             </div>
-            
-            {isLeader && (
-              <div className="absolute -top-2 -right-2 bg-gradient-to-br from-red-700 to-red-900 rounded-full p-1 shadow-lg">
-                <Crown className="h-5 w-5 text-white" />
-              </div>
-            )}
-            
-            {!isEmpty && (
-              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-[#1F2731]/90 px-3 py-0.5 
-                rounded-full text-xs font-medium shadow-lg border border-white/10 truncate max-w-full"
-                style={{ minWidth: '85%' }}>
-                <span className="truncate block text-center">{username}</span>
-              </div>
-            )}
+          )}
+        </div>
+        
+        {isLeader && (
+          <div className="absolute -top-2 -right-2 bg-gradient-to-br from-red-700 to-red-900 rounded-full p-1 shadow-lg">
+            <Crown className="h-5 w-5 text-white" />
           </div>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent className="bg-[#1F2731] border border-white/10 shadow-xl px-3 py-2 z-[100]">
-        <div className="flex flex-col items-center">
-          {isLeader && (
-            <Badge variant="valorant" size="sm" className="mb-1 bg-gradient-to-r from-[#FF4655] to-[#FF8F97] text-white font-bold">
-              Party Leader
-            </Badge>
-          )}
-          {isCurrentUser && !isLeader && (
-            <Badge variant="valorant" size="sm" className="mb-1 bg-gradient-to-r from-[#FF4655] to-[#FF8F97] text-white font-bold">
-              You
-            </Badge>
-          )}
-          <span className="font-medium">{tooltipText || username}</span>
-        </div>
-      </TooltipContent>
-    </Tooltip>
+        )}
+        
+        {!isEmpty && (
+          <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-[#1F2731]/90 px-3 py-0.5 
+            rounded-full text-xs font-medium shadow-lg border border-white/10 truncate max-w-full"
+            style={{ minWidth: '85%' }}>
+            <span className="truncate block text-center">{username}</span>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
