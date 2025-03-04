@@ -241,10 +241,12 @@ export function DashboardNavigation({ theme = 'default' }) {
                         }}
                         className="ml-auto p-2 -mr-2 rounded-md hover:bg-white/10 cursor-pointer"
                       >
-                        {gamesExpanded ? 
-                          <ChevronDown size={16} className="text-slate-400 animate-rotate-down" /> : 
-                          <ChevronRight size={16} className="text-slate-400 animate-rotate-up" />
-                        }
+                        <ChevronRight 
+                          size={16} 
+                          className={`text-slate-400 transition-transform ${
+                            gamesExpanded ? "animate-rotate-down" : "animate-rotate-up"
+                          }`} 
+                        />
                       </div>
                     )}
                     
