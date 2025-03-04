@@ -176,19 +176,32 @@ export function PlayerSlotsContainer({
 
   // Calculate if party is full
   const isFull = participants.length === maxPlayers;
+  
+  // Calculate total slots (filled + empty) for better grid sizing
+  const totalSlots = 1 + joinedParticipants.length + emptySlotsCount; // 1 for leader
+  
+  // Determine optimal grid columns based on total slots
+  // This ensures better centering for small teams
+  const getGridCols = () => {
+    if (totalSlots <= 2) {
+      return "grid-cols-1 sm:grid-cols-2";
+    } else if (totalSlots <= 3) {
+      return "grid-cols-1 sm:grid-cols-3";
+    } else if (totalSlots <= 5) {
+      return "grid-cols-2 sm:grid-cols-3 md:grid-cols-5";
+    } else {
+      return "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5";
+    }
+  };
 
   return (
     <div className={`relative overflow-hidden rounded-xl bg-[#1F2731]/40 p-5 backdrop-blur-sm border border-white/5 shadow-xl ${className || ""}`}>
       <div className="relative">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 md:mb-6">
-          <div className="flex items-center gap-2 mb-3 sm:mb-0">
-          </div>
-          
-          {/* Refined Player Count Badge - All text red when full */}
+        {/* Player counter badge remains at the top-right */}
+        <div className="flex justify-end mb-6">
           <Tooltip>
             <TooltipTrigger asChild>
               <div className={`relative overflow-hidden px-3 py-1.5 rounded-lg bg-gradient-to-br from-[#1F2731]/90 to-[#0F1923]/90 border ${isFull ? 'border-[#FF4655]/50' : 'border-[#8B97A4]/30'} shadow-lg group transition-all duration-300 hover:shadow-xl`}>
-                {/* Animated background for full parties */}
                 {isFull && (
                   <div className="absolute inset-0 bg-gradient-to-r from-[#FF4655]/10 to-transparent animate-pulse-slow"></div>
                 )}
@@ -220,57 +233,60 @@ export function PlayerSlotsContainer({
           </Tooltip>
         </div>
         
-        {/* Enhanced grid with better responsiveness */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-5 md:gap-6 justify-center">
-          {/* Party Leader Slot */}
-          <PlayerSlot 
-            avatarUrl={leaderProfile.avatar}
-            username={leaderProfile.username}
-            tooltipText={`${leaderProfile.username} (Party Leader)`}
-            isLeader={true}
-            participantId={leaderId}
-            currentUserId={currentUser?.id}
-            isNewJoin={newJoins.includes(leaderId)}
-          />
+        {/* Wrapper div for centering the grid */}
+        <div className="flex justify-center">
+          {/* Dynamic grid with proper centering based on team size */}
+          <div className={`grid ${getGridCols()} gap-6 md:gap-8 w-fit mx-auto`}>
+            {/* Party Leader Slot */}
+            <PlayerSlot 
+              avatarUrl={leaderProfile.avatar}
+              username={leaderProfile.username}
+              tooltipText={`${leaderProfile.username} (Party Leader)`}
+              isLeader={true}
+              participantId={leaderId}
+              currentUserId={currentUser?.id}
+              isNewJoin={newJoins.includes(leaderId)}
+            />
 
-          {/* Render Joined Participants */}
-          {joinedParticipants.map((participantId, index) => {
-            const participantProfile = userProfiles[participantId] || {
-              id: participantId,
-              username: participantId === currentUser?.id ? "You" : "Player",
-              avatar: participantId === currentUser?.id ? (currentUser?.avatar || placeholderAvatar) : placeholderAvatar
-            };
-            
-            return (
-              <PlayerSlot
-                key={`participant-${participantId}-${index}`}
-                avatarUrl={participantProfile.avatar}
-                username={participantProfile.username}
-                tooltipText={participantProfile.username}
-                participantId={participantId}
-                currentUserId={currentUser?.id}
-                isNewJoin={newJoins.includes(participantId)}
-              />
-            );
-          })}
+            {/* Joined Participants */}
+            {joinedParticipants.map((participantId, index) => {
+              const participantProfile = userProfiles[participantId] || {
+                id: participantId,
+                username: participantId === currentUser?.id ? "You" : "Player",
+                avatar: participantId === currentUser?.id ? (currentUser?.avatar || placeholderAvatar) : placeholderAvatar
+              };
+              
+              return (
+                <PlayerSlot
+                  key={`participant-${participantId}-${index}`}
+                  avatarUrl={participantProfile.avatar}
+                  username={participantProfile.username}
+                  tooltipText={participantProfile.username}
+                  participantId={participantId}
+                  currentUserId={currentUser?.id}
+                  isNewJoin={newJoins.includes(participantId)}
+                />
+              );
+            })}
 
-          {/* Render Empty Slots */}
-          {emptySlotsCount > 0 &&
-            Array.from({ length: emptySlotsCount }).map((_, idx) => (
-              <PlayerSlot
-                key={`empty-${idx}`}
-                avatarUrl=""
-                username=""
-                tooltipText="Click to invite player"
-                isEmpty={true}
-                onClick={onInviteClick}
-              />
-            ))}
+            {/* Empty Slots */}
+            {emptySlotsCount > 0 &&
+              Array.from({ length: emptySlotsCount }).map((_, idx) => (
+                <PlayerSlot
+                  key={`empty-${idx}`}
+                  avatarUrl=""
+                  username=""
+                  tooltipText="Click to invite player"
+                  isEmpty={true}
+                  onClick={onInviteClick}
+                />
+              ))}
+          </div>
         </div>
         
-        {/* Optional helper text for empty slots */}
+        {/* Helper text */}
         {emptySlotsCount > 0 && (
-          <div className="mt-5 text-center text-xs text-[#8B97A4] italic">
+          <div className="mt-6 text-center text-xs text-[#8B97A4] italic">
             Click on an empty slot to invite more players to your party
           </div>
         )}
