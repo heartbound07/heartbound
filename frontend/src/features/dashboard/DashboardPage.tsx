@@ -48,11 +48,7 @@ export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [shouldSlideOut, setShouldSlideOut] = useState(false);
   
-  // Only show welcome header if it hasn't been seen this session.
-  const [showWelcome, setShowWelcome] = useState(() => !sessionStorage.getItem('hasSeenWelcome'));
-
   // Static array of games to be displayed
   const games: Game[] = [
     {
@@ -114,22 +110,6 @@ export function DashboardPage() {
     fetchStats();
   }, [tokens]);
 
-  // Trigger slide-out after 5 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShouldSlideOut(true);
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Handle animation end: if fade-out finished, remove welcome message from DOM
-  const handleWelcomeAnimationEnd = (event: React.AnimationEvent<HTMLHeadingElement>) => {
-    if (shouldSlideOut && event.animationName === 'fadeSlideOut') {
-      sessionStorage.setItem('hasSeenWelcome', 'true');
-      setShowWelcome(false);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="dashboard-loading text-white text-center mt-8">
@@ -140,19 +120,6 @@ export function DashboardPage() {
 
   return (
     <>
-      {showWelcome && (
-        <h1
-          onAnimationEnd={handleWelcomeAnimationEnd}
-          className={`dashboard-greeting ${shouldSlideOut ? "animate-fadeSlideOut" : "animate-welcomeEnhanced"} font-grandstander text-center text-5xl md:text-6xl font-bold text-white mb-8`}
-          style={{ 
-            textShadow: "0px 2px 8px rgba(0, 0, 0, 0.3)", 
-            letterSpacing: "0.02em" 
-          }}
-        >
-          Welcome back, {user?.username}!
-        </h1>
-      )}
-
       <section
         className="games-section"
       >
