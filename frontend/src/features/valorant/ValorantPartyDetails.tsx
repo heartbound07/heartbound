@@ -266,7 +266,7 @@ export default function ValorantPartyDetails() {
           <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-[#1F2731] to-transparent opacity-30"></div>
         </div>
         
-        <div className="max-w-7xl mx-auto w-full space-y-8 relative z-10">
+        <div className="max-w-5xl mx-auto w-full space-y-8 relative z-10">
           {/* Combined Party Details and Game Settings Container */}
           <div className="bg-[#1F2731]/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
             {/* Party Header Section */}

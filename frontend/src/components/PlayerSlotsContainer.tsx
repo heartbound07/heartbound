@@ -60,7 +60,7 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
     <Tooltip>
       <TooltipTrigger asChild>
         <div 
-          className={`relative group ${!isEmpty ? "cursor-default" : "cursor-pointer"} ${animationClasses}`}
+          className={`relative group ${!isEmpty ? "cursor-default" : "cursor-pointer"} ${animationClasses} max-w-[100px] mx-auto w-full`}
           onClick={isEmpty ? onClick : undefined}
         >
           {!isEmpty && (
@@ -70,9 +70,9 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
           
           <div className={`relative w-full aspect-square rounded-full ${highlightClasses} ${
             isEmpty 
-              ? `border-2 border-[#FF4655]/20 p-1 bg-[#1F2731]/50 transition-all duration-300 
+              ? `border-2 border-[#FF4655]/20 p-1.5 bg-[#1F2731]/50 transition-all duration-300 
                 hover:border-[#FF4655]/40 hover:bg-[#1F2731]/70 group-hover:scale-105` 
-              : `border-2 ${borderColor} p-1 bg-[#0F1923] group-hover:scale-105 transition-transform duration-300`
+              : `border-2 ${borderColor} p-1.5 bg-[#0F1923] group-hover:scale-105 transition-transform duration-300`
           }`}>
             <div className="w-full h-full rounded-full overflow-hidden">
               {!isEmpty ? (
@@ -84,22 +84,22 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
               ) : (
                 <div className="w-full h-full rounded-full flex items-center justify-center">
                   <div className="text-[#FF4655]/40 group-hover:text-[#FF4655]/80 transition-colors duration-300">
-                    <Plus className="h-7 w-7" />
+                    <Plus className="h-6 w-6" />
                   </div>
                 </div>
               )}
             </div>
             
             {isLeader && (
-              <div className="absolute -top-1 -right-1 bg-gradient-to-br from-red-700 to-red-900 rounded-full p-0.5 shadow-lg">
+              <div className="absolute -top-1.5 -right-1.5 bg-gradient-to-br from-red-700 to-red-900 rounded-full p-0.5 shadow-lg">
                 <Crown className="h-4 w-4 text-white" />
               </div>
             )}
             
             {!isEmpty && (
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#1F2731]/90 px-3 py-1 
-                rounded-full text-sm font-medium shadow-lg border border-white/10 truncate max-w-full"
-                style={{ minWidth: '80%' }}>
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#1F2731]/90 px-2.5 py-0.5 
+                rounded-full text-xs font-medium shadow-lg border border-white/10 truncate max-w-full"
+                style={{ minWidth: '85%' }}>
                 <span className="truncate block text-center">{username}</span>
               </div>
             )}
@@ -180,7 +180,7 @@ export function PlayerSlotsContainer({
   return (
     <div className={`relative overflow-hidden rounded-xl bg-[#1F2731]/40 p-5 backdrop-blur-sm border border-white/5 shadow-xl ${className || ""}`}>
       <div className="relative">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 md:mb-6">
           <div className="flex items-center gap-2 mb-3 sm:mb-0">
           </div>
           
@@ -221,7 +221,7 @@ export function PlayerSlotsContainer({
         </div>
         
         {/* Enhanced grid with better responsiveness */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-5 md:gap-6 justify-center">
           {/* Party Leader Slot */}
           <PlayerSlot 
             avatarUrl={leaderProfile.avatar}
@@ -270,7 +270,7 @@ export function PlayerSlotsContainer({
         
         {/* Optional helper text for empty slots */}
         {emptySlotsCount > 0 && (
-          <div className="mt-6 text-center text-sm text-[#8B97A4] italic">
+          <div className="mt-5 text-center text-xs text-[#8B97A4] italic">
             Click on an empty slot to invite more players to your party
           </div>
         )}
