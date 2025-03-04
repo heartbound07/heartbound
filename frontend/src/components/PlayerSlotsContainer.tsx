@@ -60,7 +60,7 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
     <Tooltip>
       <TooltipTrigger asChild>
         <div 
-          className={`relative group ${!isEmpty ? "cursor-default" : "cursor-pointer"} ${animationClasses} max-w-[100px] mx-auto w-full`}
+          className={`relative group ${!isEmpty ? "cursor-default" : "cursor-pointer"} ${animationClasses} max-w-[130px] mx-auto w-full`}
           onClick={isEmpty ? onClick : undefined}
         >
           {!isEmpty && (
@@ -70,9 +70,9 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
           
           <div className={`relative w-full aspect-square rounded-full ${highlightClasses} ${
             isEmpty 
-              ? `border-2 border-[#FF4655]/20 p-1.5 bg-[#1F2731]/50 transition-all duration-300 
+              ? `border-2 border-[#FF4655]/20 p-2 bg-[#1F2731]/50 transition-all duration-300 
                 hover:border-[#FF4655]/40 hover:bg-[#1F2731]/70 group-hover:scale-105` 
-              : `border-2 ${borderColor} p-1.5 bg-[#0F1923] group-hover:scale-105 transition-transform duration-300`
+              : `border-3 ${borderColor} p-2 bg-[#0F1923] group-hover:scale-105 transition-transform duration-300`
           }`}>
             <div className="w-full h-full rounded-full overflow-hidden">
               {!isEmpty ? (
@@ -84,20 +84,20 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
               ) : (
                 <div className="w-full h-full rounded-full flex items-center justify-center">
                   <div className="text-[#FF4655]/40 group-hover:text-[#FF4655]/80 transition-colors duration-300">
-                    <Plus className="h-6 w-6" />
+                    <Plus className="h-7 w-7" />
                   </div>
                 </div>
               )}
             </div>
             
             {isLeader && (
-              <div className="absolute -top-1.5 -right-1.5 bg-gradient-to-br from-red-700 to-red-900 rounded-full p-0.5 shadow-lg">
-                <Crown className="h-4 w-4 text-white" />
+              <div className="absolute -top-2 -right-2 bg-gradient-to-br from-red-700 to-red-900 rounded-full p-1 shadow-lg">
+                <Crown className="h-5 w-5 text-white" />
               </div>
             )}
             
             {!isEmpty && (
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#1F2731]/90 px-2.5 py-0.5 
+              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-[#1F2731]/90 px-3 py-0.5 
                 rounded-full text-xs font-medium shadow-lg border border-white/10 truncate max-w-full"
                 style={{ minWidth: '85%' }}>
                 <span className="truncate block text-center">{username}</span>
