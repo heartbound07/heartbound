@@ -24,26 +24,16 @@ const DetailBadge = ({
   value: string;
 }) => {
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div className="bg-zinc-800/70 rounded-lg px-3 py-2 flex items-center gap-2.5 transition-all duration-300 
-          hover:bg-zinc-700/50 group h-12 w-full shadow-sm hover:shadow-md">
-          <div className="text-zinc-400 group-hover:text-[#FF4655] transition-colors flex-shrink-0">
-            {icon}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-xs text-zinc-400 truncate">{label}</div>
-            <div className="text-sm font-medium text-white truncate">{value}</div>
-          </div>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent className="bg-zinc-900 border border-white/10">
-        <div>
-          <div className="font-medium">{label}</div>
-          <div className="text-zinc-300">{value}</div>
-        </div>
-      </TooltipContent>
-    </Tooltip>
+    <div className="bg-zinc-800/70 rounded-lg px-3 py-2 flex items-center gap-2.5 transition-all duration-300 
+      hover:bg-zinc-700/50 group h-12 w-full shadow-sm hover:shadow-md">
+      <div className="text-zinc-400 group-hover:text-[#FF4655] transition-colors flex-shrink-0">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-xs text-zinc-400 truncate">{label}</div>
+        <div className="text-sm font-medium text-white truncate">{value}</div>
+      </div>
+    </div>
   );
 };
 
