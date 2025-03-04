@@ -79,7 +79,7 @@ const IconBadge = ({
       </TooltipTrigger>
       <TooltipContent 
         sideOffset={5} 
-        className="bg-zinc-900 border border-white/10"
+        className="bg-zinc-900 border border-white/10 z-[100]"
         style={{ transform: "translateZ(0)" }}
       >
         <div>
@@ -307,13 +307,10 @@ export default function ValorantPartyDetails() {
                           size="sm"
                           onClick={handleDeleteParty}
                         >
-                          <span className="flex items-center gap-2">
-                            <Trash2 className="h-4 w-4 text-zinc-400 group-hover:text-white transition-colors" />
-                            <span className="font-medium">Delete Party</span>
-                          </span>
+                          <Trash2 className="h-4 w-4 text-zinc-400 group-hover:text-white transition-colors" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>
+                      <TooltipContent sideOffset={8} className="bg-zinc-900 border border-white/10 z-[100]">
                         <p className="text-sm text-white">Delete this party permanently</p>
                       </TooltipContent>
                     </Tooltip>
@@ -337,13 +334,10 @@ export default function ValorantPartyDetails() {
                             }
                           }}
                         >
-                          <span className="flex items-center gap-2">
-                            <LogOut className="h-4 w-4 text-zinc-400 group-hover:text-white transition-colors" />
-                            <span className="font-medium">Leave Party</span>
-                          </span>
+                          <LogOut className="h-4 w-4 text-zinc-400 group-hover:text-white transition-colors" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>
+                      <TooltipContent sideOffset={8} className="bg-zinc-900 border border-white/10 z-[100]">
                         <p className="text-sm text-white">Leave this party</p>
                       </TooltipContent>
                     </Tooltip>
