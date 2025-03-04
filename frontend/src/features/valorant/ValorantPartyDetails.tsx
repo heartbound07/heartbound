@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Users, LogOut, GamepadIcon, Trophy, Globe, Mic, Award, Calendar, Trash2, UserPlus, Loader2, X } from "lucide-react"
+import { Users, LogOut, GamepadIcon, Trophy, Globe, Mic, Award, Calendar, Trash2, UserPlus, Loader2, X, Link2 } from "lucide-react"
 import { Button } from "@/components/ui/valorant/buttonparty"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { useAuth } from "@/contexts/auth/useAuth"
@@ -296,6 +296,19 @@ export default function ValorantPartyDetails() {
       });
   };
 
+  // Add this function inside the ValorantPartyDetails component
+  const handleCopyLink = () => {
+    const currentUrl = window.location.href;
+    navigator.clipboard.writeText(currentUrl)
+      .then(() => {
+        showToast("Party link copied to clipboard!", "success");
+      })
+      .catch((err) => {
+        console.error("Failed to copy link:", err);
+        showToast("Failed to copy link to clipboard", "error");
+      });
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0F1923] to-[#1A242F] text-white font-sans flex items-center justify-center">
@@ -384,6 +397,25 @@ export default function ValorantPartyDetails() {
                 </div>
                 
                 <div className="flex flex-wrap gap-2">
+                  {/* First check if user is leader or participant to show copy link button */}
+                  {(isUserLeader || isUserParticipant) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          className="bg-[#1F2731] hover:bg-[#2C3A47] text-white border border-white/10 hover:border-white/30
+                          shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
+                          size="sm"
+                          onClick={handleCopyLink}
+                        >
+                          <Link2 className="h-4 w-4 text-[#8B97A4] group-hover:text-white transition-colors" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent sideOffset={8} className="bg-[#1F2731] border border-white/10 z-[100]">
+                        <p className="text-sm text-white">Copy party link</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  
                   {isUserLeader ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
