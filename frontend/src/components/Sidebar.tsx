@@ -206,11 +206,11 @@ export function DashboardNavigation({ theme = 'default' }) {
                   <button
                     onClick={() => {
                       if (item.hasSubmenu) {
-                        // If we're on a game page and click Overview, go to dashboard
-                        if (onGamePage) {
+                        // Always navigate to dashboard when main button is clicked
+                        if (!isMainDashboard) {
                           navigate('/dashboard')
                         } else {
-                          // Otherwise toggle the dropdown
+                          // If already on dashboard, also toggle dropdown
                           setGamesExpanded(!gamesExpanded)
                         }
                       } else {
@@ -232,13 +232,20 @@ export function DashboardNavigation({ theme = 'default' }) {
                     </span>
                     <span>{item.label}</span>
                     
+                    {/* Dedicated dropdown toggle area - Only show when NOT on main dashboard */}
                     {item.hasSubmenu && !isMainDashboard && (
-                      <span className="ml-auto">
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent parent button click
+                          setGamesExpanded(!gamesExpanded);
+                        }}
+                        className="ml-auto p-2 -mr-2 rounded-md hover:bg-white/10 cursor-pointer"
+                      >
                         {gamesExpanded ? 
                           <ChevronDown size={16} className="text-slate-400" /> : 
                           <ChevronRight size={16} className="text-slate-400" />
                         }
-                      </span>
+                      </div>
                     )}
                     
                     {isActive && !item.hasSubmenu && <div className="ml-auto w-1.5 h-5 bg-primary rounded-full"></div>}
