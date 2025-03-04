@@ -11,8 +11,11 @@ import { FiLogOut } from "react-icons/fi"
  *
  * A modern sidebar navigation with glassmorphic effect, smooth transitions,
  * and an enhanced visual hierarchy for improved user experience.
+ * 
+ * @param {Object} props - Component props
+ * @param {string} props.theme - Optional theme variant: 'dashboard' or 'default'
  */
-export function DashboardNavigation() {
+export function DashboardNavigation({ theme = 'default' }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { logout, user } = useAuth()
@@ -29,8 +32,13 @@ export function DashboardNavigation() {
     navigate("/login")
   }
 
+  // Set background color based on theme
+  const sidebarBackground = theme === 'dashboard'
+    ? "bg-gradient-to-b from-[#5b48e6]/90 to-[#7a67ed]/90" // Match dashboard gradient
+    : "bg-gradient-to-b from-slate-800/90 to-slate-900/90"
+
   return (
-    <aside className="dashboard-nav h-full flex flex-col bg-gradient-to-b from-slate-800/90 to-slate-900/90 backdrop-blur-md border-r border-white/10 shadow-xl animate-slideRightIn">
+    <aside className={`dashboard-nav h-full flex flex-col ${sidebarBackground} backdrop-blur-md border-r border-white/10 shadow-xl`}>
       {/* User Profile Section */}
       <div className="px-6 py-8 border-b border-white/10">
         <div className="flex items-center gap-4">
