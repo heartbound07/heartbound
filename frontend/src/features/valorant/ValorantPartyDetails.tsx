@@ -432,8 +432,8 @@ export default function ValorantPartyDetails() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          className="bg-[#FF4655] hover:bg-[#FF4655]/90 text-white border border-white/10 hover:border-white/30
-                          shadow-md hover:shadow-lg transition-all duration-300"
+                          className="bg-[#1F2731] hover:bg-[#2C3A47] text-white border border-white/10 hover:border-white/30
+                          shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
                           size="sm"
                           onClick={handleJoinParty}
                           disabled={isJoining || isPartyFull}
