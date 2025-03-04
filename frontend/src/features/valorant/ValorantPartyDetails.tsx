@@ -268,7 +268,7 @@ export default function ValorantPartyDetails() {
         
         <div className="max-w-7xl mx-auto w-full space-y-8 relative z-10">
           {/* Combined Party Details and Game Settings Container */}
-          <div className="bg-[#1F2731]/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl">
+          <div className="bg-[#1F2731]/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
             {/* Party Header Section */}
             <div className="p-6 border-b border-white/10">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -357,7 +357,7 @@ export default function ValorantPartyDetails() {
             </div>
             
             {/* Combined Game Settings and Requirements */}
-            <div className="p-6 bg-[#1F2731]/80">
+            <div className="p-6 bg-[#1F2731]/40">
               {/* Party Requirements Icon Badges (now first) */}
               <div className="mb-4">
                 <div 
