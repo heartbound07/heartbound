@@ -91,69 +91,6 @@ const IconBadge = ({
   );
 };
 
-// Party details section component with combined layout
-const PartyDetailsSection = ({ party }: { party: any }) => {
-  return (
-    <div className="w-full">
-      {/* Combined Settings and Requirements Group */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-zinc-900/80 to-zinc-900/40 backdrop-blur-md rounded-xl p-5 border border-white/5 shadow-xl">
-        
-        {/* Game Settings Detail Badges */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-          <DetailBadge 
-            icon={<Trophy className="h-4 w-4" />} 
-            label="Match Type" 
-            value={formatDisplayText(party?.matchType)} 
-          />
-          <DetailBadge 
-            icon={<GamepadIcon className="h-4 w-4" />} 
-            label="Game Mode" 
-            value={formatDisplayText(party?.gameMode)} 
-          />
-          <DetailBadge 
-            icon={<Users className="h-4 w-4" />} 
-            label="Team Size" 
-            value={formatDisplayText(party?.teamSize)} 
-          />
-        </div>
-        
-        
-        {/* Requirements Icon Badges */}
-        <div 
-          className="flex flex-wrap items-center justify-center gap-5"
-          style={{ containIntrinsicSize: "0 80px", content: "layout" }}
-        >
-          <IconBadge 
-            icon={<Award className="h-5 w-5" />} 
-            label="Rank" 
-            value={formatDisplayText(party?.requirements?.rank)} 
-          />
-          <IconBadge 
-            icon={<Globe className="h-5 w-5" />} 
-            label="Region" 
-            value={formatDisplayText(party?.requirements?.region)} 
-          />
-          <IconBadge 
-            icon={<Mic className="h-5 w-5" />} 
-            label="Voice Chat" 
-            value={formatBooleanText(party?.requirements?.voiceChat)} 
-          />
-          <IconBadge 
-            icon={<Calendar className="h-5 w-5" />} 
-            label="Age" 
-            value={formatDisplayText(party?.ageRestriction)} 
-          />
-          <IconBadge 
-            icon={<Mic className="h-5 w-5" />} 
-            label="Voice Preference" 
-            value={formatDisplayText(party?.voicePreference)} 
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export default function ValorantPartyDetails() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -325,100 +262,159 @@ export default function ValorantPartyDetails() {
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-br from-[#0F1923] to-[#1A242F] text-white font-sans flex flex-col p-6">
         <div className="max-w-7xl mx-auto w-full space-y-8">
-          <div className="bg-gradient-to-br from-zinc-900/90 to-zinc-900/60 backdrop-blur-md rounded-xl p-6 border border-white/5 shadow-2xl">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-3 mb-2">
-                  <h1 className="text-3xl font-bold text-white mr-2 truncate">
-                    {party.title || "Unnamed Party"}
-                  </h1>
-                  <div className="flex gap-2 flex-wrap">
-                    <span className="py-1 px-3 rounded-full bg-[#FF4655]/10 text-[#FF4655] text-xs font-semibold border border-[#FF4655]/20">
-                      {formatDisplayText(party.game)}
-                    </span>
-                    <span className={`py-1 px-3 rounded-full text-xs font-semibold ${
-                      party.status === 'open' 
-                      ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
-                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                    }`}>
-                      {formatDisplayText(party.status)}
-                    </span>
-                    
-                    {/* Only show countdown timer when party is not full */}
-                    {party.expiresAt && !isPartyFull && (
-                      <div className="py-1 px-3 rounded-full bg-zinc-800/80 text-xs font-semibold border border-white/10">
-                        <CountdownTimer 
-                          expiresAt={party.expiresAt} 
-                          onExpire={handlePartyExpire}
-                        />
-                      </div>
-                    )}
+          {/* Combined Party Details and Game Settings Container */}
+          <div className="bg-gradient-to-br from-zinc-900/90 to-zinc-900/60 backdrop-blur-md rounded-xl overflow-hidden border border-white/5 shadow-2xl">
+            {/* Party Header Section */}
+            <div className="p-6 border-b border-white/5">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-3 mb-2">
+                    <h1 className="text-3xl font-bold text-white mr-2 truncate">
+                      {party.title || "Unnamed Party"}
+                    </h1>
+                    <div className="flex gap-2 flex-wrap">
+                      <span className="py-1 px-3 rounded-full bg-[#FF4655]/10 text-[#FF4655] text-xs font-semibold border border-[#FF4655]/20">
+                        {formatDisplayText(party.game)}
+                      </span>
+                      <span className={`py-1 px-3 rounded-full text-xs font-semibold ${
+                        party.status === 'open' 
+                        ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
+                        : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                      }`}>
+                        {formatDisplayText(party.status)}
+                      </span>
+                      
+                      {/* Only show countdown timer when party is not full */}
+                      {party.expiresAt && !isPartyFull && (
+                        <div className="py-1 px-3 rounded-full bg-zinc-800/80 text-xs font-semibold border border-white/10">
+                          <CountdownTimer 
+                            expiresAt={party.expiresAt} 
+                            onExpire={handlePartyExpire}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                  {isUserLeader ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          className="bg-zinc-800/70 hover:bg-zinc-700/90 text-white border border-white/10 hover:border-white/30
+                          shadow-md hover:shadow-lg transition-all duration-300 rounded-lg"
+                          size="sm"
+                          onClick={handleDeleteParty}
+                        >
+                          <span className="flex items-center gap-2">
+                            <Trash2 className="h-4 w-4 text-zinc-400 group-hover:text-white transition-colors" />
+                            <span className="font-medium">Delete Party</span>
+                          </span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-sm text-white">Delete this party permanently</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          className="bg-zinc-800/70 hover:bg-zinc-700/90 text-white border border-white/10 hover:border-white/30
+                          shadow-md hover:shadow-lg transition-all duration-300 rounded-lg"
+                          size="sm"
+                          onClick={() => {
+                            if (window.confirm("Are you sure you want to leave this party?")) {
+                              leaveParty(party.id)
+                                .then(() => {
+                                  navigate("/dashboard/valorant")
+                                })
+                                .catch((err: any) => {
+                                  console.error("Error leaving party:", err)
+                                  alert("Failed to leave party")
+                                })
+                            }
+                          }}
+                        >
+                          <span className="flex items-center gap-2">
+                            <LogOut className="h-4 w-4 text-zinc-400 group-hover:text-white transition-colors" />
+                            <span className="font-medium">Leave Party</span>
+                          </span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-sm text-white">Leave this party</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              </div>
+              {party.description && (
+                <p className="text-zinc-400 mt-3 sm:mt-4 max-w-3xl">
+                  {party.description}
+                </p>
+              )}
+            </div>
+            
+            {/* Combined Game Settings and Requirements */}
+            <div className="p-6 bg-zinc-900/40">
+              {/* Party Requirements Icon Badges (now first) */}
+              <div className="mb-4">
+                <div 
+                  className="flex flex-wrap items-center justify-center sm:justify-start gap-5"
+                  style={{ containIntrinsicSize: "0 80px", content: "layout" }}
+                >
+                  <IconBadge 
+                    icon={<Award className="h-5 w-5" />} 
+                    label="Rank" 
+                    value={formatDisplayText(party?.requirements?.rank)} 
+                  />
+                  <IconBadge 
+                    icon={<Globe className="h-5 w-5" />} 
+                    label="Region" 
+                    value={formatDisplayText(party?.requirements?.region)} 
+                  />
+                  <IconBadge 
+                    icon={<Mic className="h-5 w-5" />} 
+                    label="Voice Chat" 
+                    value={formatBooleanText(party?.requirements?.voiceChat)} 
+                  />
+                  <IconBadge 
+                    icon={<Calendar className="h-5 w-5" />} 
+                    label="Age" 
+                    value={formatDisplayText(party?.ageRestriction)} 
+                  />
+                  <IconBadge 
+                    icon={<Mic className="h-5 w-5" />} 
+                    label="Voice Preference" 
+                    value={formatDisplayText(party?.voicePreference)} 
+                  />
                 </div>
               </div>
               
-              <div className="flex flex-wrap gap-2">
-                {isUserLeader ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        className="bg-zinc-800/70 hover:bg-zinc-700/90 text-white border border-white/10 hover:border-white/30
-                        shadow-md hover:shadow-lg transition-all duration-300 rounded-lg"
-                        size="sm"
-                        onClick={handleDeleteParty}
-                      >
-                        <span className="flex items-center gap-2">
-                          <Trash2 className="h-4 w-4 text-zinc-400 group-hover:text-white transition-colors" />
-                          <span className="font-medium">Delete Party</span>
-                        </span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-sm text-white">Delete this party permanently</p>
-                    </TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        className="bg-zinc-800/70 hover:bg-zinc-700/90 text-white border border-white/10 hover:border-white/30
-                        shadow-md hover:shadow-lg transition-all duration-300 rounded-lg"
-                        size="sm"
-                        onClick={() => {
-                          if (window.confirm("Are you sure you want to leave this party?")) {
-                            leaveParty(party.id)
-                              .then(() => {
-                                navigate("/dashboard/valorant")
-                              })
-                              .catch((err: any) => {
-                                console.error("Error leaving party:", err)
-                                alert("Failed to leave party")
-                              })
-                          }
-                        }}
-                      >
-                        <span className="flex items-center gap-2">
-                          <LogOut className="h-4 w-4 text-zinc-400 group-hover:text-white transition-colors" />
-                          <span className="font-medium">Leave Party</span>
-                        </span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-sm text-white">Leave this party</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
+              {/* Game Settings Detail Badges (now second) */}
+              <div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <DetailBadge 
+                    icon={<Trophy className="h-4 w-4" />} 
+                    label="Match Type" 
+                    value={formatDisplayText(party?.matchType)} 
+                  />
+                  <DetailBadge 
+                    icon={<GamepadIcon className="h-4 w-4" />} 
+                    label="Game Mode" 
+                    value={formatDisplayText(party?.gameMode)} 
+                  />
+                  <DetailBadge 
+                    icon={<Users className="h-4 w-4" />} 
+                    label="Team Size" 
+                    value={formatDisplayText(party?.teamSize)} 
+                  />
+                </div>
               </div>
             </div>
-            {party.description && (
-              <p className="text-zinc-400 mt-3 sm:mt-4 max-w-3xl">
-                {party.description}
-              </p>
-            )}
           </div>
-          
-          {/* Reorganized party details section */}
-          <PartyDetailsSection party={party} />
           
           {/* Player slots container with improved styling */}
           <PlayerSlotsContainer 
