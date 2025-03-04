@@ -1,17 +1,46 @@
 "use client"
 
 import * as React from "react"
-import { Users, LogOut, GamepadIcon, Trophy, Globe, Mic, Award, Calendar, Trash2 } from "lucide-react"
+import { Users, LogOut, GamepadIcon, Trophy, Globe, Mic, Award, Calendar, Trash2, UserPlus, Loader2, X } from "lucide-react"
 import { Button } from "@/components/ui/valorant/buttonparty"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate, useParams } from "react-router-dom"
-import { deleteParty, getParty, leaveParty } from "@/contexts/valorant/partyService"
+import { deleteParty, getParty, leaveParty, joinParty } from "@/contexts/valorant/partyService"
 import { usePartyUpdates } from "@/contexts/PartyUpdates"
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 import { PlayerSlotsContainer } from "@/components/PlayerSlotsContainer"
 import { formatDisplayText, formatBooleanText } from "@/utils/formatters"
 import { CountdownTimer } from "@/components/CountdownTimer"
+
+// Custom Toast Component
+const Toast = ({ 
+  message, 
+  type = 'info', 
+  onClose 
+}: { 
+  message: string; 
+  type?: 'success' | 'error' | 'info'; 
+  onClose: () => void;
+}) => {
+  const bgColor = type === 'success' 
+    ? 'bg-green-500' 
+    : type === 'error' 
+      ? 'bg-[#FF4655]' 
+      : 'bg-blue-500';
+
+  return (
+    <div className={`fixed top-4 right-4 z-50 flex items-center ${bgColor} text-white px-4 py-3 rounded-md shadow-lg`}>
+      <span>{message}</span>
+      <button
+        onClick={onClose}
+        className="ml-4 text-white hover:text-white/80 focus:outline-none"
+      >
+        <X size={18} />
+      </button>
+    </div>
+  );
+};
 
 // DetailBadge component for displaying details with label and value
 const DetailBadge = ({ 
@@ -102,6 +131,32 @@ export default function ValorantPartyDetails() {
   const [isLoading, setIsLoading] = React.useState(true)
   const [leaderId, setLeaderId] = React.useState<string>("")
   const [participants, setParticipants] = React.useState<string[]>([])
+  const [isJoining, setIsJoining] = React.useState(false)
+  
+  // Toast state
+  const [toastInfo, setToastInfo] = React.useState<{
+    visible: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({
+    visible: false,
+    message: '',
+    type: 'info'
+  });
+
+  // Function to show a toast message
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToastInfo({
+      visible: true,
+      message,
+      type
+    });
+    
+    // Auto-hide toast after 3 seconds
+    setTimeout(() => {
+      setToastInfo(prev => ({ ...prev, visible: false }));
+    }, 3000);
+  };
 
   // Placeholder avatar for participants who don't have an available avatar.
   const placeholderAvatar = "https://v0.dev/placeholder.svg?height=400&width=400"
@@ -224,6 +279,23 @@ export default function ValorantPartyDetails() {
     }
   };
 
+  // Inside the component, add a new handler for joining the party (modified to use custom toast)
+  const handleJoinParty = () => {
+    setIsJoining(true);
+    joinParty(party.id)
+      .then(() => {
+        showToast("You have joined the party.", "success");
+        // The WebSocket update will handle updating the UI
+      })
+      .catch((err: any) => {
+        console.error("Error joining party:", err);
+        showToast(err.message || "Could not join the party. Try again later.", "error");
+      })
+      .finally(() => {
+        setIsJoining(false);
+      });
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0F1923] to-[#1A242F] text-white font-sans flex items-center justify-center">
@@ -260,6 +332,15 @@ export default function ValorantPartyDetails() {
   
   return (
     <TooltipProvider>
+      {/* Render the toast if visible */}
+      {toastInfo.visible && (
+        <Toast 
+          message={toastInfo.message} 
+          type={toastInfo.type} 
+          onClose={() => setToastInfo(prev => ({ ...prev, visible: false }))} 
+        />
+      )}
+      
       <div className="min-h-screen bg-[#0F1923] text-white font-sans flex flex-col p-6">
         <div className="fixed inset-0 bg-[#0F1923] z-0">
           <div className="absolute inset-0 bg-gradient-to-br from-[#FF4655]/10 to-transparent opacity-50"></div>
@@ -319,7 +400,7 @@ export default function ValorantPartyDetails() {
                         <p className="text-sm text-white">Delete this party?</p>
                       </TooltipContent>
                     </Tooltip>
-                  ) : (
+                  ) : isUserParticipant ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
@@ -344,6 +425,38 @@ export default function ValorantPartyDetails() {
                       </TooltipTrigger>
                       <TooltipContent sideOffset={8} className="bg-[#1F2731] border border-white/10 z-[100]">
                         <p className="text-sm text-white">Leave this party?</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    // New Join Party button (only shows when user is not a participant)
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          className="bg-[#FF4655] hover:bg-[#FF4655]/90 text-white border border-white/10 hover:border-white/30
+                          shadow-md hover:shadow-lg transition-all duration-300"
+                          size="sm"
+                          onClick={handleJoinParty}
+                          disabled={isJoining || isPartyFull}
+                        >
+                          {isJoining ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Joining...
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus className="h-4 w-4 mr-2" />
+                              Join Party
+                            </>
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent sideOffset={8} className="bg-[#1F2731] border border-white/10 z-[100]">
+                        <p className="text-sm text-white">
+                          {isPartyFull 
+                            ? "This party is full" 
+                            : "Join this party?"}
+                        </p>
                       </TooltipContent>
                     </Tooltip>
                   )}
