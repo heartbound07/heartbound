@@ -265,12 +265,14 @@ export function PlayerSlotsContainer({
           </div>
         </div>
         
-        {/* Helper text */}
-        {emptySlotsCount > 0 && (
-          <div className="mt-6 text-center text-xs text-[#8B97A4] italic">
-            Click on an empty slot to invite more players to your party
-          </div>
-        )}
+        {/* Helper text area with fixed height to prevent container resizing */}
+        <div className="h-8 mt-6">
+          {emptySlotsCount > 0 && (
+            <div className="text-center text-xs text-[#8B97A4] italic">
+              Click on an empty slot to invite more players to your party
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
