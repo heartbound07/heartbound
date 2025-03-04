@@ -166,10 +166,10 @@ export function DashboardNavigation({ theme = 'default' }) {
         </h1>
       </div>
       
-      {/* User Profile Section - Made clickable */}
+      {/* User Profile Section - Made clickable - Border removed */}
       <div 
         ref={profileSectionRef}
-        className={`relative px-6 py-8 border-b border-white/10 cursor-pointer transition-all duration-200 
+        className={`relative px-6 py-6 cursor-pointer transition-all duration-200 
           ${isProfilePage ? 'bg-white/5' : 'hover:bg-white/5'}`}
         onClick={handleProfileClick}
       >
@@ -192,8 +192,8 @@ export function DashboardNavigation({ theme = 'default' }) {
       {/* Render the profile preview portal */}
       <ProfilePreviewPortal />
 
-      {/* Navigation Links */}
-      <nav className="flex-1 px-4 py-6">
+      {/* Navigation Links - Adjusted padding for consistent spacing */}
+      <nav className="flex-1 px-4 py-4">
         <ul className="space-y-2">
           {navItems.map((item) => {
             const isActive = item.path === '/dashboard' 
