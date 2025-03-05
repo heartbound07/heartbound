@@ -12,6 +12,7 @@ import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 import { PlayerSlotsContainer } from "@/components/PlayerSlotsContainer"
 import { formatDisplayText, formatBooleanText } from "@/utils/formatters"
 import { CountdownTimer } from "@/components/CountdownTimer"
+import { UserProfileModal } from "@/components/UserProfileModal"
 
 // Custom Toast Component
 const Toast = ({ 
@@ -132,6 +133,7 @@ export default function ValorantPartyDetails() {
   const [leaderId, setLeaderId] = React.useState<string>("")
   const [participants, setParticipants] = React.useState<string[]>([])
   const [isJoining, setIsJoining] = React.useState(false)
+  const [selectedProfileId, setSelectedProfileId] = React.useState<string | null>(null)
   
   // Toast state
   const [toastInfo, setToastInfo] = React.useState<{
@@ -307,6 +309,14 @@ export default function ValorantPartyDetails() {
         console.error("Failed to copy link:", err);
         showToast("Failed to copy link to clipboard", "error");
       });
+  };
+
+  const handleProfileView = (userId: string) => {
+    setSelectedProfileId(userId);
+  };
+  
+  const handleCloseProfileModal = () => {
+    setSelectedProfileId(null);
   };
 
   if (isLoading) {
@@ -547,7 +557,7 @@ export default function ValorantPartyDetails() {
             </div>
           </div>
           
-          {/* Player slots container with improved styling */}
+          {/* Player slots container with updated props */}
           <PlayerSlotsContainer 
             participants={participants}
             maxPlayers={party?.maxPlayers || 5}
@@ -557,6 +567,14 @@ export default function ValorantPartyDetails() {
             placeholderAvatar={placeholderAvatar}
             className="bg-[#1F2731]/60 backdrop-blur-sm border border-white/5 shadow-xl"
             onInviteClick={() => console.log("Invite player clicked")}
+            onProfileView={handleProfileView}
+          />
+          
+          {/* Add the profile modal component */}
+          <UserProfileModal
+            isOpen={!!selectedProfileId}
+            onClose={handleCloseProfileModal}
+            userProfile={selectedProfileId ? userProfiles[selectedProfileId] : null}
           />
         </div>
       </div>

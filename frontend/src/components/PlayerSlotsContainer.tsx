@@ -19,6 +19,7 @@ interface PlayerSlotProps {
   currentUserId?: string;
   participantId?: string;
   isNewJoin?: boolean;
+  onProfileView?: (userId: string) => void;
 }
 
 const PlayerSlot: React.FC<PlayerSlotProps> = ({
@@ -31,6 +32,7 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
   currentUserId,
   participantId,
   isNewJoin = false,
+  onProfileView,
 }) => {
   const isCurrentUser = currentUserId && participantId && currentUserId === participantId;
   
@@ -56,10 +58,19 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
   const animationClasses = isNewJoin ? "animate-partyJoin" : "";
   const highlightClasses = isNewJoin ? "animate-joinHighlight" : "";
 
+  // Handler for slot click
+  const handleSlotClick = () => {
+    if (isEmpty) {
+      onClick?.();
+    } else if (!isCurrentUser && participantId && onProfileView) {
+      onProfileView(participantId);
+    }
+  };
+
   return (
     <div 
-      className={`relative group ${!isEmpty ? "cursor-default" : "cursor-pointer"} ${animationClasses} max-w-[130px] mx-auto w-full`}
-      onClick={isEmpty ? onClick : undefined}
+      className={`relative group ${!isEmpty || (!isCurrentUser && participantId) ? "cursor-pointer" : "cursor-default"} ${animationClasses} max-w-[130px] mx-auto w-full`}
+      onClick={handleSlotClick}
     >
       {!isEmpty && (
         <div className={`absolute -inset-0.5 bg-gradient-to-r ${gradientColors} rounded-full 
@@ -115,6 +126,7 @@ interface PlayerSlotsContainerProps {
   placeholderAvatar: string;
   onInviteClick?: () => void;
   className?: string;
+  onProfileView?: (userId: string) => void;
 }
 
 export function PlayerSlotsContainer({
@@ -126,6 +138,7 @@ export function PlayerSlotsContainer({
   placeholderAvatar,
   onInviteClick,
   className,
+  onProfileView,
 }: PlayerSlotsContainerProps) {
   // Store previous participants for animation
   const [prevParticipants, setPrevParticipants] = React.useState<string[]>([]);
@@ -227,6 +240,7 @@ export function PlayerSlotsContainer({
               participantId={leaderId}
               currentUserId={currentUser?.id}
               isNewJoin={newJoins.includes(leaderId)}
+              onProfileView={onProfileView}
             />
 
             {/* Joined Participants */}
@@ -246,6 +260,7 @@ export function PlayerSlotsContainer({
                   participantId={participantId}
                   currentUserId={currentUser?.id}
                   isNewJoin={newJoins.includes(participantId)}
+                  onProfileView={onProfileView}
                 />
               );
             })}
