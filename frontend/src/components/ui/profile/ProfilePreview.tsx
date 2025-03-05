@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/profile/avatar";
 import { Button } from "@/components/ui/profile/button";
-import { UserIcon } from "lucide-react";
+import { UserIcon, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface ProfilePreviewProps {
@@ -25,10 +25,36 @@ export function ProfilePreview({
   showEditButton = true
 }: ProfilePreviewProps) {
   const navigate = useNavigate();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const bioRef = useRef<HTMLParagraphElement>(null);
+  
+  // Detect if text overflows 2 lines
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (bioRef.current) {
+        const element = bioRef.current;
+        // Line height is approximately 1.5em for text-xs
+        const lineHeight = parseFloat(getComputedStyle(element).fontSize) * 1.5;
+        // If element height > 2 lines, it's overflowing
+        setHasOverflow(element.scrollHeight > lineHeight * 2);
+      }
+    };
+    
+    checkOverflow();
+    // Recheck on window resize
+    window.addEventListener('resize', checkOverflow);
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, [about]);
   
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent the click from bubbling up
     navigate('/dashboard/profile');
+  };
+
+  const toggleBioExpansion = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent clicking the toggle from triggering the parent onClick
+    setIsExpanded(!isExpanded);
   };
 
   return (
@@ -67,9 +93,37 @@ export function ProfilePreview({
             <span className="text-xs text-white/80 truncate max-w-[70px]">{user?.username || "Guest"}</span>
             {pronouns && <span className="text-xs text-white/60 truncate max-w-[60px]">• {pronouns}</span>}
           </div>
-          <p className="text-xs text-white/80 line-clamp-2 overflow-hidden">
-            {about || "Your about me section will appear here..."}
-          </p>
+          <div className="text-white/80 w-full">
+            <div 
+              className={`relative ${isExpanded ? '' : 'max-h-10'} overflow-hidden transition-all duration-300`}
+            >
+              <p 
+                ref={bioRef}
+                className={`text-xs whitespace-normal break-words ${!isExpanded ? 'line-clamp-2' : ''}`}
+              >
+                {about || "Your about me section will appear here..."}
+              </p>
+            </div>
+            
+            {hasOverflow && (
+              <button 
+                onClick={toggleBioExpansion}
+                className="flex items-center text-xs mt-1 text-white/60 hover:text-white/90 transition-colors"
+              >
+                {isExpanded ? (
+                  <>
+                    <span>Show less</span>
+                    <ChevronUp size={14} className="ml-1" />
+                  </>
+                ) : (
+                  <>
+                    <span>View full bio</span>
+                    <ChevronDown size={14} className="ml-1" />
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         </div>
       </motion.div>
     </div>
