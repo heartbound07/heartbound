@@ -38,7 +38,7 @@ public class UserController {
             return ResponseEntity.ok(createDefaultProfile(userId));
         }
         
-        return ResponseEntity.ok(mapToProfileDTO(user));
+        return ResponseEntity.ok(userService.mapToProfileDTO(user));
     }
     
     /**
@@ -56,7 +56,7 @@ public class UserController {
             for (String userId : userIds) {
                 User user = userService.getUserById(userId);
                 if (user != null) {
-                    profiles.put(userId, mapToProfileDTO(user));
+                    profiles.put(userId, userService.mapToProfileDTO(user));
                 } else {
                     profiles.put(userId, createDefaultProfile(userId));
                 }
@@ -92,25 +92,6 @@ public class UserController {
         }
         
         return ResponseEntity.ok(updatedProfile);
-    }
-    
-    /**
-     * Maps a User entity to a UserProfileDTO.
-     * 
-     * @param user the User entity
-     * @return the UserProfileDTO
-     */
-    private UserProfileDTO mapToProfileDTO(User user) {
-        return UserProfileDTO.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .avatar(user.getAvatar() != null ? user.getAvatar() : "/default-avatar.png")
-                .displayName(user.getDisplayName())
-                .pronouns(user.getPronouns())
-                .about(user.getAbout())
-                .bannerColor(user.getBannerColor())
-                .bannerUrl(user.getBannerUrl())
-                .build();
     }
     
     /**
