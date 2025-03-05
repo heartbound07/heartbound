@@ -16,7 +16,7 @@ import { AvatarUpload } from "@/components/ui/profile/AvatarUpload"
 import { BannerUpload } from "@/components/ui/profile/BannerUpload"
 
 export function ProfilePage() {
-  const { user, profile, updateUserProfile, isLoading} = useAuth()
+  const { user, profile, updateUserProfile, isLoading, hasRole } = useAuth()
   
   const [about, setAbout] = useState("")
   const [name, setName] = useState("")
@@ -145,13 +145,34 @@ export function ProfilePage() {
 
               <div className="space-y-3">
                 <Label className="text-xs font-medium text-white/80">PROFILE BANNER</Label>
-                <BannerUpload
-                  currentBannerUrl={bannerUrl}
-                  bannerColor={bannerColor}
-                  onUpload={handleBannerUpload}
-                />
+                
+                {hasRole('MONARCH') ? (
+                  <BannerUpload
+                    currentBannerUrl={bannerUrl}
+                    bannerColor={bannerColor}
+                    onUpload={handleBannerUpload}
+                  />
+                ) : (
+                  <div className="relative h-32 w-full overflow-hidden rounded-lg border border-white/10">
+                    {bannerUrl ? (
+                      <img src={bannerUrl} alt="Banner" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className={`h-full w-full ${bannerColor}`} />
+                    )}
+                    
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white">
+                      <div className="text-center px-4">
+                        <p className="text-sm font-medium mb-1">Banner upload is available for Premium users only</p>
+                        <p className="text-xs text-white/70">Upgrade your account to customize your profile banner</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <p className="text-xs text-white/60">
-                  Click on the banner to upload a new image. Maximum size: 5MB.
+                  {hasRole('MONARCH') 
+                    ? "Click on the banner to upload a new image. Maximum size: 5MB."
+                    : "Banner customization is a premium feature for Monarch users."}
                 </p>
               </div>
 
