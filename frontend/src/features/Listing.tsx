@@ -9,6 +9,7 @@ import { joinParty } from "@/contexts/valorant/partyService"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate } from "react-router-dom"
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
+import { UserProfileModal } from "@/components/UserProfileModal"
 
 // Helper function to format tooltip text for fields such as gameMode, teamSize, etc.
 const formatTooltipText = (text: string | undefined, defaultText: string = "N/A"): string => {
@@ -51,6 +52,9 @@ export default function Listing({ party }: ListingProps) {
   
   // Placeholder avatar for users without an avatar
   const placeholderAvatar = "/placeholder.svg"
+  
+  // Add this state near the other state declarations
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null)
   
   // Fetch user profiles when participants change
   useEffect(() => {
@@ -111,8 +115,20 @@ export default function Listing({ party }: ListingProps) {
     navigate(`/dashboard/valorant/${party.id}`)
   }
 
+  // Add these functions before the return statement
+  const handleProfileView = (userId: string) => {
+    // Find the profile in the already fetched userProfiles
+    if (userProfiles[userId]) {
+      setSelectedProfileId(userId);
+    }
+  };
+  
+  const handleCloseProfileModal = () => {
+    setSelectedProfileId(null);
+  };
+
   return (
-    <div className="w-full bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
+    <div className="overflow-hidden bg-zinc-900 rounded-lg shadow-lg h-full">
       <div className="px-4 py-3 bg-gradient-to-r from-zinc-900 to-zinc-800 border-b border-zinc-700/50">
         <div className="flex items-center justify-between">
           <div>
@@ -276,9 +292,14 @@ export default function Listing({ party }: ListingProps) {
                   <div
                     className={`relative w-10 h-10 rounded-full ${
                       slot.filled
-                        ? "bg-zinc-800 ring-1 ring-violet-500/50"
+                        ? "bg-zinc-800 ring-1 ring-violet-500/50 cursor-pointer"
                         : "border border-dashed border-zinc-700 hover:border-zinc-500"
-                    } transition-all duration-200 group cursor-pointer flex items-center justify-center`}
+                    } transition-all duration-200 group flex items-center justify-center`}
+                    onClick={() => {
+                      if (slot.filled && slot.participantId) {
+                        handleProfileView(slot.participantId);
+                      }
+                    }}
                   >
                     {slot.filled ? (
                       <Avatar className="h-full w-full">
@@ -305,6 +326,13 @@ export default function Listing({ party }: ListingProps) {
           {isOwner ? "View Party" : (isJoining ? "Joining..." : "Join Game")}
         </Button>
       </div>
+      
+      {/* Add the profile modal component */}
+      <UserProfileModal
+        isOpen={!!selectedProfileId}
+        onClose={handleCloseProfileModal}
+        userProfile={selectedProfileId ? userProfiles[selectedProfileId] : null}
+      />
     </div>
   )
 }
