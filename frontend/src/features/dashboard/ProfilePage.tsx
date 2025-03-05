@@ -146,7 +146,7 @@ export function ProfilePage() {
               <div className="space-y-3">
                 <Label className="text-xs font-medium text-white/80">PROFILE BANNER</Label>
                 
-                {hasRole('MONARCH') ? (
+                {hasRole('MONARCH') || hasRole('ADMIN') || hasRole('MODERATOR') ? (
                   <BannerUpload
                     currentBannerUrl={bannerUrl}
                     bannerColor={bannerColor}
@@ -170,7 +170,7 @@ export function ProfilePage() {
                 )}
                 
                 <p className="text-xs text-white/60">
-                  {hasRole('MONARCH') 
+                  {hasRole('MONARCH') || hasRole('ADMIN') || hasRole('MODERATOR') 
                     ? "Click on the banner to upload a new image. Maximum size: 5MB."
                     : "Banner customization is a premium feature for Monarch users."}
                 </p>
