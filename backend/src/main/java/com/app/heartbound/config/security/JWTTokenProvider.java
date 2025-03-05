@@ -1,5 +1,6 @@
 package com.app.heartbound.config.security;
 
+import com.app.heartbound.enums.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -14,6 +15,10 @@ import org.slf4j.LoggerFactory;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.Set;
+import java.util.Collections;
+import java.util.stream.Collectors;
 
 @Component
 public class JWTTokenProvider {
@@ -34,43 +39,66 @@ public class JWTTokenProvider {
     private long refreshTokenExpiryInMs;
 
     /**
-     * Generates a JWT token for the provided user details.
+     * Generates a JWT token for the provided user details including roles.
      *
-     * @param userId   the user identifier (for example, Discord user id)
-     * @param username the username to be included as a claim
-     * @param email    the email to be included as a claim
-     * @param avatar   the avatar URL to be included as a claim
+     * @param userId   the user identifier
+     * @param username the username
+     * @param email    the email
+     * @param avatar   the avatar URL
+     * @param roles    the user's roles
      * @return the generated JWT token
      */
-    public String generateToken(String userId, String username, String email, String avatar) {
+    public String generateToken(String userId, String username, String email, String avatar, Set<Role> roles) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
         
         logger.debug("Generating JWT token for user ID: {} with expiry: {}", userId, expiryDate);
         
-        // Build token with subject first, then add additional claims individually
+        // Convert roles to string list for JWT claims
+        List<String> roleStrings = roles != null ? 
+                roles.stream().map(Enum::name).collect(Collectors.toList()) : 
+                Collections.singletonList(Role.USER.name());
+        
+        // Build token with subject and claims
         return Jwts.builder()
                 .setSubject(userId)
                 .claim("username", username)
                 .claim("email", email)
                 .claim("avatar", avatar)
+                .claim("roles", roleStrings)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(SignatureAlgorithm.HS512, jwtSecret)
                 .compact();
+    }
+    
+    /**
+     * Overloaded method for backward compatibility.
+     */
+    public String generateToken(String userId, String username, String email, String avatar) {
+        return generateToken(userId, username, email, avatar, Collections.singleton(Role.USER));
     }
 
     /**
      * Generates a refresh token for the provided user id.
      *
      * @param userId the user identifier
+     * @param roles  the user's roles
      * @return the generated refresh token
      */
-    public String generateRefreshToken(String userId) {
+    public String generateRefreshToken(String userId, Set<Role> roles) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + refreshTokenExpiryInMs);
+        
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
+        
+        // Include roles in refresh token
+        List<String> roleStrings = roles != null ? 
+                roles.stream().map(Enum::name).collect(Collectors.toList()) : 
+                Collections.singletonList(Role.USER.name());
+        claims.put("roles", roleStrings);
+        
         return Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(now)
@@ -78,12 +106,16 @@ public class JWTTokenProvider {
                 .signWith(SignatureAlgorithm.HS512, refreshTokenSecret)
                 .compact();
     }
+    
+    /**
+     * Overloaded method for backward compatibility.
+     */
+    public String generateRefreshToken(String userId) {
+        return generateRefreshToken(userId, Collections.singleton(Role.USER));
+    }
 
     /**
      * Extracts the user id from the JWT token.
-     *
-     * @param token the JWT token
-     * @return the user id extracted from the token
      */
     public String getUserIdFromJWT(String token) {
         Claims claims = Jwts.parser()
@@ -94,6 +126,30 @@ public class JWTTokenProvider {
         String userId = claims.getSubject();
         logger.debug("Extracted user id from JWT token: {}", userId);
         return userId;
+    }
+    
+    /**
+     * Extracts the roles from the JWT token.
+     *
+     * @param token the JWT token
+     * @return the set of roles
+     */
+    @SuppressWarnings("unchecked")
+    public Set<Role> getRolesFromJWT(String token) {
+        Claims claims = Jwts.parser()
+                .setSigningKey(jwtSecret)
+                .parseClaimsJws(token)
+                .getBody();
+        
+        List<String> roleStrings = claims.get("roles", List.class);
+        
+        if (roleStrings == null || roleStrings.isEmpty()) {
+            return Collections.singleton(Role.USER);
+        }
+        
+        return roleStrings.stream()
+                .map(role -> Role.valueOf(role))
+                .collect(Collectors.toSet());
     }
 
     /**
