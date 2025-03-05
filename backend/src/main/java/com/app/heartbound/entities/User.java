@@ -30,4 +30,5 @@ public class User {
     private String pronouns;
     private String about;
     private String bannerColor;
+    private String bannerUrl;
 }

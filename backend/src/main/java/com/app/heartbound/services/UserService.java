@@ -89,6 +89,10 @@ public class UserService {
                 user.setAvatar(profileDTO.getAvatar());
             }
             
+            if (profileDTO.getBannerUrl() != null) {
+                user.setBannerUrl(profileDTO.getBannerUrl());
+            }
+            
             return userRepository.save(user);
         }
         
@@ -107,6 +111,7 @@ public class UserService {
                 .pronouns(user.getPronouns())
                 .about(user.getAbout())
                 .bannerColor(user.getBannerColor())
+                .bannerUrl(user.getBannerUrl())
                 .build();
     }
 }

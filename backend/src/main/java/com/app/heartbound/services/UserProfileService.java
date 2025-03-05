@@ -70,6 +70,11 @@ public class UserProfileService {
                 .id(user.getId())
                 .username(user.getUsername())
                 .avatar(user.getAvatar() != null ? user.getAvatar() : "/default-avatar.png")
+                .displayName(user.getDisplayName())
+                .pronouns(user.getPronouns())
+                .about(user.getAbout())
+                .bannerColor(user.getBannerColor())
+                .bannerUrl(user.getBannerUrl())
                 .build();
     }
     

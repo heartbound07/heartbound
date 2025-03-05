@@ -108,6 +108,7 @@ public class UserController {
                 .pronouns(user.getPronouns())
                 .about(user.getAbout())
                 .bannerColor(user.getBannerColor())
+                .bannerUrl(user.getBannerUrl())
                 .build();
     }
     
