@@ -8,6 +8,7 @@ import {
   UserInfo,
   AuthProviderProps,
   ProfileStatus,
+  Role,
 } from './types';
 import { AUTH_STORAGE_KEY, TOKEN_REFRESH_MARGIN, AUTH_ENDPOINTS } from './constants';
 import * as partyService from '../valorant/partyService';
@@ -77,24 +78,18 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
   const parseJwt = (token: string) => {
     try {
-      const parts = token.split('.');
-      if (parts.length !== 3) {
-        console.error('JWT does not have 3 parts:', token);
-        return { exp: 0 };
-      }
-      const base64UrlPayload = parts[1];
-      console.log('Raw base64Url payload:');
-      // Convert from base64url to base64
-      let base64 = base64UrlPayload.replace(/-/g, '+').replace(/_/g, '/');
-      while (base64.length % 4) {
-        base64 += '=';
-      }
-      const decodedPayload = atob(base64);
-      console.log('Decoded payload string:');
-      return JSON.parse(decodedPayload);
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      return JSON.parse(jsonPayload);
     } catch (error) {
-      console.error('Error while decoding JWT:', error);
-      return { exp: 0 };
+      console.error('Error parsing JWT token:', error);
+      return null;
     }
   };
 
@@ -379,44 +374,61 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   }, [handleAuthResponse]);
 
   const handleDiscordCallbackWithToken = useCallback(async (accessToken: string, refreshToken?: string) => {
-    console.log('Raw accessToken from URL:', accessToken);
-    const decodedTokenString = decodeURIComponent(accessToken);
-    console.log('Decoded token string after decodeURIComponent:', decodedTokenString);
-    const decodedToken = parseJwt(decodedTokenString);
-    console.log('Final decoded JWT object:', decodedToken);
-    
-    // Verify the token has a valid subject
-    if (!decodedToken.sub) {
-      console.error('Invalid JWT token: missing subject claim');
-      throw new Error('Invalid authentication token');
+    try {
+      setState(prev => ({ ...prev, isLoading: true }));
+
+      // Decode JWT token to get user information
+      const decodedToken = parseJwt(accessToken);
+      
+      if (!decodedToken) {
+        throw new Error('Invalid token format');
+      }
+
+      // Extract user data from the token
+      const user: UserInfo = {
+        id: decodedToken.sub || '',
+        username: decodedToken.username || '',
+        email: decodedToken.email || '',
+        avatar: decodedToken.avatar || '',
+        roles: decodedToken.roles || ['USER'] // Extract roles from token
+      };
+
+      // Build token pair
+      const tokenPair: TokenPair = {
+        accessToken,
+        refreshToken: refreshToken || '',
+        tokenType: 'bearer',
+        expiresIn: decodedToken.exp ? (decodedToken.exp * 1000 - Date.now()) / 1000 : 3600,
+        scope: decodedToken.scope || 'identify email'
+      };
+
+      // Store auth data
+      persistAuthState(user, tokenPair);
+      
+      // Set auth state
+      setState({
+        user,
+        profile: null, // Will be loaded later
+        isAuthenticated: true,
+        isLoading: false,
+        error: null
+      });
+      
+      // Setup token refresh timer
+      scheduleTokenRefresh(tokenPair.expiresIn * 1000 - TOKEN_REFRESH_MARGIN);
+      
+      // Reconnect websocket with new token
+      webSocketService.reconnectWithFreshToken();
+      
+      return user;
+    } catch (error) {
+      setState(prev => ({ 
+        ...prev, 
+        isLoading: false, 
+        error: error instanceof Error ? error.message : 'Authentication failed' 
+      }));
+      throw error;
     }
-    
-    const user: UserInfo = {
-      id: decodedToken.sub,
-      username: decodedToken.username || 'unknown',
-      email: decodedToken.email || 'unknown',
-      avatar: decodedToken.avatar || '/default-avatar.png',
-    };
-    
-    const expiresIn = decodedToken.exp - Math.floor(Date.now() / 1000);
-    const tokenPair: TokenPair = {
-      accessToken: decodedTokenString,
-      refreshToken: refreshToken || "", 
-      tokenType: "bearer",
-      expiresIn: expiresIn,
-      scope: ""
-    };
-    
-    persistAuthState(user, tokenPair);
-    scheduleTokenRefresh(expiresIn);
-    setTokens(tokenPair);
-    setState(prev => ({
-      ...prev,
-      user,
-      isAuthenticated: true,
-      isLoading: false,
-      error: null,
-    }));
   }, [persistAuthState, scheduleTokenRefresh]);
 
   const updateProfile = useCallback((profile: ProfileStatus) => {
@@ -482,6 +494,13 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
+  const hasRole = useCallback(
+    (role: Role): boolean => {
+      return !!state.user?.roles?.includes(role);
+    },
+    [state.user]
+  );
+
   const contextValue = useMemo<AuthContextValue>(() => ({
     ...state,
     login,
@@ -494,6 +513,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     handleDiscordCallback,
     handleDiscordCallbackWithToken,
     updateProfile,
+    hasRole,
     createParty: partyService.createParty,
     getParty: partyService.getParty,
     listParties: partyService.listParties,
@@ -501,7 +521,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     deleteParty: partyService.deleteParty,
     joinParty: partyService.joinParty,
     updateUserProfile,
-  }), [state, login, logout, tokens, startDiscordOAuth, handleDiscordCallback, handleDiscordCallbackWithToken, updateProfile, refreshToken, updateUserProfile]);
+  }), [state, login, logout, tokens, startDiscordOAuth, handleDiscordCallback, handleDiscordCallbackWithToken, updateProfile, refreshToken, hasRole, updateUserProfile]);
 
   return (
     <AuthContext.Provider value={contextValue}>

@@ -1,12 +1,15 @@
 import { CreatePartyRequestDTO, LFGPartyResponseDTO, ListPartiesParams, UpdatePartyRequestDTO } from '../valorant/partyService';
 import { UpdateProfileDTO } from '@/config/userService';
 
+export type Role = 'USER' | 'MONARCH' | 'MODERATOR' | 'ADMIN';
+
 export interface UserInfo {
   id: string;
   username: string;
   email: string;
   discordId?: string;
   avatar?: string;
+  roles?: Role[];
 }
 
 export interface LoginRequest {
@@ -56,10 +59,10 @@ export interface AuthContextValue extends AuthState {
   clearError: () => void;
   startDiscordOAuth: () => Promise<void>;
   handleDiscordCallback: (code: string, state: string) => Promise<void>;
-  handleDiscordCallbackWithToken: (accessToken: string, refreshToken?: string) => Promise<void>;
+  handleDiscordCallbackWithToken: (accessToken: string, refreshToken?: string) => Promise<UserInfo>;
   updateProfile: (profile: ProfileStatus) => void;
   updateUserProfile: (profile: UpdateProfileDTO) => Promise<void>;
-
+  hasRole: (role: Role) => boolean;
   
   // Party service functions
   createParty: (data: CreatePartyRequestDTO) => Promise<LFGPartyResponseDTO>;

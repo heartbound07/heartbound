@@ -6,5 +6,6 @@ export type {
   UserInfo, 
   LoginRequest, 
   RegisterRequest,
-  ProfileStatus 
+  ProfileStatus,
+  Role
 } from './types';

@@ -1,4 +1,5 @@
 import httpClient from '@/lib/api/httpClient';
+import { Role } from '@/contexts/auth/types';
 
 export interface UserProfileDTO {
   id: string;
@@ -9,6 +10,7 @@ export interface UserProfileDTO {
   about?: string;
   bannerColor?: string;
   bannerUrl?: string;
+  roles?: Role[];
 }
 
 export interface UpdateProfileDTO {
