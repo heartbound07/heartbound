@@ -7,9 +7,23 @@ import { LoginPage } from '@/features/auth/LoginPage';
 import { AuthErrorPage } from '@/features/auth/AuthErrorPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { ProfilePage } from '@/features/dashboard/ProfilePage';
+import { AdminPanel } from '@/features/dashboard/AdminPanel';
 import ValorantPage from '@/features/valorant/ValorantPage';
 import ValorantPartyDetails from '@/features/valorant/ValorantPartyDetails';
 import { DiscordCallback } from '@/features/auth/DiscordCallback';
+import { useAuth } from '@/contexts/auth';
+import { Navigate as RouterNavigate } from 'react-router-dom';
+
+// Admin route guard component
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { hasRole } = useAuth();
+  
+  if (!hasRole('ADMIN')) {
+    return <RouterNavigate to="/dashboard" replace />;
+  }
+  
+  return <>{children}</>;
+}
 
 function ProtectedRoutes() {
   return (
@@ -34,6 +48,16 @@ export function AppRoutes() {
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          
+          {/* Admin routes - protected with AdminRoute component */}
+          <Route 
+            path="admin" 
+            element={
+              <AdminRoute>
+                <AdminPanel />
+              </AdminRoute>
+            } 
+          />
         </Route>
         <Route path="/dashboard/valorant" element={<ValorantPageLayout />}>
           <Route index element={<ValorantPage />} />
