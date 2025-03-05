@@ -56,6 +56,9 @@ export default function Listing({ party }: ListingProps) {
   // Add this state near the other state declarations
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null)
   
+  // Add this state for tracking position
+  const [profilePosition, setProfilePosition] = useState<{ x: number, y: number } | null>(null)
+  
   // Fetch user profiles when participants change
   useEffect(() => {
     if (participants.length > 0) {
@@ -115,17 +118,19 @@ export default function Listing({ party }: ListingProps) {
     navigate(`/dashboard/valorant/${party.id}`)
   }
 
-  // Add these functions before the return statement
-  const handleProfileView = (userId: string) => {
-    // Find the profile in the already fetched userProfiles
-    if (userProfiles[userId]) {
-      setSelectedProfileId(userId);
+  // Update the handleProfileView function
+  const handleProfileView = (userId: string, position?: { x: number, y: number }) => {
+    setSelectedProfileId(userId)
+    if (position) {
+      setProfilePosition(position)
     }
-  };
+  }
   
+  // Update the handleCloseProfileModal function
   const handleCloseProfileModal = () => {
-    setSelectedProfileId(null);
-  };
+    setSelectedProfileId(null)
+    setProfilePosition(null)
+  }
 
   return (
     <div className="overflow-hidden bg-zinc-900 rounded-lg shadow-lg h-full">
@@ -295,9 +300,15 @@ export default function Listing({ party }: ListingProps) {
                         ? "bg-zinc-800 ring-1 ring-violet-500/50 cursor-pointer"
                         : "border border-dashed border-zinc-700 hover:border-zinc-500"
                     } transition-all duration-200 group flex items-center justify-center`}
-                    onClick={() => {
+                    onClick={(event) => {
                       if (slot.filled && slot.participantId) {
-                        handleProfileView(slot.participantId);
+                        // Get the position from the event
+                        const element = event.currentTarget;
+                        const rect = element.getBoundingClientRect();
+                        handleProfileView(slot.participantId, {
+                          x: rect.right,
+                          y: rect.top
+                        });
                       }
                     }}
                   >
@@ -332,6 +343,7 @@ export default function Listing({ party }: ListingProps) {
         isOpen={!!selectedProfileId}
         onClose={handleCloseProfileModal}
         userProfile={selectedProfileId ? userProfiles[selectedProfileId] : null}
+        position={profilePosition}
       />
     </div>
   )

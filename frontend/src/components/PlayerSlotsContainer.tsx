@@ -19,7 +19,7 @@ interface PlayerSlotProps {
   currentUserId?: string;
   participantId?: string;
   isNewJoin?: boolean;
-  onProfileView?: (userId: string) => void;
+  onProfileView?: (userId: string, position: { x: number; y: number }) => void;
 }
 
 const PlayerSlot: React.FC<PlayerSlotProps> = ({
@@ -59,11 +59,16 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
   const highlightClasses = isNewJoin ? "animate-joinHighlight" : "";
 
   // Handler for slot click
-  const handleSlotClick = () => {
+  const handleSlotClick = (e: React.MouseEvent) => {
     if (isEmpty) {
       onClick?.();
     } else if (!isCurrentUser && participantId && onProfileView) {
-      onProfileView(participantId);
+      // Pass the click coordinates along with the participant ID
+      const rect = e.currentTarget.getBoundingClientRect();
+      onProfileView(participantId, {
+        x: rect.right, // Position modal to the right of the slot
+        y: rect.top    // Align with top of slot
+      });
     }
   };
 
@@ -126,7 +131,7 @@ interface PlayerSlotsContainerProps {
   placeholderAvatar: string;
   onInviteClick?: () => void;
   className?: string;
-  onProfileView?: (userId: string) => void;
+  onProfileView?: (userId: string, position: { x: number; y: number }) => void;
 }
 
 export function PlayerSlotsContainer({

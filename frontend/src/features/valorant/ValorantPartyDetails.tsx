@@ -134,6 +134,7 @@ export default function ValorantPartyDetails() {
   const [participants, setParticipants] = React.useState<string[]>([])
   const [isJoining, setIsJoining] = React.useState(false)
   const [selectedProfileId, setSelectedProfileId] = React.useState<string | null>(null)
+  const [profilePosition, setProfilePosition] = React.useState<{ x: number, y: number } | null>(null)
   
   // Toast state
   const [toastInfo, setToastInfo] = React.useState<{
@@ -311,12 +312,14 @@ export default function ValorantPartyDetails() {
       });
   };
 
-  const handleProfileView = (userId: string) => {
+  const handleProfileView = (userId: string, position: { x: number, y: number }) => {
     setSelectedProfileId(userId);
+    setProfilePosition(position);
   };
   
   const handleCloseProfileModal = () => {
     setSelectedProfileId(null);
+    setProfilePosition(null);
   };
 
   if (isLoading) {
@@ -575,6 +578,7 @@ export default function ValorantPartyDetails() {
             isOpen={!!selectedProfileId}
             onClose={handleCloseProfileModal}
             userProfile={selectedProfileId ? userProfiles[selectedProfileId] : null}
+            position={profilePosition}
           />
         </div>
       </div>

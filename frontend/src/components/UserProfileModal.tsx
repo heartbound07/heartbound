@@ -1,17 +1,60 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ProfilePreview } from "@/components/ui/profile/ProfilePreview";
 import { X } from "lucide-react";
 import { type UserProfileDTO } from "@/config/userService";
 
+interface Position {
+  x: number;
+  y: number;
+}
+
 interface UserProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   userProfile: UserProfileDTO | null;
+  position?: Position | null; // New prop for positioning
 }
 
-export function UserProfileModal({ isOpen, onClose, userProfile }: UserProfileModalProps) {
+export function UserProfileModal({ isOpen, onClose, userProfile, position }: UserProfileModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const [modalPosition, setModalPosition] = useState<Position | null>(null);
+
+  // Calculate optimal position when modal opens or position changes
+  useEffect(() => {
+    if (isOpen && position && modalRef.current) {
+      const modalWidth = 300; // Width of ProfilePreview component
+      const modalHeight = 400; // Approximate height of ProfilePreview
+      const padding = 16; // Padding from edge
+      
+      // Get viewport dimensions
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // Calculate position to ensure modal stays in viewport
+      let x = position.x;
+      let y = position.y;
+      
+      // Adjust horizontal position if needed
+      if (x + modalWidth + padding > viewportWidth) {
+        x = x - modalWidth - padding; // Position to the left of the slot
+      } else {
+        x = x + padding; // Position to the right of the slot
+      }
+      
+      // Adjust vertical position if needed
+      if (y + modalHeight + padding > viewportHeight) {
+        y = viewportHeight - modalHeight - padding; // Position above viewport bottom
+      }
+      
+      // Ensure modal is not positioned above the top of viewport
+      y = Math.max(padding, y);
+      
+      setModalPosition({ x, y });
+    } else {
+      setModalPosition(null);
+    }
+  }, [isOpen, position]);
 
   // Handle clicking outside to close
   useEffect(() => {
@@ -56,11 +99,20 @@ export function UserProfileModal({ isOpen, onClose, userProfile }: UserProfileMo
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 pointer-events-none"
         >
-          <div
+          <motion.div
             ref={modalRef}
-            className="relative"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+            className="absolute pointer-events-auto"
+            style={{
+              left: modalPosition ? `${modalPosition.x}px` : '50%',
+              top: modalPosition ? `${modalPosition.y}px` : '50%',
+              transform: modalPosition ? 'none' : 'translate(-50%, -50%)'
+            }}
             tabIndex={-1}
           >
             <motion.button
@@ -84,7 +136,7 @@ export function UserProfileModal({ isOpen, onClose, userProfile }: UserProfileMo
               user={{ avatar: userProfile.avatar, username: userProfile.username }}
               showEditButton={false}
             />
-          </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
