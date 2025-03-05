@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Camera, Plus, Upload } from "lucide-react"
+import { Camera, Plus, Upload, Save, Loader2 } from "lucide-react"
+import toast, { Toaster } from 'react-hot-toast'
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/profile/avatar"
 import { Button } from "@/components/ui/profile/button"
@@ -12,19 +13,58 @@ import { Textarea } from "@/components/ui/profile/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/profile/tooltip"
 import { useAuth } from "@/contexts/auth"
 import { ProfilePreview } from "@/components/ui/profile/ProfilePreview"
+import { UpdateProfileDTO } from "@/config/userService"
 
 export function ProfilePage() {
+  const { user, profile, updateUserProfile, isLoading, error } = useAuth()
+  
   const [avatarHover, setAvatarHover] = useState(false)
   const [bannerHover, setBannerHover] = useState(false)
   const [about, setAbout] = useState("")
-  const [name, setName] = useState("p")
+  const [name, setName] = useState("")
   const [pronouns, setPronouns] = useState("")
   const [bannerColor, setBannerColor] = useState("bg-white/10")
-  const { user } = useAuth()
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  
+  // Initialize form with profile data if available
+  useEffect(() => {
+    if (profile) {
+      setName(profile.displayName || "")
+      setPronouns(profile.pronouns || "")
+      setAbout(profile.about || "")
+      setBannerColor(profile.bannerColor || "bg-white/10")
+    }
+  }, [profile])
+  
+  const handleSaveProfile = async () => {
+    try {
+      const profileData: UpdateProfileDTO = {
+        displayName: name,
+        pronouns: pronouns,
+        about: about,
+        bannerColor: bannerColor
+      }
+      
+      await updateUserProfile(profileData)
+      toast.success("Profile updated successfully!")
+      setSaveMessage("Profile updated successfully!")
+      
+      // Clear the success message after 3 seconds
+      setTimeout(() => setSaveMessage(null), 3000)
+    } catch (err) {
+      toast.error("Failed to update profile. Please try again.")
+      setSaveMessage("Failed to update profile. Please try again.")
+      
+      // Clear the error message after 3 seconds
+      setTimeout(() => setSaveMessage(null), 3000)
+    }
+  }
 
   return (
     <TooltipProvider>
       <div className="flex min-h-screen flex-col gap-8 bg-gradient-to-br from-[#6B5BE6] to-[#8878f0] p-6 text-white lg:flex-row">
+        <Toaster position="top-right" />
+        
         {/* Settings Panel */}
         <div className="flex w-full flex-col gap-8 lg:w-1/2">
           <div className="rounded-2xl border border-white/10 bg-white/10 p-8 backdrop-blur-md shadow-lg">
@@ -122,7 +162,7 @@ export function ProfilePage() {
                           onClick={() => setBannerColor(color)}
                           variant="ghost"
                           size="sm"
-                          className={`h-8 w-8 rounded-full border-2 border-white/20 transition-transform hover:scale-110 ${color}`}
+                          className={`h-8 w-8 rounded-full border-2 border-white/20 transition-transform hover:scale-110 ${color} ${bannerColor === color ? 'ring-2 ring-white' : ''}`}
                         >
                           <span className="sr-only">
                             {color.replace("bg-", "").replace("/10", "")}
@@ -136,6 +176,32 @@ export function ProfilePage() {
                   ))}
                 </div>
               </div>
+              
+              <div className="flex justify-end">
+                <Button 
+                  onClick={handleSaveProfile}
+                  disabled={isLoading}
+                  className="bg-white/20 hover:bg-white/30 text-white flex items-center gap-2"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      Save Profile
+                    </>
+                  )}
+                </Button>
+              </div>
+              
+              {saveMessage && (
+                <div className="mt-4 p-3 rounded-md bg-white/20 text-white text-sm">
+                  {saveMessage}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -143,8 +209,9 @@ export function ProfilePage() {
         {/* Preview Panel */}
         <ProfilePreview 
           bannerColor={bannerColor} 
-          name={name} 
-          about={about} 
+          name={name || (user?.username || "")}
+          about={about}
+          pronouns={pronouns}
           user={user} 
           showEditButton={false}
           onClick={() => {

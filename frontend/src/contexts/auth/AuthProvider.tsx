@@ -13,6 +13,8 @@ import { AUTH_STORAGE_KEY, TOKEN_REFRESH_MARGIN, AUTH_ENDPOINTS } from './consta
 import * as partyService from '../valorant/partyService';
 import axios from 'axios';
 import webSocketService from '../../config/WebSocketService';
+import * as userService from '../../config/userService';
+import { UpdateProfileDTO } from '@/config/userService';
 
 // Update the type declaration
 declare global {
@@ -375,6 +377,39 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }));
   }, []);
 
+  const updateUserProfile = async (profile: UpdateProfileDTO) => {
+    if (!state.user?.id) {
+      throw new Error('User not authenticated');
+    }
+    
+    try {
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
+      const updatedProfile = await userService.updateUserProfile(state.user!.id, profile);
+      
+      // Update the profile state
+      setState(prev => ({
+        ...prev,
+        profile: {
+          ...prev.profile,
+          isComplete: true,
+          displayName: updatedProfile.displayName,
+          pronouns: updatedProfile.pronouns,
+          about: updatedProfile.about,
+          bannerColor: updatedProfile.bannerColor
+        },
+        isLoading: false
+      }));
+      
+    } catch (error) {
+      setState(prev => ({ 
+        ...prev, 
+        isLoading: false, 
+        error: error instanceof Error ? error.message : 'Failed to update profile'
+      }));
+      throw error;
+    }
+  };
+
   useEffect(() => {
     initializeAuth();
     return () => {
@@ -400,7 +435,8 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     updateParty: partyService.updateParty,
     deleteParty: partyService.deleteParty,
     joinParty: partyService.joinParty,
-  }), [state, login, logout, tokens, startDiscordOAuth, handleDiscordCallback, handleDiscordCallbackWithToken, updateProfile, refreshToken]);
+    updateUserProfile,
+  }), [state, login, logout, tokens, startDiscordOAuth, handleDiscordCallback, handleDiscordCallbackWithToken, updateProfile, refreshToken, updateUserProfile]);
 
   return (
     <AuthContext.Provider value={contextValue}>

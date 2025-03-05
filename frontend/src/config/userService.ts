@@ -4,6 +4,17 @@ export interface UserProfileDTO {
   id: string;
   username: string;
   avatar: string;
+  displayName?: string;
+  pronouns?: string;
+  about?: string;
+  bannerColor?: string;
+}
+
+export interface UpdateProfileDTO {
+  displayName: string;
+  pronouns: string;
+  about: string;
+  bannerColor: string;
 }
 
 export const getUserProfile = async (userId: string): Promise<UserProfileDTO> => {
@@ -46,5 +57,15 @@ export const getUserProfiles = async (userIds: string[]): Promise<Record<string,
       };
     });
     return fallbackProfiles;
+  }
+};
+
+export const updateUserProfile = async (userId: string, profile: UpdateProfileDTO): Promise<UserProfileDTO> => {
+  try {
+    const response = await httpClient.put(`/api/users/${userId}/profile`, profile);
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating user profile for ${userId}:`, error);
+    throw error;
   }
 };

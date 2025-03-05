@@ -9,6 +9,7 @@ interface ProfilePreviewProps {
   bannerColor: string;
   name?: string;
   about?: string;
+  pronouns?: string;
   user?: { avatar?: string; username?: string } | null;
   onClick?: () => void;
   showEditButton?: boolean;
@@ -18,6 +19,7 @@ export function ProfilePreview({
   bannerColor, 
   name, 
   about, 
+  pronouns,
   user, 
   onClick,
   showEditButton = true
@@ -63,6 +65,7 @@ export function ProfilePreview({
           <div className="mb-4 flex items-center gap-2">
             <h2 className="text-xl font-bold">{name || "Display Name"}</h2>
             <span className="text-sm text-white/80">{user?.username || "Guest"}</span>
+            {pronouns && <span className="text-sm text-white/60">• {pronouns}</span>}
           </div>
           <p className="text-sm text-white/80">
             {about || "Your about me section will appear here..."}
