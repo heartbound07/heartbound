@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 interface ProfilePreviewProps {
   bannerColor: string;
+  bannerUrl?: string;
   name?: string;
   about?: string;
   pronouns?: string;
@@ -17,6 +18,7 @@ interface ProfilePreviewProps {
 
 export function ProfilePreview({ 
   bannerColor, 
+  bannerUrl,
   name, 
   about, 
   pronouns,
@@ -64,7 +66,10 @@ export function ProfilePreview({
         animate={{ opacity: 1, y: 0 }}
         className="overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-[#6B5BE6] to-[#8878f0] shadow-lg"
       >
-        <div className={`relative h-32 ${bannerColor}`}>
+        <div 
+          className={`relative h-32 ${!bannerUrl ? bannerColor : ''}`}
+          style={bannerUrl ? { backgroundImage: `url(${bannerUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+        >
           <div className="absolute bottom-0 left-4 translate-y-1/2">
             <div className="relative">
               <Avatar className="h-20 w-20 border-4 border-white/10 shadow-xl">

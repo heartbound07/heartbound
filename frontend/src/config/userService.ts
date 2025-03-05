@@ -8,6 +8,7 @@ export interface UserProfileDTO {
   pronouns?: string;
   about?: string;
   bannerColor?: string;
+  bannerUrl?: string;
 }
 
 export interface UpdateProfileDTO {
@@ -16,6 +17,7 @@ export interface UpdateProfileDTO {
   about: string;
   bannerColor: string;
   avatar?: string;
+  bannerUrl?: string;
 }
 
 export const getUserProfile = async (userId: string): Promise<UserProfileDTO> => {

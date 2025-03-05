@@ -21,4 +21,5 @@ public class UserProfileDTO {
     private String pronouns;
     private String about;
     private String bannerColor;
+    private String bannerUrl;
 }

@@ -27,6 +27,7 @@ export interface ProfileStatus {
   pronouns?: string;
   about?: string;
   bannerColor?: string;
+  bannerUrl?: string;
 }
 
 export interface AuthState {

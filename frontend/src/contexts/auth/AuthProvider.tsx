@@ -316,7 +316,8 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
             displayName: profileData.displayName,
             pronouns: profileData.pronouns,
             about: profileData.about,
-            bannerColor: profileData.bannerColor
+            bannerColor: profileData.bannerColor,
+            bannerUrl: profileData.bannerUrl
           },
           isLoading: false,
         }));
@@ -425,7 +426,8 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           displayName: updatedProfile.displayName,
           pronouns: updatedProfile.pronouns,
           about: updatedProfile.about,
-          bannerColor: updatedProfile.bannerColor
+          bannerColor: updatedProfile.bannerColor,
+          bannerUrl: updatedProfile.bannerUrl // Add bannerUrl to the profile state
         },
         isLoading: false
       }));

@@ -1,11 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Camera, Plus, Upload, Save, Loader2 } from "lucide-react"
+import { Save, Loader2 } from "lucide-react"
 import toast, { Toaster } from 'react-hot-toast'
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/profile/avatar"
 import { Button } from "@/components/ui/profile/button"
 import { Input } from "@/components/ui/profile/input"
 import { Label } from "@/components/ui/profile/label"
@@ -15,18 +13,18 @@ import { useAuth } from "@/contexts/auth"
 import { ProfilePreview } from "@/components/ui/profile/ProfilePreview"
 import { UpdateProfileDTO } from "@/config/userService"
 import { AvatarUpload } from "@/components/ui/profile/AvatarUpload"
+import { BannerUpload } from "@/components/ui/profile/BannerUpload"
 
 export function ProfilePage() {
-  const { user, profile, updateUserProfile, isLoading, error } = useAuth()
+  const { user, profile, updateUserProfile, isLoading} = useAuth()
   
-  const [avatarHover, setAvatarHover] = useState(false)
-  const [bannerHover, setBannerHover] = useState(false)
   const [about, setAbout] = useState("")
   const [name, setName] = useState("")
   const [pronouns, setPronouns] = useState("")
   const [bannerColor, setBannerColor] = useState("bg-white/10")
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState<string>("")
+  const [bannerUrl, setBannerUrl] = useState<string>("")
   
   // Initialize form with profile data if available
   useEffect(() => {
@@ -35,6 +33,7 @@ export function ProfilePage() {
       setPronouns(profile.pronouns || "")
       setAbout(profile.about || "")
       setBannerColor(profile.bannerColor || "bg-white/10")
+      setBannerUrl(profile.bannerUrl || "")
     }
     if (user) {
       setAvatarUrl(user.avatar || "")
@@ -46,6 +45,11 @@ export function ProfilePage() {
     toast.success("Avatar uploaded successfully! Don't forget to save your profile.")
   }
   
+  const handleBannerUpload = (url: string) => {
+    setBannerUrl(url)
+    toast.success("Banner uploaded successfully! Don't forget to save your profile.")
+  }
+  
   const handleSaveProfile = async () => {
     try {
       const profileData: UpdateProfileDTO = {
@@ -53,7 +57,8 @@ export function ProfilePage() {
         pronouns: pronouns,
         about: about,
         bannerColor: bannerColor,
-        avatar: avatarUrl
+        avatar: avatarUrl,
+        bannerUrl: bannerUrl
       }
       
       await updateUserProfile(profileData)
@@ -121,19 +126,14 @@ export function ProfilePage() {
 
               <div className="space-y-3">
                 <Label className="text-xs font-medium text-white/80">PROFILE BANNER</Label>
-                <div
-                  className="group relative h-32 cursor-pointer overflow-hidden rounded-lg border border-white/10 bg-white/10"
-                  onMouseEnter={() => setBannerHover(true)}
-                  onMouseLeave={() => setBannerHover(false)}
-                >
-                  <div
-                    className={`absolute inset-0 flex items-center justify-center bg-black/60 transition-opacity duration-200 ${
-                      bannerHover ? "opacity-100" : "opacity-0"
-                    }`}
-                  >
-                    <Upload className="h-6 w-6 text-white" />
-                  </div>
-                </div>
+                <BannerUpload
+                  currentBannerUrl={bannerUrl}
+                  bannerColor={bannerColor}
+                  onUpload={handleBannerUpload}
+                />
+                <p className="text-xs text-white/60">
+                  Click on the banner to upload a new image. Maximum size: 5MB.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -209,7 +209,8 @@ export function ProfilePage() {
 
         {/* Preview Panel */}
         <ProfilePreview 
-          bannerColor={bannerColor} 
+          bannerColor={bannerColor}
+          bannerUrl={bannerUrl}
           name={name || (user?.username || "")}
           about={about}
           pronouns={pronouns}

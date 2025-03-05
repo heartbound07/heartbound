@@ -27,4 +27,7 @@ public class UpdateProfileDTO {
     
     @Schema(description = "The avatar image URL", example = "https://cloudinary.com/image.jpg")
     private String avatar;
+    
+    @Schema(description = "The banner image URL", example = "https://cloudinary.com/banner.jpg")
+    private String bannerUrl;
 }
