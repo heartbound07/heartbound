@@ -28,10 +28,9 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
-        // Skip JWT validation for WebSocket handshake endpoints (and SockJS fallback endpoints)
-        String servletPath = request.getServletPath();
-        if (servletPath.startsWith("/ws")) {
-            logger.debug("Skipping JWT filter for WebSocket handshake endpoint: {}", servletPath);
+        // Skip JWT authentication for WebSocket handshake
+        if (request.getRequestURI().contains("/ws/")) {
+            logger.debug("Skipping JWT filter for WebSocket handshake endpoint: {}", request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
         }
@@ -43,10 +42,14 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
             logger.debug("JWT token extracted from Authorization header.");
             if (jwtTokenProvider.validateToken(token)) {
                 String userId = jwtTokenProvider.getUserIdFromJWT(token);
-                logger.debug("JWT token validated. Setting authentication for user id: {}", userId);
-                UsernamePasswordAuthenticationToken authentication = 
-                    new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                if (userId != null && !userId.isEmpty()) {
+                    logger.debug("JWT token validated. Setting authentication for user id: {}", userId);
+                    UsernamePasswordAuthenticationToken authentication = 
+                        new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                } else {
+                    logger.warn("JWT token validated but no user ID was found.");
+                }
             } else {
                 logger.warn("Invalid JWT token provided in header.");
             }

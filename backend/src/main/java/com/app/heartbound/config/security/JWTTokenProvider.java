@@ -45,26 +45,19 @@ public class JWTTokenProvider {
     public String generateToken(String userId, String username, String email, String avatar) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
-
-        // Create claims map and add additional user details
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("username", username);
-        claims.put("email", email);
-        claims.put("avatar", avatar);
-        // Future claims can be added here (e.g., roles, permissions, etc.)
-
-        logger.info("Generating JWT token for user id: {} with username: {}", userId, username);
-
-        String token = Jwts.builder()
-                .setClaims(claims)
+        
+        logger.debug("Generating JWT token for user ID: {} with expiry: {}", userId, expiryDate);
+        
+        // Build token with subject first, then add additional claims individually
+        return Jwts.builder()
                 .setSubject(userId)
+                .claim("username", username)
+                .claim("email", email)
+                .claim("avatar", avatar)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(SignatureAlgorithm.HS512, jwtSecret)
                 .compact();
-
-        logger.info("JWT token generated successfully for user id: {}", userId);
-        return token;
     }
 
     /**
@@ -87,18 +80,20 @@ public class JWTTokenProvider {
     }
 
     /**
-     * Extracts the userId (subject) from the JWT token.
+     * Extracts the user id from the JWT token.
      *
      * @param token the JWT token
-     * @return the userId stored in the token
+     * @return the user id extracted from the token
      */
     public String getUserIdFromJWT(String token) {
         Claims claims = Jwts.parser()
                 .setSigningKey(jwtSecret)
                 .parseClaimsJws(token)
                 .getBody();
-        logger.debug("Extracted user id from JWT token: {}", claims.getSubject());
-        return claims.getSubject();
+        
+        String userId = claims.getSubject();
+        logger.debug("Extracted user id from JWT token: {}", userId);
+        return userId;
     }
 
     /**

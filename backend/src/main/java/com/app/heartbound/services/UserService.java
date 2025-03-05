@@ -31,8 +31,14 @@ public class UserService {
             User existingUser = existingUserOpt.get();
             existingUser.setUsername(userDTO.getUsername());
             existingUser.setDiscriminator(userDTO.getDiscriminator());
-            existingUser.setAvatar(userDTO.getAvatar());
             existingUser.setEmail(userDTO.getEmail());
+            
+            // Only update avatar if it's null, default avatar, or from Discord
+            // This preserves custom uploaded avatars
+            if (shouldUpdateAvatar(existingUser.getAvatar(), userDTO.getAvatar())) {
+                existingUser.setAvatar(userDTO.getAvatar());
+            }
+            
             return userRepository.save(existingUser);
         } else {
             User newUser = User.builder()
@@ -44,6 +50,33 @@ public class UserService {
                     .build();
             return userRepository.save(newUser);
         }
+    }
+
+    /**
+     * Determines if the avatar should be updated based on current value.
+     * 
+     * @param currentAvatar the existing avatar in the database
+     * @param newAvatar the avatar value from OAuth
+     * @return true if avatar should be updated, false if it should be preserved
+     */
+    private boolean shouldUpdateAvatar(String currentAvatar, String newAvatar) {
+        // If current avatar is null or empty, update it
+        if (currentAvatar == null || currentAvatar.isEmpty()) {
+            return true;
+        }
+        
+        // If current avatar is the default, update it
+        if (currentAvatar.equals("/default-avatar.png")) {
+            return true;
+        }
+        
+        // If current avatar is from Discord, update it
+        if (currentAvatar.contains("cdn.discordapp.com")) {
+            return true;
+        }
+        
+        // Otherwise, it's a custom avatar, so don't update it
+        return false;
     }
 
     /**

@@ -11,6 +11,7 @@ import com.app.heartbound.dto.oauth.OAuthTokenResponse;
 import com.app.heartbound.services.oauth.OAuthService;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.config.security.JWTTokenProvider;
+import com.app.heartbound.entities.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -153,15 +154,20 @@ public class OAuthController {
             return new RedirectView("/login?error=User+information+retrieval+failed");
         }
 
-        userService.createOrUpdateUser(userDTO);
-        logger.info("User information persisted successfully for user: {}", userDTO.getUsername());
-
+        // Create or update the user with the Discord info
+        // (our improved method preserves custom avatar)
+        User user = userService.createOrUpdateUser(userDTO);
+        
+        // IMPORTANT: Use the avatar from the database, not from Discord
+        // This ensures we're using the custom avatar if it exists
+        String userAvatar = user.getAvatar(); 
+        
         // Generate both the access token and the refresh token using JWTTokenProvider.
         String accessToken = jwtTokenProvider.generateToken(
                 userDTO.getId(),
                 userDTO.getUsername(),
                 userDTO.getEmail(),
-                userDTO.getAvatar()
+                userAvatar  // Use database avatar, not Discord avatar
         );
         String refreshToken = jwtTokenProvider.generateRefreshToken(userDTO.getId());
 

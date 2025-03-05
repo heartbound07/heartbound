@@ -308,23 +308,38 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         // Fetch the user's profile using the stored user ID
         const profileData = await userService.getUserProfile(user.id);
         
-        // Update the profile state with the fetched data
-        setState(prev => ({
-          ...prev,
-          profile: {
-            isComplete: true,
-            displayName: profileData.displayName,
-            pronouns: profileData.pronouns,
-            about: profileData.about,
-            bannerColor: profileData.bannerColor,
-            bannerUrl: profileData.bannerUrl,
-            avatar: profileData.avatar
-          },
-          isLoading: false,
-        }));
+        // Update both the profile AND user state with the fetched data
+        setState(prev => {
+          // Create an updated user object with the correct avatar
+          const updatedUser = {
+            ...prev.user!,
+            avatar: profileData.avatar // Use the avatar from profile
+          };
+          
+          // Also update localStorage with the correct avatar
+          const authData = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || '{}');
+          if (authData.user) {
+            authData.user.avatar = profileData.avatar;
+            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+          }
+          
+          return {
+            ...prev,
+            user: updatedUser, // Update user with correct avatar
+            profile: {
+              isComplete: true,
+              displayName: profileData.displayName,
+              pronouns: profileData.pronouns,
+              about: profileData.about,
+              bannerColor: profileData.bannerColor,
+              bannerUrl: profileData.bannerUrl,
+              avatar: profileData.avatar
+            },
+            isLoading: false,
+          };
+        });
       } catch (profileError) {
         console.error("Failed to fetch profile data during initialization:", profileError);
-        // Even if profile fetch fails, continue with basic auth
         setState(prev => ({
           ...prev,
           isLoading: false,
@@ -370,8 +385,14 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     const decodedToken = parseJwt(decodedTokenString);
     console.log('Final decoded JWT object:', decodedToken);
     
+    // Verify the token has a valid subject
+    if (!decodedToken.sub) {
+      console.error('Invalid JWT token: missing subject claim');
+      throw new Error('Invalid authentication token');
+    }
+    
     const user: UserInfo = {
-      id: decodedToken.sub || 'unknown',
+      id: decodedToken.sub,
       username: decodedToken.username || 'unknown',
       email: decodedToken.email || 'unknown',
       avatar: decodedToken.avatar || '/default-avatar.png',
@@ -380,7 +401,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     const expiresIn = decodedToken.exp - Math.floor(Date.now() / 1000);
     const tokenPair: TokenPair = {
       accessToken: decodedTokenString,
-      refreshToken: refreshToken || "", // Use provided refreshToken or default to an empty string
+      refreshToken: refreshToken || "", 
       tokenType: "bearer",
       expiresIn: expiresIn,
       scope: ""
