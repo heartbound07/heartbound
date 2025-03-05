@@ -45,12 +45,24 @@ public class UserService {
             newUser.setAvatar(userDTO.getAvatar());
             newUser.setDiscriminator(userDTO.getDiscriminator());
             
+            // Cache the Discord avatar URL
+            if (userDTO.getAvatar() != null && userDTO.getAvatar().contains("cdn.discordapp.com")) {
+                newUser.setDiscordAvatarUrl(userDTO.getAvatar());
+            }
+            
             logger.info("Created new user: {}", newUser.getUsername());
             return userRepository.save(newUser);
         } else {
             // Update existing user information
             existingUser.setUsername(userDTO.getUsername());
             existingUser.setEmail(userDTO.getEmail());
+            
+            // ALWAYS cache the Discord avatar URL if we receive one from Discord
+            // This ensures we always have the latest Discord avatar to fall back to
+            if (userDTO.getAvatar() != null && userDTO.getAvatar().contains("cdn.discordapp.com")) {
+                existingUser.setDiscordAvatarUrl(userDTO.getAvatar());
+                logger.debug("Updated Discord avatar cache for user: {}", userId);
+            }
             
             // Special avatar handling logic
             if (shouldUpdateAvatar(existingUser, userDTO.getAvatar())) {
@@ -125,13 +137,31 @@ public class UserService {
         user.setBannerColor(updateProfileDTO.getBannerColor());
         user.setBannerUrl(updateProfileDTO.getBannerUrl());
         
-        // Special handling for avatar - if avatar is empty string and useDiscordAvatar is true
-        // Set it to our special marker
+        // Special handling for avatar
         if (updateProfileDTO.getAvatar() != null && updateProfileDTO.getAvatar().isEmpty()) {
+            // Empty avatar string means use Discord avatar
             user.setAvatar("USE_DISCORD_AVATAR");
+            
+            // Make sure we have a Discord avatar URL to fall back to
+            if (user.getDiscordAvatarUrl() == null || user.getDiscordAvatarUrl().isEmpty()) {
+                // If no cached Discord avatar, attempt to fetch it
+                try {
+                    // Here we would ideally fetch it from Discord API
+                    // For now, we'll add a log to identify this issue
+                    logger.warn("No cached Discord avatar URL available for user: {}", userId);
+                } catch (Exception e) {
+                    logger.error("Error fetching Discord avatar: {}", e.getMessage());
+                }
+            }
         } else if (updateProfileDTO.getAvatar() != null) {
             // Otherwise use the provided avatar
             user.setAvatar(updateProfileDTO.getAvatar());
+            
+            // If this is a Discord CDN URL, also update the cached URL
+            if (updateProfileDTO.getAvatar().contains("cdn.discordapp.com")) {
+                user.setDiscordAvatarUrl(updateProfileDTO.getAvatar());
+                logger.debug("Updated Discord avatar cache from profile update for user: {}", userId);
+            }
         }
         
         // Save the updated user
@@ -143,18 +173,50 @@ public class UserService {
     }
 
     /**
-     * Enhanced mapToProfileDTO method that includes all profile fields.
+     * Enhanced mapToProfileDTO method that handles the special marker for Discord avatars.
      */
     public UserProfileDTO mapToProfileDTO(User user) {
+        String avatarUrl = user.getAvatar();
+        
+        // If the special marker is found, use the cached Discord avatar
+        if ("USE_DISCORD_AVATAR".equals(avatarUrl)) {
+            logger.debug("Special avatar marker found for user: {}", user.getId());
+            
+            if (user.getDiscordAvatarUrl() != null && !user.getDiscordAvatarUrl().isEmpty()) {
+                avatarUrl = user.getDiscordAvatarUrl();
+                logger.debug("Using cached Discord avatar URL: {}", avatarUrl);
+            } else {
+                // Fallback if no cached avatar is found
+                avatarUrl = "/default-avatar.png";
+                logger.warn("No cached Discord avatar URL found for user: {}, using default", user.getId());
+            }
+        } else if (avatarUrl == null || avatarUrl.isEmpty()) {
+            avatarUrl = "/default-avatar.png";
+            logger.debug("Empty avatar URL for user: {}, using default", user.getId());
+        } else {
+            logger.debug("Using custom avatar URL for user: {}: {}", user.getId(), avatarUrl);
+        }
+        
         return UserProfileDTO.builder()
                 .id(user.getId())
                 .username(user.getUsername())
-                .avatar(user.getAvatar() != null ? user.getAvatar() : "/default-avatar.png")
+                .avatar(avatarUrl)
                 .displayName(user.getDisplayName())
                 .pronouns(user.getPronouns())
                 .about(user.getAbout())
                 .bannerColor(user.getBannerColor())
                 .bannerUrl(user.getBannerUrl())
                 .build();
+    }
+
+    /**
+     * Updates an existing user entity.
+     *
+     * @param user the user entity to update
+     * @return the updated User entity
+     */
+    public User updateUser(User user) {
+        logger.debug("Updating user entity for user ID: {}", user.getId());
+        return userRepository.save(user);
     }
 }

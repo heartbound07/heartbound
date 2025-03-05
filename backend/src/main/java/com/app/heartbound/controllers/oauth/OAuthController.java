@@ -186,6 +186,15 @@ public class OAuthController {
                 encodedAccessToken,
                 encodedRefreshToken
         );
+
+        String discordAvatarUrl = userDTO.getAvatar();
+        if (user != null && discordAvatarUrl != null && discordAvatarUrl.contains("cdn.discordapp.com")) {
+            // Always update the cached Discord avatar URL, even if not using it right now
+            user.setDiscordAvatarUrl(discordAvatarUrl);
+            userService.updateUser(user);
+            logger.debug("Updated cached Discord avatar URL during OAuth flow");
+        }
+
         return new RedirectView(frontendRedirectUrl);
     }
 }

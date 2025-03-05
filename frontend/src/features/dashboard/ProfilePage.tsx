@@ -74,31 +74,22 @@ export function ProfilePage() {
   
   const handleSaveProfile = async () => {
     try {
-      const profileData: UpdateProfileDTO = {
+      const profileUpdate: UpdateProfileDTO = {
         displayName: name,
         pronouns: pronouns,
         about: about,
         bannerColor: bannerColor,
-        // Always send empty string for avatar when useDiscordAvatar is true
-        avatar: useDiscordAvatar ? "" : avatarUrl,
+        avatar: avatarUrl,
         bannerUrl: bannerUrl
       }
       
-      await updateUserProfile(profileData)
-      toast.success("Profile updated successfully!")
+      await updateUserProfile(profileUpdate)
       setSaveMessage("Profile updated successfully!")
-      
-      // After successful save with useDiscordAvatar=true,
-      // we need to refresh the page to get the latest Discord avatar
-      if (useDiscordAvatar) {
-        window.location.reload();
-      }
-    } catch (err) {
-      toast.error("Failed to update profile. Please try again.")
-      setSaveMessage("Failed to update profile. Please try again.")
-      
-      // Clear the error message after 3 seconds
-      setTimeout(() => setSaveMessage(null), 3000)
+      toast.success("Profile updated successfully!")
+    } catch (error) {
+      console.error("Error saving profile:", error)
+      setSaveMessage("Error updating profile. Please try again.")
+      toast.error("Error updating profile")
     }
   }
 

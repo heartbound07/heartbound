@@ -24,6 +24,9 @@ public class User {
     private String avatar;
     private String email;
     
+    // Add this field to cache the Discord avatar URL
+    private String discordAvatarUrl;
+    
     // Profile Update Fields
     
     private String displayName;
