@@ -23,4 +23,11 @@ public class User {
     private String discriminator;
     private String avatar;
     private String email;
+    
+    // Profile Update Fields
+    
+    private String displayName;
+    private String pronouns;
+    private String about;
+    private String bannerColor;
 }

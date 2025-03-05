@@ -1,10 +1,13 @@
 package com.app.heartbound.controllers;
 
 import com.app.heartbound.dto.UserProfileDTO;
+import com.app.heartbound.dto.UpdateProfileDTO;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -64,6 +67,33 @@ public class UserController {
     }
     
     /**
+     * Updates a user profile.
+     * 
+     * @param userId the ID of the user to update
+     * @param profileDTO the profile data to update
+     * @return the updated user profile data
+     */
+    @PutMapping("/{userId}/profile")
+    public ResponseEntity<UserProfileDTO> updateUserProfile(
+            @PathVariable String userId,
+            @RequestBody UpdateProfileDTO profileDTO,
+            Authentication authentication) {
+        
+        // Security check - ensure the authenticated user is updating their own profile
+        String authenticatedUserId = authentication.getName();
+        if (!userId.equals(authenticatedUserId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        User user = userService.updateUserProfile(userId, profileDTO);
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        return ResponseEntity.ok(mapToProfileDTO(user));
+    }
+    
+    /**
      * Maps a User entity to a UserProfileDTO.
      * 
      * @param user the User entity
@@ -74,6 +104,10 @@ public class UserController {
                 .id(user.getId())
                 .username(user.getUsername())
                 .avatar(user.getAvatar() != null ? user.getAvatar() : "/default-avatar.png")
+                .displayName(user.getDisplayName())
+                .pronouns(user.getPronouns())
+                .about(user.getAbout())
+                .bannerColor(user.getBannerColor())
                 .build();
     }
     

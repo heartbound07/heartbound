@@ -17,4 +17,8 @@ public class UserProfileDTO {
     private String id;
     private String username;
     private String avatar;
+    private String displayName;
+    private String pronouns;
+    private String about;
+    private String bannerColor;
 }

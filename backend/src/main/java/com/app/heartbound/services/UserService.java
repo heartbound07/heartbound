@@ -1,6 +1,8 @@
 package com.app.heartbound.services;
 
 import com.app.heartbound.dto.UserDTO;
+import com.app.heartbound.dto.UpdateProfileDTO;
+import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.repositories.UserRepository;
 import org.springframework.stereotype.Service;
@@ -52,5 +54,55 @@ public class UserService {
      */
     public User getUserById(String id) {
         return userRepository.findById(id).orElse(null);
+    }
+
+    /**
+     * Updates profile information for a user.
+     *
+     * @param userId the ID of the user to update
+     * @param profileDTO the profile data to update
+     * @return the updated User entity or null if user not found
+     */
+    public User updateUserProfile(String userId, UpdateProfileDTO profileDTO) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            
+            // Update only the fields provided in the DTO
+            if (profileDTO.getDisplayName() != null) {
+                user.setDisplayName(profileDTO.getDisplayName());
+            }
+            
+            if (profileDTO.getPronouns() != null) {
+                user.setPronouns(profileDTO.getPronouns());
+            }
+            
+            if (profileDTO.getAbout() != null) {
+                user.setAbout(profileDTO.getAbout());
+            }
+            
+            if (profileDTO.getBannerColor() != null) {
+                user.setBannerColor(profileDTO.getBannerColor());
+            }
+            
+            return userRepository.save(user);
+        }
+        
+        return null;
+    }
+
+    /**
+     * Enhanced mapToProfileDTO method that includes all profile fields.
+     */
+    public UserProfileDTO mapToProfileDTO(User user) {
+        return UserProfileDTO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .avatar(user.getAvatar() != null ? user.getAvatar() : "/default-avatar.png")
+                .displayName(user.getDisplayName())
+                .pronouns(user.getPronouns())
+                .about(user.getAbout())
+                .bannerColor(user.getBannerColor())
+                .build();
     }
 }
