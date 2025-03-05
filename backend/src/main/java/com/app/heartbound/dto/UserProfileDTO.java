@@ -1,9 +1,12 @@
 package com.app.heartbound.dto;
 
+import com.app.heartbound.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.Set;
 
 /**
  * Data transfer object for user profile information.
@@ -22,4 +25,7 @@ public class UserProfileDTO {
     private String about;
     private String bannerColor;
     private String bannerUrl;
+    
+    // Add roles - you may choose to expose this in profiles if needed
+    private Set<Role> roles;
 }
