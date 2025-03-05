@@ -415,6 +415,10 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       // Update the profile state
       setState(prev => ({
         ...prev,
+        user: {
+          ...prev.user!,
+          avatar: profile.avatar || prev.user!.avatar // Update avatar in user object
+        },
         profile: {
           ...prev.profile,
           isComplete: true,

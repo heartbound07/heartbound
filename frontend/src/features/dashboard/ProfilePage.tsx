@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useAuth } from "@/contexts/auth"
 import { ProfilePreview } from "@/components/ui/profile/ProfilePreview"
 import { UpdateProfileDTO } from "@/config/userService"
+import { AvatarUpload } from "@/components/ui/profile/AvatarUpload"
 
 export function ProfilePage() {
   const { user, profile, updateUserProfile, isLoading, error } = useAuth()
@@ -25,6 +26,7 @@ export function ProfilePage() {
   const [pronouns, setPronouns] = useState("")
   const [bannerColor, setBannerColor] = useState("bg-white/10")
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string>("")
   
   // Initialize form with profile data if available
   useEffect(() => {
@@ -34,7 +36,15 @@ export function ProfilePage() {
       setAbout(profile.about || "")
       setBannerColor(profile.bannerColor || "bg-white/10")
     }
-  }, [profile])
+    if (user) {
+      setAvatarUrl(user.avatar || "")
+    }
+  }, [profile, user])
+  
+  const handleAvatarUpload = (url: string) => {
+    setAvatarUrl(url)
+    toast.success("Avatar uploaded successfully! Don't forget to save your profile.")
+  }
   
   const handleSaveProfile = async () => {
     try {
@@ -42,7 +52,8 @@ export function ProfilePage() {
         displayName: name,
         pronouns: pronouns,
         about: about,
-        bannerColor: bannerColor
+        bannerColor: bannerColor,
+        avatar: avatarUrl
       }
       
       await updateUserProfile(profileData)
@@ -99,23 +110,13 @@ export function ProfilePage() {
 
               <div className="space-y-3">
                 <Label className="text-xs font-medium text-white/80">AVATAR</Label>
-                <div
-                  className="group relative h-24 w-24 cursor-pointer rounded-full"
-                  onMouseEnter={() => setAvatarHover(true)}
-                  onMouseLeave={() => setAvatarHover(false)}
-                >
-                  <Avatar className="h-24 w-24 border-2 border-white/10 transition-all duration-200 group-hover:border-white/20">
-                    <AvatarImage src={user?.avatar || "/placeholder.svg"} />
-                    <AvatarFallback>{user?.username ? user.username.charAt(0).toUpperCase() : "P"}</AvatarFallback>
-                  </Avatar>
-                  <div
-                    className={`absolute inset-0 flex items-center justify-center rounded-full bg-black/60 transition-opacity duration-200 ${
-                      avatarHover ? "opacity-100" : "opacity-0"
-                    }`}
-                  >
-                    <Camera className="h-6 w-6 text-white" />
-                  </div>
-                </div>
+                <AvatarUpload 
+                  currentAvatarUrl={avatarUrl} 
+                  onUpload={handleAvatarUpload} 
+                />
+                <p className="text-xs text-white/60">
+                  Click on your avatar to upload a new image. Maximum size: 5MB.
+                </p>
               </div>
 
               <div className="space-y-3">
@@ -212,7 +213,7 @@ export function ProfilePage() {
           name={name || (user?.username || "")}
           about={about}
           pronouns={pronouns}
-          user={user} 
+          user={{ ...user, avatar: avatarUrl }}
           showEditButton={false}
           onClick={() => {
             // For example, navigate to the user's detailed profile page.

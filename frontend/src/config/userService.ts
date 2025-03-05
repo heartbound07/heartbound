@@ -15,6 +15,7 @@ export interface UpdateProfileDTO {
   pronouns: string;
   about: string;
   bannerColor: string;
+  avatar?: string;
 }
 
 export const getUserProfile = async (userId: string): Promise<UserProfileDTO> => {
