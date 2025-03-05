@@ -1,7 +1,6 @@
 package com.app.heartbound.config.security;
 
 import java.io.IOException;
-import java.util.Collections;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,8 +9,16 @@ import org.springframework.lang.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.app.heartbound.enums.Role;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
@@ -42,11 +49,22 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
             logger.debug("JWT token extracted from Authorization header.");
             if (jwtTokenProvider.validateToken(token)) {
                 String userId = jwtTokenProvider.getUserIdFromJWT(token);
+                Set<Role> roles = jwtTokenProvider.getRolesFromJWT(token);
+                
                 if (userId != null && !userId.isEmpty()) {
                     logger.debug("JWT token validated. Setting authentication for user id: {}", userId);
+                    
+                    // Convert roles to Spring Security GrantedAuthorities
+                    List<GrantedAuthority> authorities = roles.stream()
+                            .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
+                            .collect(Collectors.toList());
+                    
+                    // Create authentication with authorities
                     UsernamePasswordAuthenticationToken authentication = 
-                        new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
+                        new UsernamePasswordAuthenticationToken(userId, null, authorities);
+                    
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+                    logger.debug("User {} authenticated with roles: {}", userId, roles);
                 } else {
                     logger.warn("JWT token validated but no user ID was found.");
                 }

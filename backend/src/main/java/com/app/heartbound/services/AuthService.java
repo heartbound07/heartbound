@@ -3,33 +3,54 @@ package com.app.heartbound.services;
 import com.app.heartbound.config.security.JWTTokenProvider;
 import com.app.heartbound.dto.UserDTO;
 import com.app.heartbound.dto.oauth.OAuthTokenResponse;
+import com.app.heartbound.enums.Role;
+import com.app.heartbound.entities.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import java.util.Collections;
+import java.util.Set;
 
 @Service
 public class AuthService {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
     private final JWTTokenProvider jwtTokenProvider;
+    private final UserService userService;
 
-    public AuthService(JWTTokenProvider jwtTokenProvider) {
+    public AuthService(JWTTokenProvider jwtTokenProvider, UserService userService) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.userService = userService;
     }
 
     /**
-     * Generates a JWT token for the authenticated user.
+     * Generates a JWT token for the authenticated user, including their roles.
      *
      * @param userDTO - Data transfer object containing user details.
      * @return A JWT token string.
      */
     public String generateTokenForUser(UserDTO userDTO) {
         logger.info("Generating JWT token for user with id: {}", userDTO.getId());
+        
+        // Get user's roles from the database if available
+        Set<Role> roles = userDTO.getRoles();
+        if (roles == null || roles.isEmpty()) {
+            User user = userService.getUserById(userDTO.getId());
+            if (user != null && user.getRoles() != null && !user.getRoles().isEmpty()) {
+                roles = user.getRoles();
+            } else {
+                // Default to USER role if no roles found
+                roles = Collections.singleton(Role.USER);
+            }
+        }
+        
         String token = jwtTokenProvider.generateToken(
                 userDTO.getId(),
                 userDTO.getUsername(),
                 userDTO.getEmail(),
-                userDTO.getAvatar()
+                userDTO.getAvatar(),
+                roles
         );
         logger.info("JWT token generated successfully for user: {}", userDTO.getId());
         return token;
@@ -66,11 +87,24 @@ public class AuthService {
     }
 
     public OAuthTokenResponse refreshToken(String refreshToken) {
-        // Validate and decode the refresh token using the dedicated refresh method
+        // Validate and decode the refresh token
         String userId = jwtTokenProvider.getUserIdFromRefreshToken(refreshToken);
-        // In a full implementation, you would also verify that this refresh token is still valid
-        String newAccessToken = jwtTokenProvider.generateToken(userId, "username", "email@example.com", "avatar.png");
-        String newRefreshToken = jwtTokenProvider.generateRefreshToken(userId);
+        
+        // Fetch the user to get their current roles
+        User user = userService.getUserById(userId);
+        Set<Role> roles = user != null && user.getRoles() != null ? 
+                user.getRoles() : Collections.singleton(Role.USER);
+        
+        // Generate new tokens with the user's current roles
+        String newAccessToken = jwtTokenProvider.generateToken(
+                userId, 
+                user != null ? user.getUsername() : "username", 
+                user != null ? user.getEmail() : "email@example.com", 
+                user != null ? user.getAvatar() : "avatar.png", 
+                roles
+        );
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(userId, roles);
+        
         return OAuthTokenResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken)

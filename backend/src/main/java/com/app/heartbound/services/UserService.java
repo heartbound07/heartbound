@@ -3,14 +3,18 @@ package com.app.heartbound.services;
 import com.app.heartbound.dto.UserDTO;
 import com.app.heartbound.dto.UpdateProfileDTO;
 import com.app.heartbound.dto.UserProfileDTO;
+import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
+import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -25,6 +29,7 @@ public class UserService {
 
     /**
      * Creates a new user or updates an existing user using the provided UserDTO data.
+     * New users are assigned the USER role by default.
      *
      * @param userDTO the data transfer object containing user details
      * @return the saved User entity
@@ -45,6 +50,9 @@ public class UserService {
             newUser.setAvatar(userDTO.getAvatar());
             newUser.setDiscriminator(userDTO.getDiscriminator());
             
+            // Assign default USER role to new users
+            newUser.addRole(Role.USER);
+            
             // Cache the Discord avatar URL
             if (userDTO.getAvatar() != null && userDTO.getAvatar().contains("cdn.discordapp.com")) {
                 newUser.setDiscordAvatarUrl(userDTO.getAvatar());
@@ -57,8 +65,10 @@ public class UserService {
             existingUser.setUsername(userDTO.getUsername());
             existingUser.setEmail(userDTO.getEmail());
             
+            // Keep existing roles - roles should not be updated through this method
+            // We'll implement separate methods for role management
+            
             // ALWAYS cache the Discord avatar URL if we receive one from Discord
-            // This ensures we always have the latest Discord avatar to fall back to
             if (userDTO.getAvatar() != null && userDTO.getAvatar().contains("cdn.discordapp.com")) {
                 existingUser.setDiscordAvatarUrl(userDTO.getAvatar());
                 logger.debug("Updated Discord avatar cache for user: {}", userId);
@@ -121,7 +131,7 @@ public class UserService {
      *
      * @param userId the ID of the user to update
      * @param updateProfileDTO the profile data to update
-     * @return the updated User entity or null if user not found
+     * @return the updated UserProfileDTO
      */
     public UserProfileDTO updateUserProfile(String userId, UpdateProfileDTO updateProfileDTO) {
         logger.debug("Updating profile for user ID: {}", userId);
@@ -206,6 +216,7 @@ public class UserService {
                 .about(user.getAbout())
                 .bannerColor(user.getBannerColor())
                 .bannerUrl(user.getBannerUrl())
+                .roles(user.getRoles())
                 .build();
     }
 
@@ -218,5 +229,89 @@ public class UserService {
     public User updateUser(User user) {
         logger.debug("Updating user entity for user ID: {}", user.getId());
         return userRepository.save(user);
+    }
+    
+    /**
+     * Assigns a role to a user. Only ADMIN users can assign ADMIN or MODERATOR roles.
+     * 
+     * @param userId the ID of the user to update
+     * @param role the role to assign
+     * @param adminId the ID of the admin performing the operation
+     * @return the updated user
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    public User assignRole(String userId, Role role, String adminId) {
+        logger.debug("Admin {} assigning role {} to user {}", adminId, role, userId);
+        
+        // Only allow ADMIN to assign ADMIN or MODERATOR roles
+        if ((role == Role.ADMIN || role == Role.MODERATOR) && 
+            !userRepository.hasRole(adminId, Role.ADMIN)) {
+            throw new UnauthorizedOperationException("Only ADMIN users can assign ADMIN or MODERATOR roles");
+        }
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        user.addRole(role);
+        return userRepository.save(user);
+    }
+    
+    /**
+     * Removes a role from a user. Only ADMIN users can remove ADMIN or MODERATOR roles.
+     * 
+     * @param userId the ID of the user to update
+     * @param role the role to remove
+     * @param adminId the ID of the admin performing the operation
+     * @return the updated user
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    public User removeRole(String userId, Role role, String adminId) {
+        logger.debug("Admin {} removing role {} from user {}", adminId, role, userId);
+        
+        // Only allow ADMIN to remove ADMIN or MODERATOR roles
+        if ((role == Role.ADMIN || role == Role.MODERATOR) && 
+            !userRepository.hasRole(adminId, Role.ADMIN)) {
+            throw new UnauthorizedOperationException("Only ADMIN users can remove ADMIN or MODERATOR roles");
+        }
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        user.removeRole(role);
+        return userRepository.save(user);
+    }
+    
+    /**
+     * Upgrades a user to MONARCH (premium) status.
+     * This could be triggered after payment confirmation.
+     * 
+     * @param userId the ID of the user to upgrade
+     * @return the updated user
+     */
+    public User upgradeToMonarch(String userId) {
+        logger.debug("Upgrading user {} to MONARCH status", userId);
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        user.addRole(Role.MONARCH);
+        return userRepository.save(user);
+    }
+    
+    /**
+     * Retrieves all users with a specific role.
+     * Only accessible to ADMIN and MODERATOR users.
+     * 
+     * @param role the role to filter by
+     * @return list of users with the specified role
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
+    public List<UserProfileDTO> getUsersByRole(Role role) {
+        logger.debug("Fetching users with role: {}", role);
+        
+        List<User> users = userRepository.findByRole(role);
+        return users.stream()
+                .map(this::mapToProfileDTO)
+                .collect(Collectors.toList());
     }
 }

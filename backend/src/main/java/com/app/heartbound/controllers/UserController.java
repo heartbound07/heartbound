@@ -2,11 +2,13 @@ package com.app.heartbound.controllers;
 
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.dto.UpdateProfileDTO;
+import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -106,5 +108,68 @@ public class UserController {
                 .username("Unknown User")
                 .avatar("/default-avatar.png")
                 .build();
+    }
+    
+    /**
+     * Admin endpoint to assign a role to a user.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{userId}/roles")
+    public ResponseEntity<UserProfileDTO> assignRole(
+            @PathVariable String userId,
+            @RequestParam Role role,
+            Authentication authentication) {
+        
+        String adminId = authentication.getName();
+        User updatedUser = userService.assignRole(userId, role, adminId);
+        return ResponseEntity.ok(userService.mapToProfileDTO(updatedUser));
+    }
+    
+    /**
+     * Admin endpoint to remove a role from a user.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{userId}/roles/{role}")
+    public ResponseEntity<UserProfileDTO> removeRole(
+            @PathVariable String userId,
+            @PathVariable Role role,
+            Authentication authentication) {
+        
+        String adminId = authentication.getName();
+        User updatedUser = userService.removeRole(userId, role, adminId);
+        return ResponseEntity.ok(userService.mapToProfileDTO(updatedUser));
+    }
+    
+    /**
+     * Endpoint to upgrade a user to MONARCH (premium) status.
+     * This would typically be triggered after payment processing.
+     */
+    @PostMapping("/{userId}/upgrade-to-monarch")
+    public ResponseEntity<UserProfileDTO> upgradeToMonarch(
+            @PathVariable String userId,
+            Authentication authentication) {
+        
+        // Security check - ensure the authenticated user is upgrading their own account
+        // or is an admin
+        String authenticatedUserId = authentication.getName();
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        
+        if (!userId.equals(authenticatedUserId) && !isAdmin) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        User upgradedUser = userService.upgradeToMonarch(userId);
+        return ResponseEntity.ok(userService.mapToProfileDTO(upgradedUser));
+    }
+    
+    /**
+     * Admin/Moderator endpoint to get all users with a specific role.
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
+    @GetMapping("/by-role/{role}")
+    public ResponseEntity<List<UserProfileDTO>> getUsersByRole(@PathVariable Role role) {
+        List<UserProfileDTO> users = userService.getUsersByRole(role);
+        return ResponseEntity.ok(users);
     }
 }
