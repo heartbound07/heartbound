@@ -155,19 +155,24 @@ public class OAuthController {
         }
 
         // Create or update the user with the Discord info
-        // (our improved method preserves custom avatar)
         User user = userService.createOrUpdateUser(userDTO);
         
-        // IMPORTANT: Use the avatar from the database, not from Discord
-        // This ensures we're using the custom avatar if it exists
-        String userAvatar = user.getAvatar(); 
+        // Determine the appropriate avatar to use
+        String userAvatar;
+        
+        // If the user has our special marker, use the Discord avatar
+        if ("USE_DISCORD_AVATAR".equals(user.getAvatar())) {
+            userAvatar = userDTO.getAvatar(); // Use the Discord avatar
+        } else {
+            userAvatar = user.getAvatar(); // Use the stored avatar
+        }
         
         // Generate both the access token and the refresh token using JWTTokenProvider.
         String accessToken = jwtTokenProvider.generateToken(
                 userDTO.getId(),
                 userDTO.getUsername(),
                 userDTO.getEmail(),
-                userAvatar  // Use database avatar, not Discord avatar
+                userAvatar
         );
         String refreshToken = jwtTokenProvider.generateRefreshToken(userDTO.getId());
 

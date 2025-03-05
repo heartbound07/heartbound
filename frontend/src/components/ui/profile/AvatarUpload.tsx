@@ -3,16 +3,25 @@ import { Cloudinary } from '@cloudinary/url-gen'
 import { auto } from '@cloudinary/url-gen/actions/resize'
 import { autoGravity } from '@cloudinary/url-gen/qualifiers/gravity'
 import { AdvancedImage } from '@cloudinary/react'
-import { Camera } from 'lucide-react'
+import { Camera, X } from 'lucide-react'
 
 interface AvatarUploadProps {
   currentAvatarUrl?: string
   onUpload: (url: string) => void
+  onRemove?: () => void
+  showRemoveButton?: boolean
   size?: number
   className?: string
 }
 
-export function AvatarUpload({ currentAvatarUrl, onUpload, size = 96, className = '' }: AvatarUploadProps) {
+export function AvatarUpload({ 
+  currentAvatarUrl, 
+  onUpload, 
+  onRemove,
+  showRemoveButton = false,
+  size = 96, 
+  className = '' 
+}: AvatarUploadProps) {
   const [isHovering, setIsHovering] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -100,7 +109,7 @@ export function AvatarUpload({ currentAvatarUrl, onUpload, size = 96, className 
   }
 
   return (
-    <div className={`${className}`}>
+    <div className={`${className} relative`}>
       <div 
         className="relative w-24 h-24"
         onMouseEnter={() => setIsHovering(true)}
@@ -140,6 +149,21 @@ export function AvatarUpload({ currentAvatarUrl, onUpload, size = 96, className 
           </div>
         )}
       </div>
+      
+      {/* Remove button */}
+      {showRemoveButton && onRemove && currentAvatarUrl && !uploading && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 transition-colors"
+          title="Remove avatar"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
       
       {/* Hidden file input */}
       <input 

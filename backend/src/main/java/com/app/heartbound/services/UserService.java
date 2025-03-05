@@ -5,6 +5,9 @@ import com.app.heartbound.dto.UpdateProfileDTO;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.repositories.UserRepository;
+import com.app.heartbound.exceptions.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -13,6 +16,7 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     // Constructor-based dependency injection for UserRepository
     public UserService(UserRepository userRepository) {
@@ -26,56 +30,67 @@ public class UserService {
      * @return the saved User entity
      */
     public User createOrUpdateUser(UserDTO userDTO) {
-        Optional<User> existingUserOpt = userRepository.findById(userDTO.getId());
-        if (existingUserOpt.isPresent()) {
-            User existingUser = existingUserOpt.get();
+        String userId = userDTO.getId();
+        logger.debug("Creating or updating user with ID: {}", userId);
+        
+        // Check if user exists in database
+        User existingUser = userRepository.findById(userId).orElse(null);
+        
+        if (existingUser == null) {
+            // Create new user
+            User newUser = new User();
+            newUser.setId(userId);
+            newUser.setUsername(userDTO.getUsername());
+            newUser.setEmail(userDTO.getEmail());
+            newUser.setAvatar(userDTO.getAvatar());
+            newUser.setDiscriminator(userDTO.getDiscriminator());
+            
+            logger.info("Created new user: {}", newUser.getUsername());
+            return userRepository.save(newUser);
+        } else {
+            // Update existing user information
             existingUser.setUsername(userDTO.getUsername());
-            existingUser.setDiscriminator(userDTO.getDiscriminator());
             existingUser.setEmail(userDTO.getEmail());
             
-            // Only update avatar if it's null, default avatar, or from Discord
-            // This preserves custom uploaded avatars
-            if (shouldUpdateAvatar(existingUser.getAvatar(), userDTO.getAvatar())) {
+            // Special avatar handling logic
+            if (shouldUpdateAvatar(existingUser, userDTO.getAvatar())) {
+                logger.debug("Updating avatar for user: {}", userId);
                 existingUser.setAvatar(userDTO.getAvatar());
+            } else {
+                logger.debug("Preserving custom avatar for user: {}", userId);
             }
             
+            existingUser.setDiscriminator(userDTO.getDiscriminator());
+            
+            logger.info("Updated existing user: {}", existingUser.getUsername());
             return userRepository.save(existingUser);
-        } else {
-            User newUser = User.builder()
-                    .id(userDTO.getId())
-                    .username(userDTO.getUsername())
-                    .discriminator(userDTO.getDiscriminator())
-                    .avatar(userDTO.getAvatar())
-                    .email(userDTO.getEmail())
-                    .build();
-            return userRepository.save(newUser);
         }
     }
 
     /**
-     * Determines if the avatar should be updated based on current value.
-     * 
-     * @param currentAvatar the existing avatar in the database
-     * @param newAvatar the avatar value from OAuth
-     * @return true if avatar should be updated, false if it should be preserved
+     * Determines if user's avatar should be updated.
+     * - Always update if user doesn't have an avatar yet
+     * - Always update if existing avatar is a Discord CDN URL
+     * - Do not update if user has a custom avatar (Cloudinary URL)
+     * - SPECIAL CASE: Update if new avatar is "USE_DISCORD_AVATAR" special marker
      */
-    private boolean shouldUpdateAvatar(String currentAvatar, String newAvatar) {
-        // If current avatar is null or empty, update it
-        if (currentAvatar == null || currentAvatar.isEmpty()) {
+    private boolean shouldUpdateAvatar(User user, String newAvatarUrl) {
+        // Special case: If new avatar URL is our special "use Discord avatar" marker
+        if ("USE_DISCORD_AVATAR".equals(newAvatarUrl)) {
             return true;
         }
         
-        // If current avatar is the default, update it
-        if (currentAvatar.equals("/default-avatar.png")) {
+        // No existing avatar - always update
+        if (user.getAvatar() == null || user.getAvatar().isEmpty()) {
             return true;
         }
         
-        // If current avatar is from Discord, update it
-        if (currentAvatar.contains("cdn.discordapp.com")) {
+        // If current avatar is from Discord CDN, update it
+        if (user.getAvatar().contains("cdn.discordapp.com")) {
             return true;
         }
         
-        // Otherwise, it's a custom avatar, so don't update it
+        // Otherwise, it's a custom avatar (Cloudinary) - don't update
         return false;
     }
 
@@ -93,51 +108,38 @@ public class UserService {
      * Updates profile information for a user.
      *
      * @param userId the ID of the user to update
-     * @param profileDTO the profile data to update
+     * @param updateProfileDTO the profile data to update
      * @return the updated User entity or null if user not found
      */
-    public User updateUserProfile(String userId, UpdateProfileDTO profileDTO) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            
-            // Log the incoming avatar URL
-            System.out.println("Updating user profile for " + userId);
-            System.out.println("Received avatar URL: " + profileDTO.getAvatar());
-            
-            // Update only the fields provided in the DTO
-            if (profileDTO.getDisplayName() != null) {
-                user.setDisplayName(profileDTO.getDisplayName());
-            }
-            
-            if (profileDTO.getPronouns() != null) {
-                user.setPronouns(profileDTO.getPronouns());
-            }
-            
-            if (profileDTO.getAbout() != null) {
-                user.setAbout(profileDTO.getAbout());
-            }
-            
-            if (profileDTO.getBannerColor() != null) {
-                user.setBannerColor(profileDTO.getBannerColor());
-            }
-            
-            if (profileDTO.getAvatar() != null) {
-                System.out.println("Setting avatar to: " + profileDTO.getAvatar());
-                user.setAvatar(profileDTO.getAvatar());
-            }
-            
-            if (profileDTO.getBannerUrl() != null) {
-                System.out.println("Setting banner URL to: " + profileDTO.getBannerUrl());
-                user.setBannerUrl(profileDTO.getBannerUrl());
-            }
-            
-            User savedUser = userRepository.save(user);
-            System.out.println("Saved user with avatar: " + savedUser.getAvatar());
-            return savedUser;
+    public UserProfileDTO updateUserProfile(String userId, UpdateProfileDTO updateProfileDTO) {
+        logger.debug("Updating profile for user ID: {}", userId);
+        
+        // Get the user entity
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // Update user profile fields
+        user.setDisplayName(updateProfileDTO.getDisplayName());
+        user.setPronouns(updateProfileDTO.getPronouns());
+        user.setAbout(updateProfileDTO.getAbout());
+        user.setBannerColor(updateProfileDTO.getBannerColor());
+        user.setBannerUrl(updateProfileDTO.getBannerUrl());
+        
+        // Special handling for avatar - if avatar is empty string and useDiscordAvatar is true
+        // Set it to our special marker
+        if (updateProfileDTO.getAvatar() != null && updateProfileDTO.getAvatar().isEmpty()) {
+            user.setAvatar("USE_DISCORD_AVATAR");
+        } else if (updateProfileDTO.getAvatar() != null) {
+            // Otherwise use the provided avatar
+            user.setAvatar(updateProfileDTO.getAvatar());
         }
         
-        return null;
+        // Save the updated user
+        User updatedUser = userRepository.save(user);
+        logger.info("Updated profile for user: {}", updatedUser.getUsername());
+        
+        // Convert to DTO and return
+        return mapToProfileDTO(updatedUser);
     }
 
     /**

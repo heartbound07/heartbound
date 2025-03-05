@@ -85,12 +85,13 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         
-        User user = userService.updateUserProfile(userId, profileDTO);
-        if (user == null) {
+        // The method now returns UserProfileDTO directly, not User
+        UserProfileDTO updatedProfile = userService.updateUserProfile(userId, profileDTO);
+        if (updatedProfile == null) {
             return ResponseEntity.notFound().build();
         }
         
-        return ResponseEntity.ok(mapToProfileDTO(user));
+        return ResponseEntity.ok(updatedProfile);
     }
     
     /**

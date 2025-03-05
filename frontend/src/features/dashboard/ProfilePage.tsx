@@ -25,6 +25,9 @@ export function ProfilePage() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState<string>("")
   const [bannerUrl, setBannerUrl] = useState<string>("")
+  const [isUsingCustomAvatar, setIsUsingCustomAvatar] = useState(false)
+  const [discordAvatar, setDiscordAvatar] = useState<string>("")
+  const [useDiscordAvatar, setUseDiscordAvatar] = useState(false)
   
   // Initialize form with profile data if available
   useEffect(() => {
@@ -37,12 +40,31 @@ export function ProfilePage() {
     }
     if (user) {
       setAvatarUrl(user.avatar || "")
+      // Store the original Discord avatar URL if it contains discordapp.com
+      if (user.avatar && user.avatar.includes('cdn.discordapp.com')) {
+        setDiscordAvatar(user.avatar)
+        setIsUsingCustomAvatar(false)
+      } else if (user.avatar) {
+        setIsUsingCustomAvatar(true)
+      }
+      setUseDiscordAvatar(false)
     }
   }, [profile, user])
   
   const handleAvatarUpload = (url: string) => {
     setAvatarUrl(url)
+    setIsUsingCustomAvatar(true)
+    setUseDiscordAvatar(false)
     toast.success("Avatar uploaded successfully! Don't forget to save your profile.")
+  }
+  
+  const handleRemoveAvatar = () => {
+    // Even if we have stored Discord avatar, just set avatarUrl to empty string
+    // to signal to backend we want to use Discord avatar
+    setAvatarUrl("");
+    setIsUsingCustomAvatar(false);
+    setUseDiscordAvatar(true);
+    toast.success("Avatar removed. Your Discord avatar will be used instead. Don't forget to save your profile.");
   }
   
   const handleBannerUpload = (url: string) => {
@@ -57,7 +79,8 @@ export function ProfilePage() {
         pronouns: pronouns,
         about: about,
         bannerColor: bannerColor,
-        avatar: avatarUrl,
+        // Always send empty string for avatar when useDiscordAvatar is true
+        avatar: useDiscordAvatar ? "" : avatarUrl,
         bannerUrl: bannerUrl
       }
       
@@ -65,8 +88,11 @@ export function ProfilePage() {
       toast.success("Profile updated successfully!")
       setSaveMessage("Profile updated successfully!")
       
-      // Clear the success message after 3 seconds
-      setTimeout(() => setSaveMessage(null), 3000)
+      // After successful save with useDiscordAvatar=true,
+      // we need to refresh the page to get the latest Discord avatar
+      if (useDiscordAvatar) {
+        window.location.reload();
+      }
     } catch (err) {
       toast.error("Failed to update profile. Please try again.")
       setSaveMessage("Failed to update profile. Please try again.")
@@ -116,8 +142,10 @@ export function ProfilePage() {
               <div className="space-y-3">
                 <Label className="text-xs font-medium text-white/80">AVATAR</Label>
                 <AvatarUpload 
-                  currentAvatarUrl={avatarUrl} 
-                  onUpload={handleAvatarUpload} 
+                  currentAvatarUrl={avatarUrl}
+                  onUpload={handleAvatarUpload}
+                  onRemove={handleRemoveAvatar}
+                  showRemoveButton={isUsingCustomAvatar}
                 />
                 <p className="text-xs text-white/60">
                   Click on your avatar to upload a new image. Maximum size: 5MB.
