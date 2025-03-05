@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -15,6 +16,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 @Configuration
+@EnableMethodSecurity // Enable method-level security for @PreAuthorize annotations
 public class SecurityConfig {
 
     @Autowired
@@ -52,6 +54,14 @@ public class SecurityConfig {
                 // Permit user profile endpoints - updated paths
                 .requestMatchers(HttpMethod.GET, "/users/*/profile", "/users/profiles").permitAll()
                 .requestMatchers(HttpMethod.PUT, "/users/*/profile").authenticated()
+                
+                // Role-based security for admin endpoints
+                .requestMatchers("/admin/**").hasRole("ADMIN")
+                // Moderator endpoints available to admins and moderators
+                .requestMatchers("/moderation/**").hasAnyRole("ADMIN", "MODERATOR")
+                // Monarch (premium) features
+                .requestMatchers("/premium/**").hasAnyRole("ADMIN", "MONARCH")
+                
                 // All other requests require authentication
                 .anyRequest().authenticated()
             )

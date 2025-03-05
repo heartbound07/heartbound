@@ -5,6 +5,8 @@ import java.security.SecureRandom;
 import jakarta.servlet.http.HttpSession;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Set;
 
 import com.app.heartbound.dto.UserDTO;
 import com.app.heartbound.dto.oauth.OAuthTokenResponse;
@@ -12,6 +14,7 @@ import com.app.heartbound.services.oauth.OAuthService;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.config.security.JWTTokenProvider;
 import com.app.heartbound.entities.User;
+import com.app.heartbound.enums.Role;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -167,14 +170,21 @@ public class OAuthController {
             userAvatar = user.getAvatar(); // Use the stored avatar
         }
         
+        // Get the user's roles
+        Set<Role> roles = user.getRoles();
+        if (roles == null || roles.isEmpty()) {
+            roles = Collections.singleton(Role.USER);
+        }
+
         // Generate both the access token and the refresh token using JWTTokenProvider.
         String accessToken = jwtTokenProvider.generateToken(
                 userDTO.getId(),
                 userDTO.getUsername(),
                 userDTO.getEmail(),
-                userAvatar
+                userAvatar,
+                roles
         );
-        String refreshToken = jwtTokenProvider.generateRefreshToken(userDTO.getId());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(userDTO.getId(), roles);
 
         // URL-encode both tokens to safely include them in a redirect URL.
         String encodedAccessToken = URLEncoder.encode(accessToken, StandardCharsets.UTF_8);
