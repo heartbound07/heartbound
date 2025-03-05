@@ -120,7 +120,7 @@ export function DashboardNavigation({ theme = 'default' }) {
     return ReactDOM.createPortal(
       <div 
         ref={profilePreviewRef}
-        className="fixed z-50"
+        className="fixed z-[9999]"
         style={{ 
           top: `${popupPosition.top}px`, 
           left: `${popupPosition.left}px` 
