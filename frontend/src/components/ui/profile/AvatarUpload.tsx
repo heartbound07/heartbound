@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { Cloudinary } from '@cloudinary/url-gen'
 import { auto } from '@cloudinary/url-gen/actions/resize'
 import { autoGravity } from '@cloudinary/url-gen/qualifiers/gravity'
@@ -16,6 +16,7 @@ export function AvatarUpload({ currentAvatarUrl, onUpload, size = 96, className 
   const [isHovering, setIsHovering] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Get Cloudinary settings from environment variables
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string
@@ -68,6 +69,13 @@ export function AvatarUpload({ currentAvatarUrl, onUpload, size = 96, className 
     }
   }
 
+  // Handle avatar click to open file picker
+  const handleAvatarClick = () => {
+    if (!uploading && fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
   // Set up Cloudinary image transformation
   const cld = new Cloudinary({ cloud: { cloudName } })
   const imageUrl = currentAvatarUrl
@@ -92,56 +100,59 @@ export function AvatarUpload({ currentAvatarUrl, onUpload, size = 96, className 
   }
 
   return (
-    <div 
-      className={`relative group ${className}`}
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
-    >
-      {cldImage ? (
-        <AdvancedImage 
-          cldImg={cldImage} 
-          className={`h-24 w-24 rounded-full border-2 border-white/10 transition-all duration-200 object-cover ${
-            isHovering ? 'opacity-80' : 'opacity-100'
-          }`} 
-        />
-      ) : imageUrl ? (
-        <img 
-          src={imageUrl} 
-          alt="Avatar" 
-          className={`h-24 w-24 rounded-full border-2 border-white/10 transition-all duration-200 object-cover ${
-            isHovering ? 'opacity-80' : 'opacity-100'
+    <div className={`${className}`}>
+      <div 
+        className="relative w-24 h-24 mx-auto"
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+        onClick={handleAvatarClick}
+      >
+        {cldImage ? (
+          <AdvancedImage 
+            cldImg={cldImage} 
+            className="h-24 w-24 rounded-full border-2 border-white/10 transition-all duration-200 object-cover" 
+          />
+        ) : imageUrl ? (
+          <img 
+            src={imageUrl} 
+            alt="Avatar" 
+            className="h-24 w-24 rounded-full border-2 border-white/10 transition-all duration-200 object-cover"
+          />
+        ) : (
+          <div className="h-24 w-24 rounded-full border-2 border-dashed border-white/10 flex items-center justify-center bg-white/5">
+            <Camera className="h-8 w-8 text-white/40" />
+          </div>
+        )}
+        
+        {/* Hover overlay */}
+        <div
+          className={`absolute inset-0 flex items-center justify-center rounded-full bg-black/60 transition-opacity duration-200 ${
+            isHovering && !uploading ? 'opacity-100' : 'opacity-0'
           }`}
-        />
-      ) : (
-        <div className="h-24 w-24 rounded-full border-2 border-dashed border-white/10 flex items-center justify-center bg-white/5">
-          <Camera className="h-8 w-8 text-white/40" />
+        >
+          <Camera className="h-6 w-6 text-white" />
         </div>
-      )}
+        
+        {/* Loading overlay */}
+        {uploading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full">
+            <div className="h-8 w-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+      </div>
       
+      {/* Hidden file input */}
       <input 
+        ref={fileInputRef}
         type="file" 
         accept="image/*" 
         onChange={handleFileChange} 
-        className="absolute inset-0 opacity-0 cursor-pointer" 
+        className="hidden" 
         disabled={uploading}
       />
       
-      <div
-        className={`absolute inset-0 flex items-center justify-center rounded-full bg-black/60 transition-opacity duration-200 ${
-          isHovering && !uploading ? 'opacity-100' : 'opacity-0'
-        }`}
-      >
-        <Camera className="h-6 w-6 text-white" />
-      </div>
-      
-      {uploading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full">
-          <div className="h-8 w-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
-      
       {error && (
-        <div className="absolute -bottom-6 left-0 right-0 text-xs text-red-400 text-center">
+        <div className="mt-2 text-xs text-red-400 text-center">
           {error}
         </div>
       )}
