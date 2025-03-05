@@ -10,6 +10,8 @@ import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +24,12 @@ public class UserService {
     private final UserRepository userRepository;
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
+    // Read admin Discord ID from environment variables
+    @Value("${admin.discord.id}")
+    private String adminDiscordId;
+
     // Constructor-based dependency injection for UserRepository
+    @Autowired
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
@@ -35,85 +42,49 @@ public class UserService {
      * @return the saved User entity
      */
     public User createOrUpdateUser(UserDTO userDTO) {
-        String userId = userDTO.getId();
-        logger.debug("Creating or updating user with ID: {}", userId);
+        String id = userDTO.getId();
+        String username = userDTO.getUsername();
+        String discriminator = userDTO.getDiscriminator();
+        String email = userDTO.getEmail();
+        String avatar = userDTO.getAvatar();
         
-        // Check if user exists in database
-        User existingUser = userRepository.findById(userId).orElse(null);
+        logger.debug("Creating or updating user with ID: {}", id);
         
-        if (existingUser == null) {
-            // Create new user
-            User newUser = new User();
-            newUser.setId(userId);
-            newUser.setUsername(userDTO.getUsername());
-            newUser.setEmail(userDTO.getEmail());
-            newUser.setAvatar(userDTO.getAvatar());
-            newUser.setDiscriminator(userDTO.getDiscriminator());
-            
-            // Assign default USER role to new users
-            newUser.addRole(Role.USER);
-            
-            // Cache the Discord avatar URL
-            if (userDTO.getAvatar() != null && userDTO.getAvatar().contains("cdn.discordapp.com")) {
-                newUser.setDiscordAvatarUrl(userDTO.getAvatar());
-            }
-            
-            logger.info("Created new user: {}", newUser.getUsername());
-            return userRepository.save(newUser);
-        } else {
-            // Update existing user information
-            existingUser.setUsername(userDTO.getUsername());
-            existingUser.setEmail(userDTO.getEmail());
-            
-            // Keep existing roles - roles should not be updated through this method
-            // We'll implement separate methods for role management
-            
-            // ALWAYS cache the Discord avatar URL if we receive one from Discord
-            if (userDTO.getAvatar() != null && userDTO.getAvatar().contains("cdn.discordapp.com")) {
-                existingUser.setDiscordAvatarUrl(userDTO.getAvatar());
-                logger.debug("Updated Discord avatar cache for user: {}", userId);
-            }
-            
-            // Special avatar handling logic
-            if (shouldUpdateAvatar(existingUser, userDTO.getAvatar())) {
-                logger.debug("Updating avatar for user: {}", userId);
-                existingUser.setAvatar(userDTO.getAvatar());
-            } else {
-                logger.debug("Preserving custom avatar for user: {}", userId);
-            }
-            
-            existingUser.setDiscriminator(userDTO.getDiscriminator());
-            
-            logger.info("Updated existing user: {}", existingUser.getUsername());
-            return userRepository.save(existingUser);
-        }
-    }
-
-    /**
-     * Determines if user's avatar should be updated.
-     * - Always update if user doesn't have an avatar yet
-     * - Always update if existing avatar is a Discord CDN URL
-     * - Do not update if user has a custom avatar (Cloudinary URL)
-     * - SPECIAL CASE: Update if new avatar is "USE_DISCORD_AVATAR" special marker
-     */
-    private boolean shouldUpdateAvatar(User user, String newAvatarUrl) {
-        // Special case: If new avatar URL is our special "use Discord avatar" marker
-        if ("USE_DISCORD_AVATAR".equals(newAvatarUrl)) {
-            return true;
+        User user = userRepository.findById(id).orElse(new User());
+        
+        // Set user properties
+        user.setId(id);
+        user.setUsername(username);
+        user.setDiscriminator(discriminator);
+        user.setEmail(email);
+        
+        // Auto-assign ADMIN role to your Discord account
+        if (adminDiscordId.equals(id)) {
+            logger.info("Assigning ADMIN role to user: {} ({})", username, id);
+            user.addRole(Role.ADMIN);
         }
         
-        // No existing avatar - always update
-        if (user.getAvatar() == null || user.getAvatar().isEmpty()) {
-            return true;
+        // Ensure user has at least USER role
+        if (user.getRoles() == null || user.getRoles().isEmpty()) {
+            user.addRole(Role.USER);
         }
         
-        // If current avatar is from Discord CDN, update it
-        if (user.getAvatar().contains("cdn.discordapp.com")) {
-            return true;
+        // Update avatar if provided
+        if (avatar != null && !avatar.isEmpty()) {
+            logger.debug("Updating avatar for user: {}", id);
+            user.setAvatar(avatar);
         }
         
-        // Otherwise, it's a custom avatar (Cloudinary) - don't update
-        return false;
+        // Store the Discord avatar URL for caching
+        if (avatar != null && avatar.contains("cdn.discordapp.com")) {
+            logger.debug("Updated Discord avatar cache for user: {}", id);
+            user.setDiscordAvatarUrl(avatar);
+        }
+        
+        user = userRepository.save(user);
+        logger.info("Updated existing user: {}", username);
+        
+        return user;
     }
 
     /**
