@@ -102,7 +102,7 @@ export function AvatarUpload({ currentAvatarUrl, onUpload, size = 96, className 
   return (
     <div className={`${className}`}>
       <div 
-        className="relative w-24 h-24 mx-auto"
+        className="relative w-24 h-24"
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
         onClick={handleAvatarClick}
