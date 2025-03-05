@@ -55,24 +55,25 @@ export function UserProfileModal({ isOpen, onClose, userProfile }: UserProfileMo
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
         >
-          <motion.div
+          <div
             ref={modalRef}
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ type: "spring", damping: 20, stiffness: 300 }}
             className="relative"
             tabIndex={-1}
           >
-            <button
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ delay: 0.1, duration: 0.2 }}
               onClick={onClose}
               className="absolute top-2 right-2 z-10 flex items-center justify-center w-8 h-8 bg-black/40 rounded-full text-white hover:bg-black/60 transition-colors"
               aria-label="Close profile preview"
             >
               <X size={16} />
-            </button>
+            </motion.button>
             
             <ProfilePreview
               bannerColor={userProfile.bannerColor || "bg-white/10"}
@@ -83,7 +84,7 @@ export function UserProfileModal({ isOpen, onClose, userProfile }: UserProfileMo
               user={{ avatar: userProfile.avatar, username: userProfile.username }}
               showEditButton={false}
             />
-          </motion.div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
