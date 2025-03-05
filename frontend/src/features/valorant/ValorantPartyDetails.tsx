@@ -371,46 +371,71 @@ export default function ValorantPartyDetails() {
                     <h1 className="text-3xl font-bold text-white mr-2 truncate">
                       {party.title || "Unnamed Party"}
                     </h1>
-                    <div className="flex gap-2 flex-wrap">
-                      <span className="py-1 px-3 rounded-full bg-[#FF4655]/10 text-[#FF4655] text-xs font-semibold border border-[#FF4655]/20">
-                        {formatDisplayText(party.game)}
-                      </span>
-                      <span className={`py-1 px-3 rounded-full text-xs font-semibold ${
-                        party.status === 'open' 
+                    <div className="flex flex-wrap items-center gap-2">
+                      <IconBadge 
+                        icon={<Award className="h-5 w-5" />} 
+                        label="Rank" 
+                        value={formatDisplayText(party?.requirements?.rank)} 
+                      />
+                      <IconBadge 
+                        icon={<Globe className="h-5 w-5" />} 
+                        label="Region" 
+                        value={formatDisplayText(party?.requirements?.region)} 
+                      />
+                      <IconBadge 
+                        icon={<Mic className="h-5 w-5" />} 
+                        label="Voice Chat" 
+                        value={formatBooleanText(party?.requirements?.voiceChat)} 
+                      />
+                      <IconBadge 
+                        icon={<Calendar className="h-5 w-5" />} 
+                        label="Age" 
+                        value={formatDisplayText(party?.ageRestriction)} 
+                      />
+                      <IconBadge 
+                        icon={<Mic className="h-5 w-5" />} 
+                        label="Voice Preference" 
+                        value={formatDisplayText(party?.voicePreference)} 
+                      />
+                    </div>
+                  </div>
+                  {/* Game and Status Info Row */}
+                  <div className="flex gap-2 flex-wrap mt-2">
+                    <span className="py-1 px-3 rounded-full bg-[#FF4655]/10 text-[#FF4655] text-xs font-semibold border border-[#FF4655]/20">
+                      {formatDisplayText(party.game)}
+                    </span>
+                    <span className={`py-1 px-3 rounded-full text-xs font-semibold ${
+                      party.status === 'open' 
                         ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
                         : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                      }`}>
-                        {formatDisplayText(party.status)}
-                      </span>
-                      
-                      {/* Only show countdown timer when party is not full */}
-                      {party.expiresAt && !isPartyFull && (
-                        <div className="py-1 px-3 rounded-full bg-[#1F2731] text-xs font-semibold border border-white/10">
-                          <CountdownTimer 
-                            expiresAt={party.expiresAt} 
-                            onExpire={handlePartyExpire}
-                          />
-                        </div>
-                      )}
-                    </div>
+                    }`}>
+                      {formatDisplayText(party.status)}
+                    </span>
+                    {party.expiresAt && !isPartyFull && (
+                      <div className="py-1 px-3 rounded-full bg-[#1F2731] text-xs font-semibold border border-white/10">
+                        <CountdownTimer 
+                          expiresAt={party.expiresAt} 
+                          onExpire={handlePartyExpire}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
                 
                 <div className="flex flex-wrap gap-2">
-                  {/* First check if user is leader or participant to show copy link button */}
+                  {/* Copy Link Button */}
                   {(isUserLeader || isUserParticipant) && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          className="bg-[#1F2731] hover:bg-[#2C3A47] text-white border border-white/10 hover:border-white/30
-                          shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
+                          className="bg-[#283A4B] hover:bg-[#2A3F56] text-white border border-white/10 hover:border-white/30 shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
                           size="sm"
                           onClick={handleCopyLink}
                         >
                           <Link2 className="h-4 w-4 text-[#8B97A4] group-hover:text-white transition-colors" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent sideOffset={8} className="bg-[#1F2731] border border-white/10 z-[100]">
+                      <TooltipContent sideOffset={8} className="bg-[#283A4B] border border-white/10 z-[100]">
                         <p className="text-sm text-white">Copy party link</p>
                       </TooltipContent>
                     </Tooltip>
@@ -420,15 +445,14 @@ export default function ValorantPartyDetails() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          className="bg-[#1F2731] hover:bg-[#2C3A47] text-white border border-white/10 hover:border-white/30
-                          shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
+                          className="bg-[#283A4B] hover:bg-[#2A3F56] text-white border border-white/10 hover:border-white/30 shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
                           size="sm"
                           onClick={handleDeleteParty}
                         >
                           <Trash2 className="h-4 w-4 text-[#8B97A4] group-hover:text-white transition-colors" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent sideOffset={8} className="bg-[#1F2731] border border-white/10 z-[100]">
+                      <TooltipContent sideOffset={8} className="bg-[#283A4B] border border-white/10 z-[100]">
                         <p className="text-sm text-white">Delete this party?</p>
                       </TooltipContent>
                     </Tooltip>
@@ -436,8 +460,7 @@ export default function ValorantPartyDetails() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          className="bg-[#1F2731] hover:bg-[#2C3A47] text-white border border-white/10 hover:border-white/30
-                          shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
+                          className="bg-[#283A4B] hover:bg-[#2A3F56] text-white border border-white/10 hover:border-white/30 shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
                           size="sm"
                           onClick={() => {
                             if (window.confirm("Are you sure you want to leave this party?")) {
@@ -455,17 +478,15 @@ export default function ValorantPartyDetails() {
                           <LogOut className="h-4 w-4 text-[#8B97A4] group-hover:text-white transition-colors" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent sideOffset={8} className="bg-[#1F2731] border border-white/10 z-[100]">
+                      <TooltipContent sideOffset={8} className="bg-[#283A4B] border border-white/10 z-[100]">
                         <p className="text-sm text-white">Leave this party?</p>
                       </TooltipContent>
                     </Tooltip>
                   ) : (
-                    // New Join Party button (only shows when user is not a participant)
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          className="bg-[#1F2731] hover:bg-[#2C3A47] text-white border border-white/10 hover:border-white/30
-                          shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
+                          className="bg-[#283A4B] hover:bg-[#2A3F56] text-white border border-white/10 hover:border-white/30 shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
                           size="sm"
                           onClick={handleJoinParty}
                           disabled={isJoining || isPartyFull}
@@ -483,7 +504,7 @@ export default function ValorantPartyDetails() {
                           )}
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent sideOffset={8} className="bg-[#1F2731] border border-white/10 z-[100]">
+                      <TooltipContent sideOffset={8} className="bg-[#283A4B] border border-white/10 z-[100]">
                         <p className="text-sm text-white">
                           {isPartyFull 
                             ? "This party is full" 
@@ -503,40 +524,6 @@ export default function ValorantPartyDetails() {
             
             {/* Combined Game Settings and Requirements */}
             <div className="p-6 bg-[#1F2731]/40">
-              {/* Party Requirements Icon Badges (now first) */}
-              <div className="mb-4">
-                <div 
-                  className="flex flex-wrap items-center justify-center sm:justify-start gap-5"
-                  style={{ containIntrinsicSize: "0 80px", content: "layout" }}
-                >
-                  <IconBadge 
-                    icon={<Award className="h-5 w-5" />} 
-                    label="Rank" 
-                    value={formatDisplayText(party?.requirements?.rank)} 
-                  />
-                  <IconBadge 
-                    icon={<Globe className="h-5 w-5" />} 
-                    label="Region" 
-                    value={formatDisplayText(party?.requirements?.region)} 
-                  />
-                  <IconBadge 
-                    icon={<Mic className="h-5 w-5" />} 
-                    label="Voice Chat" 
-                    value={formatBooleanText(party?.requirements?.voiceChat)} 
-                  />
-                  <IconBadge 
-                    icon={<Calendar className="h-5 w-5" />} 
-                    label="Age" 
-                    value={formatDisplayText(party?.ageRestriction)} 
-                  />
-                  <IconBadge 
-                    icon={<Mic className="h-5 w-5" />} 
-                    label="Voice Preference" 
-                    value={formatDisplayText(party?.voicePreference)} 
-                  />
-                </div>
-              </div>
-              
               {/* Game Settings Detail Badges (now second) */}
               <div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
