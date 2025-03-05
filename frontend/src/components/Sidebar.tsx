@@ -120,28 +120,24 @@ export function DashboardNavigation({ theme = 'default' }) {
     return ReactDOM.createPortal(
       <div 
         ref={profilePreviewRef}
-        style={{
-          position: 'absolute',
-          top: popupPosition.top,
-          left: popupPosition.left,
-          zIndex: 9999 // High z-index to ensure it's above everything
+        className="fixed z-50"
+        style={{ 
+          top: `${popupPosition.top}px`, 
+          left: `${popupPosition.left}px` 
         }}
-        className="profile-preview-portal"
       >
-        <div className="relative">
-          <ProfilePreview 
-            bannerColor={profile?.bannerColor || "bg-gradient-to-r from-purple-700 to-blue-500"}
-            name={profile?.displayName || user?.username || "User"}
-            about={profile?.about || "Click Edit Profile to customize your profile!"}
-            pronouns={profile?.pronouns}
-            user={user}
-            showEditButton={true}
-            onClick={() => {
-              setShowProfilePreview(false)
-              navigate('/dashboard/profile')
-            }}
-          />
-        </div>
+        <ProfilePreview
+          bannerColor={profile?.bannerColor || "bg-white/10"}
+          bannerUrl={profile?.bannerUrl}
+          name={profile?.displayName || user?.username}
+          about={profile?.about}
+          pronouns={profile?.pronouns}
+          user={user}
+          onClick={() => {
+            navigate('/dashboard/profile');
+            setShowProfilePreview(false);
+          }}
+        />
       </div>,
       document.body
     );
