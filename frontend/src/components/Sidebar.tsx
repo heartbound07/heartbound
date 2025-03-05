@@ -22,7 +22,7 @@ import valorantLogo from '@/assets/images/valorant-logo.png'
 export function DashboardNavigation({ theme = 'default' }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [gamesExpanded, setGamesExpanded] = useState(() => {
     // Auto-expand if we're on a game page
     return location.pathname.includes('/dashboard/valorant')
@@ -130,9 +130,10 @@ export function DashboardNavigation({ theme = 'default' }) {
       >
         <div className="relative">
           <ProfilePreview 
-            bannerColor="bg-gradient-to-r from-purple-700 to-blue-500"
-            name={user?.username || "User"}
-            about="Click Edit Profile to customize your profile!"
+            bannerColor={profile?.bannerColor || "bg-gradient-to-r from-purple-700 to-blue-500"}
+            name={profile?.displayName || user?.username || "User"}
+            about={profile?.about || "Click Edit Profile to customize your profile!"}
+            pronouns={profile?.pronouns}
             user={user}
             showEditButton={true}
             onClick={() => {
