@@ -300,8 +300,34 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         ...prev,
         user,
         isAuthenticated: true,
-        isLoading: false,
+        isLoading: true, // Keep loading true while we fetch profile
       }));
+
+      // ADDED: Fetch the latest profile data after authentication is loaded
+      try {
+        // Fetch the user's profile using the stored user ID
+        const profileData = await userService.getUserProfile(user.id);
+        
+        // Update the profile state with the fetched data
+        setState(prev => ({
+          ...prev,
+          profile: {
+            isComplete: true, // Assume profile is complete if we can fetch it
+            displayName: profileData.displayName,
+            pronouns: profileData.pronouns,
+            about: profileData.about,
+            bannerColor: profileData.bannerColor
+          },
+          isLoading: false,
+        }));
+      } catch (profileError) {
+        console.error("Failed to fetch profile data during initialization:", profileError);
+        // Even if profile fetch fails, continue with basic auth
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+        }));
+      }
     } catch (error) {
       clearAuthState();
       setState(prev => ({
