@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "@/contexts/auth"
 import "@/assets/sidebar.css"
 import "@/assets/styles/fonts.css"
-import { MdDashboard } from "react-icons/md"
+import { MdDashboard, MdAdminPanelSettings } from "react-icons/md"
 import { IoSettingsSharp } from "react-icons/io5"
 import { useState, useRef, useEffect } from "react"
 import { ChevronDown, ChevronRight } from "lucide-react"
@@ -22,7 +22,7 @@ import valorantLogo from '@/assets/images/valorant-logo.png'
 export function DashboardNavigation({ theme = 'default' }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, profile } = useAuth()
+  const { user, profile, hasRole } = useAuth()
   const [gamesExpanded, setGamesExpanded] = useState(() => {
     // Auto-expand if we're on a game page
     return location.pathname.includes('/dashboard/valorant')
@@ -43,13 +43,29 @@ export function DashboardNavigation({ theme = 'default' }) {
     // More games will be added here in the future
   ]
 
+  // Check if current user is an admin
+  const isAdmin = hasRole('ADMIN');
+
+  // Determine if we're on the admin page
+  const isAdminPage = location.pathname === '/dashboard/admin';
+
+  // Add admin panel to nav items if the user is an admin
   const navItems = [
     { 
       path: "/dashboard", 
       label: "Discover", 
       icon: <MdDashboard size={20} />,
       hasSubmenu: true
-    }
+    },
+    // Only show admin panel option if user has ADMIN role
+    ...(isAdmin ? [
+      {
+        path: "/dashboard/admin",
+        label: "Admin Panel",
+        icon: <MdAdminPanelSettings size={20} />,
+        hasSubmenu: false
+      }
+    ] : [])
   ]
   
   // Update popup position whenever profile section or visibility changes
