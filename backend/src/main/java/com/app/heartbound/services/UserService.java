@@ -85,6 +85,10 @@ public class UserService {
                 user.setBannerColor(profileDTO.getBannerColor());
             }
             
+            if (profileDTO.getAvatar() != null) {
+                user.setAvatar(profileDTO.getAvatar());
+            }
+            
             return userRepository.save(user);
         }
         

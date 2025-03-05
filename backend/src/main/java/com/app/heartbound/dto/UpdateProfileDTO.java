@@ -25,5 +25,6 @@ public class UpdateProfileDTO {
     @Schema(description = "The banner color selection", example = "bg-blue-600")
     private String bannerColor;
     
-    // No avatar property - we'll handle avatar updates separately if needed
+    @Schema(description = "The avatar image URL", example = "https://cloudinary.com/image.jpg")
+    private String avatar;
 }
