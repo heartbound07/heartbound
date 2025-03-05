@@ -68,6 +68,10 @@ public class UserService {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             
+            // Log the incoming avatar URL
+            System.out.println("Updating user profile for " + userId);
+            System.out.println("Received avatar URL: " + profileDTO.getAvatar());
+            
             // Update only the fields provided in the DTO
             if (profileDTO.getDisplayName() != null) {
                 user.setDisplayName(profileDTO.getDisplayName());
@@ -86,14 +90,18 @@ public class UserService {
             }
             
             if (profileDTO.getAvatar() != null) {
+                System.out.println("Setting avatar to: " + profileDTO.getAvatar());
                 user.setAvatar(profileDTO.getAvatar());
             }
             
             if (profileDTO.getBannerUrl() != null) {
+                System.out.println("Setting banner URL to: " + profileDTO.getBannerUrl());
                 user.setBannerUrl(profileDTO.getBannerUrl());
             }
             
-            return userRepository.save(user);
+            User savedUser = userRepository.save(user);
+            System.out.println("Saved user with avatar: " + savedUser.getAvatar());
+            return savedUser;
         }
         
         return null;
