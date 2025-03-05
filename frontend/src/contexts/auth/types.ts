@@ -28,6 +28,7 @@ export interface ProfileStatus {
   about?: string;
   bannerColor?: string;
   bannerUrl?: string;
+  avatar?: string;
 }
 
 export interface AuthState {
@@ -58,6 +59,8 @@ export interface AuthContextValue extends AuthState {
   handleDiscordCallbackWithToken: (accessToken: string, refreshToken?: string) => Promise<void>;
   updateProfile: (profile: ProfileStatus) => void;
   updateUserProfile: (profile: UpdateProfileDTO) => Promise<void>;
+
+  
   // Party service functions
   createParty: (data: CreatePartyRequestDTO) => Promise<LFGPartyResponseDTO>;
   getParty: (id: string) => Promise<LFGPartyResponseDTO>;

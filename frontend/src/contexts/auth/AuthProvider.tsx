@@ -312,12 +312,13 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         setState(prev => ({
           ...prev,
           profile: {
-            isComplete: true, // Assume profile is complete if we can fetch it
+            isComplete: true,
             displayName: profileData.displayName,
             pronouns: profileData.pronouns,
             about: profileData.about,
             bannerColor: profileData.bannerColor,
-            bannerUrl: profileData.bannerUrl
+            bannerUrl: profileData.bannerUrl,
+            avatar: profileData.avatar
           },
           isLoading: false,
         }));
@@ -414,23 +415,34 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       const updatedProfile = await userService.updateUserProfile(state.user!.id, profile);
       
       // Update the profile state
-      setState(prev => ({
-        ...prev,
-        user: {
+      setState(prev => {
+        // Create updated user with new avatar
+        const updatedUser = {
           ...prev.user!,
-          avatar: profile.avatar || prev.user!.avatar // Update avatar in user object
-        },
-        profile: {
-          ...prev.profile,
-          isComplete: true,
-          displayName: updatedProfile.displayName,
-          pronouns: updatedProfile.pronouns,
-          about: updatedProfile.about,
-          bannerColor: updatedProfile.bannerColor,
-          bannerUrl: updatedProfile.bannerUrl // Add bannerUrl to the profile state
-        },
-        isLoading: false
-      }));
+          avatar: updatedProfile.avatar
+        };
+        
+        // Persist the updated user data to localStorage
+        const authData = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || '{}');
+        authData.user = updatedUser;
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+        
+        return {
+          ...prev,
+          user: updatedUser,
+          profile: {
+            ...prev.profile,
+            isComplete: true,
+            displayName: updatedProfile.displayName,
+            pronouns: updatedProfile.pronouns,
+            about: updatedProfile.about,
+            bannerColor: updatedProfile.bannerColor,
+            bannerUrl: updatedProfile.bannerUrl,
+            avatar: updatedProfile.avatar
+          },
+          isLoading: false
+        };
+      });
       
     } catch (error) {
       setState(prev => ({ 
