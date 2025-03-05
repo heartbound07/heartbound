@@ -148,22 +148,22 @@ export function AvatarUpload({
             <div className="h-8 w-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
           </div>
         )}
+        
+        {/* Remove button - Moved inside the avatar div for better positioning */}
+        {showRemoveButton && onRemove && currentAvatarUrl && !uploading && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            className="absolute top-0 right-0 transform translate-x-1/3 -translate-y-1/3 bg-white/15 hover:bg-red-500/90 text-white rounded-full p-1.5 transition-all duration-200 backdrop-blur-sm border border-white/20 shadow-md hover:shadow-lg hover:scale-105"
+            title="Remove avatar"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
-      
-      {/* Remove button */}
-      {showRemoveButton && onRemove && currentAvatarUrl && !uploading && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove();
-          }}
-          className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 transition-colors"
-          title="Remove avatar"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      )}
       
       {/* Hidden file input */}
       <input 
