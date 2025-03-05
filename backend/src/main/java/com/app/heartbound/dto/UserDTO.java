@@ -1,10 +1,13 @@
 package com.app.heartbound.dto;
 
+import com.app.heartbound.enums.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.Set;
 
 @Data
 @Builder
@@ -27,4 +30,7 @@ public class UserDTO {
 
     @Schema(description = "The email address of the user", example = "johndoe@example.com")
     private String email;
+    
+    @Schema(description = "The roles assigned to the user", example = "[\"USER\", \"MONARCH\"]")
+    private Set<Role> roles;
 }

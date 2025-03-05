@@ -1,12 +1,22 @@
 package com.app.heartbound.entities;
 
+import com.app.heartbound.enums.Role;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.JoinColumn;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @Entity
@@ -34,4 +44,29 @@ public class User {
     private String about;
     private String bannerColor;
     private String bannerUrl;
+    
+    // Role-based security addition
+    @ElementCollection(fetch = jakarta.persistence.FetchType.EAGER)
+    @Enumerated(jakarta.persistence.EnumType.STRING)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "role")
+    private Set<Role> roles = new HashSet<>();
+    
+    // Helper methods for role management
+    public void addRole(Role role) {
+        if (this.roles == null) {
+            this.roles = new HashSet<>();
+        }
+        this.roles.add(role);
+    }
+    
+    public boolean hasRole(Role role) {
+        return this.roles != null && this.roles.contains(role);
+    }
+    
+    public void removeRole(Role role) {
+        if (this.roles != null) {
+            this.roles.remove(role);
+        }
+    }
 }
