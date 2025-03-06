@@ -25,7 +25,7 @@ export function UserProfileModal({ isOpen, onClose, userProfile, position }: Use
     if (isOpen && position && modalRef.current) {
       const modalWidth = 300; // Width of ProfilePreview component
       const modalHeight = 400; // Approximate height of ProfilePreview
-      const padding = 16; // Padding from edge
+      const padding = 8; // Reduced padding for closer placement
       
       // Get viewport dimensions
       const viewportWidth = window.innerWidth;
@@ -35,20 +35,27 @@ export function UserProfileModal({ isOpen, onClose, userProfile, position }: Use
       let x = position.x;
       let y = position.y;
       
-      // Adjust horizontal position if needed
+      // Determine if we should position to left or right of the slot
+      // Start by checking if we have room to the right
       if (x + modalWidth + padding > viewportWidth) {
-        x = x - modalWidth - padding; // Position to the left of the slot
+        // Not enough room to the right, try positioning to the left
+        x = Math.max(padding, x - modalWidth - padding);
       } else {
-        x = x + padding; // Position to the right of the slot
+        // Position to the right with padding
+        x = x + padding;
       }
       
-      // Adjust vertical position if needed
-      if (y + modalHeight + padding > viewportHeight) {
-        y = viewportHeight - modalHeight - padding; // Position above viewport bottom
+      // Make sure vertical position keeps modal within viewport
+      const bottomSpace = viewportHeight - y - modalHeight;
+      if (bottomSpace < 20) {
+        // Not enough space below, try to position above if there's room
+        if (y > modalHeight + padding) {
+          y = y - modalHeight + padding;
+        } else {
+          // Not enough space above either, center vertically in available space
+          y = Math.max(padding, (viewportHeight - modalHeight) / 2);
+        }
       }
-      
-      // Ensure modal is not positioned above the top of viewport
-      y = Math.max(padding, y);
       
       setModalPosition({ x, y });
     } else {

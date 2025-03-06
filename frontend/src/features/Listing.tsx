@@ -119,11 +119,9 @@ export default function Listing({ party }: ListingProps) {
   }
 
   // Update the handleProfileView function
-  const handleProfileView = (userId: string, position?: { x: number, y: number }) => {
+  const handleProfileView = (userId: string, position: { x: number, y: number }) => {
     setSelectedProfileId(userId)
-    if (position) {
-      setProfilePosition(position)
-    }
+    setProfilePosition(position)
   }
   
   // Update the handleCloseProfileModal function
@@ -302,11 +300,12 @@ export default function Listing({ party }: ListingProps) {
                     } transition-all duration-200 group flex items-center justify-center`}
                     onClick={(event) => {
                       if (slot.filled && slot.participantId) {
-                        // Get the position from the event
                         const element = event.currentTarget;
                         const rect = element.getBoundingClientRect();
+                        
+                        // Use a slight offset for better positioning
                         handleProfileView(slot.participantId, {
-                          x: rect.right,
+                          x: rect.left,
                           y: rect.top
                         });
                       }
