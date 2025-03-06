@@ -91,6 +91,9 @@ export default function Listing({ party }: ListingProps) {
   // Determine if the current user is the party owner
   const isOwner = user?.id === party.userId
 
+  // Check if the current user is already a participant in this party
+  const isParticipant = user?.id && party.participants?.includes(user.id)
+
   // Handle the Join Game Button click for non-owners
   const handleJoinGame = async () => {
     setIsJoining(true)
@@ -108,9 +111,9 @@ export default function Listing({ party }: ListingProps) {
     }
   }
 
-  // Handle the "View Party" navigation for owners
+  // Handle the "View Party" navigation for owners and existing participants
   const handleViewParty = () => {
-    // Redirect owners to the party details page using the correct route
+    // Redirect owners or participants to the party details page using the correct route
     navigate(`/dashboard/valorant/${party.id}`)
   }
 
@@ -301,11 +304,17 @@ export default function Listing({ party }: ListingProps) {
           ))}
         </div>
         <Button
-          onClick={isOwner ? handleViewParty : handleJoinGame}
+          onClick={isOwner || isParticipant ? handleViewParty : handleJoinGame}
           disabled={isJoining}
           className="w-full bg-[#FF4655] hover:bg-[#FF4655]/90 text-white py-2 text-xs font-semibold tracking-wide transition-all duration-200 ease-in-out transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-[#FF4655] focus:ring-opacity-50"
         >
-          {isOwner ? "View Party" : (isJoining ? "Joining..." : "Join Game")}
+          {isOwner 
+            ? "View Party" 
+            : (isParticipant 
+                ? "View Party" 
+                : (isJoining ? "Joining..." : "Join Game")
+              )
+          }
         </Button>
       </div>
     </div>
