@@ -63,11 +63,14 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
     if (isEmpty) {
       onClick?.();
     } else if (!isCurrentUser && participantId && onProfileView) {
-      // Pass the click coordinates along with the participant ID
+      // Get the clicked element's position
       const rect = e.currentTarget.getBoundingClientRect();
+      
+      // Position the modal just to the right of the player slot
+      // with a small horizontal offset to create visual connection
       onProfileView(participantId, {
-        x: rect.right, // Position modal to the right of the slot
-        y: rect.top    // Align with top of slot
+        x: rect.left + rect.width + 5, // 5px offset from the right edge
+        y: rect.top, // Align with the top of the slot
       });
     }
   };

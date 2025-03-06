@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
@@ -9,7 +9,6 @@ import { joinParty } from "@/contexts/valorant/partyService"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate } from "react-router-dom"
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
-import { UserProfileModal } from "@/components/UserProfileModal"
 
 // Helper function to format tooltip text for fields such as gameMode, teamSize, etc.
 const formatTooltipText = (text: string | undefined, defaultText: string = "N/A"): string => {
@@ -53,11 +52,8 @@ export default function Listing({ party }: ListingProps) {
   // Placeholder avatar for users without an avatar
   const placeholderAvatar = "/placeholder.svg"
   
-  // Add this state near the other state declarations
-  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null)
-  
-  // Add this state for tracking position
-  const [profilePosition, setProfilePosition] = useState<{ x: number, y: number } | null>(null)
+  // Add this at the top of your component function
+  const listingContainerRef = useRef<HTMLDivElement>(null);
   
   // Fetch user profiles when participants change
   useEffect(() => {
@@ -118,20 +114,8 @@ export default function Listing({ party }: ListingProps) {
     navigate(`/dashboard/valorant/${party.id}`)
   }
 
-  // Update the handleProfileView function
-  const handleProfileView = (userId: string, position: { x: number, y: number }) => {
-    setSelectedProfileId(userId)
-    setProfilePosition(position)
-  }
-  
-  // Update the handleCloseProfileModal function
-  const handleCloseProfileModal = () => {
-    setSelectedProfileId(null)
-    setProfilePosition(null)
-  }
-
   return (
-    <div className="overflow-hidden bg-zinc-900 rounded-lg shadow-lg h-full">
+    <div ref={listingContainerRef} className="overflow-hidden bg-zinc-900 rounded-lg shadow-lg h-full">
       <div className="px-4 py-3 bg-gradient-to-r from-zinc-900 to-zinc-800 border-b border-zinc-700/50">
         <div className="flex items-center justify-between">
           <div>
@@ -298,18 +282,6 @@ export default function Listing({ party }: ListingProps) {
                         ? "bg-zinc-800 ring-1 ring-violet-500/50 cursor-pointer"
                         : "border border-dashed border-zinc-700 hover:border-zinc-500"
                     } transition-all duration-200 group flex items-center justify-center`}
-                    onClick={(event) => {
-                      if (slot.filled && slot.participantId) {
-                        const element = event.currentTarget;
-                        const rect = element.getBoundingClientRect();
-                        
-                        // Use a slight offset for better positioning
-                        handleProfileView(slot.participantId, {
-                          x: rect.left,
-                          y: rect.top
-                        });
-                      }
-                    }}
                   >
                     {slot.filled ? (
                       <Avatar className="h-full w-full">
@@ -336,14 +308,6 @@ export default function Listing({ party }: ListingProps) {
           {isOwner ? "View Party" : (isJoining ? "Joining..." : "Join Game")}
         </Button>
       </div>
-      
-      {/* Add the profile modal component */}
-      <UserProfileModal
-        isOpen={!!selectedProfileId}
-        onClose={handleCloseProfileModal}
-        userProfile={selectedProfileId ? userProfiles[selectedProfileId] : null}
-        position={profilePosition}
-      />
     </div>
   )
 }

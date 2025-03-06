@@ -13,78 +13,126 @@ interface UserProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   userProfile: UserProfileDTO | null;
-  position?: Position | null; // New prop for positioning
+  position?: Position | null; // Position for contextual positioning
+  containerRef?: React.RefObject<HTMLElement>; // Added container reference prop
 }
 
-export function UserProfileModal({ isOpen, onClose, userProfile, position }: UserProfileModalProps) {
+export function UserProfileModal({ isOpen, onClose, userProfile, position, containerRef }: UserProfileModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const [modalPosition, setModalPosition] = useState<Position | null>(null);
-
+  
   // Calculate optimal position when modal opens or position changes
   useEffect(() => {
     if (isOpen && position && modalRef.current) {
-      const modalWidth = 300; // Width of ProfilePreview component
-      const modalHeight = 400; // Approximate height of ProfilePreview
-      const padding = 8; // Reduced padding for closer placement
+      const modalWidth = 320; // Width of ProfilePreview component
+      const modalHeight = 450; // Height estimate of ProfilePreview
+      const margin = 12; // Small margin from the triggering element
+      const viewportMargin = 20; // Minimum margin from viewport edges
       
       // Get viewport dimensions
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
       
-      // Calculate position to ensure modal stays in viewport
-      let x = position.x;
-      let y = position.y;
-      
-      // Determine if we should position to left or right of the slot
-      // Start by checking if we have room to the right
-      if (x + modalWidth + padding > viewportWidth) {
-        // Not enough room to the right, try positioning to the left
-        x = Math.max(padding, x - modalWidth - padding);
-      } else {
-        // Position to the right with padding
-        x = x + padding;
+      // Check if we have a container to consider for positioning
+      let containerRect: DOMRect | null = null;
+      if (containerRef?.current) {
+        containerRect = containerRef.current.getBoundingClientRect();
       }
       
-      // Make sure vertical position keeps modal within viewport
-      const bottomSpace = viewportHeight - y - modalHeight;
-      if (bottomSpace < 20) {
-        // Not enough space below, try to position above if there's room
-        if (y > modalHeight + padding) {
-          y = y - modalHeight + padding;
+      // Step 1: Determine horizontal positioning strategy (right or left of trigger)
+      let x = position.x + margin; // Default: position to the right
+      
+      // Consider container boundaries if available
+      const effectiveRightBoundary = containerRect 
+        ? Math.min(containerRect.right - modalWidth - viewportMargin, viewportWidth - modalWidth - viewportMargin)
+        : viewportWidth - modalWidth - viewportMargin;
+      
+      const rightOverflow = x > effectiveRightBoundary;
+      
+      if (rightOverflow) {
+        // Not enough space to the right, try positioning to the left
+        const leftPosition = position.x - modalWidth - margin;
+        
+        // Consider container left boundary if available
+        const effectiveLeftBoundary = containerRect
+          ? Math.max(containerRect.left + viewportMargin, viewportMargin)
+          : viewportMargin;
+        
+        if (leftPosition >= effectiveLeftBoundary) {
+          // There's enough space to the left
+          x = leftPosition;
         } else {
-          // Not enough space above either, center vertically in available space
-          y = Math.max(padding, (viewportHeight - modalHeight) / 2);
+          // Not enough space on either side, center horizontally relative to trigger
+          // but staying within container/viewport bounds
+          const minX = containerRect ? containerRect.left + viewportMargin : viewportMargin;
+          const maxX = containerRect 
+            ? containerRect.right - modalWidth - viewportMargin 
+            : viewportWidth - modalWidth - viewportMargin;
+          
+          x = Math.max(minX, Math.min(position.x - (modalWidth / 2), maxX));
         }
+      }
+      
+      // Step 2: Determine vertical positioning strategy
+      // Try to align the top of modal with the trigger element's top position
+      let y = position.y;
+      
+      // Consider container boundaries for vertical positioning
+      const effectiveBottomBoundary = containerRect
+        ? Math.min(containerRect.bottom - modalHeight - viewportMargin, viewportHeight - modalHeight - viewportMargin)
+        : viewportHeight - modalHeight - viewportMargin;
+      
+      const bottomOverflow = y > effectiveBottomBoundary;
+      
+      if (bottomOverflow) {
+        // Try to position it so the bottom aligns with the container/viewport bottom
+        y = effectiveBottomBoundary;
+        
+        // Consider container top boundary for minimum y
+        const effectiveTopBoundary = containerRect
+          ? Math.max(containerRect.top + viewportMargin, viewportMargin)
+          : viewportMargin;
+        
+        // If this would push it too high, ensure minimum top margin
+        y = Math.max(effectiveTopBoundary, y);
       }
       
       setModalPosition({ x, y });
     } else {
       setModalPosition(null);
     }
-  }, [isOpen, position]);
+  }, [isOpen, position, containerRef]);
 
-  // Handle clicking outside to close
+  // Handle closing when clicking outside
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    const handleOutsideClick = (event: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
         onClose();
       }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
     }
 
-    // Handle escape key press
-    function handleEscKey(event: KeyboardEvent) {
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [isOpen, onClose]);
+
+  // Handle Escape key to close modal
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         onClose();
       }
-    }
+    };
 
     if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
       document.addEventListener("keydown", handleEscKey);
     }
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscKey);
     };
   }, [isOpen, onClose]);
