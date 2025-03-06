@@ -1,12 +1,13 @@
 "use client"
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Users, GamepadIcon, Mic, Calendar, Trophy } from "lucide-react"
+import { X, Users, GamepadIcon, Mic, Calendar, Trophy, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/valorant/groupcreatebutton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
 import { Input } from "@/components/ui/profile/input"
 import { motion } from "framer-motion"
 import { createParty, type Rank, type Region } from '@/contexts/valorant/partyService'
+import toast from 'react-hot-toast'
 
 interface PostGroupModalProps {
   onClose: () => void;
@@ -17,6 +18,10 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
   // State for basic group information
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  
+  // Validation state
+  const [titleError, setTitleError] = useState<string | null>(null)
+  const [descriptionError, setDescriptionError] = useState<string | null>(null)
   
   // Set expiresIn default to 10 minutes
   const [expiresIn, setExpiresIn] = useState(10)
@@ -38,6 +43,61 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
 
   // Import useNavigate to allow redirection after group creation
   const navigate = useNavigate()
+
+  // Validation helper function for character count
+  const countCharacters = (text: string): number => {
+    return text.length;
+  }
+
+  // Title validation
+  const validateTitle = (value: string): boolean => {
+    setTitleError(null);
+    
+    if (!value.trim()) {
+      setTitleError('Title is required');
+      return false;
+    }
+    
+    const charCount = countCharacters(value);
+    if (charCount > 50) {
+      setTitleError('Title cannot exceed 50 characters');
+      return false;
+    }
+    
+    return true;
+  }
+
+  // Description validation
+  const validateDescription = (value: string): boolean => {
+    setDescriptionError(null);
+    
+    if (!value.trim()) {
+      setDescriptionError('Description is required');
+      return false;
+    }
+    
+    const charCount = countCharacters(value);
+    if (charCount > 100) {
+      setDescriptionError('Description cannot exceed 100 characters');
+      return false;
+    }
+    
+    return true;
+  }
+
+  // Handle title change with validation
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTitle = e.target.value;
+    setTitle(newTitle);
+    validateTitle(newTitle);
+  }
+
+  // Handle description change with validation
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newDescription = e.target.value;
+    setDescription(newDescription);
+    validateDescription(newDescription);
+  }
 
   // Auto-update maxPlayers based on selected teamSize
   useEffect(() => {
@@ -117,6 +177,16 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
 
   // Submission handler for posting the group
   const handlePostGroup = async () => {
+    // Run validations
+    const isTitleValid = validateTitle(title);
+    const isDescriptionValid = validateDescription(description);
+
+    // If validation fails, show toast and prevent submission
+    if (!isTitleValid || !isDescriptionValid) {
+      toast.error("Please fix the validation errors before submitting");
+      return;
+    }
+
     const payload = {
       game: "Valorant",
       title,
@@ -139,11 +209,14 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
       const newParty = await createParty(payload)
       // Call onPartyCreated if provided
       onPartyCreated && onPartyCreated(newParty)
+      // Show success toast
+      toast.success("Party created successfully!");
       // Redirect to the party details page using the new party's id
       navigate(`/dashboard/valorant/${newParty.id}`)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error posting group:", error)
-      // Optionally, add UI error handling here
+      // Display error message using toast
+      toast.error(error.message || "An unexpected error occurred");
     }
   }
 
@@ -205,20 +278,60 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
 
         {/* Input fields for group details */}
         <div className="mb-4">
-          <Input
-            placeholder="Group Title"
+          <label htmlFor="groupTitle" className="block text-sm font-medium text-zinc-200 mb-1">
+            Title
+          </label>
+          <input
+            id="groupTitle"
+            type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="h-10 border-0 bg-white/5 text-zinc-200 placeholder:text-zinc-500 ring-1 ring-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-[#FF4655]"
+            onChange={handleTitleChange}
+            placeholder="Give your group a title"
+            className={`w-full bg-white/5 rounded-md border-0 px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-[#FF4655] ${
+              titleError ? "border border-red-500" : ""
+            }`}
           />
+          <div className="flex justify-between mt-1">
+            {titleError ? (
+              <div className="flex items-center text-red-500 text-xs">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                <span>{titleError}</span>
+              </div>
+            ) : (
+              <div></div>
+            )}
+            <div className="text-xs text-zinc-400">
+              {countCharacters(title)}/50 characters
+            </div>
+          </div>
         </div>
         <div className="mb-4">
-          <Input
-            placeholder="Group Description"
+          <label htmlFor="groupDescription" className="block text-sm font-medium text-zinc-200 mb-1">
+            Description
+          </label>
+          <textarea
+            id="groupDescription"
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="h-10 border-0 bg-white/5 text-zinc-200 placeholder:text-zinc-500 ring-1 ring-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-[#FF4655]"
+            onChange={handleDescriptionChange}
+            placeholder="Describe what you're looking for"
+            rows={3}
+            className={`w-full bg-white/5 rounded-md border-0 px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-[#FF4655] ${
+              descriptionError ? "border border-red-500" : ""
+            }`}
           />
+          <div className="flex justify-between mt-1">
+            {descriptionError ? (
+              <div className="flex items-center text-red-500 text-xs">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                <span>{descriptionError}</span>
+              </div>
+            ) : (
+              <div></div> 
+            )}
+            <div className="text-xs text-zinc-400">
+              {countCharacters(description)}/100 characters
+            </div>
+          </div>
         </div>
         <div className="mb-4">
           <Select

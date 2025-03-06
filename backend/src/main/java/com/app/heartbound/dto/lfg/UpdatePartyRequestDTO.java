@@ -2,6 +2,7 @@ package com.app.heartbound.dto.lfg;
 
 import com.app.heartbound.enums.Rank;
 import com.app.heartbound.enums.Region;
+import com.app.heartbound.dto.lfg.CharacterCount;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,7 +16,11 @@ import lombok.NoArgsConstructor;
 public class UpdatePartyRequestDTO {
 
     private String game;
+    
+    @CharacterCount(min = 1, max = 50, message = "Title must be between 1 and 50 characters")
     private String title;
+    
+    @CharacterCount(min = 1, max = 100, message = "Description must be between 1 and 100 characters")
     private String description;
     
     @Valid
