@@ -281,6 +281,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
                   value={title}
                   onChange={handleTitleChange}
                   placeholder="Give your party a title"
+                  autoComplete="off"
                   className={`w-full bg-[#1F2731]/80 rounded-md border-0 px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#FF4655]/50 transition-all duration-200 shadow-sm ${
                     titleError ? "ring-1 ring-red-500/50" : "ring-1 ring-white/10"
                   }`}
@@ -323,6 +324,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
                   onChange={handleDescriptionChange}
                   placeholder="What kind of players are you looking for?"
                   rows={3}
+                  autoComplete="off"
                   className={`w-full bg-[#1F2731]/80 rounded-md border-0 px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#FF4655]/50 transition-all duration-200 shadow-sm ${
                     descriptionError ? "ring-1 ring-red-500/50" : "ring-1 ring-white/10"
                   }`}
