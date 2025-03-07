@@ -256,7 +256,7 @@ export default function ValorantPartyDetails() {
         navigate("/dashboard/valorant")
       } catch (err: any) {
         console.error("Error deleting party:", err)
-        alert("Failed to delete party")
+        showToast("Failed to delete party", "error")
       }
     }
   }
@@ -376,6 +376,18 @@ export default function ValorantPartyDetails() {
     }
   };
 
+  // Move this declaration up before it's used in canDeleteParty
+  const isUserLeader = leaderId === user?.id;
+  const isUserParticipant = participants.includes(user?.id || '');
+
+  // Add a new variable to check if user has admin or moderator privileges
+  const hasAdminPrivileges = React.useMemo(() => {
+    return hasRole && (hasRole('ADMIN') || hasRole('MODERATOR'));
+  }, [hasRole]);
+
+  // Determine who can delete the party (leader or admin/mod)
+  const canDeleteParty = isUserLeader || hasAdminPrivileges;
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0F1923] to-[#1A242F] text-white font-sans flex items-center justify-center">
@@ -406,10 +418,6 @@ export default function ValorantPartyDetails() {
     )
   }
 
-  // Check if current user is a participant of the party
-  const isUserParticipant = participants.includes(user?.id || '');
-  const isUserLeader = leaderId === user?.id;
-  
   return (
     <TooltipProvider>
       {/* Render the toast if visible */}
@@ -490,7 +498,7 @@ export default function ValorantPartyDetails() {
                 </div>
                 
                 <div className="flex flex-wrap gap-2">
-                  {/* Copy Link Button */}
+                  {/* Copy Link Button - shown to leaders and participants */}
                   {(isUserLeader || isUserParticipant) && (
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -508,7 +516,8 @@ export default function ValorantPartyDetails() {
                     </Tooltip>
                   )}
                   
-                  {isUserLeader ? (
+                  {/* Delete Party Button - shown to party leader OR admin/moderator */}
+                  {canDeleteParty && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
@@ -523,7 +532,10 @@ export default function ValorantPartyDetails() {
                         <p className="text-sm text-white">Delete this party?</p>
                       </TooltipContent>
                     </Tooltip>
-                  ) : isUserParticipant ? (
+                  )}
+                  
+                  {/* Leave Party Button - shown to participants (including admin/mod who aren't the leader) */}
+                  {isUserParticipant && !isUserLeader && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
@@ -537,7 +549,7 @@ export default function ValorantPartyDetails() {
                                 })
                                 .catch((err: any) => {
                                   console.error("Error leaving party:", err)
-                                  alert("Failed to leave party")
+                                  showToast("Failed to leave party", "error")
                                 })
                             }
                           }}
@@ -549,7 +561,10 @@ export default function ValorantPartyDetails() {
                         <p className="text-sm text-white">Leave this party?</p>
                       </TooltipContent>
                     </Tooltip>
-                  ) : (
+                  )}
+                  
+                  {/* Join Party Button - shown to non-participants */}
+                  {!isUserParticipant && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
