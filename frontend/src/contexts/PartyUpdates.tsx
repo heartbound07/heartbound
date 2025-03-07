@@ -20,6 +20,7 @@ interface PartyUpdatesContextProps {
   update: LFGPartyEvent | null;
   error: string | null;
   clearUpdate: () => void;
+  userActiveParty: string | null; // Track the user's active party ID
 }
 
 const PartyUpdatesContext = createContext<PartyUpdatesContextProps | undefined>(undefined);
@@ -29,12 +30,41 @@ interface PartyUpdatesProviderProps {
 }
 
 export const PartyUpdatesProvider = ({ children }: PartyUpdatesProviderProps) => {
-  const { isAuthenticated, tokens } = useAuth();
+  const { isAuthenticated, tokens, user } = useAuth();
   const [update, setUpdate] = useState<LFGPartyEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [userActiveParty, setUserActiveParty] = useState<string | null>(null);
 
   const clearUpdate = () => setUpdate(null);
+
+  // Effect to update active party status when WebSocket sends an update
+  useEffect(() => {
+    if (!user?.id) return;
+
+    if (update?.party) {
+      const party = update.party;
+      const isCreator = party.userId === user.id;
+      const isParticipant = party.participants?.includes(user.id);
+      
+      // Handle different event types
+      if (update.eventType === 'PARTY_CREATED' && isCreator) {
+        setUserActiveParty(party.id);
+      }
+      else if (update.eventType === 'PARTY_JOINED' && isParticipant) {
+        setUserActiveParty(party.id);
+      }
+      else if (update.eventType === 'PARTY_DELETED' && userActiveParty === party.id) {
+        setUserActiveParty(null);
+      }
+      else if (update.eventType === 'PARTY_LEFT' && userActiveParty === party.id && !isParticipant) {
+        setUserActiveParty(null);
+      }
+      else if (update.eventType === 'PARTY_USER_KICKED' && userActiveParty === party.id && !isParticipant) {
+        setUserActiveParty(null);
+      }
+    }
+  }, [update, user?.id]);
 
   useEffect(() => {
     if (!isAuthenticated || !tokens || !tokens.accessToken) {
@@ -72,7 +102,12 @@ export const PartyUpdatesProvider = ({ children }: PartyUpdatesProviderProps) =>
   }, [isAuthenticated, tokens]);
 
   // Memoize to avoid unnecessary re-renders.
-  const contextValue = useMemo(() => ({ update, error, clearUpdate }), [update, error]);
+  const contextValue = useMemo(() => ({ 
+    update, 
+    error, 
+    clearUpdate, 
+    userActiveParty 
+  }), [update, error, userActiveParty]);
 
   return (
     <PartyUpdatesContext.Provider value={contextValue}>
