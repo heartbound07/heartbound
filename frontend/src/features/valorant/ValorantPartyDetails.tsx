@@ -408,6 +408,22 @@ export default function ValorantPartyDetails() {
     }
   }, [party?.id, user?.id, party?.userId, party?.participants]);
 
+  // Assuming you have a handleLeaveParty function, update it:
+  const handleLeaveParty = async () => {
+    try {
+      await leaveParty(party.id);
+      
+      // Immediately reset the active party state
+      setUserActiveParty(null);
+      
+      showToast("You have left the party", "success");
+      navigate("/dashboard/valorant");
+    } catch (err: any) {
+      console.error("Error leaving party:", err);
+      showToast(err.response?.data?.message || "Failed to leave party", "error");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0F1923] to-[#1A242F] text-white font-sans flex items-center justify-center">
@@ -561,18 +577,7 @@ export default function ValorantPartyDetails() {
                         <Button
                           className="bg-[#283A4B] hover:bg-[#2A3F56] text-white border border-white/10 hover:border-white/30 shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
                           size="sm"
-                          onClick={() => {
-                            if (window.confirm("Are you sure you want to leave this party?")) {
-                              leaveParty(party.id)
-                                .then(() => {
-                                  navigate("/dashboard/valorant")
-                                })
-                                .catch((err: any) => {
-                                  console.error("Error leaving party:", err)
-                                  showToast("Failed to leave party", "error")
-                                })
-                            }
-                          }}
+                          onClick={handleLeaveParty}
                         >
                           <LogOut className="h-4 w-4 text-[#8B97A4] group-hover:text-white transition-colors" />
                         </Button>
