@@ -140,7 +140,7 @@ export default function Listing({ party }: ListingProps) {
             {/* Game Mode */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-pointer">
                   <GamepadIcon className="h-4 w-4 text-[#8B97A4]" />
                 </div>
               </TooltipTrigger>
@@ -152,7 +152,7 @@ export default function Listing({ party }: ListingProps) {
             {/* Team Size */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-pointer">
                   <Users className="h-4 w-4 text-[#8B97A4]" />
                 </div>
               </TooltipTrigger>
@@ -164,7 +164,7 @@ export default function Listing({ party }: ListingProps) {
             {/* Voice Preference */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-pointer">
                   <Mic className="h-4 w-4 text-[#8B97A4]" />
                 </div>
               </TooltipTrigger>
@@ -176,7 +176,7 @@ export default function Listing({ party }: ListingProps) {
             {/* Age Restriction */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-pointer">
                   <Calendar className="h-4 w-4 text-[#8B97A4]" />
                 </div>
               </TooltipTrigger>
@@ -188,7 +188,7 @@ export default function Listing({ party }: ListingProps) {
             {/* Match Type */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-pointer">
                   <Trophy className="h-4 w-4 text-[#8B97A4]" />
                 </div>
               </TooltipTrigger>
@@ -200,7 +200,7 @@ export default function Listing({ party }: ListingProps) {
             {/* Rank */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-pointer">
                   <Award className="h-4 w-4 text-[#8B97A4]" />
                 </div>
               </TooltipTrigger>
@@ -217,7 +217,7 @@ export default function Listing({ party }: ListingProps) {
             {/* Region */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-pointer">
                   <Globe className="h-4 w-4 text-[#8B97A4]" />
                 </div>
               </TooltipTrigger>
