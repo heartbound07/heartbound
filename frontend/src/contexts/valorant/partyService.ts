@@ -111,3 +111,8 @@ export const leaveParty = async (id: string): Promise<string> => {
   const response = await httpClient.post(`/api/lfg/parties/${id}/leave`);
   return response.data;
 };
+
+export const kickUserFromParty = async (partyId: string, userId: string): Promise<string> => {
+  const response = await httpClient.post(`/api/lfg/parties/${partyId}/kick/${userId}`);
+  return response.data;
+};
