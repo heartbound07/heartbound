@@ -196,7 +196,12 @@ export default function Listing({ party }: ListingProps) {
                 <p className="text-xs font-medium">{formatTooltipText(party.matchType, "Casual")}</p>
               </TooltipContent>
             </Tooltip>
+          </TooltipProvider>
+        </div>
 
+        {/* Right side - Region and Rank icons */}
+        <div className="flex items-center gap-1">
+          <TooltipProvider>
             {/* Rank */}
             <Tooltip>
               <TooltipTrigger asChild>
@@ -208,12 +213,7 @@ export default function Listing({ party }: ListingProps) {
                 <p className="text-xs font-medium">{formatTooltipText(party?.requirements?.rank)}</p>
               </TooltipContent>
             </Tooltip>
-          </TooltipProvider>
-        </div>
 
-        {/* Right side - Region icon */}
-        <div>
-          <TooltipProvider>
             {/* Region */}
             <Tooltip>
               <TooltipTrigger asChild>
