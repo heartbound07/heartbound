@@ -152,4 +152,17 @@ public class LFGPartyController {
         messagingTemplate.convertAndSend("/topic/party", event);
         return result;
     }
+
+    @PostMapping("/{id}/kick/{userId}")
+    public String kickUserFromParty(@PathVariable UUID id, @PathVariable String userId) {
+        String result = partyService.kickUserFromParty(id, userId);
+        LFGPartyResponseDTO updatedParty = partyService.getPartyById(id);
+        LFGPartyEventDTO event = LFGPartyEventDTO.builder()
+              .eventType("PARTY_USER_KICKED")
+              .party(updatedParty)
+              .message("Party update: User was kicked from party " + id)
+              .build();
+        messagingTemplate.convertAndSend("/topic/party", event);
+        return result;
+    }
 }

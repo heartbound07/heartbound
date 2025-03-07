@@ -10,6 +10,7 @@ import com.app.heartbound.repositories.lfg.LFGPartyRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -274,6 +275,58 @@ public class LFGPartyService {
             return "Left party successfully.";
         }
         return "User was not a participant of this party.";
+    }
+
+    /**
+     * Kicks a user from a party. Only the party leader or users with ADMIN/MODERATOR roles can do this.
+     *
+     * @param id the UUID of the party
+     * @param userIdToKick the ID of the user to kick
+     * @return success message if kick succeeds
+     */
+    public String kickUserFromParty(UUID id, String userIdToKick) {
+        String currentUserId = getCurrentUserId();
+        LFGParty party = lfgPartyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
+        
+        // Check if current user is the party leader or has admin/moderator role
+        boolean isPartyLeader = party.getUserId().equals(currentUserId);
+        boolean hasAdminRole = hasRole("ADMIN") || hasRole("MODERATOR");
+        
+        if (!isPartyLeader && !hasAdminRole) {
+            throw new UnauthorizedOperationException("Only the party leader or administrators can kick users.");
+        }
+        
+        // Party leader cannot be kicked
+        if (party.getUserId().equals(userIdToKick)) {
+            throw new UnauthorizedOperationException("Party leader cannot be kicked from their own party.");
+        }
+        
+        // Check if the user to kick is actually in the party
+        if (!party.getParticipants().contains(userIdToKick)) {
+            throw new IllegalArgumentException("User is not in this party.");
+        }
+        
+        // Remove user from participants
+        party.getParticipants().remove(userIdToKick);
+        
+        // If party was full and is now not full, update status to open
+        if (party.getStatus().equals("closed") && party.getParticipants().size() < party.getMaxPlayers()) {
+            party.setStatus("open");
+        }
+        
+        lfgPartyRepository.save(party);
+        return "User has been kicked from the party.";
+    }
+
+    // Helper method to check if current user has a role
+    private boolean hasRole(String role) {
+        // This would be implemented based on your security context architecture
+        // For example, you might check against UserDetails or a custom authentication token
+        // This is a placeholder implementation
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_" + role));
     }
 
     /**
