@@ -253,10 +253,11 @@ export default function ValorantPartyDetails() {
     if (window.confirm("Are you sure you want to delete this party? This action cannot be undone.")) {
       try {
         await deleteParty(party.id)
+        showToast("Party successfully deleted", "success")
         navigate("/dashboard/valorant")
       } catch (err: any) {
         console.error("Error deleting party:", err)
-        showToast("Failed to delete party", "error")
+        showToast(err.response?.data?.message || "Failed to delete party", "error")
       }
     }
   }

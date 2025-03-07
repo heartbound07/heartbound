@@ -195,18 +195,23 @@ public class LFGPartyService {
     }
 
     /**
-     * Deletes a party.
+     * Deletes a party. Only the party leader or users with ADMIN/MODERATOR roles can do this.
      *
      * @param id the UUID of the party to delete
      */
     public void deleteParty(UUID id) {
-        String userId = getCurrentUserId();
-
+        String currentUserId = getCurrentUserId();
         LFGParty party = lfgPartyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
-        if (!party.getUserId().equals(userId)) {
+        
+        // Check if current user is the party leader or has admin/moderator role
+        boolean isPartyLeader = party.getUserId().equals(currentUserId);
+        boolean hasAdminRole = hasRole("ADMIN") || hasRole("MODERATOR");
+        
+        if (!isPartyLeader && !hasAdminRole) {
             throw new UnauthorizedOperationException("You are not authorized to delete this party");
         }
+        
         lfgPartyRepository.delete(party);
     }
 
