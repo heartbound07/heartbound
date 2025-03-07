@@ -133,92 +133,100 @@ export default function Listing({ party }: ListingProps) {
       </div>
       
       {/* Party Details Icons Row */}
-      <div className="flex items-center justify-start gap-1 py-3 bg-[#1F2731]/30 px-4">
-        <TooltipProvider>
-          {/* Game Mode */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
-                <GamepadIcon className="h-4 w-4 text-[#8B97A4]" />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
-              <p className="text-xs font-medium">{formatTooltipText(party.gameMode, "Unrated")}</p>
-            </TooltipContent>
-          </Tooltip>
+      <div className="flex items-center justify-between py-3 bg-[#1F2731]/30 px-4">
+        {/* Left side icons group */}
+        <div className="flex items-center gap-1">
+          <TooltipProvider>
+            {/* Game Mode */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                  <GamepadIcon className="h-4 w-4 text-[#8B97A4]" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
+                <p className="text-xs font-medium">{formatTooltipText(party.gameMode, "Unrated")}</p>
+              </TooltipContent>
+            </Tooltip>
 
-          {/* Team Size */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
-                <Users className="h-4 w-4 text-[#8B97A4]" />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
-              <p className="text-xs font-medium">{formatTooltipText(party.teamSize, "Duo")}</p>
-            </TooltipContent>
-          </Tooltip>
+            {/* Team Size */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                  <Users className="h-4 w-4 text-[#8B97A4]" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
+                <p className="text-xs font-medium">{formatTooltipText(party.teamSize, "Duo")}</p>
+              </TooltipContent>
+            </Tooltip>
 
-          {/* Voice Preference */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
-                <Mic className="h-4 w-4 text-[#8B97A4]" />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
-              <p className="text-xs font-medium">{party.voicePreference || "Discord"}</p>
-            </TooltipContent>
-          </Tooltip>
+            {/* Voice Preference */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                  <Mic className="h-4 w-4 text-[#8B97A4]" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
+                <p className="text-xs font-medium">{party.voicePreference || "Discord"}</p>
+              </TooltipContent>
+            </Tooltip>
 
-          {/* Age Restriction */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
-                <Calendar className="h-4 w-4 text-[#8B97A4]" />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
-              <p className="text-xs font-medium">{formatAgeRestriction(party.ageRestriction)}</p>
-            </TooltipContent>
-          </Tooltip>
+            {/* Age Restriction */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                  <Calendar className="h-4 w-4 text-[#8B97A4]" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
+                <p className="text-xs font-medium">{formatAgeRestriction(party.ageRestriction)}</p>
+              </TooltipContent>
+            </Tooltip>
 
-          {/* Match Type */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
-                <Trophy className="h-4 w-4 text-[#8B97A4]" />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
-              <p className="text-xs font-medium">{formatTooltipText(party.matchType, "Casual")}</p>
-            </TooltipContent>
-          </Tooltip>
+            {/* Match Type */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                  <Trophy className="h-4 w-4 text-[#8B97A4]" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
+                <p className="text-xs font-medium">{formatTooltipText(party.matchType, "Casual")}</p>
+              </TooltipContent>
+            </Tooltip>
 
-          {/* Rank */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
-                <Award className="h-4 w-4 text-[#8B97A4]" />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
-              <p className="text-xs font-medium">{formatTooltipText(party?.requirements?.rank)}</p>
-            </TooltipContent>
-          </Tooltip>
+            {/* Rank */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                  <Award className="h-4 w-4 text-[#8B97A4]" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
+                <p className="text-xs font-medium">{formatTooltipText(party?.requirements?.rank)}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
 
-          {/* Region */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
-                <Globe className="h-4 w-4 text-[#8B97A4]" />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
-              <p className="text-xs font-medium">{formatTooltipText(party?.requirements?.region)}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {/* Right side - Region icon */}
+        <div>
+          <TooltipProvider>
+            {/* Region */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                  <Globe className="h-4 w-4 text-[#8B97A4]" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
+                <p className="text-xs font-medium">{formatTooltipText(party?.requirements?.region)}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       {/* Player Slots Section - Redesigned with left-aligned players */}
