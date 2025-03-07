@@ -335,11 +335,37 @@ export default function ValorantPartyDetails() {
     return isUserLeader || hasAdminRole;
   }, [user, leaderId, hasRole]);
   
-  // Add a function to handle kicking a user
+  // Add a function to determine if a user has admin or moderator role
+  const hasAdminOrModeratorRole = (userId: string): boolean => {
+    const userProfile = userProfiles[userId];
+    // Check if profile exists and has roles array
+    if (userProfile && userProfile.roles) {
+      // Check if user has ADMIN or MODERATOR role
+      return userProfile.roles.some(role => role === 'ADMIN' || role === 'MODERATOR');
+    }
+    return false;
+  };
+
+  // Modified handleKickUser function with additional checks
   const handleKickUser = async (userId: string) => {
     if (!party) return;
     
     try {
+      // Check if the current user is the party leader (not admin/mod) and target is admin/mod
+      const isUserLeader = user && leaderId === user.id;
+      const isCurrentUserAdmin = hasRole && (hasRole('ADMIN') || hasRole('MODERATOR'));
+      const isTargetUserAdminOrMod = hasAdminOrModeratorRole(userId);
+      
+      // If leader trying to kick admin/mod - prevent action
+      if (isUserLeader && !isCurrentUserAdmin && isTargetUserAdminOrMod) {
+        showToast(
+          "You cannot kick administrators or moderators from the party.", 
+          "error"
+        );
+        return;
+      }
+      
+      // Proceed with kick as usual
       await kickUserFromParty(party.id, userId);
       // Toast notification
       showToast(`Player has been kicked from the party.`, "success");
