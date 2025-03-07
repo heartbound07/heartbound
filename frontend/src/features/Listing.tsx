@@ -120,7 +120,7 @@ export default function Listing({ party }: ListingProps) {
   return (
     <div 
       ref={listingContainerRef} 
-      className="overflow-hidden bg-[#0F1923] rounded-lg shadow-xl border border-white/5 hover:border-white/10 transition-all duration-300 transform hover:-translate-y-1 h-full"
+      className="overflow-hidden bg-[#0F1923] rounded-lg shadow-xl border border-white/5 hover:border-white/10 transition-all duration-300 transform hover:-translate-y-1 h-full flex flex-col"
     >
       {/* Header section with title and description */}
       <div className="px-5 py-4 bg-gradient-to-r from-[#1F2731] to-[#0F1923] border-b border-zinc-700/30">
@@ -222,7 +222,7 @@ export default function Listing({ party }: ListingProps) {
       </div>
 
       {/* Player Slots Section - Redesigned with left-aligned players */}
-      <div className="p-5">
+      <div className="p-5 flex-1 flex flex-col">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-[#FF4655]" />
@@ -234,7 +234,7 @@ export default function Listing({ party }: ListingProps) {
         </div>
         
         {/* Flex container for players and action button */}
-        <div className="flex items-center justify-between gap-4 mt-4">
+        <div className="flex items-center justify-between gap-4 mt-4 flex-grow">
           {/* Player Avatars - Now left-aligned with slightly larger size */}
           <div className="flex-1">
             <div className="flex flex-wrap justify-start gap-2">
