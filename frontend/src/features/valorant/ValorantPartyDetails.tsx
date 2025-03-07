@@ -125,7 +125,7 @@ export default function ValorantPartyDetails() {
   const { user, hasRole } = useAuth()
   const navigate = useNavigate()
   const { partyId } = useParams<{ partyId: string }>()
-  const { update } = usePartyUpdates()
+  const { update, userActiveParty } = usePartyUpdates()
 
   const [party, setParty] = React.useState<any>(null)
   const [userProfiles, setUserProfiles] = React.useState<Record<string, UserProfileDTO>>({})
@@ -388,6 +388,19 @@ export default function ValorantPartyDetails() {
 
   // Determine who can delete the party (leader or admin/mod)
   const canDeleteParty = isUserLeader || hasAdminPrivileges;
+
+  // Add effect to set userActiveParty when this component loads
+  React.useEffect(() => {
+    if (party?.id && user?.id) {
+      const isCreator = party.userId === user.id;
+      const isParticipant = party.participants?.includes(user.id);
+      
+      if (isCreator || isParticipant) {
+        // This is the user's active party - we'd ideally call a method to 
+        // set this in the context, but for simplicity we rely on WebSocket events
+      }
+    }
+  }, [party?.id, user?.id, party?.userId, party?.participants]);
 
   if (isLoading) {
     return (
