@@ -21,6 +21,7 @@ interface PartyUpdatesContextProps {
   error: string | null;
   clearUpdate: () => void;
   userActiveParty: string | null; // Track the user's active party ID
+  setUserActiveParty: (partyId: string | null) => void; // Expose this function
 }
 
 const PartyUpdatesContext = createContext<PartyUpdatesContextProps | undefined>(undefined);
@@ -64,7 +65,7 @@ export const PartyUpdatesProvider = ({ children }: PartyUpdatesProviderProps) =>
         setUserActiveParty(null);
       }
     }
-  }, [update, user?.id]);
+  }, [update, user?.id, userActiveParty]);
 
   useEffect(() => {
     if (!isAuthenticated || !tokens || !tokens.accessToken) {
@@ -106,7 +107,8 @@ export const PartyUpdatesProvider = ({ children }: PartyUpdatesProviderProps) =>
     update, 
     error, 
     clearUpdate, 
-    userActiveParty 
+    userActiveParty,
+    setUserActiveParty
   }), [update, error, userActiveParty]);
 
   return (
