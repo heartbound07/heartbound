@@ -125,7 +125,7 @@ export default function ValorantPartyDetails() {
   const { user, hasRole } = useAuth()
   const navigate = useNavigate()
   const { partyId } = useParams<{ partyId: string }>()
-  const { update, clearUpdate } = usePartyUpdates()
+  const { update } = usePartyUpdates()
 
   const [party, setParty] = React.useState<any>(null)
   const [userProfiles, setUserProfiles] = React.useState<Record<string, UserProfileDTO>>({})
@@ -243,34 +243,6 @@ export default function ValorantPartyDetails() {
       }
     }
   }, [update, party?.id, navigate, userProfiles])
-
-  // Add an effect to handle party updates via WebSocket
-  React.useEffect(() => {
-    if (update && party) {
-      // Handle party update events from WebSocket
-      if (update.eventType === "PARTY_USER_KICKED") {
-        // If the current user was kicked
-        if (user && update.party && !update.party.participants.includes(user.id) && 
-            user.id !== update.party.userId) {
-          showToast("You have been kicked from the party", "error");
-          navigate("/"); // Redirect to home if kicked
-          return;
-        }
-        
-        // Otherwise just update the party data
-        setParty(update.party);
-        setParticipants(update.party.participants || []);
-        
-        // Show toast notification for all remaining party members
-        if (update.message) {
-          showToast(update.message, "info");
-        }
-      }
-      
-      // Always clear update after handling
-      clearUpdate();
-    }
-  }, [update, user, party, navigate, clearUpdate]);
 
   // Add debug log before calculating participants details
   console.debug("Party data:", party);
