@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/valorant/buttonparty"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate, useParams } from "react-router-dom"
-import { deleteParty, getParty, leaveParty, joinParty } from "@/contexts/valorant/partyService"
+import { deleteParty, getParty, leaveParty, joinParty, kickUserFromParty } from "@/contexts/valorant/partyService"
 import { usePartyUpdates } from "@/contexts/PartyUpdates"
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 import { PlayerSlotsContainer } from "@/components/PlayerSlotsContainer"
@@ -122,7 +122,7 @@ const IconBadge = ({
 };
 
 export default function ValorantPartyDetails() {
-  const { user } = useAuth()
+  const { user, hasRole } = useAuth()
   const navigate = useNavigate()
   const { partyId } = useParams<{ partyId: string }>()
   const { update } = usePartyUpdates()
@@ -320,6 +320,34 @@ export default function ValorantPartyDetails() {
   const handleCloseProfileModal = () => {
     setSelectedProfileId(null);
     setProfilePosition(null);
+  };
+
+  // Add a function to determine if the current user has kick permissions
+  const hasKickPermission = React.useMemo(() => {
+    // Party leader always has kick permission
+    const isUserLeader = user && leaderId === user.id;
+    
+    // Admin or Moderator also has kick permission
+    const hasAdminRole = hasRole && (
+      hasRole('ADMIN') || hasRole('MODERATOR')
+    );
+    
+    return isUserLeader || hasAdminRole;
+  }, [user, leaderId, hasRole]);
+  
+  // Add a function to handle kicking a user
+  const handleKickUser = async (userId: string) => {
+    if (!party) return;
+    
+    try {
+      await kickUserFromParty(party.id, userId);
+      // Toast notification
+      showToast(`Player has been kicked from the party.`, "success");
+      // No need to update state here as the WebSocket update will handle it
+    } catch (err: any) {
+      console.error("Error kicking user:", err);
+      showToast(err.message || "Could not kick the user. Try again later.", "error");
+    }
   };
 
   if (isLoading) {
@@ -571,6 +599,8 @@ export default function ValorantPartyDetails() {
             className="bg-[#1F2731]/60 backdrop-blur-sm border border-white/5 shadow-xl"
             onInviteClick={() => console.log("Invite player clicked")}
             onProfileView={handleProfileView}
+            onKickUser={handleKickUser}
+            hasKickPermission={hasKickPermission}
           />
           
           {/* Add the profile modal component */}
