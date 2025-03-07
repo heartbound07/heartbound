@@ -4,11 +4,12 @@ import React, { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
-import { Users, GamepadIcon, Mic, Calendar, Trophy, Plus, Award, Globe, ArrowRight } from "lucide-react"
+import { Users, GamepadIcon, Mic, Calendar, Trophy, Plus, Award, Globe, ArrowRight, X } from "lucide-react"
 import { joinParty } from "@/contexts/valorant/partyService"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate } from "react-router-dom"
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
+import { usePartyUpdates } from "@/contexts/PartyUpdates"
 
 // Helper function to format tooltip text for fields such as gameMode, teamSize, etc.
 const formatTooltipText = (text: string | undefined, defaultText: string = "N/A"): string => {
@@ -48,6 +49,7 @@ export default function Listing({ party }: ListingProps) {
   const [isJoining, setIsJoining] = useState(false)
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { userActiveParty } = usePartyUpdates()
   
   // Placeholder avatar for users without an avatar
   const placeholderAvatar = "/placeholder.svg"
@@ -88,14 +90,35 @@ export default function Listing({ party }: ListingProps) {
     }
   });
 
-  // Determine if the current user is the party owner
-  const isOwner = user?.id === party.userId
-
   // Check if the current user is already a participant in this party
   const isParticipant = user?.id && party.participants?.includes(user.id)
+  
+  // Check if the user is already in any party
+  const isInAnyParty = !!userActiveParty
+  
+  // Check if user is the owner of this party
+  const isOwner = user?.id === party.userId
+  
+  // User can join if: they're not already in any party AND they're not already in this specific party
+  const canJoin = !isInAnyParty && !isParticipant && !isOwner
+
+  // Add state for toast message
+  const [toast, setToast] = useState<{message: string, type: 'error' | 'success' | 'info'} | null>(null)
 
   // Handle the Join Game Button click for non-owners
   const handleJoinGame = async () => {
+    // If user is already in a party, show error toast and don't proceed
+    if (isInAnyParty) {
+      setToast({
+        message: "You must leave your current party before joining another one",
+        type: "error"
+      })
+      
+      // Auto-dismiss toast after 3 seconds
+      setTimeout(() => setToast(null), 3000)
+      return
+    }
+    
     setIsJoining(true)
     try {
       // Call the joinParty function with the party ID
@@ -103,9 +126,14 @@ export default function Listing({ party }: ListingProps) {
       console.log("Joined party successfully:", result)
       // Redirect the user to the party details page
       navigate(`/dashboard/valorant/${party.id}`)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error joining the party", error)
-      // Optionally display an error notification here
+      // Display error notification
+      setToast({
+        message: error.message || "Failed to join party. Try again later.",
+        type: "error"
+      })
+      setTimeout(() => setToast(null), 3000)
     } finally {
       setIsJoining(false)
     }
@@ -280,10 +308,15 @@ export default function Listing({ party }: ListingProps) {
           <div className="flex-shrink-0">
             <Button
               onClick={isOwner || isParticipant ? handleViewParty : handleJoinGame}
-              disabled={isJoining}
-              className="bg-[#FF4655] hover:bg-[#FF4655]/90 text-white py-2 px-3 h-auto text-xs font-semibold 
-                tracking-wide transition-all duration-300 ease-in-out transform hover:scale-[1.05] shadow-md
-                focus:outline-none focus:ring-2 focus:ring-[#FF4655]/50 focus:ring-opacity-50 rounded-md flex items-center gap-1"
+              disabled={isJoining || (!isOwner && !isParticipant && !canJoin)}
+              className={`py-2 px-3 h-auto text-xs font-semibold tracking-wide transition-all 
+                duration-300 ease-in-out transform hover:scale-[1.05] shadow-md
+                focus:outline-none focus:ring-2 focus:ring-[#FF4655]/50 focus:ring-opacity-50 
+                rounded-md flex items-center gap-1 ${
+                  !canJoin && !isOwner && !isParticipant
+                  ? "bg-gray-500 cursor-not-allowed" 
+                  : "bg-[#FF4655] hover:bg-[#FF4655]/90 text-white"
+                }`}
             >
               {isOwner || isParticipant ? (
                 <>
@@ -298,6 +331,8 @@ export default function Listing({ party }: ListingProps) {
                   </svg>
                   Joining
                 </span>
+              ) : !canJoin ? (
+                <span>In Party</span>
               ) : (
                 <>
                   <span>Join</span>
@@ -308,6 +343,17 @@ export default function Listing({ party }: ListingProps) {
           </div>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 ${
+          toast.type === 'error' ? 'bg-[#FF4655]' : 
+          toast.type === 'success' ? 'bg-green-500' : 'bg-blue-500'
+        } text-white px-4 py-3 rounded-lg shadow-lg flex items-center justify-between animate-fadeIn`}>
+          <span>{toast.message}</span>
+          <X className="ml-3 h-4 w-4 cursor-pointer" onClick={() => setToast(null)} />
+        </div>
+      )}
     </div>
   )
 }
