@@ -16,7 +16,7 @@ export default function Home() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [groupErrorMessage, setGroupErrorMessage] = useState<string | null>(null);
   const { user } = useAuth();
-  const { update, clearUpdate } = usePartyUpdates();
+  const { update, clearUpdate, userActiveParty } = usePartyUpdates();
 
   // Define a reusable function to fetch parties.
   const fetchParties = useCallback(async () => {
@@ -53,7 +53,8 @@ export default function Home() {
     }
   }, [groupErrorMessage]);
 
-  const userHasParty = user ? parties.some(party => party.userId === user.id) : false;
+  // Check if user already has a party
+  const userHasParty = userActiveParty !== null;
 
   return (
     <div className="min-h-screen bg-[#0F1923] text-white font-sans">
@@ -154,7 +155,7 @@ export default function Home() {
                       <Button
                         onClick={() => {
                           if (userHasParty) {
-                            setGroupErrorMessage("Error: You can only create one party");
+                            setGroupErrorMessage("Error: You can only be in one party at a time");
                           } else {
                             setShowCreateForm(true);
                           }
