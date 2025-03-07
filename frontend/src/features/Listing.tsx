@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
-import { Users, GamepadIcon, Mic, Calendar, Trophy, Plus, Award, Globe } from "lucide-react"
+import { Users, GamepadIcon, Mic, Calendar, Trophy, Plus, Award, Globe, ArrowRight } from "lucide-react"
 import { joinParty } from "@/contexts/valorant/partyService"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate } from "react-router-dom"
@@ -52,7 +52,7 @@ export default function Listing({ party }: ListingProps) {
   // Placeholder avatar for users without an avatar
   const placeholderAvatar = "/placeholder.svg"
   
-  // Add this at the top of your component function
+  // Reference for the component container
   const listingContainerRef = useRef<HTMLDivElement>(null);
   
   // Fetch user profiles when participants change
@@ -118,204 +118,187 @@ export default function Listing({ party }: ListingProps) {
   }
 
   return (
-    <div ref={listingContainerRef} className="overflow-hidden bg-zinc-900 rounded-lg shadow-lg h-full">
-      <div className="px-4 py-3 bg-gradient-to-r from-zinc-900 to-zinc-800 border-b border-zinc-700/50">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-sm font-semibold text-zinc-100 tracking-wide mt-2">
-              {party.title}
-            </h1>
-            <p className="text-xs text-zinc-400 mt-1">
-              {party.description}
-            </p>
-          </div>
-        </div>
+    <div 
+      ref={listingContainerRef} 
+      className="overflow-hidden bg-[#0F1923] rounded-lg shadow-xl border border-white/5 hover:border-white/10 transition-all duration-300 transform hover:-translate-y-1 h-full"
+    >
+      {/* Header section with title and description */}
+      <div className="px-5 py-4 bg-gradient-to-r from-[#1F2731] to-[#0F1923] border-b border-zinc-700/30">
+        <h1 className="text-sm font-semibold text-white tracking-wide">
+          {party.title}
+        </h1>
+        <p className="text-xs text-zinc-400 mt-1 line-clamp-2">
+          {party.description}
+        </p>
       </div>
       
-      {/* Party Details Tooltip Row */}
-      <div className="flex items-center justify-start space-x-4 py-2 bg-zinc-800 pl-4">
+      {/* Party Details Icons Row */}
+      <div className="flex items-center justify-start gap-1 py-3 bg-[#1F2731]/30 px-4">
         <TooltipProvider>
+          {/* Game Mode */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors
-                  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
-                  [&_svg]:pointer-events-none h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
-              >
-                <GamepadIcon className="h-4 w-4" />
-              </Button>
+              <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                <GamepadIcon className="h-4 w-4 text-[#8B97A4]" />
+              </div>
             </TooltipTrigger>
-            <TooltipContent>
-              <span>{formatTooltipText(party.gameMode, "Unrated")}</span>
+            <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
+              <p className="text-xs font-medium">{formatTooltipText(party.gameMode, "Unrated")}</p>
             </TooltipContent>
           </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider>
+
+          {/* Team Size */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors
-                  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
-                  [&_svg]:pointer-events-none h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
-              >
-                <Users className="h-4 w-4" />
-              </Button>
+              <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                <Users className="h-4 w-4 text-[#8B97A4]" />
+              </div>
             </TooltipTrigger>
-            <TooltipContent>
-              <span>{formatTooltipText(party.teamSize, "Duo")}</span>
+            <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
+              <p className="text-xs font-medium">{formatTooltipText(party.teamSize, "Duo")}</p>
             </TooltipContent>
           </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider>
+
+          {/* Voice Preference */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors
-                  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
-                  [&_svg]:pointer-events-none h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
-              >
-                <Mic className="h-4 w-4" />
-              </Button>
+              <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                <Mic className="h-4 w-4 text-[#8B97A4]" />
+              </div>
             </TooltipTrigger>
-            <TooltipContent>
-              <span>{party.voicePreference || "Discord"}</span>
+            <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
+              <p className="text-xs font-medium">{party.voicePreference || "Discord"}</p>
             </TooltipContent>
           </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider>
+
+          {/* Age Restriction */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors
-                  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
-                  [&_svg]:pointer-events-none h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
-              >
-                <Calendar className="h-4 w-4" />
-              </Button>
+              <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                <Calendar className="h-4 w-4 text-[#8B97A4]" />
+              </div>
             </TooltipTrigger>
-            <TooltipContent>
-              <span>{formatAgeRestriction(party.ageRestriction)}</span>
+            <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
+              <p className="text-xs font-medium">{formatAgeRestriction(party.ageRestriction)}</p>
             </TooltipContent>
           </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider>
+
+          {/* Match Type */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors
-                  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
-                  [&_svg]:pointer-events-none h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
-              >
-                <Trophy className="h-4 w-4" />
-              </Button>
+              <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                <Trophy className="h-4 w-4 text-[#8B97A4]" />
+              </div>
             </TooltipTrigger>
-            <TooltipContent>
-              <span>{formatTooltipText(party.matchType, "Casual")}</span>
+            <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
+              <p className="text-xs font-medium">{formatTooltipText(party.matchType, "Casual")}</p>
             </TooltipContent>
           </Tooltip>
-        </TooltipProvider>
-        {/* Rank Tooltip */}
-        <TooltipProvider>
+
+          {/* Rank */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors 
-                  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 
-                  [&_svg]:pointer-events-none h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
-              >
-                <Award className="h-4 w-4" />
-              </Button>
+              <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                <Award className="h-4 w-4 text-[#8B97A4]" />
+              </div>
             </TooltipTrigger>
-            <TooltipContent>
-              <span>{formatTooltipText(party?.requirements?.rank)}</span>
+            <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
+              <p className="text-xs font-medium">{formatTooltipText(party?.requirements?.rank)}</p>
             </TooltipContent>
           </Tooltip>
-        </TooltipProvider>
-        {/* Region Tooltip */}
-        <TooltipProvider>
+
+          {/* Region */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="bg-transparent inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors 
-                  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 
-                  [&_svg]:pointer-events-none h-9 w-9 text-zinc-400 hover:text-white hover:bg-transparent"
-              >
-                <Globe className="h-4 w-4" />
-              </Button>
+              <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-help">
+                <Globe className="h-4 w-4 text-[#8B97A4]" />
+              </div>
             </TooltipTrigger>
-            <TooltipContent>
-              <span>{formatTooltipText(party?.requirements?.region)}</span>
+            <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
+              <p className="text-xs font-medium">{formatTooltipText(party?.requirements?.region)}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
 
-      <div className="p-4">
+      {/* Player Slots Section - Redesigned with left-aligned players */}
+      <div className="p-5">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-2">
-            <Users className="h-4 w-4 text-zinc-400" />
-            <span className="text-xs font-medium text-zinc-300">Players</span>
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-[#FF4655]" />
+            <span className="text-xs font-medium text-white">Players</span>
           </div>
-          <span className="text-xs font-medium text-zinc-400">
-            {participants.length} / {party.maxPlayers}
+          <span className="text-xs font-medium text-white bg-[#1F2731] py-1 px-2.5 rounded-full">
+            {participants.length} <span className="text-[#8B97A4]">/</span> {party.maxPlayers}
           </span>
         </div>
-        <div className="flex space-x-2 mb-4">
-          {slots.map((slot) => (
-            <TooltipProvider key={slot.id}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div
-                    className={`relative w-10 h-10 rounded-full ${
-                      slot.filled
-                        ? "bg-zinc-800 ring-1 ring-violet-500/50 cursor-pointer"
-                        : "border border-dashed border-zinc-700 hover:border-zinc-500"
-                    } transition-all duration-200 group flex items-center justify-center`}
-                  >
-                    {slot.filled ? (
-                      <Avatar className="h-full w-full">
-                        <AvatarImage src={slot.avatar} />
-                        <AvatarFallback>P{slot.id}</AvatarFallback>
-                      </Avatar>
-                    ) : (
-                      <Plus className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400 transition-colors duration-200" />
-                    )}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{slot.filled ? slot.username : "Empty Slot"}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ))}
+        
+        {/* Flex container for players and action button */}
+        <div className="flex items-center justify-between gap-4 mt-4">
+          {/* Player Avatars - Now left-aligned with slightly larger size */}
+          <div className="flex-1">
+            <div className="flex flex-wrap justify-start gap-2">
+              {slots.map((slot) => (
+                <TooltipProvider key={slot.id}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        className={`relative w-10 h-10 rounded-full group 
+                          ${slot.filled 
+                            ? "bg-[#1F2731] ring-2 ring-[#FF4655]/30 hover:ring-[#FF4655]/60 cursor-pointer transition-all duration-300 transform hover:scale-105" 
+                            : "border-2 border-dashed border-[#1F2731] hover:border-[#FF4655]/30 transition-all duration-300 flex items-center justify-center"
+                          }`}
+                      >
+                        {slot.filled ? (
+                          <Avatar className="h-full w-full">
+                            <AvatarImage src={slot.avatar} alt={slot.username} />
+                            <AvatarFallback className="bg-[#1F2731] text-white">{slot.username.charAt(0).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                        ) : (
+                          <Plus className="h-3.5 w-3.5 text-[#1F2731] group-hover:text-[#FF4655]/50 transition-colors duration-200" />
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="bg-[#1F2731] border border-white/10">
+                      <p className="text-xs font-medium">{slot.filled ? slot.username : "Empty Slot"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ))}
+            </div>
+          </div>
+          
+          {/* Join/View Button - Positioned to the right */}
+          <div className="flex-shrink-0">
+            <Button
+              onClick={isOwner || isParticipant ? handleViewParty : handleJoinGame}
+              disabled={isJoining}
+              className="bg-[#FF4655] hover:bg-[#FF4655]/90 text-white py-2 px-3 h-auto text-xs font-semibold 
+                tracking-wide transition-all duration-300 ease-in-out transform hover:scale-[1.05] shadow-md
+                focus:outline-none focus:ring-2 focus:ring-[#FF4655]/50 focus:ring-opacity-50 rounded-md flex items-center gap-1"
+            >
+              {isOwner || isParticipant ? (
+                <>
+                  <span>View</span>
+                  <ArrowRight className="h-3 w-3" />
+                </>
+              ) : isJoining ? (
+                <span className="flex items-center justify-center gap-1">
+                  <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Joining
+                </span>
+              ) : (
+                <>
+                  <span>Join</span>
+                  <ArrowRight className="h-3 w-3" />
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-        <Button
-          onClick={isOwner || isParticipant ? handleViewParty : handleJoinGame}
-          disabled={isJoining}
-          className="w-full bg-[#FF4655] hover:bg-[#FF4655]/90 text-white py-2 text-xs font-semibold tracking-wide transition-all duration-200 ease-in-out transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-[#FF4655] focus:ring-opacity-50"
-        >
-          {isOwner 
-            ? "View Party" 
-            : (isParticipant 
-                ? "View Party" 
-                : (isJoining ? "Joining..." : "Join Game")
-              )
-          }
-        </Button>
       </div>
     </div>
   )
