@@ -1,11 +1,10 @@
 "use client"
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Users, GamepadIcon, Mic, Calendar, Trophy, AlertCircle } from "lucide-react"
+import { X, Users, GamepadIcon, Mic, Calendar, Trophy, AlertCircle, Globe, Shield } from "lucide-react"
 import { Button } from "@/components/ui/valorant/groupcreatebutton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
-import { Input } from "@/components/ui/profile/input"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { createParty, type Rank, type Region } from '@/contexts/valorant/partyService'
 import toast from 'react-hot-toast'
 
@@ -112,11 +111,12 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
     }
   }, [teamSize])
 
-  // Dropdown configurations
-  const dropdowns = [
+  // Dropdown configurations for game settings
+  const gameSettingsDropdowns = [
     {
       field: 'matchType',
       icon: Trophy,
+      label: 'Match Type',
       defaultValue: 'casual',
       options: [
         { value: 'competitive', label: 'Competitive' },
@@ -127,6 +127,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
     {
       field: 'gameMode',
       icon: GamepadIcon,
+      label: 'Game Mode',
       defaultValue: 'unrated',
       options: [
         { value: 'unrated', label: 'Unrated' },
@@ -141,6 +142,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
     {
       field: 'teamSize',
       icon: Users,
+      label: 'Team Size',
       defaultValue: 'duo',
       options: [
         { value: 'duo', label: 'Duo' },
@@ -150,9 +152,14 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
       ],
       setter: setTeamSize,
     },
+  ]
+  
+  // Dropdown configurations for preferences
+  const preferencesDropdowns = [
     {
       field: 'voicePreference',
       icon: Mic,
+      label: 'Voice Preference',
       defaultValue: 'discord',
       options: [
         { value: 'in-game', label: 'In Game' },
@@ -164,6 +171,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
     {
       field: 'ageRestriction',
       icon: Calendar,
+      label: 'Age Restriction',
       defaultValue: 'any',
       options: [
         { value: 'any', label: 'Any' },
@@ -232,11 +240,11 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="relative w-full max-w-2xl overflow-hidden rounded-xl bg-gradient-to-b from-zinc-800/90 to-zinc-900/90 p-6 shadow-2xl ring-1 ring-white/10"
+        className="relative w-full max-w-2xl overflow-hidden rounded-xl bg-gradient-to-b from-[#1F2731] to-[#0F1923] p-6 shadow-2xl ring-1 ring-white/10"
       >
         <Button
           onClick={onClose}
-          className="absolute right-4 top-4 p-2"
+          className="absolute right-4 top-4 p-2 bg-transparent hover:bg-[#FF4655]/10 hover:text-[#FF4655] text-white/80 z-50"
           variant="ghost"
           size="icon"
         >
@@ -245,157 +253,286 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
         </Button>
 
         <div className="mb-6 flex items-center justify-center gap-3">
-          <div className="rounded-xl bg-[#FF4655]/10 p-2">
+          <div className="rounded-xl bg-[#FF4655]/10 p-2.5 shadow-md shadow-[#FF4655]/5">
             <GamepadIcon className="h-6 w-6 text-[#FF4655]" />
           </div>
-          <h2 className="bg-gradient-to-r from-white to-white/80 bg-clip-text text-xl font-semibold text-transparent">
-            Post your group
+          <h2 className="bg-gradient-to-r from-white to-white/80 bg-clip-text text-xl font-semibold text-transparent tracking-wide">
+            Create Your Party
           </h2>
         </div>
 
-        {/* Additional group settings via dropdowns */}
-        <div className="mb-6 flex flex-wrap justify-center gap-3">
-          {dropdowns.map((dropdown, index) => (
-            <Select
-              key={index}
-              defaultValue={dropdown.defaultValue}
-              onValueChange={(value: string) => dropdown.setter(value)}
-            >
-              <SelectTrigger className="h-10 w-[calc(20%-0.6rem)] min-w-[120px] border-0 bg-white/5 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-white/10 focus:ring-2 focus:ring-[#FF4655]">
-                <dropdown.icon className="mr-2 h-4 w-4 text-zinc-400" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="border-zinc-800 bg-zinc-900 text-zinc-200">
-                {dropdown.options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ))}
-        </div>
+        <div className="space-y-6">
+          {/* Basic Information Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2.5 pl-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FF4655]"></span>
+              <h3 className="text-sm font-medium text-white/90">Basic Information</h3>
+            </div>
+            
+            <div className="space-y-4">
+              {/* Title Input */}
+              <div>
+                <label htmlFor="groupTitle" className="block text-sm font-medium text-zinc-200 mb-1.5 pl-1">
+                  Title
+                </label>
+                <input
+                  id="groupTitle"
+                  type="text"
+                  value={title}
+                  onChange={handleTitleChange}
+                  placeholder="Give your party a title"
+                  className={`w-full bg-[#1F2731]/80 rounded-md border-0 px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#FF4655]/50 transition-all duration-200 shadow-sm ${
+                    titleError ? "ring-1 ring-red-500/50" : "ring-1 ring-white/10"
+                  }`}
+                />
+                <div className="flex justify-between mt-1.5 px-1">
+                  <AnimatePresence>
+                    {titleError ? (
+                      <motion.div
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        className="flex items-center text-[#FF4655] text-xs"
+                      >
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        <span>{titleError}</span>
+                      </motion.div>
+                    ) : (
+                      <div></div>
+                    )}
+                  </AnimatePresence>
+                  <motion.div
+                    animate={{
+                      color: countCharacters(title) > 45 ? "#FF4655" : "#8B97A4"
+                    }}
+                    className="text-xs"
+                  >
+                    {countCharacters(title)}/50
+                  </motion.div>
+                </div>
+              </div>
 
-        {/* Input fields for group details */}
-        <div className="mb-4">
-          <label htmlFor="groupTitle" className="block text-sm font-medium text-zinc-200 mb-1">
-            Title
-          </label>
-          <input
-            id="groupTitle"
-            type="text"
-            value={title}
-            onChange={handleTitleChange}
-            placeholder="Give your group a title"
-            className={`w-full bg-white/5 rounded-md border-0 px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-[#FF4655] ${
-              titleError ? "border border-red-500" : ""
-            }`}
-          />
-          <div className="flex justify-between mt-1">
-            {titleError ? (
-              <div className="flex items-center text-red-500 text-xs">
-                <AlertCircle className="h-3 w-3 mr-1" />
-                <span>{titleError}</span>
+              {/* Description Input */}
+              <div>
+                <label htmlFor="groupDescription" className="block text-sm font-medium text-zinc-200 mb-1.5 pl-1">
+                  Description
+                </label>
+                <textarea
+                  id="groupDescription"
+                  value={description}
+                  onChange={handleDescriptionChange}
+                  placeholder="What kind of players are you looking for?"
+                  rows={3}
+                  className={`w-full bg-[#1F2731]/80 rounded-md border-0 px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#FF4655]/50 transition-all duration-200 shadow-sm ${
+                    descriptionError ? "ring-1 ring-red-500/50" : "ring-1 ring-white/10"
+                  }`}
+                />
+                <div className="flex justify-between mt-1.5 px-1">
+                  <AnimatePresence>
+                    {descriptionError ? (
+                      <motion.div
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        className="flex items-center text-[#FF4655] text-xs"
+                      >
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        <span>{descriptionError}</span>
+                      </motion.div>
+                    ) : (
+                      <div></div>
+                    )}
+                  </AnimatePresence>
+                  <motion.div
+                    animate={{
+                      color: countCharacters(description) > 90 ? "#FF4655" : "#8B97A4"
+                    }}
+                    className="text-xs"
+                  >
+                    {countCharacters(description)}/100
+                  </motion.div>
+                </div>
               </div>
-            ) : (
-              <div></div>
-            )}
-            <div className="text-xs text-zinc-400">
-              {countCharacters(title)}/50 characters
             </div>
           </div>
-        </div>
-        <div className="mb-4">
-          <label htmlFor="groupDescription" className="block text-sm font-medium text-zinc-200 mb-1">
-            Description
-          </label>
-          <textarea
-            id="groupDescription"
-            value={description}
-            onChange={handleDescriptionChange}
-            placeholder="Describe what you're looking for"
-            rows={3}
-            className={`w-full bg-white/5 rounded-md border-0 px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-[#FF4655] ${
-              descriptionError ? "border border-red-500" : ""
-            }`}
-          />
-          <div className="flex justify-between mt-1">
-            {descriptionError ? (
-              <div className="flex items-center text-red-500 text-xs">
-                <AlertCircle className="h-3 w-3 mr-1" />
-                <span>{descriptionError}</span>
-              </div>
-            ) : (
-              <div></div> 
-            )}
-            <div className="text-xs text-zinc-400">
-              {countCharacters(description)}/100 characters
+
+          {/* Game Settings Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2.5 pl-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FF4655]"></span>
+              <h3 className="text-sm font-medium text-white/90">Game Settings</h3>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-3">
+              {gameSettingsDropdowns.map((dropdown, index) => (
+                <div key={index} className="space-y-1.5">
+                  <label className="text-xs text-zinc-400 pl-1 flex items-center gap-1.5">
+                    <dropdown.icon className="h-3.5 w-3.5 text-[#8B97A4]" />
+                    <span>{dropdown.label}</span>
+                  </label>
+                  <Select
+                    defaultValue={dropdown.defaultValue}
+                    onValueChange={(value: string) => dropdown.setter(value)}
+                  >
+                    <SelectTrigger className="h-10 border-0 bg-[#1F2731]/80 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-[#1F2731] focus:ring-2 focus:ring-[#FF4655]/50 shadow-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200">
+                      {dropdown.options.map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="focus:bg-[#FF4655]/10">
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-        <div className="mb-4">
-          <Select
-            value={reqRank}
-            onValueChange={(value: string) => setReqRank(value as Rank)}
-          >
-            <SelectTrigger className="h-10 w-[calc(20%-0.6rem)] min-w-[120px] border-0 bg-white/5 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-white/10 focus:ring-2 focus:ring-[#FF4655]">
-              <SelectValue placeholder="Select Rank" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="IRON">Iron</SelectItem>
-              <SelectItem value="BRONZE">Bronze</SelectItem>
-              <SelectItem value="SILVER">Silver</SelectItem>
-              <SelectItem value="GOLD">Gold</SelectItem>
-              <SelectItem value="PLATINUM">Platinum</SelectItem>
-              <SelectItem value="DIAMOND">Diamond</SelectItem>
-              <SelectItem value="ASCENDANT">Ascendant</SelectItem>
-              <SelectItem value="IMMORTAL">Immortal</SelectItem>
-              <SelectItem value="RADIANT">Radiant</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="mb-4">
-          <Select
-            value={reqRegion}
-            onValueChange={(value: string) => setReqRegion(value as Region)}
-          >
-            <SelectTrigger className="h-10 w-[calc(20%-0.6rem)] min-w-[120px] border-0 bg-white/5 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-white/10 focus:ring-2 focus:ring-[#FF4655]">
-              <SelectValue placeholder="Select Region" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="NA_EAST">NA East</SelectItem>
-              <SelectItem value="NA_WEST">NA West</SelectItem>
-              <SelectItem value="NA_CENTRAL">NA Central</SelectItem>
-              <SelectItem value="LATAM">LATAM</SelectItem>
-              <SelectItem value="BR">BR</SelectItem>
-              <SelectItem value="EU">EU</SelectItem>
-              <SelectItem value="KR">KR</SelectItem>
-              <SelectItem value="AP">AP</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="mb-4">
-          <label htmlFor="voiceChat" className="flex items-center space-x-3 cursor-pointer">
-            <div className="relative">
-              <input
-                id="voiceChat"
-                type="checkbox"
-                checked={voiceChat}
-                onChange={(e) => setVoiceChat(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-10 h-6 bg-gray-300 rounded-full transition-colors duration-200 peer-focus:ring-2 peer-focus:ring-[#FF4655] peer-checked:bg-[#FF4655]"></div>
-              <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 peer-checked:translate-x-4"></div>
+
+          {/* Preferences Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2.5 pl-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FF4655]"></span>
+              <h3 className="text-sm font-medium text-white/90">Preferences</h3>
             </div>
-            <span className="text-sm font-medium text-white">Voice Chat Required?</span>
-          </label>
-        </div>
-        
-        {/* Submission Button */}
-        <div className="mt-6">
-          <Button onClick={handlePostGroup} className="w-full py-2">
-            Post Group
-          </Button>
+            
+            <div className="grid grid-cols-2 gap-3">
+              {preferencesDropdowns.map((dropdown, index) => (
+                <div key={index} className="space-y-1.5">
+                  <label className="text-xs text-zinc-400 pl-1 flex items-center gap-1.5">
+                    <dropdown.icon className="h-3.5 w-3.5 text-[#8B97A4]" />
+                    <span>{dropdown.label}</span>
+                  </label>
+                  <Select
+                    defaultValue={dropdown.defaultValue}
+                    onValueChange={(value: string) => dropdown.setter(value)}
+                  >
+                    <SelectTrigger className="h-10 border-0 bg-[#1F2731]/80 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-[#1F2731] focus:ring-2 focus:ring-[#FF4655]/50 shadow-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200">
+                      {dropdown.options.map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="focus:bg-[#FF4655]/10">
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Requirements Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2.5 pl-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FF4655]"></span>
+              <h3 className="text-sm font-medium text-white/90">Requirements</h3>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              {/* Rank Selector */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-zinc-400 pl-1 flex items-center gap-1.5">
+                  <Shield className="h-3.5 w-3.5 text-[#8B97A4]" />
+                  <span>Minimum Rank</span>
+                </label>
+                <Select
+                  value={reqRank}
+                  onValueChange={(value: string) => setReqRank(value as Rank)}
+                >
+                  <SelectTrigger className="h-10 border-0 bg-[#1F2731]/80 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-[#1F2731] focus:ring-2 focus:ring-[#FF4655]/50 shadow-sm">
+                    <SelectValue placeholder="Select Rank" />
+                  </SelectTrigger>
+                  <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200">
+                    <SelectItem value="IRON" className="focus:bg-[#FF4655]/10">Iron</SelectItem>
+                    <SelectItem value="BRONZE" className="focus:bg-[#FF4655]/10">Bronze</SelectItem>
+                    <SelectItem value="SILVER" className="focus:bg-[#FF4655]/10">Silver</SelectItem>
+                    <SelectItem value="GOLD" className="focus:bg-[#FF4655]/10">Gold</SelectItem>
+                    <SelectItem value="PLATINUM" className="focus:bg-[#FF4655]/10">Platinum</SelectItem>
+                    <SelectItem value="DIAMOND" className="focus:bg-[#FF4655]/10">Diamond</SelectItem>
+                    <SelectItem value="ASCENDANT" className="focus:bg-[#FF4655]/10">Ascendant</SelectItem>
+                    <SelectItem value="IMMORTAL" className="focus:bg-[#FF4655]/10">Immortal</SelectItem>
+                    <SelectItem value="RADIANT" className="focus:bg-[#FF4655]/10">Radiant</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Region Selector */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-zinc-400 pl-1 flex items-center gap-1.5">
+                  <Globe className="h-3.5 w-3.5 text-[#8B97A4]" />
+                  <span>Region</span>
+                </label>
+                <Select
+                  value={reqRegion}
+                  onValueChange={(value: string) => setReqRegion(value as Region)}
+                >
+                  <SelectTrigger className="h-10 border-0 bg-[#1F2731]/80 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-[#1F2731] focus:ring-2 focus:ring-[#FF4655]/50 shadow-sm">
+                    <SelectValue placeholder="Select Region" />
+                  </SelectTrigger>
+                  <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200">
+                    <SelectItem value="NA_EAST" className="focus:bg-[#FF4655]/10">NA East</SelectItem>
+                    <SelectItem value="NA_WEST" className="focus:bg-[#FF4655]/10">NA West</SelectItem>
+                    <SelectItem value="NA_CENTRAL" className="focus:bg-[#FF4655]/10">NA Central</SelectItem>
+                    <SelectItem value="LATAM" className="focus:bg-[#FF4655]/10">LATAM</SelectItem>
+                    <SelectItem value="BR" className="focus:bg-[#FF4655]/10">BR</SelectItem>
+                    <SelectItem value="EU" className="focus:bg-[#FF4655]/10">EU</SelectItem>
+                    <SelectItem value="KR" className="focus:bg-[#FF4655]/10">KR</SelectItem>
+                    <SelectItem value="AP" className="focus:bg-[#FF4655]/10">AP</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            {/* Voice Chat Toggle */}
+            <div className="pt-1">
+              <label htmlFor="voiceChat" className="flex items-center gap-3 cursor-pointer group p-1.5 rounded-md hover:bg-white/5 transition-colors">
+                <div className="relative shrink-0">
+                  <input
+                    id="voiceChat"
+                    type="checkbox"
+                    checked={voiceChat}
+                    onChange={(e) => setVoiceChat(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-10 h-6 rounded-full transition-colors duration-200 
+                    bg-[#1F2731] ring-1 ring-white/10
+                    peer-focus:ring-2 peer-focus:ring-[#FF4655]/50 
+                    peer-checked:bg-[#FF4655] peer-checked:ring-0
+                    shadow-inner"
+                  ></div>
+                  <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md
+                    transition-transform duration-200 
+                    peer-checked:translate-x-4 peer-checked:bg-white
+                    peer-focus:ring-1 peer-focus:ring-white/20 
+                    flex items-center justify-center overflow-hidden"
+                  >
+                    <Mic className={`h-3 w-3 ${voiceChat ? 'text-[#FF4655]/0' : 'text-[#1F2731]/30'} transition-colors`} />
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-white group-hover:text-white/90 transition-colors">Voice Chat Required</span>
+                  <p className="text-xs text-[#8B97A4] group-hover:text-[#8B97A4]/90 transition-colors">Only players with microphones can join</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Submission Button */}
+          <div className="pt-2">
+            <Button 
+              onClick={handlePostGroup} 
+              className="w-full py-2.5 bg-[#FF4655] hover:bg-[#FF4655]/90 text-white font-medium tracking-wide
+                transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]
+                shadow-md shadow-[#FF4655]/10 hover:shadow-lg hover:shadow-[#FF4655]/20
+                focus:outline-none focus:ring-2 focus:ring-[#FF4655]/50 focus:ring-offset-1 focus:ring-offset-[#1F2731]
+                rounded-md"
+            >
+              Create Party
+            </Button>
+          </div>
         </div>
       </motion.div>
     </motion.div>
