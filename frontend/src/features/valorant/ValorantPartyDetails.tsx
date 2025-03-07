@@ -213,7 +213,7 @@ export default function ValorantPartyDetails() {
         }
         
         // Check for other relevant event types
-        if (updateObj?.eventType && ["PARTY_JOINED", "PARTY_UPDATED", "PARTY_LEFT"].includes(updateObj.eventType)) {
+        if (updateObj?.eventType && ["PARTY_JOINED", "PARTY_UPDATED", "PARTY_LEFT", "PARTY_USER_KICKED"].includes(updateObj.eventType)) {
           getParty(party.id)
             .then((data) => {
               setParty(data)
