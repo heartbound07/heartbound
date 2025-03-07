@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Users, Crown, Plus, UserCheck } from "lucide-react"
+import { Users, Crown, Plus, UserCheck, UserX } from "lucide-react"
 import { Badge } from "@/components/ui/valorant/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { type UserProfileDTO } from "@/config/userService"
@@ -20,6 +20,8 @@ interface PlayerSlotProps {
   participantId?: string;
   isNewJoin?: boolean;
   onProfileView?: (userId: string, position: { x: number; y: number }) => void;
+  onKickUser?: (userId: string) => void;
+  canKickUsers?: boolean;
 }
 
 const PlayerSlot: React.FC<PlayerSlotProps> = ({
@@ -33,6 +35,8 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
   participantId,
   isNewJoin = false,
   onProfileView,
+  onKickUser,
+  canKickUsers = false,
 }) => {
   const isCurrentUser = currentUserId && participantId && currentUserId === participantId;
   
@@ -74,6 +78,24 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
       });
     }
   };
+
+  // Kick user handler - prevents event propagation to avoid triggering slot click
+  const handleKickClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (participantId && onKickUser) {
+      if (window.confirm(`Are you sure you want to kick ${username} from the party?`)) {
+        onKickUser(participantId);
+      }
+    }
+  };
+
+  // Show kick button if:
+  // 1. User is not empty slot
+  // 2. User is not the leader
+  // 3. Current user can kick users
+  // 4. User is not the current user (can't kick yourself)
+  const showKickButton = !isEmpty && !isLeader && canKickUsers && !isCurrentUser && participantId;
 
   return (
     <div 
@@ -120,6 +142,24 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
             <span className="truncate block text-center">{username}</span>
           </div>
         )}
+        
+        {showKickButton && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button 
+                  className="absolute -top-2 -right-2 bg-[#FF4655] hover:bg-red-700 transition-colors duration-200 rounded-full p-1 shadow-md"
+                  onClick={handleKickClick}
+                >
+                  <UserX className="h-3.5 w-3.5 text-white" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="bg-[#1F2731] border border-white/10 z-[100]">
+                <p className="text-sm text-white">Kick this player?</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
     </div>
   );
@@ -135,6 +175,8 @@ interface PlayerSlotsContainerProps {
   onInviteClick?: () => void;
   className?: string;
   onProfileView?: (userId: string, position: { x: number; y: number }) => void;
+  onKickUser?: (userId: string) => void;
+  hasKickPermission?: boolean;
 }
 
 export function PlayerSlotsContainer({
@@ -147,6 +189,8 @@ export function PlayerSlotsContainer({
   onInviteClick,
   className,
   onProfileView,
+  onKickUser,
+  hasKickPermission = false,
 }: PlayerSlotsContainerProps) {
   // Store previous participants for animation
   const [prevParticipants, setPrevParticipants] = React.useState<string[]>([]);
@@ -249,6 +293,7 @@ export function PlayerSlotsContainer({
               currentUserId={currentUser?.id}
               isNewJoin={newJoins.includes(leaderId)}
               onProfileView={onProfileView}
+              canKickUsers={hasKickPermission}
             />
 
             {/* Joined Participants */}
@@ -269,6 +314,8 @@ export function PlayerSlotsContainer({
                   currentUserId={currentUser?.id}
                   isNewJoin={newJoins.includes(participantId)}
                   onProfileView={onProfileView}
+                  onKickUser={onKickUser}
+                  canKickUsers={hasKickPermission}
                 />
               );
             })}
