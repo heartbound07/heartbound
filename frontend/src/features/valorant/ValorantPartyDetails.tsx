@@ -125,7 +125,7 @@ export default function ValorantPartyDetails() {
   const { user, hasRole } = useAuth()
   const navigate = useNavigate()
   const { partyId } = useParams<{ partyId: string }>()
-  const { update, userActiveParty } = usePartyUpdates()
+  const { update, userActiveParty, setUserActiveParty } = usePartyUpdates()
 
   const [party, setParty] = React.useState<any>(null)
   const [userProfiles, setUserProfiles] = React.useState<Record<string, UserProfileDTO>>({})
@@ -253,6 +253,10 @@ export default function ValorantPartyDetails() {
     if (window.confirm("Are you sure you want to delete this party? This action cannot be undone.")) {
       try {
         await deleteParty(party.id)
+        
+        // Immediately reset the active party state
+        setUserActiveParty(null)
+        
         showToast("Party successfully deleted", "success")
         navigate("/dashboard/valorant")
       } catch (err: any) {
@@ -274,6 +278,8 @@ export default function ValorantPartyDetails() {
       console.log("Party expired, auto-deleting...");
       deleteParty(party.id)
         .then(() => {
+          // Reset active party state here too
+          setUserActiveParty(null)
           // Navigate away after deletion
           navigate("/dashboard/valorant");
         })
