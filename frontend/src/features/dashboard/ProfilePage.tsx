@@ -69,29 +69,25 @@ const ColorPickerPopover = ({
   
   return (
     <Popover.Root>
-      <Popover.Trigger asChild>
-        <Button 
-          variant="secondary"
-          className="w-full border border-white/20 flex items-center justify-between hover:border-white/40"
-        >
-          <div className="flex items-center gap-2">
-            <div 
-              className="h-5 w-5 rounded-full border border-white/40" 
-              style={{ backgroundColor: hexColor }}
-            />
-            <span>{color.startsWith('bg-') ? color.replace('bg-', '').replace('/10', '') : hexColor}</span>
-          </div>
-          <Palette className="h-4 w-4 opacity-50" />
-        </Button>
-      </Popover.Trigger>
+      <div className="flex items-center gap-3 pl-4 h-12 rounded-md">
+        <Popover.Trigger asChild>
+          <div 
+            className="h-10 w-10 rounded-full shadow-sm cursor-pointer transition-all duration-200 hover:scale-110"
+            style={{ backgroundColor: hexColor }}
+          />
+        </Popover.Trigger>
+        
+        <Palette className="h-5 w-5 opacity-60" />
+      </div>
+      
       <Popover.Portal>
-        <Popover.Content className="w-64 p-3 bg-black/90 border border-white/20 rounded-md shadow-lg">
-          <div className="space-y-3">
-            <HexColorPicker color={hexColor} onChange={handleColorChange} />
+        <Popover.Content className="w-64 p-4 bg-black/90 border border-white/20 rounded-md shadow-lg z-[9999]" sideOffset={5}>
+          <div className="space-y-4">
+            <HexColorPicker color={hexColor} onChange={handleColorChange} className="w-full" />
             
             <div className="pt-2">
               <Label className="text-xs text-white/80 mb-2 block">Presets</Label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 justify-center">
                 {presetColors.map((presetColor) => (
                   <Tooltip key={presetColor}>
                     <TooltipTrigger>
@@ -99,7 +95,7 @@ const ColorPickerPopover = ({
                         onClick={() => handleColorChange(presetColor)}
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 rounded-full border-2 border-white/20 p-0 transition-transform hover:scale-110"
+                        className="h-8 w-8 rounded-full p-0 transition-all hover:scale-110 hover:bg-white/5"
                         style={{ backgroundColor: presetColor }}
                       >
                         {hexColor === presetColor && (
@@ -124,7 +120,11 @@ const ColorPickerPopover = ({
                 onChange={(e) => handleColorChange(e.target.value)}
                 className="font-mono text-sm"
               />
-              <Button onClick={() => onChange(hexColor)} size="sm">
+              <Button 
+                onClick={() => onChange(hexColor)} 
+                size="sm"
+                className="bg-white/20 hover:bg-white/30"
+              >
                 Apply
               </Button>
             </div>
