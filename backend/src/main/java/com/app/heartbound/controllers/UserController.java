@@ -6,6 +6,7 @@ import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -171,5 +172,19 @@ public class UserController {
     public ResponseEntity<List<UserProfileDTO>> getUsersByRole(@PathVariable Role role) {
         List<UserProfileDTO> users = userService.getUsersByRole(role);
         return ResponseEntity.ok(users);
+    }
+    
+    /**
+     * Admin endpoint to get all users with pagination.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping
+    public ResponseEntity<Page<UserProfileDTO>> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search) {
+        
+        Page<UserProfileDTO> userProfiles = userService.getAllUsers(page, size, search);
+        return ResponseEntity.ok(userProfiles);
     }
 }
