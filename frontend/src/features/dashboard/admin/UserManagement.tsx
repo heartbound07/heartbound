@@ -79,15 +79,16 @@ export function UserManagement() {
     }
   };
   
-  // Handle search input
+  // Handle search form submission
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setCurrentPage(0); // Reset to first page when searching
     fetchUsers();
   };
   
-  // Start editing user roles
-  const startEditingRoles = (userId: string, currentRoles: Role[] = []) => {
-    setEditing({ userId, roles: [...currentRoles] });
+  // Start editing roles for a user
+  const startEditingRoles = (userId: string, roles: Role[] = []) => {
+    setEditing({ userId, roles: [...roles] });
   };
   
   // Cancel editing
@@ -95,14 +96,21 @@ export function UserManagement() {
     setEditing(null);
   };
   
-  // Toggle role selection during editing
+  // Toggle a role for the user being edited
   const toggleRole = (role: Role) => {
     if (!editing) return;
     
-    const newRoles = editing.roles.includes(role)
-      ? editing.roles.filter(r => r !== role)
-      : [...editing.roles, role];
-      
+    const newRoles = [...editing.roles];
+    const roleIndex = newRoles.indexOf(role);
+    
+    if (roleIndex > -1) {
+      // Remove role if it exists
+      newRoles.splice(roleIndex, 1);
+    } else {
+      // Add role if it doesn't exist
+      newRoles.push(role);
+    }
+    
     setEditing({ ...editing, roles: newRoles });
   };
   
@@ -221,9 +229,6 @@ export function UserManagement() {
                   ID
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                   Roles
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
@@ -234,13 +239,13 @@ export function UserManagement() {
             <tbody className="divide-y divide-white/5">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-slate-300">
+                  <td colSpan={4} className="px-6 py-4 text-center text-slate-300">
                     Loading users...
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-slate-300">
+                  <td colSpan={4} className="px-6 py-4 text-center text-slate-300">
                     No users found
                   </td>
                 </tr>
@@ -266,9 +271,6 @@ export function UserManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
                       <span className="font-mono">{user.id}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      {user.email || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {editing && editing.userId === user.id ? (
