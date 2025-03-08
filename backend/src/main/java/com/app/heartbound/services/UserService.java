@@ -12,6 +12,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
@@ -284,5 +287,32 @@ public class UserService {
         return users.stream()
                 .map(this::mapToProfileDTO)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Retrieves all users with pagination and optional search filtering.
+     * Only accessible to ADMIN users.
+     * 
+     * @param page the page number (0-based)
+     * @param size the page size
+     * @param search optional search term for username/email
+     * @return paginated list of user profiles
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    public Page<UserProfileDTO> getAllUsers(int page, int size, String search) {
+        logger.debug("Fetching users page {} with size {}", page, size);
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> users;
+        
+        if (search != null && !search.trim().isEmpty()) {
+            // Search by username or email containing the search term
+            users = userRepository.findByUsernameContainingOrEmailContaining(search, search, pageable);
+        } else {
+            // Get all users without filtering
+            users = userRepository.findAll(pageable);
+        }
+        
+        return users.map(this::mapToProfileDTO);
     }
 }
