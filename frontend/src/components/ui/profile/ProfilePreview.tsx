@@ -34,12 +34,14 @@ export function ProfilePreview({
   // Detect if text overflows 2 lines
   useEffect(() => {
     const checkOverflow = () => {
-      if (bioRef.current) {
+      if (bioRef.current && about) {
         const element = bioRef.current;
         // Line height is approximately 1.5em for text-xs
         const lineHeight = parseFloat(getComputedStyle(element).fontSize) * 1.5;
         // If element height > 2 lines, it's overflowing
         setHasOverflow(element.scrollHeight > lineHeight * 2);
+      } else {
+        setHasOverflow(false);
       }
     };
     
@@ -99,34 +101,38 @@ export function ProfilePreview({
             {pronouns && <span className="text-xs text-white/60 truncate max-w-[60px]">• {pronouns}</span>}
           </div>
           <div className="text-white/80 w-full">
-            <div 
-              className={`relative ${isExpanded ? '' : 'max-h-10'} overflow-hidden transition-all duration-300`}
-            >
-              <p 
-                ref={bioRef}
-                className={`text-xs whitespace-normal break-words ${!isExpanded ? 'line-clamp-2' : ''}`}
-              >
-                {about || "Your about me section will appear here..."}
-              </p>
-            </div>
-            
-            {hasOverflow && (
-              <button 
-                onClick={toggleBioExpansion}
-                className="flex items-center text-xs mt-1 text-white/60 hover:text-white/90 transition-colors"
-              >
-                {isExpanded ? (
-                  <>
-                    <span>Show less</span>
-                    <ChevronUp size={14} className="ml-1" />
-                  </>
-                ) : (
-                  <>
-                    <span>View full bio</span>
-                    <ChevronDown size={14} className="ml-1" />
-                  </>
+            {about && (
+              <>
+                <div 
+                  className={`relative ${isExpanded ? '' : 'max-h-10'} overflow-hidden transition-all duration-300`}
+                >
+                  <p 
+                    ref={bioRef}
+                    className={`text-xs whitespace-normal break-words ${!isExpanded ? 'line-clamp-2' : ''}`}
+                  >
+                    {about}
+                  </p>
+                </div>
+                
+                {hasOverflow && (
+                  <button 
+                    onClick={toggleBioExpansion}
+                    className="flex items-center text-xs mt-1 text-white/60 hover:text-white/90 transition-colors"
+                  >
+                    {isExpanded ? (
+                      <>
+                        <span>Show less</span>
+                        <ChevronUp size={14} className="ml-1" />
+                      </>
+                    ) : (
+                      <>
+                        <span>View full bio</span>
+                        <ChevronDown size={14} className="ml-1" />
+                      </>
+                    )}
+                  </button>
                 )}
-              </button>
+              </>
             )}
           </div>
         </div>
