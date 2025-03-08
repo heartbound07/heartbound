@@ -1,8 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Save, Loader2 } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { Save, Loader2, Palette, Check } from "lucide-react"
 import toast, { Toaster } from 'react-hot-toast'
+import { HexColorPicker } from "react-colorful"
+
+// Import Radix UI Popover component
+import * as Popover from '@radix-ui/react-popover'
 
 import { Button } from "@/components/ui/profile/button"
 import { Input } from "@/components/ui/profile/input"
@@ -15,9 +19,125 @@ import { UpdateProfileDTO } from "@/config/userService"
 import { AvatarUpload } from "@/components/ui/profile/AvatarUpload"
 import { BannerUpload } from "@/components/ui/profile/BannerUpload"
 
+// Function to convert hex to tailwind bg class (for backwards compatibility)
+const hexToTailwindBg = (hex: string) => {
+  // If input is already a tailwind class, return it
+  if (hex.startsWith('bg-')) {
+    return hex;
+  }
+  // Otherwise use the hex value as an inline style
+  return hex;
+}
+
+// Helper to convert Tailwind bg classes to hex colors
+const tailwindBgToHex = (bgClass: string) => {
+  const colorMap: Record<string, string> = {
+    "bg-white/10": "#ffffff1a",
+    "bg-blue-600": "#2563eb",
+    "bg-purple-600": "#9333ea",
+    "bg-rose-600": "#e11d48",
+    "bg-emerald-600": "#059669"
+  };
+  
+  return colorMap[bgClass] || bgClass;
+}
+
+// Add proper type definitions for the component props
+interface ColorPickerPopoverProps {
+  color: string;
+  onChange: (color: string) => void;
+  presetColors?: string[];
+}
+
+// Color picker component with popover
+const ColorPickerPopover = ({ 
+  color, 
+  onChange, 
+  presetColors = ["#ffffff1a", "#2563eb", "#9333ea", "#e11d48", "#059669"] 
+}: ColorPickerPopoverProps) => {
+  const [hexColor, setHexColor] = useState(() => tailwindBgToHex(color));
+  
+  // Update component when parent color changes
+  useEffect(() => {
+    setHexColor(tailwindBgToHex(color));
+  }, [color]);
+  
+  const handleColorChange = (newColor: string) => {
+    setHexColor(newColor);
+    onChange(newColor);
+  };
+  
+  return (
+    <Popover.Root>
+      <Popover.Trigger asChild>
+        <Button 
+          variant="secondary"
+          className="w-full border border-white/20 flex items-center justify-between hover:border-white/40"
+        >
+          <div className="flex items-center gap-2">
+            <div 
+              className="h-5 w-5 rounded-full border border-white/40" 
+              style={{ backgroundColor: hexColor }}
+            />
+            <span>{color.startsWith('bg-') ? color.replace('bg-', '').replace('/10', '') : hexColor}</span>
+          </div>
+          <Palette className="h-4 w-4 opacity-50" />
+        </Button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content className="w-64 p-3 bg-black/90 border border-white/20 rounded-md shadow-lg">
+          <div className="space-y-3">
+            <HexColorPicker color={hexColor} onChange={handleColorChange} />
+            
+            <div className="pt-2">
+              <Label className="text-xs text-white/80 mb-2 block">Presets</Label>
+              <div className="flex flex-wrap gap-2">
+                {presetColors.map((presetColor) => (
+                  <Tooltip key={presetColor}>
+                    <TooltipTrigger>
+                      <Button
+                        onClick={() => handleColorChange(presetColor)}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 rounded-full border-2 border-white/20 p-0 transition-transform hover:scale-110"
+                        style={{ backgroundColor: presetColor }}
+                      >
+                        {hexColor === presetColor && (
+                          <Check className="h-3 w-3 text-white" />
+                        )}
+                        <span className="sr-only">
+                          {presetColor}
+                        </span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {presetColor}
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2 pt-2">
+              <Input 
+                value={hexColor} 
+                onChange={(e) => handleColorChange(e.target.value)}
+                className="font-mono text-sm"
+              />
+              <Button onClick={() => onChange(hexColor)} size="sm">
+                Apply
+              </Button>
+            </div>
+          </div>
+          <Popover.Arrow className="fill-white/20" />
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+};
+
 export function ProfilePage() {
   const { user, profile, updateUserProfile, isLoading, hasRole } = useAuth()
-  
   const [about, setAbout] = useState("")
   const [name, setName] = useState("")
   const [pronouns, setPronouns] = useState("")
@@ -75,6 +195,10 @@ export function ProfilePage() {
   const handleRemoveBanner = () => {
     setBannerUrl("");
     toast.success("Banner removed. The default banner color will be used instead. Don't forget to save your profile.");
+  }
+  
+  const handleColorChange = (color: string) => {
+    setBannerColor(color);
   }
   
   const handleSaveProfile = async () => {
@@ -164,7 +288,12 @@ export function ProfilePage() {
                     {bannerUrl ? (
                       <img src={bannerUrl} alt="Banner" className="h-full w-full object-cover" />
                     ) : (
-                      <div className={`h-full w-full ${bannerColor}`} />
+                      <div 
+                        className="h-full w-full"
+                        style={{ backgroundColor: bannerColor.startsWith('bg-') ? undefined : bannerColor }}
+                      >
+                        {bannerColor.startsWith('bg-') && <div className={`h-full w-full ${bannerColor}`} />}
+                      </div>
                     )}
                     
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white">
@@ -202,27 +331,10 @@ export function ProfilePage() {
 
               <div className="space-y-3">
                 <Label className="text-xs font-medium text-white/80">BANNER COLOR</Label>
-                <div className="flex gap-2">
-                  {["bg-white/10", "bg-blue-600", "bg-purple-600", "bg-rose-600", "bg-emerald-600"].map((color) => (
-                    <Tooltip key={color}>
-                      <TooltipTrigger>
-                        <Button
-                          onClick={() => setBannerColor(color)}
-                          variant="ghost"
-                          size="sm"
-                          className={`h-8 w-8 rounded-full border-2 border-white/20 transition-transform hover:scale-110 ${color} ${bannerColor === color ? 'ring-2 ring-white' : ''}`}
-                        >
-                          <span className="sr-only">
-                            {color.replace("bg-", "").replace("/10", "")}
-                          </span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {color.replace("bg-", "").replace("/10", "")}
-                      </TooltipContent>
-                    </Tooltip>
-                  ))}
-                </div>
+                <ColorPickerPopover color={bannerColor} onChange={handleColorChange} />
+                <p className="text-xs text-white/60">
+                  Choose any color for your profile banner background.
+                </p>
               </div>
               
               <div className="flex justify-end">

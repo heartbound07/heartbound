@@ -128,7 +128,10 @@ export function BannerUpload({
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className={`h-full w-full ${bannerColor}`} />
+          <div 
+            className={`h-full w-full ${bannerColor.startsWith('bg-') ? bannerColor : ''}`} 
+            style={!bannerColor.startsWith('bg-') ? { backgroundColor: bannerColor } : {}}
+          />
         )}
         
         {/* Hover overlay */}

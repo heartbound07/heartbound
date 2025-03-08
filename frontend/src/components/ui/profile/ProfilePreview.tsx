@@ -69,8 +69,14 @@ export function ProfilePreview({
         className="overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-[#6B5BE6] to-[#8878f0] shadow-lg"
       >
         <div 
-          className={`relative h-32 ${!bannerUrl ? bannerColor : ''}`}
-          style={bannerUrl ? { backgroundImage: `url(${bannerUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+          className={`relative h-32 ${!bannerUrl && bannerColor.startsWith('bg-') ? bannerColor : ''}`}
+          style={
+            bannerUrl 
+              ? { backgroundImage: `url(${bannerUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } 
+              : !bannerColor.startsWith('bg-') 
+                ? { backgroundColor: bannerColor } 
+                : {}
+          }
         >
           <div className="absolute bottom-0 left-4 translate-y-1/2">
             <div className="relative">
