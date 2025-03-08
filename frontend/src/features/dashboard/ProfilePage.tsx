@@ -157,7 +157,7 @@ export function ProfilePage() {
                     bannerColor={bannerColor}
                     onUpload={handleBannerUpload}
                     onRemove={handleRemoveBanner}
-                    showRemoveButton={true}
+                    showRemoveButton={!!bannerUrl}
                   />
                 ) : (
                   <div className="relative h-32 w-full overflow-hidden rounded-lg border border-white/10">
