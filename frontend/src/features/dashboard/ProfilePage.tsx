@@ -72,6 +72,11 @@ export function ProfilePage() {
     toast.success("Banner uploaded successfully! Don't forget to save your profile.")
   }
   
+  const handleRemoveBanner = () => {
+    setBannerUrl("");
+    toast.success("Banner removed. The default banner color will be used instead. Don't forget to save your profile.");
+  }
+  
   const handleSaveProfile = async () => {
     try {
       const profileUpdate: UpdateProfileDTO = {
@@ -151,6 +156,8 @@ export function ProfilePage() {
                     currentBannerUrl={bannerUrl}
                     bannerColor={bannerColor}
                     onUpload={handleBannerUpload}
+                    onRemove={handleRemoveBanner}
+                    showRemoveButton={true}
                   />
                 ) : (
                   <div className="relative h-32 w-full overflow-hidden rounded-lg border border-white/10">
