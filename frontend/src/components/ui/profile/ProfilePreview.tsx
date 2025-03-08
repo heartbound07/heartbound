@@ -101,11 +101,15 @@ export function ProfilePreview({
           )}
         </div>
         <div className="p-4 pt-12">
-          <div className="mb-2 flex items-center gap-2">
-            <h2 className="text-lg font-bold truncate max-w-[140px]">{name || "Display Name"}</h2>
-            <span className="text-xs text-white/80 truncate max-w-[70px]">{user?.username || "Guest"}</span>
-            {pronouns && <span className="text-xs text-white/60 truncate max-w-[60px]">• {pronouns}</span>}
+          {/* Display name on top */}
+          <h2 className="text-lg font-bold truncate">{name || "Display Name"}</h2>
+          
+          {/* Username and pronouns on a row below */}
+          <div className="flex items-center gap-2 mt-1 mb-3">
+            <span className="text-xs text-white/80 truncate">{user?.username || "Guest"}</span>
+            {pronouns && <span className="text-xs text-white/60 truncate">• {pronouns}</span>}
           </div>
+          
           <div className="text-white/80 w-full">
             {about && (
               <>
