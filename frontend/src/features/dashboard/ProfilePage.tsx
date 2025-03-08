@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Save, Loader2, Palette, Check } from "lucide-react"
 import toast, { Toaster } from 'react-hot-toast'
 import { HexColorPicker } from "react-colorful"
+import "@/assets/profile.css"
 
 // Import Radix UI Popover component
 import * as Popover from '@radix-ui/react-popover'

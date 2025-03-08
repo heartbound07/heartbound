@@ -196,8 +196,22 @@ export function DashboardNavigation({ theme = 'default' }) {
             <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-800"></div>
           </div>
           <div className="flex flex-col">
-            <span className="text-white font-medium text-sm">{user?.username || "User"}</span>
-            <span className="text-slate-400 text-xs">Online</span>
+            {/* Display name on top */}
+            <span className="text-white font-medium text-sm truncate">
+              {profile?.displayName || user?.username || "User"}
+            </span>
+            
+            {/* Username and pronouns on a row below */}
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="text-white/70 text-xs truncate">
+                {user?.username || "Guest"}
+              </span>
+              {profile?.pronouns && (
+                <span className="text-white/60 text-xs truncate">
+                  • {profile.pronouns}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
