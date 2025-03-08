@@ -7,7 +7,8 @@ import { LoginPage } from '@/features/auth/LoginPage';
 import { AuthErrorPage } from '@/features/auth/AuthErrorPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { ProfilePage } from '@/features/dashboard/ProfilePage';
-import { AdminPanel } from '@/features/dashboard/AdminPanel';
+import { AdminPanel } from '@/features/dashboard/admin/AdminPanel';
+import { UserManagement } from '@/features/dashboard/admin/UserManagement';
 import ValorantPage from '@/features/valorant/ValorantPage';
 import ValorantPartyDetails from '@/features/valorant/ValorantPartyDetails';
 import { DiscordCallback } from '@/features/auth/DiscordCallback';
@@ -50,14 +51,24 @@ export function AppRoutes() {
           <Route path="profile" element={<ProfilePage />} />
           
           {/* Admin routes - protected with AdminRoute component */}
-          <Route 
-            path="admin" 
-            element={
-              <AdminRoute>
-                <AdminPanel />
-              </AdminRoute>
-            } 
-          />
+          <Route path="admin">
+            <Route 
+              index
+              element={
+                <AdminRoute>
+                  <AdminPanel />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="users"
+              element={
+                <AdminRoute>
+                  <UserManagement />
+                </AdminRoute>
+              } 
+            />
+          </Route>
         </Route>
         <Route path="/dashboard/valorant" element={<ValorantPageLayout />}>
           <Route index element={<ValorantPage />} />
