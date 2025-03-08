@@ -3,12 +3,14 @@ import { Cloudinary } from '@cloudinary/url-gen'
 import { auto } from '@cloudinary/url-gen/actions/resize'
 import { autoGravity } from '@cloudinary/url-gen/qualifiers/gravity'
 import { AdvancedImage } from '@cloudinary/react'
-import { Upload } from 'lucide-react'
+import { Upload, X } from 'lucide-react'
 
 interface BannerUploadProps {
   currentBannerUrl?: string
   bannerColor: string
   onUpload: (url: string) => void
+  onRemove?: () => void
+  showRemoveButton?: boolean
   className?: string
 }
 
@@ -16,6 +18,8 @@ export function BannerUpload({
   currentBannerUrl, 
   bannerColor, 
   onUpload, 
+  onRemove,
+  showRemoveButton = false,
   className = '' 
 }: BannerUploadProps) {
   const [isHovering, setIsHovering] = useState(false)
@@ -141,6 +145,21 @@ export function BannerUpload({
           <div className="absolute inset-0 flex items-center justify-center bg-black/60">
             <div className="h-8 w-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
           </div>
+        )}
+        
+        {/* Remove button */}
+        {showRemoveButton && onRemove && currentBannerUrl && !uploading && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            className="absolute top-2 right-2 bg-white/15 hover:bg-red-500/90 text-white rounded-full p-1.5 transition-all duration-200 backdrop-blur-sm border border-white/20 shadow-md hover:shadow-lg hover:scale-105"
+            title="Remove banner"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
         )}
       </div>
       

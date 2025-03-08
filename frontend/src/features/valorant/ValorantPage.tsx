@@ -26,7 +26,15 @@ export default function Home() {
       const partiesArray = Array.isArray(data)
         ? data
         : data.content || [];
-      setParties(partiesArray);
+      
+      // Sort parties by createdAt in descending order (newest first)
+      const sortedParties = [...partiesArray].sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA; // Descending order (newest first)
+      });
+      
+      setParties(sortedParties);
     } catch (err) {
       console.error("Error fetching parties:", err);
     }
