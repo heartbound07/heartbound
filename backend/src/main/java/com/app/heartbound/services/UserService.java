@@ -19,6 +19,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -314,5 +315,36 @@ public class UserService {
         }
         
         return users.map(this::mapToProfileDTO);
+    }
+
+    /**
+     * Sets the complete set of roles for a user (replacing existing roles).
+     * Only accessible to ADMIN users.
+     * 
+     * @param userId the ID of the user to update
+     * @param roles the complete set of roles to assign
+     * @param adminId the ID of the admin performing the operation
+     * @return the updated user
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    public User setUserRoles(String userId, Set<Role> roles, String adminId) {
+        logger.debug("Admin {} setting roles for user {}: {}", adminId, userId, roles);
+        
+        // Verify the admin has permission to manage these roles
+        boolean containsAdminOrModerator = roles.contains(Role.ADMIN) || roles.contains(Role.MODERATOR);
+        
+        if (containsAdminOrModerator && !userRepository.hasRole(adminId, Role.ADMIN)) {
+            throw new UnauthorizedOperationException("Only ADMIN users can manage ADMIN or MODERATOR roles");
+        }
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // Always ensure users keep the USER role
+        roles.add(Role.USER);
+        
+        // Replace all roles with the new set
+        user.setRoles(roles);
+        return userRepository.save(user);
     }
 }
