@@ -1,16 +1,18 @@
 import { createContext, useContext, useReducer, ReactNode } from 'react';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface LoadingState {
   isLoading: boolean;
   loadingMessage?: string;
+  loadingDescription?: string;
 }
 
 type LoadingAction = 
-  | { type: 'START_LOADING'; message?: string }
+  | { type: 'START_LOADING'; message?: string; description?: string }
   | { type: 'STOP_LOADING' };
 
 interface LoadingContextType extends LoadingState {
-  startLoading: (message?: string) => void;
+  startLoading: (message?: string, description?: string) => void;
   stopLoading: () => void;
 }
 
@@ -22,6 +24,7 @@ function loadingReducer(state: LoadingState, action: LoadingAction): LoadingStat
       return {
         isLoading: true,
         loadingMessage: action.message,
+        loadingDescription: action.description,
       };
     case 'STOP_LOADING':
       return {
@@ -37,8 +40,8 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
     isLoading: false,
   });
 
-  const startLoading = (message?: string) => {
-    dispatch({ type: 'START_LOADING', message });
+  const startLoading = (message?: string, description?: string) => {
+    dispatch({ type: 'START_LOADING', message, description });
   };
 
   const stopLoading = () => {
@@ -47,7 +50,16 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
 
   return (
     <LoadingContext.Provider value={{ ...state, startLoading, stopLoading }}>
-      {children}
+      {state.isLoading ? (
+        <LoadingSpinner
+          title={state.loadingMessage || "Loading..."}
+          description={state.loadingDescription}
+          fullScreen={true}
+          theme="valorant"
+        />
+      ) : (
+        children
+      )}
     </LoadingContext.Provider>
   );
 }
