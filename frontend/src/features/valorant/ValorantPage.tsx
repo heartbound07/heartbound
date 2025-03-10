@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/auth/useAuth';
 import { usePartyUpdates } from '@/contexts/PartyUpdates';
 import valorantBanner from '@/assets/images/valorant.jpg';
 import valorantLogo from '@/assets/images/valorant-logo.png';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function Home() {
   const [parties, setParties] = useState<any[]>([]);
@@ -17,10 +18,12 @@ export default function Home() {
   const [groupErrorMessage, setGroupErrorMessage] = useState<string | null>(null);
   const { user } = useAuth();
   const { update, clearUpdate, userActiveParty } = usePartyUpdates();
+  const [isLoading, setIsLoading] = useState(true);
 
   // Define a reusable function to fetch parties.
   const fetchParties = useCallback(async () => {
     try {
+      setIsLoading(true);
       const response = await httpClient.get('/api/lfg/parties');
       const data = response.data;
       const partiesArray = Array.isArray(data)
@@ -37,6 +40,8 @@ export default function Home() {
       setParties(sortedParties);
     } catch (err) {
       console.error("Error fetching parties:", err);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -63,6 +68,17 @@ export default function Home() {
 
   // Check if user already has a party
   const userHasParty = userActiveParty !== null;
+
+  if (isLoading) {
+    return (
+      <LoadingSpinner
+        title="Loading Valorant parties..."
+        description="Please wait while we retrieve the available parties."
+        fullScreen={true}
+        theme="valorant"
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0F1923] text-white font-sans">
