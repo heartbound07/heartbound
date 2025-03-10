@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/auth/useAuth';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export function DiscordCallback() {
   const [searchParams] = useSearchParams();
@@ -61,10 +62,23 @@ export function DiscordCallback() {
   }, [searchParams, navigate, handleDiscordCallback, handleDiscordCallbackWithToken]);
 
   if (error) {
-    return <div className="auth-error">Authentication failed: {error}</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#111827] to-[#1f2937] text-white font-sans flex items-center justify-center">
+        <div className="p-8 rounded-xl bg-[#1a1b1e]/60 backdrop-blur-sm border border-white/5 shadow-lg text-center">
+          <div className="text-5xl font-bold text-[#FF4655] mb-4">Error</div>
+          <div className="text-xl font-medium text-white/90 mb-2">Authentication Failed</div>
+          <div className="text-sm text-white/50 mb-6">{error}</div>
+        </div>
+      </div>
+    );
   }
 
-  return <div className="auth-loading">
-    {processingAuth ? "Completing authentication..." : "Authentication complete. Redirecting..."}
-  </div>;
+  return (
+    <LoadingSpinner
+      title={processingAuth ? "Completing authentication..." : "Authentication complete!"}
+      description={processingAuth ? "Please wait while we log you in..." : "Redirecting you to dashboard..."}
+      fullScreen={true}
+      theme="dashboard"
+    />
+  );
 } 
