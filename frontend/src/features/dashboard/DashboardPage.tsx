@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/auth';
 import { GameCard } from '@/components/ui/GameCard';
 import '@/assets/dashboard.css';
 import '@/assets/animations.css';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 // Import images for game cards
 import valorantImage from '@/assets/images/valorant.jpg';
@@ -112,9 +113,12 @@ export function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="dashboard-loading text-white text-center mt-8">
-        Loading dashboard...
-      </div>
+      <LoadingSpinner
+        title="Loading dashboard..."
+        description="Please wait while we retrieve your information."
+        fullScreen={true}
+        theme="dashboard"
+      />
     );
   }
 
