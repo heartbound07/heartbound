@@ -13,6 +13,7 @@ import { PlayerSlotsContainer } from "@/components/PlayerSlotsContainer"
 import { formatDisplayText, formatBooleanText } from "@/utils/formatters"
 import { CountdownTimer } from "@/components/CountdownTimer"
 import { UserProfileModal } from "@/components/UserProfileModal"
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 // Custom Toast Component
 const Toast = ({ 
@@ -426,13 +427,12 @@ export default function ValorantPartyDetails() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0F1923] to-[#1A242F] text-white font-sans flex items-center justify-center">
-        <div className="p-8 rounded-xl bg-zinc-900/50 backdrop-blur-sm border border-white/5 shadow-lg flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full border-2 border-t-[#FF4655] border-r-[#FF4655]/50 border-b-[#FF4655]/20 border-l-transparent animate-spin mb-4"></div>
-          <div className="text-xl font-medium text-white/90">Loading party details...</div>
-          <div className="text-sm text-white/50 mt-2">Please wait while we retrieve the party information.</div>
-        </div>
-      </div>
+      <LoadingSpinner
+        title="Loading party details..."
+        description="Please wait while we retrieve the party information."
+        fullScreen={true}
+        theme="valorant"
+      />
     )
   }
 
