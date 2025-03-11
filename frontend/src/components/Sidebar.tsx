@@ -208,14 +208,14 @@ export function DashboardNavigation({ theme = 'default' }) {
         <div className="w-8"></div>
       </div>
       
-      {/* User Profile Section - Fixed spacing and centering */}
+      {/* User Profile Section - Centered */}
       <div 
         ref={profileSectionRef}
         className={`relative px-4 py-4 cursor-pointer transition-all duration-200 
           ${isProfilePage ? 'bg-white/5' : 'hover:bg-white/5'}`}
         onClick={handleProfileClick}
       >
-        <div className={`flex ${isCollapsed ? 'flex-col items-center' : 'items-center'} ${isCollapsed ? '' : 'gap-3'}`}>
+        <div className={`flex ${isCollapsed ? 'flex-col items-center' : 'items-center justify-center'} ${isCollapsed ? '' : 'gap-3'}`}>
           <div className="relative">
             <img
               src={user?.avatar || "/default-avatar.png"}
@@ -226,15 +226,15 @@ export function DashboardNavigation({ theme = 'default' }) {
           </div>
           
           {/* User info - conditionally rendered based on collapsed state */}
-          <div className={`flex flex-col ${isCollapsed ? 'items-center mt-2' : ''} ${isCollapsed ? 'user-info-collapsed' : ''}`}>
+          <div className={`flex flex-col ${isCollapsed ? 'items-center mt-2' : 'items-center'} ${isCollapsed ? 'user-info-collapsed' : ''}`}>
             {/* Display name on top */}
-            <span className="text-white font-medium text-sm truncate max-w-full">
+            <span className="text-white font-medium text-sm truncate text-center max-w-full">
               {profile?.displayName || user?.username || "User"}
             </span>
             
             {/* Username and pronouns on a row below */}
-            <div className={`flex items-center gap-1 mt-0.5 ${isCollapsed ? 'flex-col' : ''}`}>
-              <span className="text-white/70 text-xs truncate">
+            <div className={`flex items-center justify-center gap-1 mt-0.5 ${isCollapsed ? 'flex-col' : ''}`}>
+              <span className="text-white/70 text-xs truncate text-center">
                 {user?.username || "Guest"}
               </span>
               {profile?.pronouns && !isCollapsed && (
@@ -250,7 +250,7 @@ export function DashboardNavigation({ theme = 'default' }) {
       {/* Render the profile preview portal */}
       <ProfilePreviewPortal />
 
-      {/* Navigation Links - Updated with proper spacing */}
+      {/* Navigation menu items - Updated for better centering */}
       <nav className="flex-1 px-4 py-4">
         <ul className="space-y-2">
           {navItems.map((item) => {
@@ -275,7 +275,7 @@ export function DashboardNavigation({ theme = 'default' }) {
                         navigate(item.path)
                       }
                     }}
-                    className={`w-full flex ${isCollapsed ? 'flex-col justify-center' : 'items-center justify-start'} ${isCollapsed ? 'gap-1' : 'gap-2'} px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
+                    className={`w-full flex ${isCollapsed ? 'flex-col items-center' : 'items-center justify-center'} ${isCollapsed ? 'gap-1' : 'gap-2'} px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
                       ${
                         isActive
                           ? "bg-primary/20 text-white shadow-md"
@@ -284,7 +284,7 @@ export function DashboardNavigation({ theme = 'default' }) {
                     aria-current={isActive ? "page" : undefined}
                   >
                     <span
-                      className={`transition-transform duration-200 ${isCollapsed ? 'mx-auto mb-1' : ''} ${isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
+                      className={`transition-transform duration-200 ${isCollapsed ? 'mb-1' : ''} ${isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
                     >
                       {item.icon}
                     </span>
@@ -296,7 +296,7 @@ export function DashboardNavigation({ theme = 'default' }) {
                           e.stopPropagation(); // Prevent parent button click
                           setGamesExpanded(!gamesExpanded);
                         }}
-                        className="ml-auto p-2 -mr-2 rounded-md hover:bg-white/10 cursor-pointer"
+                        className="absolute right-2 p-2 rounded-md hover:bg-white/10 cursor-pointer"
                       >
                         <ChevronRight 
                           size={16} 
@@ -307,10 +307,10 @@ export function DashboardNavigation({ theme = 'default' }) {
                       </div>
                     )}
                     
-                    {isActive && !item.hasSubmenu && !isCollapsed && <div className="ml-auto w-1.5 h-5 bg-primary rounded-full"></div>}
+                    {isActive && !item.hasSubmenu && !isCollapsed && <div className="absolute right-2 w-1.5 h-5 bg-primary rounded-full"></div>}
                   </button>
                   
-                  {/* Games submenu - now with animation - Hide when collapsed */}
+                  {/* Games submenu - Updated for centering */}
                   {item.hasSubmenu && !isMainDashboard && !isCollapsed && (
                     <div className={gamesExpanded ? "animate-slideDown" : "animate-slideUp"}>
                       <ul className="mt-1 pl-8 space-y-1">
@@ -320,7 +320,7 @@ export function DashboardNavigation({ theme = 'default' }) {
                             <li key={game.path}>
                               <button
                                 onClick={() => navigate(game.path)}
-                                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                                className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
                                   ${
                                     isGameActive
                                       ? "bg-primary/10 text-white"
@@ -333,7 +333,7 @@ export function DashboardNavigation({ theme = 'default' }) {
                                   className="w-5 h-5 object-contain"
                                 />
                                 <span>{game.label}</span>
-                                {isGameActive && <div className="ml-auto w-1 h-4 bg-primary rounded-full"></div>}
+                                {isGameActive && <div className="absolute right-2 w-1 h-4 bg-primary rounded-full"></div>}
                               </button>
                             </li>
                           )
@@ -348,11 +348,11 @@ export function DashboardNavigation({ theme = 'default' }) {
         </ul>
       </nav>
 
-      {/* Settings Footer */}
+      {/* Settings Footer - Updated for centering */}
       <div className="mt-auto px-4 pb-6 border-t border-white/10 pt-4">
         <button
           onClick={() => navigate('/dashboard/settings')}
-          className={`w-full flex ${isCollapsed ? 'flex-col items-center' : 'items-center'} gap-2 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
+          className={`w-full flex ${isCollapsed ? 'flex-col items-center' : 'items-center justify-center'} gap-2 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
             ${
               isSettingsPage
                 ? "bg-primary/20 text-white shadow-md"
@@ -366,7 +366,7 @@ export function DashboardNavigation({ theme = 'default' }) {
             <IoSettingsSharp size={20} />
           </span>
           <span className={`${isCollapsed ? 'text-xs' : ''} ${isCollapsed ? 'sidebar-label-collapsed' : 'sidebar-label'}`}>Settings</span>
-          {isSettingsPage && !isCollapsed && <div className="ml-auto w-1.5 h-5 bg-primary rounded-full"></div>}
+          {isSettingsPage && !isCollapsed && <div className="absolute right-2 w-1.5 h-5 bg-primary rounded-full"></div>}
         </button>
       </div>
     </aside>

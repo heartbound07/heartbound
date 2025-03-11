@@ -46,6 +46,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
 }
 
 .dashboard-nav.collapsed .user-info-collapsed {
@@ -67,13 +68,14 @@
   list-style: none;
   padding: 0;
   margin: 1rem 0;
+  text-align: center;
 }
 
-/* Navigation items */
+/* Navigation items - centered in both modes */
 .nav-item {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   padding: 0.75rem 1rem;
   color: var(--text-primary);
   text-decoration: none;
@@ -83,6 +85,7 @@
   background: transparent;
   border: none;
   width: calc(100% - 1rem);
+  position: relative;
 }
 
 .nav-item:hover {
@@ -108,6 +111,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;
 }
 
 /* Logout button */
@@ -126,6 +130,7 @@
   gap: 0.5rem;
   font-weight: 600;
   margin-top: 1rem;
+  text-align: center;
 }
 
 .logout-button:hover {
@@ -136,6 +141,9 @@
 .user-profile-section {
   display: flex;
   align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
 }
 
 .user-profile-section.expanded {
@@ -155,22 +163,7 @@
 
 .dashboard-nav span.truncate {
   max-width: 100%;
-}
-
-/* Navigation items - ensure proper centering */
-.nav-item {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 0.75rem 1rem;
-  color: var(--text-primary);
-  text-decoration: none;
-  transition: background-color var(--transition-speed);
-  border-radius: 6px;
-  margin: 0.25rem 0.5rem;
-  background: transparent;
-  border: none;
-  width: calc(100% - 1rem);
+  text-align: center;
 }
 
 /* Collapsed nav items should center their content */
