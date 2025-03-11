@@ -11,6 +11,7 @@ import { usePartyUpdates } from '@/contexts/PartyUpdates';
 import valorantBanner from '@/assets/images/valorant.jpg';
 import valorantLogo from '@/assets/images/valorant-logo.png';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { SkeletonPartyListing } from '@/components/ui/SkeletonUI';
 
 export default function Home() {
   const [parties, setParties] = useState<any[]>([]);
@@ -68,17 +69,6 @@ export default function Home() {
 
   // Check if user already has a party
   const userHasParty = userActiveParty !== null;
-
-  if (isLoading) {
-    return (
-      <LoadingSpinner
-        title="Loading Valorant parties..."
-        description="Please wait while we retrieve the available parties."
-        fullScreen={true}
-        theme="valorant"
-      />
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#0F1923] text-white font-sans">
@@ -200,7 +190,14 @@ export default function Home() {
 
                   {/* Group Listings */}
                   <div className="mt-8">
-                    {parties.length === 0 ? (
+                    {isLoading ? (
+                      // Show skeleton loading UI for parties
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {Array(6).fill(0).map((_, index) => (
+                          <SkeletonPartyListing key={`skeleton-listing-${index}`} theme="valorant" />
+                        ))}
+                      </div>
+                    ) : parties.length === 0 ? (
                       <div className="text-center py-12 bg-[#1F2731]/30 rounded-lg border border-white/5">
                         <GamepadIcon className="w-12 h-12 mx-auto mb-4 text-white/30" />
                         <h3 className="text-xl font-semibold text-white/80 mb-2">No Parties Available</h3>
