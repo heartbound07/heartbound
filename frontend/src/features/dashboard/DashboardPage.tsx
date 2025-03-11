@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth';
 import { GameCard } from '@/components/ui/GameCard';
+import { SkeletonGameCard } from '@/components/ui/SkeletonUI';
 import '@/assets/dashboard.css';
 import '@/assets/animations.css';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 // Import images for game cards
 import valorantImage from '@/assets/images/valorant.jpg';
@@ -75,58 +75,40 @@ export function DashboardPage() {
     },
     {
       id: 'dota',
-      title: 'Dota',
+      title: 'Dota 2',
       image: dotaImage,
       logo: dotaLogo,
-      alt: 'Dota game'
+      alt: 'Dota 2 game'
     }
   ];
 
+  // Simulate fetching dashboard data when the component mounts
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const response = await fetch('/api/dashboard/stats', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${tokens?.accessToken}`
-          }
+        // Simulate a network delay of 1.5 seconds
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Mock data for stats (in a real app, this would be from an API)
+        setStats({
+          totalPosts: 12,
+          followers: 48,
+          following: 36
         });
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error('Session expired. Please log in again.');
-          }
-          throw new Error(`Error: ${response.statusText}`);
-        }
-        const data = await response.json();
-        setStats(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+      } catch (err: any) {
+        setError("Failed to load dashboard data. Please try again later.");
+        console.error("Error fetching dashboard data:", err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchStats();
+    fetchDashboardData();
   }, [tokens]);
-
-  if (isLoading) {
-    return (
-      <LoadingSpinner
-        title="Loading dashboard..."
-        description="Please wait while we retrieve your information."
-        fullScreen={true}
-        theme="dashboard"
-      />
-    );
-  }
 
   return (
     <>
-      <section
-        className="games-section"
-      >
+      <section className="games-section">
         <h2
           className="games-title animate-fadeSlideIn mb-10"
           style={{ 
@@ -138,26 +120,43 @@ export function DashboardPage() {
           Choose Your Game
         </h2>
         <div className="games-grid">
-          {games.map((game) => (
-            <div
-              key={game.id}
-              onClick={() => {
-                if (game.id === 'valorant') {
-                  navigate('/dashboard/valorant');
-                }
-              }}
-              className="flex justify-center p-3"
-            >
-              <GameCard
-                title={game.title}
-                image={game.image}
-                logo={game.logo}
-                alt={game.alt}
-              />
-            </div>
-          ))}
+          {isLoading ? (
+            // Render skeleton placeholders when loading
+            Array(4).fill(0).map((_, index) => (
+              <div key={`skeleton-${index}`} className="flex justify-center p-3">
+                <SkeletonGameCard theme="dashboard" />
+              </div>
+            ))
+          ) : (
+            // Render actual game cards once data is loaded
+            games.map((game) => (
+              <div
+                key={game.id}
+                onClick={() => {
+                  if (game.id === 'valorant') {
+                    navigate('/dashboard/valorant');
+                  }
+                }}
+                className="flex justify-center p-3"
+              >
+                <GameCard
+                  title={game.title}
+                  image={game.image}
+                  logo={game.logo}
+                  alt={game.alt}
+                />
+              </div>
+            ))
+          )}
         </div>
       </section>
+
+      {/* Display error if any */}
+      {error && !isLoading && (
+        <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-center">
+          {error}
+        </div>
+      )}
 
       {/*
       <div className="stats-grid mt-10">
