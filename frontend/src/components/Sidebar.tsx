@@ -18,8 +18,14 @@ import valorantLogo from '@/assets/images/valorant-logo.png'
  * 
  * @param {Object} props - Component props
  * @param {string} props.theme - Optional theme variant: 'dashboard' or 'default'
+ * @param {function} props.onCollapseChange - Callback function to communicate collapse state changes
  */
-export function DashboardNavigation({ theme = 'default' }) {
+interface DashboardNavigationProps {
+  theme?: string;
+  onCollapseChange?: (collapsed: boolean) => void;
+}
+
+export function DashboardNavigation({ theme = 'default', onCollapseChange }: DashboardNavigationProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, profile, hasRole } = useAuth()
@@ -184,6 +190,13 @@ export function DashboardNavigation({ theme = 'default' }) {
       setShowProfilePreview(false);
     }
   }, [isProfilePage]);
+
+  // Add effect to communicate collapse state changes
+  useEffect(() => {
+    if (onCollapseChange) {
+      onCollapseChange(isCollapsed);
+    }
+  }, [isCollapsed, onCollapseChange]);
 
   return (
     <aside className={`dashboard-nav h-full flex flex-col ${sidebarBackground} backdrop-blur-md border-r border-white/10 shadow-xl ${isCollapsed ? 'collapsed' : 'expanded'}`}>

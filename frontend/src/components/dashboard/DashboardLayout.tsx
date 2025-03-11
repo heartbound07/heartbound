@@ -3,6 +3,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DashboardNavigation } from '../Sidebar';
 import '@/assets/dashboard.css';
 import '@/assets/animations.css';
+import { useState } from 'react';
 
 /**
  * DashboardLayout
@@ -12,6 +13,7 @@ import '@/assets/animations.css';
  */
 export function DashboardLayout() {
   const location = useLocation();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   // Check if we're on any dashboard page except valorant
   // This will match dashboard, profile, settings, etc.
@@ -21,8 +23,11 @@ export function DashboardLayout() {
   return (
     <ProtectedRoute>
       <div className="dashboard-container">
-        <DashboardNavigation theme={isDashboardSection ? 'dashboard' : 'default'} />
-        <main className="dashboard-content">
+        <DashboardNavigation 
+          theme={isDashboardSection ? 'dashboard' : 'default'} 
+          onCollapseChange={(collapsed) => setSidebarCollapsed(collapsed)}
+        />
+        <main className={`dashboard-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
           <Outlet />
         </main>
       </div>

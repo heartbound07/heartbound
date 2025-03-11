@@ -29,12 +29,19 @@
   display: flex; /* Add flex display to properly align sidebar and content */
 }
 
-/* Content section for the dashboard */
+/* Content section for the dashboard - updated to handle collapsed sidebar */
 .dashboard-content {
   @apply p-4 flex-1 overflow-y-auto;
+  transition: margin-left var(--transition-speed), width var(--transition-speed);
   margin-left: var(--sidebar-width);
   min-height: 100vh;
   width: calc(100% - var(--sidebar-width));
+}
+
+/* Adjust content when sidebar is collapsed */
+.dashboard-content.sidebar-collapsed {
+  margin-left: var(--sidebar-collapsed-width);
+  width: calc(100% - var(--sidebar-collapsed-width));
 }
 
 /* Loader style for dashboard loading state */
