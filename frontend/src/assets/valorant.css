@@ -16,9 +16,18 @@
   .valorant-container {
     flex-direction: row; /* Sidebar + content side-by-side on larger screens */
   }
+  
   .valorant-content {
     /* Offset content so it doesn't go behind the fixed sidebar */
     margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    transition: margin-left var(--transition-speed), width var(--transition-speed);
+  }
+  
+  /* Adjust content when sidebar is collapsed */
+  .valorant-content.sidebar-collapsed {
+    margin-left: var(--sidebar-collapsed-width);
+    width: calc(100% - var(--sidebar-collapsed-width));
   }
 }
 
@@ -30,4 +39,12 @@
   /* Allow scrolling if the content exceeds the view height */
   overflow-y: auto;
   width: 100%;
+}
+
+/* Responsive adjustments for small screens */
+@media (max-width: 768px) {
+  .valorant-content {
+    margin-left: 0;
+    width: 100%;
+  }
 } 

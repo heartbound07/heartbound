@@ -4,6 +4,7 @@ import { DashboardNavigation } from '@/components/Sidebar';
 import '@/assets/dashboard.css';
 import '@/assets/animations.css';
 import '@/assets/valorant.css';
+import { useState } from 'react';
 
 /**
  * ValorantPageLayout
@@ -11,14 +12,16 @@ import '@/assets/valorant.css';
  * A dedicated layout for the Valorant page. This layout reuses the DashboardNavigation
  * component to maintain consistent auth navigation and wraps the content inside a ProtectedRoute.
  *
- * You can apply custom styling with the "valorant-container" and "valorant-content" classes.
+ * Now updated to properly handle sidebar collapse state changes.
  */
 export function ValorantPageLayout() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  
   return (
     <ProtectedRoute>
       <div className="valorant-container">
-        <DashboardNavigation />
-        <main className="valorant-content overflow-y-auto">
+        <DashboardNavigation onCollapseChange={(collapsed) => setSidebarCollapsed(collapsed)} />
+        <main className={`valorant-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
           <Outlet />
         </main>
       </div>
