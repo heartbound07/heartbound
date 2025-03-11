@@ -73,6 +73,7 @@
 .nav-item {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   padding: 0.75rem 1rem;
   color: var(--text-primary);
   text-decoration: none;
@@ -138,10 +139,43 @@
 }
 
 .user-profile-section.expanded {
-  gap: 2;
+  gap: 3px;
 }
 
 .user-profile-section.collapsed {
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Ensure proper truncation of text in profile section */
+.dashboard-nav .user-info-collapsed {
+  max-width: 100%;
+  text-align: center;
+}
+
+.dashboard-nav span.truncate {
+  max-width: 100%;
+}
+
+/* Navigation items - ensure proper centering */
+.nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0.75rem 1rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background-color var(--transition-speed);
+  border-radius: 6px;
+  margin: 0.25rem 0.5rem;
+  background: transparent;
+  border: none;
+  width: calc(100% - 1rem);
+}
+
+/* Collapsed nav items should center their content */
+.dashboard-nav.collapsed .nav-item {
+  justify-content: center;
   flex-direction: column;
 }
 

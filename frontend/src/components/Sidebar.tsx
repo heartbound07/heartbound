@@ -208,15 +208,15 @@ export function DashboardNavigation({ theme = 'default' }) {
         <div className="w-8"></div>
       </div>
       
-      {/* User Profile Section - Updated with better spacing */}
+      {/* User Profile Section - Fixed spacing and centering */}
       <div 
         ref={profileSectionRef}
         className={`relative px-4 py-4 cursor-pointer transition-all duration-200 
           ${isProfilePage ? 'bg-white/5' : 'hover:bg-white/5'}`}
         onClick={handleProfileClick}
       >
-        <div className={`flex ${isCollapsed ? 'flex-col' : 'items-center'} ${isCollapsed ? '' : 'gap-3'}`}>
-          <div className="relative mx-auto">
+        <div className={`flex ${isCollapsed ? 'flex-col items-center' : 'items-center'} ${isCollapsed ? '' : 'gap-3'}`}>
+          <div className="relative">
             <img
               src={user?.avatar || "/default-avatar.png"}
               alt={user?.username || "User"}
@@ -228,7 +228,7 @@ export function DashboardNavigation({ theme = 'default' }) {
           {/* User info - conditionally rendered based on collapsed state */}
           <div className={`flex flex-col ${isCollapsed ? 'items-center mt-2' : ''} ${isCollapsed ? 'user-info-collapsed' : ''}`}>
             {/* Display name on top */}
-            <span className="text-white font-medium text-sm truncate">
+            <span className="text-white font-medium text-sm truncate max-w-full">
               {profile?.displayName || user?.username || "User"}
             </span>
             
