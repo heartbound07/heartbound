@@ -1,4 +1,5 @@
 import React from "react";
+import { SkeletonAuthentication } from "./SkeletonUI";
 
 interface LoadingSpinnerProps {
   title?: string;
@@ -6,6 +7,11 @@ interface LoadingSpinnerProps {
   size?: "sm" | "md" | "lg";
   fullScreen?: boolean;
   theme?: "valorant" | "dashboard";
+  /**
+   * Use skeleton loading UI instead of spinner when fullScreen is true
+   * @default false
+   */
+  useSkeleton?: boolean;
 }
 
 export function LoadingSpinner({
@@ -14,7 +20,17 @@ export function LoadingSpinner({
   size = "md",
   fullScreen = false,
   theme = "valorant",
+  useSkeleton = false,
 }: LoadingSpinnerProps) {
+  // If using skeleton UI for fullscreen loading (recommended for better UX)
+  if (fullScreen && useSkeleton) {
+    return (
+      <SkeletonAuthentication 
+        theme={theme} 
+      />
+    );
+  }
+
   // Size mappings
   const sizeClasses = {
     sm: "w-8 h-8",
@@ -38,6 +54,22 @@ export function LoadingSpinner({
 
   const themeColors = colorClasses[theme];
   
+  // Fixed style for spinner border colors to avoid Tailwind JIT issues
+  const spinnerColors = {
+    valorant: {
+      borderTop: "#FF4655",
+      borderRight: "rgba(255, 70, 85, 0.5)",
+      borderBottom: "rgba(255, 70, 85, 0.2)",
+    },
+    dashboard: {
+      borderTop: "#5865F2",
+      borderRight: "rgba(88, 101, 242, 0.5)",
+      borderBottom: "rgba(88, 101, 242, 0.2)",
+    }
+  };
+  
+  const currentSpinnerColors = spinnerColors[theme];
+  
   const containerClass = fullScreen 
     ? `min-h-screen bg-gradient-to-br ${themeColors.background} text-white font-sans flex items-center justify-center`
     : "flex flex-col items-center justify-center p-6";
@@ -52,10 +84,14 @@ export function LoadingSpinner({
         style={{ transform: "translateZ(0)" }}
       >
         <div 
-          className={`${sizeClasses[size]} rounded-full border-2 border-t-[${themeColors.primary}] border-r-[${themeColors.primary}]/50 border-b-[${themeColors.primary}]/20 border-l-transparent animate-spin mb-4`}
+          className={`${sizeClasses[size]} rounded-full border-2 animate-spin mb-4`}
           style={{ 
             willChange: "transform",
-            transform: "translateZ(0)"
+            transform: "translateZ(0)",
+            borderTopColor: currentSpinnerColors.borderTop,
+            borderRightColor: currentSpinnerColors.borderRight,
+            borderBottomColor: currentSpinnerColors.borderBottom,
+            borderLeftColor: "transparent"
           }}
         ></div>
         {title && (
