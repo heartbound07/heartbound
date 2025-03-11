@@ -13,7 +13,11 @@ import { useState } from 'react';
  */
 export function DashboardLayout() {
   const location = useLocation();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    // Initialize from localStorage when component mounts
+    const savedState = localStorage.getItem('sidebar-collapsed');
+    return savedState ? JSON.parse(savedState) : false;
+  });
   
   // Check if we're on any dashboard page except valorant
   // This will match dashboard, profile, settings, etc.

@@ -38,8 +38,22 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
   const profilePreviewRef = useRef<HTMLDivElement>(null)
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 })
   
-  // Add sidebar collapse state
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  // Add sidebar collapse state with localStorage persistence
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    // Initialize from localStorage if available, otherwise default to false
+    const savedState = localStorage.getItem('sidebar-collapsed')
+    return savedState ? JSON.parse(savedState) : false
+  })
+  
+  // Update localStorage when isCollapsed changes
+  useEffect(() => {
+    localStorage.setItem('sidebar-collapsed', JSON.stringify(isCollapsed))
+    
+    // Notify parent components about the change
+    if (onCollapseChange) {
+      onCollapseChange(isCollapsed)
+    }
+  }, [isCollapsed, onCollapseChange])
   
   // Detect window size for responsive behavior
   useEffect(() => {
@@ -190,13 +204,6 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
       setShowProfilePreview(false);
     }
   }, [isProfilePage]);
-
-  // Add effect to communicate collapse state changes
-  useEffect(() => {
-    if (onCollapseChange) {
-      onCollapseChange(isCollapsed);
-    }
-  }, [isCollapsed, onCollapseChange]);
 
   return (
     <aside className={`dashboard-nav h-full flex flex-col ${sidebarBackground} backdrop-blur-md border-r border-white/10 shadow-xl ${isCollapsed ? 'collapsed' : 'expanded'}`}>

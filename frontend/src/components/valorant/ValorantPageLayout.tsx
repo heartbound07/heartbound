@@ -15,7 +15,11 @@ import { useState } from 'react';
  * Now updated to properly handle sidebar collapse state changes.
  */
 export function ValorantPageLayout() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    // Initialize from localStorage when component mounts
+    const savedState = localStorage.getItem('sidebar-collapsed');
+    return savedState ? JSON.parse(savedState) : false;
+  });
   
   return (
     <ProtectedRoute>
