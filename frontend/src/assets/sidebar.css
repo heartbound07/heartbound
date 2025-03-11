@@ -29,13 +29,23 @@
   white-space: nowrap;
 }
 
-/* Toggle button styles */
+/* Updated toggle button styles for better transitions */
 .toggle-sidebar-btn {
   min-width: 32px;
   min-height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all var(--transition-speed) ease;
+}
+
+/* Brand header transitions */
+.dashboard-nav.collapsed .toggle-sidebar-btn {
+  transform: translateX(0);
+}
+
+.dashboard-nav:not(.collapsed) .toggle-sidebar-btn {
+  transform: translateX(0);
 }
 
 /* User info section */

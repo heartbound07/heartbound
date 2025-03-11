@@ -187,8 +187,8 @@ export function DashboardNavigation({ theme = 'default' }) {
 
   return (
     <aside className={`dashboard-nav h-full flex flex-col ${sidebarBackground} backdrop-blur-md border-r border-white/10 shadow-xl ${isCollapsed ? 'collapsed' : 'expanded'}`}>
-      {/* Brand Header with Toggle Button */}
-      <div className="px-4 py-4 border-b border-white/10 flex items-center justify-between">
+      {/* Brand Header with Toggle Button - Updated for proper centering in collapsed state */}
+      <div className={`px-4 py-4 border-b border-white/10 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)} 
           className="toggle-sidebar-btn text-white/80 hover:text-white p-2 rounded-md hover:bg-white/10 transition-colors"
@@ -197,15 +197,19 @@ export function DashboardNavigation({ theme = 'default' }) {
           <Menu size={20} />
         </button>
         
-        <h1 
-          className={`brand-text text-center text-white text-xl font-bold transition-opacity ${isCollapsed ? 'opacity-0' : 'opacity-100'}`}
-          style={{ fontFamily: "Grandstander, cursive" }}
-        >
-          heartbound
-        </h1>
-        
-        {/* Empty div to balance the flex layout */}
-        <div className="w-8"></div>
+        {!isCollapsed && (
+          <>
+            <h1 
+              className="brand-text text-center text-white text-xl font-bold"
+              style={{ fontFamily: "Grandstander, cursive" }}
+            >
+              heartbound
+            </h1>
+            
+            {/* Empty div to balance the flex layout */}
+            <div className="w-8"></div>
+          </>
+        )}
       </div>
       
       {/* User Profile Section - Avatar only when collapsed */}
