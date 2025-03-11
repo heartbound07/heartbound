@@ -35,43 +35,36 @@ export function LoadingSpinner({
   const sizeClasses = {
     sm: "w-8 h-8",
     md: "w-12 h-12",
-    lg: "w-16 h-16",
+    lg: "w-16 h-16"
   };
 
   // Theme-specific colors
-  const colorClasses = {
+  const themeColors = {
     valorant: {
-      primary: "#FF4655",
+      background: "from-[#0F1923] to-[#1A242F]",
       container: "bg-zinc-900/50",
-      background: "from-[#0F1923] to-[#1A242F]"
+      spinnerColors: {
+        borderTop: "#FF4655",
+        borderRight: "#FF4655",
+        borderBottom: "#FF4655"
+      }
     },
     dashboard: {
-      primary: "#5865F2", // Discord blue for dashboard theme
+      background: "from-[#111827] to-[#1f2937]",
       container: "bg-[#1a1b1e]/60",
-      background: "from-[#111827] to-[#1f2937]"
+      spinnerColors: {
+        borderTop: "#6366f1",
+        borderRight: "#8b5cf6",
+        borderBottom: "#d946ef"
+      }
     }
   };
 
-  const themeColors = colorClasses[theme];
-  
-  // Fixed style for spinner border colors to avoid Tailwind JIT issues
-  const spinnerColors = {
-    valorant: {
-      borderTop: "#FF4655",
-      borderRight: "rgba(255, 70, 85, 0.5)",
-      borderBottom: "rgba(255, 70, 85, 0.2)",
-    },
-    dashboard: {
-      borderTop: "#5865F2",
-      borderRight: "rgba(88, 101, 242, 0.5)",
-      borderBottom: "rgba(88, 101, 242, 0.2)",
-    }
-  };
-  
-  const currentSpinnerColors = spinnerColors[theme];
+  // Get current theme colors
+  const currentSpinnerColors = themeColors[theme].spinnerColors;
   
   const containerClass = fullScreen 
-    ? `min-h-screen bg-gradient-to-br ${themeColors.background} text-white font-sans flex items-center justify-center`
+    ? `min-h-screen bg-gradient-to-br ${themeColors[theme].background} text-white font-sans flex items-center justify-center`
     : "flex flex-col items-center justify-center p-6";
 
   return (
@@ -80,7 +73,7 @@ export function LoadingSpinner({
       style={{ contain: "layout style" }}
     >
       <div 
-        className={`p-6 rounded-xl ${themeColors.container} backdrop-blur-sm border border-white/5 shadow-lg flex flex-col items-center`}
+        className={`p-6 rounded-xl ${themeColors[theme].container} backdrop-blur-sm border border-white/5 shadow-lg flex flex-col items-center`}
         style={{ transform: "translateZ(0)" }}
       >
         <div 
