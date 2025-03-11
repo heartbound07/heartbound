@@ -7,12 +7,36 @@
   background-color: var(--secondary-bg);
   border-right: 1px solid var(--border-color);
   backdrop-filter: blur(10px);
-  transition: width var(--transition-speed) ease;
+  transition: all var(--transition-speed) ease;
   overflow-x: hidden;
   z-index: 1000;
-  padding: 1rem;
 }
 
+/* Collapsed sidebar state */
+.dashboard-nav.collapsed {
+  width: var(--sidebar-collapsed-width);
+}
+
+/* Expanded sidebar state */
+.dashboard-nav.expanded {
+  width: var(--sidebar-width);
+}
+
+/* Brand section with toggle button */
+.dashboard-nav .brand-text {
+  transition: opacity var(--transition-speed) ease;
+}
+
+/* Toggle button styles */
+.toggle-sidebar-btn {
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* User info section */
 .dashboard-nav .user-info {
   padding: 1rem;
   border-bottom: 1px solid var(--border-color);
@@ -20,6 +44,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.dashboard-nav.collapsed .user-info-collapsed {
+  max-width: 100%;
+  text-align: center;
+}
+
+/* Hide pronouns in collapsed mode */
+.dashboard-nav.collapsed .user-info-collapsed .pronouns {
+  display: none;
 }
 
 .dashboard-nav .user-info img {
@@ -33,6 +67,7 @@
   margin: 1rem 0;
 }
 
+/* Navigation items */
 .nav-item {
   display: flex;
   align-items: center;
@@ -56,6 +91,16 @@
   border-left: 4px solid var(--text-primary);
 }
 
+/* Label handling for collapsed state */
+.sidebar-label-collapsed {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
+}
+
+/* Logout button */
 .logout-button {
   width: 100%;
   padding: 0.75rem;
@@ -77,14 +122,18 @@
   background-color: var(--hover-bg);
 }
 
+/* Responsive styles */
 @media (max-width: 768px) {
-  .dashboard-nav {
-    position: relative;
-    width: 100%;
-    height: auto;
-    top: auto;
-    left: auto;
-    padding: 1rem;
-    border-right: none;
+  .dashboard-nav:not(.collapsed) {
+    transform: translateX(0);
+  }
+  
+  .dashboard-nav.collapsed {
+    transform: translateX(-100%);
+  }
+  
+  .dashboard-content {
+    margin-left: 0 !important;
+    width: 100% !important;
   }
 } 

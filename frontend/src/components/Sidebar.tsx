@@ -5,7 +5,7 @@ import "@/assets/styles/fonts.css"
 import { MdDashboard, MdAdminPanelSettings } from "react-icons/md"
 import { IoSettingsSharp } from "react-icons/io5"
 import { useState, useRef, useEffect } from "react"
-import { ChevronDown, ChevronRight } from "lucide-react"
+import { ChevronDown, ChevronRight, Menu } from "lucide-react"
 import { ProfilePreview } from "@/components/ui/profile/ProfilePreview"
 import ReactDOM from "react-dom"
 import valorantLogo from '@/assets/images/valorant-logo.png'
@@ -31,6 +31,24 @@ export function DashboardNavigation({ theme = 'default' }) {
   const profileSectionRef = useRef<HTMLDivElement>(null)
   const profilePreviewRef = useRef<HTMLDivElement>(null)
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 })
+  
+  // Add sidebar collapse state
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  
+  // Detect window size for responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setIsCollapsed(true)
+      }
+    }
+    
+    // Set initial state based on window size
+    handleResize()
+    
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   // Define games submenu items
   const gameItems = [
@@ -168,45 +186,58 @@ export function DashboardNavigation({ theme = 'default' }) {
   }, [isProfilePage]);
 
   return (
-    <aside className={`dashboard-nav h-full flex flex-col ${sidebarBackground} backdrop-blur-md border-r border-white/10 shadow-xl`}>
-      {/* Brand Header */}
-      <div className="px-6 py-5 border-b border-white/10">
+    <aside className={`dashboard-nav h-full flex flex-col ${sidebarBackground} backdrop-blur-md border-r border-white/10 shadow-xl ${isCollapsed ? 'collapsed' : 'expanded'}`}>
+      {/* Brand Header with Toggle Button */}
+      <div className="px-4 py-4 border-b border-white/10 flex items-center justify-between">
+        <button 
+          onClick={() => setIsCollapsed(!isCollapsed)} 
+          className="toggle-sidebar-btn text-white/80 hover:text-white p-2 rounded-md hover:bg-white/10 transition-colors"
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          <Menu size={20} />
+        </button>
+        
         <h1 
-          className="text-center text-white text-xl font-bold"
+          className={`brand-text text-center text-white text-xl font-bold transition-opacity ${isCollapsed ? 'opacity-0' : 'opacity-100'}`}
           style={{ fontFamily: "Grandstander, cursive" }}
         >
           heartbound
         </h1>
+        
+        {/* Empty div to balance the flex layout */}
+        <div className="w-8"></div>
       </div>
       
       {/* User Profile Section - Made clickable - Border removed */}
       <div 
         ref={profileSectionRef}
-        className={`relative px-6 py-6 cursor-pointer transition-all duration-200 
+        className={`relative px-4 py-4 cursor-pointer transition-all duration-200 
           ${isProfilePage ? 'bg-white/5' : 'hover:bg-white/5'}`}
         onClick={handleProfileClick}
       >
-        <div className="flex items-center gap-4">
-          <div className="relative">
+        <div className={`flex ${isCollapsed ? 'flex-col' : 'items-center gap-4'}`}>
+          <div className="relative mx-auto">
             <img
               src={user?.avatar || "/default-avatar.png"}
               alt={user?.username || "User"}
-              className="w-12 h-12 rounded-full object-cover ring-2 ring-primary/50 ring-offset-2 ring-offset-slate-900/50"
+              className={`rounded-full object-cover ring-2 ring-primary/50 ring-offset-2 ring-offset-slate-900/50 ${isCollapsed ? 'w-10 h-10' : 'w-12 h-12'}`}
             />
             <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-800"></div>
           </div>
-          <div className="flex flex-col">
+          
+          {/* User info - conditionally rendered based on collapsed state */}
+          <div className={`flex flex-col ${isCollapsed ? 'items-center mt-2' : ''} ${isCollapsed ? 'user-info-collapsed' : ''}`}>
             {/* Display name on top */}
             <span className="text-white font-medium text-sm truncate">
               {profile?.displayName || user?.username || "User"}
             </span>
             
             {/* Username and pronouns on a row below */}
-            <div className="flex items-center gap-1 mt-0.5">
+            <div className={`flex items-center gap-1 mt-0.5 ${isCollapsed ? 'flex-col' : ''}`}>
               <span className="text-white/70 text-xs truncate">
                 {user?.username || "Guest"}
               </span>
-              {profile?.pronouns && (
+              {profile?.pronouns && !isCollapsed && (
                 <span className="text-white/60 text-xs truncate">
                   • {profile.pronouns}
                 </span>
@@ -244,7 +275,7 @@ export function DashboardNavigation({ theme = 'default' }) {
                         navigate(item.path)
                       }
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
+                    className={`w-full flex ${isCollapsed ? 'flex-col justify-center' : 'items-center'} gap-2 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
                       ${
                         isActive
                           ? "bg-primary/20 text-white shadow-md"
@@ -253,14 +284,14 @@ export function DashboardNavigation({ theme = 'default' }) {
                     aria-current={isActive ? "page" : undefined}
                   >
                     <span
-                      className={`transition-transform duration-200 ${isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
+                      className={`transition-transform duration-200 mx-auto ${isCollapsed ? 'mb-1' : ''} ${isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
                     >
                       {item.icon}
                     </span>
-                    <span>{item.label}</span>
+                    <span className={`${isCollapsed ? 'text-xs' : ''} ${isCollapsed ? 'sidebar-label-collapsed' : 'sidebar-label'}`}>{item.label}</span>
                     
-                    {/* Dedicated dropdown toggle area - Only show when NOT on main dashboard */}
-                    {item.hasSubmenu && !isMainDashboard && (
+                    {/* Dedicated dropdown toggle area - Only show when NOT on main dashboard and NOT collapsed */}
+                    {item.hasSubmenu && !isMainDashboard && !isCollapsed && (
                       <div 
                         onClick={(e) => {
                           e.stopPropagation(); // Prevent parent button click
@@ -277,11 +308,11 @@ export function DashboardNavigation({ theme = 'default' }) {
                       </div>
                     )}
                     
-                    {isActive && !item.hasSubmenu && <div className="ml-auto w-1.5 h-5 bg-primary rounded-full"></div>}
+                    {isActive && !item.hasSubmenu && !isCollapsed && <div className="ml-auto w-1.5 h-5 bg-primary rounded-full"></div>}
                   </button>
                   
-                  {/* Games submenu - now with animation */}
-                  {item.hasSubmenu && !isMainDashboard && (
+                  {/* Games submenu - now with animation - Hide when collapsed */}
+                  {item.hasSubmenu && !isMainDashboard && !isCollapsed && (
                     <div className={gamesExpanded ? "animate-slideDown" : "animate-slideUp"}>
                       <ul className="mt-1 pl-8 space-y-1">
                         {gameItems.map((game) => {
@@ -322,7 +353,7 @@ export function DashboardNavigation({ theme = 'default' }) {
       <div className="mt-auto px-4 pb-6 border-t border-white/10 pt-4">
         <button
           onClick={() => navigate('/dashboard/settings')}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
+          className={`w-full flex ${isCollapsed ? 'flex-col items-center' : 'items-center'} gap-2 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
             ${
               isSettingsPage
                 ? "bg-primary/20 text-white shadow-md"
@@ -331,12 +362,12 @@ export function DashboardNavigation({ theme = 'default' }) {
           aria-current={isSettingsPage ? "page" : undefined}
         >
           <span
-            className={`transition-transform duration-200 ${isSettingsPage ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
+            className={`transition-transform duration-200 ${isCollapsed ? 'mb-1' : ''} ${isSettingsPage ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
           >
             <IoSettingsSharp size={20} />
           </span>
-          <span>Settings</span>
-          {isSettingsPage && <div className="ml-auto w-1.5 h-5 bg-primary rounded-full"></div>}
+          <span className={`${isCollapsed ? 'text-xs' : ''} ${isCollapsed ? 'sidebar-label-collapsed' : 'sidebar-label'}`}>Settings</span>
+          {isSettingsPage && !isCollapsed && <div className="ml-auto w-1.5 h-5 bg-primary rounded-full"></div>}
         </button>
       </div>
     </aside>
