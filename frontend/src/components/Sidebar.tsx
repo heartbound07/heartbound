@@ -208,7 +208,7 @@ export function DashboardNavigation({ theme = 'default' }) {
         <div className="w-8"></div>
       </div>
       
-      {/* User Profile Section - Centered */}
+      {/* User Profile Section - Avatar only when collapsed */}
       <div 
         ref={profileSectionRef}
         className={`relative px-4 py-4 cursor-pointer transition-all duration-200 
@@ -225,32 +225,34 @@ export function DashboardNavigation({ theme = 'default' }) {
             <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-800"></div>
           </div>
           
-          {/* User info - conditionally rendered based on collapsed state */}
-          <div className={`flex flex-col ${isCollapsed ? 'items-center mt-2' : 'items-center'} ${isCollapsed ? 'user-info-collapsed' : ''}`}>
-            {/* Display name on top */}
-            <span className="text-white font-medium text-sm truncate text-center max-w-full">
-              {profile?.displayName || user?.username || "User"}
-            </span>
-            
-            {/* Username and pronouns on a row below */}
-            <div className={`flex items-center justify-center gap-1 mt-0.5 ${isCollapsed ? 'flex-col' : ''}`}>
-              <span className="text-white/70 text-xs truncate text-center">
-                {user?.username || "Guest"}
+          {/* User info - only shown when expanded */}
+          {!isCollapsed && (
+            <div className="flex flex-col items-center">
+              {/* Display name on top */}
+              <span className="text-white font-medium text-sm truncate text-center max-w-full">
+                {profile?.displayName || user?.username || "User"}
               </span>
-              {profile?.pronouns && !isCollapsed && (
-                <span className="text-white/60 text-xs truncate">
-                  • {profile.pronouns}
+              
+              {/* Username and pronouns on a row below */}
+              <div className="flex items-center justify-center gap-1 mt-0.5">
+                <span className="text-white/70 text-xs truncate text-center">
+                  {user?.username || "Guest"}
                 </span>
-              )}
+                {profile?.pronouns && (
+                  <span className="text-white/60 text-xs truncate">
+                    • {profile.pronouns}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
       {/* Render the profile preview portal */}
       <ProfilePreviewPortal />
 
-      {/* Navigation menu items - Updated for better centering */}
+      {/* Navigation menu items - Icons only when collapsed */}
       <nav className="flex-1 px-4 py-4">
         <ul className="space-y-2">
           {navItems.map((item) => {
@@ -275,7 +277,7 @@ export function DashboardNavigation({ theme = 'default' }) {
                         navigate(item.path)
                       }
                     }}
-                    className={`w-full flex ${isCollapsed ? 'flex-col items-center' : 'items-center justify-center'} ${isCollapsed ? 'gap-1' : 'gap-2'} px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
+                    className={`w-full flex ${isCollapsed ? 'items-center justify-center' : 'items-center justify-center'} ${isCollapsed ? 'gap-1' : 'gap-2'} px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
                       ${
                         isActive
                           ? "bg-primary/20 text-white shadow-md"
@@ -284,11 +286,15 @@ export function DashboardNavigation({ theme = 'default' }) {
                     aria-current={isActive ? "page" : undefined}
                   >
                     <span
-                      className={`transition-transform duration-200 ${isCollapsed ? 'mb-1' : ''} ${isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
+                      className={`transition-transform duration-200 ${isCollapsed ? '' : ''} ${isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
                     >
                       {item.icon}
                     </span>
-                    <span className={`${isCollapsed ? 'text-xs' : ''} ${isCollapsed ? 'sidebar-label-collapsed' : 'sidebar-label'}`}>{item.label}</span>
+                    
+                    {/* Only show label when not collapsed */}
+                    {!isCollapsed && (
+                      <span className="sidebar-label">{item.label}</span>
+                    )}
                     
                     {item.hasSubmenu && !isMainDashboard && !isCollapsed && (
                       <div 
@@ -310,7 +316,7 @@ export function DashboardNavigation({ theme = 'default' }) {
                     {isActive && !item.hasSubmenu && !isCollapsed && <div className="absolute right-2 w-1.5 h-5 bg-primary rounded-full"></div>}
                   </button>
                   
-                  {/* Games submenu - Updated for centering */}
+                  {/* Games submenu - unchanged */}
                   {item.hasSubmenu && !isMainDashboard && !isCollapsed && (
                     <div className={gamesExpanded ? "animate-slideDown" : "animate-slideUp"}>
                       <ul className="mt-1 pl-8 space-y-1">
@@ -348,11 +354,11 @@ export function DashboardNavigation({ theme = 'default' }) {
         </ul>
       </nav>
 
-      {/* Settings Footer - Updated for centering */}
+      {/* Settings Footer - Icon only when collapsed */}
       <div className="mt-auto px-4 pb-6 border-t border-white/10 pt-4">
         <button
           onClick={() => navigate('/dashboard/settings')}
-          className={`w-full flex ${isCollapsed ? 'flex-col items-center' : 'items-center justify-center'} gap-2 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
+          className={`w-full flex ${isCollapsed ? 'items-center justify-center' : 'items-center justify-center'} gap-2 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
             ${
               isSettingsPage
                 ? "bg-primary/20 text-white shadow-md"
@@ -361,11 +367,16 @@ export function DashboardNavigation({ theme = 'default' }) {
           aria-current={isSettingsPage ? "page" : undefined}
         >
           <span
-            className={`transition-transform duration-200 ${isCollapsed ? 'mb-1' : ''} ${isSettingsPage ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
+            className={`transition-transform duration-200 ${isSettingsPage ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
           >
             <IoSettingsSharp size={20} />
           </span>
-          <span className={`${isCollapsed ? 'text-xs' : ''} ${isCollapsed ? 'sidebar-label-collapsed' : 'sidebar-label'}`}>Settings</span>
+          
+          {/* Only show label when not collapsed */}
+          {!isCollapsed && (
+            <span className="sidebar-label">Settings</span>
+          )}
+          
           {isSettingsPage && !isCollapsed && <div className="absolute right-2 w-1.5 h-5 bg-primary rounded-full"></div>}
         </button>
       </div>
