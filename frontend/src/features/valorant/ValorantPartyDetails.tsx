@@ -13,7 +13,7 @@ import { PlayerSlotsContainer } from "@/components/PlayerSlotsContainer"
 import { formatDisplayText, formatBooleanText } from "@/utils/formatters"
 import { CountdownTimer } from "@/components/CountdownTimer"
 import { UserProfileModal } from "@/components/UserProfileModal"
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { SkeletonPartyDetails } from '@/components/ui/SkeletonUI'
 
 // Custom Toast Component
 const Toast = ({ 
@@ -61,8 +61,8 @@ const DetailBadge = ({
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-xs text-[#8B97A4] truncate">{label}</div>
-        <div className="text-sm font-medium text-white truncate">{value}</div>
+        <div className="text-xs text-[#8B97A4] font-medium mb-0.5">{label}</div>
+        <div className="text-sm text-white font-medium truncate">{value}</div>
       </div>
     </div>
   );
@@ -427,12 +427,11 @@ export default function ValorantPartyDetails() {
 
   if (isLoading) {
     return (
-      <LoadingSpinner
-        title="Loading party details..."
-        description="Please wait while we retrieve the party information."
-        fullScreen={true}
-        theme="valorant"
-      />
+      <div className="min-h-screen bg-[#0F1923] text-white pb-8 pt-20">
+        <div className="container max-w-screen-xl mx-auto px-4">
+          <SkeletonPartyDetails theme="valorant" />
+        </div>
+      </div>
     )
   }
 
