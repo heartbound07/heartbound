@@ -208,14 +208,14 @@ export function DashboardNavigation({ theme = 'default' }) {
         <div className="w-8"></div>
       </div>
       
-      {/* User Profile Section - Made clickable - Border removed */}
+      {/* User Profile Section - Updated with better spacing */}
       <div 
         ref={profileSectionRef}
         className={`relative px-4 py-4 cursor-pointer transition-all duration-200 
           ${isProfilePage ? 'bg-white/5' : 'hover:bg-white/5'}`}
         onClick={handleProfileClick}
       >
-        <div className={`flex ${isCollapsed ? 'flex-col' : 'items-center gap-4'}`}>
+        <div className={`flex ${isCollapsed ? 'flex-col' : 'items-center'} ${isCollapsed ? '' : 'gap-3'}`}>
           <div className="relative mx-auto">
             <img
               src={user?.avatar || "/default-avatar.png"}
@@ -250,7 +250,7 @@ export function DashboardNavigation({ theme = 'default' }) {
       {/* Render the profile preview portal */}
       <ProfilePreviewPortal />
 
-      {/* Navigation Links - Adjusted padding for consistent spacing */}
+      {/* Navigation Links - Updated with proper spacing */}
       <nav className="flex-1 px-4 py-4">
         <ul className="space-y-2">
           {navItems.map((item) => {
@@ -275,7 +275,7 @@ export function DashboardNavigation({ theme = 'default' }) {
                         navigate(item.path)
                       }
                     }}
-                    className={`w-full flex ${isCollapsed ? 'flex-col justify-center' : 'items-center'} gap-2 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
+                    className={`w-full flex ${isCollapsed ? 'flex-col justify-center' : 'items-center justify-start'} ${isCollapsed ? 'gap-1' : 'gap-2'} px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
                       ${
                         isActive
                           ? "bg-primary/20 text-white shadow-md"
@@ -284,13 +284,12 @@ export function DashboardNavigation({ theme = 'default' }) {
                     aria-current={isActive ? "page" : undefined}
                   >
                     <span
-                      className={`transition-transform duration-200 mx-auto ${isCollapsed ? 'mb-1' : ''} ${isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
+                      className={`transition-transform duration-200 ${isCollapsed ? 'mx-auto mb-1' : ''} ${isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
                     >
                       {item.icon}
                     </span>
                     <span className={`${isCollapsed ? 'text-xs' : ''} ${isCollapsed ? 'sidebar-label-collapsed' : 'sidebar-label'}`}>{item.label}</span>
                     
-                    {/* Dedicated dropdown toggle area - Only show when NOT on main dashboard and NOT collapsed */}
                     {item.hasSubmenu && !isMainDashboard && !isCollapsed && (
                       <div 
                         onClick={(e) => {

@@ -10,6 +10,7 @@
   transition: all var(--transition-speed) ease;
   overflow-x: hidden;
   z-index: 1000;
+  padding: 0;
 }
 
 /* Collapsed sidebar state */
@@ -25,6 +26,7 @@
 /* Brand section with toggle button */
 .dashboard-nav .brand-text {
   transition: opacity var(--transition-speed) ease;
+  white-space: nowrap;
 }
 
 /* Toggle button styles */
@@ -100,6 +102,13 @@
   text-align: center;
 }
 
+/* Regular label handling */
+.sidebar-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Logout button */
 .logout-button {
   width: 100%;
@@ -120,6 +129,20 @@
 
 .logout-button:hover {
   background-color: var(--hover-bg);
+}
+
+/* User profile section spacing */
+.user-profile-section {
+  display: flex;
+  align-items: center;
+}
+
+.user-profile-section.expanded {
+  gap: 2;
+}
+
+.user-profile-section.collapsed {
+  flex-direction: column;
 }
 
 /* Responsive styles */
