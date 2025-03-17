@@ -390,7 +390,8 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         username: decodedToken.username || '',
         email: decodedToken.email || '',
         avatar: decodedToken.avatar || '',
-        roles: decodedToken.roles || ['USER'] // Extract roles from token
+        roles: decodedToken.roles || ['USER'], // Extract roles from token
+        credits: decodedToken.credits || 0 // Extract credits from token
       };
 
       // Build token pair
