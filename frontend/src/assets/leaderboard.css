@@ -1,206 +1,310 @@
 /* Leaderboard Container */
 .leaderboard-container {
-  background-color: var(--secondary-bg);
-  border-radius: 1rem;
-  border: 1px solid var(--border-color);
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
-  width: 100%;
-}
-
-/* Leaderboard Header */
-.leaderboard-header {
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-  background-color: rgba(255, 255, 255, 0.03);
-}
-
-.leaderboard-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: white;
-  margin: 0;
-}
-
-/* Leaderboard Table */
-.leaderboard-table {
-  width: 100%;
-}
-
-.leaderboard-headers {
-  display: grid;
-  grid-template-columns: 80px 1fr 100px;
-  padding: 0.75rem 1.5rem;
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.6);
-  font-weight: 500;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.leaderboard-row {
-  display: grid;
-  grid-template-columns: 80px 1fr 100px;
-  align-items: center;
-  padding: 0.75rem 1.5rem;
-  transition: all 0.2s ease;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.leaderboard-row:last-child {
-  border-bottom: none;
-}
-
-.leaderboard-rank {
-  font-size: 1rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.leaderboard-user {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.leaderboard-avatar {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-}
-
-.leaderboard-user-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.leaderboard-username {
-  font-weight: 600;
-  color: white;
-  font-size: 0.95rem;
-}
-
-.leaderboard-handle {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.8rem;
-}
-
-.leaderboard-credits {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
-  justify-content: flex-end;
-}
-
-/* Loading state */
-.leaderboard-loading {
-  padding: 1rem;
-}
-
-.leaderboard-skeleton-row {
-  display: grid;
-  grid-template-columns: 80px 1fr 100px;
-  gap: 1rem;
-  padding: 0.75rem 1.5rem;
-  align-items: center;
-}
-
-.leaderboard-skeleton-rank,
-.leaderboard-skeleton-user,
-.leaderboard-skeleton-credits {
-  height: 24px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 4px;
-}
-
-.leaderboard-skeleton-user {
-  height: 40px;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
+    background-color: var(--secondary-bg);
+    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(12px);
+    width: 100%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
-  100% {
-    background-position: -200% 0;
+  
+  .leaderboard-container:hover {
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   }
-}
-
-/* Error state */
-.leaderboard-error {
-  padding: 2rem;
-  color: #ef4444;
-  text-align: center;
-  font-weight: 500;
-}
-
-/* Empty state */
-.leaderboard-empty {
-  padding: 3rem 1rem;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.5);
-  font-weight: 500;
-}
-
-/* Compact mode */
-.leaderboard-table.compact .leaderboard-headers {
-  padding: 0.5rem 1rem;
-}
-
-.leaderboard-table.compact .leaderboard-row {
-  padding: 0.5rem 1rem;
-}
-
-.leaderboard-table.compact .leaderboard-avatar {
-  width: 2rem;
-  height: 2rem;
-}
-
-/* Leaderboard Page Layout */
-.leaderboard-page-container {
-  max-width: 100%;
-  margin: 0 auto;
-}
-
-.leaderboard-content {
-  max-width: 900px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 1024px) {
-  .leaderboard-content {
-    max-width: 800px;
+  
+  /* Leaderboard Header */
+  .leaderboard-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    background-color: rgba(255, 255, 255, 0.04);
   }
-}
-
-@media (max-width: 768px) {
-  .leaderboard-content {
+  
+  .leaderboard-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+    letter-spacing: 0.02em;
+  }
+  
+  /* Leaderboard Table */
+  .leaderboard-table {
+    width: 100%;
+  }
+  
+  .leaderboard-headers {
+    display: grid;
+    grid-template-columns: 80px 1fr 100px;
+    padding: 1rem 1.5rem;
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .leaderboard-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 100px;
+    align-items: center;
+    padding: 0.875rem 1.5rem;
+    transition: all 0.15s ease;
+    border-bottom: 1px solid var(--border-color);
+    position: relative;
+  }
+  
+  .leaderboard-row:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    transform: translateY(-1px);
+  }
+  
+  .leaderboard-row:last-child {
+    border-bottom: none;
+  }
+  
+  .leaderboard-rank {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .leaderboard-user {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .leaderboard-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+  
+  .leaderboard-row:hover .leaderboard-avatar {
+    transform: scale(1.05);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+  
+  .leaderboard-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .leaderboard-username {
+    font-weight: 600;
+    color: white;
+    font-size: 0.95rem;
+    transition: color 0.15s ease;
+  }
+  
+  .leaderboard-row:hover .leaderboard-username {
+    color: rgba(255, 255, 255, 1);
+  }
+  
+  .leaderboard-handle {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8rem;
+    transition: color 0.15s ease;
+  }
+  
+  .leaderboard-row:hover .leaderboard-handle {
+    color: rgba(255, 255, 255, 0.7);
+  }
+  
+  .leaderboard-credits {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+    justify-content: flex-end;
+    transition: color 0.15s ease;
+  }
+  
+  .leaderboard-row:hover .leaderboard-credits {
+    color: rgba(255, 255, 255, 1);
+  }
+  
+  /* Loading state */
+  .leaderboard-loading {
+    padding: 1.5rem 1rem;
+  }
+  
+  .leaderboard-skeleton-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 100px;
+    gap: 1rem;
+    padding: 0.75rem 1.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  
+  .leaderboard-skeleton-rank,
+  .leaderboard-skeleton-user,
+  .leaderboard-skeleton-credits {
+    height: 24px;
+    background: linear-gradient(90deg, 
+      rgba(255, 255, 255, 0.03) 0%, 
+      rgba(255, 255, 255, 0.08) 50%, 
+      rgba(255, 255, 255, 0.03) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.8s infinite ease-in-out;
+    border-radius: 6px;
+  }
+  
+  .leaderboard-skeleton-rank {
+    width: 40px;
+    margin: 0 auto;
+  }
+  
+  .leaderboard-skeleton-user {
+    height: 40px;
+  }
+  
+  .leaderboard-skeleton-credits {
+    width: 70px;
+    margin-left: auto;
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+  
+  /* Error state */
+  .leaderboard-error {
+    padding: 3rem 2rem;
+    color: #f87171;
+    text-align: center;
+    font-weight: 500;
+    background-color: rgba(239, 68, 68, 0.05);
+    border-radius: 0.5rem;
+    margin: 1.5rem;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+  }
+  
+  /* Empty state */
+  .leaderboard-empty {
+    padding: 4rem 1.5rem;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+    font-size: 1.05rem;
+    background-color: rgba(255, 255, 255, 0.02);
+  }
+  
+  /* Compact mode */
+  .leaderboard-table.compact .leaderboard-headers {
+    padding: 0.625rem 1.25rem;
+  }
+  
+  .leaderboard-table.compact .leaderboard-row {
+    padding: 0.625rem 1.25rem;
+  }
+  
+  .leaderboard-table.compact .leaderboard-avatar {
+    width: 2rem;
+    height: 2rem;
+  }
+  
+  /* Leaderboard Page Layout */
+  .leaderboard-page-container {
     max-width: 100%;
-    padding: 0 1rem;
+    margin: 0 auto;
+    padding: 1.5rem 0;
   }
-}
-
-/* Add these styles to support the font */
-.font-grandstander {
-  font-family: 'Grandstander', sans-serif;
-}
-
-/* Adjust the title positioning */
-.leaderboard-page-container .section-header {
-  margin-bottom: 2rem;
-}
-
-.leaderboard-page-container .section-header h1 {
-  letter-spacing: 0.5px;
-}
+  
+  .leaderboard-content {
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  
+  /* Responsive Adjustments */
+  @media (max-width: 1024px) {
+    .leaderboard-content {
+      max-width: 800px;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .leaderboard-headers {
+      grid-template-columns: 60px 1fr 90px;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+    }
+    
+    .leaderboard-row {
+      grid-template-columns: 60px 1fr 90px;
+      padding: 0.75rem 1rem;
+    }
+    
+    .leaderboard-content {
+      max-width: 100%;
+      padding: 0 1rem;
+    }
+    
+    .leaderboard-avatar {
+      width: 2.25rem;
+      height: 2.25rem;
+    }
+    
+    .leaderboard-user {
+      gap: 0.75rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .leaderboard-headers {
+      grid-template-columns: 50px 1fr 70px;
+      padding: 0.625rem 0.75rem;
+    }
+    
+    .leaderboard-row {
+      grid-template-columns: 50px 1fr 70px;
+      padding: 0.625rem 0.75rem;
+    }
+    
+    .leaderboard-avatar {
+      width: 2rem;
+      height: 2rem;
+    }
+    
+    .leaderboard-username {
+      font-size: 0.875rem;
+    }
+    
+    .leaderboard-handle {
+      font-size: 0.7rem;
+    }
+  }
+  
+  /* Add these styles to support the font */
+  .font-grandstander {
+    font-family: 'Grandstander', sans-serif;
+  }
+  
+  /* Adjust the title positioning */
+  .leaderboard-page-container .section-header {
+    margin-bottom: 2.5rem;
+  }
+  
+  .leaderboard-page-container .section-header h1 {
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }

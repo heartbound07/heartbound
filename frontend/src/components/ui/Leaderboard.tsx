@@ -35,18 +35,18 @@ export function Leaderboard({
     switch (index) {
       case 0:
         return {
-          icon: <FaCrown size={18} className="text-yellow-400" />,
-          className: "bg-yellow-500/10 border-yellow-500/20"
+          icon: <FaCrown size={20} className="text-yellow-400 drop-shadow-glow" />,
+          className: "bg-yellow-500/10 border-yellow-500/30 hover:bg-yellow-500/15"
         };
       case 1:
         return {
-          icon: <FaTrophy size={18} className="text-gray-300" />,
-          className: "bg-gray-500/10 border-gray-500/20"
+          icon: <FaTrophy size={18} className="text-gray-300 drop-shadow-glow" />,
+          className: "bg-gray-500/10 border-gray-500/30 hover:bg-gray-500/15"
         };
       case 2:
         return {
-          icon: <FaMedal size={18} className="text-amber-700" />,
-          className: "bg-amber-700/10 border-amber-700/20"
+          icon: <FaMedal size={18} className="text-amber-700 drop-shadow-glow" />,
+          className: "bg-amber-700/10 border-amber-700/30 hover:bg-amber-700/15"
         };
       default:
         return {
@@ -104,8 +104,9 @@ export function Leaderboard({
                   <div className="leaderboard-user">
                     <img 
                       src={user.avatar || "/default-avatar.png"} 
-                      alt={user.username} 
+                      alt={user.displayName || user.username || 'User'} 
                       className="leaderboard-avatar" 
+                      loading="lazy"
                     />
                     <div className="leaderboard-user-info">
                       <span className="leaderboard-username">

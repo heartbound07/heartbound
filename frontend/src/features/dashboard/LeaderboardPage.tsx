@@ -31,7 +31,7 @@ export function LeaderboardPage() {
     <div className="leaderboard-page-container">
       <section className="dashboard-section mb-8">
         <div className="section-header mb-6 text-center">
-          <h1 className="text-2xl md:text-3xl font-bold text-white font-grandstander">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white font-grandstander">
             Leaderboard
           </h1>
         </div>
@@ -44,6 +44,7 @@ export function LeaderboardPage() {
             isLoading={isLoading}
             error={error}
             showHeader={false}
+            className="shadow-xl"
           />
         </div>
       </section>
