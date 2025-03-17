@@ -4,6 +4,7 @@ import "@/assets/sidebar.css"
 import "@/assets/styles/fonts.css"
 import { MdDashboard, MdAdminPanelSettings } from "react-icons/md"
 import { IoSettingsSharp } from "react-icons/io5"
+import { FaCoins } from "react-icons/fa"
 import { useState, useRef, useEffect } from "react"
 import { ChevronDown, ChevronRight, Menu } from "lucide-react"
 import { ProfilePreview } from "@/components/ui/profile/ProfilePreview"
@@ -270,6 +271,14 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
               </div>
             </div>
           )}
+        </div>
+        
+        {/* Add credits display */}
+        <div className="user-credits">
+          <FaCoins className="user-credits-icon" size={isCollapsed ? 16 : 18} />
+          <span className={`user-credits-value ${isCollapsed ? 'sr-only' : ''}`}>
+            {user?.credits || 0}
+          </span>
         </div>
       </div>
 

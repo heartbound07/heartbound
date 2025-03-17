@@ -196,4 +196,35 @@
     margin-left: 0 !important;
     width: 100% !important;
   }
+}
+
+/* User credits styling */
+.user-credits {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #FFD700; /* Gold color for credits */
+  margin-top: 0.5rem;
+  transition: all var(--transition-speed) ease;
+}
+
+.user-credits-icon {
+  color: #FFD700;
+}
+
+.dashboard-nav.collapsed .user-credits {
+  padding: 4px;
+  margin-top: 0.5rem;
+  width: 100%;
+  max-width: 36px;
+}
+
+.dashboard-nav.collapsed .user-credits-value {
+  font-size: 0.75rem;
 } 
