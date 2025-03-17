@@ -45,6 +45,9 @@ public class User {
     private String bannerColor;
     private String bannerUrl;
     
+    // Add credits field with default value
+    private Integer credits = 0;
+    
     // Role-based security addition
     @ElementCollection(fetch = jakarta.persistence.FetchType.EAGER)
     @Enumerated(jakarta.persistence.EnumType.STRING)
