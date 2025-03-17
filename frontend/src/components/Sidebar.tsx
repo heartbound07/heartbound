@@ -231,8 +231,9 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
         {!isCollapsed && (
           <>
             <h1 
-              className="brand-text text-center text-white text-xl font-bold"
+              className="brand-text text-center text-white text-xl font-bold cursor-pointer"
               style={{ fontFamily: "Grandstander, cursive" }}
+              onClick={() => navigate('/dashboard')}
             >
               heartbound
             </h1>
