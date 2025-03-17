@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { UserProfileDTO, getUserProfiles } from '@/config/userService';
+import { UserProfileDTO, getLeaderboardUsers } from '@/config/userService';
 import { Leaderboard } from '@/components/ui/Leaderboard';
-import httpClient from '@/lib/api/httpClient';
 import '@/assets/dashboard.css';
 
 export function LeaderboardPage() {
@@ -13,8 +12,8 @@ export function LeaderboardPage() {
     const fetchLeaderboardData = async () => {
       try {
         setIsLoading(true);
-        const response = await httpClient.get('/api/users/leaderboard');
-        setUsers(response.data);
+        const leaderboardData = await getLeaderboardUsers();
+        setUsers(leaderboardData);
         setError(null);
       } catch (err) {
         console.error('Error fetching leaderboard data:', err);
@@ -28,7 +27,7 @@ export function LeaderboardPage() {
   }, []);
 
   return (
-    <>
+    <div className="leaderboard-page-container">
       <section className="dashboard-section mb-8">
         <div className="section-header mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-white">
@@ -41,7 +40,7 @@ export function LeaderboardPage() {
       </section>
 
       <section className="dashboard-section">
-        <div className="grid grid-cols-1 gap-6">
+        <div className="leaderboard-content">
           <Leaderboard 
             users={users}
             isLoading={isLoading}
@@ -50,6 +49,6 @@ export function LeaderboardPage() {
           />
         </div>
       </section>
-    </>
+    </div>
   );
 }
