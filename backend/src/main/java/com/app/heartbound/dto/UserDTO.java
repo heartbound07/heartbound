@@ -33,4 +33,7 @@ public class UserDTO {
     
     @Schema(description = "The roles assigned to the user", example = "[\"USER\", \"MONARCH\"]")
     private Set<Role> roles;
+    
+    @Schema(description = "The number of credits the user has", example = "100")
+    private Integer credits = 0;
 }
