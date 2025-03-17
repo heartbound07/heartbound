@@ -1,0 +1,166 @@
+/* Leaderboard Container */
+.leaderboard-container {
+  background-color: var(--secondary-bg);
+  border-radius: 1rem;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  width: 100%;
+}
+
+/* Leaderboard Header */
+.leaderboard-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.leaderboard-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+}
+
+/* Leaderboard Table */
+.leaderboard-table {
+  width: 100%;
+}
+
+.leaderboard-headers {
+  display: grid;
+  grid-template-columns: 80px 1fr 100px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.leaderboard-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 100px;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.leaderboard-row:last-child {
+  border-bottom: none;
+}
+
+.leaderboard-rank {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.leaderboard-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.leaderboard-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.leaderboard-user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.leaderboard-username {
+  font-weight: 600;
+  color: white;
+  font-size: 0.95rem;
+}
+
+.leaderboard-handle {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+}
+
+.leaderboard-credits {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  justify-content: flex-end;
+}
+
+/* Loading state */
+.leaderboard-loading {
+  padding: 1rem;
+}
+
+.leaderboard-skeleton-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 100px;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  align-items: center;
+}
+
+.leaderboard-skeleton-rank,
+.leaderboard-skeleton-user,
+.leaderboard-skeleton-credits {
+  height: 24px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.leaderboard-skeleton-user {
+  height: 40px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Error state */
+.leaderboard-error {
+  padding: 2rem;
+  color: #ef4444;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Empty state */
+.leaderboard-empty {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+}
+
+/* Compact mode */
+.leaderboard-table.compact .leaderboard-headers {
+  padding: 0.5rem 1rem;
+}
+
+.leaderboard-table.compact .leaderboard-row {
+  padding: 0.5rem 1rem;
+}
+
+.leaderboard-table.compact .leaderboard-avatar {
+  width: 2rem;
+  height: 2rem;
+}
