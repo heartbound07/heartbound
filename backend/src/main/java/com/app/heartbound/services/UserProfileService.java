@@ -75,6 +75,7 @@ public class UserProfileService {
                 .about(user.getAbout())
                 .bannerColor(user.getBannerColor())
                 .bannerUrl(user.getBannerUrl())
+                .credits(user.getCredits())
                 .build();
     }
     
@@ -89,6 +90,7 @@ public class UserProfileService {
                 .id(userId)
                 .username("Unknown User")
                 .avatar("/default-avatar.png")
+                .credits(0) // Default credits for unknown users
                 .build();
     }
 }

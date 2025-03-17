@@ -85,6 +85,14 @@ public class UserService {
             user.setDiscordAvatarUrl(avatar);
         }
         
+        // Update credits if provided in DTO, otherwise preserve existing credits for existing users
+        if (userDTO.getCredits() != null) {
+            user.setCredits(userDTO.getCredits());
+        } else if (user.getCredits() == null) {
+            // Initialize credits for new users
+            user.setCredits(0);
+        }
+        
         user = userRepository.save(user);
         logger.info("Updated existing user: {}", username);
         
