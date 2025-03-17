@@ -198,15 +198,14 @@
   }
 }
 
-/* User credits styling - updated for smoother transitions */
+/* User credits styling - updated for transparency */
 .user-credits {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 4px 8px;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  padding: 2px 4px;
+  background-color: transparent;
   font-size: 0.875rem;
   font-weight: 600;
   color: #FFD700; /* Gold color for credits */
@@ -227,9 +226,9 @@
 
 /* Apply the same transition timing to match other sidebar elements */
 .dashboard-nav.collapsed .user-credits {
-  padding: 6px;
-  width: 32px;
-  height: 32px;
+  padding: 4px;
+  width: 24px;
+  height: 24px;
   margin: 0 auto;
   margin-top: 8px;
 }
