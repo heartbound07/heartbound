@@ -25,7 +25,7 @@ public class AuthService {
     }
 
     /**
-     * Generates a JWT token for the authenticated user, including their roles.
+     * Generates a JWT token for the authenticated user, including their roles and credits.
      *
      * @param userDTO - Data transfer object containing user details.
      * @return A JWT token string.
@@ -45,14 +45,23 @@ public class AuthService {
             }
         }
         
+        // Get user's credits (use from DTO if available, otherwise get from database)
+        Integer credits = userDTO.getCredits();
+        if (credits == null) {
+            User user = userService.getUserById(userDTO.getId());
+            credits = user != null ? user.getCredits() : 0;
+        }
+        
         String token = jwtTokenProvider.generateToken(
                 userDTO.getId(),
                 userDTO.getUsername(),
                 userDTO.getEmail(),
                 userDTO.getAvatar(),
-                roles
+                roles,
+                credits
         );
-        logger.info("JWT token generated successfully for user: {}", userDTO.getId());
+        
+        logger.info("JWT token generated successfully for user: {}", userDTO.getUsername());
         return token;
     }
     
@@ -90,18 +99,22 @@ public class AuthService {
         // Validate and decode the refresh token
         String userId = jwtTokenProvider.getUserIdFromRefreshToken(refreshToken);
         
-        // Fetch the user to get their current roles
+        // Fetch the user to get their current roles and credits
         User user = userService.getUserById(userId);
         Set<Role> roles = user != null && user.getRoles() != null ? 
                 user.getRoles() : Collections.singleton(Role.USER);
         
-        // Generate new tokens with the user's current roles
+        // Get user's credits (or default to 0 if user not found)
+        Integer credits = user != null ? user.getCredits() : 0;
+        
+        // Generate new tokens with the user's current roles and credits
         String newAccessToken = jwtTokenProvider.generateToken(
                 userId, 
                 user != null ? user.getUsername() : "username", 
                 user != null ? user.getEmail() : "email@example.com", 
                 user != null ? user.getAvatar() : "avatar.png", 
-                roles
+                roles,
+                credits
         );
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(userId, roles);
         
