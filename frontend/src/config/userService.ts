@@ -32,7 +32,8 @@ export const getUserProfile = async (userId: string): Promise<UserProfileDTO> =>
     return {
       id: userId,
       username: "Unknown User",
-      avatar: "https://v0.dev/placeholder.svg?height=400&width=400"
+      avatar: "https://v0.dev/placeholder.svg?height=400&width=400",
+      credits: 0
     };
   }
 };
@@ -59,7 +60,8 @@ export const getUserProfiles = async (userIds: string[]): Promise<Record<string,
       fallbackProfiles[id] = {
         id,
         username: "Unknown User",
-        avatar: "https://v0.dev/placeholder.svg?height=400&width=400"
+        avatar: "https://v0.dev/placeholder.svg?height=400&width=400",
+        credits: 0
       };
     });
     return fallbackProfiles;
