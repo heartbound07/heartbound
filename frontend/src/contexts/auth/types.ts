@@ -10,6 +10,7 @@ export interface UserInfo {
   discordId?: string;
   avatar?: string;
   roles?: Role[];
+  credits?: number;
 }
 
 export interface LoginRequest {
