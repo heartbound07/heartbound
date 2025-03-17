@@ -14,6 +14,7 @@ import ValorantPartyDetails from '@/features/valorant/ValorantPartyDetails';
 import { DiscordCallback } from '@/features/auth/DiscordCallback';
 import { useAuth } from '@/contexts/auth';
 import { Navigate as RouterNavigate } from 'react-router-dom';
+import { LeaderboardPage } from '@/features/dashboard/LeaderboardPage';
 
 // Admin route guard component
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -69,6 +70,7 @@ export function AppRoutes() {
               } 
             />
           </Route>
+          <Route path="leaderboard" element={<LeaderboardPage />} />
         </Route>
         <Route path="/dashboard/valorant" element={<ValorantPageLayout />}>
           <Route index element={<ValorantPage />} />
