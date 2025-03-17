@@ -3,6 +3,7 @@ import { UserProfileDTO } from '@/config/userService';
 import { FaCoins, FaCrown, FaTrophy, FaMedal } from 'react-icons/fa';
 import '@/assets/leaderboard.css';
 import { UserProfileModal } from '@/components/UserProfileModal';
+import { createPortal } from 'react-dom';
 
 interface LeaderboardProps {
   users: UserProfileDTO[];
@@ -71,89 +72,94 @@ export function Leaderboard({
   };
 
   return (
-    <div ref={containerRef} className={`leaderboard-container ${className}`}>
-      {showHeader && (
-        <div className="leaderboard-header">
-          <h2 className="leaderboard-title">{title}</h2>
-        </div>
-      )}
-
-      {error && (
-        <div className="leaderboard-error">
-          <p>{error}</p>
-        </div>
-      )}
-
-      {isLoading ? (
-        <div className="leaderboard-loading">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="leaderboard-skeleton-row">
-              <div className="leaderboard-skeleton-rank"></div>
-              <div className="leaderboard-skeleton-user"></div>
-              <div className="leaderboard-skeleton-credits"></div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className={`leaderboard-table ${compact ? 'compact' : ''}`}>
-          <div className="leaderboard-headers">
-            <div className="leaderboard-header-rank">Rank</div>
-            <div className="leaderboard-header-user">User</div>
-            <div className="leaderboard-header-credits">Credits</div>
+    <>
+      <div ref={containerRef} className={`leaderboard-container ${className}`}>
+        {showHeader && (
+          <div className="leaderboard-header">
+            <h2 className="leaderboard-title">{title}</h2>
           </div>
-          
-          {displayUsers.length === 0 ? (
-            <div className="leaderboard-empty">
-              <p>No users to display</p>
+        )}
+
+        {error && (
+          <div className="leaderboard-error">
+            <p>{error}</p>
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="leaderboard-loading">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="leaderboard-skeleton-row">
+                <div className="leaderboard-skeleton-rank"></div>
+                <div className="leaderboard-skeleton-user"></div>
+                <div className="leaderboard-skeleton-credits"></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className={`leaderboard-table ${compact ? 'compact' : ''}`}>
+            <div className="leaderboard-headers">
+              <div className="leaderboard-header-rank">Rank</div>
+              <div className="leaderboard-header-user">User</div>
+              <div className="leaderboard-header-credits">Credits</div>
             </div>
-          ) : (
-            displayUsers.map((user, index) => {
-              const { icon, className: rowClass } = getPositionDetails(index);
-              
-              return (
-                <div 
-                  key={user.id} 
-                  className={`leaderboard-row ${rowClass} cursor-pointer`}
-                  onClick={(e) => handleUserClick(user, e)}
-                >
-                  <div className="leaderboard-rank">
-                    {icon || <span>{index + 1}</span>}
-                  </div>
-                  <div className="leaderboard-user">
-                    <img 
-                      src={user.avatar || "/default-avatar.png"} 
-                      alt={user.displayName || user.username || 'User'} 
-                      className="leaderboard-avatar" 
-                      loading="lazy"
-                    />
-                    <div className="leaderboard-user-info">
-                      <span className="leaderboard-username">
-                        {user.displayName || user.username}
-                      </span>
-                      {!compact && user.displayName && user.username && (
-                        <span className="leaderboard-handle">@{user.username}</span>
-                      )}
+            
+            {displayUsers.length === 0 ? (
+              <div className="leaderboard-empty">
+                <p>No users to display</p>
+              </div>
+            ) : (
+              displayUsers.map((user, index) => {
+                const { icon, className: rowClass } = getPositionDetails(index);
+                
+                return (
+                  <div 
+                    key={user.id} 
+                    className={`leaderboard-row ${rowClass} cursor-pointer`}
+                    onClick={(e) => handleUserClick(user, e)}
+                  >
+                    <div className="leaderboard-rank">
+                      {icon || <span>{index + 1}</span>}
+                    </div>
+                    <div className="leaderboard-user">
+                      <img 
+                        src={user.avatar || "/default-avatar.png"} 
+                        alt={user.displayName || user.username || 'User'} 
+                        className="leaderboard-avatar" 
+                        loading="lazy"
+                      />
+                      <div className="leaderboard-user-info">
+                        <span className="leaderboard-username">
+                          {user.displayName || user.username}
+                        </span>
+                        {!compact && user.displayName && user.username && (
+                          <span className="leaderboard-handle">@{user.username}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="leaderboard-credits">
+                      <FaCoins className="text-yellow-400" />
+                      <span>{user.credits || 0}</span>
                     </div>
                   </div>
-                  <div className="leaderboard-credits">
-                    <FaCoins className="text-yellow-400" />
-                    <span>{user.credits || 0}</span>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
 
-      {/* UserProfileModal for displaying profile on click */}
-      <UserProfileModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        userProfile={selectedUser}
-        position={clickPosition}
-        containerRef={containerRef}
-      />
-    </div>
+      {/* Render UserProfileModal using Portal to avoid containment issues */}
+      {createPortal(
+        <UserProfileModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          userProfile={selectedUser}
+          position={clickPosition}
+          containerRef={containerRef}
+        />,
+        document.body
+      )}
+    </>
   );
 }

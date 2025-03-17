@@ -33,75 +33,36 @@ export function UserProfileModal({ isOpen, onClose, userProfile, position, conta
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
       
-      // Check if we have a container to consider for positioning
-      let containerRect: DOMRect | null = null;
-      if (containerRef?.current) {
-        containerRect = containerRef.current.getBoundingClientRect();
-      }
-      
-      // Step 1: Determine horizontal positioning strategy (right or left of trigger)
+      // Always position relative to the viewport, not the container
+      // Step 1: Determine horizontal positioning strategy
       let x = position.x + margin; // Default: position to the right
       
-      // Consider container boundaries if available
-      const effectiveRightBoundary = containerRect 
-        ? Math.min(containerRect.right - modalWidth - viewportMargin, viewportWidth - modalWidth - viewportMargin)
-        : viewportWidth - modalWidth - viewportMargin;
-      
-      const rightOverflow = x > effectiveRightBoundary;
-      
-      if (rightOverflow) {
-        // Not enough space to the right, try positioning to the left
+      // Check if we're overflowing right edge of viewport
+      if (x + modalWidth + viewportMargin > viewportWidth) {
+        // Not enough space to the right, try to position left
         const leftPosition = position.x - modalWidth - margin;
         
-        // Consider container left boundary if available
-        const effectiveLeftBoundary = containerRect
-          ? Math.max(containerRect.left + viewportMargin, viewportMargin)
-          : viewportMargin;
-        
-        if (leftPosition >= effectiveLeftBoundary) {
+        if (leftPosition >= viewportMargin) {
           // There's enough space to the left
           x = leftPosition;
         } else {
-          // Not enough space on either side, center horizontally relative to trigger
-          // but staying within container/viewport bounds
-          const minX = containerRect ? containerRect.left + viewportMargin : viewportMargin;
-          const maxX = containerRect 
-            ? containerRect.right - modalWidth - viewportMargin 
-            : viewportWidth - modalWidth - viewportMargin;
-          
-          x = Math.max(minX, Math.min(position.x - (modalWidth / 2), maxX));
+          // Center horizontally if there's not enough space on either side
+          x = Math.max(viewportMargin, Math.min(position.x - (modalWidth / 2), viewportWidth - modalWidth - viewportMargin));
         }
       }
       
       // Step 2: Determine vertical positioning strategy
-      // Try to align the top of modal with the trigger element's top position
       let y = position.y;
       
-      // Consider container boundaries for vertical positioning
-      const effectiveBottomBoundary = containerRect
-        ? Math.min(containerRect.bottom - modalHeight - viewportMargin, viewportHeight - modalHeight - viewportMargin)
-        : viewportHeight - modalHeight - viewportMargin;
-      
-      const bottomOverflow = y > effectiveBottomBoundary;
-      
-      if (bottomOverflow) {
-        // Try to position it so the bottom aligns with the container/viewport bottom
-        y = effectiveBottomBoundary;
-        
-        // Consider container top boundary for minimum y
-        const effectiveTopBoundary = containerRect
-          ? Math.max(containerRect.top + viewportMargin, viewportMargin)
-          : viewportMargin;
-        
-        // If this would push it too high, ensure minimum top margin
-        y = Math.max(effectiveTopBoundary, y);
+      // Check if we're overflowing bottom edge of viewport
+      if (y + modalHeight + viewportMargin > viewportHeight) {
+        // Not enough space below, move it up as needed
+        y = Math.max(viewportMargin, viewportHeight - modalHeight - viewportMargin);
       }
       
       setModalPosition({ x, y });
-    } else {
-      setModalPosition(null);
     }
-  }, [isOpen, position, containerRef]);
+  }, [isOpen, position]);
 
   // Handle closing when clicking outside
   useEffect(() => {
@@ -162,7 +123,7 @@ export function UserProfileModal({ isOpen, onClose, userProfile, position, conta
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.2 }}
-            className="absolute pointer-events-auto"
+            className="absolute pointer-events-auto shadow-2xl"
             style={{
               left: modalPosition ? `${modalPosition.x}px` : '50%',
               top: modalPosition ? `${modalPosition.y}px` : '50%',
