@@ -27,7 +27,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         // Allow requests only from trusted origins (change as needed)
         configuration.setAllowedOrigins(List.of("http://localhost:3000"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 
@@ -54,6 +54,8 @@ public class SecurityConfig {
                 // Permit user profile endpoints - updated paths
                 .requestMatchers(HttpMethod.GET, "/users/*/profile", "/users/profiles").permitAll()
                 .requestMatchers(HttpMethod.PUT, "/users/*/profile").authenticated()
+                // Add explicit permission for the credits endpoint
+                .requestMatchers(HttpMethod.PATCH, "/users/*/credits").hasRole("ADMIN")
                 
                 // Role-based security for admin endpoints
                 .requestMatchers("/admin/**").hasRole("ADMIN")
