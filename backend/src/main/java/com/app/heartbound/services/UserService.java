@@ -356,4 +356,29 @@ public class UserService {
         user.setRoles(roles);
         return userRepository.save(user);
     }
+
+    /**
+     * Updates a user's credit balance.
+     * Only accessible to ADMIN users.
+     * 
+     * @param userId the ID of the user to update
+     * @param credits the new credit balance
+     * @return the updated user
+     * @throws ResourceNotFoundException if the user is not found
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    public User updateUserCredits(String userId, Integer credits) {
+        logger.debug("Updating credits for user {} to {}", userId, credits);
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // Ensure credits are not negative
+        if (credits < 0) {
+            credits = 0;
+        }
+        
+        user.setCredits(credits);
+        return userRepository.save(user);
+    }
 }
