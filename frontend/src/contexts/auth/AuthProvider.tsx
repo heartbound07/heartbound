@@ -455,7 +455,8 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         // Create updated user with new avatar
         const updatedUser = {
           ...prev.user!,
-          avatar: updatedProfile.avatar
+          avatar: updatedProfile.avatar,
+          credits: updatedProfile.credits ?? prev.user?.credits
         };
         
         // Persist the updated user data to localStorage
