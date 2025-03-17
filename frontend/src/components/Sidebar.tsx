@@ -310,16 +310,15 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
                 <div>
                   <button
                     onClick={() => {
-                      if (item.hasSubmenu) {
-                        // Always navigate to dashboard when main button is clicked
-                        if (!isMainDashboard) {
-                          navigate('/dashboard')
-                        } else {
-                          // If already on dashboard, also toggle dropdown
-                          setGamesExpanded(!gamesExpanded)
-                        }
+                      if (item.path === "/dashboard" && gamesExpanded) {
+                        // If clicking on Dashboard while games are expanded, just collapse
+                        setGamesExpanded(false);
+                      } else if (item.hasSubmenu) {
+                        // Toggle submenu for items with submenus
+                        setGamesExpanded(!gamesExpanded);
                       } else {
-                        navigate(item.path)
+                        // Navigate to the path for items without submenus
+                        navigate(item.path);
                       }
                     }}
                     className={`w-full flex ${isCollapsed ? 'items-center justify-center' : 'items-center justify-center'} ${isCollapsed ? 'gap-1' : 'gap-2'} px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
