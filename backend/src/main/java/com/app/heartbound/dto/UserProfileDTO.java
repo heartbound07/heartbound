@@ -28,4 +28,7 @@ public class UserProfileDTO {
     
     // Add roles - you may choose to expose this in profiles if needed
     private Set<Role> roles;
+    
+    // User's credit balance
+    private Integer credits;
 }
