@@ -211,4 +211,13 @@ public class UserController {
         User updatedUser = userService.updateUserCredits(userId, credits);
         return ResponseEntity.ok(userService.mapToProfileDTO(updatedUser));
     }
+    
+    /**
+     * Get users for the leaderboard (sorted by credits)
+     */
+    @GetMapping("/leaderboard")
+    public ResponseEntity<List<UserProfileDTO>> getLeaderboardUsers() {
+        List<UserProfileDTO> leaderboardUsers = userService.getLeaderboardUsers();
+        return ResponseEntity.ok(leaderboardUsers);
+    }
 }

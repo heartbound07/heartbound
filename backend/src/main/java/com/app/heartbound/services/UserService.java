@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.Comparator;
 
 @Service
 public class UserService {
@@ -391,5 +392,18 @@ public class UserService {
         
         user.setCredits(credits);
         return userRepository.save(user);
+    }
+
+    /**
+     * Get users for the leaderboard, sorted by credits in descending order
+     */
+    public List<UserProfileDTO> getLeaderboardUsers() {
+        // Fetch users, sort by credits descending, and map to DTOs
+        List<User> users = userRepository.findAll();
+        
+        return users.stream()
+            .sorted(Comparator.comparing(User::getCredits).reversed())
+            .map(this::mapToProfileDTO)
+            .collect(Collectors.toList());
     }
 }
