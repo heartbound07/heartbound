@@ -188,4 +188,27 @@ public class UserController {
         Page<UserProfileDTO> userProfiles = userService.getAllUsers(page, size, search);
         return ResponseEntity.ok(userProfiles);
     }
+    
+    /**
+     * Update a user's credits.
+     * Only accessible to ADMIN users.
+     *
+     * @param userId the ID of the user to update
+     * @param request the request containing the new credits value
+     * @return the updated user profile
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/{userId}/credits")
+    public ResponseEntity<UserProfileDTO> updateUserCredits(
+            @PathVariable String userId,
+            @RequestBody Map<String, Integer> request) {
+        
+        Integer credits = request.get("credits");
+        if (credits == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        User updatedUser = userService.updateUserCredits(userId, credits);
+        return ResponseEntity.ok(userService.mapToProfileDTO(updatedUser));
+    }
 }
