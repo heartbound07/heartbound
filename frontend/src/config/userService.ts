@@ -77,3 +77,13 @@ export const updateUserProfile = async (userId: string, profile: UpdateProfileDT
     throw error;
   }
 };
+
+export const getLeaderboardUsers = async (): Promise<UserProfileDTO[]> => {
+  try {
+    const response = await httpClient.get('/api/users/leaderboard');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching leaderboard data:', error);
+    return [];
+  }
+};
