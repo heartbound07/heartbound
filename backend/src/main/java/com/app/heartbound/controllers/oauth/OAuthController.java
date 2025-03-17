@@ -157,7 +157,7 @@ public class OAuthController {
             return new RedirectView("/login?error=User+information+retrieval+failed");
         }
 
-        // Create or update the user with the Discord info
+        // Find or create user in our database
         User user = userService.createOrUpdateUser(userDTO);
         
         // Determine the appropriate avatar to use
@@ -170,7 +170,7 @@ public class OAuthController {
             userAvatar = user.getAvatar(); // Use the stored avatar
         }
         
-        // Get the user's roles
+        // Fetch roles of the user
         Set<Role> roles = user.getRoles();
         if (roles == null || roles.isEmpty()) {
             roles = Collections.singleton(Role.USER);

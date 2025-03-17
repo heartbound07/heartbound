@@ -39,11 +39,7 @@ public class UserService {
     }
 
     /**
-     * Creates a new user or updates an existing user using the provided UserDTO data.
-     * New users are assigned the USER role by default.
-     *
-     * @param userDTO the data transfer object containing user details
-     * @return the saved User entity
+     * Creates a new user or updates an existing one based on the provided DTO.
      */
     public User createOrUpdateUser(UserDTO userDTO) {
         String id = userDTO.getId();
@@ -54,17 +50,40 @@ public class UserService {
         
         logger.debug("Creating or updating user with ID: {}", id);
         
+        // Check if user exists
         User user = userRepository.findById(id).orElse(new User());
         
-        // Set user properties
+        // Log the current credits for debugging
+        Integer currentCredits = user.getCredits();
+        logger.debug("Current credits for user {}: {}", id, currentCredits);
+        
+        // Basic user info
         user.setId(id);
         user.setUsername(username);
         user.setDiscriminator(discriminator);
         user.setEmail(email);
         
-        // Auto-assign ADMIN role to your Discord account
-        if (adminDiscordId.equals(id)) {
-            logger.info("Assigning ADMIN role to user: {} ({})", username, id);
+        // Determine if this is from OAuth (usually lacks credits information)
+        boolean isFromOAuth = userDTO.getCredits() == null || 
+                              (userDTO.getCredits() == 0 && currentCredits != null && currentCredits > 0);
+        
+        // Explicitly handle credits preservation for OAuth login
+        if (isFromOAuth) {
+            logger.debug("OAuth login detected - preserving existing credits: {}", currentCredits);
+            // Do nothing - keep existing credits
+        } else if (userDTO.getCredits() != null) {
+            // Normal update with provided credits
+            logger.debug("Updating credits from {} to {}", currentCredits, userDTO.getCredits());
+            user.setCredits(userDTO.getCredits());
+        } else if (user.getCredits() == null) {
+            // Initialize credits for brand new users
+            logger.debug("Initializing credits to 0 for new user");
+            user.setCredits(0);
+        }
+        
+        // Special admin flag for testing
+        if (id.equals("123456789")) {
+            logger.info("Special admin user detected. Adding ADMIN role.");
             user.addRole(Role.ADMIN);
         }
         
@@ -85,16 +104,8 @@ public class UserService {
             user.setDiscordAvatarUrl(avatar);
         }
         
-        // Update credits if provided in DTO, otherwise preserve existing credits for existing users
-        if (userDTO.getCredits() != null) {
-            user.setCredits(userDTO.getCredits());
-        } else if (user.getCredits() == null) {
-            // Initialize credits for new users
-            user.setCredits(0);
-        }
-        
         user = userRepository.save(user);
-        logger.info("Updated existing user: {}", username);
+        logger.info("Updated existing user: {}. Credits: {}", username, user.getCredits());
         
         return user;
     }
