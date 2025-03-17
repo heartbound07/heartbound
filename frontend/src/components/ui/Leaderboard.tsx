@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { UserProfileDTO } from '@/config/userService';
 import { FaCoins, FaCrown, FaTrophy, FaMedal } from 'react-icons/fa';
 import '@/assets/leaderboard.css';
+import { UserProfileModal } from '@/components/UserProfileModal';
 
 interface LeaderboardProps {
   users: UserProfileDTO[];
@@ -24,6 +25,12 @@ export function Leaderboard({
   compact = false,
   className = "",
 }: LeaderboardProps) {
+  // State for handling user profile modal
+  const [selectedUser, setSelectedUser] = useState<UserProfileDTO | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [clickPosition, setClickPosition] = useState<{ x: number, y: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // Sort users by credits in descending order
   const sortedUsers = [...users].sort((a, b) => (b.credits || 0) - (a.credits || 0));
   
@@ -56,8 +63,15 @@ export function Leaderboard({
     }
   };
 
+  // Handler for user row clicks
+  const handleUserClick = (user: UserProfileDTO, event: React.MouseEvent) => {
+    setSelectedUser(user);
+    setClickPosition({ x: event.clientX, y: event.clientY });
+    setModalOpen(true);
+  };
+
   return (
-    <div className={`leaderboard-container ${className}`}>
+    <div ref={containerRef} className={`leaderboard-container ${className}`}>
       {showHeader && (
         <div className="leaderboard-header">
           <h2 className="leaderboard-title">{title}</h2>
@@ -97,7 +111,11 @@ export function Leaderboard({
               const { icon, className: rowClass } = getPositionDetails(index);
               
               return (
-                <div key={user.id} className={`leaderboard-row ${rowClass}`}>
+                <div 
+                  key={user.id} 
+                  className={`leaderboard-row ${rowClass} cursor-pointer`}
+                  onClick={(e) => handleUserClick(user, e)}
+                >
                   <div className="leaderboard-rank">
                     {icon || <span>{index + 1}</span>}
                   </div>
@@ -127,6 +145,15 @@ export function Leaderboard({
           )}
         </div>
       )}
+
+      {/* UserProfileModal for displaying profile on click */}
+      <UserProfileModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        userProfile={selectedUser}
+        position={clickPosition}
+        containerRef={containerRef}
+      />
     </div>
   );
 }
