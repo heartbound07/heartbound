@@ -11,6 +11,7 @@ export interface UserProfileDTO {
   bannerColor?: string;
   bannerUrl?: string;
   roles?: Role[];
+  credits?: number;
 }
 
 export interface UpdateProfileDTO {
