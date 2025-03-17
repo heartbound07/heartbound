@@ -192,6 +192,7 @@ public class UserService {
                 .bannerColor(user.getBannerColor())
                 .bannerUrl(user.getBannerUrl())
                 .roles(user.getRoles())
+                .credits(user.getCredits())
                 .build();
     }
 
