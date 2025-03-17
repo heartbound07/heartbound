@@ -198,7 +198,7 @@
   }
 }
 
-/* User credits styling */
+/* User credits styling - updated for smoother transitions */
 .user-credits {
   display: flex;
   align-items: center;
@@ -210,21 +210,31 @@
   font-size: 0.875rem;
   font-weight: 600;
   color: #FFD700; /* Gold color for credits */
-  margin-top: 0.5rem;
   transition: all var(--transition-speed) ease;
+  width: fit-content;
 }
 
 .user-credits-icon {
   color: #FFD700;
+  transition: all var(--transition-speed) ease;
 }
 
+.user-credits-value {
+  transition: opacity var(--transition-speed) ease, 
+              transform var(--transition-speed) ease;
+  white-space: nowrap;
+}
+
+/* Apply the same transition timing to match other sidebar elements */
 .dashboard-nav.collapsed .user-credits {
-  padding: 4px;
-  margin-top: 0.5rem;
-  width: 100%;
-  max-width: 36px;
+  padding: 6px;
+  width: 32px;
+  height: 32px;
+  margin: 0 auto;
+  margin-top: 8px;
 }
 
-.dashboard-nav.collapsed .user-credits-value {
-  font-size: 0.75rem;
+/* Ensure positioning is consistent in both states */
+.dashboard-nav:not(.collapsed) .user-credits {
+  margin: 8px auto 0;
 } 

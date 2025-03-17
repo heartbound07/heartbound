@@ -273,12 +273,14 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
           )}
         </div>
         
-        {/* Add credits display */}
-        <div className="user-credits">
+        {/* Credits display with improved positioning and transitions */}
+        <div className={`user-credits mt-3 mx-auto transition-all duration-200 ${isCollapsed ? 'w-8 h-8 p-1' : 'w-auto'}`}>
           <FaCoins className="user-credits-icon" size={isCollapsed ? 16 : 18} />
-          <span className={`user-credits-value ${isCollapsed ? 'sr-only' : ''}`}>
-            {user?.credits || 0}
-          </span>
+          {!isCollapsed && (
+            <span className="user-credits-value transition-opacity duration-200">
+              {user?.credits || 0}
+            </span>
+          )}
         </div>
       </div>
 
