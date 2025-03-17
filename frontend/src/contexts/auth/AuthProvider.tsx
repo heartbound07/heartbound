@@ -305,22 +305,24 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         
         // Update both the profile AND user state with the fetched data
         setState(prev => {
-          // Create an updated user object with the correct avatar
+          // Create an updated user object with the correct avatar and credits
           const updatedUser = {
             ...prev.user!,
-            avatar: profileData.avatar // Use the avatar from profile
+            avatar: profileData.avatar, // Use the avatar from profile
+            credits: profileData.credits // Update credits from profile
           };
           
-          // Also update localStorage with the correct avatar
+          // Also update localStorage with the correct avatar and credits
           const authData = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || '{}');
           if (authData.user) {
             authData.user.avatar = profileData.avatar;
+            authData.user.credits = profileData.credits;
             localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
           }
           
           return {
             ...prev,
-            user: updatedUser, // Update user with correct avatar
+            user: updatedUser, // Update user with correct avatar and credits
             profile: {
               isComplete: true,
               displayName: profileData.displayName,
