@@ -108,6 +108,7 @@ public class UserController {
                 .id(userId)
                 .username("Unknown User")
                 .avatar("/default-avatar.png")
+                .credits(0)
                 .build();
     }
     
