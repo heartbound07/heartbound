@@ -39,16 +39,17 @@ public class JWTTokenProvider {
     private long refreshTokenExpiryInMs;
 
     /**
-     * Generates a JWT token for the provided user details including roles.
+     * Generates a JWT token for the provided user details including roles and credits.
      *
      * @param userId   the user identifier
      * @param username the username
      * @param email    the email
      * @param avatar   the avatar URL
      * @param roles    the user's roles
+     * @param credits  the user's credits
      * @return the generated JWT token
      */
-    public String generateToken(String userId, String username, String email, String avatar, Set<Role> roles) {
+    public String generateToken(String userId, String username, String email, String avatar, Set<Role> roles, Integer credits) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
         
@@ -66,6 +67,7 @@ public class JWTTokenProvider {
                 .claim("email", email)
                 .claim("avatar", avatar)
                 .claim("roles", roleStrings)
+                .claim("credits", credits != null ? credits : 0)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(SignatureAlgorithm.HS512, jwtSecret)
@@ -73,10 +75,10 @@ public class JWTTokenProvider {
     }
     
     /**
-     * Overloaded method for backward compatibility.
+     * Maintains backward compatibility with older code that doesn't pass credits
      */
-    public String generateToken(String userId, String username, String email, String avatar) {
-        return generateToken(userId, username, email, avatar, Collections.singleton(Role.USER));
+    public String generateToken(String userId, String username, String email, String avatar, Set<Role> roles) {
+        return generateToken(userId, username, email, avatar, roles, 0);
     }
 
     /**
@@ -194,5 +196,21 @@ public class JWTTokenProvider {
 
     public long getTokenExpiryInMs() {
         return jwtExpirationInMs;
+    }
+
+    /**
+     * Extracts the credits from the JWT token.
+     *
+     * @param token the JWT token
+     * @return the credits value
+     */
+    public Integer getCreditsFromJWT(String token) {
+        Claims claims = Jwts.parser()
+                .setSigningKey(jwtSecret)
+                .parseClaimsJws(token)
+                .getBody();
+        
+        Integer credits = claims.get("credits", Integer.class);
+        return credits != null ? credits : 0;
     }
 }

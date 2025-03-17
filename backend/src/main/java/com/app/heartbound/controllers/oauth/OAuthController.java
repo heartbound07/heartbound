@@ -182,7 +182,8 @@ public class OAuthController {
                 userDTO.getUsername(),
                 userDTO.getEmail(),
                 userAvatar,
-                roles
+                roles,
+                user.getCredits()
         );
         String refreshToken = jwtTokenProvider.generateRefreshToken(userDTO.getId(), roles);
 
