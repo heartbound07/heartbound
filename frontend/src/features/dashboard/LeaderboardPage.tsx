@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { UserProfileDTO, getLeaderboardUsers } from '@/config/userService';
 import { Leaderboard } from '@/components/ui/Leaderboard';
 import '@/assets/dashboard.css';
+import '@/assets/styles/fonts.css';
 
 export function LeaderboardPage() {
   const [users, setUsers] = useState<UserProfileDTO[]>([]);
@@ -29,13 +30,10 @@ export function LeaderboardPage() {
   return (
     <div className="leaderboard-page-container">
       <section className="dashboard-section mb-8">
-        <div className="section-header mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-white">
-            Credits Leaderboard
+        <div className="section-header mb-6 text-center">
+          <h1 className="text-2xl md:text-3xl font-bold text-white font-grandstander">
+            Leaderboard
           </h1>
-          <p className="text-white/70 mt-2">
-            See who's leading the way with the most credits in our community.
-          </p>
         </div>
       </section>
 

@@ -190,3 +190,17 @@
     padding: 0 1rem;
   }
 }
+
+/* Add these styles to support the font */
+.font-grandstander {
+  font-family: 'Grandstander', sans-serif;
+}
+
+/* Adjust the title positioning */
+.leaderboard-page-container .section-header {
+  margin-bottom: 2rem;
+}
+
+.leaderboard-page-container .section-header h1 {
+  letter-spacing: 0.5px;
+}
