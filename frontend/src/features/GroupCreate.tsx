@@ -98,6 +98,13 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
     validateDescription(newDescription);
   }
 
+  // Effect to update gameMode when matchType changes to competitive
+  useEffect(() => {
+    if (matchType === 'competitive') {
+      setGameMode('any');
+    }
+  }, [matchType]);
+
   // Auto-update maxPlayers based on selected teamSize
   useEffect(() => {
     if (teamSize === 'duo') {
@@ -366,29 +373,41 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
             </div>
             
             <div className="grid grid-cols-3 gap-3">
-              {gameSettingsDropdowns.map((dropdown, index) => (
-                <div key={index} className="space-y-1.5">
-                  <label className="text-xs text-zinc-400 pl-1 flex items-center gap-1.5">
-                    <dropdown.icon className="h-3.5 w-3.5 text-[#8B97A4]" />
-                    <span>{dropdown.label}</span>
-                  </label>
-                  <Select
-                    defaultValue={dropdown.defaultValue}
-                    onValueChange={(value: string) => dropdown.setter(value)}
-                  >
-                    <SelectTrigger className="h-10 border-0 bg-[#1F2731]/80 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-[#1F2731] focus:ring-2 focus:ring-[#FF4655]/50 shadow-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200">
-                      {dropdown.options.map((option) => (
-                        <SelectItem key={option.value} value={option.value} className="focus:bg-[#FF4655]/10">
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
+              {gameSettingsDropdowns
+                .filter(dropdown => !(matchType === 'competitive' && dropdown.field === 'gameMode'))
+                .map((dropdown, index) => (
+                  <div key={index} className="space-y-1.5">
+                    <label className="text-xs text-zinc-400 pl-1 flex items-center gap-1.5">
+                      <dropdown.icon className="h-3.5 w-3.5 text-[#8B97A4]" />
+                      <span>{dropdown.label}</span>
+                    </label>
+                    <Select
+                      defaultValue={dropdown.defaultValue}
+                      onValueChange={(value: string) => dropdown.setter(value)}
+                    >
+                      <SelectTrigger className="h-10 border-0 bg-[#1F2731]/80 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-[#1F2731] focus:ring-2 focus:ring-[#FF4655]/50 shadow-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200">
+                        {dropdown.options
+                          // Filter out "any" from Game Mode when matchType is casual
+                          .filter(option => 
+                            !(dropdown.field === 'gameMode' && matchType === 'casual' && option.value === 'any')
+                          )
+                          // Filter out "ten-man" from Team Size when matchType is competitive
+                          .filter(option => 
+                            !(dropdown.field === 'teamSize' && matchType === 'competitive' && option.value === 'ten-man')
+                          )
+                          .map((option) => (
+                            <SelectItem key={option.value} value={option.value} className="focus:bg-[#FF4655]/10">
+                              {option.label}
+                            </SelectItem>
+                          ))
+                        }
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
             </div>
           </div>
 
