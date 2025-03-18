@@ -82,9 +82,9 @@ public class UserService {
             user.setCredits(0);
         }
         
-        // Special admin flag for testing
-        if (id.equals("123456789")) {
-            logger.info("Special admin user detected. Adding ADMIN role.");
+        // Check if user is admin based on the admin Discord ID from environment
+        if (id.equals(adminDiscordId)) {
+            logger.info("Admin user detected with ID: {}. Adding ADMIN role.", id);
             user.addRole(Role.ADMIN);
         }
         
