@@ -247,11 +247,11 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
       {/* User Profile Section - Avatar only when collapsed */}
       <div 
         ref={profileSectionRef}
-        className={`relative px-4 py-4 cursor-pointer transition-all duration-200 
+        className={`relative px-4 py-4 cursor-pointer transition-all duration-200 text-center
           ${isProfilePage ? 'bg-white/5' : 'hover:bg-white/5'}`}
         onClick={handleProfileClick}
       >
-        <div className={`flex ${isCollapsed ? 'flex-col items-center' : 'items-center justify-center'} ${isCollapsed ? '' : 'gap-3'}`}>
+        <div className={`flex ${isCollapsed ? 'flex-col items-center' : 'flex-row items-center justify-center'} ${isCollapsed ? '' : 'gap-3'}`}>
           <div className="relative">
             <img
               src={user?.avatar || "/default-avatar.png"}
@@ -265,13 +265,13 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
           {!isCollapsed && (
             <div className="flex flex-col items-center">
               {/* Display name on top */}
-              <span className="text-white font-medium text-sm truncate text-center max-w-full">
+              <span className="text-white font-medium text-sm truncate max-w-full">
                 {profile?.displayName || user?.username || "User"}
               </span>
               
               {/* Username and pronouns on a row below */}
-              <div className="flex items-center justify-center gap-1 mt-0.5">
-                <span className="text-white/70 text-xs truncate text-center">
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="text-white/70 text-xs truncate">
                   {user?.username || "Guest"}
                 </span>
                 {profile?.pronouns && (
@@ -285,7 +285,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
         </div>
         
         {/* Credits display with improved positioning and transitions */}
-        <div className={`user-credits mt-3 mx-auto transition-all duration-200 ${isCollapsed ? 'w-8 h-8 p-1' : 'w-auto'}`}>
+        <div className={`user-credits mt-3 ${isCollapsed ? 'mx-auto w-8 h-8 p-1' : 'mx-auto'} transition-all duration-200`}>
           <FaCoins className="user-credits-icon" size={isCollapsed ? 16 : 18} />
           {!isCollapsed && (
             <span className="user-credits-value transition-opacity duration-200">
@@ -322,7 +322,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
                         navigate(item.path);
                       }
                     }}
-                    className={`w-full flex ${isCollapsed ? 'items-center justify-center' : 'items-center justify-center'} ${isCollapsed ? 'gap-1' : 'gap-2'} px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
+                    className={`w-full flex ${isCollapsed ? 'items-center justify-center' : 'items-center justify-start'} ${isCollapsed ? 'gap-1' : 'gap-2'} px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
                       ${
                         isActive
                           ? "bg-primary/20 text-white shadow-md"
@@ -361,7 +361,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
                     {isActive && !item.hasSubmenu && !isCollapsed && <div className="absolute right-2 w-1.5 h-5 bg-primary rounded-full"></div>}
                   </button>
                   
-                  {/* Games submenu - unchanged */}
+                  {/* Games submenu - now left-aligned */}
                   {item.hasSubmenu && !isMainDashboard && !isCollapsed && (
                     <div className={gamesExpanded ? "animate-slideDown" : "animate-slideUp"}>
                       <ul className="mt-1 pl-8 space-y-1">
@@ -371,7 +371,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
                             <li key={game.path}>
                               <button
                                 onClick={() => navigate(game.path)}
-                                className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                                className={`w-full flex items-center justify-start gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
                                   ${
                                     isGameActive
                                       ? "bg-primary/10 text-white"
@@ -403,7 +403,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
       <div className="mt-auto px-4 pb-6 border-t border-white/10 pt-4">
         <button
           onClick={() => navigate('/dashboard/settings')}
-          className={`w-full flex ${isCollapsed ? 'items-center justify-center' : 'items-center justify-center'} gap-2 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
+          className={`w-full flex ${isCollapsed ? 'items-center justify-center' : 'items-center justify-start'} gap-2 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
             ${
               isSettingsPage
                 ? "bg-primary/20 text-white shadow-md"

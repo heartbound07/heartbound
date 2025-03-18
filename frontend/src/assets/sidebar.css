@@ -121,7 +121,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-align: center;
+  text-align: left;
 }
 
 /* Logout button */
@@ -198,7 +198,7 @@
   }
 }
 
-/* User credits styling - updated for transparency */
+/* User credits styling - updated for center alignment in profile section */
 .user-credits {
   display: flex;
   align-items: center;
