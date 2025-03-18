@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "@/contexts/auth"
 import "@/assets/sidebar.css"
 import "@/assets/styles/fonts.css"
+import "@/assets/animations.css"
 import { MdDashboard, MdAdminPanelSettings } from "react-icons/md"
 import { IoSettingsSharp } from "react-icons/io5"
 import { FaCoins, FaTrophy } from "react-icons/fa"
@@ -322,7 +323,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
                         navigate(item.path);
                       }
                     }}
-                    className={`w-full flex ${isCollapsed ? 'items-center justify-center' : 'items-center justify-start'} ${isCollapsed ? 'gap-1' : 'gap-2'} px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
+                    className={`w-full flex ${isCollapsed ? 'items-center justify-center' : 'items-center justify-start'} ${isCollapsed ? 'gap-1' : 'gap-2'} px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group relative
                       ${
                         isActive
                           ? "bg-primary/20 text-white shadow-md"
@@ -347,7 +348,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
                           e.stopPropagation(); // Prevent parent button click
                           setGamesExpanded(!gamesExpanded);
                         }}
-                        className="absolute right-2 p-2 rounded-md hover:bg-white/10 cursor-pointer"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-md cursor-pointer"
                       >
                         <ChevronRight 
                           size={16} 
@@ -358,7 +359,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
                       </div>
                     )}
                     
-                    {isActive && !item.hasSubmenu && !isCollapsed && <div className="absolute right-2 w-1.5 h-5 bg-primary rounded-full"></div>}
+                    {isActive && !item.hasSubmenu && !isCollapsed && <div className="absolute right-2 top-1/2 transform -translate-y-1/2 w-1.5 h-5 bg-primary rounded-full"></div>}
                   </button>
                   
                   {/* Games submenu - now left-aligned */}
