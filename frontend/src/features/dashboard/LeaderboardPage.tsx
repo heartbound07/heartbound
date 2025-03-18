@@ -45,6 +45,7 @@ export function LeaderboardPage() {
             error={error}
             showHeader={false}
             className="shadow-xl"
+            limit={100}
           />
         </div>
       </section>

@@ -79,6 +79,17 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  .leaderboard-rank-number {
+    font-size: 0.875rem;
+    margin-right: 0.25rem;
+  }
+  
+  .leaderboard-rank-icon {
+    display: flex;
+    align-items: center;
   }
   
   .leaderboard-user {

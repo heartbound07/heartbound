@@ -35,8 +35,10 @@ export function Leaderboard({
   // Sort users by credits in descending order
   const sortedUsers = [...users].sort((a, b) => (b.credits || 0) - (a.credits || 0));
   
-  // Apply limit if specified
-  const displayUsers = limit ? sortedUsers.slice(0, limit) : sortedUsers;
+  // Apply limit if specified, with a hard maximum of 500 entries
+  const MAX_ENTRIES = 500;
+  const effectiveLimit = limit ? Math.min(limit, MAX_ENTRIES) : MAX_ENTRIES;
+  const displayUsers = sortedUsers.slice(0, effectiveLimit);
 
   // Get position-based styling and icon
   const getPositionDetails = (index: number) => {
@@ -119,7 +121,14 @@ export function Leaderboard({
                     onClick={(e) => handleUserClick(user, e)}
                   >
                     <div className="leaderboard-rank">
-                      {icon || <span>{index + 1}</span>}
+                      {icon ? (
+                        <>
+                          <span className="leaderboard-rank-number">{index + 1}</span>
+                          <span className="leaderboard-rank-icon">{icon}</span>
+                        </>
+                      ) : (
+                        <span>{index + 1}</span>
+                      )}
                     </div>
                     <div className="leaderboard-user">
                       <img 
