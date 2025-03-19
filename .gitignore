@@ -2,6 +2,7 @@
 .idea/
 .vscode/
 *.iml
+.cursor
 
 # Dependencies
 **/node_modules/

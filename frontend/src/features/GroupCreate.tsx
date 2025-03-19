@@ -111,6 +111,8 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
       setMaxPlayers(2)
     } else if (teamSize === 'trio') {
       setMaxPlayers(3)
+    } else if (teamSize === '4-stack') {
+      setMaxPlayers(4)
     } else if (teamSize === 'five-stack') {
       setMaxPlayers(5)
     } else if (teamSize === 'ten-man') {
@@ -154,6 +156,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
       options: [
         { value: 'duo', label: 'Duo' },
         { value: 'trio', label: 'Trio' },
+        { value: '4-stack', label: '4-Stack' },
         { value: 'five-stack', label: '5-Stack' },
         { value: 'ten-man', label: '10-man' }
       ],
@@ -394,9 +397,10 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
                           .filter(option => 
                             !(dropdown.field === 'gameMode' && matchType === 'casual' && option.value === 'any')
                           )
-                          // Filter out "ten-man" from Team Size when matchType is competitive
+                          // Filter out both "ten-man" and "4-stack" from Team Size when matchType is competitive
                           .filter(option => 
-                            !(dropdown.field === 'teamSize' && matchType === 'competitive' && option.value === 'ten-man')
+                            !(dropdown.field === 'teamSize' && matchType === 'competitive' && 
+                              (option.value === 'ten-man' || option.value === '4-stack'))
                           )
                           .map((option) => (
                             <SelectItem key={option.value} value={option.value} className="focus:bg-[#FF4655]/10">

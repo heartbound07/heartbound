@@ -5,12 +5,14 @@ WORKDIR /app
 # Yarn is already installed in this Node image, so we don't need to install it again.
 # RUN npm install -g yarn
 
-# Copy package files first; since there's no yarn.lock, Yarn will generate one
+# Copy package files first
 COPY package.json ./
+# If you have a yarn.lock, copy it too
+# COPY yarn.lock ./
 RUN yarn install
 
-# Copy the rest of the source code
-COPY . .
+# No need for COPY . . here since we'll mount the directory at runtime
+# The COPY . . is causing conflicts with the volume mounts
 
 # Expose port 3000
 EXPOSE 3000
