@@ -120,6 +120,15 @@ public class LFGParty {
     @Column(name = "invited_user_id")
     private Set<String> invitedUsers = new HashSet<>();
 
+    // Collection of join requests
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "lfg_party_join_requests",
+        joinColumns = @JoinColumn(name = "party_id")
+    )
+    @Column(name = "requesting_user_id")
+    private Set<String> joinRequests = new HashSet<>();
+
     /**
      * PartyRequirements
      *
