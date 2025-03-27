@@ -37,6 +37,9 @@ public class LFGPartyResponseDTO {
     private String voicePreference;
     private String ageRestriction;
 
+    // Set of invited user IDs
+    private Set<String> invitedUsers;
+
     /**
      * PartyRequirementsDTO
      *

@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -232,6 +233,12 @@ public class LFGPartyService {
             throw new IllegalStateException("Party is not open for joining");
         }
 
+        // Check if the party is invite-only and if the user is not invited
+        if (party.getRequirements().isInviteOnly() && 
+            (party.getInvitedUsers() == null || !party.getInvitedUsers().contains(userId))) {
+            throw new UnauthorizedOperationException("This party is invite-only. You need an invitation to join.");
+        }
+
         // Additional validations
         if (party.getUserId().equals(userId)) {
             throw new IllegalArgumentException("Party owner cannot join their own party");
@@ -243,12 +250,18 @@ public class LFGPartyService {
             throw new IllegalStateException("Party is full");
         }
 
+        // If the user was invited, remove them from the invited list
+        if (party.getInvitedUsers() != null && party.getInvitedUsers().contains(userId)) {
+            party.getInvitedUsers().remove(userId);
+        }
+
         party.getParticipants().add(userId);
 
         // If the party reaches maximum capacity, mark it as closed.
         if (party.getParticipants().size() >= party.getMaxPlayers()) {
             party.setStatus("closed");
         }
+        
         lfgPartyRepository.save(party);
         return "Join request successful. You have joined the party.";
     }
@@ -324,6 +337,113 @@ public class LFGPartyService {
         return "User has been kicked from the party.";
     }
 
+    /**
+     * Invites a user to join a party. Only the party leader can do this.
+     *
+     * @param id the UUID of the party
+     * @param userId the ID of the user to invite
+     * @return success message if invitation succeeds
+     */
+    public String inviteUserToParty(UUID id, String userId) {
+        String currentUserId = getCurrentUserId();
+        LFGParty party = lfgPartyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
+        
+        // Check if current user is the party leader or has admin/moderator role
+        boolean isPartyLeader = party.getUserId().equals(currentUserId);
+        boolean hasAdminRole = hasRole("ADMIN") || hasRole("MODERATOR");
+        
+        if (!isPartyLeader && !hasAdminRole) {
+            throw new UnauthorizedOperationException("Only the party leader or administrators can invite users.");
+        }
+        
+        // Can't invite the party leader
+        if (party.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("Party leader cannot be invited to their own party.");
+        }
+        
+        // Check if user is already a participant
+        if (party.getParticipants().contains(userId)) {
+            throw new IllegalArgumentException("User is already in the party.");
+        }
+        
+        // Check if user is already invited
+        if (party.getInvitedUsers() != null && party.getInvitedUsers().contains(userId)) {
+            throw new IllegalArgumentException("User has already been invited to the party.");
+        }
+        
+        // Initialize invitedUsers if null
+        if (party.getInvitedUsers() == null) {
+            party.setInvitedUsers(new HashSet<>());
+        }
+        
+        // Add user to invitedUsers
+        party.getInvitedUsers().add(userId);
+        lfgPartyRepository.save(party);
+        
+        return "User has been invited to the party.";
+    }
+
+    /**
+     * Allows a user to accept an invitation to join a party.
+     *
+     * @param id the UUID of the party
+     * @return success message if acceptance succeeds
+     */
+    public String acceptInvitation(UUID id) {
+        String userId = getCurrentUserId();
+        LFGParty party = lfgPartyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
+        
+        // Check if the party is invite-only
+        if (party.getRequirements().isInviteOnly()) {
+            // Check if user is invited
+            if (party.getInvitedUsers() == null || !party.getInvitedUsers().contains(userId)) {
+                throw new UnauthorizedOperationException("You haven't been invited to this party.");
+            }
+        }
+        
+        // Additional validations
+        if (party.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("Party owner cannot join their own party");
+        }
+        if (party.getParticipants().contains(userId)) {
+            throw new IllegalArgumentException("User has already joined the party");
+        }
+        if (party.getParticipants().size() >= party.getMaxPlayers()) {
+            throw new IllegalStateException("Party is full");
+        }
+        
+        // Remove user from invitedUsers and add to participants
+        if (party.getInvitedUsers() != null) {
+            party.getInvitedUsers().remove(userId);
+        }
+        
+        party.getParticipants().add(userId);
+        
+        // If the party reaches maximum capacity, mark it as closed
+        if (party.getParticipants().size() >= party.getMaxPlayers()) {
+            party.setStatus("closed");
+        }
+        
+        lfgPartyRepository.save(party);
+        return "You have accepted the invitation and joined the party.";
+    }
+
+    /**
+     * Gets all users invited to a party.
+     *
+     * @param id the UUID of the party
+     * @return set of invited user IDs
+     */
+    public Set<String> getInvitedUsers(UUID id) {
+        LFGParty party = lfgPartyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
+        
+        // Return empty set if invitedUsers is null
+        return party.getInvitedUsers() != null ? party.getInvitedUsers() : new HashSet<>();
+    }
+
     // Helper method to check if current user has a role
     private boolean hasRole(String role) {
         // This would be implemented based on your security context architecture
@@ -363,6 +483,7 @@ public class LFGPartyService {
                 .teamSize(party.getTeamSize())
                 .voicePreference(party.getVoicePreference())
                 .ageRestriction(party.getAgeRestriction())
+                .invitedUsers(party.getInvitedUsers())
                 .build();
     }
 }
