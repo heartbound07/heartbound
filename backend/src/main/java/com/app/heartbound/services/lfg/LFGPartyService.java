@@ -482,6 +482,77 @@ public class LFGPartyService {
         return "Join request sent to party leader";
     }
 
+    /**
+     * Accepts a user's request to join a party. Only the party leader can do this.
+     *
+     * @param id the UUID of the party
+     * @param userId the ID of the user whose request is being accepted
+     * @return success message if acceptance succeeds
+     */
+    public String acceptJoinRequest(UUID id, String userId) {
+        String currentUserId = getCurrentUserId();
+        LFGParty party = lfgPartyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
+        
+        // Check if current user is the party leader
+        if (!party.getUserId().equals(currentUserId)) {
+            throw new UnauthorizedOperationException("Only the party leader can accept join requests");
+        }
+        
+        // Check if the user has actually requested to join
+        if (party.getJoinRequests() == null || !party.getJoinRequests().contains(userId)) {
+            throw new IllegalArgumentException("User has not requested to join this party");
+        }
+        
+        // Check if the party is already full
+        if (party.getParticipants().size() >= party.getMaxPlayers()) {
+            throw new IllegalStateException("Cannot accept join request - party is already full");
+        }
+        
+        // Remove user from joinRequests
+        party.getJoinRequests().remove(userId);
+        
+        // Add user to participants
+        party.getParticipants().add(userId);
+        
+        // If the party reaches maximum capacity, mark it as closed
+        if (party.getParticipants().size() >= party.getMaxPlayers()) {
+            party.setStatus("closed");
+        }
+        
+        lfgPartyRepository.save(party);
+        return "Join request accepted. User has joined the party.";
+    }
+
+    /**
+     * Rejects a user's request to join a party. Only the party leader can do this.
+     *
+     * @param id the UUID of the party
+     * @param userId the ID of the user whose request is being rejected
+     * @return success message if rejection succeeds
+     */
+    public String rejectJoinRequest(UUID id, String userId) {
+        String currentUserId = getCurrentUserId();
+        LFGParty party = lfgPartyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
+        
+        // Check if current user is the party leader
+        if (!party.getUserId().equals(currentUserId)) {
+            throw new UnauthorizedOperationException("Only the party leader can reject join requests");
+        }
+        
+        // Check if the user has actually requested to join
+        if (party.getJoinRequests() == null || !party.getJoinRequests().contains(userId)) {
+            throw new IllegalArgumentException("User has not requested to join this party");
+        }
+        
+        // Remove user from joinRequests
+        party.getJoinRequests().remove(userId);
+        
+        lfgPartyRepository.save(party);
+        return "Join request rejected.";
+    }
+
     // Helper method to check if current user has a role
     private boolean hasRole(String role) {
         // This would be implemented based on your security context architecture

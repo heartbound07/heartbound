@@ -213,13 +213,21 @@ public class LFGPartyController {
     @PostMapping("/{id}/request-join")
     public String requestToJoinParty(@PathVariable UUID id) {
         String result = partyService.requestToJoinParty(id);
-        LFGPartyResponseDTO updatedParty = partyService.getPartyById(id);
-        LFGPartyEventDTO event = LFGPartyEventDTO.builder()
-              .eventType("PARTY_JOIN_REQUESTED")
-              .party(updatedParty)
-              .message("Party update: User has requested to join party " + id)
-              .build();
-        messagingTemplate.convertAndSend("/topic/party", event);
+        
+        // Get the updated party details - wrap this in a try-catch to prevent 500 error
+        try {
+            LFGPartyResponseDTO updatedParty = partyService.getPartyById(id);
+            LFGPartyEventDTO event = LFGPartyEventDTO.builder()
+                   .eventType("PARTY_JOIN_REQUESTED")
+                   .party(updatedParty)
+                   .message("Party update: User has requested to join party " + id)
+                   .build();
+            messagingTemplate.convertAndSend("/topic/party", event);
+        } catch (Exception e) {
+            // Log the error but don't fail the entire request
+            System.err.println("Error sending party join request event: " + e.getMessage());
+        }
+        
         return result;
     }
 }
