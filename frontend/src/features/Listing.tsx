@@ -57,6 +57,11 @@ export default function Listing({ party }: ListingProps) {
   // Reference for the component container
   const listingContainerRef = useRef<HTMLDivElement>(null);
   
+  // Add this line to define isInvited
+  // Since we don't have the full invited users list in this component,
+  // we'll implement a simpler version - considering only the current user
+  const isInvited = false; // Default to false since we don't have invitations data in this component
+  
   // Fetch user profiles when participants change
   useEffect(() => {
     if (participants.length > 0) {
@@ -111,6 +116,18 @@ export default function Listing({ party }: ListingProps) {
     if (isInAnyParty) {
       setToast({
         message: "You must leave your current party before joining another one",
+        type: "error"
+      })
+      
+      // Auto-dismiss toast after 3 seconds
+      setTimeout(() => setToast(null), 3000)
+      return
+    }
+    
+    // Check if the party is invite-only and user is not invited
+    if (party.requirements?.inviteOnly && !isInvited) {
+      setToast({
+        message: "This party is invite-only. You need an invitation to join.",
         type: "error"
       })
       

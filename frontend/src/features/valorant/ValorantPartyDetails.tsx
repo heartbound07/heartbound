@@ -294,6 +294,11 @@ export default function ValorantPartyDetails() {
 
   // Inside the component, add a new handler for joining the party (modified to use custom toast)
   const handleJoinParty = () => {
+    if (party?.requirements?.inviteOnly && !isInvited) {
+      showToast("This party is invite-only. You need an invitation to join.", "error");
+      return;
+    }
+    
     setIsJoining(true);
     joinParty(party.id)
       .then(() => {
