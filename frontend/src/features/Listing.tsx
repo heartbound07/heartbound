@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
-import { Users, GamepadIcon, Mic, Calendar, Trophy, Plus, Award, Globe, ArrowRight, X } from "lucide-react"
+import { Users, GamepadIcon, Mic, Calendar, Trophy, Plus, Award, Globe, ArrowRight, X, Lock } from "lucide-react"
 import { joinParty } from "@/contexts/valorant/partyService"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate } from "react-router-dom"
@@ -189,15 +189,15 @@ export default function Listing({ party }: ListingProps) {
               </TooltipContent>
             </Tooltip>
 
-            {/* Voice Preference */}
+            {/* Invite Only */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-pointer">
-                  <Mic className="h-4 w-4 text-[#8B97A4]" />
+                  <Lock className="h-4 w-4 text-[#8B97A4]" />
                 </div>
               </TooltipTrigger>
               <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
-                <p className="text-xs font-medium">{party.voicePreference || "Discord"}</p>
+                <p className="text-xs font-medium">{party?.requirements?.inviteOnly ? "Invite Only" : "Open to Join"}</p>
               </TooltipContent>
             </Tooltip>
 

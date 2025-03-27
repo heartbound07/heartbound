@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Users, LogOut, GamepadIcon, Trophy, Globe, Mic, Award, Calendar, Trash2, UserPlus, Loader2, X, Link2 } from "lucide-react"
+import { Users, LogOut, GamepadIcon, Trophy, Globe, Mic, Award, Calendar, Trash2, UserPlus, Loader2, X, Link2, Lock } from "lucide-react"
 import { Button } from "@/components/ui/valorant/buttonparty"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { useAuth } from "@/contexts/auth/useAuth"
@@ -493,9 +493,9 @@ export default function ValorantPartyDetails() {
                         value={formatDisplayText(party?.requirements?.region)} 
                       />
                       <IconBadge 
-                        icon={<Mic className="h-5 w-5" />} 
-                        label="Voice Chat" 
-                        value={formatBooleanText(party?.requirements?.voiceChat)} 
+                        icon={<Lock className="h-5 w-5" />} 
+                        label="Access" 
+                        value={party?.requirements?.inviteOnly ? "Invite Only" : "Open"} 
                       />
                       <IconBadge 
                         icon={<Calendar className="h-5 w-5" />} 
