@@ -6,7 +6,7 @@ export type Region = 'NA_EAST' | 'NA_WEST' | 'NA_CENTRAL' | 'LATAM' | 'BR' | 'EU
 export interface PartyRequirements {
   rank: Rank;
   region: Region;
-  voiceChat: boolean;
+  inviteOnly: boolean;
 }
 
 export interface CreatePartyRequestDTO {
