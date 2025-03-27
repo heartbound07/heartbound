@@ -118,7 +118,7 @@ public class LFGParty {
      * Contains:
      * - rank: Minimum required rank.
      * - region: Preferred region.
-     * - voiceChat: Flag indicating if voice chat is required.
+     * - inviteOnly: Flag indicating if the party is invite only.
      */
     @Data
     @Builder
@@ -134,7 +134,7 @@ public class LFGParty {
         @Column(name = "req_region", nullable = false)
         private Region region;
 
-        @Column(name = "req_voice_chat", nullable = false)
-        private boolean voiceChat;
+        @Column(name = "req_invite_only", nullable = false)
+        private boolean inviteOnly;
     }
 }

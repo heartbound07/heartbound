@@ -77,7 +77,7 @@ public class LFGPartyService {
         LFGParty.PartyRequirements req = new LFGParty.PartyRequirements(
                 dto.getRequirements().getRank(),
                 dto.getRequirements().getRegion(),
-                dto.getRequirements().getVoiceChat()
+                dto.getRequirements().getInviteOnly()
         );
         party.setRequirements(req);
         party.setExpiresIn(dto.getExpiresIn());
@@ -160,8 +160,8 @@ public class LFGPartyService {
             if (dto.getRequirements().getRegion() != null) {
                 req.setRegion(dto.getRequirements().getRegion());
             }
-            if (dto.getRequirements().getVoiceChat() != null) {
-                req.setVoiceChat(dto.getRequirements().getVoiceChat());
+            if (dto.getRequirements().getInviteOnly() != null) {
+                req.setInviteOnly(dto.getRequirements().getInviteOnly());
             }
             party.setRequirements(req);
         }
@@ -350,7 +350,7 @@ public class LFGPartyService {
                 .requirements(LFGPartyResponseDTO.PartyRequirementsDTO.builder()
                         .rank(party.getRequirements().getRank())
                         .region(party.getRequirements().getRegion())
-                        .voiceChat(party.getRequirements().isVoiceChat())
+                        .inviteOnly(party.getRequirements().isInviteOnly())
                         .build())
                 .expiresIn(party.getExpiresIn())
                 .maxPlayers(party.getMaxPlayers())
