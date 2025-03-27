@@ -25,4 +25,7 @@ public class LFGPartyEventDTO {
     
     // Optional human-readable message to provide additional context or notifications.
     private String message;
+    
+    // Add this field
+    private String targetUserId;
 }

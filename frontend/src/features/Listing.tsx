@@ -49,7 +49,7 @@ export default function Listing({ party }: ListingProps) {
   const [isJoining, setIsJoining] = useState(false)
   const { user } = useAuth()
   const navigate = useNavigate()
-  const { userActiveParty } = usePartyUpdates()
+  const { update, clearUpdate, userActiveParty } = usePartyUpdates()
   
   // Placeholder avatar for users without an avatar
   const placeholderAvatar = "/placeholder.svg"
@@ -93,6 +93,74 @@ export default function Listing({ party }: ListingProps) {
     }
   }, [participants]);
   
+  // Check if the current user is already a participant in this party
+  const isParticipant = user?.id && party.participants?.includes(user.id)
+  
+  // Check if the user is already in any party
+  const isInAnyParty = !!userActiveParty
+  
+  // Check if user is the owner of this party
+  const isOwner = user?.id === party.userId
+  
+  // Add state for toast message
+  const [toast, setToast] = useState<{message: string, type: 'error' | 'success' | 'info'} | null>(null)
+  
+  // Listen for updates relevant to this specific party
+  useEffect(() => {
+    if (update && update.party && update.party.id === party.id) {
+      // If this update is for our party, update our local state
+      if (update.eventType === 'PARTY_JOIN_REQUEST' || update.eventType === 'PARTY_JOIN_REQUESTED') {
+        if (user?.id === update.party.userId) {
+          // If we're the party owner, update joinRequests
+          setHasRequestedToJoin(false); // Reset for party owner's view
+        } else if (user?.id === update.targetUserId) {
+          // If we're the requesting user, update our request status
+          setHasRequestedToJoin(true);
+          setIsJoining(false);
+        }
+      }
+      else if (update.eventType === 'PARTY_JOIN_REQUEST_ACCEPTED') {
+        // Update for both the party owner and the requester
+        if (user?.id === update.targetUserId) {
+          // We were accepted into the party
+          setHasRequestedToJoin(false);
+          setIsJoining(false);
+          
+          // Show success toast
+          setToast({
+            message: "Your request to join the party was accepted!",
+            type: "success"
+          });
+          setTimeout(() => setToast(null), 3000);
+        } else if (isOwner) {
+          // If we're the owner, reflect that this user is now accepted
+          setHasRequestedToJoin(false);
+        }
+      }
+      else if (update.eventType === 'PARTY_JOIN_REQUEST_REJECTED') {
+        // For both the party owner and the requester
+        if (user?.id === update.targetUserId) {
+          // We were rejected from the party
+          setHasRequestedToJoin(false);
+          setIsJoining(false);
+          
+          // Show rejection toast
+          setToast({
+            message: "Your request to join the party was rejected",
+            type: "error"
+          });
+          setTimeout(() => setToast(null), 3000);
+        } else if (isOwner) {
+          // If we're the owner, reflect that this user's request was rejected
+          setHasRequestedToJoin(false);
+        }
+      }
+      
+      // Clear the update after handling
+      clearUpdate();
+    }
+  }, [update, party.id, user?.id, clearUpdate, isOwner]);
+  
   // Create slots array with profile data
   const slots = Array.from({ length: party.maxPlayers }, (_, i) => {
     const isFilled = i < participants.length;
@@ -108,21 +176,9 @@ export default function Listing({ party }: ListingProps) {
     }
   });
 
-  // Check if the current user is already a participant in this party
-  const isParticipant = user?.id && party.participants?.includes(user.id)
-  
-  // Check if the user is already in any party
-  const isInAnyParty = !!userActiveParty
-  
-  // Check if user is the owner of this party
-  const isOwner = user?.id === party.userId
-  
   // User can join if: they're not already in any party AND they're not already in this specific party
   // AND they haven't already requested to join
   const canJoin = !isInAnyParty && !isParticipant && !isOwner && !hasRequestedToJoin
-
-  // Add state for toast message
-  const [toast, setToast] = useState<{message: string, type: 'error' | 'success' | 'info'} | null>(null)
 
   // Handle the Join Game Button click for non-owners
   const handleJoinGame = async () => {
@@ -145,11 +201,8 @@ export default function Listing({ party }: ListingProps) {
       if (isInviteOnly) {
         await requestToJoinParty(party.id);
         setHasRequestedToJoin(true);
-        setToast({
-          message: "Request sent! The party leader will be notified of your interest.",
-          type: "success"
-        });
-        // Navigate to party details page after requesting to join
+        
+        // Redirect to the party page after sending join request
         navigate(`/dashboard/valorant/${party.id}`);
       } else {
         // For open parties, join directly as before
@@ -158,13 +211,12 @@ export default function Listing({ party }: ListingProps) {
         navigate(`/dashboard/valorant/${party.id}`);
       }
     } catch (error: any) {
+      // Handle any errors that occur during the join process
+      setIsJoining(false);
       setToast({
-        message: error.message || "Failed to join party",
+        message: error.response?.data?.message || "Failed to join party. Please try again.",
         type: "error"
       });
-    } finally {
-      setIsJoining(false);
-      // Auto-dismiss toast after 3 seconds
       setTimeout(() => setToast(null), 3000);
     }
   };
@@ -201,6 +253,20 @@ export default function Listing({ party }: ListingProps) {
         </>
       );
     }
+  };
+
+  // Add this near your render logic to determine button state and text
+  const getJoinButtonText = () => {
+    if (isJoining) return "Processing...";
+    if (hasRequestedToJoin) return "Request Pending";
+    if (isParticipant) return "Already Joined";
+    if (isOwner) return "Your Party";
+    if (isInviteOnly) return "Request to Join";
+    return "Join Party";
+  };
+
+  const getJoinButtonDisabled = () => {
+    return isJoining || hasRequestedToJoin || isParticipant || isOwner || !canJoin;
   };
 
   return (
@@ -366,19 +432,17 @@ export default function Listing({ party }: ListingProps) {
           <div className="flex-shrink-0">
             <Button
               onClick={isOwner || isParticipant ? handleViewParty : handleJoinGame}
-              disabled={isJoining || (!isOwner && !isParticipant && !canJoin)}
+              disabled={getJoinButtonDisabled()}
               className={`py-2 px-3 h-auto text-xs font-semibold tracking-wide transition-all 
                 duration-300 ease-in-out transform hover:scale-[1.05] shadow-md
                 focus:outline-none focus:ring-2 focus:ring-[#FF4655]/50 focus:ring-opacity-50 
                 rounded-md flex items-center gap-1 ${
-                  !canJoin && !isOwner && !isParticipant && !hasRequestedToJoin
-                  ? "bg-gray-500 cursor-not-allowed" 
-                  : hasRequestedToJoin
-                    ? "bg-[#FF4655]/50 hover:bg-[#FF4655]/60 text-white"
+                  getJoinButtonDisabled()
+                    ? "bg-gray-500 cursor-not-allowed"
                     : "bg-[#FF4655] hover:bg-[#FF4655]/90 text-white"
                 }`}
             >
-              {isJoining ? <span>Processing...</span> : getButtonText()}
+              {getJoinButtonText()}
             </Button>
           </div>
         </div>

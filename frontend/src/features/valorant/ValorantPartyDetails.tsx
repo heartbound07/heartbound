@@ -127,7 +127,7 @@ export default function ValorantPartyDetails() {
   const { user, hasRole } = useAuth()
   const navigate = useNavigate()
   const { partyId } = useParams<{ partyId: string }>()
-  const { update, userActiveParty, setUserActiveParty } = usePartyUpdates()
+  const { update, userActiveParty, setUserActiveParty, clearUpdate } = usePartyUpdates()
 
   const [party, setParty] = React.useState<any>(null)
   const [userProfiles, setUserProfiles] = React.useState<Record<string, UserProfileDTO>>({})
@@ -504,6 +504,66 @@ export default function ValorantPartyDetails() {
       showToast(err.message || "Could not reject join request", "error");
     }
   };
+
+  // Add this to your useEffect for party update handling:
+  React.useEffect(() => {
+    if (update && update.party && update.party.id === party?.id) {
+      if (update.eventType === 'PARTY_JOIN_REQUEST' || update.eventType === 'PARTY_JOIN_REQUESTED') {
+        // Refresh party data to show new join request
+        getParty(party.id)
+          .then((data) => {
+            setParty(data)
+            setLeaderId(data.userId)
+            setParticipants(data.participants || [])
+          })
+          .catch((err: any) => {
+            console.error("Error getting updated party:", err)
+          })
+        
+        // Show toast notification for party owner
+        if (user?.id === party.userId) {
+          showToast("A new player has requested to join your party", "info")
+        }
+      }
+      else if (update.eventType === 'PARTY_JOIN_REQUEST_ACCEPTED') {
+        // Refresh party data
+        getParty(party.id)
+          .then((data) => {
+            setParty(data)
+            setLeaderId(data.userId)
+            setParticipants(data.participants || [])
+          })
+          .catch((err: any) => {
+            console.error("Error getting updated party:", err)
+          })
+        
+        // Toast for the target user who was accepted
+        if (user?.id === update.targetUserId) {
+          showToast("Your request to join the party was accepted!", "success")
+        }
+      }
+      else if (update.eventType === 'PARTY_JOIN_REQUEST_REJECTED') {
+        // Refresh party data
+        getParty(party.id)
+          .then((data) => {
+            setParty(data)
+            setLeaderId(data.userId)
+            setParticipants(data.participants || [])
+          })
+          .catch((err: any) => {
+            console.error("Error getting updated party:", err)
+          })
+        
+        // Toast for the target user who was rejected
+        if (user?.id === update.targetUserId) {
+          showToast("Your request to join the party was rejected", "error")
+        }
+      }
+      
+      // Clear the update
+      clearUpdate();
+    }
+  }, [update, party?.id, user?.id, clearUpdate, getParty, party?.userId, party?.participants]);
 
   if (isLoading) {
     return (

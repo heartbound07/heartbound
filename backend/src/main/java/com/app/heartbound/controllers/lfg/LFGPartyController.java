@@ -218,7 +218,7 @@ public class LFGPartyController {
         try {
             LFGPartyResponseDTO updatedParty = partyService.getPartyById(id);
             LFGPartyEventDTO event = LFGPartyEventDTO.builder()
-                   .eventType("PARTY_JOIN_REQUESTED")
+                   .eventType("PARTY_JOIN_REQUEST")
                    .party(updatedParty)
                    .message("Party update: User has requested to join party " + id)
                    .build();
@@ -245,6 +245,7 @@ public class LFGPartyController {
         LFGPartyEventDTO event = LFGPartyEventDTO.builder()
                 .eventType("PARTY_JOIN_REQUEST_ACCEPTED")
                 .party(updatedParty)
+                .targetUserId(userId)
                 .message("Party update: Join request accepted for user " + userId + " in party " + id)
                 .build();
         messagingTemplate.convertAndSend("/topic/party", event);
@@ -265,6 +266,7 @@ public class LFGPartyController {
         LFGPartyEventDTO event = LFGPartyEventDTO.builder()
                 .eventType("PARTY_JOIN_REQUEST_REJECTED")
                 .party(updatedParty)
+                .targetUserId(userId)
                 .message("Party update: Join request rejected for user " + userId + " in party " + id)
                 .build();
         messagingTemplate.convertAndSend("/topic/party", event);

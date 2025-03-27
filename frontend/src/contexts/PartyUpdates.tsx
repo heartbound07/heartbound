@@ -14,6 +14,7 @@ export interface LFGPartyEvent {
   eventType: string;
   party: any; // You can later replace "any" with a proper type for LFGPartyResponseDTO
   message: string;
+  targetUserId?: string; // Add this optional field
 }
 
 interface PartyUpdatesContextProps {
@@ -63,6 +64,15 @@ export const PartyUpdatesProvider = ({ children }: PartyUpdatesProviderProps) =>
       }
       else if (update.eventType === 'PARTY_USER_KICKED' && userActiveParty === party.id && !isParticipant) {
         setUserActiveParty(null);
+      }
+      else if ((update.eventType === 'PARTY_JOIN_REQUEST' || update.eventType === 'PARTY_JOIN_REQUESTED') && isCreator) {
+        // No need to change userActiveParty, but the update will be available to components
+      }
+      else if (update.eventType === 'PARTY_JOIN_REQUEST_ACCEPTED' && isParticipant) {
+        setUserActiveParty(party.id);
+      }
+      else if (update.eventType === 'PARTY_JOIN_REQUEST_REJECTED' && user.id === update.targetUserId) {
+        // No need to change userActiveParty, but the update will be available to components
       }
     }
   }, [update, user?.id, userActiveParty]);

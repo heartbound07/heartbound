@@ -51,11 +51,25 @@ export default function Home() {
     fetchParties();
   }, [fetchParties]);
 
-  // Whenever an update is received via WebSocket, re-fetch the parties.
+  // Add effect to refresh parties when there's a relevant party update
   useEffect(() => {
     if (update) {
-      fetchParties();
-      clearUpdate();
+      const relevantEvents = [
+        'PARTY_CREATED', 
+        'PARTY_UPDATED', 
+        'PARTY_DELETED', 
+        'PARTY_JOIN_REQUEST',
+        'PARTY_JOIN_REQUEST_ACCEPTED',
+        'PARTY_JOIN_REQUEST_REJECTED',
+        'PARTY_JOINED',
+        'PARTY_LEFT',
+        'PARTY_USER_KICKED'
+      ];
+      
+      if (relevantEvents.includes(update.eventType)) {
+        fetchParties();
+        clearUpdate(); // Clear update after handling
+      }
     }
   }, [update, fetchParties, clearUpdate]);
 
