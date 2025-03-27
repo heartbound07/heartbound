@@ -40,6 +40,9 @@ public class LFGPartyResponseDTO {
     // Set of invited user IDs
     private Set<String> invitedUsers;
 
+    // Set of join requests
+    private Set<String> joinRequests;
+
     /**
      * PartyRequirementsDTO
      *
