@@ -1,12 +1,13 @@
 "use client"
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Users, GamepadIcon, Mic, Calendar, Trophy, AlertCircle, Globe, Shield } from "lucide-react"
+import { X, Users, GamepadIcon, Mic, Calendar, Trophy, AlertCircle, Globe, Shield, Lock } from "lucide-react"
 import { Button } from "@/components/ui/valorant/groupcreatebutton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
 import { motion, AnimatePresence } from "framer-motion"
 import { createParty, type Rank, type Region } from '@/contexts/valorant/partyService'
 import toast from 'react-hot-toast'
+import { Switch } from "@/components/ui/valorant/switch"
 
 interface PostGroupModalProps {
   onClose: () => void;
@@ -34,7 +35,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
   // State for party requirements
   const [reqRank, setReqRank] = useState<'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'ASCENDANT' | 'IMMORTAL' | 'RADIANT'>('IRON')
   const [reqRegion, setReqRegion] = useState<'NA_EAST' | 'NA_WEST' | 'NA_CENTRAL' | 'LATAM' | 'BR' | 'EU' | 'KR' | 'AP'>('NA_EAST')
-  const [voiceChat, setVoiceChat] = useState(false)
+  const [inviteOnly, setInviteOnly] = useState(false)
 
   // State for additional group creation fields
   const [matchType, setMatchType] = useState('casual')
@@ -225,7 +226,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
       requirements: {
         rank: reqRank,
         region: reqRegion,
-        voiceChat,
+        inviteOnly,
       },
       expiresIn,    // will always be 10 minutes
       maxPlayers,   // auto-calculated based on teamSize
@@ -593,37 +594,26 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
               </div>
             </div>
             
-            {/* Voice Chat Toggle */}
-            <div className="pt-1">
-              <label htmlFor="voiceChat" className="flex items-center gap-3 cursor-pointer group p-1.5 rounded-md hover:bg-white/5 transition-colors">
-                <div className="relative shrink-0">
-                  <input
-                    id="voiceChat"
-                    type="checkbox"
-                    checked={voiceChat}
-                    onChange={(e) => setVoiceChat(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-10 h-6 rounded-full transition-colors duration-200 
-                    bg-[#1F2731] ring-1 ring-white/10
-                    peer-focus:ring-2 peer-focus:ring-[#FF4655]/50 
-                    peer-checked:bg-[#FF4655] peer-checked:ring-0
-                    shadow-inner"
-                  ></div>
-                  <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md
-                    transition-transform duration-200 
-                    peer-checked:translate-x-4 peer-checked:bg-white
-                    peer-focus:ring-1 peer-focus:ring-white/20 
-                    flex items-center justify-center overflow-hidden"
-                  >
-                    <Mic className={`h-3 w-3 ${voiceChat ? 'text-[#FF4655]/0' : 'text-[#1F2731]/30'} transition-colors`} />
-                  </div>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-white group-hover:text-white/90 transition-colors">Voice Chat Required</span>
-                  <p className="text-xs text-[#8B97A4] group-hover:text-[#8B97A4]/90 transition-colors">Only players with microphones can join</p>
-                </div>
+            {/* Voice Chat Toggle - Updated to Invite Only */}
+            <div className="space-y-2">
+              <label htmlFor="inviteOnly" className="text-xs text-zinc-400 pl-1 flex items-center gap-1.5">
+                <Lock className="h-3.5 w-3.5 text-[#8B97A4]" />
+                <span>Invite Only</span>
               </label>
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="inviteOnly"
+                  checked={inviteOnly} 
+                  onCheckedChange={setInviteOnly} 
+                  className="data-[state=checked]:bg-[#FF4655]"
+                />
+                <span className="text-xs text-white/60">
+                  {inviteOnly ? "Yes" : "No"}
+                </span>
+              </div>
+              <p className="text-xs text-white/40">
+                When enabled, only players with an invite can join your party.
+              </p>
             </div>
           </div>
 
