@@ -136,3 +136,13 @@ export const requestToJoinParty = async (id: string): Promise<string> => {
   const response = await httpClient.post(`/api/lfg/parties/${id}/request-join`);
   return response.data;
 };
+
+export const acceptJoinRequest = async (partyId: string, userId: string): Promise<string> => {
+  const response = await httpClient.post(`/api/lfg/parties/${partyId}/accept-join-request/${userId}`);
+  return response.data;
+};
+
+export const rejectJoinRequest = async (partyId: string, userId: string): Promise<string> => {
+  const response = await httpClient.post(`/api/lfg/parties/${partyId}/reject-join-request/${userId}`);
+  return response.data;
+};

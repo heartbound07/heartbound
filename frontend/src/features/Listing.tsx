@@ -150,12 +150,12 @@ export default function Listing({ party }: ListingProps) {
           type: "success"
         });
         // Navigate to party details page after requesting to join
-        navigate(`/dashboard/valorant/party/${party.id}`);
+        navigate(`/dashboard/valorant/${party.id}`);
       } else {
         // For open parties, join directly as before
         await joinParty(party.id);
         // Redirect to the party page after a successful join
-        navigate(`/dashboard/valorant/party/${party.id}`);
+        navigate(`/dashboard/valorant/${party.id}`);
       }
     } catch (error: any) {
       setToast({

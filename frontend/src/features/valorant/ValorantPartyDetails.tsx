@@ -1,12 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { Users, LogOut, GamepadIcon, Trophy, Globe, Mic, Award, Calendar, Trash2, UserPlus, Loader2, X, Link2, Lock, Plus } from "lucide-react"
+import { Users, LogOut, GamepadIcon, Trophy, Globe, Mic, Award, Calendar, Trash2, UserPlus, Loader2, X, Link2, Lock, Plus, Check, XIcon } from "lucide-react"
 import { Button } from "@/components/ui/valorant/buttonparty"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate, useParams } from "react-router-dom"
-import { deleteParty, getParty, leaveParty, joinParty, kickUserFromParty, inviteUserToParty } from "@/contexts/valorant/partyService"
+import { deleteParty, getParty, leaveParty, joinParty, kickUserFromParty, inviteUserToParty, acceptJoinRequest, rejectJoinRequest } from "@/contexts/valorant/partyService"
 import { usePartyUpdates } from "@/contexts/PartyUpdates"
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 import { PlayerSlotsContainer } from "@/components/PlayerSlotsContainer"
@@ -139,6 +139,7 @@ export default function ValorantPartyDetails() {
   const [profilePosition, setProfilePosition] = React.useState<{ x: number, y: number } | null>(null)
   const [invitedUsers, setInvitedUsers] = React.useState<string[]>([])
   const [isInvited, setIsInvited] = React.useState(false)
+  const [joinRequestProfiles, setJoinRequestProfiles] = React.useState<Record<string, UserProfileDTO>>({})
   
   // Toast state
   const [toastInfo, setToastInfo] = React.useState<{
@@ -247,6 +248,23 @@ export default function ValorantPartyDetails() {
       }
     }
   }, [update, party?.id, navigate, userProfiles])
+
+  // Add effect to load user profiles for join requests
+  React.useEffect(() => {
+    if (party?.joinRequests && party.joinRequests.length > 0) {
+      // Fetch profiles for users who have requested to join
+      const fetchJoinRequestProfiles = async () => {
+        try {
+          const profiles = await getUserProfiles(party.joinRequests);
+          setJoinRequestProfiles(profiles);
+        } catch (error) {
+          console.error("Error fetching join request profiles:", error);
+        }
+      };
+      
+      fetchJoinRequestProfiles();
+    }
+  }, [party?.joinRequests]);
 
   // Add debug log before calculating participants details
   console.debug("Party data:", party);
@@ -444,6 +462,42 @@ export default function ValorantPartyDetails() {
     }
   };
 
+  // Check if current user is waiting for a join request approval
+  const isWaitingForApproval = user?.id && party?.joinRequests?.includes(user.id);
+
+  // Add functions to handle accepting and rejecting join requests
+  const handleAcceptJoinRequest = async (userId: string) => {
+    try {
+      await acceptJoinRequest(party.id, userId);
+      showToast("User has been added to the party", "success");
+      
+      // Refresh party data to update the UI
+      if (party?.id) {
+        const updatedParty = await getParty(party.id);
+        setParty(updatedParty);
+      }
+    } catch (err: any) {
+      console.error("Error accepting join request:", err);
+      showToast(err.message || "Could not accept join request", "error");
+    }
+  };
+  
+  const handleRejectJoinRequest = async (userId: string) => {
+    try {
+      await rejectJoinRequest(party.id, userId);
+      showToast("Join request rejected", "success");
+      
+      // Refresh party data to update the UI
+      if (party?.id) {
+        const updatedParty = await getParty(party.id);
+        setParty(updatedParty);
+      }
+    } catch (err: any) {
+      console.error("Error rejecting join request:", err);
+      showToast(err.message || "Could not reject join request", "error");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0F1923] text-white pb-8 pt-20">
@@ -614,12 +668,17 @@ export default function ValorantPartyDetails() {
                           className="bg-[#283A4B] hover:bg-[#2A3F56] text-white border border-white/10 hover:border-white/30 shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
                           size="sm"
                           onClick={handleJoinParty}
-                          disabled={isJoining || isPartyFull || (party?.requirements?.inviteOnly && !isInvited)}
+                          disabled={isJoining || isPartyFull || (party?.requirements?.inviteOnly && !isInvited && !isWaitingForApproval)}
                         >
                           {isJoining ? (
                             <>
                               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                               Joining...
+                            </>
+                          ) : isWaitingForApproval ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Waiting...
                             </>
                           ) : party?.requirements?.inviteOnly && !isInvited ? (
                             <>
@@ -640,11 +699,13 @@ export default function ValorantPartyDetails() {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="bottom">
-                        {party?.requirements?.inviteOnly && !isInvited 
-                          ? "This party is invite-only. You need an invitation to join."
-                          : isPartyFull 
-                            ? "This party is currently full." 
-                            : "Join this party"}
+                        {isWaitingForApproval 
+                          ? "Your join request is pending approval from the party leader."
+                          : party?.requirements?.inviteOnly && !isInvited 
+                            ? "This party is invite-only. You need an invitation to join."
+                            : isPartyFull 
+                              ? "This party is currently full." 
+                              : "Join this party"}
                       </TooltipContent>
                     </Tooltip>
                   )}
@@ -710,11 +771,50 @@ export default function ValorantPartyDetails() {
             <div className="mt-6 bg-[#1F2731]/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-md p-6">
               <h3 className="text-lg font-semibold mb-4">Invite Users</h3>
               <div className="space-y-4">
-                {/* Here you would add a user search component */}
                 <p className="text-sm text-white/70">
                   This is an invite-only party. As the leader, you can invite users to join.
                 </p>
                 
+                {/* Join Requests Section */}
+                {party.joinRequests && party.joinRequests.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-2 text-[#FF4655]">Join Requests:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {party.joinRequests.map((userId: string) => (
+                        <div key={userId} className="flex items-center gap-2 bg-[#283A4B] p-2 rounded-md">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage 
+                              src={joinRequestProfiles[userId]?.avatar || placeholderAvatar} 
+                              alt={joinRequestProfiles[userId]?.username || "User"} 
+                            />
+                            <AvatarFallback>
+                              {joinRequestProfiles[userId]?.username?.charAt(0) || "U"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm">{joinRequestProfiles[userId]?.username || "Unknown User"}</span>
+                          
+                          {/* Accept/Reject buttons */}
+                          <div className="flex gap-1 ml-2">
+                            <Button 
+                              onClick={() => handleAcceptJoinRequest(userId)}
+                              className="bg-green-500 hover:bg-green-600 p-1 h-7 w-7 rounded-full"
+                            >
+                              <Check className="h-3 w-3" />
+                            </Button>
+                            <Button 
+                              onClick={() => handleRejectJoinRequest(userId)}
+                              className="bg-red-500 hover:bg-red-600 p-1 h-7 w-7 rounded-full"
+                            >
+                              <XIcon className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Invited Users Section (existing code) */}
                 {invitedUsers.length > 0 && (
                   <div className="mt-4">
                     <h4 className="text-sm font-medium mb-2">Invited Users:</h4>
