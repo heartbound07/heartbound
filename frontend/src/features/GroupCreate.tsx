@@ -109,10 +109,12 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
     validateDescription(newDescription);
   }
 
-  // Effect to update gameMode when matchType changes to competitive
+  // Effect to update gameMode when matchType changes
   useEffect(() => {
     if (matchType === 'competitive') {
       setGameMode('any');
+    } else if (matchType === 'casual') {
+      setGameMode('unrated');
     }
   }, [matchType]);
 
