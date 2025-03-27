@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/valorant/buttonparty"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate, useParams } from "react-router-dom"
-import { deleteParty, getParty, leaveParty, joinParty, kickUserFromParty } from "@/contexts/valorant/partyService"
+import { deleteParty, getParty, leaveParty, joinParty, kickUserFromParty, inviteUserToParty } from "@/contexts/valorant/partyService"
 import { usePartyUpdates } from "@/contexts/PartyUpdates"
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 import { PlayerSlotsContainer } from "@/components/PlayerSlotsContainer"
@@ -14,6 +14,7 @@ import { formatDisplayText, formatBooleanText } from "@/utils/formatters"
 import { CountdownTimer } from "@/components/CountdownTimer"
 import { UserProfileModal } from "@/components/UserProfileModal"
 import { SkeletonPartyDetails } from '@/components/ui/SkeletonUI'
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
 
 // Custom Toast Component
 const Toast = ({ 
@@ -432,6 +433,17 @@ export default function ValorantPartyDetails() {
     }
   };
 
+  // Add a new function to invite users
+  const handleInviteUser = async (userId: string) => {
+    try {
+      await inviteUserToParty(party.id, userId);
+      showToast("Invitation sent successfully", "success");
+    } catch (err: any) {
+      console.error("Error inviting user:", err);
+      showToast(err.message || "Could not send invitation", "error");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0F1923] text-white pb-8 pt-20">
@@ -692,6 +704,41 @@ export default function ValorantPartyDetails() {
             userProfile={selectedProfileId ? userProfiles[selectedProfileId] : null}
             position={profilePosition}
           />
+
+          {/* Add this section to render the invite UI for party leaders */}
+          {(isUserLeader || hasAdminPrivileges) && party?.requirements?.inviteOnly && (
+            <div className="mt-6 bg-[#1F2731]/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-md p-6">
+              <h3 className="text-lg font-semibold mb-4">Invite Users</h3>
+              <div className="space-y-4">
+                {/* Here you would add a user search component */}
+                <p className="text-sm text-white/70">
+                  This is an invite-only party. As the leader, you can invite users to join.
+                </p>
+                
+                {invitedUsers.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-2">Invited Users:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {invitedUsers.map(userId => (
+                        <div key={userId} className="flex items-center gap-2 bg-[#283A4B] p-2 rounded-md">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage 
+                              src={userProfiles[userId]?.avatar || placeholderAvatar} 
+                              alt={userProfiles[userId]?.username || "User"} 
+                            />
+                            <AvatarFallback>
+                              {userProfiles[userId]?.username?.charAt(0) || "U"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm">{userProfiles[userId]?.username || "Unknown User"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </TooltipProvider>
