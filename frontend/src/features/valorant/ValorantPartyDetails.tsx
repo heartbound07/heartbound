@@ -136,6 +136,7 @@ export default function ValorantPartyDetails() {
   const [isJoining, setIsJoining] = React.useState(false)
   const [selectedProfileId, setSelectedProfileId] = React.useState<string | null>(null)
   const [profilePosition, setProfilePosition] = React.useState<{ x: number, y: number } | null>(null)
+  const [invitedUsers, setInvitedUsers] = React.useState<string[]>([])
   const [isInvited, setIsInvited] = React.useState(false)
   
   // Toast state
