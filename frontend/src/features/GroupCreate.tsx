@@ -22,6 +22,9 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
   const [titleError, setTitleError] = useState<string | null>(null)
   const [descriptionError, setDescriptionError] = useState<string | null>(null)
   
+  // Add state to track if description should be shown
+  const [showDescription, setShowDescription] = useState(false)
+  
   // Set expiresIn default to 10 minutes
   const [expiresIn, setExpiresIn] = useState(10)
   
@@ -89,6 +92,14 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
     const newTitle = e.target.value;
     setTitle(newTitle);
     validateTitle(newTitle);
+    
+    // Show description field when user starts typing in title
+    // Hide it when the title becomes empty
+    if (newTitle.trim() && !showDescription) {
+      setShowDescription(true);
+    } else if (!newTitle.trim() && showDescription) {
+      setShowDescription(false);
+    }
   }
 
   // Handle description change with validation
@@ -273,12 +284,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
 
         <div className="space-y-6">
           {/* Basic Information Section */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2.5 pl-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#FF4655]"></span>
-              <h3 className="text-sm font-medium text-white/90">Basic Information</h3>
-            </div>
-            
+          <div className="space-y-4">            
             <div className="space-y-4">
               {/* Title Input */}
               <div>
@@ -323,48 +329,57 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
                 </div>
               </div>
 
-              {/* Description Input */}
-              <div>
-                <label htmlFor="groupDescription" className="block text-sm font-medium text-zinc-200 mb-1.5 pl-1">
-                  Description
-                </label>
-                <textarea
-                  id="groupDescription"
-                  value={description}
-                  onChange={handleDescriptionChange}
-                  placeholder="What kind of players are you looking for?"
-                  rows={3}
-                  autoComplete="off"
-                  className={`w-full bg-[#1F2731]/80 rounded-md border-0 px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#FF4655]/50 transition-all duration-200 shadow-sm ${
-                    descriptionError ? "ring-1 ring-red-500/50" : "ring-1 ring-white/10"
-                  }`}
-                />
-                <div className="flex justify-between mt-1.5 px-1">
-                  <AnimatePresence>
-                    {descriptionError ? (
-                      <motion.div
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        className="flex items-center text-[#FF4655] text-xs"
-                      >
-                        <AlertCircle className="h-3 w-3 mr-1" />
-                        <span>{descriptionError}</span>
-                      </motion.div>
-                    ) : (
-                      <div></div>
-                    )}
-                  </AnimatePresence>
+              {/* Description Input - Only show when title has content */}
+              <AnimatePresence>
+                {showDescription && (
                   <motion.div
-                    animate={{
-                      color: countCharacters(description) > 90 ? "#FF4655" : "#8B97A4"
-                    }}
-                    className="text-xs"
+                    initial={{ opacity: 0, height: 0, y: -10 }}
+                    animate={{ opacity: 1, height: "auto", y: 0 }}
+                    exit={{ opacity: 0, height: 0, y: -10 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
                   >
-                    {countCharacters(description)}/100
+                    <label htmlFor="groupDescription" className="block text-sm font-medium text-zinc-200 mb-1.5 pl-1">
+                      Description
+                    </label>
+                    <textarea
+                      id="groupDescription"
+                      value={description}
+                      onChange={handleDescriptionChange}
+                      placeholder="What kind of players are you looking for?"
+                      rows={3}
+                      autoComplete="off"
+                      className={`w-full bg-[#1F2731]/80 rounded-md border-0 px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#FF4655]/50 transition-all duration-200 shadow-sm ${
+                        descriptionError ? "ring-1 ring-red-500/50" : "ring-1 ring-white/10"
+                      }`}
+                    />
+                    <div className="flex justify-between mt-1.5 px-1">
+                      <AnimatePresence>
+                        {descriptionError ? (
+                          <motion.div
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -5 }}
+                            className="flex items-center text-[#FF4655] text-xs"
+                          >
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            <span>{descriptionError}</span>
+                          </motion.div>
+                        ) : (
+                          <div></div>
+                        )}
+                      </AnimatePresence>
+                      <motion.div
+                        animate={{
+                          color: countCharacters(description) > 90 ? "#FF4655" : "#8B97A4"
+                        }}
+                        className="text-xs"
+                      >
+                        {countCharacters(description)}/100
+                      </motion.div>
+                    </div>
                   </motion.div>
-                </div>
-              </div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 
@@ -376,42 +391,112 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
             </div>
             
             <div className="grid grid-cols-3 gap-3">
-              {gameSettingsDropdowns
-                .filter(dropdown => !(matchType === 'competitive' && dropdown.field === 'gameMode'))
-                .map((dropdown, index) => (
-                  <div key={index} className="space-y-1.5">
+              {matchType === 'competitive' ? (
+                // Competitive layout (2 columns centered)
+                <motion.div 
+                  className="col-span-3 grid grid-cols-2 gap-3"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                >
+                  {/* Match Type column */}
+                  <motion.div 
+                    layout
+                    className="space-y-1.5"
+                    initial={{ x: -16 }}
+                    animate={{ x: 0 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                  >
                     <label className="text-xs text-zinc-400 pl-1 flex items-center gap-1.5">
-                      <dropdown.icon className="h-3.5 w-3.5 text-[#8B97A4]" />
-                      <span>{dropdown.label}</span>
+                      <Trophy className="h-3.5 w-3.5 text-[#8B97A4]" />
+                      <span>Match Type</span>
                     </label>
                     <Select
-                      defaultValue={dropdown.defaultValue}
-                      onValueChange={(value: string) => dropdown.setter(value)}
+                      value={matchType}
+                      onValueChange={(value: string) => setMatchType(value)}
                     >
                       <SelectTrigger className="h-10 border-0 bg-[#1F2731]/80 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-[#1F2731] focus:ring-2 focus:ring-[#FF4655]/50 shadow-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200">
-                        {dropdown.options
-                          // Filter out "any" from Game Mode when matchType is casual
-                          .filter(option => 
-                            !(dropdown.field === 'gameMode' && matchType === 'casual' && option.value === 'any')
-                          )
-                          // Filter out both "ten-man" and "4-stack" from Team Size when matchType is competitive
-                          .filter(option => 
-                            !(dropdown.field === 'teamSize' && matchType === 'competitive' && 
-                              (option.value === 'ten-man' || option.value === '4-stack'))
-                          )
-                          .map((option) => (
-                            <SelectItem key={option.value} value={option.value} className="focus:bg-[#FF4655]/10">
-                              {option.label}
-                            </SelectItem>
-                          ))
-                        }
+                        <SelectItem value="competitive" className="focus:bg-[#FF4655]/10">Competitive</SelectItem>
+                        <SelectItem value="casual" className="focus:bg-[#FF4655]/10">Casual</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                ))}
+                  </motion.div>
+
+                  {/* Team Size column */}
+                  <motion.div 
+                    layout
+                    className="space-y-1.5"
+                    initial={{ x: 16 }}
+                    animate={{ x: 0 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                  >
+                    <label className="text-xs text-zinc-400 pl-1 flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5 text-[#8B97A4]" />
+                      <span>Team Size</span>
+                    </label>
+                    <Select
+                      value={teamSize}
+                      onValueChange={(value: string) => setTeamSize(value)}
+                    >
+                      <SelectTrigger className="h-10 border-0 bg-[#1F2731]/80 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-[#1F2731] focus:ring-2 focus:ring-[#FF4655]/50 shadow-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200">
+                        <SelectItem value="duo" className="focus:bg-[#FF4655]/10">Duo</SelectItem>
+                        <SelectItem value="trio" className="focus:bg-[#FF4655]/10">Trio</SelectItem>
+                        <SelectItem value="4-stack" className="focus:bg-[#FF4655]/10">4-Stack</SelectItem>
+                        <SelectItem value="five-stack" className="focus:bg-[#FF4655]/10">5-Stack</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </motion.div>
+                </motion.div>
+              ) : (
+                // Casual layout (all 3 columns)
+                <>
+                  {gameSettingsDropdowns.map((dropdown, index) => (
+                    <motion.div 
+                      key={index} 
+                      className="space-y-1.5"
+                      layout
+                      initial={{ opacity: index === 1 ? 0 : 1, scale: index === 1 ? 0.95 : 1 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: index === 1 ? 0 : 1, scale: index === 1 ? 0.95 : 1 }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                    >
+                      <label className="text-xs text-zinc-400 pl-1 flex items-center gap-1.5">
+                        <dropdown.icon className="h-3.5 w-3.5 text-[#8B97A4]" />
+                        <span>{dropdown.label}</span>
+                      </label>
+                      <Select
+                        value={index === 0 ? matchType : index === 1 ? gameMode : teamSize}
+                        onValueChange={(value: string) => dropdown.setter(value)}
+                      >
+                        <SelectTrigger className="h-10 border-0 bg-[#1F2731]/80 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-[#1F2731] focus:ring-2 focus:ring-[#FF4655]/50 shadow-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200">
+                          {dropdown.options
+                            .filter(option => 
+                              !(dropdown.field === 'gameMode' && matchType === 'casual' && option.value === 'any')
+                            )
+                            .filter(option => 
+                              !(dropdown.field === 'teamSize' && matchType === 'competitive' && option.value === 'ten-man')
+                            )
+                            .map((option) => (
+                              <SelectItem key={option.value} value={option.value} className="focus:bg-[#FF4655]/10">
+                                {option.label}
+                              </SelectItem>
+                            ))
+                          }
+                        </SelectContent>
+                      </Select>
+                    </motion.div>
+                  ))}
+                </>
+              )}
             </div>
           </div>
 
