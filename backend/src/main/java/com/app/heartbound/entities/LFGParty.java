@@ -111,6 +111,15 @@ public class LFGParty {
     @Column(name = "age_restriction", nullable = false)
     private String ageRestriction;
 
+    // Collection of invited user IDs
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "lfg_party_invited_users",
+        joinColumns = @JoinColumn(name = "party_id")
+    )
+    @Column(name = "invited_user_id")
+    private Set<String> invitedUsers = new HashSet<>();
+
     /**
      * PartyRequirements
      *
