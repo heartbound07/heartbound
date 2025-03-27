@@ -96,7 +96,7 @@ public class CreatePartyRequestDTO {
         @NotNull(message = "Region is required")
         private Region region;
 
-        @NotNull(message = "Voice chat flag is required")
-        private Boolean voiceChat;
+        @NotNull(message = "Invite only flag is required")
+        private Boolean inviteOnly;
     }
 }

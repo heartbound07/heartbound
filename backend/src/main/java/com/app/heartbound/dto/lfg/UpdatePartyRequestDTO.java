@@ -44,7 +44,7 @@ public class UpdatePartyRequestDTO {
      * Contains:
      * - rank: Minimum required rank.
      * - region: Preferred region.
-     * - voiceChat: Flag indicating if voice chat is required.
+     * - inviteOnly: Flag indicating if the party is invite only.
      */
     @Data
     @NoArgsConstructor
@@ -53,6 +53,6 @@ public class UpdatePartyRequestDTO {
     public static class PartyRequirementsDTO {
         private Rank rank;
         private Region region;
-        private Boolean voiceChat;
+        private Boolean inviteOnly;
     }
 }
