@@ -230,4 +230,44 @@ public class LFGPartyController {
         
         return result;
     }
+
+    /**
+     * Accept a join request for a party.
+     *
+     * @param id     the UUID of the party
+     * @param userId the ID of the user whose request is being accepted
+     * @return success message if acceptance succeeds
+     */
+    @PostMapping("/{id}/accept-join-request/{userId}")
+    public String acceptJoinRequest(@PathVariable UUID id, @PathVariable String userId) {
+        String result = partyService.acceptJoinRequest(id, userId);
+        LFGPartyResponseDTO updatedParty = partyService.getPartyById(id);
+        LFGPartyEventDTO event = LFGPartyEventDTO.builder()
+                .eventType("PARTY_JOIN_REQUEST_ACCEPTED")
+                .party(updatedParty)
+                .message("Party update: Join request accepted for user " + userId + " in party " + id)
+                .build();
+        messagingTemplate.convertAndSend("/topic/party", event);
+        return result;
+    }
+
+    /**
+     * Reject a join request for a party.
+     *
+     * @param id     the UUID of the party
+     * @param userId the ID of the user whose request is being rejected
+     * @return success message if rejection succeeds
+     */
+    @PostMapping("/{id}/reject-join-request/{userId}")
+    public String rejectJoinRequest(@PathVariable UUID id, @PathVariable String userId) {
+        String result = partyService.rejectJoinRequest(id, userId);
+        LFGPartyResponseDTO updatedParty = partyService.getPartyById(id);
+        LFGPartyEventDTO event = LFGPartyEventDTO.builder()
+                .eventType("PARTY_JOIN_REQUEST_REJECTED")
+                .party(updatedParty)
+                .message("Party update: Join request rejected for user " + userId + " in party " + id)
+                .build();
+        messagingTemplate.convertAndSend("/topic/party", event);
+        return result;
+    }
 }

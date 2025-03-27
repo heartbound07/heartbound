@@ -469,16 +469,23 @@ export default function ValorantPartyDetails() {
   const handleAcceptJoinRequest = async (userId: string) => {
     try {
       await acceptJoinRequest(party.id, userId);
-      showToast("User has been added to the party", "success");
+      showToast("Join request accepted", "success");
       
       // Refresh party data to update the UI
       if (party?.id) {
         const updatedParty = await getParty(party.id);
         setParty(updatedParty);
+        
+        // Remove the user from joinRequestProfiles after accepting
+        const { [userId]: removedProfile, ...remainingProfiles } = joinRequestProfiles;
+        setJoinRequestProfiles(remainingProfiles);
       }
     } catch (err: any) {
       console.error("Error accepting join request:", err);
-      showToast(err.message || "Could not accept join request", "error");
+      showToast(
+        err.response?.data?.message || err.message || "Could not accept join request", 
+        "error"
+      );
     }
   };
   
