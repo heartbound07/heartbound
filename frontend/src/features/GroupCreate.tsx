@@ -504,11 +504,6 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
 
           {/* Preferences Section */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2.5 pl-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#FF4655]"></span>
-              <h3 className="text-sm font-medium text-white/90">Preferences</h3>
-            </div>
-            
             <div className="grid grid-cols-2 gap-3">
               {preferencesDropdowns.map((dropdown, index) => (
                 <div key={index} className="space-y-1.5">
