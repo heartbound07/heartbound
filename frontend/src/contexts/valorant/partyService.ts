@@ -131,3 +131,8 @@ export const getInvitedUsers = async (partyId: string): Promise<string[]> => {
   const response = await httpClient.get(`/api/lfg/parties/${partyId}/invites`);
   return response.data;
 };
+
+export const requestToJoinParty = async (id: string): Promise<string> => {
+  const response = await httpClient.post(`/api/lfg/parties/${id}/request-join`);
+  return response.data;
+};
