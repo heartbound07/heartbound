@@ -62,7 +62,15 @@ export default function Listing({ party }: ListingProps) {
   // we'll implement a simpler version - considering only the current user
   const isInvited = false; // Default to false since we don't have invitations data in this component
   
+  // Check if the current user has already requested to join this party
   const [hasRequestedToJoin, setHasRequestedToJoin] = useState(false);
+  
+  // Initialize hasRequestedToJoin based on party data
+  useEffect(() => {
+    if (user?.id && party.joinRequests && party.joinRequests.includes(user.id)) {
+      setHasRequestedToJoin(true);
+    }
+  }, [user?.id, party.joinRequests]);
   
   // Check if the party is invite-only
   const isInviteOnly = party?.requirements?.inviteOnly;
@@ -110,7 +118,8 @@ export default function Listing({ party }: ListingProps) {
   const isOwner = user?.id === party.userId
   
   // User can join if: they're not already in any party AND they're not already in this specific party
-  const canJoin = !isInAnyParty && !isParticipant && !isOwner
+  // AND they haven't already requested to join
+  const canJoin = !isInAnyParty && !isParticipant && !isOwner && !hasRequestedToJoin
 
   // Add state for toast message
   const [toast, setToast] = useState<{message: string, type: 'error' | 'success' | 'info'} | null>(null)
@@ -140,11 +149,13 @@ export default function Listing({ party }: ListingProps) {
           message: "Request sent! The party leader will be notified of your interest.",
           type: "success"
         });
+        // Navigate to party details page after requesting to join
+        navigate(`/dashboard/valorant/party/${party.id}`);
       } else {
         // For open parties, join directly as before
         await joinParty(party.id);
         // Redirect to the party page after a successful join
-        navigate(`/dashboard/valorant/${party.id}`);
+        navigate(`/dashboard/valorant/party/${party.id}`);
       }
     } catch (error: any) {
       setToast({
@@ -163,6 +174,34 @@ export default function Listing({ party }: ListingProps) {
     // Redirect owners or participants to the party details page using the correct route
     navigate(`/dashboard/valorant/${party.id}`)
   }
+
+  // Get the appropriate button text based on user's status
+  const getButtonText = () => {
+    if (isOwner || isParticipant) {
+      return (
+        <>
+          <span>View</span>
+          <ArrowRight className="h-3 w-3" />
+        </>
+      );
+    } else if (hasRequestedToJoin) {
+      return <span>Waiting...</span>;
+    } else if (isInviteOnly) {
+      return (
+        <>
+          <span>Request Join</span>
+          <ArrowRight className="h-3 w-3" />
+        </>
+      );
+    } else {
+      return (
+        <>
+          <span>Join</span>
+          <ArrowRight className="h-3 w-3" />
+        </>
+      );
+    }
+  };
 
   return (
     <div 
@@ -332,35 +371,14 @@ export default function Listing({ party }: ListingProps) {
                 duration-300 ease-in-out transform hover:scale-[1.05] shadow-md
                 focus:outline-none focus:ring-2 focus:ring-[#FF4655]/50 focus:ring-opacity-50 
                 rounded-md flex items-center gap-1 ${
-                  !canJoin && !isOwner && !isParticipant
+                  !canJoin && !isOwner && !isParticipant && !hasRequestedToJoin
                   ? "bg-gray-500 cursor-not-allowed" 
-                  : "bg-[#FF4655] hover:bg-[#FF4655]/90 text-white"
+                  : hasRequestedToJoin
+                    ? "bg-[#FF4655]/50 hover:bg-[#FF4655]/60 text-white"
+                    : "bg-[#FF4655] hover:bg-[#FF4655]/90 text-white"
                 }`}
             >
-              {isOwner || isParticipant ? (
-                <>
-                  <span>View</span>
-                  <ArrowRight className="h-3 w-3" />
-                </>
-              ) : isJoining ? (
-                <>
-                  <span>Processing...</span>
-                </>
-              ) : hasRequestedToJoin ? (
-                <>
-                  <span>Requested</span>
-                </>
-              ) : isInviteOnly ? (
-                <>
-                  <span>Request Join</span>
-                  <ArrowRight className="h-3 w-3" />
-                </>
-              ) : (
-                <>
-                  <span>Join</span>
-                  <ArrowRight className="h-3 w-3" />
-                </>
-              )}
+              {isJoining ? <span>Processing...</span> : getButtonText()}
             </Button>
           </div>
         </div>
