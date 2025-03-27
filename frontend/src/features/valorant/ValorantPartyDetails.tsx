@@ -476,6 +476,15 @@ export default function ValorantPartyDetails() {
         const updatedParty = await getParty(party.id);
         setParty(updatedParty);
         
+        // Make sure to update userProfiles with the profile of the accepted user
+        // Transfer the profile from joinRequestProfiles to userProfiles
+        if (joinRequestProfiles[userId]) {
+          setUserProfiles(prevProfiles => ({
+            ...prevProfiles,
+            [userId]: joinRequestProfiles[userId]
+          }));
+        }
+        
         // Remove the user from joinRequestProfiles after accepting
         const { [userId]: removedProfile, ...remainingProfiles } = joinRequestProfiles;
         setJoinRequestProfiles(remainingProfiles);
@@ -528,18 +537,35 @@ export default function ValorantPartyDetails() {
       else if (update.eventType === 'PARTY_JOIN_REQUEST_ACCEPTED') {
         // Refresh party data
         getParty(party.id)
-          .then((data) => {
-            setParty(data)
-            setLeaderId(data.userId)
-            setParticipants(data.participants || [])
+          .then(async (data) => {
+            setParty(data);
+            setLeaderId(data.userId);
+            
+            // Get the updated list of participants
+            const updatedParticipants = data.participants || [];
+            setParticipants(updatedParticipants);
+            
+            // Fetch profiles for any participants we don't already have
+            const missingProfiles = updatedParticipants.filter(id => !userProfiles[id]);
+            if (missingProfiles.length > 0) {
+              try {
+                const profiles = await getUserProfiles(missingProfiles);
+                setUserProfiles(prevProfiles => ({
+                  ...prevProfiles,
+                  ...profiles
+                }));
+              } catch (error) {
+                console.error("Error fetching new participant profiles:", error);
+              }
+            }
           })
-          .catch((err: any) => {
-            console.error("Error getting updated party:", err)
-          })
+          .catch((err) => {
+            console.error("Error getting updated party:", err);
+          });
         
         // Toast for the target user who was accepted
         if (user?.id === update.targetUserId) {
-          showToast("Your request to join the party was accepted!", "success")
+          showToast("Your request to join the party was accepted!", "success");
         }
       }
       else if (update.eventType === 'PARTY_JOIN_REQUEST_REJECTED') {
