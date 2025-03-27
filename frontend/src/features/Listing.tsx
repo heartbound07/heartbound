@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { Users, GamepadIcon, Mic, Calendar, Trophy, Plus, Award, Globe, ArrowRight, X, Lock } from "lucide-react"
-import { joinParty } from "@/contexts/valorant/partyService"
+import { joinParty, requestToJoinParty } from "@/contexts/valorant/partyService"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate } from "react-router-dom"
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
@@ -62,6 +62,11 @@ export default function Listing({ party }: ListingProps) {
   // we'll implement a simpler version - considering only the current user
   const isInvited = false; // Default to false since we don't have invitations data in this component
   
+  const [hasRequestedToJoin, setHasRequestedToJoin] = useState(false);
+  
+  // Check if the party is invite-only
+  const isInviteOnly = party?.requirements?.inviteOnly;
+  
   // Fetch user profiles when participants change
   useEffect(() => {
     if (participants.length > 0) {
@@ -117,44 +122,41 @@ export default function Listing({ party }: ListingProps) {
       setToast({
         message: "You must leave your current party before joining another one",
         type: "error"
-      })
+      });
       
       // Auto-dismiss toast after 3 seconds
-      setTimeout(() => setToast(null), 3000)
-      return
+      setTimeout(() => setToast(null), 3000);
+      return;
     }
     
-    // Check if the party is invite-only and user is not invited
-    if (party.requirements?.inviteOnly && !isInvited) {
-      setToast({
-        message: "This party is invite-only. You need an invitation to join.",
-        type: "error"
-      })
-      
-      // Auto-dismiss toast after 3 seconds
-      setTimeout(() => setToast(null), 3000)
-      return
-    }
-    
-    setIsJoining(true)
     try {
-      // Call the joinParty function with the party ID
-      const result = await joinParty(party.id)
-      console.log("Joined party successfully:", result)
-      // Redirect the user to the party details page
-      navigate(`/dashboard/valorant/${party.id}`)
+      setIsJoining(true);
+      
+      // If it's an invite-only party, send a request to join instead
+      if (isInviteOnly) {
+        await requestToJoinParty(party.id);
+        setHasRequestedToJoin(true);
+        setToast({
+          message: "Request sent! The party leader will be notified of your interest.",
+          type: "success"
+        });
+      } else {
+        // For open parties, join directly as before
+        await joinParty(party.id);
+        // Redirect to the party page after a successful join
+        navigate(`/dashboard/valorant/${party.id}`);
+      }
     } catch (error: any) {
-      console.error("Error joining the party", error)
-      // Display error notification
       setToast({
-        message: error.message || "Failed to join party. Try again later.",
+        message: error.message || "Failed to join party",
         type: "error"
-      })
-      setTimeout(() => setToast(null), 3000)
+      });
     } finally {
-      setIsJoining(false)
+      setIsJoining(false);
+      // Auto-dismiss toast after 3 seconds
+      setTimeout(() => setToast(null), 3000);
     }
-  }
+  };
 
   // Handle the "View Party" navigation for owners and existing participants
   const handleViewParty = () => {
@@ -341,15 +343,18 @@ export default function Listing({ party }: ListingProps) {
                   <ArrowRight className="h-3 w-3" />
                 </>
               ) : isJoining ? (
-                <span className="flex items-center justify-center gap-1">
-                  <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Joining
-                </span>
-              ) : !canJoin ? (
-                <span>In Party</span>
+                <>
+                  <span>Processing...</span>
+                </>
+              ) : hasRequestedToJoin ? (
+                <>
+                  <span>Requested</span>
+                </>
+              ) : isInviteOnly ? (
+                <>
+                  <span>Request Join</span>
+                  <ArrowRight className="h-3 w-3" />
+                </>
               ) : (
                 <>
                   <span>Join</span>
