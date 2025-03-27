@@ -449,7 +449,6 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
                       <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200">
                         <SelectItem value="duo" className="focus:bg-[#FF4655]/10">Duo</SelectItem>
                         <SelectItem value="trio" className="focus:bg-[#FF4655]/10">Trio</SelectItem>
-                        <SelectItem value="4-stack" className="focus:bg-[#FF4655]/10">4-Stack</SelectItem>
                         <SelectItem value="five-stack" className="focus:bg-[#FF4655]/10">5-Stack</SelectItem>
                       </SelectContent>
                     </Select>
@@ -485,7 +484,8 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
                               !(dropdown.field === 'gameMode' && matchType === 'casual' && option.value === 'any')
                             )
                             .filter(option => 
-                              !(dropdown.field === 'teamSize' && matchType === 'competitive' && option.value === 'ten-man')
+                              !(dropdown.field === 'teamSize' && matchType === 'competitive' && 
+                                (option.value === 'ten-man' || option.value === '4-stack'))
                             )
                             .map((option) => (
                               <SelectItem key={option.value} value={option.value} className="focus:bg-[#FF4655]/10">
