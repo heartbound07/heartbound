@@ -338,7 +338,7 @@ public class LFGPartyService {
     }
 
     /**
-     * Invites a user to join a party. Only the party leader can do this.
+     * Invites a user to a party. Only the party leader can do this.
      *
      * @param id the UUID of the party
      * @param userId the ID of the user to invite
@@ -349,22 +349,16 @@ public class LFGPartyService {
         LFGParty party = lfgPartyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
         
-        // Check if current user is the party leader or has admin/moderator role
+        // Check if current user is the party leader
         boolean isPartyLeader = party.getUserId().equals(currentUserId);
-        boolean hasAdminRole = hasRole("ADMIN") || hasRole("MODERATOR");
         
-        if (!isPartyLeader && !hasAdminRole) {
-            throw new UnauthorizedOperationException("Only the party leader or administrators can invite users.");
-        }
-        
-        // Can't invite the party leader
-        if (party.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("Party leader cannot be invited to their own party.");
+        if (!isPartyLeader) {
+            throw new UnauthorizedOperationException("Only the party leader can invite users");
         }
         
         // Check if user is already a participant
-        if (party.getParticipants().contains(userId)) {
-            throw new IllegalArgumentException("User is already in the party.");
+        if (party.getParticipants() != null && party.getParticipants().contains(userId)) {
+            throw new IllegalArgumentException("User is already a participant in the party.");
         }
         
         // Check if user is already invited
@@ -379,6 +373,12 @@ public class LFGPartyService {
         
         // Add user to invitedUsers
         party.getInvitedUsers().add(userId);
+        
+        // If user had a pending join request, remove it since they're now invited
+        if (party.getJoinRequests() != null && party.getJoinRequests().contains(userId)) {
+            party.getJoinRequests().remove(userId);
+        }
+        
         lfgPartyRepository.save(party);
         
         return "User has been invited to the party.";
