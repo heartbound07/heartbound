@@ -116,3 +116,18 @@ export const kickUserFromParty = async (partyId: string, userId: string): Promis
   const response = await httpClient.post(`/api/lfg/parties/${partyId}/kick/${userId}`);
   return response.data;
 };
+
+export const inviteUserToParty = async (partyId: string, userId: string): Promise<string> => {
+  const response = await httpClient.post(`/api/lfg/parties/${partyId}/invite/${userId}`);
+  return response.data;
+};
+
+export const acceptInvitation = async (partyId: string): Promise<string> => {
+  const response = await httpClient.post(`/api/lfg/parties/${partyId}/accept-invite`);
+  return response.data;
+};
+
+export const getInvitedUsers = async (partyId: string): Promise<string[]> => {
+  const response = await httpClient.get(`/api/lfg/parties/${partyId}/invites`);
+  return response.data;
+};
