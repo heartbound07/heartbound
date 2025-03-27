@@ -13,6 +13,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/lfg/parties")
@@ -164,5 +165,45 @@ public class LFGPartyController {
               .build();
         messagingTemplate.convertAndSend("/topic/party", event);
         return result;
+    }
+
+    /**
+     * Invite a user to join a party
+     */
+    @PostMapping("/{id}/invite/{userId}")
+    public String inviteUserToParty(@PathVariable UUID id, @PathVariable String userId) {
+        String result = partyService.inviteUserToParty(id, userId);
+        LFGPartyResponseDTO updatedParty = partyService.getPartyById(id);
+        LFGPartyEventDTO event = LFGPartyEventDTO.builder()
+              .eventType("PARTY_USER_INVITED")
+              .party(updatedParty)
+              .message("Party update: User was invited to party " + id)
+              .build();
+        messagingTemplate.convertAndSend("/topic/party", event);
+        return result;
+    }
+
+    /**
+     * Accept an invitation to join a party
+     */
+    @PostMapping("/{id}/accept-invite")
+    public String acceptInvitation(@PathVariable UUID id) {
+        String result = partyService.acceptInvitation(id);
+        LFGPartyResponseDTO updatedParty = partyService.getPartyById(id);
+        LFGPartyEventDTO event = LFGPartyEventDTO.builder()
+              .eventType("PARTY_INVITATION_ACCEPTED")
+              .party(updatedParty)
+              .message("Party update: User accepted invitation to party " + id)
+              .build();
+        messagingTemplate.convertAndSend("/topic/party", event);
+        return result;
+    }
+
+    /**
+     * Get all invited users for a party
+     */
+    @GetMapping("/{id}/invites")
+    public Set<String> getInvitedUsers(@PathVariable UUID id) {
+        return partyService.getInvitedUsers(id);
     }
 }
