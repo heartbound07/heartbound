@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Users, LogOut, GamepadIcon, Trophy, Globe, Mic, Award, Calendar, Trash2, UserPlus, Loader2, X, Link2, Lock } from "lucide-react"
+import { Users, LogOut, GamepadIcon, Trophy, Globe, Mic, Award, Calendar, Trash2, UserPlus, Loader2, X, Link2, Lock, Plus } from "lucide-react"
 import { Button } from "@/components/ui/valorant/buttonparty"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { useAuth } from "@/contexts/auth/useAuth"
@@ -136,6 +136,7 @@ export default function ValorantPartyDetails() {
   const [isJoining, setIsJoining] = React.useState(false)
   const [selectedProfileId, setSelectedProfileId] = React.useState<string | null>(null)
   const [profilePosition, setProfilePosition] = React.useState<{ x: number, y: number } | null>(null)
+  const [isInvited, setIsInvited] = React.useState(false)
   
   // Toast state
   const [toastInfo, setToastInfo] = React.useState<{
@@ -595,27 +596,37 @@ export default function ValorantPartyDetails() {
                           className="bg-[#283A4B] hover:bg-[#2A3F56] text-white border border-white/10 hover:border-white/30 shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
                           size="sm"
                           onClick={handleJoinParty}
-                          disabled={isJoining || isPartyFull}
+                          disabled={isJoining || isPartyFull || (party?.requirements?.inviteOnly && !isInvited)}
                         >
                           {isJoining ? (
                             <>
                               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                               Joining...
                             </>
+                          ) : party?.requirements?.inviteOnly && !isInvited ? (
+                            <>
+                              <Lock className="h-4 w-4 mr-2" />
+                              Invite Only
+                            </>
+                          ) : isPartyFull ? (
+                            <>
+                              <Users className="h-4 w-4 mr-2" />
+                              Party Full
+                            </>
                           ) : (
                             <>
-                              <UserPlus className="h-4 w-4 mr-2" />
+                              <Plus className="h-4 w-4 mr-2" />
                               Join Party
                             </>
                           )}
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent sideOffset={8} className="bg-[#283A4B] border border-white/10 z-[100]">
-                        <p className="text-sm text-white">
-                          {isPartyFull 
-                            ? "This party is full" 
-                            : "Join this party?"}
-                        </p>
+                      <TooltipContent side="bottom">
+                        {party?.requirements?.inviteOnly && !isInvited 
+                          ? "This party is invite-only. You need an invitation to join."
+                          : isPartyFull 
+                            ? "This party is currently full." 
+                            : "Join this party"}
                       </TooltipContent>
                     </Tooltip>
                   )}
