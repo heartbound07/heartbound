@@ -444,6 +444,44 @@ public class LFGPartyService {
         return party.getInvitedUsers() != null ? party.getInvitedUsers() : new HashSet<>();
     }
 
+    /**
+     * Allows a user to request to join an invite-only party.
+     *
+     * @param id the UUID of the party
+     * @return success message if request succeeds
+     */
+    public String requestToJoinParty(UUID id) {
+        String userId = getCurrentUserId();
+        LFGParty party = lfgPartyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
+        
+        // Check if the party is full
+        if (party.getStatus().equals("full")) {
+            throw new IllegalStateException("Cannot request to join a full party");
+        }
+        
+        // Check if user is already in the party
+        if (party.getParticipants() != null && party.getParticipants().contains(userId)) {
+            throw new IllegalArgumentException("You are already a participant in this party");
+        }
+        
+        // Check if user already has a pending request
+        if (party.getJoinRequests() != null && party.getJoinRequests().contains(userId)) {
+            throw new IllegalArgumentException("You have already requested to join this party");
+        }
+        
+        // Initialize joinRequests if null
+        if (party.getJoinRequests() == null) {
+            party.setJoinRequests(new HashSet<>());
+        }
+        
+        // Add user to joinRequests
+        party.getJoinRequests().add(userId);
+        lfgPartyRepository.save(party);
+        
+        return "Join request sent to party leader";
+    }
+
     // Helper method to check if current user has a role
     private boolean hasRole(String role) {
         // This would be implemented based on your security context architecture
@@ -484,6 +522,7 @@ public class LFGPartyService {
                 .voicePreference(party.getVoicePreference())
                 .ageRestriction(party.getAgeRestriction())
                 .invitedUsers(party.getInvitedUsers())
+                .joinRequests(party.getJoinRequests())
                 .build();
     }
 }

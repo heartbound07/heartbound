@@ -206,4 +206,20 @@ public class LFGPartyController {
     public Set<String> getInvitedUsers(@PathVariable UUID id) {
         return partyService.getInvitedUsers(id);
     }
+
+    /**
+     * Request to join a party when it's invite-only
+     */
+    @PostMapping("/{id}/request-join")
+    public String requestToJoinParty(@PathVariable UUID id) {
+        String result = partyService.requestToJoinParty(id);
+        LFGPartyResponseDTO updatedParty = partyService.getPartyById(id);
+        LFGPartyEventDTO event = LFGPartyEventDTO.builder()
+              .eventType("PARTY_JOIN_REQUESTED")
+              .party(updatedParty)
+              .message("Party update: User has requested to join party " + id)
+              .build();
+        messagingTemplate.convertAndSend("/topic/party", event);
+        return result;
+    }
 }
