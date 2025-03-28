@@ -340,17 +340,19 @@ export default function Listing({ party }: ListingProps) {
               </TooltipContent>
             </Tooltip>
 
-            {/* Invite Only */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-pointer">
-                  <Lock className="h-4 w-4 text-[#8B97A4]" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
-                <p className="text-xs font-medium">{party?.requirements?.inviteOnly ? "Invite Only" : "Open to Join"}</p>
-              </TooltipContent>
-            </Tooltip>
+            {/* Invite Only - Only show when invite-only is enabled */}
+            {party?.requirements?.inviteOnly && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-pointer">
+                    <Lock className="h-4 w-4 text-[#8B97A4]" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
+                  <p className="text-xs font-medium">Invite Only</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
 
             {/* Age Restriction */}
             <Tooltip>

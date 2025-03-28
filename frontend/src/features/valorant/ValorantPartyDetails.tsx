@@ -696,11 +696,14 @@ export default function ValorantPartyDetails() {
                         label="Region" 
                         value={formatDisplayText(party?.requirements?.region)} 
                       />
-                      <IconBadge 
-                        icon={<Lock className="h-5 w-5" />} 
-                        label="Access" 
-                        value={party?.requirements?.inviteOnly ? "Invite Only" : "Open"} 
-                      />
+                      {/* Only show Access badge when invite-only is true */}
+                      {party?.requirements?.inviteOnly && (
+                        <IconBadge 
+                          icon={<Lock className="h-5 w-5" />} 
+                          label="Access" 
+                          value="Invite Only" 
+                        />
+                      )}
                       <IconBadge 
                         icon={<Calendar className="h-5 w-5" />} 
                         label="Age" 
