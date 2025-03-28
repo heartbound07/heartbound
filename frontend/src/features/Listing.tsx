@@ -266,11 +266,11 @@ export default function Listing({ party }: ListingProps) {
   };
 
   const getJoinButtonDisabled = () => {
-    // Don't disable the button for party owners - they should be able to view their party
-    if (isOwner) return false;
+    // Don't disable the button for party owners or participants - they should be able to view their party
+    if (isOwner || isParticipant) return false;
     
     // Keep the original disabling logic for other cases
-    return isJoining || hasRequestedToJoin || isParticipant || !canJoin;
+    return isJoining || hasRequestedToJoin || !canJoin;
   };
 
   // In your render function, use this logic for the button's onClick handler
