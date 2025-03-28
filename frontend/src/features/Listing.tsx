@@ -302,17 +302,31 @@ export default function Listing({ party }: ListingProps) {
         {/* Left side icons group */}
         <div className="flex items-center gap-1">
           <TooltipProvider>
-            {/* Game Mode */}
+            {/* Match Type - Now first in the list */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-pointer">
-                  <GamepadIcon className="h-4 w-4 text-[#8B97A4]" />
+                  <Trophy className="h-4 w-4 text-[#8B97A4]" />
                 </div>
               </TooltipTrigger>
               <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
-                <p className="text-xs font-medium">{formatTooltipText(party.gameMode, "Unrated")}</p>
+                <p className="text-xs font-medium">{formatTooltipText(party.matchType, "Casual")}</p>
               </TooltipContent>
             </Tooltip>
+
+            {/* Game Mode - Only display for non-competitive match types */}
+            {(party.matchType?.toLowerCase() !== 'competitive') && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-pointer">
+                    <GamepadIcon className="h-4 w-4 text-[#8B97A4]" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
+                  <p className="text-xs font-medium">{formatTooltipText(party.gameMode, "Unrated")}</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
 
             {/* Team Size */}
             <Tooltip>
@@ -347,18 +361,6 @@ export default function Listing({ party }: ListingProps) {
               </TooltipTrigger>
               <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
                 <p className="text-xs font-medium">{formatAgeRestriction(party.ageRestriction)}</p>
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Match Type */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-pointer">
-                  <Trophy className="h-4 w-4 text-[#8B97A4]" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
-                <p className="text-xs font-medium">{formatTooltipText(party.matchType, "Casual")}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

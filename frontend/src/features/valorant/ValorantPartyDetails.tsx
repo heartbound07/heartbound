@@ -859,11 +859,14 @@ export default function ValorantPartyDetails() {
                     label="Match Type" 
                     value={formatDisplayText(party?.matchType)} 
                   />
-                  <DetailBadge 
-                    icon={<GamepadIcon className="h-4 w-4" />} 
-                    label="Game Mode" 
-                    value={formatDisplayText(party?.gameMode)} 
-                  />
+                  {/* Game Mode - Only display for non-competitive match types */}
+                  {(party?.matchType?.toLowerCase() !== 'competitive') && (
+                    <DetailBadge 
+                      icon={<GamepadIcon className="h-4 w-4" />} 
+                      label="Game Mode" 
+                      value={formatDisplayText(party?.gameMode)} 
+                    />
+                  )}
                   <DetailBadge 
                     icon={<Users className="h-4 w-4" />} 
                     label="Team Size" 
