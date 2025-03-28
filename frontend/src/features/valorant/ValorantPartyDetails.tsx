@@ -225,6 +225,7 @@ export default function ValorantPartyDetails() {
             // If we have a party ID from the message, compare with the current party
             if (deletedPartyIdFromMessage && String(party.id) === String(deletedPartyIdFromMessage)) {
               console.info(`Extracted party ID ${deletedPartyIdFromMessage} matches current party, redirecting to dashboard`);
+              setUserActiveParty(null); // Clear party state
               setTimeout(() => {
                 navigate("/dashboard/valorant");
               }, 100);
@@ -242,6 +243,7 @@ export default function ValorantPartyDetails() {
             // Compare the string values
             if (deletedPartyId === currentPartyId) {
               console.info(`Party ${deletedPartyId} has been deleted, redirecting to dashboard`);
+              setUserActiveParty(null); // Clear party state
               // Force a short delay to ensure consistent behavior
               setTimeout(() => {
                 navigate("/dashboard/valorant");

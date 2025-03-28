@@ -47,29 +47,29 @@ export const PartyUpdatesProvider = ({ children }: PartyUpdatesProviderProps) =>
     if (update?.party) {
       const party = update.party;
       const isCreator = party.userId === user.id;
-      const isParticipant = party.participants?.includes(user.id);
+      const isParticipant = party.participants?.some((pid: string) => String(pid) === String(user.id));
       
       // Handle different event types
       if (update.eventType === 'PARTY_CREATED' && isCreator) {
-        setUserActiveParty(party.id);
+        setUserActiveParty(String(party.id));
       }
       else if (update.eventType === 'PARTY_JOINED' && isParticipant) {
-        setUserActiveParty(party.id);
+        setUserActiveParty(String(party.id));
       }
-      else if (update.eventType === 'PARTY_DELETED' && userActiveParty === party.id) {
+      else if (update.eventType === 'PARTY_DELETED' && String(userActiveParty) === String(party.id)) {
         setUserActiveParty(null);
       }
-      else if (update.eventType === 'PARTY_LEFT' && userActiveParty === party.id && !isParticipant) {
+      else if (update.eventType === 'PARTY_LEFT' && String(userActiveParty) === String(party.id) && !isParticipant) {
         setUserActiveParty(null);
       }
-      else if (update.eventType === 'PARTY_USER_KICKED' && userActiveParty === party.id && !isParticipant) {
+      else if (update.eventType === 'PARTY_USER_KICKED' && String(userActiveParty) === String(party.id) && !isParticipant) {
         setUserActiveParty(null);
       }
       else if ((update.eventType === 'PARTY_JOIN_REQUEST' || update.eventType === 'PARTY_JOIN_REQUESTED') && isCreator) {
         // No need to change userActiveParty, but the update will be available to components
       }
       else if (update.eventType === 'PARTY_JOIN_REQUEST_ACCEPTED' && isParticipant) {
-        setUserActiveParty(party.id);
+        setUserActiveParty(String(party.id));
       }
       else if (update.eventType === 'PARTY_JOIN_REQUEST_REJECTED' && user.id === update.targetUserId) {
         // No need to change userActiveParty, but the update will be available to components

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 import java.util.Set;
+import java.util.HashSet;
 
 @RestController
 @RequestMapping("/lfg/parties")
@@ -117,6 +118,9 @@ public class LFGPartyController {
         // Get party details before deletion to include in the event
         LFGPartyResponseDTO partyToDelete = partyService.getPartyById(id);
         
+        // Store participants for targeted notifications
+        Set<String> participants = new HashSet<>(partyToDelete.getParticipants());
+        
         // Delete the party
         partyService.deleteParty(id);
         
@@ -127,6 +131,7 @@ public class LFGPartyController {
                 .message("Party update: Party " + id + " has been deleted.")
                 .build();
         
+        // Broadcast to all subscribers
         messagingTemplate.convertAndSend("/topic/party", event);
     }
 

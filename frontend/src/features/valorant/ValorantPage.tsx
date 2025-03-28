@@ -18,7 +18,7 @@ export default function Home() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [groupErrorMessage, setGroupErrorMessage] = useState<string | null>(null);
   const { user } = useAuth();
-  const { update, clearUpdate, userActiveParty } = usePartyUpdates();
+  const { update, clearUpdate, userActiveParty, setUserActiveParty } = usePartyUpdates();
   const [isLoading, setIsLoading] = useState(true);
 
   // Define a reusable function to fetch parties.
@@ -83,6 +83,40 @@ export default function Home() {
 
   // Check if user already has a party
   const userHasParty = userActiveParty !== null;
+
+  // Create Group Button Handler
+  const handleCreateGroupClick = () => {
+    // Check if user is already in a party
+    const userHasParty = userActiveParty !== null;
+    
+    // If user has a party but we're not sure if it's valid, let's verify
+    if (userHasParty) {
+      try {
+        // Optional: Verify party existence before blocking creation
+        httpClient.get(`/api/lfg/parties/${userActiveParty}`)
+          .then(() => {
+            // Party exists, show error
+            setGroupErrorMessage("Error: You can only be in one party at a time");
+          })
+          .catch(err => {
+            if (err.response?.status === 404) {
+              // Party doesn't exist, clear state and allow creation
+              setUserActiveParty(null);
+              setShowCreateForm(true);
+            } else {
+              // Other error, show message
+              setGroupErrorMessage("Error: You can only be in one party at a time");
+            }
+          });
+      } catch (err) {
+        // If verification fails, assume user can create a party
+        setGroupErrorMessage("Error: You can only be in one party at a time");
+      }
+    } else {
+      // User doesn't have a party, allow creation
+      setShowCreateForm(true);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0F1923] text-white font-sans">
@@ -181,13 +215,7 @@ export default function Home() {
                       </Select>
                       
                       <Button
-                        onClick={() => {
-                          if (userHasParty) {
-                            setGroupErrorMessage("Error: You can only be in one party at a time");
-                          } else {
-                            setShowCreateForm(true);
-                          }
-                        }}
+                        onClick={handleCreateGroupClick}
                         className="text-sm font-medium transition-all bg-[#FF4655] hover:bg-[#FF4655]/90 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105"
                       >
                         <Plus className="w-4 h-4" />
