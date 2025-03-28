@@ -99,8 +99,8 @@ export default function Listing({ party }: ListingProps) {
   // Check if the user is already in any party
   const isInAnyParty = !!userActiveParty
   
-  // Check if user is the owner of this party
-  const isOwner = user?.id === party.userId
+  // Make sure this check is correct in the component
+  const isOwner = party.userId === user?.id;
   
   // Add state for toast message
   const [toast, setToast] = useState<{message: string, type: 'error' | 'success' | 'info'} | null>(null)
@@ -224,8 +224,8 @@ export default function Listing({ party }: ListingProps) {
   // Handle the "View Party" navigation for owners and existing participants
   const handleViewParty = () => {
     // Redirect owners or participants to the party details page using the correct route
-    navigate(`/dashboard/valorant/${party.id}`)
-  }
+    navigate(`/dashboard/valorant/${party.id}`);
+  };
 
   // Get the appropriate button text based on user's status
   const getButtonText = () => {
@@ -258,15 +258,28 @@ export default function Listing({ party }: ListingProps) {
   // Add this near your render logic to determine button state and text
   const getJoinButtonText = () => {
     if (isJoining) return "Processing...";
+    if (isOwner) return "Your Party";
     if (hasRequestedToJoin) return "Request Pending";
     if (isParticipant) return "Already Joined";
-    if (isOwner) return "Your Party";
     if (isInviteOnly) return "Request to Join";
     return "Join Party";
   };
 
   const getJoinButtonDisabled = () => {
-    return isJoining || hasRequestedToJoin || isParticipant || isOwner || !canJoin;
+    // Don't disable the button for party owners - they should be able to view their party
+    if (isOwner) return false;
+    
+    // Keep the original disabling logic for other cases
+    return isJoining || hasRequestedToJoin || isParticipant || !canJoin;
+  };
+
+  // In your render function, use this logic for the button's onClick handler
+  const getButtonHandler = () => {
+    if (isOwner || isParticipant) {
+      return handleViewParty;
+    } else {
+      return handleJoinGame;
+    }
   };
 
   return (
@@ -431,7 +444,7 @@ export default function Listing({ party }: ListingProps) {
           {/* Join/View Button - Positioned to the right */}
           <div className="flex-shrink-0">
             <Button
-              onClick={isOwner || isParticipant ? handleViewParty : handleJoinGame}
+              onClick={getButtonHandler()}
               disabled={getJoinButtonDisabled()}
               className={`py-2 px-3 h-auto text-xs font-semibold tracking-wide transition-all 
                 duration-300 ease-in-out transform hover:scale-[1.05] shadow-md
@@ -442,7 +455,7 @@ export default function Listing({ party }: ListingProps) {
                     : "bg-[#FF4655] hover:bg-[#FF4655]/90 text-white"
                 }`}
             >
-              {getJoinButtonText()}
+              {getButtonText()}
             </Button>
           </div>
         </div>
