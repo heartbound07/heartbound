@@ -209,9 +209,9 @@ export default function ValorantPartyDetails() {
         
         // Handle party deletion event
         if (updateObj?.eventType === "PARTY_DELETED") {
-          // Check if this deletion affects the current party
-          if (update.party?.id === party.id || !update.party) {
-            console.info("Party has been deleted, redirecting to dashboard")
+          // Only redirect if the deleted party ID matches the currently viewed party ID
+          if (update.party?.id === party.id) {
+            console.info("Current party has been deleted, redirecting to dashboard")
             navigate("/dashboard/valorant")
             return  // Early return to avoid further processing
           }

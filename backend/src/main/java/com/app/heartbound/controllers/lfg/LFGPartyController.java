@@ -114,11 +114,19 @@ public class LFGPartyController {
      */
     @DeleteMapping("/{id}")
     public void deleteParty(@PathVariable UUID id) {
+        // Get party details before deletion to include in the event
+        LFGPartyResponseDTO partyToDelete = partyService.getPartyById(id);
+        
+        // Delete the party
         partyService.deleteParty(id);
+        
+        // Create the event with the deleted party details
         LFGPartyEventDTO event = LFGPartyEventDTO.builder()
-              .eventType("PARTY_DELETED")
-              .message("Party update: Party " + id + " has been deleted.")
-              .build();
+                .eventType("PARTY_DELETED")
+                .party(partyToDelete)  // Include the full party object so frontend has the ID
+                .message("Party update: Party " + id + " has been deleted.")
+                .build();
+        
         messagingTemplate.convertAndSend("/topic/party", event);
     }
 
