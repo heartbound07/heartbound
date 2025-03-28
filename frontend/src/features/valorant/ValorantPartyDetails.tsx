@@ -207,14 +207,50 @@ export default function ValorantPartyDetails() {
         // If update is already an object, use it directly; otherwise, parse it.
         const updateObj = typeof update === "string" ? JSON.parse(update) : update
         
+        console.log("Received update:", updateObj);
+        console.log("Current party:", party);
+        
         // Handle party deletion event
         if (updateObj?.eventType === "PARTY_DELETED") {
-          // Only redirect if the deleted party ID matches the currently viewed party ID
-          if (update.party?.id === party.id) {
-            console.info("Current party has been deleted, redirecting to dashboard")
-            navigate("/dashboard/valorant")
-            return  // Early return to avoid further processing
+          console.log("Handling PARTY_DELETED event");
+          
+          // Extract party ID from message if party object is null
+          if (!updateObj.party) {
+            // Try to extract party ID from message (format: "Party update: Party {id} has been deleted.")
+            const messageMatch = updateObj.message?.match(/Party ([0-9a-f-]+) has been deleted/);
+            const deletedPartyIdFromMessage = messageMatch ? messageMatch[1] : null;
+            
+            console.log("Party object is null, extracted ID from message:", deletedPartyIdFromMessage);
+            
+            // If we have a party ID from the message, compare with the current party
+            if (deletedPartyIdFromMessage && String(party.id) === String(deletedPartyIdFromMessage)) {
+              console.info(`Extracted party ID ${deletedPartyIdFromMessage} matches current party, redirecting to dashboard`);
+              setTimeout(() => {
+                navigate("/dashboard/valorant");
+              }, 100);
+              return;
+            }
+          } else {
+            // Normal case - party object exists in the update
+            console.log("Update party ID:", updateObj.party?.id);
+            console.log("Current party ID:", party.id);
+            
+            // Ensure reliable comparison by converting both to strings
+            const currentPartyId = String(party.id);
+            const deletedPartyId = String(updateObj.party?.id);
+            
+            // Compare the string values
+            if (deletedPartyId === currentPartyId) {
+              console.info(`Party ${deletedPartyId} has been deleted, redirecting to dashboard`);
+              // Force a short delay to ensure consistent behavior
+              setTimeout(() => {
+                navigate("/dashboard/valorant");
+              }, 100);
+              return; // Early return to avoid further processing
+            }
           }
+          
+          console.log("Party IDs don't match or couldn't be determined, not redirecting");
         }
         
         // Check for other relevant event types
