@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/valorant/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
 import { Button } from "@/components/ui/valorant/button"
-import { GamepadIcon, Trophy, Plus } from "lucide-react"
+import { GamepadIcon, Trophy, Plus, ShoppingBag } from "lucide-react"
 import httpClient from '@/lib/api/httpClient';
 import PostGroupModal from "@/features/GroupCreate";
 import Listing from "@/features/Listing";
@@ -172,11 +172,11 @@ export default function Home() {
                     Play
                   </TabsTrigger>
                   <TabsTrigger
-                    value="leaderboard"
+                    value="shop"
                     className="bg-transparent text-white data-[state=active]:bg-[#FF4655] data-[state=active]:text-white rounded-md px-6 py-2 transition-all hover:bg-transparent hover:text-white"
                   >
-                    <Trophy className="w-4 h-4 mr-2" />
-                    Leaderboard
+                    <ShoppingBag className="w-4 h-4 mr-2" />
+                    Shop
                   </TabsTrigger>
                 </TabsList>
 
@@ -257,12 +257,12 @@ export default function Home() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="leaderboard" className="mt-6">
+                <TabsContent value="shop" className="mt-6">
                   <div className="text-center py-12 bg-[#1F2731]/30 rounded-lg border border-white/5">
-                    <Trophy className="w-12 h-12 mx-auto mb-4 text-white/30" />
-                    <h3 className="text-xl font-semibold text-white/80 mb-2">Leaderboard Coming Soon</h3>
+                    <ShoppingBag className="w-12 h-12 mx-auto mb-4 text-white/30" />
+                    <h3 className="text-xl font-semibold text-white/80 mb-2">Shop Coming Soon</h3>
                     <p className="text-white/50 max-w-md mx-auto">
-                      The leaderboard feature is currently in development. Check back soon!
+                      The shop is currently in development. Check back soon to purchase exclusive items!
                     </p>
                   </div>
                 </TabsContent>
