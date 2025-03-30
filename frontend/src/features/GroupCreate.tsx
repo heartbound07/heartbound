@@ -611,9 +611,18 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
                   {inviteOnly ? "Yes" : "No"}
                 </span>
               </div>
-              <p className="text-xs text-white/40">
-                When enabled, only players with an invite can join your party.
-              </p>
+              <AnimatePresence>
+                {inviteOnly && (
+                  <motion.p 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="text-xs text-white/40"
+                  >
+                    When enabled, player's must be invited or request to join.
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 

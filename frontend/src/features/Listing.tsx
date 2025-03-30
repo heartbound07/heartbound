@@ -340,7 +340,19 @@ export default function Listing({ party }: ListingProps) {
               </TooltipContent>
             </Tooltip>
 
-            {/* Invite Only - Only show when invite-only is enabled */}
+            {/* Age Restriction */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-pointer">
+                  <Calendar className="h-4 w-4 text-[#8B97A4]" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
+                <p className="text-xs font-medium">{formatAgeRestriction(party.ageRestriction)}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            {/* Invite Only - Moved to appear after Age Restriction */}
             {party?.requirements?.inviteOnly && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -353,18 +365,6 @@ export default function Listing({ party }: ListingProps) {
                 </TooltipContent>
               </Tooltip>
             )}
-
-            {/* Age Restriction */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="p-2 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-pointer">
-                  <Calendar className="h-4 w-4 text-[#8B97A4]" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="left" sideOffset={5} className="bg-[#1F2731] border border-white/10">
-                <p className="text-xs font-medium">{formatAgeRestriction(party.ageRestriction)}</p>
-              </TooltipContent>
-            </Tooltip>
           </TooltipProvider>
         </div>
 
