@@ -718,9 +718,6 @@ export default function ValorantPartyDetails() {
                   </div>
                   {/* Game and Status Info Row */}
                   <div className="flex gap-2 flex-wrap mt-2">
-                    <span className="py-1 px-3 rounded-full bg-[#FF4655]/10 text-[#FF4655] text-xs font-semibold border border-[#FF4655]/20">
-                      {formatDisplayText(party.game)}
-                    </span>
                     <span className={`py-1 px-3 rounded-full text-xs font-semibold ${
                       party.status === 'open' 
                         ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
