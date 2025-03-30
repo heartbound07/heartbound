@@ -312,7 +312,11 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
                 <div>
                   <button
                     onClick={() => {
-                      if (item.path === "/dashboard" && gamesExpanded) {
+                      // If sidebar is collapsed and clicking on Discover, expand the sidebar and show games submenu
+                      if (isCollapsed && item.path === "/dashboard") {
+                        setIsCollapsed(false);
+                        setGamesExpanded(true);
+                      } else if (item.path === "/dashboard" && gamesExpanded) {
                         // If clicking on Dashboard while games are expanded, just collapse
                         setGamesExpanded(false);
                       } else if (item.hasSubmenu) {
