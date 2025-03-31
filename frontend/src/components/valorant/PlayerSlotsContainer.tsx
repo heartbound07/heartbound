@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/valorant/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { type UserProfileDTO } from "@/config/userService"
 import { usePartyParticipants } from "@/hooks/usePartyParticipants"
-import "../assets/animations.css"
+import "../../assets/animations.css"
 
 // Individual PlayerSlot component to reduce duplication
 interface PlayerSlotProps {
