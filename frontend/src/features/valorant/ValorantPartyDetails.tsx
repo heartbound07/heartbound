@@ -15,6 +15,7 @@ import { CountdownTimer } from "@/components/CountdownTimer"
 import { UserProfileModal } from "@/components/UserProfileModal"
 import { SkeletonPartyDetails } from '@/components/ui/SkeletonUI'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
+import { usePartyParticipants } from '@/hooks/usePartyParticipants'
 
 // Custom Toast Component
 const Toast = ({ 
@@ -168,6 +169,45 @@ export default function ValorantPartyDetails() {
 
   // Placeholder avatar for participants who don't have an available avatar.
   const placeholderAvatar = "https://v0.dev/placeholder.svg?height=400&width=400"
+
+  // Memoize important derived values
+  const isUserLeader = React.useMemo(() => 
+    user?.id === leaderId, 
+    [user?.id, leaderId]
+  );
+
+  const isUserParticipant = React.useMemo(() => 
+    participants.includes(user?.id || ""), 
+    [participants, user?.id]
+  );
+
+  const isInviteOnly = React.useMemo(() => 
+    party?.requirements?.inviteOnly === true,
+    [party?.requirements?.inviteOnly]
+  );
+
+  const hasJoinRequested = React.useMemo(() => 
+    party?.joinRequests?.includes(user?.id || ""),
+    [party?.joinRequests, user?.id]
+  );
+
+  const canJoin = React.useMemo(() => {
+    if (!party || !user) return false;
+    if (isUserLeader || isUserParticipant) return false;
+    if (hasJoinRequested) return false;
+    
+    return true;
+  }, [party, user, isUserLeader, isUserParticipant, hasJoinRequested]);
+
+  // If you're not using these values directly, use this simpler approach instead:
+  usePartyParticipants({
+    participants,
+    leaderId,
+    maxPlayers: party?.maxPlayers || 5,
+    userProfiles,
+    placeholderAvatar,
+    currentUser: user ? { id: user.id, avatar: user.avatar } : undefined
+  });
 
   // Initial party fetch
   React.useEffect(() => {
@@ -528,10 +568,6 @@ export default function ValorantPartyDetails() {
       showToast(err.message || "Could not kick the user. Try again later.", "error");
     }
   };
-
-  // Move this declaration up before it's used in canDeleteParty
-  const isUserLeader = leaderId === user?.id;
-  const isUserParticipant = participants.includes(user?.id || '');
 
   // Add a new variable to check if user has admin or moderator privileges
   const hasAdminPrivileges = React.useMemo(() => {
