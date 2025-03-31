@@ -398,7 +398,11 @@ export default function ValorantPartyDetails() {
       const fetchJoinRequestProfiles = async () => {
         try {
           const profiles = await getUserProfiles(party.joinRequests);
-          setUserProfiles(profiles);
+          // Update to merge profiles instead of replacing them
+          setUserProfiles(prevProfiles => ({
+            ...prevProfiles,
+            ...profiles
+          }));
         } catch (error) {
           console.error("Error fetching join request profiles:", error);
         }
