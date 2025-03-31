@@ -47,9 +47,15 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
     return savedState ? JSON.parse(savedState) : false
   })
   
-  // Update localStorage when isCollapsed changes
+  // Update localStorage and dispatch a custom event when isCollapsed changes
   useEffect(() => {
     localStorage.setItem('sidebar-collapsed', JSON.stringify(isCollapsed))
+    
+    // Dispatch a custom event that other components can listen for
+    const event = new CustomEvent('sidebarStateChange', { 
+      detail: { collapsed: isCollapsed } 
+    });
+    window.dispatchEvent(event);
     
     // Notify parent components about the change
     if (onCollapseChange) {

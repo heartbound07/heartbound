@@ -48,36 +48,35 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
   // Import useNavigate to allow redirection after group creation
   const navigate = useNavigate()
 
-  // Track sidebar collapse state
+  // Track sidebar collapse state with direct event listening
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     const savedState = localStorage.getItem('sidebar-collapsed')
     return savedState ? JSON.parse(savedState) : false
   })
   
-  // Listen for changes to sidebar state in localStorage
+  // Listen for direct sidebar state changes using a custom event
   useEffect(() => {
+    // Function to handle the custom sidebar state change event
+    const handleSidebarStateChange = (event: CustomEvent) => {
+      setIsSidebarCollapsed(event.detail.collapsed);
+    }
+
+    // Function to handle storage changes (for cross-tab synchronization)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'sidebar-collapsed') {
         setIsSidebarCollapsed(e.newValue ? JSON.parse(e.newValue) : false)
       }
     }
     
-    // Also check for direct changes in the same window
-    const checkLocalStorage = () => {
-      const currentState = localStorage.getItem('sidebar-collapsed')
-      setIsSidebarCollapsed(currentState ? JSON.parse(currentState) : false)
-    }
-    
-    window.addEventListener('storage', handleStorageChange)
-    
-    // Set up interval to check for changes (for same-window updates)
-    const interval = setInterval(checkLocalStorage, 300)
+    // Add event listeners for both custom event and storage event
+    window.addEventListener('sidebarStateChange', handleSidebarStateChange as EventListener);
+    window.addEventListener('storage', handleStorageChange);
     
     return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      clearInterval(interval)
+      window.removeEventListener('sidebarStateChange', handleSidebarStateChange as EventListener);
+      window.removeEventListener('storage', handleStorageChange);
     }
-  }, [])
+  }, []);
 
   // Validation helper function for character count
   const countCharacters = (text: string): number => {
