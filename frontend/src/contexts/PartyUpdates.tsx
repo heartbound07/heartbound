@@ -5,6 +5,7 @@ import React, {
   ReactNode,
   useContext,
   useMemo,
+  useCallback,
 } from 'react';
 import webSocketService from '../config/WebSocketService';
 import { useAuth } from '@/contexts/auth/useAuth';
@@ -14,15 +15,15 @@ export interface LFGPartyEvent {
   eventType: string;
   party: any; // You can later replace "any" with a proper type for LFGPartyResponseDTO
   message: string;
-  targetUserId?: string; // Add this optional field
+  targetUserId?: string;
 }
 
 interface PartyUpdatesContextProps {
   update: LFGPartyEvent | null;
   error: string | null;
   clearUpdate: () => void;
-  userActiveParty: string | null; // Track the user's active party ID
-  setUserActiveParty: (partyId: string | null) => void; // Expose this function
+  userActiveParty: string | null;
+  setUserActiveParty: (partyId: string | null) => void;
 }
 
 const PartyUpdatesContext = createContext<PartyUpdatesContextProps | undefined>(undefined);
@@ -38,44 +39,47 @@ export const PartyUpdatesProvider = ({ children }: PartyUpdatesProviderProps) =>
   const [isConnecting, setIsConnecting] = useState(false);
   const [userActiveParty, setUserActiveParty] = useState<string | null>(null);
 
-  const clearUpdate = () => setUpdate(null);
+  // Memoize the clear update function to avoid unnecessary re-renders
+  const clearUpdate = useCallback(() => setUpdate(null), []);
 
   // Effect to update active party status when WebSocket sends an update
   useEffect(() => {
-    if (!user?.id) return;
-
-    if (update?.party) {
-      const party = update.party;
-      const isCreator = party.userId === user.id;
-      const isParticipant = party.participants?.some((pid: string) => String(pid) === String(user.id));
-      
-      // Handle different event types
-      if (update.eventType === 'PARTY_CREATED' && isCreator) {
-        setUserActiveParty(String(party.id));
-      }
-      else if (update.eventType === 'PARTY_JOINED' && isParticipant) {
-        setUserActiveParty(String(party.id));
-      }
-      else if (update.eventType === 'PARTY_DELETED' && String(userActiveParty) === String(party.id)) {
-        setUserActiveParty(null);
-      }
-      else if (update.eventType === 'PARTY_LEFT' && String(userActiveParty) === String(party.id) && !isParticipant) {
-        setUserActiveParty(null);
-      }
-      else if (update.eventType === 'PARTY_USER_KICKED' && String(userActiveParty) === String(party.id) && !isParticipant) {
-        setUserActiveParty(null);
-      }
-      else if ((update.eventType === 'PARTY_JOIN_REQUEST' || update.eventType === 'PARTY_JOIN_REQUESTED') && isCreator) {
-        // No need to change userActiveParty, but the update will be available to components
-      }
-      else if (update.eventType === 'PARTY_JOIN_REQUEST_ACCEPTED' && isParticipant) {
-        setUserActiveParty(String(party.id));
-      }
-      else if (update.eventType === 'PARTY_JOIN_REQUEST_REJECTED' && user.id === update.targetUserId) {
-        // No need to change userActiveParty, but the update will be available to components
-      }
+    // Early return if user is not authenticated or no update is received
+    if (!user?.id || !update?.party) return;
+    
+    const party = update.party;
+    const isCreator = party.userId === user.id;
+    const isParticipant = party.participants?.some(
+      (pid: string) => String(pid) === String(user.id)
+    );
+    const isSameParty = String(userActiveParty) === String(party.id);
+    
+    // Create a switch statement for better readability and performance
+    switch(update.eventType) {
+      case 'PARTY_CREATED':
+        if (isCreator) setUserActiveParty(String(party.id));
+        break;
+      case 'PARTY_JOINED':
+        if (isParticipant) setUserActiveParty(String(party.id));
+        break;
+      case 'PARTY_DELETED':
+        if (isSameParty) setUserActiveParty(null);
+        break;
+      case 'PARTY_LEFT':
+      case 'PARTY_USER_KICKED':
+        if (isSameParty && !isParticipant) setUserActiveParty(null);
+        break;
+      case 'PARTY_JOIN_REQUEST_ACCEPTED':
+        if (isParticipant) setUserActiveParty(String(party.id));
+        break;
+      // No need to change userActiveParty for these events, but we keep them to maintain functionality
+      case 'PARTY_JOIN_REQUEST':
+      case 'PARTY_JOIN_REQUESTED':
+      case 'PARTY_JOIN_REQUEST_REJECTED':
+        // Just maintain the existing state
+        break;
     }
-  }, [update, user?.id, userActiveParty]);
+  }, [update?.eventType, update?.party, update?.targetUserId, user?.id, userActiveParty]);
 
   useEffect(() => {
     if (!isAuthenticated || !tokens || !tokens.accessToken) {
@@ -112,14 +116,14 @@ export const PartyUpdatesProvider = ({ children }: PartyUpdatesProviderProps) =>
     };
   }, [isAuthenticated, tokens]);
 
-  // Memoize to avoid unnecessary re-renders.
+  // Memoize context value to avoid unnecessary re-renders
   const contextValue = useMemo(() => ({ 
     update, 
     error, 
     clearUpdate, 
     userActiveParty,
     setUserActiveParty
-  }), [update, error, userActiveParty]);
+  }), [update, error, clearUpdate, userActiveParty]);
 
   return (
     <PartyUpdatesContext.Provider value={contextValue}>
