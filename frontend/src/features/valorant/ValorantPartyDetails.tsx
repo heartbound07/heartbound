@@ -17,6 +17,7 @@ import { SkeletonPartyDetails } from '@/components/ui/SkeletonUI'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
 import { usePartyParticipants } from '@/hooks/usePartyParticipants'
 import { usePartyJoinRequests } from '@/hooks/usePartyJoinRequests'
+import { JoinRequestSection } from "@/components/valorant/JoinRequestSection"
 
 // Custom Toast Component
 const Toast = ({ 
@@ -939,60 +940,16 @@ export default function ValorantPartyDetails() {
                   This is an invite-only party. As the leader, you can invite users to join.
                 </p>
                 
-                {/* Join Requests Section - Enhanced UI */}
-                {party.joinRequests && party.joinRequests.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="text-sm font-medium mb-2 text-[#FF4655]">Join Requests:</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {party.joinRequests.map((userId: string) => (
-                        <div 
-                          key={userId} 
-                          className="flex items-center gap-2 bg-[#1F2731]/80 p-2.5 rounded-md border border-white/5 hover:border-white/10 hover:bg-[#283A4B]/80 transition-all duration-200 shadow-sm"
-                        >
-                          <div 
-                            className="flex items-center gap-2 cursor-pointer" 
-                            onClick={(e) => handleJoinRequesterProfileClick(userId, e)}
-                          >
-                            <Avatar className="h-7 w-7 ring-1 ring-white/10 hover:ring-[#FF4655]/30 transition-all duration-300">
-                              <AvatarImage 
-                                src={joinRequestProfiles[userId]?.avatar || placeholderAvatar} 
-                                alt={joinRequestProfiles[userId]?.username || "User"} 
-                              />
-                              <AvatarFallback className="bg-[#283A4B] text-white/90">
-                                {joinRequestProfiles[userId]?.username?.charAt(0) || "U"}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm font-medium text-white/90 hover:text-white transition-colors duration-200">
-                              {joinRequestProfiles[userId]?.username || "Unknown User"}
-                            </span>
-                          </div>
-                          
-                          {/* Enhanced Accept/Reject buttons */}
-                          <div className="flex gap-1.5 ml-2.5">
-                            <Button 
-                              onClick={() => handleAcceptJoinRequest(userId)}
-                              className="bg-green-500/20 hover:bg-green-500 text-green-400 hover:text-white p-1 h-7 w-7 rounded-full border border-green-500/30 transition-colors duration-200 shadow-md hover:shadow-green-500/10"
-                              aria-label="Accept join request"
-                              title="Accept"
-                              disabled={isProcessingRequest}
-                            >
-                              {isProcessingRequest ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                            </Button>
-                            <Button 
-                              onClick={() => handleRejectJoinRequest(userId)}
-                              className="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white p-1 h-7 w-7 rounded-full border border-red-500/30 transition-colors duration-200 shadow-md hover:shadow-red-500/10"
-                              aria-label="Reject join request"
-                              title="Reject"
-                              disabled={isProcessingRequest}
-                            >
-                              {isProcessingRequest ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XIcon className="h-3.5 w-3.5" />}
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {/* Join Requests Section - Using the extracted component */}
+                <JoinRequestSection
+                  isUserLeader={isUserLeader}
+                  joinRequests={party.joinRequests || []}
+                  joinRequestProfiles={joinRequestProfiles}
+                  placeholderAvatar={placeholderAvatar}
+                  isProcessingRequest={isProcessingRequest}
+                  handleAcceptJoinRequest={handleAcceptJoinRequest}
+                  handleRejectJoinRequest={handleRejectJoinRequest}
+                />
                 
                 {/* Invited Users Section (existing code) */}
                 {invitedUsers.length > 0 && (
