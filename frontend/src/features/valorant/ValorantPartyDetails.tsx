@@ -202,90 +202,112 @@ export default function ValorantPartyDetails() {
 
   // Listen for party updates
   React.useEffect(() => {
-    if (update && party?.id) {
-      try {
-        // If update is already an object, use it directly; otherwise, parse it.
-        const updateObj = typeof update === "string" ? JSON.parse(update) : update
+    if (update && update.party && update.party.id === party?.id) {
+      const updatedParty = update.party;
+      
+      // Use the party data from the update instead of making a new API call
+      if (['PARTY_JOIN_REQUEST', 'PARTY_JOIN_REQUESTED', 'PARTY_JOIN_REQUEST_ACCEPTED', 'PARTY_JOIN_REQUEST_REJECTED'].includes(update.eventType)) {
+        // Update all party state at once with the data from the WebSocket
+        setParty(updatedParty);
+        setLeaderId(updatedParty.userId);
+        setParticipants(updatedParty.participants || []);
         
-        console.log("Received update:", updateObj);
-        console.log("Current party:", party);
-        
-        // Handle party deletion event
-        if (updateObj?.eventType === "PARTY_DELETED") {
-          console.log("Handling PARTY_DELETED event");
-          
-          // Extract party ID from message if party object is null
-          if (!updateObj.party) {
-            // Try to extract party ID from message (format: "Party update: Party {id} has been deleted.")
-            const messageMatch = updateObj.message?.match(/Party ([0-9a-f-]+) has been deleted/);
-            const deletedPartyIdFromMessage = messageMatch ? messageMatch[1] : null;
-            
-            console.log("Party object is null, extracted ID from message:", deletedPartyIdFromMessage);
-            
-            // If we have a party ID from the message, compare with the current party
-            if (deletedPartyIdFromMessage && String(party.id) === String(deletedPartyIdFromMessage)) {
-              console.info(`Extracted party ID ${deletedPartyIdFromMessage} matches current party, redirecting to dashboard`);
-              setUserActiveParty(null); // Clear party state
-              setTimeout(() => {
-                navigate("/dashboard/valorant");
-              }, 100);
-              return;
+        // Handle event-specific logic
+        switch (update.eventType) {
+          case 'PARTY_JOIN_REQUEST':
+          case 'PARTY_JOIN_REQUESTED':
+            // Show toast notification for party owner
+            if (user?.id === party.userId) {
+              showToast("A new player has requested to join your party", "info");
             }
-          } else {
-            // Normal case - party object exists in the update
-            console.log("Update party ID:", updateObj.party?.id);
-            console.log("Current party ID:", party.id);
             
-            // Ensure reliable comparison by converting both to strings
-            const currentPartyId = String(party.id);
-            const deletedPartyId = String(updateObj.party?.id);
-            
-            // Compare the string values
-            if (deletedPartyId === currentPartyId) {
-              console.info(`Party ${deletedPartyId} has been deleted, redirecting to dashboard`);
-              setUserActiveParty(null); // Clear party state
-              // Force a short delay to ensure consistent behavior
-              setTimeout(() => {
-                navigate("/dashboard/valorant");
-              }, 100);
-              return; // Early return to avoid further processing
-            }
-          }
-          
-          console.log("Party IDs don't match or couldn't be determined, not redirecting");
-        }
-        
-        // Check for other relevant event types
-        if (updateObj?.eventType && ["PARTY_JOINED", "PARTY_UPDATED", "PARTY_LEFT", "PARTY_USER_KICKED"].includes(updateObj.eventType)) {
-          getParty(party.id)
-            .then((data) => {
-              setParty(data)
-              setLeaderId(data.userId)
-              setParticipants(data.participants || [])
+            // Load profiles for new join requests if needed
+            if (updatedParty.joinRequests?.length > 0) {
+              const missingRequestProfiles = updatedParty.joinRequests.filter(
+                (id: string) => !joinRequestProfiles[id]
+              );
               
-              // Fetch profiles for any new participants
-              const currentProfileIds = Object.keys(userProfiles)
-              const newParticipantIds = data.participants.filter(
-                (id: string) => !currentProfileIds.includes(id)
-              )
-              
-              if (newParticipantIds.length > 0) {
-                // Make sure we're filtering to get only string IDs
-                const validNewParticipantIds = newParticipantIds.filter((id): id is string => typeof id === 'string');
-                return getUserProfiles(validNewParticipantIds).then(newProfiles => {
-                  setUserProfiles(prev => ({...prev, ...newProfiles}))
-                })
+              if (missingRequestProfiles.length > 0) {
+                getUserProfiles(missingRequestProfiles)
+                  .then(profiles => {
+                    setJoinRequestProfiles(prev => ({
+                      ...prev,
+                      ...profiles
+                    }));
+                  })
+                  .catch(error => {
+                    console.error("Error fetching join request profiles:", error);
+                  });
               }
-            })
-            .catch((err: any) => {
-              console.error("Error getting updated party:", err)
-            })
+            }
+            break;
+            
+          case 'PARTY_JOIN_REQUEST_ACCEPTED':
+            // Toast for the target user who was accepted
+            if (user?.id === update.targetUserId) {
+              showToast("Your request to join the party was accepted!", "success");
+            }
+            
+            // Fetch profiles for any participants we don't already have
+            const missingProfiles = updatedParty.participants?.filter((id: string) => !userProfiles[id]) || [];
+            if (missingProfiles.length > 0) {
+              getUserProfiles(missingProfiles)
+                .then(profiles => {
+                  setUserProfiles(prevProfiles => ({
+                    ...prevProfiles,
+                    ...profiles
+                  }));
+                })
+                .catch(error => {
+                  console.error("Error fetching new participant profiles:", error);
+                });
+            }
+            
+            // If a join request was accepted and we have the profile in joinRequestProfiles,
+            // move it to userProfiles
+            if (update.targetUserId && joinRequestProfiles[update.targetUserId]) {
+              setUserProfiles(prevProfiles => ({
+                ...prevProfiles,
+                [update.targetUserId as string]: joinRequestProfiles[update.targetUserId as string]
+              }));
+              
+              // Remove from joinRequestProfiles
+              setJoinRequestProfiles(prev => {
+                // Use proper TypeScript approach for removing a property
+                const newProfiles = { ...prev };
+                if (update.targetUserId) {
+                  delete newProfiles[update.targetUserId];
+                }
+                return newProfiles;
+              });
+            }
+            break;
+            
+          case 'PARTY_JOIN_REQUEST_REJECTED':
+            // Toast for the target user who was rejected
+            if (user?.id === update.targetUserId) {
+              showToast("Your request to join the party was rejected", "error");
+            }
+            
+            // Remove the rejected user from join request profiles if present
+            if (update.targetUserId && joinRequestProfiles[update.targetUserId]) {
+              setJoinRequestProfiles(prev => {
+                // Use proper TypeScript approach for removing a property
+                const newProfiles = { ...prev };
+                if (update.targetUserId) {
+                  delete newProfiles[update.targetUserId];
+                }
+                return newProfiles;
+              });
+            }
+            break;
         }
-      } catch (error) {
-        console.error("Error processing update:", error)
       }
+      
+      // Clear the update
+      clearUpdate();
     }
-  }, [update, party?.id, navigate, userProfiles])
+  }, [update, party?.id, user?.id, clearUpdate, joinRequestProfiles, userProfiles]);
 
   // Add effect to load user profiles for join requests
   React.useEffect(() => {
@@ -551,83 +573,6 @@ export default function ValorantPartyDetails() {
       showToast(err.message || "Could not reject join request", "error");
     }
   };
-
-  // Add this to your useEffect for party update handling:
-  React.useEffect(() => {
-    if (update && update.party && update.party.id === party?.id) {
-      if (update.eventType === 'PARTY_JOIN_REQUEST' || update.eventType === 'PARTY_JOIN_REQUESTED') {
-        // Refresh party data to show new join request
-        getParty(party.id)
-          .then((data) => {
-            setParty(data)
-            setLeaderId(data.userId)
-            setParticipants(data.participants || [])
-          })
-          .catch((err: any) => {
-            console.error("Error getting updated party:", err)
-          })
-        
-        // Show toast notification for party owner
-        if (user?.id === party.userId) {
-          showToast("A new player has requested to join your party", "info")
-        }
-      }
-      else if (update.eventType === 'PARTY_JOIN_REQUEST_ACCEPTED') {
-        // Refresh party data
-        getParty(party.id)
-          .then(async (data) => {
-            setParty(data);
-            setLeaderId(data.userId);
-            
-            // Get the updated list of participants
-            const updatedParticipants = data.participants || [];
-            setParticipants(updatedParticipants);
-            
-            // Fetch profiles for any participants we don't already have
-            const missingProfiles = updatedParticipants.filter(id => !userProfiles[id]);
-            if (missingProfiles.length > 0) {
-              try {
-                const profiles = await getUserProfiles(missingProfiles);
-                setUserProfiles(prevProfiles => ({
-                  ...prevProfiles,
-                  ...profiles
-                }));
-              } catch (error) {
-                console.error("Error fetching new participant profiles:", error);
-              }
-            }
-          })
-          .catch((err) => {
-            console.error("Error getting updated party:", err);
-          });
-        
-        // Toast for the target user who was accepted
-        if (user?.id === update.targetUserId) {
-          showToast("Your request to join the party was accepted!", "success");
-        }
-      }
-      else if (update.eventType === 'PARTY_JOIN_REQUEST_REJECTED') {
-        // Refresh party data
-        getParty(party.id)
-          .then((data) => {
-            setParty(data)
-            setLeaderId(data.userId)
-            setParticipants(data.participants || [])
-          })
-          .catch((err: any) => {
-            console.error("Error getting updated party:", err)
-          })
-        
-        // Toast for the target user who was rejected
-        if (user?.id === update.targetUserId) {
-          showToast("Your request to join the party was rejected", "error")
-        }
-      }
-      
-      // Clear the update
-      clearUpdate();
-    }
-  }, [update, party?.id, user?.id, clearUpdate, getParty, party?.userId, party?.participants]);
 
   // Add the handler for clicking on a join requester's profile
   const handleJoinRequesterProfileClick = (userId: string, event: React.MouseEvent) => {
