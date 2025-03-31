@@ -15,6 +15,7 @@ interface JoinRequestSectionProps {
   isProcessingRequest: boolean;
   handleAcceptJoinRequest: (userId: string) => void;
   handleRejectJoinRequest: (userId: string) => void;
+  onProfileView?: (userId: string, event: React.MouseEvent) => void;
 }
 
 export function JoinRequestSection({
@@ -24,7 +25,8 @@ export function JoinRequestSection({
   placeholderAvatar,
   isProcessingRequest,
   handleAcceptJoinRequest,
-  handleRejectJoinRequest
+  handleRejectJoinRequest,
+  onProfileView
 }: JoinRequestSectionProps) {
   if (!isUserLeader || !joinRequests?.length) {
     return null;
@@ -46,7 +48,10 @@ export function JoinRequestSection({
             transition={{ duration: 0.2 }}
             className="flex items-center justify-between bg-[#1A242E] p-3 rounded-lg border border-[#384957]/30 shadow-sm hover:shadow-md hover:border-[#384957]/50 transition-all duration-200"
           >
-            <div className="flex items-center gap-3">
+            <div 
+              className="flex items-center gap-3 cursor-pointer" 
+              onClick={(event) => onProfileView && onProfileView(userId, event)}
+            >
               <Avatar className="h-8 w-8 ring-2 ring-[#FF4655]/20 ring-offset-1 ring-offset-[#1A242E]">
                 <AvatarImage 
                   src={joinRequestProfiles[userId]?.avatar || placeholderAvatar} 

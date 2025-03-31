@@ -940,7 +940,7 @@ export default function ValorantPartyDetails() {
                   This is an invite-only party. As the leader, you can invite users to join.
                 </p>
                 
-                {/* Join Requests Section - Using the extracted component */}
+                {/* Join Requests Section - Using the extracted component with profile view */}
                 <JoinRequestSection
                   isUserLeader={isUserLeader}
                   joinRequests={party.joinRequests || []}
@@ -949,6 +949,7 @@ export default function ValorantPartyDetails() {
                   isProcessingRequest={isProcessingRequest}
                   handleAcceptJoinRequest={handleAcceptJoinRequest}
                   handleRejectJoinRequest={handleRejectJoinRequest}
+                  onProfileView={handleJoinRequesterProfileClick}
                 />
                 
                 {/* Invited Users Section (existing code) */}
