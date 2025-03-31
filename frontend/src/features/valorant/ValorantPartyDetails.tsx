@@ -205,8 +205,34 @@ export default function ValorantPartyDetails() {
     if (update && update.party && update.party.id === party?.id) {
       const updatedParty = update.party;
       
-      // Use the party data from the update instead of making a new API call
-      if (['PARTY_JOIN_REQUEST', 'PARTY_JOIN_REQUESTED', 'PARTY_JOIN_REQUEST_ACCEPTED', 'PARTY_JOIN_REQUEST_REJECTED'].includes(update.eventType)) {
+      // Special handling for PARTY_DELETED event
+      if (update.eventType === 'PARTY_DELETED') {
+        // Show toast notification for non-leader participants
+        if (user?.id !== party.userId) {
+          showToast("The party has been deleted by the leader", "info");
+        }
+        
+        // Clear the active party state
+        setUserActiveParty(null);
+        
+        // Navigate back to dashboard
+        navigate("/dashboard/valorant");
+        
+        // Clear the update
+        clearUpdate();
+        return; // Exit early to prevent further processing
+      }
+      
+      // Continue with existing update handling
+      if ([
+        'PARTY_JOIN_REQUEST', 
+        'PARTY_JOIN_REQUESTED', 
+        'PARTY_JOIN_REQUEST_ACCEPTED', 
+        'PARTY_JOIN_REQUEST_REJECTED',
+        'PARTY_JOINED',
+        'PARTY_LEFT',
+        'PARTY_USER_KICKED'
+      ].includes(update.eventType)) {
         // Update all party state at once with the data from the WebSocket
         setParty(updatedParty);
         setLeaderId(updatedParty.userId);
@@ -214,6 +240,39 @@ export default function ValorantPartyDetails() {
         
         // Handle event-specific logic
         switch (update.eventType) {
+          case 'PARTY_JOINED':
+            // Show toast notification for party owner when someone joins
+            if (user?.id === party.userId && update.targetUserId !== user?.id) {
+              showToast(`A new player has joined your party`, "info");
+            }
+            
+            // Fetch profiles for any new participants we don't already have
+            const newJoinedProfiles = updatedParty.participants?.filter(
+              (id: string) => !userProfiles[id]
+            ) || [];
+            
+            if (newJoinedProfiles.length > 0) {
+              getUserProfiles(newJoinedProfiles)
+                .then(profiles => {
+                  setUserProfiles(prevProfiles => ({
+                    ...prevProfiles,
+                    ...profiles
+                  }));
+                })
+                .catch(error => {
+                  console.error("Error fetching new participant profiles:", error);
+                });
+            }
+            break;
+            
+          case 'PARTY_LEFT':
+          case 'PARTY_USER_KICKED':
+            // Show toast notification for party owner or the user who left
+            if (user?.id === party.userId && update.targetUserId !== user?.id) {
+              showToast(`A player has left the party`, "info");
+            }
+            break;
+            
           case 'PARTY_JOIN_REQUEST':
           case 'PARTY_JOIN_REQUESTED':
             // Show toast notification for party owner
