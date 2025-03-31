@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { createParty, type Rank, type Region } from '@/contexts/valorant/partyService'
 import toast from 'react-hot-toast'
 import { Switch } from "@/components/ui/valorant/switch"
+import "@/assets/GroupCreate.css"
 
 interface PostGroupModalProps {
   onClose: () => void;
@@ -46,6 +47,37 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
 
   // Import useNavigate to allow redirection after group creation
   const navigate = useNavigate()
+
+  // Track sidebar collapse state
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    const savedState = localStorage.getItem('sidebar-collapsed')
+    return savedState ? JSON.parse(savedState) : false
+  })
+  
+  // Listen for changes to sidebar state in localStorage
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'sidebar-collapsed') {
+        setIsSidebarCollapsed(e.newValue ? JSON.parse(e.newValue) : false)
+      }
+    }
+    
+    // Also check for direct changes in the same window
+    const checkLocalStorage = () => {
+      const currentState = localStorage.getItem('sidebar-collapsed')
+      setIsSidebarCollapsed(currentState ? JSON.parse(currentState) : false)
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Set up interval to check for changes (for same-window updates)
+    const interval = setInterval(checkLocalStorage, 300)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      clearInterval(interval)
+    }
+  }, [])
 
   // Validation helper function for character count
   const countCharacters = (text: string): number => {
@@ -257,14 +289,14 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      className={`group-create-modal-overlay ${isSidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}
     >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="relative w-full max-w-2xl overflow-hidden rounded-xl bg-gradient-to-b from-[#1F2731] to-[#0F1923] p-6 shadow-2xl ring-1 ring-white/10"
+        className="group-create-modal-content"
       >
         <Button
           onClick={onClose}
