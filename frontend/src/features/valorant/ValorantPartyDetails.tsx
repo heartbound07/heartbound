@@ -629,6 +629,22 @@ export default function ValorantPartyDetails() {
     }
   }, [update, party?.id, user?.id, clearUpdate, getParty, party?.userId, party?.participants]);
 
+  // Add the handler for clicking on a join requester's profile
+  const handleJoinRequesterProfileClick = (userId: string, event: React.MouseEvent) => {
+    // Prevent triggering other handlers like accept/reject
+    event.stopPropagation();
+    
+    // Set the clicked profile ID
+    setSelectedProfileId(userId);
+    
+    // Store the position where the click occurred for proper modal positioning
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    setProfilePosition({
+      x: rect.left,
+      y: rect.top
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0F1923] text-white pb-8 pt-20">
@@ -896,7 +912,10 @@ export default function ValorantPartyDetails() {
           <UserProfileModal
             isOpen={!!selectedProfileId}
             onClose={handleCloseProfileModal}
-            userProfile={selectedProfileId ? userProfiles[selectedProfileId] : null}
+            userProfile={selectedProfileId ? 
+              // Check both regular user profiles and join request profiles
+              (userProfiles[selectedProfileId] || joinRequestProfiles[selectedProfileId]) : null
+            }
             position={profilePosition}
           />
 
@@ -919,16 +938,23 @@ export default function ValorantPartyDetails() {
                           key={userId} 
                           className="flex items-center gap-2 bg-[#1F2731]/80 p-2.5 rounded-md border border-white/5 hover:border-white/10 hover:bg-[#283A4B]/80 transition-all duration-200 shadow-sm"
                         >
-                          <Avatar className="h-7 w-7 ring-1 ring-white/10">
-                            <AvatarImage 
-                              src={joinRequestProfiles[userId]?.avatar || placeholderAvatar} 
-                              alt={joinRequestProfiles[userId]?.username || "User"} 
-                            />
-                            <AvatarFallback className="bg-[#283A4B] text-white/90">
-                              {joinRequestProfiles[userId]?.username?.charAt(0) || "U"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm font-medium text-white/90">{joinRequestProfiles[userId]?.username || "Unknown User"}</span>
+                          <div 
+                            className="flex items-center gap-2 cursor-pointer" 
+                            onClick={(e) => handleJoinRequesterProfileClick(userId, e)}
+                          >
+                            <Avatar className="h-7 w-7 ring-1 ring-white/10 hover:ring-[#FF4655]/30 transition-all duration-300">
+                              <AvatarImage 
+                                src={joinRequestProfiles[userId]?.avatar || placeholderAvatar} 
+                                alt={joinRequestProfiles[userId]?.username || "User"} 
+                              />
+                              <AvatarFallback className="bg-[#283A4B] text-white/90">
+                                {joinRequestProfiles[userId]?.username?.charAt(0) || "U"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm font-medium text-white/90 hover:text-white transition-colors duration-200">
+                              {joinRequestProfiles[userId]?.username || "Unknown User"}
+                            </span>
+                          </div>
                           
                           {/* Enhanced Accept/Reject buttons */}
                           <div className="flex gap-1.5 ml-2.5">
@@ -986,3 +1012,4 @@ export default function ValorantPartyDetails() {
   )
 }
 
+  
