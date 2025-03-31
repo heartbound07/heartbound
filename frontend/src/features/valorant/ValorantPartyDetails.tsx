@@ -16,6 +16,7 @@ import { UserProfileModal } from "@/components/UserProfileModal"
 import { SkeletonPartyDetails } from '@/components/ui/SkeletonUI'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
 import { usePartyParticipants } from '@/hooks/usePartyParticipants'
+import { usePartyJoinRequests } from '@/hooks/usePartyJoinRequests'
 
 // Custom Toast Component
 const Toast = ({ 
@@ -140,7 +141,6 @@ export default function ValorantPartyDetails() {
   const [profilePosition, setProfilePosition] = React.useState<{ x: number, y: number } | null>(null)
   const [invitedUsers, setInvitedUsers] = React.useState<string[]>([])
   const [isInvited, setIsInvited] = React.useState(false)
-  const [joinRequestProfiles, setJoinRequestProfiles] = React.useState<Record<string, UserProfileDTO>>({})
   
   // Toast state
   const [toastInfo, setToastInfo] = React.useState<{
@@ -186,18 +186,12 @@ export default function ValorantPartyDetails() {
     [party?.requirements?.inviteOnly]
   );
 
-  const hasJoinRequested = React.useMemo(() => 
-    party?.joinRequests?.includes(user?.id || ""),
-    [party?.joinRequests, user?.id]
-  );
-
   const canJoin = React.useMemo(() => {
     if (!party || !user) return false;
     if (isUserLeader || isUserParticipant) return false;
-    if (hasJoinRequested) return false;
     
     return true;
-  }, [party, user, isUserLeader, isUserParticipant, hasJoinRequested]);
+  }, [party, user, isUserLeader, isUserParticipant]);
 
   // If you're not using these values directly, use this simpler approach instead:
   usePartyParticipants({
@@ -323,14 +317,14 @@ export default function ValorantPartyDetails() {
             // Load profiles for new join requests if needed
             if (updatedParty.joinRequests?.length > 0) {
               const missingRequestProfiles = updatedParty.joinRequests.filter(
-                (id: string) => !joinRequestProfiles[id]
+                (id: string) => !userProfiles[id]
               );
               
               if (missingRequestProfiles.length > 0) {
                 getUserProfiles(missingRequestProfiles)
                   .then(profiles => {
-                    setJoinRequestProfiles(prev => ({
-                      ...prev,
+                    setUserProfiles(prevProfiles => ({
+                      ...prevProfiles,
                       ...profiles
                     }));
                   })
@@ -364,21 +358,11 @@ export default function ValorantPartyDetails() {
             
             // If a join request was accepted and we have the profile in joinRequestProfiles,
             // move it to userProfiles
-            if (update.targetUserId && joinRequestProfiles[update.targetUserId]) {
+            if (update.targetUserId && update.targetUserId in userProfiles) {
               setUserProfiles(prevProfiles => ({
                 ...prevProfiles,
-                [update.targetUserId as string]: joinRequestProfiles[update.targetUserId as string]
+                [update.targetUserId as string]: userProfiles[update.targetUserId as string]
               }));
-              
-              // Remove from joinRequestProfiles
-              setJoinRequestProfiles(prev => {
-                // Use proper TypeScript approach for removing a property
-                const newProfiles = { ...prev };
-                if (update.targetUserId) {
-                  delete newProfiles[update.targetUserId];
-                }
-                return newProfiles;
-              });
             }
             break;
             
@@ -389,10 +373,9 @@ export default function ValorantPartyDetails() {
             }
             
             // Remove the rejected user from join request profiles if present
-            if (update.targetUserId && joinRequestProfiles[update.targetUserId]) {
-              setJoinRequestProfiles(prev => {
-                // Use proper TypeScript approach for removing a property
-                const newProfiles = { ...prev };
+            if (update.targetUserId && update.targetUserId in userProfiles) {
+              setUserProfiles(prevProfiles => {
+                const newProfiles = { ...prevProfiles };
                 if (update.targetUserId) {
                   delete newProfiles[update.targetUserId];
                 }
@@ -406,7 +389,7 @@ export default function ValorantPartyDetails() {
       // Clear the update
       clearUpdate();
     }
-  }, [update, party?.id, user?.id, clearUpdate, joinRequestProfiles, userProfiles]);
+  }, [update, party?.id, user?.id, clearUpdate, userProfiles]);
 
   // Add effect to load user profiles for join requests
   React.useEffect(() => {
@@ -415,7 +398,7 @@ export default function ValorantPartyDetails() {
       const fetchJoinRequestProfiles = async () => {
         try {
           const profiles = await getUserProfiles(party.joinRequests);
-          setJoinRequestProfiles(profiles);
+          setUserProfiles(profiles);
         } catch (error) {
           console.error("Error fetching join request profiles:", error);
         }
@@ -617,73 +600,57 @@ export default function ValorantPartyDetails() {
     }
   };
 
-  // Check if current user is waiting for a join request approval
-  const isWaitingForApproval = user?.id && party?.joinRequests?.includes(user.id);
-
-  // Add functions to handle accepting and rejecting join requests
-  const handleAcceptJoinRequest = async (userId: string) => {
-    try {
-      await acceptJoinRequest(party.id, userId);
-      showToast("Join request accepted", "success");
-      
-      // Refresh party data to update the UI
-      if (party?.id) {
-        const updatedParty = await getParty(party.id);
-        setParty(updatedParty);
-        
-        // Make sure to update userProfiles with the profile of the accepted user
-        // Transfer the profile from joinRequestProfiles to userProfiles
-        if (joinRequestProfiles[userId]) {
-          setUserProfiles(prevProfiles => ({
-            ...prevProfiles,
-            [userId]: joinRequestProfiles[userId]
-          }));
-        }
-        
-        // Remove the user from joinRequestProfiles after accepting
-        const { [userId]: removedProfile, ...remainingProfiles } = joinRequestProfiles;
-        setJoinRequestProfiles(remainingProfiles);
-      }
-    } catch (err: any) {
-      console.error("Error accepting join request:", err);
-      showToast(
-        err.response?.data?.message || err.message || "Could not accept join request", 
-        "error"
-      );
-    }
-  };
-  
-  const handleRejectJoinRequest = async (userId: string) => {
-    try {
-      await rejectJoinRequest(party.id, userId);
-      showToast("Join request rejected", "success");
-      
-      // Refresh party data to update the UI
-      if (party?.id) {
-        const updatedParty = await getParty(party.id);
-        setParty(updatedParty);
-      }
-    } catch (err: any) {
-      console.error("Error rejecting join request:", err);
-      showToast(err.message || "Could not reject join request", "error");
-    }
-  };
-
-  // Add the handler for clicking on a join requester's profile
-  const handleJoinRequesterProfileClick = (userId: string, event: React.MouseEvent) => {
-    // Prevent triggering other handlers like accept/reject
-    event.stopPropagation();
+  // Create a callback function for updating party state
+  const updatePartyState = React.useCallback((updatedParty: any) => {
+    if (!updatedParty) return;
     
-    // Set the clicked profile ID
-    setSelectedProfileId(userId);
-    
-    // Store the position where the click occurred for proper modal positioning
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    setProfilePosition({
-      x: rect.left,
-      y: rect.top
+    setParty(updatedParty);
+    setLeaderId(updatedParty.userId);
+    setParticipants(updatedParty.participants || []);
+  }, []);
+
+  // Create a callback for the toast to pass to the hook
+  const showToastCallback = React.useCallback((message: string, type: 'success' | 'error' | 'info') => {
+    setToastInfo({
+      visible: true,
+      message,
+      type
     });
+  }, []);
+
+  // Initialize the hook
+  const {
+    joinRequestProfiles,
+    hasJoinRequested,
+    isProcessingRequest,
+    handleAcceptJoinRequest,
+    handleRejectJoinRequest
+  } = usePartyJoinRequests({
+    partyId: party?.id || null,
+    userId: user?.id,
+    isUserLeader,
+    party,
+    updatePartyState,
+    showToast: showToastCallback
+  });
+
+  // Add a function to handle clicking on a join requester's profile
+  const handleJoinRequesterProfileClick = (userId: string, event: React.MouseEvent) => {
+    if (!event || !event.currentTarget) return;
+    
+    // Get the position of the element that was clicked
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    
+    setProfilePosition({
+      x: rect.left + window.scrollX,
+      y: rect.bottom + window.scrollY
+    });
+    
+    setSelectedProfileId(userId);
   };
+
+  // When you need to check if user is waiting for approval:
+  const isWaitingForApproval = hasJoinRequested;
 
   if (isLoading) {
     return (
@@ -1003,16 +970,18 @@ export default function ValorantPartyDetails() {
                               className="bg-green-500/20 hover:bg-green-500 text-green-400 hover:text-white p-1 h-7 w-7 rounded-full border border-green-500/30 transition-colors duration-200 shadow-md hover:shadow-green-500/10"
                               aria-label="Accept join request"
                               title="Accept"
+                              disabled={isProcessingRequest}
                             >
-                              <Check className="h-3.5 w-3.5" />
+                              {isProcessingRequest ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                             </Button>
                             <Button 
                               onClick={() => handleRejectJoinRequest(userId)}
                               className="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white p-1 h-7 w-7 rounded-full border border-red-500/30 transition-colors duration-200 shadow-md hover:shadow-red-500/10"
                               aria-label="Reject join request"
                               title="Reject"
+                              disabled={isProcessingRequest}
                             >
-                              <XIcon className="h-3.5 w-3.5" />
+                              {isProcessingRequest ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XIcon className="h-3.5 w-3.5" />}
                             </Button>
                           </div>
                         </div>
