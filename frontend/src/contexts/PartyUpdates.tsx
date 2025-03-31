@@ -13,7 +13,15 @@ import { useAuth } from '@/contexts/auth/useAuth';
 // Define the TypeScript interface that mirrors our backend's LFGPartyEventDTO
 export interface LFGPartyEvent {
   eventType: string;
-  party: any; // You can later replace "any" with a proper type for LFGPartyResponseDTO
+  party?: any; // Make optional since minimal events might not include it
+  minimalParty?: {
+    id: string;
+    userId: string;
+    status: string;
+    participants: string[];
+    joinRequests: string[];
+    invitedUsers: string[];
+  };
   message: string;
   targetUserId?: string;
 }
