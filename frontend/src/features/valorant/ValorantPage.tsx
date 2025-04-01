@@ -339,9 +339,10 @@ export default function Home() {
                               party={party} 
                               isNew={
                                 // Party is new if:
-                                // 1. It's the user's active party OR
+                                // 1. It's the user's active party (but they're not the creator) OR
                                 // 2. It's a recent party the user hasn't seen yet
-                                party.id === userActiveParty || isPartyNewToUser(party)
+                                (party.id === userActiveParty && party.userId !== user?.id) || 
+                                isPartyNewToUser(party)
                               } 
                             />
                           ))}
