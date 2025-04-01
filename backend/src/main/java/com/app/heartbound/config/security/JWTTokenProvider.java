@@ -21,6 +21,12 @@ import java.util.Set;
 import java.util.Collections;
 import java.util.stream.Collectors;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 
 @Component
 public class JWTTokenProvider {
@@ -39,6 +45,20 @@ public class JWTTokenProvider {
 
     @Value("${jwt.refresh-token-expiration-ms}")
     private long refreshTokenExpiryInMs;
+
+    private final Map<String, Long> usedRefreshTokens = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+
+    @PostConstruct
+    public void init() {
+        // Schedule cleanup of expired blacklisted tokens every hour
+        scheduler.scheduleAtFixedRate(this::cleanupUsedTokens, 1, 1, TimeUnit.HOURS);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        scheduler.shutdown();
+    }
 
     /**
      * Generates a JWT token for the provided user details including roles and credits.
@@ -224,5 +244,57 @@ public class JWTTokenProvider {
         
         Integer credits = claims.get("credits", Integer.class);
         return credits != null ? credits : 0;
+    }
+
+    /**
+     * Adds a refresh token to the used tokens list to prevent reuse
+     * 
+     * @param token the refresh token to invalidate
+     */
+    public void invalidateRefreshToken(String token) {
+        String tokenId = getTokenIdFromRefreshToken(token);
+        if (tokenId != null) {
+            // Store with expiration time to allow cleanup
+            usedRefreshTokens.put(tokenId, System.currentTimeMillis() + refreshTokenExpiryInMs);
+            logger.debug("Refresh token invalidated: {}", tokenId);
+        }
+    }
+
+    /**
+     * Checks if a refresh token has been used before
+     * 
+     * @param token the refresh token to check
+     * @return true if the token has been used, false otherwise
+     */
+    public boolean isRefreshTokenUsed(String token) {
+        String tokenId = getTokenIdFromRefreshToken(token);
+        return tokenId != null && usedRefreshTokens.containsKey(tokenId);
+    }
+
+    /**
+     * Gets the token ID from a refresh token
+     * 
+     * @param token the refresh token
+     * @return the token ID or null if not present/invalid
+     */
+    private String getTokenIdFromRefreshToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .setSigningKey(refreshTokenSecret)
+                    .parseClaimsJws(token)
+                    .getBody();
+            return claims.getId(); // jti claim
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Cleans up expired tokens from the used tokens list
+     */
+    private void cleanupUsedTokens() {
+        long now = System.currentTimeMillis();
+        usedRefreshTokens.entrySet().removeIf(entry -> entry.getValue() < now);
+        logger.debug("Cleaned up expired tokens. Remaining: {}", usedRefreshTokens.size());
     }
 }

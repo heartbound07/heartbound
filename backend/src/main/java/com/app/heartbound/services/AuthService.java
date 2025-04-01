@@ -109,6 +109,12 @@ public class AuthService {
      */
     public OAuthTokenResponse refreshToken(String refreshToken) {
         try {
+            // Check if the token has been used before
+            if (jwtTokenProvider.isRefreshTokenUsed(refreshToken)) {
+                logger.error("Attempted reuse of refresh token");
+                throw new InvalidTokenException("Token has already been used");
+            }
+            
             // Validate and decode the refresh token
             String userId = jwtTokenProvider.getUserIdFromRefreshToken(refreshToken);
             
@@ -118,6 +124,9 @@ public class AuthService {
                 logger.error("User not found for refresh token with userId: {}", userId);
                 throw new AuthenticationException("User not found");
             }
+            
+            // Mark the old token as used to prevent reuse
+            jwtTokenProvider.invalidateRefreshToken(refreshToken);
             
             // Get user's roles and credits
             Set<Role> roles = user.getRoles() != null ? 
