@@ -122,10 +122,11 @@ export default function ValorantPartyDetails() {
     type: 'success' | 'error' | 'info';
   }>>([]);
 
-  // Replace the showToast function with this improved version
+  // Replace the showToast function with this version that clears existing toasts
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     const id = Date.now().toString();
-    setToasts(prevToasts => [...prevToasts, { id, message, type }]);
+    // Clear existing toasts and show only the new one
+    setToasts([{ id, message, type }]);
   };
 
   // Add function to remove a toast by ID
