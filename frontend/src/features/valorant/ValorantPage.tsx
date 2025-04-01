@@ -22,6 +22,7 @@ export default function Home() {
   const { user } = useAuth();
   const { update, clearUpdate, userActiveParty, setUserActiveParty } = usePartyUpdates();
   const [isLoading, setIsLoading] = useState(true);
+  const [seenParties, setSeenParties] = useState<Set<string>>(new Set());
 
   // Add animation variants
   const containerVariants = {
@@ -131,17 +132,71 @@ export default function Home() {
     }
   };
 
-  // Function to check if a party is newly created (within the last 5 minutes)
-  const isNewParty = (party: LFGPartyResponseDTO | any) => {
-    if (!party.createdAt) return false;
+  // Load seen parties from localStorage on component mount
+  useEffect(() => {
+    const storedSeenParties = localStorage.getItem('seenParties');
+    if (storedSeenParties) {
+      try {
+        // Add type assertion to ensure TypeScript knows we're working with strings
+        const parsedParties = JSON.parse(storedSeenParties) as string[];
+        setSeenParties(new Set<string>(parsedParties));
+      } catch (e) {
+        console.error('Error parsing seen parties from localStorage:', e);
+      }
+    }
+  }, []);
+  
+  // Update this function to check if a party is truly "new" to the user
+  const isPartyNewToUser = useCallback((party: LFGPartyResponseDTO | any) => {
+    // Party is new if it was created in the last 5 minutes AND user hasn't seen it yet
+    if (!party.id || !party.createdAt) return false;
     
-    // Consider a party "new" if created in the last 5 minutes
+    // Check if party was created recently (within 5 minutes)
     const creationTime = new Date(party.createdAt).getTime();
     const currentTime = new Date().getTime();
     const fiveMinutesInMs = 5 * 60 * 1000;
+    const isRecent = (currentTime - creationTime) < fiveMinutesInMs;
     
-    return (currentTime - creationTime) < fiveMinutesInMs;
-  };
+    // Check if user has already seen this party
+    const hasNotSeen = !seenParties.has(party.id);
+    
+    return isRecent && hasNotSeen;
+  }, [seenParties]);
+  
+  // Replace the existing effect that marks parties as seen with this one
+  useEffect(() => {
+    if (!isLoading && parties.length > 0) {
+      // Load seen parties from localStorage with proper type safety
+      const loadSeenParties = () => {
+        try {
+          const storedSeenParties = localStorage.getItem('seenParties');
+          if (storedSeenParties) {
+            // Add explicit type assertion
+            const parsedParties = JSON.parse(storedSeenParties) as string[];
+            return new Set<string>(parsedParties);
+          }
+        } catch (e) {
+          console.error('Error parsing seen parties:', e);
+        }
+        return new Set<string>();
+      };
+      
+      // Start with seen parties from localStorage
+      const newSeenParties = loadSeenParties();
+      
+      // Schedule marking parties as seen after a delay
+      const markPartiesAsSeenTimeout = setTimeout(() => {
+        // Only mark parties as seen after the user has had time to view them
+        parties.forEach(party => newSeenParties.add(party.id));
+        
+        // Update state and localStorage
+        setSeenParties(newSeenParties);
+        localStorage.setItem('seenParties', JSON.stringify([...newSeenParties]));
+      }, 3000); // Delay of 3 seconds to allow the user to see the "NEW" badges
+      
+      return () => clearTimeout(markPartiesAsSeenTimeout);
+    }
+  }, [parties, isLoading]);
 
   return (
     <div className="min-h-screen bg-[#0F1923] text-white font-sans">
@@ -285,8 +340,8 @@ export default function Home() {
                               isNew={
                                 // Party is new if:
                                 // 1. It's the user's active party OR
-                                // 2. It was created in the last 5 minutes
-                                party.id === userActiveParty || isNewParty(party)
+                                // 2. It's a recent party the user hasn't seen yet
+                                party.id === userActiveParty || isPartyNewToUser(party)
                               } 
                             />
                           ))}

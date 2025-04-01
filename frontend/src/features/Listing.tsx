@@ -344,10 +344,20 @@ export default function Listing({ party, isNew = false }: ListingProps) {
       {/* New party indicator badge */}
       {isNew && (
         <motion.div 
-          className="absolute -right-1 -top-1 bg-[#FF4655] text-white text-xs font-bold px-2 py-1 rounded-bl-lg rounded-tr-lg z-10"
+          className="absolute -right-1 -top-1 bg-[#FF4655] text-white text-xs font-bold px-2 py-1 rounded-bl-lg rounded-tr-lg z-10 shadow-lg"
           initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
+          animate={{ 
+            opacity: 1, 
+            scale: 1,
+            boxShadow: ["0 0 0px rgba(255, 70, 85, 0)", "0 0 15px rgba(255, 70, 85, 0.7)", "0 0 0px rgba(255, 70, 85, 0)"],
+          }}
+          transition={{ 
+            delay: 0.2,
+            boxShadow: {
+              repeat: Infinity,
+              duration: 2
+            }
+          }}
         >
           NEW
         </motion.div>
