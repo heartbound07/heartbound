@@ -275,12 +275,7 @@ export default function ValorantPartyDetails() {
             
           case 'PARTY_JOIN_REQUEST':
           case 'PARTY_JOIN_REQUESTED':
-            // Show toast notification for party owner
-            if (user?.id === party.userId) {
-              showToast("A new player has requested to join your party", "info");
-            }
-            
-            // Load profiles for new join requests if needed
+            // Keep the profile loading logic
             if (updatedParty.joinRequests?.length > 0) {
               const missingRequestProfiles = updatedParty.joinRequests.filter(
                 (id: string) => !userProfiles[id]
@@ -303,51 +298,9 @@ export default function ValorantPartyDetails() {
             
           case 'PARTY_JOIN_REQUEST_ACCEPTED':
             // Toast for the target user who was accepted
-            if (user?.id === update.targetUserId) {
-              showToast("Your request to join the party was accepted!", "success");
-            }
-            
-            // Fetch profiles for any participants we don't already have
-            const missingProfiles = updatedParty.participants?.filter((id: string) => !userProfiles[id]) || [];
-            if (missingProfiles.length > 0) {
-              getUserProfiles(missingProfiles)
-                .then(profiles => {
-                  setUserProfiles(prevProfiles => ({
-                    ...prevProfiles,
-                    ...profiles
-                  }));
-                })
-                .catch(error => {
-                  console.error("Error fetching new participant profiles:", error);
-                });
-            }
-            
-            // If a join request was accepted and we have the profile in joinRequestProfiles,
-            // move it to userProfiles
-            if (update.targetUserId && update.targetUserId in userProfiles) {
-              setUserProfiles(prevProfiles => ({
-                ...prevProfiles,
-                [update.targetUserId as string]: userProfiles[update.targetUserId as string]
-              }));
-            }
             break;
             
           case 'PARTY_JOIN_REQUEST_REJECTED':
-            // Toast for the target user who was rejected
-            if (user?.id === update.targetUserId) {
-              showToast("Your request to join the party was rejected", "error");
-            }
-            
-            // Remove the rejected user from join request profiles if present
-            if (update.targetUserId && update.targetUserId in userProfiles) {
-              setUserProfiles(prevProfiles => {
-                const newProfiles = { ...prevProfiles };
-                if (update.targetUserId) {
-                  delete newProfiles[update.targetUserId];
-                }
-                return newProfiles;
-              });
-            }
             break;
         }
       }
