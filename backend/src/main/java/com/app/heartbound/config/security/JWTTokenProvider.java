@@ -1,6 +1,7 @@
 package com.app.heartbound.config.security;
 
 import com.app.heartbound.enums.Role;
+import com.app.heartbound.exceptions.InvalidTokenException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -178,8 +179,9 @@ public class JWTTokenProvider {
     /**
      * Validates the JWT token.
      *
-     * @param token the JWT token to validate
-     * @return true if the token is valid, false otherwise
+     * @param token the JWT token
+     * @return true if valid
+     * @throws InvalidTokenException if token is invalid
      */
     public boolean validateToken(String token) {
         try {
@@ -188,16 +190,20 @@ public class JWTTokenProvider {
             return true;
         } catch (SignatureException ex) {
             logger.error("Invalid JWT signature: {}", ex.getMessage());
+            throw new InvalidTokenException("Invalid token signature");
         } catch (MalformedJwtException ex) {
             logger.error("Invalid JWT token: {}", ex.getMessage());
+            throw new InvalidTokenException("Malformed token");
         } catch (ExpiredJwtException ex) {
             logger.error("Expired JWT token: {}", ex.getMessage());
+            throw new InvalidTokenException("Token has expired");
         } catch (UnsupportedJwtException ex) {
             logger.error("Unsupported JWT token: {}", ex.getMessage());
+            throw new InvalidTokenException("Unsupported token format");
         } catch (IllegalArgumentException ex) {
             logger.error("JWT token compact of handler are invalid: {}", ex.getMessage());
+            throw new InvalidTokenException("Token is invalid");
         }
-        return false;
     }
 
     public long getTokenExpiryInMs() {

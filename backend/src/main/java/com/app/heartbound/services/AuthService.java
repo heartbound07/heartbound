@@ -5,6 +5,8 @@ import com.app.heartbound.dto.UserDTO;
 import com.app.heartbound.dto.oauth.OAuthTokenResponse;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
+import com.app.heartbound.exceptions.AuthenticationException;
+import com.app.heartbound.exceptions.InvalidTokenException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -65,21 +67,23 @@ public class AuthService {
         return token;
     }
     
-    /**The project was not built due to "release 23 is not found in the system". Fix the problem, then try refreshing this project and building it since it may be inconsistent
+    /**
      * Validates the provided JWT token.
      *
      * @param token - The JWT token to validate.
-     * @return true if the token is valid, false otherwise.
+     * @return true if the token is valid
+     * @throws InvalidTokenException if the token is invalid
      */
     public boolean validateToken(String token) {
         logger.info("Validating JWT token.");
-        boolean isValid = jwtTokenProvider.validateToken(token);
-        if (isValid) {
+        try {
+            boolean isValid = jwtTokenProvider.validateToken(token);
             logger.info("JWT token validated successfully.");
-        } else {
-            logger.warn("JWT token validation failed.");
+            return isValid;
+        } catch (InvalidTokenException e) {
+            logger.warn("JWT token validation failed: {}", e.getMessage());
+            throw e; // Re-throw the exception to be handled by the controller
         }
-        return isValid;
     }
     
     /**
@@ -95,35 +99,55 @@ public class AuthService {
         return userId;
     }
 
+    /**
+     * Refreshes the token pair using the provided refresh token.
+     *
+     * @param refreshToken the refresh token
+     * @return a new token pair
+     * @throws InvalidTokenException if the refresh token is invalid
+     * @throws AuthenticationException if the user is not found
+     */
     public OAuthTokenResponse refreshToken(String refreshToken) {
-        // Validate and decode the refresh token
-        String userId = jwtTokenProvider.getUserIdFromRefreshToken(refreshToken);
-        
-        // Fetch the user to get their current roles and credits
-        User user = userService.getUserById(userId);
-        Set<Role> roles = user != null && user.getRoles() != null ? 
-                user.getRoles() : Collections.singleton(Role.USER);
-        
-        // Get user's credits (or default to 0 if user not found)
-        Integer credits = user != null ? user.getCredits() : 0;
-        
-        // Generate new tokens with the user's current roles and credits
-        String newAccessToken = jwtTokenProvider.generateToken(
-                userId, 
-                user != null ? user.getUsername() : "username", 
-                user != null ? user.getEmail() : "email@example.com", 
-                user != null ? user.getAvatar() : "avatar.png", 
-                roles,
-                credits
-        );
-        String newRefreshToken = jwtTokenProvider.generateRefreshToken(userId, roles);
-        
-        return OAuthTokenResponse.builder()
-                .accessToken(newAccessToken)
-                .refreshToken(newRefreshToken)
-                .tokenType("bearer")
-                .expiresIn((int) (jwtTokenProvider.getTokenExpiryInMs() / 1000))
-                .scope("identify email")
-                .build();
+        try {
+            // Validate and decode the refresh token
+            String userId = jwtTokenProvider.getUserIdFromRefreshToken(refreshToken);
+            
+            // Fetch the user to get their current roles and credits
+            User user = userService.getUserById(userId);
+            if (user == null) {
+                logger.error("User not found for refresh token with userId: {}", userId);
+                throw new AuthenticationException("User not found");
+            }
+            
+            // Get user's roles and credits
+            Set<Role> roles = user.getRoles() != null ? 
+                    user.getRoles() : Collections.singleton(Role.USER);
+            Integer credits = user.getCredits();
+            
+            // Generate new tokens with the user's current roles and credits
+            String newAccessToken = jwtTokenProvider.generateToken(
+                    userId, 
+                    user.getUsername(), 
+                    user.getEmail(), 
+                    user.getAvatar(), 
+                    roles,
+                    credits
+            );
+            String newRefreshToken = jwtTokenProvider.generateRefreshToken(userId, roles);
+            
+            return OAuthTokenResponse.builder()
+                    .accessToken(newAccessToken)
+                    .refreshToken(newRefreshToken)
+                    .tokenType("bearer")
+                    .expiresIn((int) (jwtTokenProvider.getTokenExpiryInMs() / 1000))
+                    .scope("identify email")
+                    .build();
+        } catch (InvalidTokenException e) {
+            logger.error("Invalid refresh token: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            logger.error("Error refreshing token: {}", e.getMessage());
+            throw new InvalidTokenException("Failed to refresh token: " + e.getMessage(), e);
+        }
     }
 }
