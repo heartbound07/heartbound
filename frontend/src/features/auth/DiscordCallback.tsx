@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/auth/useAuth';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -9,8 +9,14 @@ export function DiscordCallback() {
   const { handleDiscordCallback, handleDiscordCallbackWithToken } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [processingAuth, setProcessingAuth] = useState<boolean>(true);
+  
+  // Use a ref to track if we've already processed the auth
+  const hasProcessedAuth = useRef(false);
 
   useEffect(() => {
+    // If we've already processed auth, don't do it again
+    if (hasProcessedAuth.current) return;
+    
     const errorParam = searchParams.get('error');
     if (errorParam) {
       setError(errorParam);
@@ -20,7 +26,9 @@ export function DiscordCallback() {
 
     const processAuth = async () => {
       try {
-        setProcessingAuth(true);
+        // Mark that we've started processing
+        hasProcessedAuth.current = true;
+        
         const accessToken = searchParams.get('accessToken');
         const refreshToken = searchParams.get('refreshToken') || "";
         

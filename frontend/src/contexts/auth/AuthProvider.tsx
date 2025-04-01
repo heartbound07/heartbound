@@ -1,4 +1,4 @@
-import { FC, useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { FC, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AuthContext } from './AuthContext';
 import {
   AuthContextValue,
@@ -17,6 +17,8 @@ import webSocketService from '../../config/WebSocketService';
 import * as userService from '../../config/userService';
 import { UpdateProfileDTO } from '@/config/userService';
 import { tokenStorage } from './tokenStorage';
+import { useAuthState } from '../../hooks/useAuthState';
+import { useTokenManagement } from '../../hooks/useTokenManagement';
 
 // Update the type declaration
 declare global {
@@ -26,79 +28,31 @@ declare global {
 }
 
 const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    profile: null,
-    isAuthenticated: false,
-    isLoading: true,
-    error: null,
-  });
-  const [tokens, setTokens] = useState<TokenPair | null>(tokenStorage.getTokens());
-  const [refreshTimeout, setRefreshTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  // Use our new custom hooks
+  const {
+    state,
+    isUserInfo,
+    setAuthState,
+    clearAuthState,
+    setAuthError,
+    setAuthLoading,
+    updateAuthProfile,
+    hasRole,
+  } = useAuthState();
 
-  // First, update the ref type to explicitly allow the string return
-  const refreshTokenRef = useRef<(() => Promise<string | undefined>)>();
+  const {
+    tokens,
+    parseJwt,
+    updateTokens,
+    scheduleTokenRefresh,
+    refreshTokenRef,
+  } = useTokenManagement();
 
-  const isUserInfo = (data: unknown): data is UserInfo => {
-    return !!data && typeof data === 'object' && 'id' in data && 'username' in data;
-  };
-
-  const persistAuthState = useCallback((user: UserInfo | null, tokenPair: TokenPair | null) => {
-    try {
-      if (user && tokenPair) {
-        // Only store user info in localStorage, tokens stay in memory
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user }));
-        // Update in-memory tokens using tokenStorage
-        tokenStorage.setTokens(tokenPair);
-        setTokens(tokenPair);
-      } else {
-        localStorage.removeItem(AUTH_STORAGE_KEY);
-        tokenStorage.clearTokens();
-        setTokens(null);
-      }
-    } catch (error) {
-      console.error('Failed to persist auth state:', error);
-    }
+  const persistAuthState = useCallback((user: UserInfo, tokenPair: TokenPair) => {
+    // Use the tokenStorage directly instead of a state-updating function
+    tokenStorage.setTokens(tokenPair);
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user }));
   }, []);
-
-  const clearAuthState = useCallback(() => {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    setState(prev => ({
-      ...prev,
-      user: null,
-      isAuthenticated: false,
-      isLoading: false,
-    }));
-  }, []);
-
-  // Define scheduleTokenRefresh without depending on refreshToken directly
-  const scheduleTokenRefresh = useCallback((expiresIn: number) => {
-    const refreshTime = expiresIn * 1000 - TOKEN_REFRESH_MARGIN;
-    const timeout = setTimeout(() => {
-      // Use the ref's current value, which will be set later
-      if (refreshTokenRef.current) {
-        refreshTokenRef.current();
-      }
-    }, refreshTime);
-    setRefreshTimeout(timeout);
-  }, []);
-
-  const parseJwt = (token: string) => {
-    try {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
-      return JSON.parse(jsonPayload);
-    } catch (error) {
-      console.error('Error parsing JWT token:', error);
-      return null;
-    }
-  };
 
   const handleAuthResponse = useCallback(async (response: Response) => {
     if (!response.ok) {
@@ -121,18 +75,12 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     const decodedToken = parseJwt(accessToken);
     persistAuthState(user, { accessToken, refreshToken, tokenType, expiresIn, scope });
     scheduleTokenRefresh(decodedToken.exp - Math.floor(Date.now() / 1000));
-    setTokens({ accessToken, refreshToken, tokenType, expiresIn, scope });
-    setState(prev => ({
-      ...prev,
-      user,
-      isAuthenticated: true,
-      isLoading: false,
-      error: null,
-    }));
-  }, [persistAuthState, scheduleTokenRefresh]);
+    updateTokens({ accessToken, refreshToken, tokenType, expiresIn, scope });
+    setAuthState(user);
+  }, [persistAuthState, scheduleTokenRefresh, parseJwt, updateTokens, setAuthState]);
 
   const login = useCallback(async (credentials: LoginRequest) => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    setAuthLoading(true);
     try {
       const response = await fetch(AUTH_ENDPOINTS.LOGIN, {
         method: 'POST',
@@ -142,17 +90,12 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       await handleAuthResponse(response);
     } catch (error) {
       clearAuthState();
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Session initialization failed',
-      }));
+      setAuthError(error instanceof Error ? error.message : 'Session initialization failed');
       throw error;
     }
-  }, [clearAuthState, handleAuthResponse]);
+  }, [clearAuthState, handleAuthResponse, setAuthError, setAuthLoading]);
 
   const logout = useCallback(async () => {
-    setState(prev => ({ ...prev, isLoading: true }));
     try {
       if (tokens?.accessToken) {
         await fetch(AUTH_ENDPOINTS.LOGOUT, {
@@ -164,20 +107,10 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       console.error("Logout request failed:", error);
       // Continue with local logout even if server logout fails
     } finally {
-      if (refreshTimeout) {
-        clearTimeout(refreshTimeout);
-        setRefreshTimeout(null);
-      }
       clearAuthState();
-      setTokens(null);
-      setState(prev => ({
-        ...prev,
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-      }));
+      updateTokens(null);
     }
-  }, [clearAuthState, refreshTimeout, tokens]);
+  }, [clearAuthState, tokens, updateTokens]);
 
   // Then ensure refreshToken returns the token
   const refreshToken = useCallback(async () => {
@@ -225,7 +158,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       const decodedToken = parseJwt(tokenResponse.accessToken);
       
       // Update tokens in state
-      setTokens(tokenResponse);
+      updateTokens(tokenResponse);
       
       // Get stored user data
       const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
@@ -237,7 +170,6 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           
           // Calculate new expiration time and schedule refresh
           const newExpiresIn = decodedToken.exp - Math.floor(Date.now() / 1000);
-          if (refreshTimeout) clearTimeout(refreshTimeout);
           scheduleTokenRefresh(newExpiresIn);
           
           console.log("Token refresh successful, next refresh scheduled");
@@ -258,7 +190,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       await logout();
       throw new Error(error.response?.data?.message || "Session expired. Please login again.");
     }
-  }, [tokens, persistAuthState, scheduleTokenRefresh, logout]);
+  }, [tokens, persistAuthState, scheduleTokenRefresh, logout, updateTokens, parseJwt]);
 
   // Set the ref to the function after it's defined
   useEffect(() => {
@@ -276,13 +208,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           
           if (isUserInfo(parsed.user) && currentTokens) {
             // Set authentication state
-            setState({
-              user: parsed.user,
-              profile: parsed.profile || null,
-              isAuthenticated: true,
-              isLoading: false,
-              error: null
-            });
+            setAuthState(parsed.user, parsed.profile || null);
             
             // Schedule token refresh based on expiry
             scheduleTokenRefresh(currentTokens.expiresIn);
@@ -292,25 +218,20 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           }
         }
       }
-      setState(prev => ({ ...prev, isLoading: false }));
+      setAuthLoading(false);
     } catch (error) {
       console.error('Error initializing auth:', error);
-      setState({
-        user: null,
-        profile: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: 'Failed to initialize authentication'
-      });
+      setAuthState(null);
+      setAuthError('Failed to initialize authentication');
     }
-  }, [logout, scheduleTokenRefresh]);
+  }, [logout, scheduleTokenRefresh, setAuthState, setAuthLoading, setAuthError]);
 
   const startDiscordOAuth = useCallback(async () => {
     window.location.href = AUTH_ENDPOINTS.DISCORD_AUTHORIZE;
   }, []);
 
   const handleDiscordCallback = useCallback(async (code: string, state: string) => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    setAuthLoading(true);
     try {
       const response = await fetch(AUTH_ENDPOINTS.DISCORD_CALLBACK, {
         method: 'POST',
@@ -319,18 +240,14 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       });
       await handleAuthResponse(response);
     } catch (error) {
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Discord authentication failed',
-      }));
+      setAuthError(error instanceof Error ? error.message : 'Discord authentication failed');
       throw error;
     }
-  }, [handleAuthResponse]);
+  }, [handleAuthResponse, setAuthError, setAuthLoading]);
 
   const handleDiscordCallbackWithToken = useCallback(async (accessToken: string, refreshToken?: string) => {
     try {
-      setState(prev => ({ ...prev, isLoading: true }));
+      setAuthLoading(true);
 
       // Decode JWT token to get user information
       const decodedToken = parseJwt(accessToken);
@@ -362,37 +279,26 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       persistAuthState(user, tokenPair);
       
       // Set auth state
-      setState({
-        user,
-        profile: null, // Will be loaded later
-        isAuthenticated: true,
-        isLoading: false,
-        error: null
-      });
+      setAuthState(user, null);
       
       // Setup token refresh timer
-      scheduleTokenRefresh(tokenPair.expiresIn * 1000 - TOKEN_REFRESH_MARGIN);
+      scheduleTokenRefresh(tokenPair.expiresIn - TOKEN_REFRESH_MARGIN / 1000);
       
       // Reconnect websocket with new token
       webSocketService.reconnectWithFreshToken();
       
       return user;
     } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: false, 
-        error: error instanceof Error ? error.message : 'Authentication failed' 
-      }));
+      setAuthError(error instanceof Error ? error.message : 'Authentication failed');
       throw error;
+    } finally {
+      setAuthLoading(false);
     }
-  }, [persistAuthState, scheduleTokenRefresh]);
+  }, [persistAuthState, scheduleTokenRefresh, parseJwt, setAuthState, setAuthError, setAuthLoading]);
 
   const updateProfile = useCallback((profile: ProfileStatus) => {
-    setState(prev => ({
-      ...prev,
-      profile,
-    }));
-  }, []);
+    updateAuthProfile(profile);
+  }, [updateAuthProfile]);
 
   const updateUserProfile = async (profile: UpdateProfileDTO) => {
     if (!state.user?.id) {
@@ -400,63 +306,51 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
     
     try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
-      const updatedProfile = await userService.updateUserProfile(state.user!.id, profile);
+      setAuthLoading(true);
+      const updatedProfile = await userService.updateUserProfile(state.user.id, profile);
       
-      // Update the profile state
-      setState(prev => {
-        // Create updated user with new avatar
-        const updatedUser = {
-          ...prev.user!,
-          avatar: updatedProfile.avatar,
-          credits: updatedProfile.credits ?? prev.user?.credits
-        };
-        
-        // Persist the updated user data to localStorage
-        const authData = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || '{}');
-        authData.user = updatedUser;
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
-        
-        return {
-          ...prev,
-          user: updatedUser,
-          profile: {
-            ...prev.profile,
-            isComplete: true,
-            displayName: updatedProfile.displayName,
-            pronouns: updatedProfile.pronouns,
-            about: updatedProfile.about,
-            bannerColor: updatedProfile.bannerColor,
-            bannerUrl: updatedProfile.bannerUrl,
-            avatar: updatedProfile.avatar
-          },
-          isLoading: false
-        };
+      // Create updated user with new avatar
+      const updatedUser = {
+        ...state.user,
+        avatar: updatedProfile.avatar,
+        credits: updatedProfile.credits ?? state.user.credits
+      };
+      
+      // Persist the updated user data to localStorage
+      const authData = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || '{}');
+      authData.user = updatedUser;
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+      
+      // Update auth state with the new user info
+      setAuthState(updatedUser);
+      
+      // Update profile separately using updateAuthProfile
+      updateAuthProfile({
+        ...(state.profile || {}),
+        isComplete: true,
+        displayName: updatedProfile.displayName,
+        pronouns: updatedProfile.pronouns,
+        about: updatedProfile.about,
+        bannerColor: updatedProfile.bannerColor,
+        bannerUrl: updatedProfile.bannerUrl,
+        avatar: updatedProfile.avatar
       });
       
     } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: false, 
-        error: error instanceof Error ? error.message : 'Failed to update profile'
-      }));
+      setAuthError(error instanceof Error ? error.message : 'Failed to update profile');
       throw error;
+    } finally {
+      setAuthLoading(false);
     }
   };
 
   useEffect(() => {
     initializeAuth();
+    // Return a cleanup function
     return () => {
-      if (refreshTimeout) clearTimeout(refreshTimeout);
+      // Any cleanup code if needed
     };
-  }, []);
-
-  const hasRole = useCallback(
-    (role: Role): boolean => {
-      return !!state.user?.roles?.includes(role);
-    },
-    [state.user]
-  );
+  }, [initializeAuth]);
 
   const contextValue = useMemo<AuthContextValue>(() => ({
     ...state,
@@ -465,7 +359,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     register: login,
     refreshToken,
     tokens,
-    clearError: () => setState(prev => ({ ...prev, error: null })),
+    clearError: () => setAuthError(null),
     startDiscordOAuth,
     handleDiscordCallback,
     handleDiscordCallbackWithToken,
