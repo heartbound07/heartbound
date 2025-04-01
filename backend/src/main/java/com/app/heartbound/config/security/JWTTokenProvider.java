@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Collections;
 import java.util.stream.Collectors;
+import java.util.UUID;
 
 @Component
 public class JWTTokenProvider {
@@ -70,6 +71,7 @@ public class JWTTokenProvider {
                 .claim("credits", credits != null ? credits : 0)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
+                .setId(UUID.randomUUID().toString())
                 .signWith(SignatureAlgorithm.HS512, jwtSecret)
                 .compact();
     }
@@ -100,6 +102,10 @@ public class JWTTokenProvider {
                 roles.stream().map(Enum::name).collect(Collectors.toList()) : 
                 Collections.singletonList(Role.USER.name());
         claims.put("roles", roleStrings);
+        
+        // Add a unique token ID and creation timestamp for better tracking
+        claims.put("jti", UUID.randomUUID().toString());
+        claims.put("created", now.getTime());
         
         return Jwts.builder()
                 .setClaims(claims)
