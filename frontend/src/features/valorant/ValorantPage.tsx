@@ -13,6 +13,7 @@ import valorantLogo from '@/assets/images/valorant-logo.png';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { SkeletonPartyListing } from '@/components/ui/SkeletonUI';
 import { motion, AnimatePresence } from 'framer-motion';
+import { LFGPartyResponseDTO } from '@/contexts/valorant/partyService';
 
 export default function Home() {
   const [parties, setParties] = useState<any[]>([]);
@@ -128,6 +129,18 @@ export default function Home() {
       // User doesn't have a party, allow creation
       setShowCreateForm(true);
     }
+  };
+
+  // Function to check if a party is newly created (within the last 5 minutes)
+  const isNewParty = (party: LFGPartyResponseDTO | any) => {
+    if (!party.createdAt) return false;
+    
+    // Consider a party "new" if created in the last 5 minutes
+    const creationTime = new Date(party.createdAt).getTime();
+    const currentTime = new Date().getTime();
+    const fiveMinutesInMs = 5 * 60 * 1000;
+    
+    return (currentTime - creationTime) < fiveMinutesInMs;
   };
 
   return (
@@ -269,7 +282,12 @@ export default function Home() {
                             <Listing 
                               key={party.id} 
                               party={party} 
-                              isNew={party.id === userActiveParty} 
+                              isNew={
+                                // Party is new if:
+                                // 1. It's the user's active party OR
+                                // 2. It was created in the last 5 minutes
+                                party.id === userActiveParty || isNewParty(party)
+                              } 
                             />
                           ))}
                         </AnimatePresence>
