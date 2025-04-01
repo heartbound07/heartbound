@@ -2,6 +2,7 @@ import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import axios from 'axios';
 import { AUTH_ENDPOINTS, AUTH_STORAGE_KEY } from '@/contexts/auth/constants';
+import { tokenStorage } from '../contexts/auth/tokenStorage';
 
 // Utility function to extract the current access token from localStorage.
 // This will be called whenever we need the token, not just once during initialization
@@ -108,9 +109,9 @@ class WebSocketService {
       return;
     }
 
-    // Get the current token before attempting to connect
-    const token = getAccessToken();
-    if (!token) {
+    // Get token from memory, not localStorage
+    const tokens = tokenStorage.getTokens();
+    if (!tokens?.accessToken) {
       console.warn('[WebSocket] No authentication token available. Delaying connection.');
       // We'll retry in 1 second if we're within our retry limit
       if (this.retryCount < this.maxRetries) {
@@ -124,10 +125,10 @@ class WebSocketService {
 
     // Update the connection headers with the current token
     this.client.connectHeaders = {
-      Authorization: "Bearer " + token,
+      Authorization: "Bearer " + tokens.accessToken,
     };
     
-    this.lastUsedToken = token;
+    this.lastUsedToken = tokens.accessToken;
 
     console.info('[WebSocket] Connecting with token...');
     this.connecting = true;
@@ -207,31 +208,20 @@ class WebSocketService {
 
   // Helper method to refresh the access token.
   private async refreshAccessToken(): Promise<string | null> {
-    const authDataString = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!authDataString) {
-      console.error("[WebSocket] No authentication data stored.");
+    const tokens = tokenStorage.getTokens();
+    if (!tokens?.refreshToken) {
+      console.error("[WebSocket] No refresh token found in memory.");
       return null;
     }
     
     try {
-      // Parse token data just once to avoid potential inconsistencies
-      const authData = JSON.parse(authDataString);
-      const refreshToken = authData.tokens?.refreshToken;
-      
-      if (!refreshToken) {
-        console.error("[WebSocket] No refresh token found in stored auth data.");
-        return null;
-      }
-      
-      // Use the AUTH_ENDPOINTS constant for consistency
       const response = await axios.post(AUTH_ENDPOINTS.REFRESH, {
-        refreshToken
+        refreshToken: tokens.refreshToken
       });
       
       if (response.data && response.data.accessToken) {
-        // Update stored tokens
-        authData.tokens = response.data;
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+        // Update tokens in memory
+        tokenStorage.setTokens(response.data);
         
         console.info("[WebSocket] Token refresh successful");
         return response.data.accessToken;

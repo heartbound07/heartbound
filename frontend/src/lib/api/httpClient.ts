@@ -1,5 +1,6 @@
 import axios, { AxiosRequestConfig, AxiosError} from 'axios';
 import { AUTH_STORAGE_KEY, AUTH_ENDPOINTS } from '../../contexts/auth/constants';
+import { tokenStorage } from '../../contexts/auth/tokenStorage';
 
 const baseURL = import.meta.env.VITE_API_URL;
 
@@ -36,57 +37,49 @@ async function refreshAuthToken() {
 
   isRefreshing = true;
   try {
+    // Get stored auth data for user info
     const authDataString = localStorage.getItem(AUTH_STORAGE_KEY);
     if (!authDataString) {
       throw new Error('No auth data found');
     }
 
-    const authData = JSON.parse(authDataString);
-    const refreshToken = authData.tokens?.refreshToken;
-    
-    if (!refreshToken) {
+    // Get tokens from memory instead of localStorage
+    const tokens = tokenStorage.getTokens();
+    if (!tokens?.refreshToken) {
       throw new Error('No refresh token available');
     }
 
-    const response = await axios.post(AUTH_ENDPOINTS.REFRESH, { refreshToken });
-    const newTokens = response.data;
-    
-    if (!newTokens || !newTokens.accessToken) {
-      throw new Error('Invalid refresh response');
+    const response = await axios.post(AUTH_ENDPOINTS.REFRESH, { refreshToken: tokens.refreshToken });
+    if (response.data) {
+      // Parse user from localStorage
+      const parsedAuthData = JSON.parse(authDataString);
+      const user = parsedAuthData.user;
+      
+      // Store new tokens in memory
+      tokenStorage.setTokens(response.data);
+      
+      // Update localStorage without tokens
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user }));
+      
+      const newToken = response.data.accessToken;
+      onTokenRefreshed(newToken);
+      isRefreshing = false;
+      return newToken;
+    } else {
+      throw new Error('Failed to refresh token');
     }
-
-    // Update stored tokens
-    authData.tokens = newTokens;
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
-    
-    // Process queued requests
-    onTokenRefreshed(newTokens.accessToken);
-    
-    return newTokens.accessToken;
   } catch (error) {
-    // Clear auth data on refresh failure
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    refreshSubscribers = [];
-    throw error;
-  } finally {
     isRefreshing = false;
+    throw error;
   }
 }
 
 // Request interceptor to attach the JWT token from localStorage if available
 httpClient.interceptors.request.use(
   (config) => {
-    const authDataString = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (authDataString) {
-      try {
-        const authData = JSON.parse(authDataString);
-        const token = authData.tokens?.accessToken;
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-      } catch (error) {
-        console.error('Error parsing auth data from localStorage:', error);
-      }
+    const tokens = tokenStorage.getTokens();
+    if (tokens?.accessToken) {
+      config.headers.Authorization = `Bearer ${tokens.accessToken}`;
     }
     return config;
   },

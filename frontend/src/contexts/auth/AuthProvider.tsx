@@ -16,6 +16,7 @@ import axios from 'axios';
 import webSocketService from '../../config/WebSocketService';
 import * as userService from '../../config/userService';
 import { UpdateProfileDTO } from '@/config/userService';
+import { tokenStorage } from './tokenStorage';
 
 // Update the type declaration
 declare global {
@@ -32,7 +33,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     isLoading: true,
     error: null,
   });
-  const [tokens, setTokens] = useState<TokenPair | null>(null);
+  const [tokens, setTokens] = useState<TokenPair | null>(tokenStorage.getTokens());
   const [refreshTimeout, setRefreshTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   // First, update the ref type to explicitly allow the string return
@@ -42,12 +43,18 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     return !!data && typeof data === 'object' && 'id' in data && 'username' in data;
   };
 
-  const persistAuthState = useCallback((user: UserInfo | null, tokens: TokenPair | null) => {
+  const persistAuthState = useCallback((user: UserInfo | null, tokenPair: TokenPair | null) => {
     try {
-      if (user && tokens) {
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user, tokens }));
+      if (user && tokenPair) {
+        // Only store user info in localStorage, tokens stay in memory
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user }));
+        // Update in-memory tokens using tokenStorage
+        tokenStorage.setTokens(tokenPair);
+        setTokens(tokenPair);
       } else {
         localStorage.removeItem(AUTH_STORAGE_KEY);
+        tokenStorage.clearTokens();
+        setTokens(null);
       }
     } catch (error) {
       console.error('Failed to persist auth state:', error);
@@ -260,97 +267,43 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
   const initializeAuth = useCallback(async () => {
     try {
-      const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (!storedAuth) {
-        setState(prev => ({ ...prev, isLoading: false }));
-        return;
-      }
-      
-      const { user, tokens: storedTokens } = JSON.parse(storedAuth);
-      
-      if (!isUserInfo(user) || !storedTokens?.accessToken) {
-        throw new Error('Invalid stored auth data');
-      }
-      
-      const decodedToken = parseJwt(storedTokens.accessToken);
-      const currentTime = Math.floor(Date.now() / 1000);
-      
-      // If token is expired or will expire soon (within TOKEN_REFRESH_MARGIN milliseconds)
-      if (decodedToken.exp - currentTime < TOKEN_REFRESH_MARGIN / 1000) {
-        console.log("Token expired or expiring soon, attempting refresh");
-        setTokens(storedTokens); // Set tokens temporarily so refreshToken has access to the refresh token
-        try {
-          await refreshToken();
-          return; // refreshToken will handle setting the auth state
-        } catch (error) {
-          // refreshToken will handle logging the user out
-          return;
+      if (tokenStorage.hasStoredAuthStatus()) {
+        const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (storedAuth) {
+          const parsed = JSON.parse(storedAuth);
+          // Get tokens from memory instead of localStorage
+          const currentTokens = tokenStorage.getTokens();
+          
+          if (isUserInfo(parsed.user) && currentTokens) {
+            // Set authentication state
+            setState({
+              user: parsed.user,
+              profile: parsed.profile || null,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null
+            });
+            
+            // Schedule token refresh based on expiry
+            scheduleTokenRefresh(currentTokens.expiresIn);
+          } else {
+            // Missing tokens in memory even though auth status exists
+            await logout();
+          }
         }
       }
-      
-      // Valid token with adequate time remaining
-      scheduleTokenRefresh(decodedToken.exp - currentTime);
-      setTokens(storedTokens);
-      setState(prev => ({
-        ...prev,
-        user,
-        isAuthenticated: true,
-        isLoading: true, // Keep loading true while we fetch profile
-      }));
-
-      // ADDED: Fetch the latest profile data after authentication is loaded
-      try {
-        // Fetch the user's profile using the stored user ID
-        const profileData = await userService.getUserProfile(user.id);
-        
-        // Update both the profile AND user state with the fetched data
-        setState(prev => {
-          // Create an updated user object with the correct avatar and credits
-          const updatedUser = {
-            ...prev.user!,
-            avatar: profileData.avatar, // Use the avatar from profile
-            credits: profileData.credits // Update credits from profile
-          };
-          
-          // Also update localStorage with the correct avatar and credits
-          const authData = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || '{}');
-          if (authData.user) {
-            authData.user.avatar = profileData.avatar;
-            authData.user.credits = profileData.credits;
-            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
-          }
-          
-          return {
-            ...prev,
-            user: updatedUser, // Update user with correct avatar and credits
-            profile: {
-              isComplete: true,
-              displayName: profileData.displayName,
-              pronouns: profileData.pronouns,
-              about: profileData.about,
-              bannerColor: profileData.bannerColor,
-              bannerUrl: profileData.bannerUrl,
-              avatar: profileData.avatar
-            },
-            isLoading: false,
-          };
-        });
-      } catch (profileError) {
-        console.error("Failed to fetch profile data during initialization:", profileError);
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-        }));
-      }
+      setState(prev => ({ ...prev, isLoading: false }));
     } catch (error) {
-      clearAuthState();
-      setState(prev => ({
-        ...prev,
+      console.error('Error initializing auth:', error);
+      setState({
+        user: null,
+        profile: null,
+        isAuthenticated: false,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Session initialization failed',
-      }));
+        error: 'Failed to initialize authentication'
+      });
     }
-  }, [clearAuthState, refreshToken, scheduleTokenRefresh]);
+  }, [logout, scheduleTokenRefresh]);
 
   const startDiscordOAuth = useCallback(async () => {
     window.location.href = AUTH_ENDPOINTS.DISCORD_AUTHORIZE;
