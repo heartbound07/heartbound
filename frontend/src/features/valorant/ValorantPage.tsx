@@ -148,8 +148,10 @@ export default function Home() {
   
   // Update this function to check if a party is truly "new" to the user
   const isPartyNewToUser = useCallback((party: LFGPartyResponseDTO | any) => {
-    // Party is new if it was created in the last 5 minutes AND user hasn't seen it yet
-    if (!party.id || !party.createdAt) return false;
+    // Party is NOT new if:
+    // 1. Missing required data
+    // 2. Current user is the creator
+    if (!party.id || !party.createdAt || party.userId === user?.id) return false;
     
     // Check if party was created recently (within 5 minutes)
     const creationTime = new Date(party.createdAt).getTime();
@@ -161,7 +163,7 @@ export default function Home() {
     const hasNotSeen = !seenParties.has(party.id);
     
     return isRecent && hasNotSeen;
-  }, [seenParties]);
+  }, [seenParties, user?.id]);
   
   // Replace the existing effect that marks parties as seen with this one
   useEffect(() => {
@@ -340,7 +342,7 @@ export default function Home() {
                               isNew={
                                 // Party is new if:
                                 // 1. It's the user's active party (but they're not the creator) OR
-                                // 2. It's a recent party the user hasn't seen yet
+                                // 2. It's a recent party the user hasn't seen yet AND they're not the creator
                                 (party.id === userActiveParty && party.userId !== user?.id) || 
                                 isPartyNewToUser(party)
                               } 
