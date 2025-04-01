@@ -18,35 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/av
 import { usePartyParticipants } from '@/hooks/usePartyParticipants'
 import { usePartyJoinRequests } from '@/hooks/usePartyJoinRequests'
 import { JoinRequestSection } from "@/components/valorant/JoinRequestSection"
-
-// Custom Toast Component
-const Toast = ({ 
-  message, 
-  type = 'info', 
-  onClose 
-}: { 
-  message: string; 
-  type?: 'success' | 'error' | 'info'; 
-  onClose: () => void;
-}) => {
-  const bgColor = type === 'success' 
-    ? 'bg-green-500' 
-    : type === 'error' 
-      ? 'bg-[#FF4655]' 
-      : 'bg-blue-500';
-
-  return (
-    <div className={`fixed top-4 right-4 z-50 flex items-center ${bgColor} text-white px-4 py-3 rounded-md shadow-lg`}>
-      <span>{message}</span>
-      <button
-        onClick={onClose}
-        className="ml-4 text-white hover:text-white/80 focus:outline-none"
-      >
-        <X size={18} />
-      </button>
-    </div>
-  );
-};
+import { Toast } from '@/components/Toast'
 
 // DetailBadge component for displaying details with label and value
 const DetailBadge = ({ 
@@ -143,29 +115,22 @@ export default function ValorantPartyDetails() {
   const [invitedUsers, setInvitedUsers] = React.useState<string[]>([])
   const [isInvited, setIsInvited] = React.useState(false)
   
-  // Toast state
-  const [toastInfo, setToastInfo] = React.useState<{
-    visible: boolean;
+  // Replace the existing toast state with an array-based approach for multiple toasts
+  const [toasts, setToasts] = React.useState<Array<{
+    id: string;
     message: string;
     type: 'success' | 'error' | 'info';
-  }>({
-    visible: false,
-    message: '',
-    type: 'info'
-  });
+  }>>([]);
 
-  // Function to show a toast message
+  // Replace the showToast function with this improved version
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    setToastInfo({
-      visible: true,
-      message,
-      type
-    });
-    
-    // Auto-hide toast after 3 seconds
-    setTimeout(() => {
-      setToastInfo(prev => ({ ...prev, visible: false }));
-    }, 3000);
+    const id = Date.now().toString();
+    setToasts(prevToasts => [...prevToasts, { id, message, type }]);
+  };
+
+  // Add function to remove a toast by ID
+  const removeToast = (id: string) => {
+    setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
   };
 
   // Placeholder avatar for participants who don't have an available avatar.
@@ -616,11 +581,7 @@ export default function ValorantPartyDetails() {
 
   // Create a callback for the toast to pass to the hook
   const showToastCallback = React.useCallback((message: string, type: 'success' | 'error' | 'info') => {
-    setToastInfo({
-      visible: true,
-      message,
-      type
-    });
+    showToast(message, type);
   }, []);
 
   // Initialize the hook
@@ -687,14 +648,15 @@ export default function ValorantPartyDetails() {
 
   return (
     <TooltipProvider>
-      {/* Render the toast if visible */}
-      {toastInfo.visible && (
-        <Toast 
-          message={toastInfo.message} 
-          type={toastInfo.type} 
-          onClose={() => setToastInfo(prev => ({ ...prev, visible: false }))} 
+      {/* Replace the existing toast rendering code with this */}
+      {toasts.map(toast => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => removeToast(toast.id)}
         />
-      )}
+      ))}
       
       <div className="min-h-screen bg-[#0F1923] text-white font-sans flex flex-col p-6">
         <div className="fixed inset-0 bg-[#0F1923] z-0">

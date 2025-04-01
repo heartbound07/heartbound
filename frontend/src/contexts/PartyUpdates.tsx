@@ -48,7 +48,9 @@ export const PartyUpdatesProvider = ({ children }: PartyUpdatesProviderProps) =>
   const [userActiveParty, setUserActiveParty] = useState<string | null>(null);
 
   // Memoize the clear update function to avoid unnecessary re-renders
-  const clearUpdate = useCallback(() => setUpdate(null), []);
+  const clearUpdate = useCallback(() => {
+    setUpdate(null);
+  }, []);
 
   // Effect to update active party status when WebSocket sends an update
   useEffect(() => {

@@ -1,0 +1,123 @@
+/* Base Toast Styles */
+.valorant-toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 9999;
+  min-width: 300px;
+  max-width: 450px;
+  background-color: #1F2731;
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+/* Adjust positioning for narrow screens */
+@media (max-width: 768px) {
+  .valorant-toast {
+    min-width: auto;
+    width: calc(100% - 48px);
+    top: 16px;
+    right: 16px;
+  }
+}
+
+/* Toast Content Container */
+.toast-content {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  gap: 12px;
+}
+
+/* Toast types */
+.valorant-toast-success {
+  border-left: 4px solid #4ADE80;
+  background: linear-gradient(90deg, rgba(74, 222, 128, 0.1) 0%, rgba(74, 222, 128, 0) 50%);
+}
+
+.valorant-toast-error {
+  border-left: 4px solid #FF4655;
+  background: linear-gradient(90deg, rgba(255, 70, 85, 0.1) 0%, rgba(255, 70, 85, 0) 50%);
+}
+
+.valorant-toast-info {
+  border-left: 4px solid #38BDF8;
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.1) 0%, rgba(56, 189, 248, 0) 50%);
+}
+
+/* Toast Icon Styling */
+.toast-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.toast-success-icon {
+  color: #4ADE80;
+}
+
+.toast-error-icon {
+  color: #FF4655;
+}
+
+.toast-info-icon {
+  color: #38BDF8;
+}
+
+/* Toast Message */
+.toast-message {
+  flex-grow: 1;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* Close Button */
+.toast-close-button {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toast-close-button:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Progress Bar */
+.toast-progress {
+  height: 3px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.valorant-toast-success .toast-progress {
+  background-color: #4ADE80;
+}
+
+.valorant-toast-error .toast-progress {
+  background-color: #FF4655;
+}
+
+.valorant-toast-info .toast-progress {
+  background-color: #38BDF8;
+}
+
+/* For stacked toasts (if needed) */
+.valorant-toast + .valorant-toast {
+  margin-top: 8px;
+} 

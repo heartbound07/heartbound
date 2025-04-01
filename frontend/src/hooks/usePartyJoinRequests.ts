@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService";
 import { acceptJoinRequest, rejectJoinRequest, getParty } from "@/contexts/valorant/partyService";
 import { usePartyUpdates, type LFGPartyEvent } from "@/contexts/PartyUpdates";
@@ -24,6 +24,9 @@ export function usePartyJoinRequests({
   const [joinRequestProfiles, setJoinRequestProfiles] = useState<Record<string, UserProfileDTO>>({});
   const [isProcessingRequest, setIsProcessingRequest] = useState(false);
   
+  // Add a ref to track processed update IDs
+  const processedUpdates = useRef(new Set<string>());
+  
   // Get party updates context
   const { update, clearUpdate } = usePartyUpdates();
 
@@ -33,7 +36,16 @@ export function usePartyJoinRequests({
   // Process websocket updates related to join requests
   useEffect(() => {
     if (!update || !party || update.party?.id !== party.id) return;
-
+    
+    // Create a unique ID for this update to prevent duplicate processing
+    const updateId = `${update.eventType}-${update.party?.id}-${update.targetUserId}-${Date.now()}`;
+    
+    // Skip if we've already processed this update
+    if (processedUpdates.current.has(updateId)) return;
+    
+    // Mark this update as processed
+    processedUpdates.current.add(updateId);
+    
     const updatedParty = update.party;
 
     switch (update.eventType) {
@@ -98,7 +110,17 @@ export function usePartyJoinRequests({
         }
         break;
     }
-  }, [update, party?.id, userId, joinRequestProfiles, showToast]);
+    
+    // Clear the update after processing to prevent duplicate handling
+    clearUpdate();
+    
+    // Limit the size of processedUpdates set to prevent memory leaks
+    if (processedUpdates.current.size > 100) {
+      processedUpdates.current = new Set(
+        Array.from(processedUpdates.current).slice(-50)
+      );
+    }
+  }, [update, party?.id, userId, joinRequestProfiles, showToast, clearUpdate]);
 
   // Handle accepting join requests
   const handleAcceptJoinRequest = useCallback(async (requestUserId: string) => {
