@@ -114,31 +114,21 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
   // Then ensure refreshToken returns the token
   const refreshToken = useCallback(async () => {
-    if (!tokens?.refreshToken) {
-      console.error("No refresh token found");
-      await logout();
-      return undefined;
-    }
-    
     try {
+      // Check if we have a refresh token
+      if (!tokens?.refreshToken) {
+        console.error("No refresh token available - user needs to re-authenticate");
+        // Since we can't refresh without a token, we should logout
+        await logout();
+        return undefined;
+      }
+      
       console.log("Refreshing access token...");
       const response = await axios.post(AUTH_ENDPOINTS.REFRESH, { refreshToken: tokens.refreshToken });
-      console.log("Raw token response:", response.data);
       
-      // Handle potential response format differences
-      let tokenResponse: TokenPair;
+      let tokenResponse;
       
-      // Check if the response matches our expected structure
-      if (response.data.accessToken && response.data.refreshToken) {
-        tokenResponse = response.data;
-      } 
-      // Sometimes backend might wrap the token in another object
-      else if (response.data.tokens && response.data.tokens.accessToken) {
-        tokenResponse = response.data.tokens;
-      }
-      // Backend might return a different structure, adapt accordingly
-      else if (typeof response.data === 'object') {
-        // Try to adapt the response to our TokenPair structure
+      if (response.data) {
         tokenResponse = {
           accessToken: response.data.accessToken || response.data.access_token,
           refreshToken: response.data.refreshToken || response.data.refresh_token,
@@ -177,7 +167,10 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           // Add this section: Notify WebSocketService to reconnect with the fresh token
           // Small delay ensures localStorage is properly updated first
           setTimeout(() => {
-            webSocketService.reconnectWithFreshToken();
+            if (typeof webSocketService !== 'undefined' && 
+                webSocketService.reconnectWithFreshToken) {
+              webSocketService.reconnectWithFreshToken();
+            }
           }, 300);
         }
       }
@@ -203,17 +196,35 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
         if (storedAuth) {
           const parsed = JSON.parse(storedAuth);
-          // Get tokens from memory instead of localStorage
+          // Get tokens from memory
           const currentTokens = tokenStorage.getTokens();
           
-          if (isUserInfo(parsed.user) && currentTokens) {
-            // Set authentication state
-            setAuthState(parsed.user, parsed.profile || null);
-            
-            // Schedule token refresh based on expiry
-            scheduleTokenRefresh(currentTokens.expiresIn);
+          if (isUserInfo(parsed.user)) {
+            if (currentTokens) {
+              // Normal flow - we have both user data and tokens
+              setAuthState(parsed.user, parsed.profile || null);
+              const decodedToken = parseJwt(currentTokens.accessToken);
+              scheduleTokenRefresh(decodedToken.exp - Math.floor(Date.now() / 1000));
+            } else {
+              // We have user data but no tokens (page was refreshed)
+              // Set temporary auth state so UI doesn't flash
+              setAuthState(parsed.user, parsed.profile || null);
+              
+              try {
+                // Try to refresh the token
+                const newToken = await refreshToken();
+                if (!newToken) {
+                  // If refresh fails, log the user out
+                  console.warn("Failed to refresh token on initialization");
+                  await logout();
+                }
+              } catch (error) {
+                console.error("Error refreshing token:", error);
+                await logout();
+              }
+            }
           } else {
-            // Missing tokens in memory even though auth status exists
+            // Invalid user data
             await logout();
           }
         }
@@ -224,7 +235,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       setAuthState(null);
       setAuthError('Failed to initialize authentication');
     }
-  }, [logout, scheduleTokenRefresh, setAuthState, setAuthLoading, setAuthError]);
+  }, [logout, refreshToken, scheduleTokenRefresh, parseJwt, setAuthState, setAuthLoading, setAuthError]);
 
   const startDiscordOAuth = useCallback(async () => {
     window.location.href = AUTH_ENDPOINTS.DISCORD_AUTHORIZE;

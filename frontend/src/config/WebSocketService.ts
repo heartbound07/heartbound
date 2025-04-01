@@ -7,15 +7,17 @@ import { tokenStorage } from '../contexts/auth/tokenStorage';
 // Utility function to extract the current access token from localStorage.
 // This will be called whenever we need the token, not just once during initialization
 function getAccessToken(): string {
-  const authDataString = localStorage.getItem(AUTH_STORAGE_KEY);
-  if (authDataString) {
-    try {
-      const authData = JSON.parse(authDataString);
-      return authData.tokens?.accessToken || '';
-    } catch (error) {
-      console.error('Error parsing authentication data from localStorage:', error);
-    }
+  // First try to get token from memory storage
+  const memoryTokens = tokenStorage.getTokens();
+  if (memoryTokens?.accessToken) {
+    return memoryTokens.accessToken;
   }
+  
+  // Fallback to localStorage auth status check (though this won't have the actual token)
+  if (localStorage.getItem('heartbound_auth_status') === 'true') {
+    console.warn('[WebSocket] Auth status exists but no token in memory - needs refresh');
+  }
+  
   return '';
 }
 
@@ -244,55 +246,63 @@ class WebSocketService {
    * This can be called after token refresh to ensure WebSocket uses the updated token.
    */
   public reconnectWithFreshToken(): void {
-    // Debounce rapid reconnection attempts
-    if (this.reconnectDebounceTimer) {
-      clearTimeout(this.reconnectDebounceTimer);
+    const tokens = tokenStorage.getTokens();
+    if (!tokens?.accessToken) {
+      console.warn('[WebSocket] No valid token available for reconnection');
+      return;
     }
     
-    this.reconnectDebounceTimer = setTimeout(() => {
-      // Get fresh token
-      const token = getAccessToken();
-      if (!token) {
-        console.warn('[WebSocket] No valid token available for reconnection');
-        return;
-      }
-      
-      // Skip if token hasn't changed
-      if (token === this.lastUsedToken && this.connected) {
-        console.info('[WebSocket] Token unchanged, skipping reconnection');
-        return;
-      }
-      
-      this.lastUsedToken = token;
-      console.info('[WebSocket] Reconnecting with fresh token...');
-      
-      // Update the connection headers with the current token
-      this.client.connectHeaders = {
-        Authorization: "Bearer " + token,
-      };
-      
-      // Only attempt reconnection if we're currently connected or connecting
-      if (this.client.active) {
-        this.connecting = true;
-        this.client.deactivate().then(() => {
-          // Small delay to ensure clean disconnect
-          setTimeout(() => {
-            this.client.activate();
-          }, 500);
-        }).catch(err => {
-          console.error('[WebSocket] Error during reconnection:', err);
-          this.connecting = false;
-        });
-      } else {
-        // If not already connecting, try to connect
-        if (this.callback) {
-          this.connect(this.callback);
+    console.log('[WebSocket] Reconnecting with fresh token');
+    
+    if (this.client) {
+      // Track if we're currently connecting to prevent multiple attempts
+      if (!this.connecting) {
+        // Store the current token being used for connection
+        this.lastUsedToken = tokens.accessToken;
+        
+        // Update the connection headers with the new token
+        this.client.connectHeaders = {
+          Authorization: "Bearer " + tokens.accessToken,
+        };
+        
+        // If already active, deactivate first
+        if (this.client.active) {
+          this.connecting = true;
+          this.retryCount = 0;
+          
+          console.log('[WebSocket] Deactivating current connection before reconnecting');
+          
+          // Deactivate then reactivate after a short delay
+          this.client.deactivate().then(() => {
+            // Small delay to ensure clean disconnect
+            setTimeout(() => {
+              console.log('[WebSocket] Reactivating with new token');
+              this.client.activate();
+            }, 500);
+          }).catch(err => {
+            console.error('[WebSocket] Error during reconnection:', err);
+            this.connecting = false;
+          });
         } else {
-          console.warn('[WebSocket] Cannot reconnect - no callback function available');
-          this.connecting = false;
+          console.log('[WebSocket] Connection not active, performing fresh connection');
+          
+          // Create a default callback if none exists
+          if (!this.callback) {
+            this.callback = (message) => {
+              console.log('[WebSocket] Received message with default callback:', message);
+            };
+            console.log('[WebSocket] Created default callback for reconnection');
+          }
+          
+          // Connect with the saved callback
+          this.connect(this.callback);
         }
+      } else {
+        console.log('[WebSocket] Connection attempt already in progress');
       }
-    }, 300); // 300ms debounce
+    } else {
+      console.warn('[WebSocket] STOMP client not initialized');
+    }
   }
 }
 
