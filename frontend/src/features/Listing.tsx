@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate } from "react-router-dom"
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 import { usePartyUpdates } from "@/contexts/PartyUpdates"
+import { motion } from 'framer-motion'
 
 // Helper function to format tooltip text for fields such as gameMode, teamSize, etc.
 const formatTooltipText = (text: string | undefined, defaultText: string = "N/A"): string => {
@@ -35,9 +36,10 @@ const formatAgeRestriction = (ageText: string | undefined): string => {
 
 export interface ListingProps {
   party: any; // Replace with a proper type for LFGPartyResponseDTO
+  isNew?: boolean;
 }
 
-export default function Listing({ party }: ListingProps) {
+export default function Listing({ party, isNew = false }: ListingProps) {
   // Dynamically create player slots based on party.maxPlayers and party.participants.
   // We assume party.participants is an array (default to empty array if undefined).
   const participants = party.participants || []
@@ -282,11 +284,75 @@ export default function Listing({ party }: ListingProps) {
     }
   };
 
+  // Add animation variants
+  const listingVariants = {
+    hidden: { 
+      opacity: 0,
+      y: 20
+    },
+    visible: { 
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+        ease: "easeOut"
+      }
+    },
+    exit: {
+      opacity: 0,
+      y: -20,
+      transition: {
+        duration: 0.3
+      }
+    }
+  };
+  
+  // Enhanced animation for new listings
+  const newListingVariants = {
+    hidden: { 
+      opacity: 0,
+      scale: 0.95,
+      y: 30
+    },
+    visible: { 
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 20
+      }
+    },
+    exit: listingVariants.exit
+  };
+
   return (
-    <div 
-      ref={listingContainerRef} 
-      className="overflow-hidden bg-[#0F1923] rounded-lg shadow-xl border border-white/5 hover:border-white/10 transition-all duration-300 transform hover:-translate-y-1 h-full flex flex-col"
+    <motion.div 
+      ref={listingContainerRef}
+      className={`overflow-hidden bg-[#0F1923] rounded-lg shadow-xl border ${
+        isNew 
+          ? "border-[#FF4655]/20 ring-2 ring-[#FF4655]/10" 
+          : "border-white/5 hover:border-white/10"
+      } transition-all duration-300 transform hover:-translate-y-1 h-full flex flex-col`}
+      variants={isNew ? newListingVariants : listingVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      layoutId={`party-${party.id}`}
     >
+      {/* New party indicator badge */}
+      {isNew && (
+        <motion.div 
+          className="absolute -right-1 -top-1 bg-[#FF4655] text-white text-xs font-bold px-2 py-1 rounded-bl-lg rounded-tr-lg z-10"
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          NEW
+        </motion.div>
+      )}
+      
       {/* Header section with title and description */}
       <div className="px-5 py-4 bg-gradient-to-r from-[#1F2731] to-[#0F1923] border-b border-zinc-700/30">
         <h1 className="text-sm font-semibold text-white tracking-wide">
@@ -475,7 +541,7 @@ export default function Listing({ party }: ListingProps) {
           <X className="ml-3 h-4 w-4 cursor-pointer" onClick={() => setToast(null)} />
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }
 

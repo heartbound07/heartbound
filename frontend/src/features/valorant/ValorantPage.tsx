@@ -12,6 +12,7 @@ import valorantBanner from '@/assets/images/valorant.jpg';
 import valorantLogo from '@/assets/images/valorant-logo.png';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { SkeletonPartyListing } from '@/components/ui/SkeletonUI';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Home() {
   const [parties, setParties] = useState<any[]>([]);
@@ -20,6 +21,17 @@ export default function Home() {
   const { user } = useAuth();
   const { update, clearUpdate, userActiveParty, setUserActiveParty } = usePartyUpdates();
   const [isLoading, setIsLoading] = useState(true);
+
+  // Add animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { 
+        staggerChildren: 0.1
+      }
+    }
+  };
 
   // Define a reusable function to fetch parties.
   const fetchParties = useCallback(async () => {
@@ -233,26 +245,35 @@ export default function Home() {
                   {/* Group Listings */}
                   <div className="mt-8">
                     {isLoading ? (
-                      // Show skeleton loading UI for parties
+                      // Skeleton loaders for parties (keep existing code)
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {Array(6).fill(0).map((_, index) => (
-                          <SkeletonPartyListing key={`skeleton-listing-${index}`} theme="valorant" />
+                        {[...Array(4)].map((_, index) => (
+                          <SkeletonPartyListing key={index} />
                         ))}
                       </div>
                     ) : parties.length === 0 ? (
-                      <div className="text-center py-12 bg-[#1F2731]/30 rounded-lg border border-white/5">
-                        <GamepadIcon className="w-12 h-12 mx-auto mb-4 text-white/30" />
-                        <h3 className="text-xl font-semibold text-white/80 mb-2">No Parties Available</h3>
-                        <p className="text-white/50 max-w-md mx-auto">
-                          There are no available groups at the moment. Be the first to create one!
-                        </p>
+                      // Empty state (keep existing code)
+                      <div className="text-center p-8 bg-[#1F2731]/60 rounded-lg border border-white/5">
+                        <p className="text-[#8B97A4]">No parties available right now. Create one to get started!</p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {parties.map((party) => (
-                          <Listing key={party.id} party={party} />
-                        ))}
-                      </div>
+                      // Replace the existing div with motion.div for the grid
+                      <motion.div 
+                        className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                      >
+                        <AnimatePresence>
+                          {parties.map((party) => (
+                            <Listing 
+                              key={party.id} 
+                              party={party} 
+                              isNew={party.id === userActiveParty} 
+                            />
+                          ))}
+                        </AnimatePresence>
+                      </motion.div>
                     )}
                   </div>
                 </TabsContent>
