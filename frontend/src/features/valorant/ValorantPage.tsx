@@ -194,7 +194,7 @@ export default function Home() {
         // Update state and localStorage
         setSeenParties(newSeenParties);
         localStorage.setItem('seenParties', JSON.stringify([...newSeenParties]));
-      }, 3000); // Delay of 3 seconds to allow the user to see the "NEW" badges
+      }, 7000); // Delay of 3 seconds to allow the user to see the "NEW" badges
       
       return () => clearTimeout(markPartiesAsSeenTimeout);
     }
