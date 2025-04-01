@@ -1,4 +1,4 @@
-import { FC, useEffect, useCallback, useMemo, useRef } from 'react';
+import { FC, useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { AuthContext } from './AuthContext';
 import {
   AuthContextValue,
@@ -27,6 +27,10 @@ declare global {
   }
 }
 
+// Place these outside the component to persist across renders
+let refreshInProgress = false;
+let refreshPromise: Promise<string | undefined> | null = null;
+
 const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   // Use our new custom hooks
   const {
@@ -47,6 +51,8 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     scheduleTokenRefresh,
     refreshTokenRef,
   } = useTokenManagement();
+
+  const [initialized, setInitialized] = useState(false);
 
   const persistAuthState = useCallback((user: UserInfo, tokenPair: TokenPair) => {
     // Use the tokenStorage directly instead of a state-updating function
@@ -112,78 +118,72 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
   }, [clearAuthState, tokens, updateTokens]);
 
-  // Then ensure refreshToken returns the token
-  const refreshToken = useCallback(async () => {
-    try {
-      // Check if we have a refresh token
-      if (!tokens?.refreshToken) {
-        console.error("No refresh token available - user needs to re-authenticate");
-        // Since we can't refresh without a token, we should logout
-        await logout();
-        return undefined;
-      }
-      
-      console.log("Refreshing access token...");
-      const response = await axios.post(AUTH_ENDPOINTS.REFRESH, { refreshToken: tokens.refreshToken });
-      
-      let tokenResponse;
-      
-      if (response.data) {
-        tokenResponse = {
-          accessToken: response.data.accessToken || response.data.access_token,
-          refreshToken: response.data.refreshToken || response.data.refresh_token,
-          tokenType: response.data.tokenType || response.data.token_type || "bearer",
-          expiresIn: response.data.expiresIn || response.data.expires_in || 3600,
-          scope: response.data.scope || ""
-        };
-      } else {
-        throw new Error("Unexpected response format from server");
-      }
-      
-      if (!tokenResponse.accessToken) {
-        throw new Error("No access token in response");
-      }
-      
-      // Extract user info from the token to maintain consistency
-      const decodedToken = parseJwt(tokenResponse.accessToken);
-      
-      // Update tokens in state
-      updateTokens(tokenResponse);
-      
-      // Get stored user data
-      const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (storedAuth) {
-        const parsed = JSON.parse(storedAuth);
-        if (isUserInfo(parsed.user)) {
-          // Persist the updated tokens with the existing user info
-          persistAuthState(parsed.user, tokenResponse);
-          
-          // Calculate new expiration time and schedule refresh
-          const newExpiresIn = decodedToken.exp - Math.floor(Date.now() / 1000);
-          scheduleTokenRefresh(newExpiresIn);
-          
-          console.log("Token refresh successful, next refresh scheduled");
-          
-          // Add this section: Notify WebSocketService to reconnect with the fresh token
-          // Small delay ensures localStorage is properly updated first
-          setTimeout(() => {
-            if (typeof webSocketService !== 'undefined' && 
-                webSocketService.reconnectWithFreshToken) {
-              webSocketService.reconnectWithFreshToken();
-            }
-          }, 300);
-        }
-      }
-      
-      return tokenResponse.accessToken;
-    } catch (error: any) {
-      console.error("Failed to refresh token:", error);
-      console.error("Error details:", error.response?.data || error.message);
-      // If refresh fails, log the user out as their session is no longer valid
-      await logout();
-      throw new Error(error.response?.data?.message || "Session expired. Please login again.");
+  // Update the refreshToken method with mutex pattern
+  const refreshToken = async (): Promise<string | undefined> => {
+    // If a refresh is already in progress, return the existing promise
+    if (refreshInProgress && refreshPromise) {
+      console.log('Refresh already in progress, waiting for completion...');
+      return refreshPromise;
     }
-  }, [tokens, persistAuthState, scheduleTokenRefresh, logout, updateTokens, parseJwt]);
+
+    console.log('Refreshing token...');
+
+    // Set the mutex and create a new promise
+    refreshInProgress = true;
+    refreshPromise = (async () => {
+      try {
+        const refreshTokenValue = tokenStorage.getRefreshToken();
+        if (!refreshTokenValue) {
+          console.log('No refresh token available - user needs to re-authenticate');
+          return undefined;
+        }
+
+        const response = await axios.post(AUTH_ENDPOINTS.REFRESH, {
+          refreshToken: refreshTokenValue
+        });
+
+        if (response.data && response.data.access_token) {
+          // Store the new tokens with all required TokenPair properties
+          tokenStorage.setTokens({
+            accessToken: response.data.access_token,
+            refreshToken: response.data.refresh_token,
+            tokenType: response.data.token_type || 'bearer', // Provide default or from response
+            expiresIn: response.data.expires_in || 3600,     // Provide default or from response
+            scope: response.data.scope || 'identify email'   // Provide default or from response
+          });
+          
+          // Also update the tokens state
+          updateTokens({
+            accessToken: response.data.access_token,
+            refreshToken: response.data.refresh_token,
+            tokenType: response.data.token_type || 'bearer',
+            expiresIn: response.data.expires_in || 3600,
+            scope: response.data.scope || 'identify email'
+          });
+          
+          return response.data.access_token;
+        } else {
+          console.log('Invalid token response received');
+          return undefined;
+        }
+      } catch (error: any) {
+        console.log('Failed to refresh token:', error);
+        console.log('Error details:', error.response?.data || error.message);
+        
+        // Handle specific error cases
+        if (error.response?.status === 401) {
+          throw new Error('Session expired. Please login again.');
+        }
+        throw error;
+      } finally {
+        // Release the mutex regardless of success or failure
+        refreshInProgress = false;
+        refreshPromise = null;
+      }
+    })();
+
+    return refreshPromise;
+  };
 
   // Set the ref to the function after it's defined
   useEffect(() => {
@@ -192,50 +192,83 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
   const initializeAuth = useCallback(async () => {
     try {
-      if (tokenStorage.hasStoredAuthStatus()) {
-        const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
-        if (storedAuth) {
-          const parsed = JSON.parse(storedAuth);
-          // Get tokens from memory
-          const currentTokens = tokenStorage.getTokens();
-          
-          if (isUserInfo(parsed.user)) {
-            if (currentTokens) {
-              // Normal flow - we have both user data and tokens
-              setAuthState(parsed.user, parsed.profile || null);
-              const decodedToken = parseJwt(currentTokens.accessToken);
-              scheduleTokenRefresh(decodedToken.exp - Math.floor(Date.now() / 1000));
-            } else {
-              // We have user data but no tokens (page was refreshed)
-              // Set temporary auth state so UI doesn't flash
-              setAuthState(parsed.user, parsed.profile || null);
-              
-              try {
-                // Try to refresh the token
-                const newToken = await refreshToken();
-                if (!newToken) {
-                  // If refresh fails, log the user out
-                  console.warn("Failed to refresh token on initialization");
-                  await logout();
+      setAuthLoading(true);
+      
+      // Get tokens from storage
+      const storedTokens = tokenStorage.getTokens();
+      
+      if (storedTokens?.refreshToken) {
+        // We have a refresh token, try to use it
+        try {
+          // If we have a partial token object (just refresh token), do a token refresh
+          if (!storedTokens.accessToken || storedTokens.accessToken === '') {
+            console.log('Found refresh token but no access token - attempting to refresh');
+            // Important: ONLY do this once and store the result
+            const refreshResult = refreshToken();
+            const newAccessToken = await refreshResult;
+            
+            // If refresh was successful, we're authenticated
+            if (newAccessToken) {
+              // Load user data from localStorage
+              const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
+              if (storedAuth) {
+                const parsed = JSON.parse(storedAuth);
+                if (isUserInfo(parsed.user)) {
+                  setAuthState(parsed.user, parsed.profile || null);
                 }
-              } catch (error) {
-                console.error("Error refreshing token:", error);
-                await logout();
               }
             }
           } else {
-            // Invalid user data
-            await logout();
+            // We have both tokens, verify the access token
+            const decodedToken = parseJwt(storedTokens.accessToken);
+            
+            // Add null check for decodedToken
+            if (decodedToken && decodedToken.exp) {
+              const currentTime = Math.floor(Date.now() / 1000);
+              
+              if (decodedToken.exp > currentTime) {
+                // Token is still valid, restore auth state
+                const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
+                if (storedAuth) {
+                  const parsed = JSON.parse(storedAuth);
+                  if (isUserInfo(parsed.user)) {
+                    setAuthState(parsed.user, parsed.profile || null);
+                    
+                    // Schedule token refresh
+                    const timeUntilExpiry = decodedToken.exp - currentTime;
+                    scheduleTokenRefresh(timeUntilExpiry);
+                  }
+                }
+              } else {
+                // Token expired, try to refresh
+                console.log('Access token expired, attempting refresh');
+                await refreshToken();
+              }
+            } else {
+              // Invalid token, try to refresh
+              console.log('Invalid access token, attempting refresh');
+              await refreshToken();
+            }
           }
+        } catch (error) {
+          console.warn('Failed to refresh token on initialization', error);
+          // Clear invalid tokens and wipe storage completely
+          updateTokens(null);
+          clearAuthState();
+          tokenStorage.clearTokens();
         }
+      } else {
+        // No tokens found, user is not authenticated
+        console.log('No refresh token available - user needs to re-authenticate');
+        updateTokens(null);
+        clearAuthState();
       }
-      setAuthLoading(false);
     } catch (error) {
       console.error('Error initializing auth:', error);
-      setAuthState(null);
-      setAuthError('Failed to initialize authentication');
+    } finally {
+      setAuthLoading(false);
     }
-  }, [logout, refreshToken, scheduleTokenRefresh, parseJwt, setAuthState, setAuthLoading, setAuthError]);
+  }, [clearAuthState, refreshToken, setAuthState, setAuthLoading, updateTokens]);
 
   const startDiscordOAuth = useCallback(async () => {
     window.location.href = AUTH_ENDPOINTS.DISCORD_AUTHORIZE;
@@ -356,12 +389,12 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    initializeAuth();
-    // Return a cleanup function
-    return () => {
-      // Any cleanup code if needed
-    };
-  }, [initializeAuth]);
+    if (!initialized) {
+      initializeAuth().then(() => {
+        setInitialized(true);
+      });
+    }
+  }, [initialized, initializeAuth]);
 
   const contextValue = useMemo<AuthContextValue>(() => ({
     ...state,

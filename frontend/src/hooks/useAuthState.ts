@@ -18,14 +18,14 @@ export function useAuthState() {
 
   // Update authentication state
   const setAuthState = useCallback((user: UserInfo | null, profile: ProfileStatus | null = null) => {
-    setState({
+    setState(prevState => ({
       user,
-      profile: profile || state.profile,
+      profile: profile || prevState.profile,
       isAuthenticated: !!user,
       isLoading: false,
       error: null,
-    });
-  }, [state.profile]);
+    }));
+  }, []);
 
   // Clear authentication state
   const clearAuthState = useCallback(() => {

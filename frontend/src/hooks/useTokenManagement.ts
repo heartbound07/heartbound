@@ -12,9 +12,20 @@ export function useTokenManagement() {
   const refreshTokenRef = useRef<(() => Promise<string | undefined>)>();
 
   // Parse JWT token to extract payload
-  const parseJwt = useCallback((token: string) => {
+  const parseJwt = useCallback((token: string | undefined) => {
     try {
-      const base64Url = token.split('.')[1];
+      // Check if token exists and is not empty
+      if (!token) {
+        return null;
+      }
+      
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        console.warn('Invalid JWT token format');
+        return null;
+      }
+      
+      const base64Url = parts[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
       const jsonPayload = decodeURIComponent(
         atob(base64)

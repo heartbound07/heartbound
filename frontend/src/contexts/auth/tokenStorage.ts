@@ -3,29 +3,77 @@ import { TokenPair } from './types';
 // In-memory token storage (more secure than localStorage)
 let inMemoryToken: TokenPair | null = null;
 
+// Key for storing the refresh token in localStorage
+const REFRESH_TOKEN_KEY = 'heartbound_refresh_token';
+
+// Key for storing user data in localStorage
+const AUTH_STORAGE_KEY = 'heartbound_auth_storage';
+
 export const tokenStorage = {
   setTokens: (tokens: TokenPair | null) => {
     inMemoryToken = tokens;
     
-    // Only store a flag in localStorage indicating auth status
-    // (not the actual tokens)
+    // Store auth status flag
     if (tokens) {
       localStorage.setItem('heartbound_auth_status', 'true');
+      
+      // Store only the refresh token in localStorage
+      // This is more secure than storing the access token
+      localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
     } else {
       localStorage.removeItem('heartbound_auth_status');
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
     }
   },
   
   getTokens: () => {
-    return inMemoryToken;
+    // If we have tokens in memory, return them
+    if (inMemoryToken) {
+      return inMemoryToken;
+    }
+    
+    // Check if we have auth status and refresh token
+    const hasAuthStatus = localStorage.getItem('heartbound_auth_status') === 'true';
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    
+    // If we have a refresh token but no in-memory token, return a partial token object
+    // The access token will be refreshed by the auth flow
+    if (hasAuthStatus && refreshToken) {
+      return {
+        refreshToken,
+        accessToken: '', // Empty access token will trigger a refresh
+        tokenType: 'bearer',
+        expiresIn: 0,
+        scope: ''
+      };
+    }
+    
+    return null;
   },
   
   hasStoredAuthStatus: () => {
     return localStorage.getItem('heartbound_auth_status') === 'true';
   },
   
+  getRefreshToken: () => {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  },
+  
   clearTokens: () => {
+    // Clear in-memory token
     inMemoryToken = null;
+    
+    // Clear all auth-related items from localStorage
     localStorage.removeItem('heartbound_auth_status');
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    
+    // Also clear any user data stored in AUTH_STORAGE_KEY
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    
+    // Clear any additional auth flags that might be present
+    localStorage.removeItem('heartbound_user');
+    localStorage.removeItem('heartbound_profile');
+    
+    console.log('All authentication tokens and data cleared');
   }
 }; 
