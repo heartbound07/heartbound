@@ -31,6 +31,11 @@ declare global {
 let refreshInProgress = false;
 let refreshPromise: Promise<string | undefined> | null = null;
 
+// Create a global static variable to track initialization across all component instances
+// This will persist even during StrictMode double-mounting
+let AUTH_INITIALIZED = false;
+let AUTH_INITIALIZATION_PROMISE: Promise<void> | null = null;
+
 const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   // Use our new custom hooks
   const {
@@ -416,27 +421,51 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Modify the useEffect that calls initializeAuth
+  // Add a debug mount/unmount effect
   useEffect(() => {
-    const initialize = async () => {
-      // Prevent multiple simultaneous initialization attempts
-      if (isInitializingRef.current) {
-        console.log('Auth initialization already in progress...');
-        return;
-      }
-      
-      isInitializingRef.current = true;
-      try {
-        await initializeAuth();
-      } finally {
-        // Always reset the initializing flag
-        isInitializingRef.current = false;
-      }
-    };
+    console.log('[DEBUG] AuthProvider mounted');
+    return () => console.log('[DEBUG] AuthProvider unmounted');
+  }, []);
 
-    if (!initialized) {
-      initialize();
+  // Replace the useEffect that calls initializeAuth with this version
+  useEffect(() => {
+    // If already globally initialized, just update our local state
+    if (AUTH_INITIALIZED && !initialized) {
+      setInitialized(true);
+      return;
     }
+
+    // If initialization is in progress from another instance, wait for it
+    if (AUTH_INITIALIZATION_PROMISE && !initialized) {
+      console.log('Waiting for existing auth initialization to complete...');
+      AUTH_INITIALIZATION_PROMISE.then(() => {
+        setInitialized(true);
+      });
+      return;
+    }
+
+    // Only start initialization if it hasn't been done yet
+    if (!AUTH_INITIALIZED && !initialized) {
+      console.log('Starting auth initialization process...');
+      
+      // Create a promise to track initialization
+      AUTH_INITIALIZATION_PROMISE = (async () => {
+        try {
+          await initializeAuth();
+          console.log('Global auth initialization completed successfully');
+          AUTH_INITIALIZED = true;
+        } catch (error) {
+          console.error('Auth initialization failed:', error);
+        } finally {
+          setInitialized(true);
+        }
+      })();
+    }
+
+    // Cleanup - nothing to do since we're using static variables
+    return () => {
+      console.log('AuthProvider initialization effect cleanup');
+    };
   }, [initialized, initializeAuth]);
 
   const contextValue = useMemo<AuthContextValue>(() => ({
