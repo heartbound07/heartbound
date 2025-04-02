@@ -21,6 +21,9 @@ public class SecurityConfig {
 
     @Autowired
     private JWTTokenProvider jwtTokenProvider;
+    
+    @Autowired
+    private RateLimitingFilter rateLimitingFilter;
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -67,6 +70,9 @@ public class SecurityConfig {
                 // All other requests require authentication
                 .anyRequest().authenticated()
             )
+            // Add rate limiting filter before JWT authentication filter
+            .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
+            // Add JWT authentication filter
             .addFilterBefore(new JWTAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

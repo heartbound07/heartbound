@@ -10,6 +10,7 @@ import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import com.app.heartbound.exceptions.AuthenticationException;
 import com.app.heartbound.exceptions.InvalidTokenException;
+import com.app.heartbound.exceptions.RateLimitExceededException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -90,6 +91,19 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()
         );
         return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleRateLimitExceededException(RateLimitExceededException ex,
+                                                          HttpServletRequest request) {
+        ErrorResponse response = new ErrorResponse(
+                Instant.now(),
+                HttpStatus.TOO_MANY_REQUESTS.value(),
+                "Too Many Requests",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return new ResponseEntity<>(response, HttpStatus.TOO_MANY_REQUESTS);
     }
 
     // Structured error response structure.
