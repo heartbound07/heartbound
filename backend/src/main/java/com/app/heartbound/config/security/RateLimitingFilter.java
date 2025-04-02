@@ -1,5 +1,7 @@
 package com.app.heartbound.config.security;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
@@ -18,8 +20,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
@@ -35,9 +35,20 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     
     @Value("${rate.limit.burst-capacity:120}")
     private int burstCapacity;
+    
+    @Value("${rate.limit.cache-maximum-size:100000}")
+    private int cacheMaximumSize;
 
-    // Cache of rate limiters, one per IP address
-    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
+    // Using Caffeine cache instead of ConcurrentHashMap
+    private final Cache<String, Bucket> buckets;
+    
+    public RateLimitingFilter() {
+        // Configure Caffeine cache with expiration and size limits
+        this.buckets = Caffeine.newBuilder()
+                .maximumSize(cacheMaximumSize)
+                .expireAfterAccess(Duration.ofHours(6))
+                .build();
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -59,7 +70,6 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         // Try to consume a token from the bucket
         ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
         
-        // If successful, add rate limit headers and continue
         if (probe.isConsumed()) {
             // Add rate limit headers
             response.addHeader("X-Rate-Limit-Remaining", String.valueOf(probe.getRemainingTokens()));
@@ -82,7 +92,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
      * Get or create a token bucket for the given IP address
      */
     private Bucket getBucketForIp(String clientIp) {
-        return buckets.computeIfAbsent(clientIp, ip -> {
+        return buckets.get(clientIp, ip -> {
             // Configure the rate limit: [maxRequests] tokens per [windowMinutes] minutes
             // Allow initial burst capacity higher than regular refill rate
             Bandwidth limit = Bandwidth.classic(burstCapacity, 
@@ -136,13 +146,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
      * This can be called periodically from RateLimitingConfig.
      */
     public void cleanupBuckets() {
-        // We don't need sophisticated cleanup with Bucket4j and small apps,
-        // but for larger applications you might want to implement a more thorough cleanup
-        // based on bucket inactivity time
-        int initialSize = buckets.size();
-        if (initialSize > 10000) {  // Only cleanup if we have lots of buckets
-            buckets.clear();
-            logger.info("Cleaned up rate limiting buckets. Removed: {}", initialSize);
-        }
+        // Caffeine handles eviction automatically based on our configuration
+        // But we can still manually clean if needed
+        buckets.cleanUp();
+        logger.info("Triggered manual cleanup of rate limiting buckets cache");
     }
 } 
