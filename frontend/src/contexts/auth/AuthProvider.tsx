@@ -54,6 +54,9 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
   const [initialized, setInitialized] = useState(false);
 
+  // Add a ref to track initialization status
+  const isInitializingRef = useRef(false);
+
   const persistAuthState = useCallback((user: UserInfo, tokenPair: TokenPair) => {
     // Use the tokenStorage directly instead of a state-updating function
     tokenStorage.setTokens(tokenPair);
@@ -142,28 +145,30 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           refreshToken: refreshTokenValue
         });
 
-        if (response.data && response.data.access_token) {
+        // Handle both camelCase and snake_case property names to ensure compatibility
+        const accessToken = response.data.access_token || response.data.accessToken;
+        const refreshToken = response.data.refresh_token || response.data.refreshToken;
+        
+        if (accessToken) {
+          // Create a properly formed token object with fallbacks for all properties
+          const tokenPair = {
+            accessToken: accessToken,
+            refreshToken: refreshToken || refreshTokenValue, // Keep existing refresh token if not provided
+            tokenType: response.data.token_type || response.data.tokenType || 'bearer',
+            expiresIn: response.data.expires_in || response.data.expiresIn || 3600,
+            scope: response.data.scope || 'identify email'
+          };
+          
           // Store the new tokens with all required TokenPair properties
-          tokenStorage.setTokens({
-            accessToken: response.data.access_token,
-            refreshToken: response.data.refresh_token,
-            tokenType: response.data.token_type || 'bearer', // Provide default or from response
-            expiresIn: response.data.expires_in || 3600,     // Provide default or from response
-            scope: response.data.scope || 'identify email'   // Provide default or from response
-          });
+          tokenStorage.setTokens(tokenPair);
           
           // Also update the tokens state
-          updateTokens({
-            accessToken: response.data.access_token,
-            refreshToken: response.data.refresh_token,
-            tokenType: response.data.token_type || 'bearer',
-            expiresIn: response.data.expires_in || 3600,
-            scope: response.data.scope || 'identify email'
-          });
+          updateTokens(tokenPair);
           
-          return response.data.access_token;
+          return accessToken;
         } else {
           console.log('Invalid token response received');
+          console.log('Response data:', response.data);
           return undefined;
         }
       } catch (error: any) {
@@ -172,6 +177,9 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         
         // Handle specific error cases
         if (error.response?.status === 401) {
+          // Clear invalid tokens on 401 to prevent refresh loops
+          tokenStorage.setTokens(null);
+          clearAuthState();
           throw new Error('Session expired. Please login again.');
         }
         throw error;
@@ -192,6 +200,12 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
   const initializeAuth = useCallback(async () => {
     try {
+      // Prevent multiple initializations
+      if (initialized) {
+        console.log('Auth already initialized, skipping...');
+        return;
+      }
+      
       setAuthLoading(true);
       
       // Get tokens from storage
@@ -203,9 +217,9 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           // If we have a partial token object (just refresh token), do a token refresh
           if (!storedTokens.accessToken || storedTokens.accessToken === '') {
             console.log('Found refresh token but no access token - attempting to refresh');
-            // Important: ONLY do this once and store the result
-            const refreshResult = refreshToken();
-            const newAccessToken = await refreshResult;
+            
+            // Important: ONLY do this once and await the result
+            const newAccessToken = await refreshToken();
             
             // If refresh was successful, we're authenticated
             if (newAccessToken) {
@@ -214,9 +228,17 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
               if (storedAuth) {
                 const parsed = JSON.parse(storedAuth);
                 if (isUserInfo(parsed.user)) {
+                  // Update auth state with the user info
                   setAuthState(parsed.user, parsed.profile || null);
+                  console.log('Successfully restored authentication state after token refresh');
                 }
               }
+            } else {
+              // If refresh failed but didn't throw an error, clean up
+              console.log('Token refresh completed but no new access token was received');
+              updateTokens(null);
+              clearAuthState();
+              tokenStorage.setTokens(null);
             }
           } else {
             // We have both tokens, verify the access token
@@ -234,9 +256,13 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
                   if (isUserInfo(parsed.user)) {
                     setAuthState(parsed.user, parsed.profile || null);
                     
+                    // Update tokens state to ensure it's synchronized
+                    updateTokens(storedTokens);
+                    
                     // Schedule token refresh
                     const timeUntilExpiry = decodedToken.exp - currentTime;
                     scheduleTokenRefresh(timeUntilExpiry);
+                    console.log('Access token valid, authentication restored');
                   }
                 }
               } else {
@@ -255,7 +281,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           // Clear invalid tokens and wipe storage completely
           updateTokens(null);
           clearAuthState();
-          tokenStorage.clearTokens();
+          tokenStorage.setTokens(null);
         }
       } else {
         // No tokens found, user is not authenticated
@@ -266,9 +292,11 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error initializing auth:', error);
     } finally {
+      // Always mark initialization as complete to prevent re-runs
+      setInitialized(true);
       setAuthLoading(false);
     }
-  }, [clearAuthState, refreshToken, setAuthState, setAuthLoading, updateTokens]);
+  }, [clearAuthState, parseJwt, refreshToken, scheduleTokenRefresh, setAuthLoading, setAuthState, updateTokens]);
 
   const startDiscordOAuth = useCallback(async () => {
     window.location.href = AUTH_ENDPOINTS.DISCORD_AUTHORIZE;
@@ -388,11 +416,26 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Modify the useEffect that calls initializeAuth
   useEffect(() => {
+    const initialize = async () => {
+      // Prevent multiple simultaneous initialization attempts
+      if (isInitializingRef.current) {
+        console.log('Auth initialization already in progress...');
+        return;
+      }
+      
+      isInitializingRef.current = true;
+      try {
+        await initializeAuth();
+      } finally {
+        // Always reset the initializing flag
+        isInitializingRef.current = false;
+      }
+    };
+
     if (!initialized) {
-      initializeAuth().then(() => {
-        setInitialized(true);
-      });
+      initialize();
     }
   }, [initialized, initializeAuth]);
 
