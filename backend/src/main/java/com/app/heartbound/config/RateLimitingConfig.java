@@ -18,11 +18,11 @@ public class RateLimitingConfig {
     }
 
     /**
-     * Periodically cleans up the rate limiting request tracker
-     * to prevent memory leaks from IPs that no longer make requests
+     * Periodically cleans up rate limiting buckets to prevent memory leaks in very large applications.
+     * For most applications, this is not necessary as the number of unique IP addresses will be manageable.
      */
-    @Scheduled(fixedRateString = "${rate.limit.cleanup-interval-ms:300000}")
-    public void cleanupRateLimitTracker() {
-        rateLimitingFilter.cleanupRequestTracker();
+    @Scheduled(fixedRateString = "${rate.limit.cleanup-interval-ms:3600000}")  // Default: once per hour
+    public void cleanupBuckets() {
+        rateLimitingFilter.cleanupBuckets();
     }
 } 

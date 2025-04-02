@@ -1,5 +1,10 @@
 package com.app.heartbound.config.security;
 
+import io.github.bucket4j.Bandwidth;
+import io.github.bucket4j.Bucket;
+import io.github.bucket4j.Bucket4j;
+import io.github.bucket4j.ConsumptionProbe;
+import io.github.bucket4j.Refill;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,10 +19,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
@@ -30,9 +33,12 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
     @Value("${rate.limit.window-minutes:1}")
     private int windowMinutes;
+    
+    @Value("${rate.limit.burst-capacity:120}")
+    private int burstCapacity;
 
-    // Map to track requests by IP address
-    private final Map<String, ConcurrentLinkedQueue<Instant>> requestTracker = new ConcurrentHashMap<>();
+    // Cache of rate limiters, one per IP address
+    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -48,16 +54,43 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         // Get client IP address
         String clientIp = getClientIpAddress(request);
         
-        // Check if client has exceeded rate limit
-        if (isRateLimited(clientIp)) {
+        // Get or create bucket for this IP
+        Bucket bucket = getBucketForIp(clientIp);
+        
+        // Try to consume a token from the bucket
+        ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
+        
+        // If successful, add rate limit headers and continue
+        if (probe.isConsumed()) {
+            // Add rate limit headers
+            response.addHeader("X-Rate-Limit-Remaining", String.valueOf(probe.getRemainingTokens()));
+            response.addHeader("X-Rate-Limit-Limit", String.valueOf(maxRequests));
+            
+            logger.debug("Request from IP: {} to URI: {} within rate limits. Remaining: {}", 
+                     clientIp, requestURI, probe.getRemainingTokens());
+                     
+            filterChain.doFilter(request, response);
+        } else {
+            // Rate limit exceeded
             logger.warn("Rate limit exceeded for IP: {} on URI: {}", clientIp, requestURI);
-            sendRateLimitResponse(response);
-            return;
+            
+            // Return 429 Too Many Requests
+            sendRateLimitResponse(response, probe.getNanosToWaitForRefill() / 1_000_000_000);
         }
+    }
 
-        // Proceed with the request if within rate limits
-        logger.debug("Request from IP: {} to URI: {} within rate limits", clientIp, requestURI);
-        filterChain.doFilter(request, response);
+    /**
+     * Get or create a token bucket for the given IP address
+     */
+    private Bucket getBucketForIp(String clientIp) {
+        return buckets.computeIfAbsent(clientIp, ip -> {
+            // Configure the rate limit: [maxRequests] tokens per [windowMinutes] minutes
+            // Allow initial burst capacity higher than regular refill rate
+            Bandwidth limit = Bandwidth.classic(burstCapacity, 
+                Refill.intervally(maxRequests, Duration.ofMinutes(windowMinutes)));
+            
+            return Bucket4j.builder().addLimit(limit).build();
+        });
     }
 
     /**
@@ -69,30 +102,6 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                uri.contains("/swagger-ui/") || 
                uri.contains("/v3/api-docs/") ||
                uri.contains("/error");
-    }
-
-    /**
-     * Checks if the client has exceeded the rate limit
-     */
-    private boolean isRateLimited(String clientIp) {
-        Instant now = Instant.now();
-        Instant cutoff = now.minus(Duration.ofMinutes(windowMinutes));
-
-        // Get or create the request queue for this IP
-        ConcurrentLinkedQueue<Instant> requestTimestamps = requestTracker.computeIfAbsent(
-                clientIp, k -> new ConcurrentLinkedQueue<>());
-
-        // Clean up old entries first
-        requestTimestamps.removeIf(timestamp -> timestamp.isBefore(cutoff));
-        
-        // Check if under the limit
-        if (requestTimestamps.size() < maxRequests) {
-            // Add current request timestamp
-            requestTimestamps.add(now);
-            return false; // Not rate limited
-        }
-        
-        return true; // Rate limited
     }
 
     /**
@@ -110,31 +119,28 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     /**
      * Sends a 429 Too Many Requests response
      */
-    private void sendRateLimitResponse(HttpServletResponse response) throws IOException {
+    private void sendRateLimitResponse(HttpServletResponse response, long retryAfterSeconds) throws IOException {
         response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setHeader("Retry-After", String.valueOf(windowMinutes * 60)); // Retry after window time in seconds
+        response.setHeader("Retry-After", String.valueOf(retryAfterSeconds));
         
-        String errorJson = "{\"error\":\"Too Many Requests\",\"message\":\"Rate limit exceeded. Please try again later.\"}";
+        String errorJson = "{\"error\":\"Too Many Requests\",\"message\":\"Rate limit exceeded. Please try again after " 
+            + retryAfterSeconds + " seconds.\"}";
         response.getWriter().write(errorJson);
     }
 
     /**
-     * Cleans up the request tracker to prevent memory leaks
-     * Called periodically to remove old entries for IPs that are no longer active
+     * Method to clean up unused buckets to prevent memory leaks.
+     * This can be called periodically from RateLimitingConfig.
      */
-    public void cleanupRequestTracker() {
-        Instant cutoff = Instant.now().minus(Duration.ofMinutes(windowMinutes));
-        
-        requestTracker.forEach((ip, timestamps) -> {
-            timestamps.removeIf(timestamp -> timestamp.isBefore(cutoff));
-            
-            // Remove IP from tracker if no recent requests
-            if (timestamps.isEmpty()) {
-                requestTracker.remove(ip);
-            }
-        });
-        
-        logger.debug("Cleaned up rate limiting request tracker. Current tracked IPs: {}", requestTracker.size());
+    public void cleanupBuckets() {
+        // We don't need sophisticated cleanup with Bucket4j and small apps,
+        // but for larger applications you might want to implement a more thorough cleanup
+        // based on bucket inactivity time
+        int initialSize = buckets.size();
+        if (initialSize > 10000) {  // Only cleanup if we have lots of buckets
+            buckets.clear();
+            logger.info("Cleaned up rate limiting buckets. Removed: {}", initialSize);
+        }
     }
 } 
