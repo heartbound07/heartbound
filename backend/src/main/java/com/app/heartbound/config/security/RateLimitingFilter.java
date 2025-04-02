@@ -2,7 +2,6 @@ package com.app.heartbound.config.security;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Bucket4j;
 import io.github.bucket4j.ConsumptionProbe;
 import io.github.bucket4j.Refill;
 import jakarta.servlet.FilterChain;
@@ -89,7 +88,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             Bandwidth limit = Bandwidth.classic(burstCapacity, 
                 Refill.intervally(maxRequests, Duration.ofMinutes(windowMinutes)));
             
-            return Bucket4j.builder().addLimit(limit).build();
+            // Updated to use non-deprecated API
+            return Bucket.builder()
+                .addLimit(limit)
+                .build();
         });
     }
 
