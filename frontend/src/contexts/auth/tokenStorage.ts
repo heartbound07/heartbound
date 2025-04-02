@@ -27,9 +27,24 @@ export const tokenStorage = {
   },
   
   getTokens: () => {
-    // If we have tokens in memory, return them
+    // If we have tokens in memory, validate them first
     if (inMemoryToken) {
-      return inMemoryToken;
+      // If we have both refresh and access tokens, return the complete object
+      if (inMemoryToken.refreshToken && inMemoryToken.accessToken) {
+        return inMemoryToken;
+      }
+      
+      // If we have a refresh token but no access token, return a clean partial token object
+      // This ensures consistent handling for the refresh flow
+      if (inMemoryToken.refreshToken && (!inMemoryToken.accessToken || inMemoryToken.accessToken === '')) {
+        return {
+          refreshToken: inMemoryToken.refreshToken,
+          accessToken: '', // Empty string for consistent handling
+          tokenType: 'bearer',
+          expiresIn: 0,
+          scope: ''
+        };
+      }
     }
     
     // Check if we have auth status and refresh token
