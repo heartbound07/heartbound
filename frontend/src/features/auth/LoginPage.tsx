@@ -30,7 +30,7 @@ export function LoginPage() {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.5,
+        duration: 0.25,
         ease: "easeOut"
       }
     }
@@ -82,7 +82,7 @@ export function LoginPage() {
             scale: 1,
             transition: { 
               delay: 1.95,
-              duration: 0.5,
+              duration: 0.25,
               ease: [0.22, 1, 0.36, 1]
             }
           }}
