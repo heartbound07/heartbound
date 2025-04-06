@@ -7,7 +7,7 @@ import { MdDashboard, MdAdminPanelSettings } from "react-icons/md"
 import { IoSettingsSharp } from "react-icons/io5"
 import { FaCoins, FaTrophy } from "react-icons/fa"
 import { useState, useRef, useEffect } from "react"
-import { ChevronDown, ChevronRight, Menu } from "lucide-react"
+import { ChevronDown, ChevronRight, Menu, LogOut } from "lucide-react"
 import { ProfilePreview } from "@/components/ui/profile/ProfilePreview"
 import ReactDOM from "react-dom"
 import valorantLogo from '@/assets/images/valorant-logo.png'
@@ -30,7 +30,7 @@ interface DashboardNavigationProps {
 export function DashboardNavigation({ theme = 'default', onCollapseChange }: DashboardNavigationProps) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, profile, hasRole } = useAuth()
+  const { user, profile, hasRole, logout } = useAuth()
   const [gamesExpanded, setGamesExpanded] = useState(() => {
     // Auto-expand if we're on a game page
     return location.pathname.includes('/dashboard/valorant')
@@ -223,6 +223,17 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
     }
   }, [isProfilePage]);
 
+  // Updated function to handle logout without confirmation
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Optionally, display an error message to the user here
+    }
+  };
+
   return (
     <aside className={`dashboard-nav h-full flex flex-col ${sidebarBackground} backdrop-blur-md border-r border-white/10 shadow-xl ${isCollapsed ? 'collapsed' : 'expanded'}`}>
       {/* Brand Header with Toggle Button - Updated for proper centering in collapsed state */}
@@ -410,31 +421,49 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
         </ul>
       </nav>
 
-      {/* Settings Footer - Icon only when collapsed */}
+      {/* Settings and Logout Footer - Updated */}
       <div className="mt-auto px-4 pb-6 border-t border-white/10 pt-4">
-        <button
-          onClick={() => navigate('/dashboard/settings')}
-          className={`w-full flex ${isCollapsed ? 'items-center justify-center' : 'items-center justify-start'} gap-2 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
-            ${
-              isSettingsPage
-                ? "bg-primary/20 text-white shadow-md"
-                : "text-slate-300 hover:bg-white/5 hover:text-white"
-            }`}
-          aria-current={isSettingsPage ? "page" : undefined}
-        >
-          <span
-            className={`transition-transform duration-200 ${isSettingsPage ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
-          >
-            <IoSettingsSharp size={20} />
-          </span>
-          
-          {/* Only show label when not collapsed */}
+        {/* Container for buttons - Adjust justification based on collapsed state */}
+        <div className={`flex items-center gap-2 ${isCollapsed ? 'justify-center' : 'justify-start'}`}>
+          {/* Settings Button - Conditionally render only when expanded */}
           {!isCollapsed && (
-            <span className="sidebar-label">Settings</span>
+            <button
+              onClick={() => navigate('/dashboard/settings')}
+              // Make settings button take available space when expanded
+              className={`flex-1 flex items-center justify-start gap-2 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
+                ${
+                  isSettingsPage
+                    ? "bg-primary/20 text-white shadow-md"
+                    : "text-slate-300 hover:bg-white/5 hover:text-white"
+                }`}
+              aria-current={isSettingsPage ? "page" : undefined}
+              aria-label="Settings"
+            >
+              <span
+                className={`transition-transform duration-200 ${isSettingsPage ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
+              >
+                <IoSettingsSharp size={20} />
+              </span>
+              {/* Label is always shown when button is visible (not collapsed) */}
+              <span className="sidebar-label">Settings</span>
+              {/* Active indicator */}
+              {isSettingsPage && <div className="absolute right-2 w-1.5 h-5 bg-primary rounded-full"></div>}
+            </button>
           )}
-          
-          {isSettingsPage && !isCollapsed && <div className="absolute right-2 w-1.5 h-5 bg-primary rounded-full"></div>}
-        </button>
+
+          {/* Logout Button - Icon only, consistent size */}
+          <button
+            onClick={handleLogout} // This now calls the updated function
+            // Consistent size and centering, remove flex-1
+            className={`w-10 h-10 flex items-center justify-center p-0 rounded-lg text-sm font-medium transition-all duration-200 group text-slate-300 hover:bg-red-500/10 hover:text-red-400`}
+            aria-label="Logout"
+          >
+            <span className="text-slate-400 group-hover:text-red-400 transition-colors duration-200">
+              <LogOut size={20} />
+            </span>
+            {/* Label removed - Icon only */}
+          </button>
+        </div>
       </div>
     </aside>
   )
