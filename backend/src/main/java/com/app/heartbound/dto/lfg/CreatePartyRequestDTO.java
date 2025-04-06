@@ -2,7 +2,6 @@ package com.app.heartbound.dto.lfg;
 
 import com.app.heartbound.enums.Rank;
 import com.app.heartbound.enums.Region;
-import com.app.heartbound.dto.lfg.CharacterCount;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
