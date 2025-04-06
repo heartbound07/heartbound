@@ -3,9 +3,16 @@ package com.app.heartbound.controllers;
 import com.app.heartbound.dto.UserDTO;
 import com.app.heartbound.dto.oauth.OAuthRefreshRequest;
 import com.app.heartbound.dto.oauth.OAuthTokenResponse;
+import com.app.heartbound.dto.oauth.DiscordCodeExchangeRequest;
+import com.app.heartbound.dto.oauth.DiscordAuthResponseDTO;
+import com.app.heartbound.entities.User;
 import com.app.heartbound.services.AuthService;
+import com.app.heartbound.services.UserService;
+import com.app.heartbound.services.oauth.DiscordCodeStore;
+import com.app.heartbound.config.security.JWTTokenProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -15,16 +22,25 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Set;
+import java.util.Collections;
+import com.app.heartbound.enums.Role;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthService authService;
+    private final DiscordCodeStore discordCodeStore;
+    private final UserService userService;
+    private final JWTTokenProvider jwtTokenProvider;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, DiscordCodeStore discordCodeStore, UserService userService, JWTTokenProvider jwtTokenProvider) {
+        this.discordCodeStore = discordCodeStore;
+        this.userService = userService;
+        this.jwtTokenProvider = jwtTokenProvider;
         this.authService = authService;
     }
 
@@ -88,6 +104,74 @@ public class AuthController {
         } catch (Exception e) {
             logger.error("Refresh token failed: {}", e.getMessage());
             return ResponseEntity.status(401).body("Invalid refresh token");
+        }
+    }
+
+    @Operation(summary = "Exchange Discord single-use code for JWT tokens",
+               description = "Exchanges a short-lived code received after Discord OAuth for application JWT tokens.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Tokens and user info successfully generated",
+                     content = @Content(schema = @Schema(implementation = DiscordAuthResponseDTO.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid or expired code provided",
+                     content = @Content(examples = @ExampleObject(value = "{\"error\": \"Invalid or expired code\"}")))
+    })
+    @PostMapping("/discord/exchange-code")
+    public ResponseEntity<?> exchangeDiscordCode(@RequestBody DiscordCodeExchangeRequest request) {
+        logger.info("Attempting to exchange Discord single-use code.");
+        if (request == null || request.getCode() == null || request.getCode().isEmpty()) {
+            logger.warn("Received empty or null code in exchange request.");
+            return ResponseEntity.badRequest().body(Map.of("error", "Code is required"));
+        }
+
+        String userId = discordCodeStore.consumeCode(request.getCode());
+
+        if (userId == null) {
+            logger.warn("Failed to consume code '{}'. It might be invalid, expired, or already used.", request.getCode());
+            // Return 400 or 401 - 400 seems appropriate for an invalid input code
+            return ResponseEntity.status(400).body(Map.of("error", "Invalid or expired code"));
+        }
+
+        logger.info("Code validated successfully for user ID: {}. Generating tokens...", userId);
+
+        try {
+            // Fetch the full user details needed for token generation
+            User user = userService.getUserById(userId);
+            if (user == null) {
+                logger.error("User not found for ID '{}' retrieved from code store.", userId);
+                // This shouldn't happen if the code store is consistent, but handle defensively
+                return ResponseEntity.status(400).body(Map.of("error", "User associated with code not found"));
+            }
+
+            // Generate tokens using the AuthService or JWTTokenProvider directly
+            // Reusing logic similar to AuthService.refreshToken or parts of OAuthController callback
+            Set<Role> roles = user.getRoles() != null ? user.getRoles() : Collections.singleton(Role.USER);
+            String accessToken = jwtTokenProvider.generateToken(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getAvatar(), // Use the avatar from the User entity
+                roles,
+                user.getCredits()
+            );
+            String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), roles);
+
+            // Prepare the UserDTO for the response
+            UserDTO userDTO = userService.mapUserToDTO(user); // Assuming a mapping function exists
+
+            // Combine into the final response DTO
+            DiscordAuthResponseDTO response = new DiscordAuthResponseDTO(
+                accessToken,
+                refreshToken,
+                "bearer", // Token type
+                jwtTokenProvider.getTokenExpiryInMs() / 1000, // Correct method name: getTokenExpiryInMs
+                "read write", // Define appropriate scope or get from config/user
+                userDTO);
+
+            logger.info("Successfully generated tokens for user ID: {}", userId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error generating tokens after code exchange for user ID {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(500).body(Map.of("error", "Internal server error during token generation"));
         }
     }
 }

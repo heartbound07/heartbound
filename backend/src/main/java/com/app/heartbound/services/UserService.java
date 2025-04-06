@@ -406,4 +406,31 @@ public class UserService {
             .map(this::mapToProfileDTO)
             .collect(Collectors.toList());
     }
+
+    /**
+     * Maps a User entity to a UserDTO.
+     *
+     * @param user The User entity.
+     * @return The corresponding UserDTO.
+     */
+    public UserDTO mapUserToDTO(User user) {
+        if (user == null) {
+            return null;
+        }
+        UserDTO dto = new UserDTO();
+        dto.setId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setDiscriminator(user.getDiscriminator()); // Include discriminator if needed in DTO
+        dto.setEmail(user.getEmail());
+        dto.setAvatar(user.getAvatar()); // Use the avatar from the User entity
+        dto.setRoles(user.getRoles());
+        dto.setCredits(user.getCredits());
+        // Add any other fields from User that are present in UserDTO
+        return dto;
+    }
+
+    /**
+     * Maps a User entity to a UserProfileDTO.
+     * Used for public profile views.
+     */
 }
