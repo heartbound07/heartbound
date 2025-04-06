@@ -59,8 +59,7 @@ export interface AuthContextValue extends AuthState {
   refreshToken: () => Promise<string | undefined>;
   clearError: () => void;
   startDiscordOAuth: () => Promise<void>;
-  handleDiscordCallback: (code: string, state: string) => Promise<void>;
-  handleDiscordCallbackWithToken: (accessToken: string, refreshToken?: string) => Promise<UserInfo>;
+  exchangeDiscordCode: (code: string) => Promise<void>;
   updateProfile: (profile: ProfileStatus) => void;
   updateUserProfile: (profile: UpdateProfileDTO) => Promise<void>;
   hasRole: (role: Role) => boolean;
@@ -76,11 +75,6 @@ export interface AuthContextValue extends AuthState {
 
 export interface AuthProviderProps {
   children: React.ReactNode;
-}
-
-export interface DiscordCallbackParams {
-  code: string;
-  state: string;
 }
 
 export interface DiscordAuthResponse {

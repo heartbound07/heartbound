@@ -2,14 +2,14 @@ import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/auth/useAuth';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { DISCORD_OAUTH_STATE_KEY } from '../../contexts/auth/constants';
 
 export function DiscordCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { handleDiscordCallback, handleDiscordCallbackWithToken } = useAuth();
+  const { exchangeDiscordCode } = useAuth(); // Use the new function
   const [error, setError] = useState<string | null>(null);
   const [processingAuth, setProcessingAuth] = useState<boolean>(true);
-  
   // Use a ref to track if we've already processed the auth
   const hasProcessedAuth = useRef(false);
 
@@ -17,9 +17,11 @@ export function DiscordCallback() {
     // If we've already processed auth, don't do it again
     if (hasProcessedAuth.current) return;
     
+    // Check for errors from the backend redirect first
     const errorParam = searchParams.get('error');
     if (errorParam) {
-      setError(errorParam);
+      setError(`Authentication failed: ${errorParam.replace(/\+/g, ' ')}`);
+      setProcessingAuth(false);
       setTimeout(() => navigate('/login'), 3000);
       return;
     }
@@ -28,46 +30,60 @@ export function DiscordCallback() {
       try {
         // Mark that we've started processing
         hasProcessedAuth.current = true;
-          
-        const accessToken = searchParams.get('accessToken');
-        const refreshToken = searchParams.get('refreshToken') || "";
-        
-        if (accessToken) {
-          // Process token-based authentication
-          await handleDiscordCallbackWithToken(accessToken, refreshToken);
-          // Wait a moment to ensure token is properly stored before navigation
-          setTimeout(() => {
-            setProcessingAuth(false);
-            navigate('/dashboard');
-          }, 300);
-          return;
-        }
 
+        // Get code and state from URL
         const code = searchParams.get('code');
         const state = searchParams.get('state');
 
-        if (!code || !state) {
-          setError('Missing required OAuth parameters');
+        // Retrieve the state stored before redirect
+        const storedState = localStorage.getItem(DISCORD_OAUTH_STATE_KEY);
+
+        // --- Security Check: Validate State ---
+        if (!state || !storedState) {
+          setError('OAuth state parameter missing. Cannot verify request origin.');
+          setProcessingAuth(false);
+          localStorage.removeItem(DISCORD_OAUTH_STATE_KEY); // Clean up potentially invalid state
           setTimeout(() => navigate('/login'), 3000);
           return;
         }
 
-        // Process code-based authentication
-        await handleDiscordCallback(code, state);
-        // Wait a moment to ensure token is properly stored before navigation
-        setTimeout(() => {
+        if (state !== storedState) {
+          setError('OAuth state mismatch. Possible CSRF attack detected. Please try logging in again.');
           setProcessingAuth(false);
-          navigate('/dashboard');
-        }, 300);
+          localStorage.removeItem(DISCORD_OAUTH_STATE_KEY); // Clean up
+          setTimeout(() => navigate('/login'), 3000);
+          return;
+        }
+        // State is valid, remove it from storage
+        localStorage.removeItem(DISCORD_OAUTH_STATE_KEY);
+        console.log('OAuth state validated successfully.');
+        // --- End Security Check ---
+
+        if (!code) {
+          setError('Missing required OAuth code parameter.');
+          setProcessingAuth(false);
+          setTimeout(() => navigate('/login'), 3000);
+          return;
+        }
+
+        // Exchange the code for tokens via the AuthProvider
+        await exchangeDiscordCode(code);
+
+        // Wait a moment to ensure token is properly stored before navigation
+        setProcessingAuth(false); // Mark processing as complete
+        console.log('Code exchange successful, navigating to dashboard.');
+        navigate('/dashboard'); // Navigate immediately after success
+
       } catch (err: any) {
-        setError(err.message);
+        setError(`Authentication failed: ${err.message || 'An unknown error occurred.'}`);
         setProcessingAuth(false);
+        localStorage.removeItem(DISCORD_OAUTH_STATE_KEY); // Clean up state on error
         setTimeout(() => navigate('/login'), 3000);
       }
     };
 
     processAuth();
-  }, [searchParams, navigate, handleDiscordCallback, handleDiscordCallbackWithToken]);
+  }, [searchParams, navigate, exchangeDiscordCode]); // Update dependencies
 
   if (error) {
     return (

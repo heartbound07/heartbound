@@ -10,7 +10,7 @@ import {
   ProfileStatus,
   Role,
 } from './types';
-import { AUTH_STORAGE_KEY, TOKEN_REFRESH_MARGIN, AUTH_ENDPOINTS } from './constants';
+import { AUTH_STORAGE_KEY, TOKEN_REFRESH_MARGIN, AUTH_ENDPOINTS, DISCORD_OAUTH_STATE_KEY } from './constants';
 import * as partyService from '../valorant/partyService';
 import axios from 'axios';
 import webSocketService from '../../config/WebSocketService';
@@ -84,6 +84,10 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     scheduleTokenRefresh(decodedToken.exp - Math.floor(Date.now() / 1000));
     updateTokens({ accessToken, refreshToken, tokenType, expiresIn, scope });
     setAuthState(user);
+
+    // Reconnect WebSocket after successful authentication/token update
+    webSocketService.reconnectWithFreshToken();
+    console.log('WebSocket reconnect triggered after auth response.');
   }, [persistAuthState, scheduleTokenRefresh, parseJwt, updateTokens, setAuthState]);
 
   const login = useCallback(async (credentials: LoginRequest) => {
@@ -297,74 +301,45 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   }, [clearAuthState, parseJwt, refreshToken, scheduleTokenRefresh, setAuthLoading, setAuthState, updateTokens]);
 
   const startDiscordOAuth = useCallback(async () => {
+    // 1. Generate state
+    const state = window.crypto.randomUUID();
+    // 2. Store state locally
+    localStorage.setItem(DISCORD_OAUTH_STATE_KEY, state);
+    console.log('Stored Discord OAuth state:', state);
+    // 3. Redirect to backend authorization endpoint (backend handles redirect to Discord)
+    // The backend's /authorize endpoint should now handle passing this state to Discord
     window.location.href = AUTH_ENDPOINTS.DISCORD_AUTHORIZE;
   }, []);
 
-  const handleDiscordCallback = useCallback(async (code: string, state: string) => {
+  // New function to exchange the code received on the frontend callback
+  const exchangeDiscordCode = useCallback(async (code: string) => {
     setAuthLoading(true);
     try {
-      const response = await fetch(AUTH_ENDPOINTS.DISCORD_CALLBACK, {
+      console.log('Exchanging Discord code for tokens...');
+      // Make POST request to the new backend endpoint
+      const response = await fetch(AUTH_ENDPOINTS.DISCORD_EXCHANGE_CODE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, state }),
+        body: JSON.stringify({ code }), // Send the code in the body
       });
+
+      // Use the existing handleAuthResponse logic for processing the token response
       await handleAuthResponse(response);
+      console.log('Discord code exchange successful, auth state updated.');
+
     } catch (error) {
-      setAuthError(error instanceof Error ? error.message : 'Discord authentication failed');
-      throw error;
-    }
-  }, [handleAuthResponse, setAuthError, setAuthLoading]);
-
-  const handleDiscordCallbackWithToken = useCallback(async (accessToken: string, refreshToken?: string) => {
-    try {
-      setAuthLoading(true);
-
-      // Decode JWT token to get user information
-      const decodedToken = parseJwt(accessToken);
-      
-      if (!decodedToken) {
-        throw new Error('Invalid token format');
-      }
-
-      // Extract user data from the token
-      const user: UserInfo = {
-        id: decodedToken.sub || '',
-        username: decodedToken.username || '',
-        email: decodedToken.email || '',
-        avatar: decodedToken.avatar || '',
-        roles: decodedToken.roles || ['USER'], // Extract roles from token
-        credits: decodedToken.credits || 0 // Extract credits from token
-      };
-
-      // Build token pair
-      const tokenPair: TokenPair = {
-        accessToken,
-        refreshToken: refreshToken || '',
-        tokenType: 'bearer',
-        expiresIn: decodedToken.exp ? (decodedToken.exp * 1000 - Date.now()) / 1000 : 3600,
-        scope: decodedToken.scope || 'identify email'
-      };
-
-      // Store auth data with null profile initially
-      persistAuthState(user, tokenPair, null);
-      
-      // Set auth state
-      setAuthState(user, null);
-      
-      // Setup token refresh timer
-      scheduleTokenRefresh(tokenPair.expiresIn - TOKEN_REFRESH_MARGIN / 1000);
-      
-      // Reconnect websocket with new token
-      webSocketService.reconnectWithFreshToken();
-      
-      return user;
-    } catch (error) {
-      setAuthError(error instanceof Error ? error.message : 'Authentication failed');
-      throw error;
+      console.error('Discord code exchange failed:', error);
+      // Clear any potentially partially set state
+      clearAuthState();
+      updateTokens(null);
+      tokenStorage.setTokens(null);
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      setAuthError(error instanceof Error ? error.message : 'Discord code exchange failed');
+      throw error; // Re-throw error to be caught by the callback component
     } finally {
       setAuthLoading(false);
     }
-  }, [persistAuthState, scheduleTokenRefresh, parseJwt, setAuthState, setAuthError, setAuthLoading]);
+  }, [handleAuthResponse, setAuthLoading, setAuthError, clearAuthState, updateTokens]);
 
   const updateProfile = useCallback((profile: ProfileStatus) => {
     updateAuthProfile(profile);
@@ -479,8 +454,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     tokens,
     clearError: () => setAuthError(null),
     startDiscordOAuth,
-    handleDiscordCallback,
-    handleDiscordCallbackWithToken,
+    exchangeDiscordCode,
     updateProfile,
     hasRole,
     createParty: partyService.createParty,
@@ -490,7 +464,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     deleteParty: partyService.deleteParty,
     joinParty: partyService.joinParty,
     updateUserProfile,
-  }), [state, login, logout, tokens, startDiscordOAuth, handleDiscordCallback, handleDiscordCallbackWithToken, updateProfile, refreshToken, hasRole, updateUserProfile]);
+  }), [state, login, logout, tokens, startDiscordOAuth, exchangeDiscordCode, updateProfile, refreshToken, hasRole, updateUserProfile, setAuthError]);
 
   return (
     <AuthContext.Provider value={contextValue}>
