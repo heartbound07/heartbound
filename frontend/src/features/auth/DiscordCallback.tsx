@@ -7,20 +7,26 @@ import { DISCORD_OAUTH_STATE_KEY } from '../../contexts/auth/constants';
 export function DiscordCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { exchangeDiscordCode } = useAuth(); // Use the new function
+  const { exchangeDiscordCode } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [processingAuth, setProcessingAuth] = useState<boolean>(true);
-  // Use a ref to track if we've already processed the auth
   const hasProcessedAuth = useRef(false);
 
   useEffect(() => {
-    // If we've already processed auth, don't do it again
-    if (hasProcessedAuth.current) return;
-    
-    // Check for errors from the backend redirect first
+    // Log the full URL as soon as the component mounts
+    console.log('[DiscordCallback] Mounted. Current URL:', window.location.href);
+
+    if (hasProcessedAuth.current) {
+      console.log('[DiscordCallback] Auth already processed, skipping.');
+      return;
+    }
+
     const errorParam = searchParams.get('error');
+    console.log('[DiscordCallback] Extracted errorParam from URL:', errorParam);
     if (errorParam) {
-      setError(`Authentication failed: ${errorParam.replace(/\+/g, ' ')}`);
+      const decodedError = decodeURIComponent(errorParam.replace(/\+/g, ' '));
+      console.error(`[DiscordCallback] Received error from backend redirect: ${decodedError}`);
+      setError(`Authentication failed: ${decodedError}`);
       setProcessingAuth(false);
       setTimeout(() => navigate('/login'), 3000);
       return;
@@ -28,62 +34,72 @@ export function DiscordCallback() {
 
     const processAuth = async () => {
       try {
-        // Mark that we've started processing
         hasProcessedAuth.current = true;
+        console.log('[DiscordCallback] Starting auth processing...');
 
-        // Get code and state from URL
         const code = searchParams.get('code');
         const state = searchParams.get('state');
+        console.log(`[DiscordCallback] Extracted params - code: [${code}], state: [${state}]`);
 
-        // Retrieve the state stored before redirect
         const storedState = localStorage.getItem(DISCORD_OAUTH_STATE_KEY);
+        console.log(`[DiscordCallback] Retrieved storedState from localStorage: [${storedState}]`);
 
-        // --- Security Check: Validate State ---
         if (!state || !storedState) {
-          setError('OAuth state parameter missing. Cannot verify request origin.');
+          const errorMsg = `OAuth state parameter missing or not found in storage. Cannot verify request origin. Received state: [${state}], Stored state: [${storedState}]`;
+          console.error(`[DiscordCallback] State Validation Error: ${errorMsg}`);
+          setError(errorMsg);
           setProcessingAuth(false);
-          localStorage.removeItem(DISCORD_OAUTH_STATE_KEY); // Clean up potentially invalid state
+          localStorage.removeItem(DISCORD_OAUTH_STATE_KEY);
           setTimeout(() => navigate('/login'), 3000);
           return;
         }
 
         if (state !== storedState) {
-          setError('OAuth state mismatch. Possible CSRF attack detected. Please try logging in again.');
+          const errorMsg = `OAuth state mismatch. Possible CSRF attack detected. Received: [${state}], Expected: [${storedState}].`;
+          console.error(`[DiscordCallback] State Validation Error: ${errorMsg}`);
+          setError(errorMsg + ' Please try logging in again.');
           setProcessingAuth(false);
-          localStorage.removeItem(DISCORD_OAUTH_STATE_KEY); // Clean up
+          localStorage.removeItem(DISCORD_OAUTH_STATE_KEY);
           setTimeout(() => navigate('/login'), 3000);
           return;
         }
-        // State is valid, remove it from storage
+
         localStorage.removeItem(DISCORD_OAUTH_STATE_KEY);
-        console.log('OAuth state validated successfully.');
-        // --- End Security Check ---
+        console.log('[DiscordCallback] OAuth state validated successfully. Removed from storage.');
 
         if (!code) {
-          setError('Missing required OAuth code parameter.');
+          const errorMsg = 'Missing required OAuth code parameter in URL after state validation.';
+          console.error(`[DiscordCallback] Code Error: ${errorMsg}`);
+          setError(errorMsg);
           setProcessingAuth(false);
           setTimeout(() => navigate('/login'), 3000);
           return;
         }
 
-        // Exchange the code for tokens via the AuthProvider
-        await exchangeDiscordCode(code);
+        console.log(`[DiscordCallback] State validated. Calling exchangeDiscordCode with code: [${code}]`);
+        await exchangeDiscordCode(code); // Call the exchange function
 
-        // Wait a moment to ensure token is properly stored before navigation
-        setProcessingAuth(false); // Mark processing as complete
-        console.log('Code exchange successful, navigating to dashboard.');
-        navigate('/dashboard'); // Navigate immediately after success
+        setProcessingAuth(false);
+        console.log('[DiscordCallback] exchangeDiscordCode call successful. Navigating to dashboard.');
+        navigate('/dashboard');
 
       } catch (err: any) {
-        setError(`Authentication failed: ${err.message || 'An unknown error occurred.'}`);
+        const errorMsg = `Authentication failed during exchangeDiscordCode call: ${err?.message || 'An unknown error occurred.'}`;
+        console.error(`[DiscordCallback] Exchange Error: ${errorMsg}`, err);
+        setError(errorMsg);
         setProcessingAuth(false);
         localStorage.removeItem(DISCORD_OAUTH_STATE_KEY); // Clean up state on error
         setTimeout(() => navigate('/login'), 3000);
       }
     };
 
-    processAuth();
-  }, [searchParams, navigate, exchangeDiscordCode]); // Update dependencies
+    // Delay slightly to ensure URL parameters are definitely available
+    const timeoutId = setTimeout(processAuth, 50);
+
+    // Cleanup function for the timeout
+    return () => clearTimeout(timeoutId);
+
+  }, [searchParams, navigate, exchangeDiscordCode]);
 
   if (error) {
     return (

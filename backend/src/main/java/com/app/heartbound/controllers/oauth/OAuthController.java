@@ -75,31 +75,45 @@ public class OAuthController {
     @Autowired
     private DiscordCodeStore discordCodeStore; // Inject the code store
 
-    @Operation(summary = "Authorize Discord User", description = "Generates a CSRF token and redirects the user to Discord for authorization")
-    @ApiResponses({
-        @ApiResponse(responseCode = "302", description = "Redirects to Discord authorization endpoint")
+    @Operation(summary = "Initiate Discord OAuth flow", description = "Redirects the user to Discord for authorization.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "302", description = "Redirecting to Discord")
     })
     @GetMapping("/auth/discord/authorize")
-    public RedirectView authorize(HttpSession session) {
-        // Generate a secure random state token for CSRF protection.
-        // This state is primarily validated by the frontend upon callback.
-        String frontendState = new BigInteger(130, secureRandom).toString(32);
-        session.setAttribute(SESSION_FRONTEND_STATE_KEY, frontendState); // Store for validation on callback
-        logger.debug("Generated and stored frontend state in session: {}", frontendState);
+    public RedirectView authorizeWithDiscord(
+            @Parameter(description = "Optional state parameter provided by the frontend for CSRF protection")
+            @RequestParam(name = "state", required = false) String frontendState, // Accept state from frontend
+            HttpSession session) {
 
-        // Construct the redirect URL
-        // Use the frontendState in the redirect to Discord
-        String redirectUrl = String.format(
-                "%s?client_id=%s&redirect_uri=%s&response_type=code&scope=%s&state=%s&prompt=consent", // Added prompt=consent
-                DISCORD_AUTH_URL,
+        String stateToUse;
+        if (frontendState != null && !frontendState.trim().isEmpty()) {
+            // Use the state provided by the frontend
+            stateToUse = frontendState;
+            logger.debug("Using state provided by frontend: [{}]", stateToUse);
+        } else {
+            // Fallback: Generate a new state if frontend didn't provide one (should not happen ideally)
+            logger.warn("No state provided by frontend, generating a new one (fallback).");
+            byte[] randomBytes = new byte[16];
+            secureRandom.nextBytes(randomBytes);
+            stateToUse = new BigInteger(1, randomBytes).toString(16);
+        }
+
+        // Store the state (either frontend-provided or generated) in the session for later validation
+        session.setAttribute(SESSION_FRONTEND_STATE_KEY, stateToUse);
+        logger.debug("Stored state in session for validation: [{}]", stateToUse);
+
+        // Construct the Discord authorization URL using the state we decided to use
+        String discordAuthUrl = String.format(
+                "https://discord.com/api/oauth2/authorize?client_id=%s&redirect_uri=%s&response_type=code&scope=%s&state=%s&prompt=consent",
                 discordClientId,
-                discordRedirectUri,
-                discordScopes.replace(" ", "%20"),
-                frontendState); // Pass the frontend-originated state to Discord
+                URLEncoder.encode(discordRedirectUri, StandardCharsets.UTF_8),
+                URLEncoder.encode(discordScopes, StandardCharsets.UTF_8),
+                URLEncoder.encode(stateToUse, StandardCharsets.UTF_8) // Use the stateToUse
+        );
 
-        logger.debug("Redirecting to Discord OAuth URL: {}", redirectUrl);
-        logger.info("Redirecting to Discord OAuth authorization with URL: {}", redirectUrl);
-        return new RedirectView(redirectUrl);
+        logger.debug("Redirecting to Discord OAuth URL: {}", discordAuthUrl);
+        logger.info("Redirecting to Discord OAuth authorization with state: [{}]", stateToUse); // Log the state being used
+        return new RedirectView(discordAuthUrl);
     }
 
     @Operation(summary = "Discord OAuth Callback", description = "Handles the callback from Discord, exchanges code for a token, retrieves user info, and persists the user")
@@ -108,92 +122,124 @@ public class OAuthController {
         @ApiResponse(responseCode = "400", description = "Returns error if required parameters are missing or invalid")
     })
     @GetMapping("/oauth2/callback/discord")
-    public RedirectView callback(
-            @Parameter(description = "Authorization code returned from Discord", required = false)
-            @RequestParam(name = "code", required = false) String code,
-            @Parameter(description = "CSRF state token", required = false)
-            @RequestParam(name = "state", required = false) String incomingState, // Renamed for clarity
-            @Parameter(description = "Error response from Discord", required = false)
-            @RequestParam(name = "error", required = false) String error,
-            HttpSession session) {
+    public RedirectView callbackFromDiscord(@RequestParam("code") String discordCode,
+                                            @RequestParam("state") String incomingState,
+                                            HttpSession session) {
 
-        if (error != null) {
-            logger.error("Discord OAuth error received: {}", error);
-            return new RedirectView("/login?error=Discord+authorization+failed");
+        logger.info("Received callback from Discord. Code: [{}], State: [{}]", discordCode, incomingState);
+
+        // --- State Validation ---
+        // Retrieve the state stored in the session during the initial authorize redirect
+        // NOTE: Ensure authorizeWithDiscord correctly stores state in the session using SESSION_FRONTEND_STATE_KEY
+        String sessionState = (String) session.getAttribute(SESSION_FRONTEND_STATE_KEY);
+        logger.debug("Retrieved state from session: [{}]", sessionState);
+
+        if (sessionState == null) {
+            logger.warn("No state found in session. Potential session issue or direct access.");
+            // Redirect to frontend login with a state error
+            return new RedirectView("http://localhost:3000/login?error=Session+state+missing");
         }
 
-        if (code == null || incomingState == null) {
-            logger.error("Missing required OAuth parameters: code or state is null.");
-            return new RedirectView("/login?error=Missing+code+or+state");
+        if (!incomingState.equals(sessionState)) {
+            logger.error("State mismatch! Session state: [{}], Incoming state: [{}]. Potential CSRF attack.", sessionState, incomingState);
+            // Clear the potentially compromised state from the session
+            session.removeAttribute(SESSION_FRONTEND_STATE_KEY);
+            // Redirect to frontend login with a state mismatch error
+            return new RedirectView("http://localhost:3000/login?error=State+mismatch");
         }
 
-        // Validate the incoming state against the one stored in the session (originated from frontend)
-        String expectedState = (String) session.getAttribute(SESSION_FRONTEND_STATE_KEY);
-        logger.debug("Validating incoming state '{}' against expected state '{}'", incomingState, expectedState);
-        if (expectedState == null || !incomingState.equals(expectedState)) {
-            logger.error("Invalid state parameter. Expected '{}' but received '{}'. Possible CSRF detected.", expectedState, incomingState);
-            return new RedirectView("/login?error=Invalid+state");
-        }
-        session.removeAttribute(SESSION_FRONTEND_STATE_KEY); // Remove state after validation
-        logger.debug("State validation successful. Removed state from session.");
+        // State is valid, clear it from the session as it's single-use for this flow step
+        session.removeAttribute(SESSION_FRONTEND_STATE_KEY);
+        logger.info("State validation successful for state: [{}]", incomingState);
+        // --- End State Validation ---
 
+
+        // Exchange Discord code for tokens
+        logger.info("Exchanging Discord code [{}] for tokens...", discordCode);
         RestTemplate restTemplate = new RestTemplate();
-        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        body.add("client_id", discordClientId);
-        body.add("client_secret", discordClientSecret);
-        body.add("grant_type", "authorization_code");
-        body.add("code", code);
-        body.add("redirect_uri", discordRedirectUri);
-
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
 
+        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+        map.add("client_id", discordClientId);
+        map.add("client_secret", discordClientSecret);
+        map.add("grant_type", "authorization_code");
+        map.add("code", discordCode); // Use the code received from Discord
+        map.add("redirect_uri", discordRedirectUri);
+
+        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(map, headers);
         OAuthTokenResponse tokenResponse;
-        logger.info("Exchanging Discord code for tokens...");
+
         try {
             tokenResponse = restTemplate.postForObject(DISCORD_TOKEN_URL, requestEntity, OAuthTokenResponse.class);
             if (tokenResponse == null || tokenResponse.getAccessToken() == null) {
-                logger.error("Token exchange failed: received null token response");
-                return new RedirectView("/login?error=Token+exchange+failed");
+                logger.error("Token exchange failed: received null token response from Discord");
+                return new RedirectView("http://localhost:3000/login?error=Discord+token+exchange+failed");
             }
-            logger.info("Token exchange successful. Access token acquired.");
+            logger.info("Discord token exchange successful.");
         } catch (Exception e) {
-            logger.error("Token exchange failed: {}", e.getMessage());
-            return new RedirectView("/login?error=Token+exchange+failed");
+            logger.error("Discord token exchange failed: {}", e.getMessage(), e); // Log stack trace
+            return new RedirectView("http://localhost:3000/login?error=Discord+token+exchange+exception");
         }
 
         UserDTO userDTO;
         logger.info("Fetching user info from Discord...");
         try {
             userDTO = oauthService.getUserInfo(tokenResponse.getAccessToken());
-            logger.info("User details retrieved successfully: {}", userDTO);
+            logger.info("User details retrieved successfully from Discord: {}", userDTO);
         } catch (Exception e) {
-            logger.error("Failed to retrieve user details: {}", e.getMessage());
-            return new RedirectView("/login?error=User+information+retrieval+failed");
+            logger.error("Failed to retrieve user details from Discord: {}", e.getMessage(), e); // Log stack trace
+            return new RedirectView("http://localhost:3000/login?error=Discord+user+info+retrieval+failed");
         }
 
         // Find or create user in our database
         logger.info("Creating or updating user in database...");
         User user = userService.createOrUpdateUser(userDTO);
+        if (user == null || user.getId() == null) {
+             logger.error("Failed to create or update user for Discord ID: {}", userDTO.getId());
+             return new RedirectView("http://localhost:3000/login?error=User+processing+failed");
+        }
         logger.info("User processed successfully. User ID: {}", user.getId());
 
         // --- Start Secure Code Exchange ---
         // 1. Generate a secure, single-use code
-        byte[] randomBytes = new byte[32];
-        secureRandom.nextBytes(randomBytes);
-        String singleUseCode = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+        String singleUseCode;
+        try {
+            byte[] randomBytes = new byte[32];
+            secureRandom.nextBytes(randomBytes); // Generate random bytes
+            singleUseCode = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+            logger.debug("Generated single-use code: [{}]", singleUseCode); // Log the generated code
+        } catch (Exception e) {
+            logger.error("Failed to generate secure single-use code", e);
+            return new RedirectView("http://localhost:3000/login?error=Internal+server+error+(code+gen)");
+        }
+
 
         // 2. Store the code temporarily, associated with the user ID
-        discordCodeStore.storeCode(singleUseCode, user.getId());
-        logger.info("Generated and stored single-use code for user ID: {}", user.getId());
+        try {
+            discordCodeStore.storeCode(singleUseCode, user.getId());
+            // Log confirmation AFTER storing
+            logger.info("Stored single-use code [{}] for user ID: {}", singleUseCode, user.getId());
+        } catch (Exception e) {
+            logger.error("Failed to store single-use code [{}] for user ID {}: {}", singleUseCode, user.getId(), e.getMessage(), e);
+            return new RedirectView("http://localhost:3000/login?error=Internal+server+error+(code+store)");
+        }
 
-        // 3. URL-encode the single-use code and the original frontend state
-        String encodedSingleUseCode = URLEncoder.encode(singleUseCode, StandardCharsets.UTF_8);
-        String encodedFrontendState = URLEncoder.encode(incomingState, StandardCharsets.UTF_8); // Use the validated incoming state
+        // 3. URL-encode the single-use code and the original frontend state received from Discord
+        String encodedSingleUseCode;
+        String encodedFrontendState;
+        try {
+             encodedSingleUseCode = URLEncoder.encode(singleUseCode, StandardCharsets.UTF_8);
+             // Use the validated incoming state received from Discord (and validated against session)
+             encodedFrontendState = URLEncoder.encode(incomingState, StandardCharsets.UTF_8);
+             logger.debug("Encoded single-use code: [{}], Encoded state: [{}]", encodedSingleUseCode, encodedFrontendState);
+        } catch (Exception e) {
+             logger.error("Failed to URL encode parameters for frontend redirect", e);
+             return new RedirectView("http://localhost:3000/login?error=Internal+server+error+(encoding)");
+        }
 
-        // Build the redirect URL to include both tokens as query parameters.
-        // Redirect to frontend with the single-use code and the original state
+
+        // Build the redirect URL to the frontend callback
         String frontendRedirectUrl = String.format(
                 "http://localhost:3000/auth/discord/callback?code=%s&state=%s",
                 encodedSingleUseCode,
@@ -201,15 +247,18 @@ public class OAuthController {
         );
         // --- End Secure Code Exchange ---
 
+        // Optional: Update cached Discord avatar URL
         String discordAvatarUrl = userDTO.getAvatar();
-        if (user != null && discordAvatarUrl != null && discordAvatarUrl.contains("cdn.discordapp.com")) {
-            // Always update the cached Discord avatar URL, even if not using it right now
-            user.setDiscordAvatarUrl(discordAvatarUrl);
-            userService.updateUser(user);
-            logger.debug("Updated cached Discord avatar URL during OAuth flow");
+        if (discordAvatarUrl != null && discordAvatarUrl.contains("cdn.discordapp.com")) {
+            if (!discordAvatarUrl.equals(user.getDiscordAvatarUrl())) {
+                 user.setDiscordAvatarUrl(discordAvatarUrl);
+                 // userService.updateUser(user); // Consider if needed
+                 logger.debug("Updated cached Discord avatar URL during OAuth flow for user {}", user.getId());
+            }
         }
 
-        logger.info("Redirecting to frontend callback URL: {}", frontendRedirectUrl);
+
+        logger.info(">>> CONSTRUCTED REDIRECT URL TO FRONTEND: {}", frontendRedirectUrl); // CRITICAL LOG
         return new RedirectView(frontendRedirectUrl);
     }
 }

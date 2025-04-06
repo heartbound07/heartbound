@@ -301,15 +301,42 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   }, [clearAuthState, parseJwt, refreshToken, scheduleTokenRefresh, setAuthLoading, setAuthState, updateTokens]);
 
   const startDiscordOAuth = useCallback(async () => {
-    // 1. Generate state
-    const state = window.crypto.randomUUID();
-    // 2. Store state locally
-    localStorage.setItem(DISCORD_OAUTH_STATE_KEY, state);
-    console.log('Stored Discord OAuth state:', state);
-    // 3. Redirect to backend authorization endpoint (backend handles redirect to Discord)
-    // The backend's /authorize endpoint should now handle passing this state to Discord
-    window.location.href = AUTH_ENDPOINTS.DISCORD_AUTHORIZE;
-  }, []);
+    console.log('[AuthProvider] Starting Discord OAuth flow...');
+    setAuthLoading(true); // Keep loading state for UI feedback if needed before navigation
+    setAuthError(null);
+    try {
+      // 1. Generate secure random state
+      const state = crypto.randomUUID();
+      console.log(`[AuthProvider] Generated state for Discord OAuth: [${state}]`);
+
+      // 2. Store state in localStorage
+      localStorage.setItem(DISCORD_OAUTH_STATE_KEY, state);
+      console.log(`[AuthProvider] Stored state in localStorage under key: ${DISCORD_OAUTH_STATE_KEY}`);
+
+      // 3. Construct the backend authorization URL with the state
+      const authorizeUrl = new URL(AUTH_ENDPOINTS.DISCORD_AUTHORIZE);
+      authorizeUrl.searchParams.append('state', state);
+      console.log(`[AuthProvider] Constructed backend authorize URL: ${authorizeUrl.toString()}`);
+
+      // 4. Navigate the browser directly to the backend endpoint
+      // The backend will handle the redirect to Discord.
+      window.location.href = authorizeUrl.toString();
+
+      // Note: Code execution effectively stops here due to navigation.
+      // setLoading(false) is not strictly necessary as the page context changes.
+
+    } catch (error) {
+      // This catch block might only catch errors during state generation/storage
+      // or URL construction, not navigation issues themselves.
+      console.error('[AuthProvider] Error preparing for Discord OAuth flow:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred before redirecting to Discord.';
+      setAuthError(`Discord OAuth Error: ${errorMessage}`);
+      setAuthLoading(false);
+      // Clear potentially invalid state if initiation failed before navigation
+      localStorage.removeItem(DISCORD_OAUTH_STATE_KEY);
+      console.log(`[AuthProvider] Cleared potentially invalid state from localStorage due to error.`);
+    }
+  }, [setAuthLoading, setAuthError]);
 
   // New function to exchange the code received on the frontend callback
   const exchangeDiscordCode = useCallback(async (code: string) => {

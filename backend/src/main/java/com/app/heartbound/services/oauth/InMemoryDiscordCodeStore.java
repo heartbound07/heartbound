@@ -50,26 +50,31 @@ public class InMemoryDiscordCodeStore implements DiscordCodeStore {
     @Override
     public void storeCode(String code, String userId) {
         long expiryTime = System.currentTimeMillis() + CODE_EXPIRY_MS;
-        codeStore.put(code, new CodeEntry(userId, expiryTime));
-        logger.debug("Stored single-use code for user ID: {}", userId);
+        CodeEntry entry = new CodeEntry(userId, expiryTime);
+        // Log BEFORE putting into map
+        logger.info("InMemoryDiscordCodeStore: Attempting to store code [{}] for userId [{}] with expiry {}", code, userId, expiryTime);
+        codeStore.put(code, entry);
+        // Log confirmation AFTER successful put
+        logger.info("InMemoryDiscordCodeStore: Successfully stored code [{}] for userId [{}]", code, userId);
     }
 
     @Override
     public String consumeCode(String code) {
+        logger.info("InMemoryDiscordCodeStore: Attempting to consume code [{}]", code); // Log attempt
         CodeEntry entry = codeStore.remove(code); // Atomically remove the code
 
         if (entry == null) {
-            logger.warn("Attempted to consume non-existent code: {}", code);
+            logger.warn("InMemoryDiscordCodeStore: Consume failed - code [{}] not found or already consumed.", code);
             return null; // Code doesn't exist or already consumed
         }
 
-        if (System.currentTimeMillis() > entry.expiryTime) {
-            logger.warn("Attempted to consume expired code for user ID: {}", entry.userId);
-            // Even though removed, log that it was expired
+        long now = System.currentTimeMillis();
+        if (now > entry.expiryTime) {
+            logger.warn("InMemoryDiscordCodeStore: Consume failed - code [{}] for user ID [{}] expired. Expiry: {}, Current: {}", code, entry.userId, entry.expiryTime, now);
             return null; // Code expired
         }
 
-        logger.info("Successfully consumed code for user ID: {}", entry.userId);
+        logger.info("InMemoryDiscordCodeStore: Successfully consumed code [{}] for user ID: [{}]", code, entry.userId);
         return entry.userId; // Code valid and consumed
     }
 

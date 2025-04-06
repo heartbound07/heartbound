@@ -26,8 +26,9 @@ import java.util.Set;
 import java.util.Collections;
 import com.app.heartbound.enums.Role;
 
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
@@ -117,17 +118,21 @@ public class AuthController {
     })
     @PostMapping("/discord/exchange-code")
     public ResponseEntity<?> exchangeDiscordCode(@RequestBody DiscordCodeExchangeRequest request) {
-        logger.info("Attempting to exchange Discord single-use code.");
-        if (request == null || request.getCode() == null || request.getCode().isEmpty()) {
-            logger.warn("Received empty or null code in exchange request.");
-            return ResponseEntity.badRequest().body(Map.of("error", "Code is required"));
+        // Log the raw request body code
+        logger.info("Received request to exchange Discord code. Raw code from request: [{}]", request.getCode());
+
+        if (request.getCode() == null || request.getCode().trim().isEmpty()) {
+             logger.warn("Exchange code request received with empty or null code.");
+             return ResponseEntity.status(400).body(Map.of("error", "Code parameter is missing"));
         }
 
+        // Validate and consume the code using the store
         String userId = discordCodeStore.consumeCode(request.getCode());
+        // Log the result immediately after consumption attempt
+        logger.info("Result from consuming code [{}]: userId = {}", request.getCode(), (userId != null ? userId : "null/invalid"));
 
         if (userId == null) {
             logger.warn("Failed to consume code '{}'. It might be invalid, expired, or already used.", request.getCode());
-            // Return 400 or 401 - 400 seems appropriate for an invalid input code
             return ResponseEntity.status(400).body(Map.of("error", "Invalid or expired code"));
         }
 
@@ -138,9 +143,9 @@ public class AuthController {
             User user = userService.getUserById(userId);
             if (user == null) {
                 logger.error("User not found for ID '{}' retrieved from code store.", userId);
-                // This shouldn't happen if the code store is consistent, but handle defensively
                 return ResponseEntity.status(400).body(Map.of("error", "User associated with code not found"));
             }
+            logger.debug("Fetched user details for token generation: {}", user); // Log user details
 
             // Generate tokens using the AuthService or JWTTokenProvider directly
             // Reusing logic similar to AuthService.refreshToken or parts of OAuthController callback
@@ -167,7 +172,8 @@ public class AuthController {
                 "read write", // Define appropriate scope or get from config/user
                 userDTO);
 
-            logger.info("Successfully generated tokens for user ID: {}", userId);
+            // Log before returning success
+            logger.info("Successfully generated tokens and prepared response for user ID: {}", userId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Error generating tokens after code exchange for user ID {}: {}", userId, e.getMessage(), e);
