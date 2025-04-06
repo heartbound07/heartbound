@@ -28,7 +28,7 @@ export function DiscordCallback() {
       try {
         // Mark that we've started processing
         hasProcessedAuth.current = true;
-        
+          
         const accessToken = searchParams.get('accessToken');
         const refreshToken = searchParams.get('refreshToken') || "";
         

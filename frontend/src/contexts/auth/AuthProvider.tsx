@@ -55,10 +55,10 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const [initialized, setInitialized] = useState(false);
   const initRan = useRef(false); // Track if init logic ran for this instance
 
-  const persistAuthState = useCallback((user: UserInfo, tokenPair: TokenPair) => {
+  const persistAuthState = useCallback((user: UserInfo, tokenPair: TokenPair, profile: ProfileStatus | null = null) => {
     // Use the tokenStorage directly instead of a state-updating function
     tokenStorage.setTokens(tokenPair);
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user }));
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user, profile }));
   }, []);
 
   const handleAuthResponse = useCallback(async (response: Response) => {
@@ -80,7 +80,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
     const { accessToken, refreshToken, tokenType, expiresIn, scope, user } = data;
     const decodedToken = parseJwt(accessToken);
-    persistAuthState(user, { accessToken, refreshToken, tokenType, expiresIn, scope });
+    persistAuthState(user, { accessToken, refreshToken, tokenType, expiresIn, scope }, null);
     scheduleTokenRefresh(decodedToken.exp - Math.floor(Date.now() / 1000));
     updateTokens({ accessToken, refreshToken, tokenType, expiresIn, scope });
     setAuthState(user);
@@ -345,8 +345,8 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         scope: decodedToken.scope || 'identify email'
       };
 
-      // Store auth data
-      persistAuthState(user, tokenPair);
+      // Store auth data with null profile initially
+      persistAuthState(user, tokenPair, null);
       
       // Set auth state
       setAuthState(user, null);
@@ -385,11 +385,6 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         avatar: updatedProfile.avatar,
         credits: updatedProfile.credits ?? state.user.credits
       };
-      
-      // Persist the updated user data to localStorage
-      const authData = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || '{}');
-      authData.user = updatedUser;
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
       
       // Update auth state with the new user info
       setAuthState(updatedUser);
@@ -451,6 +446,29 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     };
     // Keep dependencies that initializeAuth relies on
   }, [initialized, initializeAuth, setAuthLoading]); // Add setAuthLoading
+
+  // Add this useEffect to the AuthProvider component
+  useEffect(() => {
+    // Skip persistence during initial loading
+    if (state.isLoading) {
+      return;
+    }
+
+    // When authenticated and user exists, persist to localStorage
+    if (state.isAuthenticated && state.user) {
+      const dataToStore = { 
+        user: state.user, 
+        profile: state.profile 
+      };
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(dataToStore));
+      console.log('[Auth Persistence] User and profile state persisted');
+    } 
+    // When not authenticated (and not in loading state), clear localStorage
+    else if (!state.isAuthenticated && !state.isLoading) {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      console.log('[Auth Persistence] User state cleared from localStorage');
+    }
+  }, [state.user, state.profile, state.isAuthenticated, state.isLoading]);
 
   const contextValue = useMemo<AuthContextValue>(() => ({
     ...state,
