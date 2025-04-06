@@ -10,7 +10,7 @@ import {
   ProfileStatus,
   Role,
 } from './types';
-import { AUTH_STORAGE_KEY, TOKEN_REFRESH_MARGIN, AUTH_ENDPOINTS } from './constants';
+import { AUTH_STORAGE_KEY, TOKEN_REFRESH_MARGIN, AUTH_ENDPOINTS, DISCORD_OAUTH_STATE_KEY } from './constants';
 import * as partyService from '../valorant/partyService';
 import axios from 'axios';
 import webSocketService from '../../config/WebSocketService';
@@ -30,11 +30,6 @@ declare global {
 // Place these outside the component to persist across renders
 let refreshInProgress = false;
 let refreshPromise: Promise<string | undefined> | null = null;
-
-// Create a global static variable to track initialization across all component instances
-// This will persist even during StrictMode double-mounting
-let AUTH_INITIALIZED = false;
-let AUTH_INITIALIZATION_PROMISE: Promise<void> | null = null;
 
 const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   // Use our new custom hooks
@@ -58,14 +53,12 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   } = useTokenManagement();
 
   const [initialized, setInitialized] = useState(false);
+  const initRan = useRef(false); // Track if init logic ran for this instance
 
-  // Add a ref to track initialization status
-  const isInitializingRef = useRef(false);
-
-  const persistAuthState = useCallback((user: UserInfo, tokenPair: TokenPair) => {
+  const persistAuthState = useCallback((user: UserInfo, tokenPair: TokenPair, profile: ProfileStatus | null = null) => {
     // Use the tokenStorage directly instead of a state-updating function
     tokenStorage.setTokens(tokenPair);
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user }));
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user, profile }));
   }, []);
 
   const handleAuthResponse = useCallback(async (response: Response) => {
@@ -87,10 +80,14 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
     const { accessToken, refreshToken, tokenType, expiresIn, scope, user } = data;
     const decodedToken = parseJwt(accessToken);
-    persistAuthState(user, { accessToken, refreshToken, tokenType, expiresIn, scope });
+    persistAuthState(user, { accessToken, refreshToken, tokenType, expiresIn, scope }, null);
     scheduleTokenRefresh(decodedToken.exp - Math.floor(Date.now() / 1000));
     updateTokens({ accessToken, refreshToken, tokenType, expiresIn, scope });
     setAuthState(user);
+
+    // Reconnect WebSocket after successful authentication/token update
+    webSocketService.reconnectWithFreshToken();
+    console.log('WebSocket reconnect triggered after auth response.');
   }, [persistAuthState, scheduleTokenRefresh, parseJwt, updateTokens, setAuthState]);
 
   const login = useCallback(async (credentials: LoginRequest) => {
@@ -304,74 +301,72 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   }, [clearAuthState, parseJwt, refreshToken, scheduleTokenRefresh, setAuthLoading, setAuthState, updateTokens]);
 
   const startDiscordOAuth = useCallback(async () => {
-    window.location.href = AUTH_ENDPOINTS.DISCORD_AUTHORIZE;
-  }, []);
+    console.log('[AuthProvider] Starting Discord OAuth flow...');
+    setAuthLoading(true); // Keep loading state for UI feedback if needed before navigation
+    setAuthError(null);
+    try {
+      // 1. Generate secure random state
+      const state = crypto.randomUUID();
+      console.log(`[AuthProvider] Generated state for Discord OAuth: [${state}]`);
 
-  const handleDiscordCallback = useCallback(async (code: string, state: string) => {
+      // 2. Store state in localStorage
+      localStorage.setItem(DISCORD_OAUTH_STATE_KEY, state);
+      console.log(`[AuthProvider] Stored state in localStorage under key: ${DISCORD_OAUTH_STATE_KEY}`);
+
+      // 3. Construct the backend authorization URL with the state
+      const authorizeUrl = new URL(AUTH_ENDPOINTS.DISCORD_AUTHORIZE);
+      authorizeUrl.searchParams.append('state', state);
+      console.log(`[AuthProvider] Constructed backend authorize URL: ${authorizeUrl.toString()}`);
+
+      // 4. Navigate the browser directly to the backend endpoint
+      // The backend will handle the redirect to Discord.
+      window.location.href = authorizeUrl.toString();
+
+      // Note: Code execution effectively stops here due to navigation.
+      // setLoading(false) is not strictly necessary as the page context changes.
+
+    } catch (error) {
+      // This catch block might only catch errors during state generation/storage
+      // or URL construction, not navigation issues themselves.
+      console.error('[AuthProvider] Error preparing for Discord OAuth flow:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred before redirecting to Discord.';
+      setAuthError(`Discord OAuth Error: ${errorMessage}`);
+      setAuthLoading(false);
+      // Clear potentially invalid state if initiation failed before navigation
+      localStorage.removeItem(DISCORD_OAUTH_STATE_KEY);
+      console.log(`[AuthProvider] Cleared potentially invalid state from localStorage due to error.`);
+    }
+  }, [setAuthLoading, setAuthError]);
+
+  // New function to exchange the code received on the frontend callback
+  const exchangeDiscordCode = useCallback(async (code: string) => {
     setAuthLoading(true);
     try {
-      const response = await fetch(AUTH_ENDPOINTS.DISCORD_CALLBACK, {
+      console.log('Exchanging Discord code for tokens...');
+      // Make POST request to the new backend endpoint
+      const response = await fetch(AUTH_ENDPOINTS.DISCORD_EXCHANGE_CODE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, state }),
+        body: JSON.stringify({ code }), // Send the code in the body
       });
+
+      // Use the existing handleAuthResponse logic for processing the token response
       await handleAuthResponse(response);
+      console.log('Discord code exchange successful, auth state updated.');
+
     } catch (error) {
-      setAuthError(error instanceof Error ? error.message : 'Discord authentication failed');
-      throw error;
-    }
-  }, [handleAuthResponse, setAuthError, setAuthLoading]);
-
-  const handleDiscordCallbackWithToken = useCallback(async (accessToken: string, refreshToken?: string) => {
-    try {
-      setAuthLoading(true);
-
-      // Decode JWT token to get user information
-      const decodedToken = parseJwt(accessToken);
-      
-      if (!decodedToken) {
-        throw new Error('Invalid token format');
-      }
-
-      // Extract user data from the token
-      const user: UserInfo = {
-        id: decodedToken.sub || '',
-        username: decodedToken.username || '',
-        email: decodedToken.email || '',
-        avatar: decodedToken.avatar || '',
-        roles: decodedToken.roles || ['USER'], // Extract roles from token
-        credits: decodedToken.credits || 0 // Extract credits from token
-      };
-
-      // Build token pair
-      const tokenPair: TokenPair = {
-        accessToken,
-        refreshToken: refreshToken || '',
-        tokenType: 'bearer',
-        expiresIn: decodedToken.exp ? (decodedToken.exp * 1000 - Date.now()) / 1000 : 3600,
-        scope: decodedToken.scope || 'identify email'
-      };
-
-      // Store auth data
-      persistAuthState(user, tokenPair);
-      
-      // Set auth state
-      setAuthState(user, null);
-      
-      // Setup token refresh timer
-      scheduleTokenRefresh(tokenPair.expiresIn - TOKEN_REFRESH_MARGIN / 1000);
-      
-      // Reconnect websocket with new token
-      webSocketService.reconnectWithFreshToken();
-      
-      return user;
-    } catch (error) {
-      setAuthError(error instanceof Error ? error.message : 'Authentication failed');
-      throw error;
+      console.error('Discord code exchange failed:', error);
+      // Clear any potentially partially set state
+      clearAuthState();
+      updateTokens(null);
+      tokenStorage.setTokens(null);
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      setAuthError(error instanceof Error ? error.message : 'Discord code exchange failed');
+      throw error; // Re-throw error to be caught by the callback component
     } finally {
       setAuthLoading(false);
     }
-  }, [persistAuthState, scheduleTokenRefresh, parseJwt, setAuthState, setAuthError, setAuthLoading]);
+  }, [handleAuthResponse, setAuthLoading, setAuthError, clearAuthState, updateTokens]);
 
   const updateProfile = useCallback((profile: ProfileStatus) => {
     updateAuthProfile(profile);
@@ -392,11 +387,6 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         avatar: updatedProfile.avatar,
         credits: updatedProfile.credits ?? state.user.credits
       };
-      
-      // Persist the updated user data to localStorage
-      const authData = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || '{}');
-      authData.user = updatedUser;
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
       
       // Update auth state with the new user info
       setAuthState(updatedUser);
@@ -429,44 +419,58 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
   // Replace the useEffect that calls initializeAuth with this version
   useEffect(() => {
-    // If already globally initialized, just update our local state
-    if (AUTH_INITIALIZED && !initialized) {
-      setInitialized(true);
+    // Prevent running twice due to StrictMode or re-renders
+    if (initRan.current || initialized) {
       return;
     }
+    initRan.current = true;
 
-    // If initialization is in progress from another instance, wait for it
-    if (AUTH_INITIALIZATION_PROMISE && !initialized) {
-      console.log('Waiting for existing auth initialization to complete...');
-      AUTH_INITIALIZATION_PROMISE.then(() => {
+    const performInit = async () => {
+      console.log('Starting auth initialization...');
+      setAuthLoading(true); // Ensure loading state is set early
+      try {
+        await initializeAuth(); // Existing initialization logic
+        console.log('Auth initialization completed.');
+      } catch (error) {
+        console.error('Auth initialization failed:', error);
+        // Handle error state appropriately, maybe setAuthError
+      } finally {
         setInitialized(true);
-      });
-      return;
-    }
+        setAuthLoading(false); // Ensure loading state is cleared
+      }
+    };
 
-    // Only start initialization if it hasn't been done yet
-    if (!AUTH_INITIALIZED && !initialized) {
-      console.log('Starting auth initialization process...');
-      
-      // Create a promise to track initialization
-      AUTH_INITIALIZATION_PROMISE = (async () => {
-        try {
-          await initializeAuth();
-          console.log('Global auth initialization completed successfully');
-          AUTH_INITIALIZED = true;
-        } catch (error) {
-          console.error('Auth initialization failed:', error);
-        } finally {
-          setInitialized(true);
-        }
-      })();
-    }
+    performInit();
 
-    // Cleanup - nothing to do since we're using static variables
+    // Cleanup function (optional, if needed)
     return () => {
       console.log('AuthProvider initialization effect cleanup');
     };
-  }, [initialized, initializeAuth]);
+    // Keep dependencies that initializeAuth relies on
+  }, [initialized, initializeAuth, setAuthLoading]); // Add setAuthLoading
+
+  // Add this useEffect to the AuthProvider component
+  useEffect(() => {
+    // Skip persistence during initial loading
+    if (state.isLoading) {
+      return;
+    }
+
+    // When authenticated and user exists, persist to localStorage
+    if (state.isAuthenticated && state.user) {
+      const dataToStore = { 
+        user: state.user, 
+        profile: state.profile 
+      };
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(dataToStore));
+      console.log('[Auth Persistence] User and profile state persisted');
+    } 
+    // When not authenticated (and not in loading state), clear localStorage
+    else if (!state.isAuthenticated && !state.isLoading) {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      console.log('[Auth Persistence] User state cleared from localStorage');
+    }
+  }, [state.user, state.profile, state.isAuthenticated, state.isLoading]);
 
   const contextValue = useMemo<AuthContextValue>(() => ({
     ...state,
@@ -477,8 +481,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     tokens,
     clearError: () => setAuthError(null),
     startDiscordOAuth,
-    handleDiscordCallback,
-    handleDiscordCallbackWithToken,
+    exchangeDiscordCode,
     updateProfile,
     hasRole,
     createParty: partyService.createParty,
@@ -488,7 +491,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     deleteParty: partyService.deleteParty,
     joinParty: partyService.joinParty,
     updateUserProfile,
-  }), [state, login, logout, tokens, startDiscordOAuth, handleDiscordCallback, handleDiscordCallbackWithToken, updateProfile, refreshToken, hasRole, updateUserProfile]);
+  }), [state, login, logout, tokens, startDiscordOAuth, exchangeDiscordCode, updateProfile, refreshToken, hasRole, updateUserProfile, setAuthError]);
 
   return (
     <AuthContext.Provider value={contextValue}>
