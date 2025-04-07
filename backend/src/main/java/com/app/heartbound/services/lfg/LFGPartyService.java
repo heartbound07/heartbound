@@ -331,7 +331,19 @@ public class LFGPartyService {
             party.setStatus("closed");
         }
         
-        lfgPartyRepository.save(party);
+        // Save the party first
+        LFGParty savedParty = lfgPartyRepository.save(party);
+        
+        // Update the Discord embed to reflect the updated participant list
+        try {
+            discordChannelService.updatePartyAnnouncementEmbed(savedParty);
+            logger.info("Updated Discord embed for party {} after user {} joined", id, userId);
+        } catch (Exception e) {
+            // Log error but continue with party join flow
+            logger.error("Failed to update Discord announcement for party {} after user join: {}", 
+                        id, e.getMessage(), e);
+        }
+        
         return "Join request successful. You have joined the party.";
     }
 
