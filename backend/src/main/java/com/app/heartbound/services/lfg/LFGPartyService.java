@@ -548,10 +548,10 @@ public class LFGPartyService {
     }
 
     /**
-     * Accepts a user's request to join a party. Only the party leader can do this.
+     * Accepts a user's request to join a party. Only the party leader can accept requests.
      *
      * @param id the UUID of the party
-     * @param userId the ID of the user whose request is being accepted
+     * @param userId the ID of the user to accept
      * @return success message if acceptance succeeds
      */
     public String acceptJoinRequest(UUID id, String userId) {
@@ -589,6 +589,13 @@ public class LFGPartyService {
         if (party.getDiscordChannelId() != null && !party.getDiscordChannelId().isEmpty()) {
             discordChannelService.addUserToVoiceChannel(party.getDiscordChannelId(), userId);
             logger.info("Added user {} to Discord channel {}", userId, party.getDiscordChannelId());
+            
+            // Send notification message that the user has been accepted
+            discordChannelService.sendUserAcceptedMessage(
+                party.getDiscordChannelId(),
+                userId,
+                party.getTitle()
+            );
         }
         
         lfgPartyRepository.save(party);

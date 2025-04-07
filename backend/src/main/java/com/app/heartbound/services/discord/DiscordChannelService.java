@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.EnumSet;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
 @Service
 public class DiscordChannelService {
@@ -337,6 +338,53 @@ public class DiscordChannelService {
             return true;
         } catch (Exception e) {
             logger.error("Error sending welcome message to voice channel {}: {}", channelId, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Sends a notification to a voice channel when a user has been accepted into the party
+     *
+     * @param channelId The Discord voice channel ID
+     * @param acceptedUserId The Discord user ID who was accepted
+     * @param partyTitle The title of the party
+     * @return true if message was sent successfully, false otherwise
+     */
+    public boolean sendUserAcceptedMessage(String channelId, String acceptedUserId, String partyTitle) {
+        try {
+            if (channelId == null || acceptedUserId == null || channelId.isEmpty() || acceptedUserId.isEmpty()) {
+                logger.warn("Cannot send user accepted message: Invalid channel ID or user ID");
+                return false;
+            }
+            
+            Guild guild = jda.getGuildById(discordServerId);
+            if (guild == null) {
+                logger.error("Failed to find Discord server with ID: {}", discordServerId);
+                return false;
+            }
+            
+            VoiceChannel voiceChannel = guild.getVoiceChannelById(channelId);
+            if (voiceChannel == null) {
+                logger.warn("Voice channel with ID {} not found", channelId);
+                return false;
+            }
+
+            // Format the welcome message with the user mention
+            String welcomeMessage = String.format(
+                "Welcome <@%s> to the \"%s\" party! You have been accepted into the group. Join the voice channel when you're ready to play.",
+                acceptedUserId,
+                partyTitle
+            );
+            
+            // Send directly to the voice channel (which works because VoiceChannel implements MessageChannel)
+            voiceChannel.sendMessage(welcomeMessage).queue(
+                success -> logger.info("Sent acceptance message for user {} in channel {}", acceptedUserId, channelId),
+                error -> logger.error("Failed to send acceptance message: {}", error.getMessage())
+            );
+            
+            return true;
+        } catch (Exception e) {
+            logger.error("Error sending user accepted message to channel {}: {}", channelId, e.getMessage(), e);
             return false;
         }
     }
