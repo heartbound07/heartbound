@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import java.util.UUID;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.EnumSet;
+import net.dv8tion.jda.api.Permission;
 
 @Service
 public class DiscordChannelService {
@@ -36,9 +38,10 @@ public class DiscordChannelService {
      * @param partyTitle The title of the LFG party (used for channel name)
      * @param partyDescription The description of the LFG party (currently unused)
      * @param partyGame The game associated with the party (currently unused)
+     * @param inviteOnly Whether the channel should be invite-only
      * @return A Map containing "channelId" and "inviteUrl" (inviteUrl may be null if creation failed)
      */
-    public Map<String, String> createPartyVoiceChannel(UUID partyId, String partyTitle, String partyDescription, String partyGame) {
+    public Map<String, String> createPartyVoiceChannel(UUID partyId, String partyTitle, String partyDescription, String partyGame, boolean inviteOnly) {
         Map<String, String> result = new HashMap<>();
         try {
             // Get the guild (server) by ID
@@ -94,6 +97,17 @@ public class DiscordChannelService {
                 inviteUrl = invite.getUrl();
                 result.put("inviteUrl", inviteUrl); // Store invite URL
                 logger.info("Created Discord invite link {} for channel ID: {}", inviteUrl, channel.getId());
+                
+                // If inviteOnly is true, set permissions to allow VIEW_CHANNEL but deny VOICE_CONNECT for @everyone
+                if (inviteOnly) {
+                    channel.getManager()
+                          .putPermissionOverride(guild.getPublicRole(), 
+                                                 EnumSet.of(Permission.VIEW_CHANNEL), // Allow viewing
+                                                 EnumSet.of(Permission.VOICE_CONNECT)) // Deny connecting
+                          .complete();
+                    logger.info("Set invite-only permissions for channel ID: {}", channel.getId());
+                }
+                
             } catch (InsufficientPermissionException e) {
                 logger.warn("Bot lacks permission to create invites for channel ID: {}. Invite link will be null.", channel.getId(), e);
                 // inviteUrl remains null, result map will not contain "inviteUrl" or it will be null
@@ -114,36 +128,6 @@ public class DiscordChannelService {
         }
     }
     
-    /**
-     * Sanitizes a string to be used as a Discord channel name
-     * Discord channel names must be lowercase with no spaces or special characters,
-     * and between 1 and 100 characters long.
-     * 
-     * @param input The input string
-     * @return A sanitized string suitable for a Discord channel name
-     */
-    private String sanitizeChannelName(String input) {
-        // Replace spaces with hyphens, remove invalid characters, convert to lowercase
-        String sanitized = input.toLowerCase()
-                .replaceAll("\\s+", "-") // Replace whitespace with hyphens
-                .replaceAll("[^a-z0-9_-]", ""); // Allow letters, numbers, underscore, hyphen
-
-        // Ensure name is not empty after sanitization
-        if (sanitized.isEmpty()) {
-            sanitized = "lfg-channel"; // Default name if sanitization results in empty string
-        }
-
-        // Ensure name length constraints (Discord: 1-100 chars)
-        if (sanitized.length() > 100) {
-            sanitized = sanitized.substring(0, 100);
-        }
-         if (sanitized.length() < 1) {
-             // This case should be covered by the isEmpty check, but as a safeguard
-             sanitized = "lfg";
-         }
-
-        return sanitized;
-    }
 
     /**
      * Deletes a Discord voice channel associated with a party

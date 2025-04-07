@@ -116,31 +116,20 @@ public class LFGPartyService {
                         savedParty.getId(),
                         savedParty.getTitle(),
                         savedParty.getDescription(),
-                        savedParty.getGame());
+                        savedParty.getGame(),
+                        savedParty.getRequirements().isInviteOnly()
+                );
 
-                String discordChannelId = discordInfo.get("channelId");
-                String discordInviteUrl = discordInfo.get("inviteUrl");
-
-                boolean updated = false;
-                // Store the Discord channel ID if creation was successful
-                if (discordChannelId != null) {
-                    savedParty.setDiscordChannelId(discordChannelId);
-                    logger.info("Associated Discord channel ID {} with party ID {}",
-                              discordChannelId, savedParty.getId());
-                    updated = true;
+                // Update the party with Discord channel information
+                if (discordInfo.containsKey("channelId")) {
+                    savedParty.setDiscordChannelId(discordInfo.get("channelId"));
                 }
-                // Store the Discord invite URL if creation was successful
-                if (discordInviteUrl != null) {
-                    savedParty.setDiscordInviteUrl(discordInviteUrl);
-                     logger.info("Associated Discord invite URL with party ID {}", savedParty.getId());
-                    updated = true;
+                if (discordInfo.containsKey("inviteUrl")) {
+                    savedParty.setDiscordInviteUrl(discordInfo.get("inviteUrl"));
                 }
-
-                // Save the party again only if Discord info was added
-                if (updated) {
-                    savedParty = lfgPartyRepository.save(savedParty);
-                }
-
+                
+                // Save the party again with the Discord information
+                savedParty = lfgPartyRepository.save(savedParty);
             } else {
                 logger.info("Skipping Discord channel creation for party ID {} with voice preference: {}",
                            savedParty.getId(), savedParty.getVoicePreference());
