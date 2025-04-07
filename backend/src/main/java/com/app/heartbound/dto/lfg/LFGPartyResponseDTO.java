@@ -43,6 +43,9 @@ public class LFGPartyResponseDTO {
     // Set of join requests
     private Set<String> joinRequests;
 
+    // Field to store Discord voice channel ID
+    private String discordChannelId;
+
     /**
      * PartyRequirementsDTO
      *

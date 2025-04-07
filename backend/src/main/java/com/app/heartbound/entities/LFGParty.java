@@ -129,6 +129,9 @@ public class LFGParty {
     @Column(name = "requesting_user_id")
     private Set<String> joinRequests = new HashSet<>();
 
+    @Column(name = "discord_channel_id")
+    private String discordChannelId;
+
     /**
      * PartyRequirements
      *

@@ -7,12 +7,16 @@ import com.app.heartbound.entities.LFGParty;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import com.app.heartbound.repositories.lfg.LFGPartyRepository;
+import com.app.heartbound.services.discord.DiscordChannelService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -38,9 +42,13 @@ import java.util.UUID;
 public class LFGPartyService {
 
     private final LFGPartyRepository lfgPartyRepository;
+    private final DiscordChannelService discordChannelService;
+    private static final Logger logger = LoggerFactory.getLogger(LFGPartyService.class);
 
-    public LFGPartyService(LFGPartyRepository lfgPartyRepository) {
+    @Autowired
+    public LFGPartyService(LFGPartyRepository lfgPartyRepository, DiscordChannelService discordChannelService) {
         this.lfgPartyRepository = lfgPartyRepository;
+        this.discordChannelService = discordChannelService;
     }
 
     /**
@@ -95,7 +103,30 @@ public class LFGPartyService {
         party.setVoicePreference(dto.getVoicePreference());
         party.setAgeRestriction(dto.getAgeRestriction());
 
+        // Save the party first to get the ID
         LFGParty savedParty = lfgPartyRepository.save(party);
+        
+        // After successful save, create a Discord voice channel
+        try {
+            // Create the voice channel using the Discord service
+            String discordChannelId = discordChannelService.createPartyVoiceChannel(
+                    savedParty.getId(), 
+                    savedParty.getTitle(),
+                    savedParty.getGame());
+            
+            // Store the Discord channel ID if creation was successful
+            if (discordChannelId != null) {
+                savedParty.setDiscordChannelId(discordChannelId);
+                savedParty = lfgPartyRepository.save(savedParty);
+                logger.info("Associated Discord channel ID {} with party ID {}", 
+                          discordChannelId, savedParty.getId());
+            }
+        } catch (Exception e) {
+            // Log error but continue with party creation flow
+            logger.error("Failed to create Discord voice channel for party ID {}: {}", 
+                        savedParty.getId(), e.getMessage(), e);
+        }
+        
         return mapToResponseDTO(savedParty);
     }
 
@@ -594,6 +625,7 @@ public class LFGPartyService {
                 .ageRestriction(party.getAgeRestriction())
                 .invitedUsers(party.getInvitedUsers())
                 .joinRequests(party.getJoinRequests())
+                .discordChannelId(party.getDiscordChannelId())
                 .build();
     }
 }
