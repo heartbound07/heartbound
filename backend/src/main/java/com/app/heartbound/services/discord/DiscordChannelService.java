@@ -25,6 +25,8 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
 import com.app.heartbound.entities.LFGParty;
 import com.app.heartbound.enums.Region;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
 
 @Service
 public class DiscordChannelService {
@@ -43,6 +45,9 @@ public class DiscordChannelService {
     
     @Value("${discord.category.id}")
     private String discordCategoryId;
+    
+    @Value("${frontend.base.url}")
+    private String frontendBaseUrl;
     
     /**
      * Creates a voice channel for an LFG party and generates an invite link.
@@ -453,10 +458,17 @@ public class DiscordChannelService {
             
             // Create and send the embed
             MessageEmbed embed = createPartyAnnouncementEmbed(party);
-            textChannel.sendMessageEmbeds(embed).queue(
-                success -> logger.info("Sent party creation announcement for party {} to channel {}", party.getId(), channelId),
-                error -> logger.error("Failed to send party creation announcement: {}", error.getMessage())
-            );
+            
+            // Create a button to join the party
+            String partyUrl = frontendBaseUrl + "/parties/" + party.getId();
+            Button joinButton = Button.link(partyUrl, "Join Party");
+            
+            textChannel.sendMessageEmbeds(embed)
+                .setActionRow(joinButton)
+                .queue(
+                    success -> logger.info("Sent party creation announcement for party {} to channel {}", party.getId(), channelId),
+                    error -> logger.error("Failed to send party creation announcement: {}", error.getMessage())
+                );
             
             return true;
         } catch (Exception e) {
@@ -503,7 +515,7 @@ public class DiscordChannelService {
     }
     
     /**
-     * Creates a rich embed message for party announcement
+     * Creates a rich embed message for party announcement with a cleaner format
      *
      * @param party The LFG party to create an announcement for
      * @return A MessageEmbed object representing the announcement
@@ -518,31 +530,35 @@ public class DiscordChannelService {
             embed.setColor(new Color(66, 133, 244)); // Blue for casual
         }
         
-        // Set title
-        embed.setTitle("New Party Created: " + party.getTitle());
+        // Calculate player count
+        int currentPlayers = party.getParticipants().size();
+        int maxPlayers = party.getMaxPlayers();
         
-        // Set description
-        embed.setDescription(party.getDescription());
+        // Set title with format: (Player Count - x/y) - Rank - Party Name
+        embed.setTitle(String.format("(%d/%d) - %s - %s", 
+                currentPlayers, 
+                maxPlayers,
+                party.getRequirements().getRank(),
+                party.getTitle()));
         
-        // Add party details as fields
-        embed.addField("Game", party.getGame(), true);
-        embed.addField("Match Type", party.getMatchType(), true);
-        embed.addField("Game Mode", party.getGameMode(), true);
-        embed.addField("Team Size", party.getTeamSize(), true);
-        embed.addField("Voice Preference", party.getVoicePreference(), true);
-        embed.addField("Required Rank", party.getRequirements().getRank().toString(), true);
-        embed.addField("Region", party.getRequirements().getRegion().toString(), true);
-        embed.addField("Max Players", String.valueOf(party.getMaxPlayers()), true);
+        // List participants (including party leader)
+        StringBuilder participantsText = new StringBuilder();
+        for (String participantId : party.getParticipants()) {
+            participantsText.append("<@").append(participantId).append(">\n");
+        }
+        embed.addField("Players", participantsText.toString(), false);
         
-        // Add Discord invite URL if available
-        if (party.getDiscordInviteUrl() != null && !party.getDiscordInviteUrl().isEmpty()) {
-            embed.addField("Discord Voice", "[Join Voice Channel](" + party.getDiscordInviteUrl() + ")", false);
+        // Add voice preference info only if it's Discord
+        if ("discord".equalsIgnoreCase(party.getVoicePreference()) && 
+            party.getDiscordInviteUrl() != null && 
+            !party.getDiscordInviteUrl().isEmpty()) {
+            embed.addField("Voice Preference", 
+                    "[Join Channel](" + party.getDiscordInviteUrl() + ")", 
+                    false);
         }
         
-        // Set footer with party ID for reference
+        // Add footer with party ID and timestamp
         embed.setFooter("Party ID: " + party.getId(), null);
-        
-        // Set timestamp
         embed.setTimestamp(Instant.now());
         
         return embed.build();
