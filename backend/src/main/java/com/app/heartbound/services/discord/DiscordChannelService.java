@@ -190,4 +190,56 @@ public class DiscordChannelService {
             return false;
         }
     }
+
+    /**
+     * Grants a user permission to connect to a party voice channel
+     *
+     * @param channelId The Discord channel ID
+     * @param discordUserId The Discord user ID to grant permission to
+     * @return true if permissions were successfully updated, false otherwise
+     */
+    public boolean addUserToVoiceChannel(String channelId, String discordUserId) {
+        try {
+            if (channelId == null || discordUserId == null || channelId.isEmpty() || discordUserId.isEmpty()) {
+                logger.warn("Cannot add user to voice channel: Invalid channel ID or user ID");
+                return false;
+            }
+            
+            Guild guild = jda.getGuildById(discordServerId);
+            if (guild == null) {
+                logger.error("Failed to find Discord server with ID: {}", discordServerId);
+                return false;
+            }
+            
+            VoiceChannel channel = guild.getVoiceChannelById(channelId);
+            if (channel == null) {
+                logger.warn("Voice channel with ID {} not found", channelId);
+                return false;
+            }
+            
+            // Retrieve member by ID (this is a REST request that may fail if user is not in the guild)
+            try {
+                Member member = guild.retrieveMemberById(discordUserId).complete();
+                if (member != null) {
+                    // Grant VIEW_CHANNEL and VOICE_CONNECT permissions to the user
+                    channel.getManager()
+                          .putPermissionOverride(member, 
+                                               EnumSet.of(Permission.VIEW_CHANNEL, Permission.VOICE_CONNECT), // Allow viewing and connecting
+                                               null) // No explicit denies
+                          .complete();
+                    logger.info("Granted voice channel access to user {} for channel {}", discordUserId, channelId);
+                    return true;
+                } else {
+                    logger.warn("Could not find Discord member with ID: {} to grant channel permissions", discordUserId);
+                    return false;
+                }
+            } catch (Exception e) {
+                logger.error("Error retrieving Discord member with ID {}: {}", discordUserId, e.getMessage());
+                return false;
+            }
+        } catch (Exception e) {
+            logger.error("Error adding user {} to voice channel {}: {}", discordUserId, channelId, e.getMessage());
+            return false;
+        }
+    }
 } 

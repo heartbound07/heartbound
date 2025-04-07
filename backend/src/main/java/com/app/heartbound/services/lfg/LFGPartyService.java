@@ -570,6 +570,12 @@ public class LFGPartyService {
             party.setStatus("closed");
         }
         
+        // If the party has a Discord channel, give the user permission to join it
+        if (party.getDiscordChannelId() != null && !party.getDiscordChannelId().isEmpty()) {
+            discordChannelService.addUserToVoiceChannel(party.getDiscordChannelId(), userId);
+            logger.info("Added user {} to Discord channel {}", userId, party.getDiscordChannelId());
+        }
+        
         lfgPartyRepository.save(party);
         return "Join request accepted. User has joined the party.";
     }
