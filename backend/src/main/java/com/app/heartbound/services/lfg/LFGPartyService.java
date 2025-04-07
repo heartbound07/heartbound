@@ -393,6 +393,12 @@ public class LFGPartyService {
         // Remove user from participants
         party.getParticipants().remove(userIdToKick);
         
+        // If the party has a Discord channel, revoke the user's permission to join it
+        if (party.getDiscordChannelId() != null && !party.getDiscordChannelId().isEmpty()) {
+            discordChannelService.removeUserFromVoiceChannel(party.getDiscordChannelId(), userIdToKick);
+            logger.info("Removed user {} from Discord channel {}", userIdToKick, party.getDiscordChannelId());
+        }
+        
         // If party was full and is now not full, update status to open
         if (party.getStatus().equals("closed") && party.getParticipants().size() < party.getMaxPlayers()) {
             party.setStatus("open");

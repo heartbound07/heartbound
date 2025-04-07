@@ -18,6 +18,7 @@ import java.util.EnumSet;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.GuildVoiceState;
 
 @Service
 public class DiscordChannelService {
@@ -246,6 +247,7 @@ public class DiscordChannelService {
 
     /**
      * Removes a user's permission to connect to a party voice channel
+     * and disconnects them if currently in the channel
      *
      * @param channelId The Discord channel ID
      * @param discordUserId The Discord user ID to remove permission from
@@ -274,12 +276,27 @@ public class DiscordChannelService {
             try {
                 Member member = guild.retrieveMemberById(discordUserId).complete();
                 if (member != null) {
-                    // Remove specific permission overrides for this user by clearing them
-                    // This will revert the user to the @everyone role permissions (which denies VOICE_CONNECT)
+                    // Check if user is currently in this voice channel
+                    GuildVoiceState voiceState = member.getVoiceState();
+                    if (voiceState != null && voiceState.getChannel() != null && 
+                        voiceState.getChannel().getId().equals(channelId)) {
+                        // Kick the user from voice channel
+                        guild.kickVoiceMember(member).queue(
+                            success -> logger.info("Kicked user {} from voice channel {}", discordUserId, channelId),
+                            error -> logger.error("Failed to kick user {} from voice channel {}: {}", 
+                                                discordUserId, channelId, error.getMessage())
+                        );
+                    }
+                    
+                    // Remove permission overrides
                     channel.getManager()
                           .removePermissionOverride(member)
-                          .complete();
-                    logger.info("Removed voice channel access from user {} for channel {}", discordUserId, channelId);
+                          .queue(
+                            success -> logger.info("Removed voice channel access from user {} for channel {}", discordUserId, channelId),
+                            error -> logger.error("Failed to remove permissions for user {} from channel {}: {}", 
+                                                discordUserId, channelId, error.getMessage())
+                          );
+                    
                     return true;
                 } else {
                     logger.warn("Could not find Discord member with ID: {} to remove channel permissions", discordUserId);
