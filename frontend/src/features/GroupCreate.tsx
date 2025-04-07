@@ -308,7 +308,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
       >
         {/* Show loading spinner overlay when creating */}
         {isCreating && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 rounded-xl">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-[1200] rounded-xl">
             <LoadingSpinner 
               title="Creating party" 
               description="Please wait while we set up your party..."
