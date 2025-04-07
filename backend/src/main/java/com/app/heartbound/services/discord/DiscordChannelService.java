@@ -3,8 +3,11 @@ package com.app.heartbound.services.discord;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.Invite;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,15 +18,22 @@ import java.util.UUID;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.EnumSet;
+import java.awt.Color;
+import java.time.Instant;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
+import com.app.heartbound.entities.LFGParty;
+import com.app.heartbound.enums.Region;
 
 @Service
 public class DiscordChannelService {
     
     private static final Logger logger = LoggerFactory.getLogger(DiscordChannelService.class);
+    
+    // Channel IDs for party announcements
+    private static final String CASUAL_NA_CHANNEL_ID = "1222643176561705050";
+    private static final String COMPETITIVE_NA_CHANNEL_ID = "1304321374248108083";
     
     @Autowired
     private JDA jda;
@@ -404,5 +414,137 @@ public class DiscordChannelService {
             logger.error("Error sending user accepted message to channel {}: {}", channelId, e.getMessage(), e);
             return false;
         }
+    }
+
+    /**
+     * Sends a party creation announcement to the appropriate Discord channel
+     * based on match type and region
+     *
+     * @param party The LFG party that was created
+     * @return true if the announcement was sent successfully, false otherwise
+     */
+    public boolean sendPartyCreationAnnouncement(LFGParty party) {
+        try {
+            if (party == null) {
+                logger.warn("Cannot send party creation announcement: Party is null");
+                return false;
+            }
+            
+            // Determine the appropriate channel ID based on match type and region
+            String channelId = determineAnnouncementChannelId(party.getMatchType(), party.getRequirements().getRegion());
+            
+            if (channelId == null) {
+                logger.info("No appropriate channel found for party announcement. Match type: {}, Region: {}", 
+                            party.getMatchType(), party.getRequirements().getRegion());
+                return false;
+            }
+            
+            Guild guild = jda.getGuildById(discordServerId);
+            if (guild == null) {
+                logger.error("Failed to find Discord server with ID: {}", discordServerId);
+                return false;
+            }
+            
+            TextChannel textChannel = guild.getTextChannelById(channelId);
+            if (textChannel == null) {
+                logger.warn("Text channel with ID {} not found", channelId);
+                return false;
+            }
+            
+            // Create and send the embed
+            MessageEmbed embed = createPartyAnnouncementEmbed(party);
+            textChannel.sendMessageEmbeds(embed).queue(
+                success -> logger.info("Sent party creation announcement for party {} to channel {}", party.getId(), channelId),
+                error -> logger.error("Failed to send party creation announcement: {}", error.getMessage())
+            );
+            
+            return true;
+        } catch (Exception e) {
+            logger.error("Error sending party creation announcement: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /**
+     * Determines the appropriate channel ID for a party announcement based on match type and region
+     *
+     * @param matchType The match type of the party (casual, competitive, etc.)
+     * @param region The region of the party
+     * @return The Discord channel ID, or null if no appropriate channel is found
+     */
+    private String determineAnnouncementChannelId(String matchType, Region region) {
+        if (matchType == null || region == null) {
+            return null;
+        }
+        
+        // Normalize match type
+        String normalizedMatchType = matchType.toLowerCase().trim();
+        
+        // Check if region is in NA
+        boolean isNARegion = region == Region.NA_EAST || 
+                              region == Region.NA_WEST || 
+                              region == Region.NA_CENTRAL;
+        
+        if (!isNARegion) {
+            // No channel configured for non-NA regions
+            logger.debug("No channel configured for region: {}", region);
+            return null;
+        }
+        
+        // Select channel based on match type
+        if (normalizedMatchType.equals("casual")) {
+            return CASUAL_NA_CHANNEL_ID;
+        } else if (normalizedMatchType.equals("competitive")) {
+            return COMPETITIVE_NA_CHANNEL_ID;
+        }
+        
+        logger.debug("No channel configured for match type: {}", matchType);
+        return null;
+    }
+    
+    /**
+     * Creates a rich embed message for party announcement
+     *
+     * @param party The LFG party to create an announcement for
+     * @return A MessageEmbed object representing the announcement
+     */
+    private MessageEmbed createPartyAnnouncementEmbed(LFGParty party) {
+        EmbedBuilder embed = new EmbedBuilder();
+        
+        // Set embed color based on match type
+        if ("competitive".equalsIgnoreCase(party.getMatchType())) {
+            embed.setColor(new Color(255, 70, 85)); // Red color for competitive (matches FF4655 brand color)
+        } else {
+            embed.setColor(new Color(66, 133, 244)); // Blue for casual
+        }
+        
+        // Set title
+        embed.setTitle("New Party Created: " + party.getTitle());
+        
+        // Set description
+        embed.setDescription(party.getDescription());
+        
+        // Add party details as fields
+        embed.addField("Game", party.getGame(), true);
+        embed.addField("Match Type", party.getMatchType(), true);
+        embed.addField("Game Mode", party.getGameMode(), true);
+        embed.addField("Team Size", party.getTeamSize(), true);
+        embed.addField("Voice Preference", party.getVoicePreference(), true);
+        embed.addField("Required Rank", party.getRequirements().getRank().toString(), true);
+        embed.addField("Region", party.getRequirements().getRegion().toString(), true);
+        embed.addField("Max Players", String.valueOf(party.getMaxPlayers()), true);
+        
+        // Add Discord invite URL if available
+        if (party.getDiscordInviteUrl() != null && !party.getDiscordInviteUrl().isEmpty()) {
+            embed.addField("Discord Voice", "[Join Voice Channel](" + party.getDiscordInviteUrl() + ")", false);
+        }
+        
+        // Set footer with party ID for reference
+        embed.setFooter("Party ID: " + party.getId(), null);
+        
+        // Set timestamp
+        embed.setTimestamp(Instant.now());
+        
+        return embed.build();
     }
 } 

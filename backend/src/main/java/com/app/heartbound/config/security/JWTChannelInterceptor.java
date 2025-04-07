@@ -1,10 +1,8 @@
 package com.app.heartbound.config.security;
 
-import com.app.heartbound.config.security.JWTTokenProvider;
 import com.app.heartbound.enums.Role;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -27,7 +25,6 @@ public class JWTChannelInterceptor implements ChannelInterceptor {
 
     private final JWTTokenProvider jwtTokenProvider;
 
-    @Autowired
     public JWTChannelInterceptor(JWTTokenProvider jwtTokenProvider) {
         this.jwtTokenProvider = jwtTokenProvider;
         logger.debug("JWTChannelInterceptor initialized");

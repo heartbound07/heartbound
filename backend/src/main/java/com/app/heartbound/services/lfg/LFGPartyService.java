@@ -149,6 +149,17 @@ public class LFGPartyService {
                         savedParty.getId(), e.getMessage(), e);
         }
         
+        // After all Discord setup is complete, send party announcement
+        try {
+            // Send party creation announcement to appropriate Discord channel
+            discordChannelService.sendPartyCreationAnnouncement(savedParty);
+            logger.info("Sent party creation announcement for party ID: {}", savedParty.getId());
+        } catch (Exception e) {
+            // Log error but continue with party creation flow
+            logger.error("Failed to send party creation announcement for party ID {}: {}", 
+                        savedParty.getId(), e.getMessage(), e);
+        }
+        
         return mapToResponseDTO(savedParty);
     }
 
