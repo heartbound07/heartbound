@@ -35,17 +35,6 @@ public class DiscordChannelService {
      */
     public String createPartyVoiceChannel(UUID partyId, String partyTitle, String partyGame) {
         try {
-            // Sanitize the title to create a valid channel name
-            String channelName = sanitizeChannelName(partyGame + "-" + partyTitle);
-            
-            // Limit channel name length to Discord's limit (less than 100 chars)
-            if (channelName.length() > 90) {
-                channelName = channelName.substring(0, 90);
-            }
-            
-            // Add party ID suffix to ensure uniqueness
-            channelName = channelName + "-" + partyId.toString().substring(0, 8);
-            
             // Get the guild (server) by ID
             Guild guild = jda.getGuildById(discordServerId);
             if (guild == null) {
@@ -57,14 +46,20 @@ public class DiscordChannelService {
             net.dv8tion.jda.api.entities.channel.concrete.Category category = guild.getCategoryById(discordCategoryId);
             if (category == null) {
                 logger.error("Failed to find Discord category with ID: {}", discordCategoryId);
-                // Optionally, create the channel without a parent category or return null
-                // For now, let's return null as the category is expected
                 return null;
+            }
+            
+            // Just use the raw title, Discord will handle the formatting
+            String channelName = partyTitle;
+            
+            // Ensure channel name length constraints (Discord: 1-100 chars)
+            if (channelName.length() > 100) {
+                channelName = channelName.substring(0, 100);
             }
             
             // Create the voice channel in the specified category
             VoiceChannel channel = guild.createVoiceChannel(channelName)
-                    .setParent(category) // Use the fetched category object
+                    .setParent(category)
                     .complete(); // .complete() makes this a blocking call
             
             logger.info("Created Discord voice channel with ID: {} for party: {}", 
@@ -107,5 +102,45 @@ public class DiscordChannelService {
          }
 
         return sanitized;
+    }
+
+    /**
+     * Deletes a Discord voice channel associated with a party
+     * 
+     * @param channelId The ID of the Discord channel to delete
+     * @return true if deletion was successful, false otherwise
+     */
+    public boolean deletePartyVoiceChannel(String channelId) {
+        if (channelId == null || channelId.isEmpty()) {
+            logger.warn("Cannot delete Discord channel: channelId is null or empty");
+            return false;
+        }
+        
+        try {
+            // Get the guild (server) by ID
+            Guild guild = jda.getGuildById(discordServerId);
+            if (guild == null) {
+                logger.error("Failed to find Discord server with ID: {}", discordServerId);
+                return false;
+            }
+            
+            // Get the voice channel by ID
+            VoiceChannel channel = guild.getVoiceChannelById(channelId);
+            if (channel == null) {
+                logger.warn("Voice channel with ID {} not found, may have been already deleted", channelId);
+                return true; // Consider this a success since the channel doesn't exist
+            }
+            
+            // Delete the channel
+            channel.delete().queue(
+                success -> logger.info("Successfully deleted Discord voice channel with ID: {}", channelId),
+                error -> logger.error("Failed to delete Discord voice channel: {}", error.getMessage())
+            );
+            
+            return true;
+        } catch (Exception e) {
+            logger.error("Error deleting Discord voice channel: {}", e.getMessage(), e);
+            return false;
+        }
     }
 } 

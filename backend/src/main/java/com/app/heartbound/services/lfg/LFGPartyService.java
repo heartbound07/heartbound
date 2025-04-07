@@ -227,7 +227,7 @@ public class LFGPartyService {
     }
 
     /**
-     * Deletes a party. Only the party leader or users with ADMIN/MODERATOR roles can do this.
+     * Deletes a party. Only the party leader or administrators can delete a party.
      *
      * @param id the UUID of the party to delete
      */
@@ -236,12 +236,17 @@ public class LFGPartyService {
         LFGParty party = lfgPartyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
         
-        // Check if current user is the party leader or has admin/moderator role
         boolean isPartyLeader = party.getUserId().equals(currentUserId);
         boolean hasAdminRole = hasRole("ADMIN") || hasRole("MODERATOR");
         
         if (!isPartyLeader && !hasAdminRole) {
             throw new UnauthorizedOperationException("You are not authorized to delete this party");
+        }
+        
+        // Delete the associated Discord channel if it exists
+        if (party.getDiscordChannelId() != null && !party.getDiscordChannelId().isEmpty()) {
+            logger.info("Deleting Discord channel with ID: {} for party: {}", party.getDiscordChannelId(), id);
+            discordChannelService.deletePartyVoiceChannel(party.getDiscordChannelId());
         }
         
         lfgPartyRepository.delete(party);
