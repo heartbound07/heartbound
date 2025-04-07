@@ -46,6 +46,9 @@ public class LFGPartyResponseDTO {
     // Field to store Discord voice channel ID
     private String discordChannelId;
 
+    // Field to store Discord invite URL
+    private String discordInviteUrl;
+
     /**
      * PartyRequirementsDTO
      *

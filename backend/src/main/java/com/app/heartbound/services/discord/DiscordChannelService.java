@@ -3,6 +3,8 @@ package com.app.heartbound.services.discord;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
+import net.dv8tion.jda.api.entities.Invite;
+import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +12,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class DiscordChannelService {
@@ -26,50 +30,87 @@ public class DiscordChannelService {
     private String discordCategoryId;
     
     /**
-     * Creates a voice channel for an LFG party
-     * 
+     * Creates a voice channel for an LFG party and generates an invite link.
+     *
      * @param partyId The ID of the LFG party
-     * @param partyTitle The title of the LFG party
-     * @param partyGame The game associated with the party
-     * @return The ID of the created Discord channel, or null if creation failed
+     * @param partyTitle The title of the LFG party (used for channel name)
+     * @param partyDescription The description of the LFG party (currently unused)
+     * @param partyGame The game associated with the party (currently unused)
+     * @return A Map containing "channelId" and "inviteUrl" (inviteUrl may be null if creation failed)
      */
-    public String createPartyVoiceChannel(UUID partyId, String partyTitle, String partyGame) {
+    public Map<String, String> createPartyVoiceChannel(UUID partyId, String partyTitle, String partyDescription, String partyGame) {
+        Map<String, String> result = new HashMap<>();
         try {
             // Get the guild (server) by ID
             Guild guild = jda.getGuildById(discordServerId);
             if (guild == null) {
                 logger.error("Failed to find Discord server with ID: {}", discordServerId);
-                return null;
+                result.put("channelId", null);
+                result.put("inviteUrl", null);
+                return result;
             }
             
             // Get the category by ID
             net.dv8tion.jda.api.entities.channel.concrete.Category category = guild.getCategoryById(discordCategoryId);
             if (category == null) {
                 logger.error("Failed to find Discord category with ID: {}", discordCategoryId);
-                return null;
+                result.put("channelId", null);
+                result.put("inviteUrl", null);
+                return result;
             }
             
-            // Just use the raw title, Discord will handle the formatting
+            // Use the raw title for the channel name
             String channelName = partyTitle;
             
             // Ensure channel name length constraints (Discord: 1-100 chars)
             if (channelName.length() > 100) {
                 channelName = channelName.substring(0, 100);
             }
+             if (channelName.isEmpty()) {
+                 // Use a default name if the title is empty after potential truncation
+                 channelName = "lfg-channel-" + partyId.toString().substring(0, 4); 
+             }
+
+            // Sanitize and truncate the description for the channel status (Limit: 128 chars)
+            String channelStatus = partyDescription != null ? partyDescription : ""; // Default to empty if null
+            if (channelStatus.length() > 128) {
+                channelStatus = channelStatus.substring(0, 128);
+            }
             
             // Create the voice channel in the specified category
             VoiceChannel channel = guild.createVoiceChannel(channelName)
                     .setParent(category)
                     .complete(); // .complete() makes this a blocking call
-            
-            logger.info("Created Discord voice channel with ID: {} for party: {}", 
+
+            result.put("channelId", channel.getId()); // Store channel ID immediately
+
+            String inviteUrl = null;
+            try {
+                // Create a permanent, unlimited invite
+                Invite invite = channel.createInvite()
+                        .setMaxAge(0)    // 0 = never expires
+                        .setMaxUses(0)   // 0 = unlimited uses
+                        .complete();     // Blocking call
+                inviteUrl = invite.getUrl();
+                result.put("inviteUrl", inviteUrl); // Store invite URL
+                logger.info("Created Discord invite link {} for channel ID: {}", inviteUrl, channel.getId());
+            } catch (InsufficientPermissionException e) {
+                logger.warn("Bot lacks permission to create invites for channel ID: {}. Invite link will be null.", channel.getId(), e);
+                // inviteUrl remains null, result map will not contain "inviteUrl" or it will be null
+            } catch (Exception e) {
+                logger.error("Failed to create invite link for channel ID {}: {}", channel.getId(), e.getMessage(), e);
+                // inviteUrl remains null
+            }
+
+            logger.info("Created Discord voice channel with ID: {} for party: {}",
                         channel.getId(), partyId);
-            
-            return channel.getId();
+
+            return result; // Return map containing channelId and potentially inviteUrl
         } catch (Exception e) {
-            // Log specific JDA exceptions if possible, e.g., InsufficientPermissionException
             logger.error("Failed to create Discord voice channel for party: {}. Error: {}", partyId, e.getMessage(), e);
-            return null;
+            result.put("channelId", null); // Indicate channel creation failed
+            result.put("inviteUrl", null);
+            return result; // Return map with null values
         }
     }
     

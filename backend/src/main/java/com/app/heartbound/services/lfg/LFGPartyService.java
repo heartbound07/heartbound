@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -110,26 +111,43 @@ public class LFGPartyService {
         try {
             // Only create Discord channel for parties that need it
             if (shouldCreateDiscordChannel(savedParty.getVoicePreference())) {
-                // Create the voice channel using the Discord service
-                String discordChannelId = discordChannelService.createPartyVoiceChannel(
-                        savedParty.getId(), 
+                // Create the voice channel and get info using the Discord service
+                Map<String, String> discordInfo = discordChannelService.createPartyVoiceChannel(
+                        savedParty.getId(),
                         savedParty.getTitle(),
+                        savedParty.getDescription(),
                         savedParty.getGame());
-                
+
+                String discordChannelId = discordInfo.get("channelId");
+                String discordInviteUrl = discordInfo.get("inviteUrl");
+
+                boolean updated = false;
                 // Store the Discord channel ID if creation was successful
                 if (discordChannelId != null) {
                     savedParty.setDiscordChannelId(discordChannelId);
-                    savedParty = lfgPartyRepository.save(savedParty);
-                    logger.info("Associated Discord channel ID {} with party ID {}", 
+                    logger.info("Associated Discord channel ID {} with party ID {}",
                               discordChannelId, savedParty.getId());
+                    updated = true;
                 }
+                // Store the Discord invite URL if creation was successful
+                if (discordInviteUrl != null) {
+                    savedParty.setDiscordInviteUrl(discordInviteUrl);
+                     logger.info("Associated Discord invite URL with party ID {}", savedParty.getId());
+                    updated = true;
+                }
+
+                // Save the party again only if Discord info was added
+                if (updated) {
+                    savedParty = lfgPartyRepository.save(savedParty);
+                }
+
             } else {
-                logger.info("Skipping Discord channel creation for party ID {} with voice preference: {}", 
+                logger.info("Skipping Discord channel creation for party ID {} with voice preference: {}",
                            savedParty.getId(), savedParty.getVoicePreference());
             }
         } catch (Exception e) {
             // Log error but continue with party creation flow
-            logger.error("Failed to create Discord voice channel for party ID {}: {}", 
+            logger.error("Failed during Discord channel/invite creation for party ID {}: {}",
                         savedParty.getId(), e.getMessage(), e);
         }
         
@@ -637,6 +655,7 @@ public class LFGPartyService {
                 .invitedUsers(party.getInvitedUsers())
                 .joinRequests(party.getJoinRequests())
                 .discordChannelId(party.getDiscordChannelId())
+                .discordInviteUrl(party.getDiscordInviteUrl())
                 .build();
     }
 

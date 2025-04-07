@@ -1,16 +1,16 @@
 "use client"
 
 import * as React from "react"
-import { Users, LogOut, GamepadIcon, Trophy, Globe, Mic, Award, Calendar, Trash2, UserPlus, Loader2, X, Link2, Lock, Plus, Check, XIcon } from "lucide-react"
+import { Users, LogOut, GamepadIcon, Trophy, Globe, Mic, Award, Calendar, Trash2, Loader2, Link2, Lock, Plus, Copy } from "lucide-react"
 import { Button } from "@/components/ui/valorant/buttonparty"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate, useParams } from "react-router-dom"
-import { deleteParty, getParty, leaveParty, joinParty, kickUserFromParty, inviteUserToParty, acceptJoinRequest, rejectJoinRequest } from "@/contexts/valorant/partyService"
+import { deleteParty, getParty, leaveParty, joinParty, kickUserFromParty, inviteUserToParty } from "@/contexts/valorant/partyService"
 import { usePartyUpdates } from "@/contexts/PartyUpdates"
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 import { PlayerSlotsContainer } from "@/components/valorant/PlayerSlotsContainer"
-import { formatDisplayText, formatBooleanText } from "@/utils/formatters"
+import { formatDisplayText } from "@/utils/formatters"
 import { CountdownTimer } from "@/components/valorant/CountdownTimer"
 import { UserProfileModal } from "@/components/UserProfileModal"
 import { SkeletonPartyDetails } from '@/components/ui/SkeletonUI'
@@ -20,6 +20,7 @@ import { usePartyJoinRequests } from '@/hooks/usePartyJoinRequests'
 import { JoinRequestSection } from "@/components/valorant/JoinRequestSection"
 import { Toast } from '@/components/Toast'
 import type { ToastProps as OriginalToastProps } from '@/components/Toast'
+import { DiscordIcon } from "@/components/ui/DiscordIcon"
 
 // DetailBadge component for displaying details with label and value
 const DetailBadge = ({ 
@@ -658,6 +659,20 @@ export default function ValorantPartyDetails() {
   // When you need to check if user is waiting for approval:
   const isWaitingForApproval = hasJoinRequested;
 
+  // Add this function inside the component
+  const handleCopyDiscordInvite = () => {
+    if (party?.discordInviteUrl) {
+      navigator.clipboard.writeText(party.discordInviteUrl)
+        .then(() => {
+          showToast("Discord invite link copied to clipboard!", "success");
+        })
+        .catch((err) => {
+          console.error("Failed to copy Discord invite link:", err);
+          showToast("Failed to copy Discord invite link", "error");
+        });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0F1923] text-white pb-8 pt-20">
@@ -806,6 +821,24 @@ export default function ValorantPartyDetails() {
                       </TooltipTrigger>
                       <TooltipContent sideOffset={8} className="bg-[#283A4B] border border-white/10 z-[100]">
                         <p className="text-sm text-white">Copy party link</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  
+                  {/* Discord Invite Button - only shown when invite URL exists */}
+                  {(isUserLeader || isUserParticipant) && party?.discordInviteUrl && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          className="bg-[#283A4B] hover:bg-[#2A3F56] text-white border border-white/10 hover:border-white/30 shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
+                          size="sm"
+                          onClick={handleCopyDiscordInvite}
+                        >
+                          <DiscordIcon className="h-4 w-4 text-[#8B97A4] group-hover:text-white transition-colors" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent sideOffset={8} className="bg-[#283A4B] border border-white/10 z-[100]">
+                        <p className="text-sm text-white">Copy Discord invite</p>
                       </TooltipContent>
                     </Tooltip>
                   )}

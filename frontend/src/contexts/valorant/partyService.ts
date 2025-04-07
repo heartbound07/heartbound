@@ -55,6 +55,10 @@ export interface LFGPartyResponseDTO {
   teamSize: string;
   voicePreference: string;
   ageRestriction: string;
+  invitedUsers?: string[];
+  joinRequests?: string[];
+  discordChannelId?: string;
+  discordInviteUrl?: string;
 }
 
 export interface ListPartiesParams {
