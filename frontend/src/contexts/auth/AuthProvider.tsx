@@ -339,34 +339,113 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   }, [setAuthLoading, setAuthError]);
 
   // New function to exchange the code received on the frontend callback
-  const exchangeDiscordCode = useCallback(async (code: string) => {
-    setAuthLoading(true);
+  const exchangeDiscordCode = useCallback(async (code: string): Promise<void> => {
     try {
-      console.log('Exchanging Discord code for tokens...');
-      // Make POST request to the new backend endpoint
+      setAuthLoading(true);
+      console.log('[Auth] Exchanging Discord code for tokens...');
+      
       const response = await fetch(AUTH_ENDPOINTS.DISCORD_EXCHANGE_CODE, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }), // Send the code in the body
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code }),
       });
 
-      // Use the existing handleAuthResponse logic for processing the token response
-      await handleAuthResponse(response);
-      console.log('Discord code exchange successful, auth state updated.');
-
+      // Extract user data from response first
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Failed to authenticate with Discord');
+      }
+      
+      console.log('[Auth] Discord token exchange successful, processing response data');
+      
+      // Extract user info directly from the response
+      const { accessToken, refreshToken, expiry, user } = responseData;
+      
+      if (!user || !user.id) {
+        throw new Error('Invalid user data received from server');
+      }
+      
+      console.log('[Auth] User data received from server:', user);
+      
+      // Update tokens first
+      updateTokens({
+        accessToken,
+        refreshToken,
+        expiresIn: typeof expiry === 'number' ? expiry : parseInt(expiry, 10),
+        tokenType: responseData.tokenType || 'bearer',
+        scope: responseData.scope || 'identify email'
+      });
+      
+      // Update auth state with user info
+      setAuthState(user);
+      
+      // Now fetch profile directly using the user ID from the response
+      try {
+        console.log('[Auth] Fetching profile for user ID:', user.id);
+        const profileData = await userService.getUserProfile(user.id);
+        console.log('[Auth] Profile data received:', profileData);
+        
+        if (profileData) {
+          // Create profile with required fields and fallbacks
+          const profileStatus: ProfileStatus = {
+            isComplete: true,
+            displayName: profileData.displayName || user.username || '',
+            pronouns: profileData.pronouns || '',
+            about: profileData.about || '',
+            bannerColor: profileData.bannerColor || 'bg-white/10',
+            bannerUrl: profileData.bannerUrl || '',
+            avatar: profileData.avatar || user.avatar || ''
+          };
+          
+          console.log('[Auth] Created profileStatus:', profileStatus);
+          updateAuthProfile(profileStatus);
+          
+          // Also ensure the profile is persisted to localStorage
+          const authStorage = localStorage.getItem(AUTH_STORAGE_KEY);
+          if (authStorage) {
+            try {
+              const authData = JSON.parse(authStorage);
+              authData.profile = profileStatus;
+              localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+              console.log('[Auth] Updated profile in localStorage');
+            } catch (e) {
+              console.error('[Auth] Error updating localStorage:', e);
+            }
+          }
+        }
+      } catch (profileError) {
+        console.error('[Auth] Error fetching user profile after login:', profileError);
+        // Create fallback profile from user data
+        const fallbackProfile: ProfileStatus = {
+          isComplete: false,
+          displayName: user.username || '',
+          pronouns: '',
+          about: '',
+          bannerColor: 'bg-white/10',
+          bannerUrl: '',
+          avatar: user.avatar || ''
+        };
+        console.log('[Auth] Using fallback profile:', fallbackProfile);
+        updateAuthProfile(fallbackProfile);
+      }
+      
+      // Trigger websocket reconnect with new token
+      webSocketService.reconnectWithFreshToken();
+      
     } catch (error) {
-      console.error('Discord code exchange failed:', error);
-      // Clear any potentially partially set state
+      console.error('[Auth] Error exchanging Discord code:', error);
       clearAuthState();
       updateTokens(null);
       tokenStorage.setTokens(null);
       localStorage.removeItem(AUTH_STORAGE_KEY);
-      setAuthError(error instanceof Error ? error.message : 'Discord code exchange failed');
-      throw error; // Re-throw error to be caught by the callback component
+      setAuthError(error instanceof Error ? error.message : 'Failed to authenticate with Discord');
     } finally {
       setAuthLoading(false);
     }
-  }, [handleAuthResponse, setAuthLoading, setAuthError, clearAuthState, updateTokens]);
+  }, [updateTokens, setAuthState, updateAuthProfile, setAuthLoading, setAuthError, clearAuthState]);
 
   const updateProfile = useCallback((profile: ProfileStatus) => {
     updateAuthProfile(profile);
