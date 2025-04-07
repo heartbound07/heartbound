@@ -19,14 +19,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.EnumSet;
 import java.awt.Color;
-import java.time.Instant;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
 import com.app.heartbound.entities.LFGParty;
 import com.app.heartbound.enums.Region;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.ItemComponent;
 
 @Service
 public class DiscordChannelService {
@@ -550,19 +550,99 @@ public class DiscordChannelService {
         }
         embed.addField("Players", participantsText.toString(), false);
         
-        // Add voice preference info only if it's Discord
+        // Add voice preference info only if it's Discord - without the "Voice Preference" title
         if ("discord".equalsIgnoreCase(party.getVoicePreference()) && 
             party.getDiscordInviteUrl() != null && 
             !party.getDiscordInviteUrl().isEmpty()) {
-            embed.addField("Voice Preference", 
+            embed.addField("\u200B", 
                     "[Join Channel](" + party.getDiscordInviteUrl() + ")", 
                     false);
         }
         
-        // Add footer with party ID and timestamp
-        embed.setFooter("Party ID: " + party.getId(), null);
-        embed.setTimestamp(Instant.now());
-        
         return embed.build();
+    }
+
+    /**
+     * Updates an existing party announcement embed to reflect current party state
+     *
+     * @param party The LFG party with updated information
+     * @return true if the announcement was updated successfully, false otherwise
+     */
+    public boolean updatePartyAnnouncementEmbed(LFGParty party) {
+        try {
+            if (party == null) {
+                logger.warn("Cannot update party announcement: Party is null");
+                return false;
+            }
+            
+            // Determine the appropriate channel ID based on match type and region
+            String channelId = determineAnnouncementChannelId(party.getMatchType(), party.getRequirements().getRegion());
+            
+            if (channelId == null) {
+                logger.info("No appropriate channel found for party announcement update. Match type: {}, Region: {}", 
+                            party.getMatchType(), party.getRequirements().getRegion());
+                return false;
+            }
+            
+            Guild guild = jda.getGuildById(discordServerId);
+            if (guild == null) {
+                logger.error("Failed to find Discord server with ID: {}", discordServerId);
+                return false;
+            }
+            
+            TextChannel textChannel = guild.getTextChannelById(channelId);
+            if (textChannel == null) {
+                logger.warn("Text channel with ID {} not found", channelId);
+                return false;
+            }
+            
+            // Get the party's UUID string which we can use to find the right message
+            String partyIdStr = party.getId().toString();
+            
+            // Retrieve recent messages and find the one with our party
+            textChannel.getHistory().retrievePast(100).queue(messages -> {
+                for (net.dv8tion.jda.api.entities.Message message : messages) {
+                    // We need to find the message that has our party announcement
+                    // We can check if the message has our party URL in a button
+                    String partyUrl = frontendBaseUrl + "/dashboard/valorant/" + partyIdStr;
+                    
+                    boolean isTargetMessage = false;
+                    // Check if this message is our target by examining components/buttons
+                    if (!message.getComponents().isEmpty()) {
+                        for (ActionRow row : message.getActionRows()) {
+                            for (ItemComponent component : row.getComponents()) {
+                                if (component instanceof Button button) {
+                                    if (button.getUrl() != null && button.getUrl().equals(partyUrl)) {
+                                        isTargetMessage = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (isTargetMessage) break;
+                        }
+                    }
+                    
+                    if (isTargetMessage) {
+                        // We found our message, update the embed
+                        MessageEmbed newEmbed = createPartyAnnouncementEmbed(party);
+                        String partyUrlLink = frontendBaseUrl + "/dashboard/valorant/" + party.getId();
+                        Button joinButton = Button.link(partyUrlLink, "Join Party");
+                        
+                        message.editMessageEmbeds(newEmbed)
+                               .setActionRow(joinButton)
+                               .queue(
+                                    success -> logger.info("Updated party announcement for party {}", party.getId()),
+                                    error -> logger.error("Failed to update party announcement: {}", error.getMessage())
+                               );
+                        break;
+                    }
+                }
+            });
+            
+            return true;
+        } catch (Exception e) {
+            logger.error("Error updating party announcement: {}", e.getMessage(), e);
+            return false;
+        }
     }
 } 

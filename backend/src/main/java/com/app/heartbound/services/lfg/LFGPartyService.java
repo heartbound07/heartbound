@@ -342,23 +342,23 @@ public class LFGPartyService {
      * @return success message if leave succeeds
      */
     public String leaveParty(UUID id) {
-        String userId = getCurrentUserId();
+        String currentUserId = getCurrentUserId();
         LFGParty party = lfgPartyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
 
         // Prevent party leaders from "leaving" – they should delete the party instead.
-        if (party.getUserId().equals(userId)) {
+        if (party.getUserId().equals(currentUserId)) {
             throw new UnauthorizedOperationException("Party owner cannot leave the party. Delete the party instead.");
         }
 
         // Remove the user from participants.
-        if (party.getParticipants() != null && party.getParticipants().contains(userId)) {
-            party.getParticipants().remove(userId);
+        if (party.getParticipants() != null && party.getParticipants().contains(currentUserId)) {
+            party.getParticipants().remove(currentUserId);
             
             // If the party has a Discord channel, revoke the user's permission to join it
             if (party.getDiscordChannelId() != null && !party.getDiscordChannelId().isEmpty()) {
-                discordChannelService.removeUserFromVoiceChannel(party.getDiscordChannelId(), userId);
-                logger.info("Removed user {} from Discord channel {}", userId, party.getDiscordChannelId());
+                discordChannelService.removeUserFromVoiceChannel(party.getDiscordChannelId(), currentUserId);
+                logger.info("Removed user {} from Discord channel {}", currentUserId, party.getDiscordChannelId());
             }
             
             // Reset status to "open" if the party now has available slots.
@@ -366,7 +366,11 @@ public class LFGPartyService {
                 party.setStatus("open");
             }
             lfgPartyRepository.save(party);
-            return "Left party successfully.";
+            
+            // Update the Discord embed to reflect the updated participant list
+            discordChannelService.updatePartyAnnouncementEmbed(party);
+            
+            return "You have left the party.";
         }
         return "User was not a participant of this party.";
     }
@@ -416,6 +420,10 @@ public class LFGPartyService {
         }
         
         lfgPartyRepository.save(party);
+        
+        // Update the Discord embed to reflect the updated participant list
+        discordChannelService.updatePartyAnnouncementEmbed(party);
+        
         return "User has been kicked from the party.";
     }
 
@@ -602,7 +610,7 @@ public class LFGPartyService {
             party.setStatus("closed");
         }
         
-        // If the party has a Discord channel, give the user permission to join it
+        // Create and add user to Discord channel if necessary
         if (party.getDiscordChannelId() != null && !party.getDiscordChannelId().isEmpty()) {
             discordChannelService.addUserToVoiceChannel(party.getDiscordChannelId(), userId);
             logger.info("Added user {} to Discord channel {}", userId, party.getDiscordChannelId());
@@ -615,7 +623,12 @@ public class LFGPartyService {
             );
         }
         
+        // Save party first
         lfgPartyRepository.save(party);
+        
+        // Update the Discord embed to reflect the new participant list
+        discordChannelService.updatePartyAnnouncementEmbed(party);
+        
         return "Join request accepted. User has joined the party.";
     }
 
