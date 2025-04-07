@@ -525,7 +525,7 @@ public class DiscordChannelService {
         
         // Set embed color based on match type
         if ("competitive".equalsIgnoreCase(party.getMatchType())) {
-            embed.setColor(new Color(255, 70, 85)); // Red color for competitive (matches FF4655 brand color)
+            embed.setColor(new Color(255, 70, 85)); // Red color for competitive
         } else {
             embed.setColor(new Color(66, 133, 244)); // Blue for casual
         }
@@ -534,13 +534,26 @@ public class DiscordChannelService {
         int currentPlayers = party.getParticipants().size();
         int maxPlayers = party.getMaxPlayers();
         
-        // Set title with the updated format: "(Player Count/Max) (Party Title Name)"
-        embed.setTitle(String.format("(%d/%d) %s", 
+        // Check if party is closed
+        boolean isClosed = "closed".equalsIgnoreCase(party.getStatus());
+        
+        // Log status for debugging
+        logger.debug("Creating embed for party {} with status '{}', isClosed={}", 
+                    party.getId(), party.getStatus(), isClosed);
+        
+        // Set title with the updated format and make it bold for emphasis
+        embed.setTitle(String.format("**(%d/%d) %s**", 
                 currentPlayers, 
                 maxPlayers,
                 party.getTitle()));
 
-        // No description since we moved the party title to the title
+        // Add (CLOSED) as description if party is full/closed
+        if (isClosed) {
+            embed.setDescription("**(CLOSED)**");
+        } else {
+            // Explicitly set an empty description for open parties
+            embed.setDescription("");
+        }
         
         // List participants (including party leader)
         StringBuilder participantsText = new StringBuilder();
@@ -549,14 +562,18 @@ public class DiscordChannelService {
         }
         embed.addField("Players", participantsText.toString(), false);
         
-        // Add voice preference info only if it's Discord - without a title
-        if ("discord".equalsIgnoreCase(party.getVoicePreference()) && 
+        // Add voice preference info only if it's Discord, the party is not closed, and there's an invite URL
+        if (!isClosed && 
+            "discord".equalsIgnoreCase(party.getVoicePreference()) && 
             party.getDiscordInviteUrl() != null && 
             !party.getDiscordInviteUrl().isEmpty()) {
             embed.addField("\u200B", 
                     "[Join Channel](" + party.getDiscordInviteUrl() + ")", 
                     false);
         }
+        
+        // Store party ID in the author URL for message identification
+        embed.setAuthor("\u200B", "https://heartbound.app/party/" + party.getId());
         
         return embed.build();
     }
@@ -598,8 +615,16 @@ public class DiscordChannelService {
             // Get the party's UUID string which we can use to find the right message
             String partyIdStr = party.getId().toString();
             
+            // Log party status when updating announcement
+            logger.debug("Updating announcement for party {} with status: {}, participants: {}/{}", 
+                      partyIdStr, party.getStatus(), party.getParticipants().size(), party.getMaxPlayers());
+            
             // Retrieve recent messages and find the one with our party
             textChannel.getHistory().retrievePast(100).queue(messages -> {
+                logger.debug("Searching through {} messages to find party announcement for {}", 
+                            messages.size(), partyIdStr);
+                boolean messageFound = false;
+                
                 for (net.dv8tion.jda.api.entities.Message message : messages) {
                     // We need to find the message that has our party announcement
                     // We can check if the message has our party URL in a button
@@ -621,26 +646,89 @@ public class DiscordChannelService {
                         }
                     }
                     
+                    // Also check embeds for this party ID (as an alternative way to identify)
+                    if (!isTargetMessage && !message.getEmbeds().isEmpty()) {
+                        for (MessageEmbed embed : message.getEmbeds()) {
+                            // Check author URL for the party ID
+                            if (embed.getAuthor() != null && 
+                                embed.getAuthor().getUrl() != null && 
+                                embed.getAuthor().getUrl().contains(partyIdStr)) {
+                                isTargetMessage = true;
+                                break;
+                            }
+                        }
+                    }
+                    
                     if (isTargetMessage) {
+                        messageFound = true;
+                        logger.debug("Found message for party {}. Current status: {}, Current buttons: {}", 
+                                   partyIdStr, party.getStatus(), !message.getComponents().isEmpty());
+                        
                         // We found our message, update the embed
                         MessageEmbed newEmbed = createPartyAnnouncementEmbed(party);
                         String partyUrlLink = frontendBaseUrl + "/dashboard/valorant/" + party.getId();
-                        Button joinButton = Button.link(partyUrlLink, "Join Party");
                         
-                        message.editMessageEmbeds(newEmbed)
-                               .setActionRow(joinButton)
-                               .queue(
-                                    success -> logger.info("Updated party announcement for party {}", party.getId()),
-                                    error -> logger.error("Failed to update party announcement: {}", error.getMessage())
-                               );
+                        // Log the new embed's description for debugging
+                        logger.debug("New embed description for party {}: '{}'", 
+                                   partyIdStr, party.getStatus().equals("closed") ? "(CLOSED)" : "");
+                        
+                        // Check if the party is closed
+                        boolean isClosed = "closed".equalsIgnoreCase(party.getStatus());
+                        
+                        // Only include the join button if the party is not closed
+                        if (!isClosed) {
+                            Button joinButton = Button.link(partyUrlLink, "Join Party");
+                            message.editMessageEmbeds(newEmbed)
+                                   .setActionRow(joinButton)
+                                   .queue(
+                                        success -> logger.info("Successfully updated party announcement (open) for party {}", party.getId()),
+                                        error -> logger.error("Failed to update party announcement: {}", error.getMessage())
+                                   );
+                        } else {
+                            // For closed parties, remove all action rows (buttons)
+                            message.editMessageEmbeds(newEmbed)
+                                   .setComponents() // Empty component list removes all buttons
+                                   .queue(
+                                        success -> logger.info("Successfully updated party announcement (closed) for party {}", party.getId()),
+                                        error -> logger.error("Failed to update party announcement: {}", error.getMessage())
+                                   );
+                        }
                         break;
                     }
+                }
+                
+                if (!messageFound) {
+                    logger.warn("No announcement message found for party: {}", partyIdStr);
                 }
             });
             
             return true;
         } catch (Exception e) {
             logger.error("Error updating party announcement: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * Updates a party announcement embed to show it as deleted
+     *
+     * @param party The LFG party that was deleted
+     * @return true if the announcement was updated successfully, false otherwise
+     */
+    public boolean markPartyAnnouncementAsDeleted(LFGParty party) {
+        try {
+            if (party == null) {
+                logger.warn("Cannot update party announcement as deleted: Party is null");
+                return false;
+            }
+            
+            // Force the party status to closed
+            party.setStatus("closed");
+            
+            // Update the embed - the updatePartyAnnouncementEmbed method will handle hiding the button
+            return updatePartyAnnouncementEmbed(party);
+        } catch (Exception e) {
+            logger.error("Error marking party announcement as deleted: {}", e.getMessage(), e);
             return false;
         }
     }

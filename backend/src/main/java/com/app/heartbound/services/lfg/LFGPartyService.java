@@ -276,6 +276,16 @@ public class LFGPartyService {
             throw new UnauthorizedOperationException("You are not authorized to delete this party");
         }
         
+        // Mark the party announcement as deleted in Discord before deleting the party
+        try {
+            discordChannelService.markPartyAnnouncementAsDeleted(party);
+            logger.info("Marked Discord announcement as deleted for party: {}", id);
+        } catch (Exception e) {
+            // Log error but continue with deletion flow
+            logger.error("Failed to mark Discord announcement as deleted for party ID {}: {}", 
+                        id, e.getMessage(), e);
+        }
+        
         // Delete the associated Discord channel if it exists
         if (party.getDiscordChannelId() != null && !party.getDiscordChannelId().isEmpty()) {
             logger.info("Deleting Discord channel with ID: {} for party: {}", party.getDiscordChannelId(), id);
@@ -373,14 +383,29 @@ public class LFGPartyService {
                 logger.info("Removed user {} from Discord channel {}", currentUserId, party.getDiscordChannelId());
             }
             
+            // Check and update party status
+            boolean wasClosedBefore = "closed".equalsIgnoreCase(party.getStatus());
+            
             // Reset status to "open" if the party now has available slots.
             if (party.getParticipants().size() < party.getMaxPlayers()) {
                 party.setStatus("open");
+                if (wasClosedBefore) {
+                    logger.info("Party {} changed from closed to open after user {} left", id, currentUserId);
+                }
             }
-            lfgPartyRepository.save(party);
+            
+            // Save the party with updated status and participant list
+            LFGParty savedParty = lfgPartyRepository.save(party);
             
             // Update the Discord embed to reflect the updated participant list
-            discordChannelService.updatePartyAnnouncementEmbed(party);
+            try {
+                discordChannelService.updatePartyAnnouncementEmbed(savedParty);
+                logger.info("Updated Discord embed for party {} after user {} left", id, currentUserId);
+            } catch (Exception e) {
+                // Log error but continue with leave flow
+                logger.error("Failed to update Discord announcement for party {} after user left: {}", 
+                          id, e.getMessage(), e);
+            }
             
             return "You have left the party.";
         }
@@ -426,15 +451,29 @@ public class LFGPartyService {
             logger.info("Removed user {} from Discord channel {}", userIdToKick, party.getDiscordChannelId());
         }
         
+        // Check and update party status
+        boolean wasClosedBefore = "closed".equalsIgnoreCase(party.getStatus());
+        
         // If party was full and is now not full, update status to open
-        if (party.getStatus().equals("closed") && party.getParticipants().size() < party.getMaxPlayers()) {
+        if (party.getParticipants().size() < party.getMaxPlayers()) {
             party.setStatus("open");
+            if (wasClosedBefore) {
+                logger.info("Party {} changed from closed to open after user {} was kicked", id, userIdToKick);
+            }
         }
         
-        lfgPartyRepository.save(party);
+        // Save the party with updated status and participant list
+        LFGParty savedParty = lfgPartyRepository.save(party);
         
         // Update the Discord embed to reflect the updated participant list
-        discordChannelService.updatePartyAnnouncementEmbed(party);
+        try {
+            discordChannelService.updatePartyAnnouncementEmbed(savedParty);
+            logger.info("Updated Discord embed for party {} after user {} was kicked", id, userIdToKick);
+        } catch (Exception e) {
+            // Log error but continue with kick flow
+            logger.error("Failed to update Discord announcement for party {} after user kick: {}", 
+                      id, e.getMessage(), e);
+        }
         
         return "User has been kicked from the party.";
     }
