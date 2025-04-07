@@ -9,6 +9,7 @@ import { createParty, type Rank, type Region } from '@/contexts/valorant/partySe
 import toast from 'react-hot-toast'
 import { Switch } from "@/components/ui/valorant/switch"
 import "@/assets/GroupCreate.css"
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner"
 
 interface PostGroupModalProps {
   onClose: () => void;
@@ -238,7 +239,10 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
     }
   ]
 
-  // Submission handler for posting the group
+  // Add a new state variable to track loading state
+  const [isCreating, setIsCreating] = useState(false)
+
+  // Update the handlePostGroup function to manage loading state
   const handlePostGroup = async () => {
     // Run validations
     const isTitleValid = validateTitle(title);
@@ -249,6 +253,9 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
       toast.error("Please fix the validation errors before submitting");
       return;
     }
+
+    // Set loading state to true before sending request
+    setIsCreating(true);
 
     const payload = {
       game: "Valorant",
@@ -280,6 +287,8 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
       console.error("Error posting group:", error)
       // Display error message using toast
       toast.error(error.message || "An unexpected error occurred");
+      // Set loading state to false if there's an error
+      setIsCreating(false);
     }
   }
 
@@ -297,11 +306,24 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
         transition={{ duration: 0.2 }}
         className="group-create-modal-content"
       >
+        {/* Show loading spinner overlay when creating */}
+        {isCreating && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 rounded-xl">
+            <LoadingSpinner 
+              title="Creating party" 
+              description="Please wait while we set up your party..."
+              theme="valorant" 
+              size="md"
+            />
+          </div>
+        )}
+
         <Button
           onClick={onClose}
           className="absolute right-4 top-4 p-2 bg-transparent hover:bg-[#FF4655]/10 hover:text-[#FF4655] text-white/80 z-50"
           variant="ghost"
           size="icon"
+          disabled={isCreating}
         >
           <X className="h-5 w-5" />
           <span className="sr-only">Close</span>
@@ -666,8 +688,9 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
                 shadow-md shadow-[#FF4655]/10 hover:shadow-lg hover:shadow-[#FF4655]/20
                 focus:outline-none focus:ring-2 focus:ring-[#FF4655]/50 focus:ring-offset-1 focus:ring-offset-[#1F2731]
                 rounded-md"
+              disabled={isCreating}
             >
-              Create Party
+              {isCreating ? 'Creating...' : 'Create Party'}
             </Button>
           </div>
         </div>
