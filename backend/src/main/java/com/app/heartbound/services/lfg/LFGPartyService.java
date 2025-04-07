@@ -106,20 +106,26 @@ public class LFGPartyService {
         // Save the party first to get the ID
         LFGParty savedParty = lfgPartyRepository.save(party);
         
-        // After successful save, create a Discord voice channel
+        // After successful save, create a Discord voice channel only if voice preference allows
         try {
-            // Create the voice channel using the Discord service
-            String discordChannelId = discordChannelService.createPartyVoiceChannel(
-                    savedParty.getId(), 
-                    savedParty.getTitle(),
-                    savedParty.getGame());
-            
-            // Store the Discord channel ID if creation was successful
-            if (discordChannelId != null) {
-                savedParty.setDiscordChannelId(discordChannelId);
-                savedParty = lfgPartyRepository.save(savedParty);
-                logger.info("Associated Discord channel ID {} with party ID {}", 
-                          discordChannelId, savedParty.getId());
+            // Only create Discord channel for parties that need it
+            if (shouldCreateDiscordChannel(savedParty.getVoicePreference())) {
+                // Create the voice channel using the Discord service
+                String discordChannelId = discordChannelService.createPartyVoiceChannel(
+                        savedParty.getId(), 
+                        savedParty.getTitle(),
+                        savedParty.getGame());
+                
+                // Store the Discord channel ID if creation was successful
+                if (discordChannelId != null) {
+                    savedParty.setDiscordChannelId(discordChannelId);
+                    savedParty = lfgPartyRepository.save(savedParty);
+                    logger.info("Associated Discord channel ID {} with party ID {}", 
+                              discordChannelId, savedParty.getId());
+                }
+            } else {
+                logger.info("Skipping Discord channel creation for party ID {} with voice preference: {}", 
+                           savedParty.getId(), savedParty.getVoicePreference());
             }
         } catch (Exception e) {
             // Log error but continue with party creation flow
@@ -632,5 +638,23 @@ public class LFGPartyService {
                 .joinRequests(party.getJoinRequests())
                 .discordChannelId(party.getDiscordChannelId())
                 .build();
+    }
+
+    /**
+     * Determines if a Discord channel should be created based on the voice preference
+     * 
+     * @param voicePreference the party's voice preference setting
+     * @return true if a Discord channel should be created, false otherwise
+     */
+    private boolean shouldCreateDiscordChannel(String voicePreference) {
+        if (voicePreference == null) {
+            return false;
+        }
+        
+        // Normalize the voice preference by converting to lowercase and removing spaces/hyphens
+        String normalizedPreference = voicePreference.toLowerCase().replace("-", "").replace(" ", "");
+        
+        // Only create Discord channels for "discord" preference
+        return normalizedPreference.equals("discord");
     }
 }
