@@ -242,4 +242,55 @@ public class DiscordChannelService {
             return false;
         }
     }
+
+    /**
+     * Removes a user's permission to connect to a party voice channel
+     *
+     * @param channelId The Discord channel ID
+     * @param discordUserId The Discord user ID to remove permission from
+     * @return true if permissions were successfully removed, false otherwise
+     */
+    public boolean removeUserFromVoiceChannel(String channelId, String discordUserId) {
+        try {
+            if (channelId == null || discordUserId == null || channelId.isEmpty() || discordUserId.isEmpty()) {
+                logger.warn("Cannot remove user from voice channel: Invalid channel ID or user ID");
+                return false;
+            }
+            
+            Guild guild = jda.getGuildById(discordServerId);
+            if (guild == null) {
+                logger.error("Failed to find Discord server with ID: {}", discordServerId);
+                return false;
+            }
+            
+            VoiceChannel channel = guild.getVoiceChannelById(channelId);
+            if (channel == null) {
+                logger.warn("Voice channel with ID {} not found", channelId);
+                return false;
+            }
+            
+            // Retrieve member by ID
+            try {
+                Member member = guild.retrieveMemberById(discordUserId).complete();
+                if (member != null) {
+                    // Remove specific permission overrides for this user by clearing them
+                    // This will revert the user to the @everyone role permissions (which denies VOICE_CONNECT)
+                    channel.getManager()
+                          .removePermissionOverride(member)
+                          .complete();
+                    logger.info("Removed voice channel access from user {} for channel {}", discordUserId, channelId);
+                    return true;
+                } else {
+                    logger.warn("Could not find Discord member with ID: {} to remove channel permissions", discordUserId);
+                    return false;
+                }
+            } catch (Exception e) {
+                logger.error("Error retrieving Discord member with ID {}: {}", discordUserId, e.getMessage());
+                return false;
+            }
+        } catch (Exception e) {
+            logger.error("Error removing user {} from voice channel {}: {}", discordUserId, channelId, e.getMessage());
+            return false;
+        }
+    }
 } 
