@@ -534,14 +534,13 @@ public class DiscordChannelService {
         int currentPlayers = party.getParticipants().size();
         int maxPlayers = party.getMaxPlayers();
         
-        // Set title with the new format: "(Player Count/Max) Rank" with party title as description
+        // Set title with the updated format: "(Player Count/Max) (Party Title Name)"
         embed.setTitle(String.format("(%d/%d) %s", 
                 currentPlayers, 
                 maxPlayers,
-                party.getRequirements().getRank()));
+                party.getTitle()));
 
-        // Add the party title as the description instead of part of the title
-        embed.setDescription(party.getTitle());
+        // No description since we moved the party title to the title
         
         // List participants (including party leader)
         StringBuilder participantsText = new StringBuilder();
@@ -550,7 +549,7 @@ public class DiscordChannelService {
         }
         embed.addField("Players", participantsText.toString(), false);
         
-        // Add voice preference info only if it's Discord - without the "Voice Preference" title
+        // Add voice preference info only if it's Discord - without a title
         if ("discord".equalsIgnoreCase(party.getVoicePreference()) && 
             party.getDiscordInviteUrl() != null && 
             !party.getDiscordInviteUrl().isEmpty()) {
