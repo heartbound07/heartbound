@@ -848,11 +848,11 @@ export default function ValorantPartyDetails() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          className="bg-[#283A4B] hover:bg-[#FF4655]/80 text-white border border-white/10 hover:border-[#FF4655]/50 shadow-md hover:shadow-lg transition-all duration-300 rounded-full group"
+                          className="bg-[#283A4B] hover:bg-[#2A3F56] text-white border border-white/10 hover:border-white/30 shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
                           size="sm"
                           onClick={handleDeleteParty} // This now triggers the confirmation toast
                         >
-                          <Trash2 className="h-4 w-4 text-[#8B97A4] group-hover:text-[#FF4655] transition-colors" />
+                          <Trash2 className="h-4 w-4 text-[#8B97A4] group-hover:text-white transition-colors" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent sideOffset={8} className="bg-[#283A4B] border border-white/10 z-[100]">
