@@ -460,7 +460,7 @@ public class DiscordChannelService {
             MessageEmbed embed = createPartyAnnouncementEmbed(party);
             
             // Create a button to join the party
-            String partyUrl = frontendBaseUrl + "/parties/" + party.getId();
+            String partyUrl = frontendBaseUrl + "/dashboard/valorant/" + party.getId();
             Button joinButton = Button.link(partyUrl, "Join Party");
             
             textChannel.sendMessageEmbeds(embed)
@@ -534,12 +534,14 @@ public class DiscordChannelService {
         int currentPlayers = party.getParticipants().size();
         int maxPlayers = party.getMaxPlayers();
         
-        // Set title with format: (Player Count - x/y) - Rank - Party Name
-        embed.setTitle(String.format("(%d/%d) - %s - %s", 
+        // Set title with the new format: "(Player Count/Max) Rank" with party title as description
+        embed.setTitle(String.format("(%d/%d) %s", 
                 currentPlayers, 
                 maxPlayers,
-                party.getRequirements().getRank(),
-                party.getTitle()));
+                party.getRequirements().getRank()));
+
+        // Add the party title as the description instead of part of the title
+        embed.setDescription(party.getTitle());
         
         // List participants (including party leader)
         StringBuilder participantsText = new StringBuilder();
