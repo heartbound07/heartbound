@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.EnumSet;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Member;
 
 @Service
 public class DiscordChannelService {
@@ -39,9 +40,10 @@ public class DiscordChannelService {
      * @param partyDescription The description of the LFG party (currently unused)
      * @param partyGame The game associated with the party (currently unused)
      * @param inviteOnly Whether the channel should be invite-only
+     * @param creatorDiscordId The Discord ID of the party creator
      * @return A Map containing "channelId" and "inviteUrl" (inviteUrl may be null if creation failed)
      */
-    public Map<String, String> createPartyVoiceChannel(UUID partyId, String partyTitle, String partyDescription, String partyGame, boolean inviteOnly) {
+    public Map<String, String> createPartyVoiceChannel(UUID partyId, String partyTitle, String partyDescription, String partyGame, boolean inviteOnly, String creatorDiscordId) {
         Map<String, String> result = new HashMap<>();
         try {
             // Get the guild (server) by ID
@@ -98,13 +100,33 @@ public class DiscordChannelService {
                 result.put("inviteUrl", inviteUrl); // Store invite URL
                 logger.info("Created Discord invite link {} for channel ID: {}", inviteUrl, channel.getId());
                 
-                // If inviteOnly is true, set permissions to allow VIEW_CHANNEL but deny VOICE_CONNECT for @everyone
+                // If inviteOnly is true, set permissions to:
+                // 1. Allow everyone to VIEW the channel
+                // 2. Deny everyone from CONNECTING to the channel
+                // 3. ALLOW the party creator to both VIEW and CONNECT to the channel
                 if (inviteOnly) {
+                    // First set permissions for @everyone
                     channel.getManager()
                           .putPermissionOverride(guild.getPublicRole(), 
                                                  EnumSet.of(Permission.VIEW_CHANNEL), // Allow viewing
                                                  EnumSet.of(Permission.VOICE_CONNECT)) // Deny connecting
                           .complete();
+                    
+                    // Then add an override for the party creator if their Discord ID is available
+                    if (creatorDiscordId != null && !creatorDiscordId.isEmpty()) {
+                        Member creator = guild.retrieveMemberById(creatorDiscordId).complete();
+                        if (creator != null) {
+                            channel.getManager()
+                                  .putPermissionOverride(creator, 
+                                                        EnumSet.of(Permission.VIEW_CHANNEL, Permission.VOICE_CONNECT), // Allow viewing and connecting
+                                                        null) // No explicit denies
+                                  .complete();
+                            logger.info("Set special permissions for party creator (ID: {}) in channel ID: {}", creatorDiscordId, channel.getId());
+                        } else {
+                            logger.warn("Could not find Discord server member with ID: {} for creator permissions", creatorDiscordId);
+                        }
+                    }
+                    
                     logger.info("Set invite-only permissions for channel ID: {}", channel.getId());
                 }
                 

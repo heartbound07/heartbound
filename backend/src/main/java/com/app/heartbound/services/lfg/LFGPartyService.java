@@ -117,7 +117,8 @@ public class LFGPartyService {
                         savedParty.getTitle(),
                         savedParty.getDescription(),
                         savedParty.getGame(),
-                        savedParty.getRequirements().isInviteOnly()
+                        savedParty.getRequirements().isInviteOnly(),
+                        savedParty.getUserId()
                 );
 
                 // Update the party with Discord channel information
