@@ -82,11 +82,10 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
   // Kick user handler - prevents event propagation to avoid triggering slot click
   const handleKickClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     if (participantId && onKickUser) {
-      if (window.confirm(`Are you sure you want to kick ${username} from the party?`)) {
-        onKickUser(participantId);
-      }
+      // Directly call the onKickUser prop (which should be handleKickUser from the parent)
+      onKickUser(participantId); 
     }
   };
 

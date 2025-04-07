@@ -3,23 +3,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import '@/assets/Toast.css';
 
-interface ToastProps {
+export interface ToastProps {
   message: string;
   type: 'success' | 'error' | 'info';
   onClose: () => void;
   duration?: number;
+  actions?: React.ReactNode;
+  hideCloseButton?: boolean;
 }
 
-export function Toast({ message, type, onClose, duration = 4000 }: ToastProps) {
+export function Toast({ message, type, onClose, duration = 4000, actions, hideCloseButton = false }: ToastProps) {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
+    if (actions) return;
+
     const timer = setTimeout(() => {
       setIsVisible(false);
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [duration]);
+  }, [duration, actions]);
 
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
@@ -77,23 +81,30 @@ export function Toast({ message, type, onClose, duration = 4000 }: ToastProps) {
         >
           <div className="toast-content">
             {getIcon()}
-            <span className="toast-message">{message}</span>
-            <button 
-              className="toast-close-button" 
-              onClick={() => setIsVisible(false)}
-              aria-label="Close notification"
-            >
-              <X size={16} />
-            </button>
+            <div className="toast-message-actions-wrapper">
+              <span className="toast-message">{message}</span>
+              {actions && <div className="toast-actions">{actions}</div>}
+            </div>
+            {!hideCloseButton && (
+              <button 
+                className="toast-close-button" 
+                onClick={() => setIsVisible(false)}
+                aria-label="Close notification"
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
-          <motion.div 
-            className="toast-progress"
-            initial={{ width: "100%" }}
-            animate={{ 
-              width: "0%",
-              transition: { duration: duration / 1000, ease: "linear" }
-            }}
-          />
+          {!actions && (
+            <motion.div 
+              className="toast-progress"
+              initial={{ width: "100%" }}
+              animate={{ 
+                width: "0%",
+                transition: { duration: duration / 1000, ease: "linear" }
+              }}
+            />
+          )}
         </motion.div>
       )}
     </AnimatePresence>

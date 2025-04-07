@@ -68,13 +68,28 @@
   color: #38BDF8;
 }
 
-/* Toast Message */
-.toast-message {
+/* Wrapper for message and actions to stack vertically */
+.toast-message-actions-wrapper {
+  display: flex;
+  flex-direction: column;
   flex-grow: 1;
+  gap: 8px; /* Space between message and actions */
+}
+
+/* Toast Message (adjust if needed) */
+.toast-message {
+  /* flex-grow: 1; */ /* Remove or adjust if it conflicts */
   font-size: 14px;
   line-height: 1.5;
   font-weight: 500;
   letter-spacing: 0.01em;
+}
+
+/* Container for action buttons */
+.toast-actions {
+  display: flex;
+  gap: 8px; /* Space between action buttons */
+  margin-top: 4px; /* Small space above actions */
 }
 
 /* Close Button */
@@ -87,8 +102,10 @@
   border-radius: 4px;
   transition: all 0.2s ease;
   display: flex;
-  align-items: center;
+  align-items: center; /* Align icon vertically */
   justify-content: center;
+  align-self: flex-start; /* Align button to the top */
+  margin-left: auto; /* Push to the right */
 }
 
 .toast-close-button:hover {

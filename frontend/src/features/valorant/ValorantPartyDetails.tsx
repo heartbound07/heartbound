@@ -19,6 +19,7 @@ import { usePartyParticipants } from '@/hooks/usePartyParticipants'
 import { usePartyJoinRequests } from '@/hooks/usePartyJoinRequests'
 import { JoinRequestSection } from "@/components/valorant/JoinRequestSection"
 import { Toast } from '@/components/Toast'
+import type { ToastProps as OriginalToastProps } from '@/components/Toast'
 
 // DetailBadge component for displaying details with label and value
 const DetailBadge = ({ 
@@ -98,6 +99,9 @@ const IconBadge = ({
   );
 };
 
+// Define a local type that includes the 'id' and makes 'actions' optional
+type ToastState = Omit<OriginalToastProps, 'onClose'> & { id: string };
+
 export default function ValorantPartyDetails() {
   const { user, hasRole } = useAuth()
   const navigate = useNavigate()
@@ -115,24 +119,12 @@ export default function ValorantPartyDetails() {
   const [invitedUsers, setInvitedUsers] = React.useState<string[]>([])
   const [isInvited, setIsInvited] = React.useState(false)
   
-  // Replace the existing toast state with an array-based approach for multiple toasts
-  const [toasts, setToasts] = React.useState<Array<{
-    id: string;
-    message: string;
-    type: 'success' | 'error' | 'info';
-  }>>([]);
-
-  // Replace the showToast function with this version that clears existing toasts
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    const id = Date.now().toString();
-    // Clear existing toasts and show only the new one
-    setToasts([{ id, message, type }]);
-  };
-
-  // Add function to remove a toast by ID
-  const removeToast = (id: string) => {
-    setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
-  };
+  // State for regular toasts
+  const [toasts, setToasts] = React.useState<ToastState[]>([])
+  // State specifically for the confirmation toast
+  const [confirmationToastProps, setConfirmationToastProps] = React.useState<ToastState | null>(null)
+  // State specifically for the kick confirmation toast
+  const [kickConfirmationProps, setKickConfirmationProps] = React.useState<ToastState | null>(null)
 
   // Placeholder avatar for participants who don't have an available avatar.
   const placeholderAvatar = "https://v0.dev/placeholder.svg?height=400&width=400"
@@ -336,23 +328,70 @@ export default function ValorantPartyDetails() {
   console.debug("Party data:", party);
   console.debug("Participants raw:", party?.participants);
 
-  // Handle party deletion
-  const handleDeleteParty = async () => {
-    if (window.confirm("Are you sure you want to delete this party? This action cannot be undone.")) {
-      try {
-        await deleteParty(party.id)
-        
-        // Immediately reset the active party state
-        setUserActiveParty(null)
-        
-        showToast("Party successfully deleted", "success")
-        navigate("/dashboard/valorant")
-      } catch (err: any) {
-        console.error("Error deleting party:", err)
-        showToast(err.response?.data?.message || "Failed to delete party", "error")
-      }
+  // Function to show regular toasts (clears all confirmation types)
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const id = Date.now().toString();
+    setConfirmationToastProps(null); // Clear delete confirmation 
+    setKickConfirmationProps(null);  // Clear kick confirmation
+    setToasts([{ id, message, type }]);
+  };
+
+  // Function to remove a regular toast by ID
+  const removeToast = (id: string) => {
+    setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
+  };
+
+  // Function containing the actual party deletion logic
+  const confirmDeleteParty = async () => {
+    if (!party) return;
+    try {
+      await deleteParty(party.id);
+      setUserActiveParty(null); // Immediately reset the active party state
+      // Show success *after* navigation potentially starts
+      showToast("Party successfully deleted", "success");
+      navigate("/dashboard/valorant");
+    } catch (err: any) {
+      console.error("Error deleting party:", err);
+      showToast(err.response?.data?.message || "Failed to delete party", "error");
     }
-  }
+  };
+
+  // Modified handleDeleteParty to show confirmation toast
+  const handleDeleteParty = () => {
+    if (!party) return;
+
+    // Clear regular toasts before showing confirmation
+    setToasts([]);
+
+    setConfirmationToastProps({
+      id: 'delete-confirmation',
+      message: "Are you sure you want to delete this party? This action cannot be undone.",
+      type: 'info', // Use 'info' or 'error' style
+      duration: 30000, // 30 seconds
+      hideCloseButton: true, // Hide the close button
+      actions: (
+        <div className="flex gap-2">
+          <Button
+            variant="outline" // Swapped from destructive to outline
+            size="sm"
+            onClick={() => {
+              confirmDeleteParty();
+              setConfirmationToastProps(null); // Close confirmation toast on action
+            }}
+          >
+            Confirm Delete
+          </Button>
+          <Button
+            variant="destructive" // Swapped from outline to destructive
+            size="sm"
+            onClick={() => setConfirmationToastProps(null)} // Just close the toast
+          >
+            Cancel
+          </Button>
+        </div>
+      )
+    });
+  };
 
   // Check if party is full
   const isPartyFull = party && party.participants && party.maxPlayers 
@@ -446,7 +485,23 @@ export default function ValorantPartyDetails() {
     return false;
   };
 
-  // Modified handleKickUser function with additional checks
+  // Function containing the actual kick user logic
+  const confirmKickUser = async (userId: string) => {
+    if (!party) return;
+    
+    try {
+      // Proceed with kick as usual
+      await kickUserFromParty(party.id, userId);
+      // Toast notification
+      showToast(`Player has been kicked from the party.`, "success");
+      // No need to update state here as the WebSocket update will handle it
+    } catch (err: any) {
+      console.error("Error kicking user:", err);
+      showToast(err.message || "Could not kick the user. Try again later.", "error");
+    }
+  };
+
+  // Modified handleKickUser function to show confirmation toast first
   const handleKickUser = async (userId: string) => {
     if (!party) return;
     
@@ -465,14 +520,45 @@ export default function ValorantPartyDetails() {
         return;
       }
       
-      // Proceed with kick as usual
-      await kickUserFromParty(party.id, userId);
-      // Toast notification
-      showToast(`Player has been kicked from the party.`, "success");
-      // No need to update state here as the WebSocket update will handle it
+      // Get the username of the person being kicked, if available
+      const kickUsername = userProfiles[userId]?.username || "this user";
+      
+      // Clear any existing toasts before showing confirmation
+      setToasts([]);
+      setConfirmationToastProps(null);
+      
+      // Show the kick confirmation toast
+      setKickConfirmationProps({
+        id: 'kick-confirmation',
+        message: `Are you sure you want to kick ${kickUsername} from the party?`,
+        type: 'info',
+        duration: 20000, // 20 seconds
+        hideCloseButton: true,
+        actions: (
+          <div className="flex gap-2">
+            <Button
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                confirmKickUser(userId);
+                setKickConfirmationProps(null); // Close confirmation toast on action
+              }}
+            >
+              Confirm Kick
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setKickConfirmationProps(null)} // Just close the toast
+            >
+              Cancel
+            </Button>
+          </div>
+        )
+      });
     } catch (err: any) {
-      console.error("Error kicking user:", err);
-      showToast(err.message || "Could not kick the user. Try again later.", "error");
+      console.error("Error preparing to kick user:", err);
+      showToast(err.message || "Could not prepare to kick the user. Try again later.", "error");
     }
   };
 
@@ -602,15 +688,40 @@ export default function ValorantPartyDetails() {
 
   return (
     <TooltipProvider>
-      {/* Replace the existing toast rendering code with this */}
-      {toasts.map(toast => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          onClose={() => removeToast(toast.id)}
-        />
-      ))}
+      {/* Toast Container - Renders confirmation or regular toasts */}
+      <div className="fixed top-6 right-6 z-[100] space-y-2">
+        {/* Priority order: kick confirmation, delete confirmation, regular toasts */}
+        {kickConfirmationProps && (
+          <Toast
+            key={kickConfirmationProps.id}
+            message={kickConfirmationProps.message}
+            type={kickConfirmationProps.type}
+            duration={kickConfirmationProps.duration}
+            actions={kickConfirmationProps.actions}
+            hideCloseButton={kickConfirmationProps.hideCloseButton}
+            onClose={() => setKickConfirmationProps(null)}
+          />
+        )}
+        {!kickConfirmationProps && confirmationToastProps && (
+          <Toast
+            key={confirmationToastProps.id}
+            message={confirmationToastProps.message}
+            type={confirmationToastProps.type}
+            duration={confirmationToastProps.duration}
+            actions={confirmationToastProps.actions}
+            hideCloseButton={confirmationToastProps.hideCloseButton}
+            onClose={() => setConfirmationToastProps(null)}
+          />
+        )}
+        {!kickConfirmationProps && !confirmationToastProps && toasts.map((toast) => (
+          <Toast
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            onClose={() => removeToast(toast.id)}
+          />
+        ))}
+      </div>
       
       <div className="min-h-screen bg-[#0F1923] text-white font-sans flex flex-col p-6">
         <div className="fixed inset-0 bg-[#0F1923] z-0">
@@ -699,16 +810,16 @@ export default function ValorantPartyDetails() {
                     </Tooltip>
                   )}
                   
-                  {/* Delete Party Button - shown to party leader OR admin/moderator */}
+                  {/* Delete Party Button - uses the new handleDeleteParty */}
                   {canDeleteParty && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          className="bg-[#283A4B] hover:bg-[#2A3F56] text-white border border-white/10 hover:border-white/30 shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
+                          className="bg-[#283A4B] hover:bg-[#FF4655]/80 text-white border border-white/10 hover:border-[#FF4655]/50 shadow-md hover:shadow-lg transition-all duration-300 rounded-full group"
                           size="sm"
-                          onClick={handleDeleteParty}
+                          onClick={handleDeleteParty} // This now triggers the confirmation toast
                         >
-                          <Trash2 className="h-4 w-4 text-[#8B97A4] group-hover:text-white transition-colors" />
+                          <Trash2 className="h-4 w-4 text-[#8B97A4] group-hover:text-[#FF4655] transition-colors" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent sideOffset={8} className="bg-[#283A4B] border border-white/10 z-[100]">
