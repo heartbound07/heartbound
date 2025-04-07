@@ -293,4 +293,51 @@ public class DiscordChannelService {
             return false;
         }
     }
+
+    /**
+     * Sends a welcome message to a voice channel's text chat, pinging the party owner
+     *
+     * @param channelId The Discord voice channel ID
+     * @param ownerDiscordId The Discord user ID of the party owner to ping
+     * @param partyTitle The title of the party for the welcome message
+     * @return true if message was sent successfully, false otherwise
+     */
+    public boolean sendWelcomeMessageToVoiceChannel(String channelId, String ownerDiscordId, String partyTitle) {
+        try {
+            if (channelId == null || ownerDiscordId == null || channelId.isEmpty() || ownerDiscordId.isEmpty()) {
+                logger.warn("Cannot send welcome message: Invalid channel ID or owner ID");
+                return false;
+            }
+            
+            Guild guild = jda.getGuildById(discordServerId);
+            if (guild == null) {
+                logger.error("Failed to find Discord server with ID: {}", discordServerId);
+                return false;
+            }
+            
+            VoiceChannel voiceChannel = guild.getVoiceChannelById(channelId);
+            if (voiceChannel == null) {
+                logger.warn("Voice channel with ID {} not found", channelId);
+                return false;
+            }
+
+            // Format the welcome message with party info and owner ping
+            String welcomeMessage = String.format(
+                "**Welcome to \"%s\" party!**\n\nThis channel was created by <@%s> who is the party leader.\n\nHave fun gaming together! 🎮",
+                partyTitle,
+                ownerDiscordId
+            );
+            
+            // VoiceChannel inherits from MessageChannel, so we can send a message directly
+            voiceChannel.sendMessage(welcomeMessage).queue(
+                success -> logger.info("Sent welcome message to voice channel {}", channelId),
+                error -> logger.error("Failed to send welcome message: {}", error.getMessage())
+            );
+            
+            return true;
+        } catch (Exception e) {
+            logger.error("Error sending welcome message to voice channel {}: {}", channelId, e.getMessage());
+            return false;
+        }
+    }
 } 

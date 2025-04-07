@@ -123,7 +123,15 @@ public class LFGPartyService {
 
                 // Update the party with Discord channel information
                 if (discordInfo.containsKey("channelId")) {
-                    savedParty.setDiscordChannelId(discordInfo.get("channelId"));
+                    String channelId = discordInfo.get("channelId");
+                    savedParty.setDiscordChannelId(channelId);
+                    
+                    // Send welcome message pinging the party owner
+                    discordChannelService.sendWelcomeMessageToVoiceChannel(
+                        channelId, 
+                        savedParty.getUserId(), 
+                        savedParty.getTitle()
+                    );
                 }
                 if (discordInfo.containsKey("inviteUrl")) {
                     savedParty.setDiscordInviteUrl(discordInfo.get("inviteUrl"));
