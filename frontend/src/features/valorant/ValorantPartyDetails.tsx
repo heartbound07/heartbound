@@ -21,6 +21,7 @@ import { JoinRequestSection } from "@/components/valorant/JoinRequestSection"
 import { Toast } from '@/components/Toast'
 import type { ToastProps as OriginalToastProps } from '@/components/Toast'
 import { DiscordIcon } from "@/components/ui/DiscordIcon"
+import "@/assets/PartyDetails.css"
 
 // DetailBadge component for displaying details with label and value
 const DetailBadge = ({ 

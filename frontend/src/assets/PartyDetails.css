@@ -1,0 +1,220 @@
+/* PartyDetails.css - Cartoon-style enhancements for Valorant Party UI */
+
+/* ===== Main Containers ===== */
+.bg-\[\#1F2731\]\/60.backdrop-blur-sm.rounded-xl.border.border-white\/5.shadow-2xl,
+.bg-\[\#1F2731\]\/40.backdrop-blur-sm.rounded-xl.border.border-white\/5.shadow-xl,
+div[class*="bg-[#1F2731]"][class*="backdrop-blur-sm"][class*="rounded-xl"] {
+  box-shadow: 6px 6px 0 #0a1018 !important;
+  border: 2px solid #2C3A47 !important;
+  transform: translateZ(0);
+}
+
+/* Party Header Section */
+div[class*="p-6 border-b border-white/10"] {
+  border-bottom: 3px solid #2C3A47 !important;
+}
+
+/* ===== Detail Badges ===== */
+.bg-\[\#1F2731\].rounded-lg.px-3.py-2.flex.items-center.gap-2\.5,
+div[class*="bg-[#1F2731]"][class*="rounded-lg"][class*="flex items-center"] {
+  box-shadow: 3px 3px 0 #0a1018 !important;
+  border: 2px solid #2C3A47 !important;
+  transform: translateZ(0);
+  transition: all 0.2s ease;
+}
+
+.bg-\[\#1F2731\].rounded-lg.px-3.py-2.flex.items-center.gap-2\.5:hover,
+div[class*="bg-[#1F2731]"][class*="rounded-lg"][class*="flex items-center"]:hover {
+  transform: translateZ(0) scale(1.02) !important;
+  box-shadow: 4px 4px 0 #0a1018 !important;
+}
+
+/* ===== Icon Badges ===== */
+div[class*="p-2.5 rounded-full bg-transparent"] {
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+div[class*="p-2.5 rounded-full bg-transparent"]:hover {
+  transform: translateZ(0) scale(1.15) !important;
+}
+
+/* ===== Player Slots ===== */
+/* Player slot container */
+div[class*="relative overflow-hidden rounded-xl bg-[#1F2731]/40"] {
+  box-shadow: 6px 6px 0 #0a1018 !important;
+  border: 2px solid #2C3A47 !important;
+}
+
+/* Individual player slots */
+div[class*="relative w-full aspect-square rounded-full"] {
+  box-shadow: 3px 3px 0 #0a1018 !important;
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+div[class*="relative w-full aspect-square rounded-full"]:hover {
+  transform: scale(1.08) !important;
+}
+
+/* Player slot highlight glow */
+div[class*="absolute -inset-0.5 bg-gradient-to-r"] {
+  filter: drop-shadow(0 0 3px currentColor);
+}
+
+/* Leader crown */
+div[class*="absolute -top-2 -right-2 bg-gradient-to-br from-red-700"] {
+  box-shadow: 2px 2px 0 #0a1018 !important;
+  border: 1px solid #FF4655 !important;
+}
+
+/* Player username tag */
+div[class*="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-[#1F2731]/90"] {
+  box-shadow: 2px 2px 0 #0a1018 !important;
+  border: 1px solid #2C3A47 !important;
+  transform: translateX(-50%) translateY(0) !important;
+  transition: transform 0.2s ease !important;
+}
+
+div[class*="relative group"]:hover div[class*="absolute -bottom-3 left-1/2 -translate-x-1/2"] {
+  transform: translateX(-50%) translateY(2px) !important;
+}
+
+/* Kick button */
+button[class*="absolute -top-2 -right-2 bg-[#FF4655]"] {
+  box-shadow: 2px 2px 0 #0a1018 !important;
+  transform: scale(1);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+button[class*="absolute -top-2 -right-2 bg-[#FF4655]"]:hover {
+  transform: scale(1.15) !important;
+}
+
+/* ===== Player Counter Badge ===== */
+div[class*="relative overflow-hidden px-3 py-1.5 rounded-lg bg-gradient-to-br"] {
+  box-shadow: 3px 3px 0 #0a1018 !important;
+  border: 2px solid #2C3A47 !important;
+}
+
+div[class*="hidden sm:block px-1.5 py-0.5 text-xs rounded-full"] {
+  box-shadow: 1px 1px 0 #0a1018 !important;
+  font-weight: bold !important;
+}
+
+/* ===== Status Tags ===== */
+span[class*="py-1 px-3 rounded-full text-xs font-semibold"] {
+  box-shadow: 2px 2px 0 #0a1018 !important;
+  font-weight: bold !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Open status */
+span[class*="bg-green-500/10 text-green-400 border border-green-500/20"] {
+  border: 1px solid #10B981 !important;
+}
+
+/* Waiting/other status */
+span[class*="bg-amber-500/10 text-amber-400 border border-amber-500/20"] {
+  border: 1px solid #F59E0B !important;
+}
+
+/* ===== Countdown Timer ===== */
+div[class*="py-1 px-3 rounded-full bg-[#1F2731] text-xs"] {
+  box-shadow: 2px 2px 0 #0a1018 !important;
+  border: 1px solid #2C3A47 !important;
+  font-weight: bold !important;
+  letter-spacing: 0.5px;
+}
+
+/* ===== Action Buttons ===== */
+button[class*="bg-[#283A4B] hover:bg-[#2A3F56] text-white border"] {
+  box-shadow: 3px 3px 0 #0a1018 !important;
+  border: 2px solid #2C3A47 !important;
+  transform: translateZ(0);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+button[class*="bg-[#283A4B] hover:bg-[#2A3F56] text-white border"]:hover {
+  transform: translateZ(0) scale(1.05) !important;
+  box-shadow: 4px 4px 0 #0a1018 !important;
+}
+
+button[class*="bg-[#283A4B] hover:bg-[#2A3F56] text-white border"]:active {
+  transform: translateZ(0) scale(0.98) !important;
+  box-shadow: 2px 2px 0 #0a1018 !important;
+}
+
+/* Join Party Button (special styling) */
+button[class*="bg-[#283A4B]"][class*="rounded-full"]:not([disabled]) {
+  position: relative;
+  overflow: hidden;
+}
+
+button[class*="bg-[#283A4B]"][class*="rounded-full"]:not([disabled])::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,70,85,0.1) 0%, rgba(255,70,85,0) 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+button[class*="bg-[#283A4B]"][class*="rounded-full"]:not([disabled]):hover::after {
+  opacity: 1;
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.05); opacity: 0.9; }
+  100% { transform: scale(0.95); opacity: 0.7; }
+}
+
+/* ===== Tooltip Content ===== */
+div[class*="bg-[#1F2731] border border-white/10 z-[100]"] {
+  box-shadow: 3px 3px 0 #0a1018 !important;
+  border: 2px solid #2C3A47 !important;
+}
+
+/* ===== Game Mode Stats ===== */
+div[class*="grid grid-cols-1 sm:grid-cols-3 gap-3"] {
+  gap: 12px !important;
+}
+
+/* ===== Animation Enhancements ===== */
+.animate-partyJoin {
+  animation-duration: 0.6s !important;
+}
+
+.animate-joinHighlight {
+  animation: cartoon-highlight 2s ease-in-out !important;
+}
+
+@keyframes cartoon-highlight {
+  0% { box-shadow: 0 0 0 2px rgba(255, 70, 85, 0.7); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 70, 85, 0.4); }
+  100% { box-shadow: 0 0 0 2px rgba(255, 70, 85, 0); }
+}
+
+/* ===== Empty Slots ===== */
+div[class*="border-2 border-[#FF4655]/20 p-2 bg-[#1F2731]/50"] {
+  box-shadow: 3px 3px 0 #0a1018 !important;
+}
+
+div[class*="border-2 border-[#FF4655]/20 p-2 bg-[#1F2731]/50"]:hover {
+  border-color: rgba(255, 70, 85, 0.6) !important;
+}
+
+/* ===== Global Enhancements ===== */
+h1.text-3xl.font-bold.text-white {
+  text-shadow: 3px 3px 0 #0a1018;
+  letter-spacing: -0.5px;
+}
+
+p.text-\[\#8B97A4\] {
+  text-shadow: 1px 1px 0 #0a1018;
+}
