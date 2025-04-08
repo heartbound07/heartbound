@@ -1,0 +1,152 @@
+/* Listing.css - Cartoon-style enhancements for Valorant Party Listings */
+
+/* ===== Main Card Container ===== */
+.overflow-hidden.bg-\[\#0F1923\].rounded-lg.shadow-xl.border,
+div[class*="overflow-hidden"][class*="bg-[#0F1923]"][class*="rounded-lg"] {
+  border: 2px solid #2C3A47 !important;
+  transform: translateZ(0);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.overflow-hidden.bg-\[\#0F1923\].rounded-lg.shadow-xl.border:hover,
+div[class*="overflow-hidden"][class*="bg-[#0F1923]"][class*="rounded-lg"]:hover {
+  transform: translateZ(0) translateY(-8px) !important;
+}
+
+/* Special styling for "NEW" party cards */
+.border-\[\#FF4655\]\/20.ring-2.ring-\[\#FF4655\]\/10 {
+  /* Removed box-shadow */
+}
+
+/* ===== NEW Indicator Badge ===== */
+div[class*="absolute -right-1 -top-1 bg-[#FF4655]"] {
+  border: 1px solid #FF6B76 !important;
+  transform-origin: top right;
+  z-index: 20;
+}
+
+/* ===== Header Section ===== */
+.text-sm.font-semibold.text-white.tracking-wide {
+  letter-spacing: 0.5px;
+}
+
+.text-xs.text-zinc-400.mt-1.line-clamp-2 {
+  /* Removed text-shadow */
+}
+
+/* ===== Party Details Icons Row ===== */
+div[class*="flex items-center justify-between py-3 bg-[#1F2731]"] {
+  border-top: 2px solid #2C3A47 !important;
+  border-bottom: 2px solid #2C3A47 !important;
+}
+
+/* ===== Icon Badges ===== */
+div[class*="p-2 rounded-full hover:bg-white/5"] {
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+div[class*="p-2 rounded-full hover:bg-white/5"]:hover {
+  transform: translateZ(0) scale(1.15) !important;
+  background-color: rgba(255, 70, 85, 0.1) !important;
+}
+
+div[class*="p-2 rounded-full hover:bg-white/5"]:hover svg {
+  color: #FF4655 !important;
+}
+
+/* ===== Tooltip Content ===== */
+div[class*="bg-[#1F2731] border border-white/10"] {
+  border: 2px solid #2C3A47 !important;
+}
+
+/* ===== Player Slots Section ===== */
+/* Player count badge */
+span[class*="text-xs font-medium text-white bg-[#1F2731] py-1 px-2.5 rounded-full"] {
+  border: 1px solid #2C3A47 !important;
+  font-weight: bold !important;
+}
+
+/* Players label with icon */
+div[class*="flex items-center gap-2"] svg[class*="text-[#FF4655]"] {
+  /* Removed filter drop-shadow */
+}
+
+/* ===== Player Avatar Slots ===== */
+/* Filled player slot */
+div[class*="relative w-10 h-10 rounded-full group bg-[#1F2731] ring-2"] {
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+div[class*="relative w-10 h-10 rounded-full group bg-[#1F2731] ring-2"]:hover {
+  transform: scale(1.12) !important;
+}
+
+/* Empty player slot */
+div[class*="border-2 border-dashed border-[#1F2731]"] {
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+div[class*="border-2 border-dashed border-[#1F2731]"]:hover {
+  transform: scale(1.12) !important;
+}
+
+/* Plus icon in empty slot */
+div[class*="border-2 border-dashed border-[#1F2731]"] svg {
+  /* Removed filter drop-shadow */
+}
+
+/* ===== Join/View Button ===== */
+button[class*="py-2 px-3 h-auto text-xs font-semibold"] {
+  border: 2px solid #FF6B76 !important;
+  transform: translateZ(0);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+button[class*="py-2 px-3 h-auto text-xs font-semibold"]:hover:not([disabled]) {
+  transform: translateZ(0) scale(1.08) !important;
+}
+
+button[class*="py-2 px-3 h-auto text-xs font-semibold"]:active:not([disabled]) {
+  transform: translateZ(0) scale(0.98) !important;
+}
+
+/* Disabled button state */
+button[class*="py-2 px-3 h-auto text-xs font-semibold"][disabled] {
+  opacity: 0.7;
+}
+
+/* ===== Toast Notification ===== */
+div[class*="fixed top-4 right-4 z-50"] {
+  border: 2px solid #2C3A47 !important;
+}
+
+/* Error toast */
+div[class*="fixed top-4 right-4 z-50"][class*="bg-[#FF4655]"] {
+  border: 2px solid #FF6B76 !important;
+}
+
+/* Success toast */
+div[class*="fixed top-4 right-4 z-50"][class*="bg-green-500"] {
+  border: 2px solid #34D399 !important;
+}
+
+/* ===== Animation Enhancements ===== */
+@keyframes pulse-border {
+  0% { border-color: rgba(255, 70, 85, 0.3); }
+  50% { border-color: rgba(255, 70, 85, 0.7); }
+  100% { border-color: rgba(255, 70, 85, 0.3); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Apply pulsing border animation to NEW cards */
+.border-\[\#FF4655\]\/20.ring-2.ring-\[\#FF4655\]\/10 {
+  animation: pulse-border 2s infinite;
+}
