@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Save, Loader2, Palette, Check } from "lucide-react"
+import { Save, Loader2, Palette, Check, Link2, Unlink } from "lucide-react"
 import toast, { Toaster } from 'react-hot-toast'
 import { HexColorPicker } from "react-colorful"
 import "@/assets/profile.css"
@@ -134,6 +134,91 @@ const ColorPickerPopover = ({
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
+  );
+};
+
+// Riot Account Linking Section
+const RiotAccountSection = () => {
+  const { user, startRiotOAuth, unlinkRiotAccount, isLoading } = useAuth();
+  const [isUnlinking, setIsUnlinking] = useState(false);
+  
+  const handleLinkRiotAccount = async () => {
+    try {
+      await startRiotOAuth();
+      // The user will be redirected away, so no need for additional handling here
+    } catch (error) {
+      toast.error("Failed to initiate Riot account linking");
+      console.error(error);
+    }
+  };
+  
+  const handleUnlinkRiotAccount = async () => {
+    setIsUnlinking(true);
+    try {
+      await unlinkRiotAccount();
+      toast.success("Riot account successfully unlinked");
+    } catch (error) {
+      toast.error("Failed to unlink Riot account");
+      console.error(error);
+    } finally {
+      setIsUnlinking(false);
+    }
+  };
+  
+  const isRiotLinked = Boolean(user?.riotGameName && user?.riotTagLine);
+  
+  return (
+    <div className="mb-6 p-4 bg-black/20 rounded-lg border border-white/10">
+      <h3 className="text-xl font-semibold mb-4">Riot Games Account</h3>
+      
+      {isRiotLinked ? (
+        <div className="space-y-4">
+          <div className="flex items-center">
+            <div className="mr-3">
+              <img 
+                src="/valorant-logo.png" 
+                alt="Valorant" 
+                className="w-10 h-10 rounded-md"
+                onError={(e) => {
+                  e.currentTarget.src = "https://via.placeholder.com/40?text=V";
+                }}
+              />
+            </div>
+            <div>
+              <div className="font-medium">{user?.riotGameName}#{user?.riotTagLine}</div>
+              <div className="text-sm text-gray-400">Linked Account</div>
+            </div>
+          </div>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleUnlinkRiotAccount}
+            disabled={isLoading || isUnlinking}
+            className="mt-2 flex items-center text-white/70 hover:text-white/90"
+          >
+            {isUnlinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Unlink className="mr-2 h-4 w-4" />}
+            Unlink Riot Account
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <p className="text-sm text-white/70">
+            Link your Riot Games account to display your Valorant information and participate in matchmaking.
+          </p>
+          
+          <Button
+            variant="default"
+            onClick={handleLinkRiotAccount}
+            disabled={isLoading}
+            className="mt-2 flex items-center bg-[#FA4453] hover:bg-[#FF6B78] text-white"
+          >
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link2 className="mr-2 h-4 w-4" />}
+            Connect Riot Account
+          </Button>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -312,6 +397,9 @@ export function ProfilePage() {
                     : "Banner customization is a premium feature for Monarch users."}
                 </p>
               </div>
+
+              {/* Add RiotAccountSection here, likely after the banner upload component */}
+              <RiotAccountSection />
 
               <div className="space-y-2">
                 <Label htmlFor="about" className="text-xs font-medium text-white/80">

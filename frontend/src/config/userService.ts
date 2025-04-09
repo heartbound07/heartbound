@@ -12,6 +12,9 @@ export interface UserProfileDTO {
   bannerUrl?: string;
   roles?: Role[];
   credits?: number;
+  riotGameName?: string;
+  riotTagLine?: string;
+  riotAccountLinked?: boolean;
 }
 
 export interface UpdateProfileDTO {
@@ -33,7 +36,8 @@ export const getUserProfile = async (userId: string): Promise<UserProfileDTO> =>
       id: userId,
       username: "Unknown User",
       avatar: "https://v0.dev/placeholder.svg?height=400&width=400",
-      credits: 0
+      credits: 0,
+      riotAccountLinked: false
     };
   }
 };
@@ -61,7 +65,8 @@ export const getUserProfiles = async (userIds: string[]): Promise<Record<string,
         id,
         username: "Unknown User",
         avatar: "https://v0.dev/placeholder.svg?height=400&width=400",
-        credits: 0
+        credits: 0,
+        riotAccountLinked: false
       };
     });
     return fallbackProfiles;

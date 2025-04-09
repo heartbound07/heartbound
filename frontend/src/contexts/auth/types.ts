@@ -11,6 +11,9 @@ export interface UserInfo {
   avatar?: string;
   roles?: Role[];
   credits?: number;
+  riotPuuid?: string;
+  riotGameName?: string;
+  riotTagLine?: string;
 }
 
 export interface LoginRequest {
@@ -64,7 +67,9 @@ export interface AuthContextValue extends AuthState {
   updateUserProfile: (profile: UpdateProfileDTO) => Promise<void>;
   hasRole: (role: Role) => boolean;
   
-  // Party service functions
+  startRiotOAuth: () => Promise<void>;
+  unlinkRiotAccount: () => Promise<void>;
+  
   createParty: (data: CreatePartyRequestDTO) => Promise<LFGPartyResponseDTO>;
   getParty: (id: string) => Promise<LFGPartyResponseDTO>;
   listParties: (params?: ListPartiesParams) => Promise<any>;

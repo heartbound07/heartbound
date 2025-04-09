@@ -8,6 +8,7 @@ export const AUTH_ENDPOINTS = {
   DISCORD_AUTHORIZE: 'http://localhost:8080/api/auth/discord/authorize',
   DISCORD_CALLBACK: 'http://localhost:8080/api/oauth2/callback/discord',
   DISCORD_EXCHANGE_CODE: 'http://localhost:8080/api/auth/discord/exchange-code',
+  RIOT_AUTHORIZE: 'http://localhost:8080/api/oauth2/riot/authorize',
 } as const;
 
 export const AUTH_ERRORS = {
@@ -16,6 +17,7 @@ export const AUTH_ERRORS = {
   TOKEN_EXPIRED: 'Authentication session expired',
   NETWORK_ERROR: 'Network error occurred',
   UNAUTHORIZED: 'Please log in to access this page',
+  RIOT_LINK_FAILED: 'Failed to link Riot account',
 } as const;
 
 export const DISCORD_OAUTH_STATE_KEY = 'discordOAuthState';

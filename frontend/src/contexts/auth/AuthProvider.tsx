@@ -10,7 +10,7 @@ import {
   ProfileStatus,
   Role,
 } from './types';
-import { AUTH_STORAGE_KEY, TOKEN_REFRESH_MARGIN, AUTH_ENDPOINTS, DISCORD_OAUTH_STATE_KEY } from './constants';
+import { AUTH_STORAGE_KEY, TOKEN_REFRESH_MARGIN, AUTH_ENDPOINTS, DISCORD_OAUTH_STATE_KEY, AUTH_ERRORS } from './constants';
 import * as partyService from '../valorant/partyService';
 import axios from 'axios';
 import webSocketService from '../../config/WebSocketService';
@@ -551,6 +551,92 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
   }, [state.user, state.profile, state.isAuthenticated, state.isLoading]);
 
+  const startRiotOAuth = useCallback(async () => {
+    if (!tokens?.accessToken) {
+      setAuthError('Authentication required to link Riot account.');
+      return;
+    }
+    setAuthLoading(true);
+    try {
+      const response = await fetch(AUTH_ENDPOINTS.RIOT_AUTHORIZE, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${tokens.accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        // Handle cases where the backend might return an error instead of the URL
+        if (response.status === 401) throw new Error(AUTH_ERRORS.UNAUTHORIZED);
+        const errorData = await response.json().catch(() => ({ message: 'Failed to initiate Riot OAuth flow.' }));
+        throw new Error(errorData.message || AUTH_ERRORS.RIOT_LINK_FAILED);
+      }
+
+      // *** Assumes backend returns JSON like { url: "..." } ***
+      // If backend returns 302, this needs adjustment.
+      const data = await response.json();
+      if (!data.url) {
+        throw new Error('Invalid response from authorization server.');
+      }
+
+      // Redirect the user to the Riot authorization URL
+      window.location.href = data.url;
+      // No need to set loading false here, as the page will navigate away
+    } catch (error) {
+      console.error('Riot OAuth initiation error:', error);
+      setAuthError(error instanceof Error ? error.message : AUTH_ERRORS.RIOT_LINK_FAILED);
+      setAuthLoading(false); // Set loading false only on error
+    }
+  }, [tokens, setAuthLoading, setAuthError]);
+
+  const unlinkRiotAccount = useCallback(async () => {
+    if (!tokens?.accessToken || !state.user) {
+      setAuthError('Authentication required to unlink Riot account.');
+      return;
+    }
+    setAuthLoading(true);
+    try {
+      const response = await fetch(`${AUTH_ENDPOINTS.RIOT_AUTHORIZE}/unlink`, { // Corrected endpoint path
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${tokens.accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) throw new Error(AUTH_ERRORS.UNAUTHORIZED);
+        const errorData = await response.json().catch(() => ({ message: 'Failed to unlink Riot account.' }));
+        throw new Error(errorData.message || 'Failed to unlink Riot account.');
+      }
+
+      const data = await response.json();
+
+      // Ensure the response contains the updated user object
+      if (!data.user || !isUserInfo(data.user)) {
+         throw new Error('Invalid response after unlinking Riot account.');
+      }
+
+      const updatedUser: UserInfo = data.user;
+
+      // Update the auth state with the new user info (cleared Riot fields)
+      setAuthState(updatedUser);
+
+      // Persist the updated state
+      // Retrieve existing profile from localStorage or state if needed
+      const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
+      const existingProfile = storedAuth ? JSON.parse(storedAuth).profile : null;
+      persistAuthState(updatedUser, tokens, existingProfile); // Persist updated user
+
+      console.log('Riot account unlinked successfully.');
+
+    } catch (error) {
+      console.error('Riot account unlinking error:', error);
+      setAuthError(error instanceof Error ? error.message : 'Failed to unlink Riot account.');
+    } finally {
+      setAuthLoading(false);
+    }
+  }, [tokens, state.user, setAuthLoading, setAuthError, setAuthState, persistAuthState, isUserInfo]); // Added isUserInfo dependency
+
   const contextValue = useMemo<AuthContextValue>(() => ({
     ...state,
     login,
@@ -570,7 +656,9 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     deleteParty: partyService.deleteParty,
     joinParty: partyService.joinParty,
     updateUserProfile,
-  }), [state, login, logout, tokens, startDiscordOAuth, exchangeDiscordCode, updateProfile, refreshToken, hasRole, updateUserProfile, setAuthError]);
+    startRiotOAuth,
+    unlinkRiotAccount,
+  }), [state, login, logout, tokens, startDiscordOAuth, exchangeDiscordCode, updateProfile, refreshToken, hasRole, updateUserProfile, setAuthError, startRiotOAuth, unlinkRiotAccount]);
 
   return (
     <AuthContext.Provider value={contextValue}>
