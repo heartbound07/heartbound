@@ -60,6 +60,13 @@ public class SecurityConfig {
                 // Add explicit permission for the credits endpoint
                 .requestMatchers(HttpMethod.PATCH, "/users/*/credits").hasRole("ADMIN")
                 
+                // *** New Riot OAuth configuration ***
+                // Allow public access to Riot OAuth initiation endpoint
+                .requestMatchers("/api/oauth2/riot/authorize").permitAll()
+                // CRUCIAL: Require authentication for the Riot callback endpoint
+                .requestMatchers("/api/oauth2/callback/riot").authenticated()
+                // *** End Riot OAuth configuration ***
+                
                 // Role-based security for admin endpoints
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 // Moderator endpoints available to admins and moderators

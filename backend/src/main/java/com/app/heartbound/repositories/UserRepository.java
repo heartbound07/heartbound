@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, String> {
@@ -23,4 +24,7 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     // Find users by username or email containing a search term
     Page<User> findByUsernameContainingOrEmailContaining(String username, String email, Pageable pageable);
+    
+    // Find a user by Riot PUUID (for account linking)
+    Optional<User> findByRiotPuuid(String riotPuuid);
 }

@@ -6,11 +6,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import com.app.heartbound.exceptions.ResourceNotFoundException;
-import com.app.heartbound.exceptions.UnauthorizedOperationException;
-import com.app.heartbound.exceptions.AuthenticationException;
-import com.app.heartbound.exceptions.InvalidTokenException;
-import com.app.heartbound.exceptions.RateLimitExceededException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -104,6 +99,19 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()
         );
         return new ResponseEntity<>(response, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    @ExceptionHandler(AccountLinkingException.class)
+    public ResponseEntity<ErrorResponse> handleAccountLinkingException(AccountLinkingException ex,
+                                                                      HttpServletRequest request) {
+        ErrorResponse response = new ErrorResponse(
+                Instant.now(),
+                HttpStatus.CONFLICT.value(),
+                "Account Linking Error",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 
     // Structured error response structure.

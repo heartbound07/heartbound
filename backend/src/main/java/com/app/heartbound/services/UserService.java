@@ -3,11 +3,13 @@ package com.app.heartbound.services;
 import com.app.heartbound.dto.UserDTO;
 import com.app.heartbound.dto.UpdateProfileDTO;
 import com.app.heartbound.dto.UserProfileDTO;
+import com.app.heartbound.dto.riot.RiotAccountInfoDTO;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
+import com.app.heartbound.exceptions.AccountLinkingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -202,6 +204,9 @@ public class UserService {
             logger.debug("Using custom avatar URL for user: {}: {}", user.getId(), avatarUrl);
         }
         
+        // Determine if the user has a linked Riot account
+        boolean riotAccountLinked = (user.getRiotPuuid() != null && !user.getRiotPuuid().isEmpty());
+        
         return UserProfileDTO.builder()
                 .id(user.getId())
                 .username(user.getUsername())
@@ -213,6 +218,10 @@ public class UserService {
                 .bannerUrl(user.getBannerUrl())
                 .roles(user.getRoles())
                 .credits(user.getCredits())
+                // Add Riot account fields
+                .riotGameName(user.getRiotGameName())
+                .riotTagLine(user.getRiotTagLine())
+                .riotAccountLinked(riotAccountLinked)
                 .build();
     }
 
@@ -417,20 +426,91 @@ public class UserService {
         if (user == null) {
             return null;
         }
+        
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
-        dto.setDiscriminator(user.getDiscriminator()); // Include discriminator if needed in DTO
+        dto.setDiscriminator(user.getDiscriminator());
         dto.setEmail(user.getEmail());
-        dto.setAvatar(user.getAvatar()); // Use the avatar from the User entity
+        dto.setAvatar(user.getAvatar());
         dto.setRoles(user.getRoles());
         dto.setCredits(user.getCredits());
-        // Add any other fields from User that are present in UserDTO
+        
+        // Add Riot account fields
+        dto.setRiotPuuid(user.getRiotPuuid());
+        dto.setRiotGameName(user.getRiotGameName());
+        dto.setRiotTagLine(user.getRiotTagLine());
+        
         return dto;
     }
 
     /**
-     * Maps a User entity to a UserProfileDTO.
-     * Used for public profile views.
+     * Links a Riot account to an existing user
+     *
+     * @param userId the ID of the user to link
+     * @param riotAccountInfo the Riot account information to link
+     * @return the updated User entity
+     * @throws ResourceNotFoundException if the user is not found
+     * @throws AccountLinkingException if the Riot account is already linked to another user
      */
+    public User linkRiotAccount(String userId, RiotAccountInfoDTO riotAccountInfo) {
+        logger.debug("Linking Riot account for user ID: {}", userId);
+        
+        // Get the user entity
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // Check if the Riot PUUID is already linked to another user
+        if (riotAccountInfo.getPuuid() != null && !riotAccountInfo.getPuuid().isEmpty()) {
+            userRepository.findByRiotPuuid(riotAccountInfo.getPuuid())
+                .ifPresent(existingUser -> {
+                    if (!existingUser.getId().equals(userId)) {
+                        throw new AccountLinkingException("This Riot account is already linked to another user");
+                    }
+                });
+        }
+        
+        // Update user with Riot account details
+        user.setRiotPuuid(riotAccountInfo.getPuuid());
+        user.setRiotGameName(riotAccountInfo.getGameName());
+        user.setRiotTagLine(riotAccountInfo.getTagLine());
+        
+        // Save and return the updated user
+        User updatedUser = userRepository.save(user);
+        logger.info("Successfully linked Riot account for user: {}", updatedUser.getUsername());
+        
+        return updatedUser;
+    }
+    
+    /**
+     * Unlinks a Riot account from a user
+     *
+     * @param userId the ID of the user
+     * @return the updated User entity
+     * @throws ResourceNotFoundException if the user is not found
+     */
+    public User unlinkRiotAccount(String userId) {
+        logger.debug("Unlinking Riot account for user ID: {}", userId);
+        
+        // Get the user entity
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // Check if user has a linked Riot account
+        if (user.getRiotPuuid() == null) {
+            logger.warn("Attempted to unlink non-existent Riot account for user: {}", userId);
+            return user; // No changes needed
+        }
+        
+        // Clear Riot account details
+        user.setRiotPuuid(null);
+        user.setRiotGameName(null);
+        user.setRiotTagLine(null);
+        
+        // Save and return the updated user
+        User updatedUser = userRepository.save(user);
+        logger.info("Successfully unlinked Riot account for user: {}", updatedUser.getUsername());
+        
+        return updatedUser;
+    }
 }

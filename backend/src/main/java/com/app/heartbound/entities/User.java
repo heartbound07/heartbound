@@ -48,6 +48,16 @@ public class User {
     // Add credits field with default value
     private Integer credits = 0;
     
+    // Riot account fields
+    @Column(unique = true, nullable = true)
+    private String riotPuuid;
+    
+    @Column(nullable = true)
+    private String riotGameName;
+    
+    @Column(nullable = true)
+    private String riotTagLine;
+    
     // Role-based security addition
     @ElementCollection(fetch = jakarta.persistence.FetchType.EAGER)
     @Enumerated(jakarta.persistence.EnumType.STRING)

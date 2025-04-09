@@ -36,4 +36,15 @@ public class UserDTO {
     
     @Schema(description = "The number of credits the user has", example = "100")
     private Integer credits = 0;
+    
+    // --- New Riot Account Fields ---
+    @Schema(description = "The Riot Games Player Universally Unique ID", example = "aBc123dE-45fG-678h-9IjK-lMnOpQrStUv")
+    private String riotPuuid;
+    
+    @Schema(description = "The Riot Games in-game name", example = "RiotPlayer")
+    private String riotGameName;
+    
+    @Schema(description = "The Riot Games tag line (part after #)", example = "NA1")
+    private String riotTagLine;
+    // --- End Riot Account Fields ---
 }
