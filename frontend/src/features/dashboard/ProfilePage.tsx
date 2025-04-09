@@ -145,79 +145,82 @@ const RiotAccountSection = () => {
   const handleLinkRiotAccount = async () => {
     try {
       await startRiotOAuth();
-      // The user will be redirected away, so no need for additional handling here
+      // The page will redirect to Riot's authorization page
     } catch (error) {
-      toast.error("Failed to initiate Riot account linking");
-      console.error(error);
+      toast.error("Failed to link Riot account. Please try again later.");
+      console.error("Error linking Riot account:", error);
     }
   };
   
   const handleUnlinkRiotAccount = async () => {
+    if (!confirm("Are you sure you want to unlink your Riot account?")) return;
+    
     setIsUnlinking(true);
     try {
       await unlinkRiotAccount();
-      toast.success("Riot account successfully unlinked");
+      toast.success("Riot account unlinked successfully");
     } catch (error) {
       toast.error("Failed to unlink Riot account");
-      console.error(error);
+      console.error("Error unlinking Riot account:", error);
     } finally {
       setIsUnlinking(false);
     }
   };
   
-  const isRiotLinked = Boolean(user?.riotGameName && user?.riotTagLine);
+  const hasRiotAccount = user?.riotGameName && user?.riotTagLine;
   
   return (
-    <div className="mb-6 p-4 bg-black/20 rounded-lg border border-white/10">
-      <h3 className="text-xl font-semibold mb-4">Riot Games Account</h3>
-      
-      {isRiotLinked ? (
-        <div className="space-y-4">
-          <div className="flex items-center">
-            <div className="mr-3">
+    <div className="mb-6">
+      <Label className="text-xs font-medium text-white/80 mb-2 block">RIOT ACCOUNT</Label>
+      <div className="bg-zinc-800/50 border border-white/5 rounded-lg p-4">
+        {hasRiotAccount ? (
+          <div>
+            <div className="flex items-center mb-3">
               <img 
                 src="/valorant-logo.png" 
-                alt="Valorant" 
-                className="w-10 h-10 rounded-md"
+                alt="Valorant Logo" 
+                className="w-6 h-6 mr-2"
                 onError={(e) => {
-                  e.currentTarget.src = "https://via.placeholder.com/40?text=V";
+                  e.currentTarget.src = "https://placehold.co/24x24/FA4453/white?text=V";
                 }}
               />
+              <span className="text-white font-medium">{user.riotGameName}#{user.riotTagLine}</span>
             </div>
-            <div>
-              <div className="font-medium">{user?.riotGameName}#{user?.riotTagLine}</div>
-              <div className="text-sm text-gray-400">Linked Account</div>
-            </div>
+            <Button
+              onClick={handleUnlinkRiotAccount}
+              disabled={isUnlinking || isLoading}
+              variant="ghost"
+              className="text-white/70 hover:text-white hover:bg-white/10 flex items-center gap-2"
+            >
+              {isUnlinking ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Unlinking...
+                </>
+              ) : (
+                <>
+                  <Unlink className="h-4 w-4" />
+                  Unlink Riot Account
+                </>
+              )}
+            </Button>
           </div>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleUnlinkRiotAccount}
-            disabled={isLoading || isUnlinking}
-            className="mt-2 flex items-center text-white/70 hover:text-white/90"
-          >
-            {isUnlinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Unlink className="mr-2 h-4 w-4" />}
-            Unlink Riot Account
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <p className="text-sm text-white/70">
-            Link your Riot Games account to display your Valorant information and participate in matchmaking.
-          </p>
-          
-          <Button
-            variant="default"
-            onClick={handleLinkRiotAccount}
-            disabled={isLoading}
-            className="mt-2 flex items-center bg-[#FA4453] hover:bg-[#FF6B78] text-white"
-          >
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link2 className="mr-2 h-4 w-4" />}
-            Connect Riot Account
-          </Button>
-        </div>
-      )}
+        ) : (
+          <div>
+            <p className="text-white/60 mb-3 text-sm">
+              Connect your Riot account to verify your Valorant rank and enable additional features.
+            </p>
+            <Button
+              onClick={handleLinkRiotAccount}
+              disabled={isLoading}
+              className="bg-[#FA4453] hover:bg-[#FA4453]/90 text-white flex items-center gap-2"
+            >
+              <Link2 className="h-4 w-4" />
+              Connect Riot Account
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

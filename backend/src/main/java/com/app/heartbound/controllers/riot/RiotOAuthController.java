@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/oauth2/riot")
+@RequestMapping("/oauth2/riot")
 @Tag(name = "Riot OAuth", description = "Endpoints for Riot Games account authentication and linking")
 public class RiotOAuthController {
     
