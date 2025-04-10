@@ -1,5 +1,6 @@
 package com.app.heartbound.dto.lfg;
 
+import com.app.heartbound.enums.TrackingStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,7 +20,7 @@ import java.util.UUID;
 @Builder
 public class LFGPartyEventDTO {
     
-    // Event type values: PARTY_CREATED, PARTY_UPDATED, PARTY_DELETED, PARTY_JOINED, PARTY_LEFT, etc.
+    // Event type values: PARTY_CREATED, PARTY_UPDATED, PARTY_DELETED, PARTY_JOINED, PARTY_LEFT, PARTY_TRACKING_UPDATE
     private String eventType;
     
     // The full party details, if applicable
@@ -31,7 +32,7 @@ public class LFGPartyEventDTO {
     // Optional human-readable message to provide additional context or notifications.
     private String message;
     
-    // Add this field
+    // Targeted user ID for directed events (like invites or join request responses)
     private String targetUserId;
     
     /**
@@ -50,6 +51,9 @@ public class LFGPartyEventDTO {
         private java.util.Set<String> participants;
         private java.util.Set<String> joinRequests;
         private java.util.Set<String> invitedUsers;
+        // Track game status (IDLE, SEARCHING, GAME_DETECTED, GAME_IN_PROGRESS, etc.)
         private String trackingStatus;
+        // Additional tracking information that might be useful in events
+        private String currentTrackedMatchId;
     }
 }

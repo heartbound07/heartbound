@@ -2,6 +2,7 @@ package com.app.heartbound.dto.lfg;
 
 import com.app.heartbound.enums.Rank;
 import com.app.heartbound.enums.Region;
+import com.app.heartbound.enums.TrackingStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -48,6 +49,11 @@ public class LFGPartyResponseDTO {
 
     // Field to store Discord invite URL
     private String discordInviteUrl;
+    
+    // Match tracking fields
+    private TrackingStatus trackingStatus;
+    private String currentTrackedMatchId;
+    private Instant lastTrackedMatchCompletionTime;
 
     /**
      * PartyRequirementsDTO

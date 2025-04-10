@@ -755,6 +755,9 @@ public class LFGPartyService {
                 .joinRequests(party.getJoinRequests())
                 .discordChannelId(party.getDiscordChannelId())
                 .discordInviteUrl(party.getDiscordInviteUrl())
+                .trackingStatus(party.getTrackingStatus())
+                .currentTrackedMatchId(party.getCurrentTrackedMatchId())
+                .lastTrackedMatchCompletionTime(party.getLastTrackedMatchCompletionTime())
                 .build();
     }
 
