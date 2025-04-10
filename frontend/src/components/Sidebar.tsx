@@ -7,7 +7,7 @@ import { MdDashboard, MdAdminPanelSettings } from "react-icons/md"
 import { IoSettingsSharp } from "react-icons/io5"
 import { FaCoins, FaTrophy } from "react-icons/fa"
 import { useState, useRef, useEffect } from "react"
-import { ChevronDown, ChevronRight, Menu, LogOut } from "lucide-react"
+import { ChevronRight, Menu, LogOut } from "lucide-react"
 import { ProfilePreview } from "@/components/ui/profile/ProfilePreview"
 import ReactDOM from "react-dom"
 import valorantLogo from '@/assets/images/valorant-logo.png'
@@ -93,10 +93,8 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
   const isAdmin = hasRole('ADMIN');
 
   // Determine if we're on the admin page
-  const isAdminPage = location.pathname === '/dashboard/admin';
   
   // Determine if we're on the leaderboard page
-  const isLeaderboardPage = location.pathname === '/dashboard/leaderboard';
 
   // Add admin panel to nav items if the user is an admin
   const navItems = [
