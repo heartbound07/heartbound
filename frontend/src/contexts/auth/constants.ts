@@ -1,13 +1,17 @@
 export const AUTH_STORAGE_KEY = 'heartbound_auth';
 export const TOKEN_REFRESH_MARGIN = 300000; // 5 minutes
+
+// Get API URL from environment or fallback to localhost if not defined
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+
 export const AUTH_ENDPOINTS = {
-  LOGIN: 'http://localhost:8080/api/auth/login',
-  REGISTER: 'http://localhost:8080/api/auth/register',
-  LOGOUT: 'http://localhost:8080/api/auth/logout',
-  REFRESH: 'http://localhost:8080/api/auth/refresh',
-  DISCORD_AUTHORIZE: 'http://localhost:8080/api/auth/discord/authorize',
-  DISCORD_CALLBACK: 'http://localhost:8080/api/oauth2/callback/discord',
-  DISCORD_EXCHANGE_CODE: 'http://localhost:8080/api/auth/discord/exchange-code',
+  LOGIN: `${API_URL}/auth/login`,
+  REGISTER: `${API_URL}/auth/register`,
+  LOGOUT: `${API_URL}/auth/logout`,
+  REFRESH: `${API_URL}/auth/refresh`,
+  DISCORD_AUTHORIZE: `${API_URL}/auth/discord/authorize`,
+  DISCORD_CALLBACK: `${API_URL}/oauth2/callback/discord`,
+  DISCORD_EXCHANGE_CODE: `${API_URL}/auth/discord/exchange-code`,
 } as const;
 
 export const AUTH_ERRORS = {
