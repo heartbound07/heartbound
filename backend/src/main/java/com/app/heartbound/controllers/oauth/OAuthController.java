@@ -37,7 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.view.RedirectView;
 
-@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+@CrossOrigin(origins = "http://", allowCredentials = "true")
 @RestController
 public class OAuthController {
 
@@ -54,6 +54,9 @@ public class OAuthController {
 
     @Value("${discord.scopes}")
     private String discordScopes;
+
+    @Value("${frontend.base.url}")
+    private String frontendBaseUrl;
 
     // Discord endpoints
     private static final String DISCORD_AUTH_URL = "https://discord.com/api/oauth2/authorize";
@@ -137,7 +140,7 @@ public class OAuthController {
         if (sessionState == null) {
             logger.warn("No state found in session. Potential session issue or direct access.");
             // Redirect to frontend login with a state error
-            return new RedirectView("http://localhost:3000/login?error=Session+state+missing");
+            return new RedirectView(frontendBaseUrl + "/login?error=Session+state+missing");
         }
 
         if (!incomingState.equals(sessionState)) {
@@ -145,7 +148,7 @@ public class OAuthController {
             // Clear the potentially compromised state from the session
             session.removeAttribute(SESSION_FRONTEND_STATE_KEY);
             // Redirect to frontend login with a state mismatch error
-            return new RedirectView("http://localhost:3000/login?error=State+mismatch");
+            return new RedirectView(frontendBaseUrl + "/login?error=State+mismatch");
         }
 
         // State is valid, clear it from the session as it's single-use for this flow step
@@ -174,12 +177,12 @@ public class OAuthController {
             tokenResponse = restTemplate.postForObject(DISCORD_TOKEN_URL, requestEntity, OAuthTokenResponse.class);
             if (tokenResponse == null || tokenResponse.getAccessToken() == null) {
                 logger.error("Token exchange failed: received null token response from Discord");
-                return new RedirectView("http://localhost:3000/login?error=Discord+token+exchange+failed");
+                return new RedirectView(frontendBaseUrl + "/login?error=Discord+token+exchange+failed");
             }
             logger.info("Discord token exchange successful.");
         } catch (Exception e) {
             logger.error("Discord token exchange failed: {}", e.getMessage(), e); // Log stack trace
-            return new RedirectView("http://localhost:3000/login?error=Discord+token+exchange+exception");
+            return new RedirectView(frontendBaseUrl + "/login?error=Discord+token+exchange+exception");
         }
 
         UserDTO userDTO;
@@ -189,7 +192,7 @@ public class OAuthController {
             logger.info("User details retrieved successfully from Discord: {}", userDTO);
         } catch (Exception e) {
             logger.error("Failed to retrieve user details from Discord: {}", e.getMessage(), e); // Log stack trace
-            return new RedirectView("http://localhost:3000/login?error=Discord+user+info+retrieval+failed");
+            return new RedirectView(frontendBaseUrl + "/login?error=Discord+user+info+retrieval+failed");
         }
 
         // Find or create user in our database
@@ -197,7 +200,7 @@ public class OAuthController {
         User user = userService.createOrUpdateUser(userDTO);
         if (user == null || user.getId() == null) {
              logger.error("Failed to create or update user for Discord ID: {}", userDTO.getId());
-             return new RedirectView("http://localhost:3000/login?error=User+processing+failed");
+             return new RedirectView(frontendBaseUrl + "/login?error=User+processing+failed");
         }
         logger.info("User processed successfully. User ID: {}", user.getId());
 
@@ -211,7 +214,7 @@ public class OAuthController {
             logger.debug("Generated single-use code: [{}]", singleUseCode); // Log the generated code
         } catch (Exception e) {
             logger.error("Failed to generate secure single-use code", e);
-            return new RedirectView("http://localhost:3000/login?error=Internal+server+error+(code+gen)");
+            return new RedirectView(frontendBaseUrl + "/login?error=Internal+server+error+(code+gen)");
         }
 
 
@@ -222,7 +225,7 @@ public class OAuthController {
             logger.info("Stored single-use code [{}] for user ID: {}", singleUseCode, user.getId());
         } catch (Exception e) {
             logger.error("Failed to store single-use code [{}] for user ID {}: {}", singleUseCode, user.getId(), e.getMessage(), e);
-            return new RedirectView("http://localhost:3000/login?error=Internal+server+error+(code+store)");
+            return new RedirectView(frontendBaseUrl + "/login?error=Internal+server+error+(code+store)");
         }
 
         // 3. URL-encode the single-use code and the original frontend state received from Discord
@@ -235,15 +238,16 @@ public class OAuthController {
              logger.debug("Encoded single-use code: [{}], Encoded state: [{}]", encodedSingleUseCode, encodedFrontendState);
         } catch (Exception e) {
              logger.error("Failed to URL encode parameters for frontend redirect", e);
-             return new RedirectView("http://localhost:3000/login?error=Internal+server+error+(encoding)");
+             return new RedirectView(frontendBaseUrl + "/login?error=Internal+server+error+(encoding)");
         }
 
 
         // Build the redirect URL to the frontend callback
         String frontendRedirectUrl = String.format(
-                "http://localhost:3000/auth/discord/callback?code=%s&state=%s",
+                "%s/auth/discord/callback?code=%s&state=%s",
+                frontendBaseUrl,
                 encodedSingleUseCode,
-                encodedFrontendState // Pass the validated frontend state back
+                encodedFrontendState 
         );
         // --- End Secure Code Exchange ---
 

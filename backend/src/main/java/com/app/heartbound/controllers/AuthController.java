@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.Collections;
 import com.app.heartbound.enums.Role;
 
-@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+@CrossOrigin(origins = "${cors.allowed-origins}", allowCredentials = "true")
 @RestController
 @RequestMapping("/auth")
 public class AuthController {

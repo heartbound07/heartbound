@@ -45,9 +45,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Register the WebSocket endpoint and allow SockJS fallback.
         registry.addEndpoint("/ws")
-                .setAllowedOrigins("http://localhost:3000") // Update with your frontend domain in production.
+                .setAllowedOrigins("${cors.allowed-origins}") // Use property instead of hardcoded value
                 .withSockJS();
-        logger.info("STOMP endpoint '/ws' registered with SockJS fallback and allowed origins: http://localhost:3000");
+        logger.info("STOMP endpoint '/ws' registered with SockJS fallback and allowed origins: ${cors.allowed-origins}");
     }
 
     @Override
