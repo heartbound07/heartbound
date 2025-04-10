@@ -3,6 +3,12 @@ import SockJS from 'sockjs-client';
 import axios from 'axios';
 import { AUTH_ENDPOINTS } from '@/contexts/auth/constants';
 import { tokenStorage } from '../contexts/auth/tokenStorage';
+import { API_CONFIG } from './api'; // Import API_CONFIG
+
+// Derive WebSocket URL from API_CONFIG
+// SockJS needs the HTTP(S) base URL + the WebSocket endpoint path
+const webSocketUrl = `${API_CONFIG.BASE_URL}/ws`;
+console.log(`[WebSocket] Configured URL: ${webSocketUrl}`); // Log the URL for debugging
 
 class WebSocketService {
   private client: Client;
@@ -16,9 +22,8 @@ class WebSocketService {
   constructor() {
     // Initialize the STOMP client with configuration options.
     this.client = new Client({
-      // Make sure this matches the endpoint registered in WebSocketConfig ("/ws")
-      // DO NOT CHANGE FROM ("/api/ws") to ("/ws")! Backend Serverlet is set to /api
-      webSocketFactory: () => new SockJS('http://localhost:8080/api/ws'),
+      // Use the dynamically determined WebSocket URL
+      webSocketFactory: () => new SockJS(webSocketUrl),
       // Built-in auto-reconnect (in milliseconds). Adjust as needed.
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,

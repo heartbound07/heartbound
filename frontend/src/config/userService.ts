@@ -25,7 +25,7 @@ export interface UpdateProfileDTO {
 
 export const getUserProfile = async (userId: string): Promise<UserProfileDTO> => {
   try {
-    const response = await httpClient.get(`/api/users/${userId}/profile`);
+    const response = await httpClient.get(`/users/${userId}/profile`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching user profile for ${userId}:`, error);
@@ -70,7 +70,7 @@ export const getUserProfiles = async (userIds: string[]): Promise<Record<string,
 
 export const updateUserProfile = async (userId: string, profile: UpdateProfileDTO): Promise<UserProfileDTO> => {
   try {
-    const response = await httpClient.put(`/api/users/${userId}/profile`, profile);
+    const response = await httpClient.put(`/users/${userId}/profile`, profile);
     return response.data;
   } catch (error) {
     console.error(`Error updating user profile for ${userId}:`, error);
@@ -80,7 +80,7 @@ export const updateUserProfile = async (userId: string, profile: UpdateProfileDT
 
 export const getLeaderboardUsers = async (): Promise<UserProfileDTO[]> => {
   try {
-    const response = await httpClient.get('/api/users/leaderboard');
+    const response = await httpClient.get('/users/leaderboard');
     return response.data;
   } catch (error) {
     console.error('Error fetching leaderboard data:', error);
