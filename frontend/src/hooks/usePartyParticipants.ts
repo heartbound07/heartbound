@@ -16,7 +16,6 @@ export function usePartyParticipants({
   maxPlayers,
   userProfiles,
   placeholderAvatar,
-  currentUser
 }: UsePartyParticipantsParams) {
   // Calculate joined participants (excluding leader)
   const joinedParticipants = useMemo(() => 
