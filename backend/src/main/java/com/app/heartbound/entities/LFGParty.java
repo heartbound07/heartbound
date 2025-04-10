@@ -2,6 +2,7 @@ package com.app.heartbound.entities;
 
 import com.app.heartbound.enums.Rank;
 import com.app.heartbound.enums.Region;
+import com.app.heartbound.enums.TrackingStatus;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
@@ -43,6 +44,10 @@ import java.util.UUID;
  * - createdAt: Timestamp when the party was created.
  * - expiresAt: Timestamp when the party will expire (computed).
  * - participants: Collection of user IDs who have joined the party.
+ * - trackingStatus: Current status of match tracking.
+ * - currentTrackedMatchId: ID of the match currently being tracked.
+ * - lastTrackedMatchCompletionTime: When the last tracked match completed.
+ * - processedMatchIds: Set of match IDs that have been processed for rewards.
  */
 @Data
 @Builder
@@ -134,6 +139,27 @@ public class LFGParty {
 
     @Column(name = "discord_invite_url")
     private String discordInviteUrl;
+
+    // --- New Fields for Game Tracking ---
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tracking_status", nullable = false)
+    @Builder.Default
+    private TrackingStatus trackingStatus = TrackingStatus.IDLE;
+
+    @Column(name = "current_tracked_match_id")
+    private String currentTrackedMatchId;
+
+    @Column(name = "last_tracked_match_completion_time")
+    private Instant lastTrackedMatchCompletionTime;
+
+    @ElementCollection(fetch = FetchType.LAZY) // Use LAZY fetch for potentially large collections
+    @CollectionTable(
+        name = "lfg_party_processed_matches",
+        joinColumns = @JoinColumn(name = "party_id")
+    )
+    @Column(name = "match_id")
+    @Builder.Default
+    private Set<String> processedMatchIds = new HashSet<>();
 
     /**
      * PartyRequirements
