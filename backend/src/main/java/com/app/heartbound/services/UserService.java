@@ -19,6 +19,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
@@ -511,6 +512,33 @@ public class UserService {
         User updatedUser = userRepository.save(user);
         logger.info("Successfully unlinked Riot account for user: {}", updatedUser.getUsername());
         
+        return updatedUser;
+    }
+
+    /**
+     * Adds a specified amount of credits to a user's account.
+     *
+     * @param userId The ID of the user.
+     * @param amount The amount of credits to add (must be positive).
+     * @return The updated User entity.
+     * @throws ResourceNotFoundException if the user is not found.
+     * @throws IllegalArgumentException if the amount is not positive.
+     */
+    @Transactional // Ensure atomicity
+    public User addCredits(String userId, int amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Credit amount must be positive.");
+        }
+
+        logger.debug("Attempting to add {} credits to user ID: {}", amount, userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
+        user.setCredits(currentCredits + amount);
+
+        User updatedUser = userRepository.save(user);
+        logger.info("Successfully added {} credits to user {}. New balance: {}", amount, user.getUsername(), updatedUser.getCredits());
         return updatedUser;
     }
 }

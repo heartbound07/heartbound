@@ -50,5 +50,6 @@ public class LFGPartyEventDTO {
         private java.util.Set<String> participants;
         private java.util.Set<String> joinRequests;
         private java.util.Set<String> invitedUsers;
+        private String trackingStatus;
     }
 }
