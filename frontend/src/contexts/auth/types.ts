@@ -3,6 +3,17 @@ import { UpdateProfileDTO } from '@/config/userService';
 
 export type Role = 'USER' | 'MONARCH' | 'MODERATOR' | 'ADMIN';
 
+// Define tracking status enum to match backend
+export enum TrackingStatus {
+  IDLE = 'IDLE',
+  SEARCHING = 'SEARCHING',
+  GAME_DETECTED = 'GAME_DETECTED',
+  GAME_IN_PROGRESS = 'GAME_IN_PROGRESS',
+  GAME_COMPLETED = 'GAME_COMPLETED',
+  REWARDED = 'REWARDED',
+  TRACKING_FAILED = 'TRACKING_FAILED'
+}
+
 export interface UserInfo {
   id: string;
   username: string;

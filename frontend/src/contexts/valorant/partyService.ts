@@ -1,4 +1,5 @@
 import httpClient from '../../lib/api/httpClient';
+import { TrackingStatus } from '../auth/types';
 
 export type Rank = 'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'ASCENDANT' | 'IMMORTAL' | 'RADIANT';
 export type Region = 'NA_EAST' | 'NA_WEST' | 'NA_CENTRAL' | 'LATAM' | 'BR' | 'EU' | 'KR' | 'AP';
@@ -59,6 +60,9 @@ export interface LFGPartyResponseDTO {
   joinRequests?: string[];
   discordChannelId?: string;
   discordInviteUrl?: string;
+  trackingStatus: TrackingStatus;
+  currentTrackedMatchId?: string;
+  lastTrackedMatchCompletionTime?: string;
 }
 
 export interface ListPartiesParams {
@@ -150,3 +154,10 @@ export const rejectJoinRequest = async (partyId: string, userId: string): Promis
   const response = await httpClient.post(`/api/lfg/parties/${partyId}/reject-join-request/${userId}`);
   return response.data;
 };
+
+export interface MinimalPartyDTO {
+  id: string;
+  userId: string;
+  trackingStatus: string;
+  currentTrackedMatchId?: string;
+}

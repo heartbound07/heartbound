@@ -21,6 +21,8 @@ export interface LFGPartyEvent {
     participants: string[];
     joinRequests: string[];
     invitedUsers: string[];
+    trackingStatus?: string;
+    currentTrackedMatchId?: string;
   };
   message: string;
   targetUserId?: string;
@@ -149,5 +151,5 @@ export const usePartyUpdates = (): PartyUpdatesContextProps => {
   }
   return context;
 };
-
 export default PartyUpdatesProvider;
+

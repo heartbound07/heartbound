@@ -22,6 +22,7 @@ import { Toast } from '@/components/Toast'
 import type { ToastProps as OriginalToastProps } from '@/components/Toast'
 import { DiscordIcon } from "@/components/ui/DiscordIcon"
 import "@/assets/PartyDetails.css"
+import { TrackingStatus } from "@/contexts/auth/types";
 
 // DetailBadge component for displaying details with label and value
 const DetailBadge = ({ 
@@ -103,6 +104,81 @@ const IconBadge = ({
 
 // Define a local type that includes the 'id' and makes 'actions' optional
 type ToastState = Omit<OriginalToastProps, 'onClose'> & { id: string };
+
+// Tracking status badge component for visually representing the match tracking status
+const TrackingStatusBadge = ({ 
+  status, 
+  matchId 
+}: { 
+  status: TrackingStatus | string; 
+  matchId?: string;
+}) => {
+  let bgColor = "bg-gray-700";
+  let icon = <Loader2 className="w-4 h-4 mr-1.5" />;
+  let statusText = "Unknown Status";
+  
+  switch(status) {
+    case TrackingStatus.IDLE:
+      bgColor = "bg-gray-700";
+      icon = <Globe className="w-4 h-4 mr-1.5" />;
+      statusText = "Idle - Waiting for Game";
+      break;
+    case TrackingStatus.SEARCHING:
+      bgColor = "bg-blue-700";
+      icon = <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />;
+      statusText = "Searching for Match";
+      break;
+    case TrackingStatus.GAME_DETECTED:
+      bgColor = "bg-amber-600";
+      icon = <GamepadIcon className="w-4 h-4 mr-1.5 animate-pulse" />;
+      statusText = "Game Detected";
+      break;
+    case TrackingStatus.GAME_IN_PROGRESS:
+      bgColor = "bg-green-600";
+      icon = <GamepadIcon className="w-4 h-4 mr-1.5" />;
+      statusText = "Game in Progress";
+      break;
+    case TrackingStatus.GAME_COMPLETED:
+      bgColor = "bg-purple-600";
+      icon = <Trophy className="w-4 h-4 mr-1.5" />;
+      statusText = "Game Completed";
+      break;
+    case TrackingStatus.REWARDED:
+      bgColor = "bg-amber-500";
+      icon = <Award className="w-4 h-4 mr-1.5" />;
+      statusText = "Credits Rewarded";
+      break;
+    case TrackingStatus.TRACKING_FAILED:
+      bgColor = "bg-red-600";
+      icon = <Loader2 className="w-4 h-4 mr-1.5" />;
+      statusText = "Tracking Error";
+      break;
+  }
+  
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className={`flex items-center rounded-lg px-3 py-2 text-white ${bgColor} transition-all`}>
+          {icon}
+          <span className="whitespace-nowrap text-sm font-medium">{statusText}</span>
+          {matchId && (status === TrackingStatus.GAME_IN_PROGRESS || status === TrackingStatus.GAME_DETECTED) && (
+            <Tooltip>
+              <TooltipTrigger className="ml-2">
+                <Link2 className="w-3.5 h-3.5 opacity-80" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs font-mono">Match ID: {matchId.substring(0, 12)}...</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>
+        {matchId ? `Current Match: ${matchId}` : 'No active match'}
+      </TooltipContent>
+    </Tooltip>
+  );
+};
 
 export default function ValorantPartyDetails() {
   const { user, hasRole } = useAuth()
@@ -302,6 +378,29 @@ export default function ValorantPartyDetails() {
       
       // Clear the update
       clearUpdate();
+    } 
+    // Add handling for minimal party updates (like tracking status changes)
+    else if (update && update.minimalParty && update.minimalParty.id === party?.id) {
+      // Handle tracking status updates
+      if (update.eventType === 'PARTY_TRACKING_UPDATE') {
+        // Create updated party object with new tracking information
+        const updatedParty = {
+          ...party,
+          trackingStatus: update.minimalParty.trackingStatus || party.trackingStatus,
+          currentTrackedMatchId: update.minimalParty.currentTrackedMatchId || party.currentTrackedMatchId
+        };
+        
+        // Update the party state with tracking changes
+        setParty(updatedParty);
+        
+        // Show a toast notification about the tracking status change
+        if (update.message) {
+          showToast(update.message, "info");
+        }
+        
+        // Clear the update
+        clearUpdate();
+      }
     }
   }, [update, party?.id, user?.id, clearUpdate, userProfiles]);
 
@@ -1038,6 +1137,59 @@ export default function ValorantPartyDetails() {
               </div>
             </div>
           )}
+          
+          {/* Game Tracking Status */}
+          <div className="mt-6">
+            <h3 className="text-md font-medium text-white/90 mb-2 flex items-center">
+              <GamepadIcon className="w-5 h-5 mr-2 text-[#FF4655]/90" />
+              Match Tracking Status
+            </h3>
+            <div className="bg-[#1F2731]/60 backdrop-blur-sm rounded-lg border border-white/5 p-4">
+              {party?.trackingStatus ? (
+                <div className="flex flex-col gap-3">
+                  <TrackingStatusBadge 
+                    status={party.trackingStatus} 
+                    matchId={party.currentTrackedMatchId}
+                  />
+                  
+                  {/* Display last tracked match completion time if available */}
+                  {party.lastTrackedMatchCompletionTime && (
+                    <div className="text-sm text-white/70 mt-1">
+                      <span className="font-medium">Last Completed Match:</span>{' '}
+                      {new Date(party.lastTrackedMatchCompletionTime).toLocaleString()}
+                    </div>
+                  )}
+                  
+                  {/* Show explanation text based on status */}
+                  <div className="text-sm text-white/60 mt-1">
+                    {party.trackingStatus === TrackingStatus.IDLE && (
+                      "When party members with linked Riot accounts play together, your match will be tracked automatically."
+                    )}
+                    {party.trackingStatus === TrackingStatus.SEARCHING && (
+                      "Searching for a match where party members are playing together..."
+                    )}
+                    {party.trackingStatus === TrackingStatus.GAME_DETECTED && (
+                      "A potential match has been detected! Game launch confirmed."
+                    )}
+                    {party.trackingStatus === TrackingStatus.GAME_IN_PROGRESS && (
+                      "Your game is in progress. Credits will be awarded when completed."
+                    )}
+                    {party.trackingStatus === TrackingStatus.GAME_COMPLETED && (
+                      "Your game is completed. Processing rewards..."
+                    )}
+                    {party.trackingStatus === TrackingStatus.REWARDED && (
+                      "Congratulations! Credits have been awarded for your completed match."
+                    )}
+                    {party.trackingStatus === TrackingStatus.TRACKING_FAILED && (
+                      "There was an error tracking your match. Please try again or contact support."
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-white/50 text-sm">Loading tracking status...</div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </TooltipProvider>
