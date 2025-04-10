@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService";
 import { acceptJoinRequest, rejectJoinRequest, getParty } from "@/contexts/valorant/partyService";
-import { usePartyUpdates, type LFGPartyEvent } from "@/contexts/PartyUpdates";
+import { usePartyUpdates } from "@/contexts/PartyUpdates";
 
 interface UsePartyJoinRequestsParams {
   partyId: string | null;
@@ -15,7 +15,6 @@ interface UsePartyJoinRequestsParams {
 export function usePartyJoinRequests({
   partyId,
   userId,
-  isUserLeader,
   party,
   updatePartyState,
   showToast

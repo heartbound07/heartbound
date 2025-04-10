@@ -1,4 +1,3 @@
-import React from "react";
 import { SkeletonAuthentication } from "./SkeletonUI";
 
 interface LoadingSpinnerProps {

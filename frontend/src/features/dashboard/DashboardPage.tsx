@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/auth';
 import { GameCard } from '@/components/ui/GameCard';
 import { SkeletonGameCard } from '@/components/ui/SkeletonUI';
 import '@/assets/dashboard.css';
@@ -18,12 +17,6 @@ import fortniteLogo from '@/assets/images/fortnite-logo.png';
 
 import dotaImage from '@/assets/images/dota.jpg';
 import dotaLogo from '@/assets/images/dota-logo.png';
-
-interface DashboardStats {
-  totalPosts: number;
-  followers: number;
-  following: number;
-}
 
 interface Game {
   id: string;
@@ -44,11 +37,9 @@ interface Game {
  * which uses the same gradient theme as LoginPage.
  */
 export function DashboardPage() {
-  const { user, tokens } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading] = useState(true);
+  const [error] = useState<string | null>(null);
   
   // Static array of games to be displayed
   const games: Game[] = [
@@ -81,30 +72,6 @@ export function DashboardPage() {
       alt: 'Dota 2 game'
     }
   ];
-
-  // Simulate fetching dashboard data when the component mounts
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        // Simulate a network delay of 1.5 seconds
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Mock data for stats (in a real app, this would be from an API)
-        setStats({
-          totalPosts: 12,
-          followers: 48,
-          following: 36
-        });
-      } catch (err: any) {
-        setError("Failed to load dashboard data. Please try again later.");
-        console.error("Error fetching dashboard data:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, [tokens]);
 
   return (
     <>

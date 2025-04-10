@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Save, Loader2, Palette, Check } from "lucide-react"
 import toast, { Toaster } from 'react-hot-toast'
 import { HexColorPicker } from "react-colorful"
@@ -19,16 +19,6 @@ import { ProfilePreview } from "@/components/ui/profile/ProfilePreview"
 import { UpdateProfileDTO } from "@/config/userService"
 import { AvatarUpload } from "@/components/ui/profile/AvatarUpload"
 import { BannerUpload } from "@/components/ui/profile/BannerUpload"
-
-// Function to convert hex to tailwind bg class (for backwards compatibility)
-const hexToTailwindBg = (hex: string) => {
-  // If input is already a tailwind class, return it
-  if (hex.startsWith('bg-')) {
-    return hex;
-  }
-  // Otherwise use the hex value as an inline style
-  return hex;
-}
 
 // Helper to convert Tailwind bg classes to hex colors
 const tailwindBgToHex = (bgClass: string) => {
@@ -147,8 +137,6 @@ export function ProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState<string>("")
   const [bannerUrl, setBannerUrl] = useState<string>("")
   const [isUsingCustomAvatar, setIsUsingCustomAvatar] = useState(false)
-  const [discordAvatar, setDiscordAvatar] = useState<string>("")
-  const [useDiscordAvatar, setUseDiscordAvatar] = useState(false)
   
   // Initialize form with profile data if available
   useEffect(() => {
@@ -163,19 +151,16 @@ export function ProfilePage() {
       setAvatarUrl(user.avatar || "")
       // Store the original Discord avatar URL if it contains discordapp.com
       if (user.avatar && user.avatar.includes('cdn.discordapp.com')) {
-        setDiscordAvatar(user.avatar)
         setIsUsingCustomAvatar(false)
       } else if (user.avatar) {
         setIsUsingCustomAvatar(true)
       }
-      setUseDiscordAvatar(false)
     }
   }, [profile, user])
   
   const handleAvatarUpload = (url: string) => {
     setAvatarUrl(url)
     setIsUsingCustomAvatar(true)
-    setUseDiscordAvatar(false)
     toast.success("Avatar uploaded successfully! Don't forget to save your profile.")
   }
   
@@ -184,7 +169,6 @@ export function ProfilePage() {
     // to signal to backend we want to use Discord avatar
     setAvatarUrl("");
     setIsUsingCustomAvatar(false);
-    setUseDiscordAvatar(true);
     toast.success("Avatar removed. Your Discord avatar will be used instead. Don't forget to save your profile.");
   }
   

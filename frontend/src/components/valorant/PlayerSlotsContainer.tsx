@@ -1,8 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Users, Crown, Plus, UserCheck, UserX } from "lucide-react"
-import { Badge } from "@/components/ui/valorant/badge"
+import { Crown, Plus, UserCheck, UserX } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { type UserProfileDTO } from "@/config/userService"
 import { usePartyParticipants } from "@/hooks/usePartyParticipants"
@@ -27,7 +26,6 @@ interface PlayerSlotProps {
 const PlayerSlot: React.FC<PlayerSlotProps> = ({
   avatarUrl,
   username,
-  tooltipText,
   isLeader = false,
   isEmpty = false,
   onClick,

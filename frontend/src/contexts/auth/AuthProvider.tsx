@@ -2,15 +2,13 @@ import { FC, useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { AuthContext } from './AuthContext';
 import {
   AuthContextValue,
-  AuthState,
   LoginRequest,
   TokenPair,
   UserInfo,
   AuthProviderProps,
   ProfileStatus,
-  Role,
 } from './types';
-import { AUTH_STORAGE_KEY, TOKEN_REFRESH_MARGIN, AUTH_ENDPOINTS, DISCORD_OAUTH_STATE_KEY } from './constants';
+import { AUTH_STORAGE_KEY, AUTH_ENDPOINTS, DISCORD_OAUTH_STATE_KEY } from './constants';
 import * as partyService from '../valorant/partyService';
 import axios from 'axios';
 import webSocketService from '../../config/WebSocketService';

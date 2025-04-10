@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { UserProfileDTO, getLeaderboardUsers } from '@/config/userService';
 import { Leaderboard } from '@/components/ui/Leaderboard';
 import '@/assets/dashboard.css';

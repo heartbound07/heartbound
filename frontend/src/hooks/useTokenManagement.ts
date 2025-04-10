@@ -1,8 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { TokenPair } from '../contexts/auth/types';
 import { tokenStorage } from '../contexts/auth/tokenStorage';
-import { TOKEN_REFRESH_MARGIN, AUTH_ENDPOINTS } from '../contexts/auth/constants';
-import axios from 'axios';
+import { TOKEN_REFRESH_MARGIN } from '../contexts/auth/constants';
 
 export function useTokenManagement() {
   const [tokens, setTokens] = useState<TokenPair | null>(tokenStorage.getTokens());

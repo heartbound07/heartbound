@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/valorant/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
 import { Button } from "@/components/ui/valorant/button"
-import { GamepadIcon, Trophy, Plus, ShoppingBag } from "lucide-react"
+import { GamepadIcon, Plus, ShoppingBag } from "lucide-react"
 import httpClient from '@/lib/api/httpClient';
 import PostGroupModal from "@/features/GroupCreate";
 import Listing from "@/features/Listing";
@@ -10,7 +10,6 @@ import { useAuth } from '@/contexts/auth/useAuth';
 import { usePartyUpdates } from '@/contexts/PartyUpdates';
 import valorantBanner from '@/assets/images/valorant.jpg';
 import valorantLogo from '@/assets/images/valorant-logo.png';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { SkeletonPartyListing } from '@/components/ui/SkeletonUI';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LFGPartyResponseDTO } from '@/contexts/valorant/partyService';
@@ -94,9 +93,6 @@ export default function Home() {
       return () => clearTimeout(timer);
     }
   }, [groupErrorMessage]);
-
-  // Check if user already has a party
-  const userHasParty = userActiveParty !== null;
 
   // Create Group Button Handler
   const handleCreateGroupClick = () => {

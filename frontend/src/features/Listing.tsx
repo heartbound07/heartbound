@@ -1,10 +1,10 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
-import { Users, GamepadIcon, Mic, Calendar, Trophy, Plus, Award, Globe, ArrowRight, X, Lock } from "lucide-react"
+import { Users, GamepadIcon,  Calendar, Trophy, Plus, Award, Globe, ArrowRight, X, Lock } from "lucide-react"
 import { joinParty, requestToJoinParty } from "@/contexts/valorant/partyService"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate } from "react-router-dom"
@@ -62,7 +62,6 @@ export default function Listing({ party, isNew = false }: ListingProps) {
   // Add this line to define isInvited
   // Since we don't have the full invited users list in this component,
   // we'll implement a simpler version - considering only the current user
-  const isInvited = false; // Default to false since we don't have invitations data in this component
   
   // Check if the current user has already requested to join this party
   const [hasRequestedToJoin, setHasRequestedToJoin] = useState(false);
@@ -255,16 +254,6 @@ export default function Listing({ party, isNew = false }: ListingProps) {
         </>
       );
     }
-  };
-
-  // Add this near your render logic to determine button state and text
-  const getJoinButtonText = () => {
-    if (isJoining) return "Processing...";
-    if (isOwner) return "Your Party";
-    if (hasRequestedToJoin) return "Request Pending";
-    if (isParticipant) return "Already Joined";
-    if (isInviteOnly) return "Request to Join";
-    return "Join Party";
   };
 
   const getJoinButtonDisabled = () => {

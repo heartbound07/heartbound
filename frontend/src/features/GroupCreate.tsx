@@ -29,7 +29,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
   const [showDescription, setShowDescription] = useState(false)
   
   // Set expiresIn default to 10 minutes
-  const [expiresIn, setExpiresIn] = useState(10)
+  const [expiresIn] = useState(10)
   
   // Default maxPlayers is derived from teamSize (duo by default)
   const [maxPlayers, setMaxPlayers] = useState(2)

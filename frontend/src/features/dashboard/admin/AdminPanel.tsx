@@ -1,4 +1,3 @@
-import React from 'react';
 import { useAuth } from '@/contexts/auth';
 import { Navigate, useNavigate } from 'react-router-dom';
 

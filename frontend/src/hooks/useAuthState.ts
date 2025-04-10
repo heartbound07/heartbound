@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 import { AuthState, UserInfo, ProfileStatus } from '../contexts/auth/types';
-import { AUTH_STORAGE_KEY } from '../contexts/auth/constants';
 
 export function useAuthState() {
   const [state, setState] = useState<AuthState>({

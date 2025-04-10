@@ -1,4 +1,3 @@
-import { useAuth } from '@/contexts/auth';
 import { CloudBackground } from '@/components/backgrounds/CloudBackground';
 import { Navigation } from '@/components/ui/Navigation';
 import { DiscordLoginButton } from '@/components/ui/DiscordLoginButton';
@@ -6,7 +5,6 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 export function LoginPage() {
-  const { startDiscordOAuth } = useAuth();
   const [titleComplete, setTitleComplete] = useState(false);
   
   // Animation variants for letter-by-letter animation

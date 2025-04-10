@@ -4,9 +4,8 @@ import { Navigate } from 'react-router-dom';
 import { Role } from '@/contexts/auth/types';
 import { UserProfileDTO } from '@/config/userService';
 import httpClient from '@/lib/api/httpClient';
-import { ChevronLeft, ChevronRight, Search, Check, X, Filter, RefreshCw, Plus, Minus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Check, X, RefreshCw, Plus, Minus } from 'lucide-react';
 import { Badge } from '@/components/ui/valorant/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/valorant/tooltip';
 import { FaCoins } from 'react-icons/fa';
 
 // User Management page for Admin panel
@@ -219,30 +218,6 @@ export function UserManagement() {
     setRefreshing(true);
     await fetchUsers();
     setRefreshing(false);
-  };
-  
-  // Render role badge with appropriate color
-  const renderRoleBadge = (role: Role) => {
-    let color;
-    switch (role) {
-      case 'ADMIN':
-        color = 'bg-red-500/20 text-red-300 border-red-500/30';
-        break;
-      case 'MODERATOR':
-        color = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
-        break;
-      case 'MONARCH':
-        color = 'bg-purple-500/20 text-purple-300 border-purple-500/30';
-        break;
-      default:
-        color = 'bg-blue-500/20 text-blue-300 border-blue-500/30';
-    }
-    
-    return (
-      <Badge className={`${color} mr-1 mb-1`}>
-        {role}
-      </Badge>
-    );
   };
   
   return (
