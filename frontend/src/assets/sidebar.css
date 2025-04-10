@@ -124,6 +124,80 @@
   text-align: left;
 }
 
+/* Logout button */
+.logout-button {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: var(--secondary-bg);
+  color: var(--text-primary);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color var(--transition-speed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.logout-button:hover {
+  background-color: var(--hover-bg);
+}
+
+/* User profile section spacing */
+.user-profile-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+}
+
+.user-profile-section.expanded {
+  gap: 3px;
+}
+
+.user-profile-section.collapsed {
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Ensure proper truncation of text in profile section */
+.dashboard-nav .user-info-collapsed {
+  max-width: 100%;
+  text-align: center;
+}
+
+.dashboard-nav span.truncate {
+  max-width: 100%;
+  text-align: center;
+}
+
+/* Collapsed nav items should center their content */
+.dashboard-nav.collapsed .nav-item {
+  justify-content: center;
+  flex-direction: column;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .dashboard-nav:not(.collapsed) {
+    transform: translateX(0);
+  }
+  
+  .dashboard-nav.collapsed {
+    transform: translateX(-100%);
+  }
+  
+  .dashboard-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
 /* User credits styling - updated for center alignment in profile section */
 .user-credits {
   display: flex;
@@ -162,22 +236,4 @@
 /* Ensure positioning is consistent in both states */
 .dashboard-nav:not(.collapsed) .user-credits {
   margin: 8px auto 0;
-}
-
-/* Removed .logout-button-sidebar and .settings-logout-container rules as layout is handled by Tailwind */
-
-/* Responsive styles */
-@media (max-width: 768px) {
-  .dashboard-nav:not(.collapsed) {
-    transform: translateX(0);
-  }
-  
-  .dashboard-nav.collapsed {
-    transform: translateX(-100%);
-  }
-  
-  .dashboard-content {
-    margin-left: 0 !important;
-    width: 100% !important;
-  }
 } 

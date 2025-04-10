@@ -233,7 +233,10 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
   };
 
   return (
-    <aside className={`dashboard-nav h-full flex flex-col ${sidebarBackground} backdrop-blur-md border-r border-white/10 shadow-xl ${isCollapsed ? 'collapsed' : 'expanded'}`}>
+    <aside 
+      className={`dashboard-nav h-full flex flex-col ${sidebarBackground} backdrop-blur-md border-r border-white/10 shadow-xl ${isCollapsed ? 'collapsed' : 'expanded'}`}
+      data-theme={theme}
+    >
       {/* Brand Header with Toggle Button - Updated for proper centering in collapsed state */}
       <div className={`px-4 py-4 border-b border-white/10 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
         <button 

@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom"
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 import { usePartyUpdates } from "@/contexts/PartyUpdates"
 import { motion } from 'framer-motion'
+import "@/assets/Listing.css"
 
 // Helper function to format tooltip text for fields such as gameMode, teamSize, etc.
 const formatTooltipText = (text: string | undefined, defaultText: string = "N/A"): string => {
