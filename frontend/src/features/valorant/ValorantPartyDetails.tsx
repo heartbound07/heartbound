@@ -1,12 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { Users, LogOut, GamepadIcon, Trophy, Globe, Mic, Award, Calendar, Trash2, Loader2, Link2, Lock, Plus, Copy } from "lucide-react"
+import { Users, LogOut, GamepadIcon, Trophy, Globe, Mic, Award, Calendar, Trash2, Loader2, Link2, Lock, Plus } from "lucide-react"
 import { Button } from "@/components/ui/valorant/buttonparty"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { useNavigate, useParams } from "react-router-dom"
-import { deleteParty, getParty, leaveParty, joinParty, kickUserFromParty, inviteUserToParty } from "@/contexts/valorant/partyService"
+import { deleteParty, getParty, leaveParty, joinParty, kickUserFromParty } from "@/contexts/valorant/partyService"
 import { usePartyUpdates } from "@/contexts/PartyUpdates"
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 import { PlayerSlotsContainer } from "@/components/valorant/PlayerSlotsContainer"
@@ -107,7 +107,7 @@ export default function ValorantPartyDetails() {
   const { user, hasRole } = useAuth()
   const navigate = useNavigate()
   const { partyId } = useParams<{ partyId: string }>()
-  const { update, userActiveParty, setUserActiveParty, clearUpdate } = usePartyUpdates()
+  const { update, setUserActiveParty, clearUpdate } = usePartyUpdates()
 
   const [party, setParty] = React.useState<any>(null)
   const [userProfiles, setUserProfiles] = React.useState<Record<string, UserProfileDTO>>({})
@@ -117,8 +117,8 @@ export default function ValorantPartyDetails() {
   const [isJoining, setIsJoining] = React.useState(false)
   const [selectedProfileId, setSelectedProfileId] = React.useState<string | null>(null)
   const [profilePosition, setProfilePosition] = React.useState<{ x: number, y: number } | null>(null)
-  const [invitedUsers, setInvitedUsers] = React.useState<string[]>([])
-  const [isInvited, setIsInvited] = React.useState(false)
+  const [invitedUsers, _setInvitedUsers] = React.useState<string[]>([])
+  const [isInvited, _setIsInvited] = React.useState(false)
   
   // State for regular toasts
   const [toasts, setToasts] = React.useState<ToastState[]>([])
@@ -140,18 +140,6 @@ export default function ValorantPartyDetails() {
     participants.includes(user?.id || ""), 
     [participants, user?.id]
   );
-
-  const isInviteOnly = React.useMemo(() => 
-    party?.requirements?.inviteOnly === true,
-    [party?.requirements?.inviteOnly]
-  );
-
-  const canJoin = React.useMemo(() => {
-    if (!party || !user) return false;
-    if (isUserLeader || isUserParticipant) return false;
-    
-    return true;
-  }, [party, user, isUserLeader, isUserParticipant]);
 
   // If you're not using these values directly, use this simpler approach instead:
   usePartyParticipants({
@@ -597,17 +585,6 @@ export default function ValorantPartyDetails() {
     } catch (err: any) {
       console.error("Error leaving party:", err);
       showToast(err.response?.data?.message || "Failed to leave party", "error");
-    }
-  };
-
-  // Add a new function to invite users
-  const handleInviteUser = async (userId: string) => {
-    try {
-      await inviteUserToParty(party.id, userId);
-      showToast("Invitation sent successfully", "success");
-    } catch (err: any) {
-      console.error("Error inviting user:", err);
-      showToast(err.message || "Could not send invitation", "error");
     }
   };
 

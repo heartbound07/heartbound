@@ -1,25 +1,8 @@
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import axios from 'axios';
-import { AUTH_ENDPOINTS, AUTH_STORAGE_KEY } from '@/contexts/auth/constants';
+import { AUTH_ENDPOINTS } from '@/contexts/auth/constants';
 import { tokenStorage } from '../contexts/auth/tokenStorage';
-
-// Utility function to extract the current access token from localStorage.
-// This will be called whenever we need the token, not just once during initialization
-function getAccessToken(): string {
-  // First try to get token from memory storage
-  const memoryTokens = tokenStorage.getTokens();
-  if (memoryTokens?.accessToken) {
-    return memoryTokens.accessToken;
-  }
-  
-  // Fallback to localStorage auth status check (though this won't have the actual token)
-  if (localStorage.getItem('heartbound_auth_status') === 'true') {
-    console.warn('[WebSocket] Auth status exists but no token in memory - needs refresh');
-  }
-  
-  return '';
-}
 
 class WebSocketService {
   private client: Client;
@@ -29,8 +12,6 @@ class WebSocketService {
   private connecting: boolean = false;
   private retryCount: number = 0;
   private maxRetries: number = 3;
-  private lastUsedToken: string | null = null;
-  private reconnectDebounceTimer: NodeJS.Timeout | null = null;
 
   constructor() {
     // Initialize the STOMP client with configuration options.
@@ -42,9 +23,9 @@ class WebSocketService {
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
-      debug: (msg: string) => {
+      debug: (_msg: string) => {
         // Uncomment the next line to enable detailed logging:
-        // console.log('[STOMP DEBUG]', msg);
+        // console.log('[STOMP DEBUG]', _msg);
       },
       // We'll set connectHeaders dynamically before connecting
       connectHeaders: {},
@@ -73,7 +54,7 @@ class WebSocketService {
         console.error('[STOMP] Error details:', frame.body);
 
         // If the error indicates an invalid token, attempt to refresh.
-        if (frame.body && frame.body.includes("Invalid JWT token")) {
+        if (frame.body?.includes("Invalid JWT token")) {
           const newAccessToken = await this.refreshAccessToken();
           if (newAccessToken) {
             console.info("[WebSocket] Received new access token. Reconnecting...");
@@ -129,8 +110,6 @@ class WebSocketService {
     this.client.connectHeaders = {
       Authorization: "Bearer " + tokens.accessToken,
     };
-    
-    this.lastUsedToken = tokens.accessToken;
 
     console.info('[WebSocket] Connecting with token...');
     this.connecting = true;
@@ -242,68 +221,42 @@ class WebSocketService {
   }
 
   /**
-   * Reconnects using the latest token from localStorage.
-   * This can be called after token refresh to ensure WebSocket uses the updated token.
+   * Reconnects the WebSocket using the latest token from storage.
+   * This is typically called after a token refresh.
    */
-  public reconnectWithFreshToken(): void {
+  reconnectWithFreshToken(): void {
+    console.info('[WebSocket] Attempting reconnect with fresh token...');
     const tokens = tokenStorage.getTokens();
     if (!tokens?.accessToken) {
-      console.warn('[WebSocket] No valid token available for reconnection');
+      console.error('[WebSocket] Cannot reconnect: No access token found after refresh.');
+      this.disconnect(); // Disconnect if no token is available
       return;
     }
-    
-    console.log('[WebSocket] Reconnecting with fresh token');
-    
-    if (this.client) {
-      // Track if we're currently connecting to prevent multiple attempts
-      if (!this.connecting) {
-        // Store the current token being used for connection
-        this.lastUsedToken = tokens.accessToken;
-        
-        // Update the connection headers with the new token
-        this.client.connectHeaders = {
-          Authorization: "Bearer " + tokens.accessToken,
-        };
-        
-        // If already active, deactivate first
-        if (this.client.active) {
-          this.connecting = true;
-          this.retryCount = 0;
-          
-          console.log('[WebSocket] Deactivating current connection before reconnecting');
-          
-          // Deactivate then reactivate after a short delay
-          this.client.deactivate().then(() => {
-            // Small delay to ensure clean disconnect
-            setTimeout(() => {
-              console.log('[WebSocket] Reactivating with new token');
-              this.client.activate();
-            }, 500);
-          }).catch(err => {
-            console.error('[WebSocket] Error during reconnection:', err);
-            this.connecting = false;
-          });
-        } else {
-          console.log('[WebSocket] Connection not active, performing fresh connection');
-          
-          // Create a default callback if none exists
-          if (!this.callback) {
-            this.callback = (message) => {
-              console.log('[WebSocket] Received message with default callback:', message);
-            };
-            console.log('[WebSocket] Created default callback for reconnection');
-          }
-          
-          // Connect with the saved callback
-          this.connect(this.callback);
-        }
-      } else {
-        console.log('[WebSocket] Connection attempt already in progress');
-      }
+
+    // Update headers for the next connection attempt
+    this.client.connectHeaders = {
+      Authorization: "Bearer " + tokens.accessToken,
+    };
+
+    // If the client is already active, deactivate first to force re-authentication
+    if (this.client.active) {
+      console.log('[WebSocket] Deactivating existing connection before reconnecting...');
+      this.client.deactivate().then(() => {
+        console.log('[WebSocket] Reactivating connection...');
+        // Use a small delay if needed, or activate directly
+        setTimeout(() => this.client.activate(), 100); 
+      }).catch(err => {
+        console.error('[WebSocket] Error during deactivation for reconnect:', err);
+        // Still try to activate if deactivation failed uncleanly
+        setTimeout(() => this.client.activate(), 100);
+      });
     } else {
-      console.warn('[WebSocket] STOMP client not initialized');
+      // If not active, just activate
+      console.log('[WebSocket] Activating connection...');
+      this.client.activate();
     }
   }
 }
 
-export default new WebSocketService();
+const webSocketService = new WebSocketService();
+export default webSocketService;

@@ -17,7 +17,7 @@ interface UserProfileModalProps {
   containerRef?: React.RefObject<HTMLElement>; // Added container reference prop
 }
 
-export function UserProfileModal({ isOpen, onClose, userProfile, position, containerRef }: UserProfileModalProps) {
+export function UserProfileModal({ isOpen, onClose, userProfile, position }: UserProfileModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const [modalPosition, setModalPosition] = useState<Position | null>(null);
   
