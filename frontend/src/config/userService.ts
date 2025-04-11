@@ -49,7 +49,7 @@ export const getUserProfiles = async (userIds: string[]): Promise<Record<string,
   }
   
   try {
-    const response = await httpClient.post('/api/users/profiles', { userIds: validUserIds });
+    const response = await httpClient.post('/users/profiles', { userIds: validUserIds });
     return response.data;
   } catch (error) {
     console.error('Error fetching user profiles:', error);

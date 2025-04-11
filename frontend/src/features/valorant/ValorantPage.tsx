@@ -103,7 +103,7 @@ export default function Home() {
     if (userHasParty) {
       try {
         // Optional: Verify party existence before blocking creation
-        httpClient.get(`/api/lfg/parties/${userActiveParty}`)
+        httpClient.get(`/lfg/parties/${userActiveParty}`)
           .then(() => {
             // Party exists, show error
             setGroupErrorMessage("Error: You can only be in one party at a time");

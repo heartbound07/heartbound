@@ -104,6 +104,11 @@ httpClient.interceptors.request.use(
     if (tokens?.accessToken) {
       config.headers.Authorization = `Bearer ${tokens.accessToken}`;
     }
+    if (config.url?.startsWith('/api/')) {
+      console.warn(`WARNING: Duplicate '/api' prefix detected in URL: ${config.url}`);
+      // Optionally, automatically fix it:
+      // config.url = config.url.replace(/^\/api\//, '/');
+    }
     return config;
   },
   (error) => Promise.reject(error)
