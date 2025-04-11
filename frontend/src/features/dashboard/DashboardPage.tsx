@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GameCard } from '@/components/ui/GameCard';
 import { SkeletonGameCard } from '@/components/ui/SkeletonUI';
@@ -38,8 +38,17 @@ interface Game {
  */
 export function DashboardPage() {
   const navigate = useNavigate();
-  const [isLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error] = useState<string | null>(null);
+  
+  // Show loading skeleton for 1 second for visual effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
   
   // Static array of games to be displayed
   const games: Game[] = [
