@@ -64,7 +64,7 @@ const PlayerSlot: React.FC<PlayerSlotProps> = ({
   const handleSlotClick = (e: React.MouseEvent) => {
     if (isEmpty) {
       onClick?.();
-    } else if (!isCurrentUser && participantId && onProfileView) {
+    } else if (participantId && onProfileView) {
       // Get the clicked element's position
       const rect = e.currentTarget.getBoundingClientRect();
       
