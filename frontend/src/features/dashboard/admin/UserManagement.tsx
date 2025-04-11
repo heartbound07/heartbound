@@ -136,7 +136,7 @@ export function UserManagement() {
         roles.push('USER');
       }
       
-      await httpClient.post('/api/admin/roles/batch-assign', {
+      await httpClient.post('/admin/roles/batch-assign', {
         userIds: [userId],
         role: roles
       });
@@ -163,7 +163,7 @@ export function UserManagement() {
       const { userId, credits } = editingCredits;
       
       // Call the API to update credits
-      await httpClient.patch(`/api/users/${userId}/credits`, { credits });
+      await httpClient.patch(`/users/${userId}/credits`, { credits });
       
       // Update the user in the local state
       setUsers(prev => 
