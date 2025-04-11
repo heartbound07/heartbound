@@ -38,7 +38,7 @@ export default function Home() {
   const fetchParties = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await httpClient.get('/api/lfg/parties');
+      const response = await httpClient.get('/lfg/parties');
       const data = response.data;
       const partiesArray = Array.isArray(data)
         ? data
