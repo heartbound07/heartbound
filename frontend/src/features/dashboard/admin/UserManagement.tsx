@@ -32,7 +32,7 @@ export function UserManagement() {
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const response = await httpClient.get('/api/admin/roles');
+        const response = await httpClient.get('/admin/roles');
         setAvailableRoles(response.data);
       } catch (err) {
         console.error('Error fetching roles:', err);
@@ -50,7 +50,7 @@ export function UserManagement() {
     
     try {
       // Using the existing API with pagination parameters
-      const response = await httpClient.get('/api/users', {
+      const response = await httpClient.get('/users', {
         params: {
           page: currentPage,
           size: pageSize,
