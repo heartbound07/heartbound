@@ -4,6 +4,7 @@ import com.app.heartbound.config.security.JWTChannelInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.messaging.simp.config.ChannelRegistration;
@@ -25,6 +26,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JWTChannelInterceptor jwtChannelInterceptor;
 
+    @Value("${cors.allowed-origins}")
+    private String allowedOrigins;
+
     @Autowired
     public WebSocketConfig(JWTChannelInterceptor jwtChannelInterceptor) {
         this.jwtChannelInterceptor = jwtChannelInterceptor;
@@ -38,16 +42,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         config.enableSimpleBroker("/topic");
         // All messages starting with /app are routed to message-handling methods.
         config.setApplicationDestinationPrefixes("/app");
-        logger.info("Message Broker configured with application destination prefix '/qapp' and simple broker '/topic'");
+        logger.info("Message Broker configured with application destination prefix '/app' and simple broker '/topic'");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Register the WebSocket endpoint and allow SockJS fallback.
         registry.addEndpoint("/ws")
-                .setAllowedOrigins("${cors.allowed-origins}") // Use property instead of hardcoded value
+                .setAllowedOrigins(allowedOrigins)
                 .withSockJS();
-        logger.info("STOMP endpoint '/ws' registered with SockJS fallback and allowed origins: ${cors.allowed-origins}");
+        logger.info("STOMP endpoint '/ws' registered with SockJS fallback and allowed origins: {}", allowedOrigins);
     }
 
     @Override
