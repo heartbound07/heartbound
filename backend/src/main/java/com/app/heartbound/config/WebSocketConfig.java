@@ -38,7 +38,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         config.enableSimpleBroker("/topic");
         // All messages starting with /app are routed to message-handling methods.
         config.setApplicationDestinationPrefixes("/app");
-        logger.info("Message Broker configured with application destination prefix '/app' and simple broker '/topic'");
+        logger.info("Message Broker configured with application destination prefix '/qapp' and simple broker '/topic'");
     }
 
     @Override
