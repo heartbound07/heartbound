@@ -44,6 +44,11 @@ export function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/auth/discord/callback" element={<DiscordCallback />} />
       <Route path="/auth/error" element={<AuthErrorPage />} />
+      
+      {/* Riot Games verification file route */}
+      <Route path="/riot.txt" element={
+        <pre style={{ fontFamily: 'monospace' }}>7afb92b0-5252-4000-9ba3-fab43c393d15</pre>
+      } />
 
       {/* Protected routes */}
       <Route element={<ProtectedRoutes />}>

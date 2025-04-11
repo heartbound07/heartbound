@@ -1,4 +1,4 @@
-const PUBLIC_PATHS = ['/', '/login'];
+const PUBLIC_PATHS = ['/', '/login', '/riot.txt'];
 const AUTH_PATHS = ['/auth', '/api/auth'];
 const PROTECTED_PATHS = ['/dashboard', '/profile', '/lfg', '/find-a-duo'];
 
