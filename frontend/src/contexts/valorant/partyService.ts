@@ -1,4 +1,5 @@
 import httpClient from '../../lib/api/httpClient';
+import { PaginatedResponse } from '@/types/api'; // Assuming you have this type defined
 
 export type Rank = 'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'ASCENDANT' | 'IMMORTAL' | 'RADIANT';
 export type Region = 'NA_EAST' | 'NA_WEST' | 'NA_CENTRAL' | 'LATAM' | 'BR' | 'EU' | 'KR' | 'AP';
@@ -88,8 +89,7 @@ export const getParty = async (id: string): Promise<LFGPartyResponseDTO> => {
 
 export const listParties = async (
   params?: ListPartiesParams
-): Promise<any> => {
-  // The params object can include page, size, game, title, and status filters.
+): Promise<PaginatedResponse<LFGPartyResponseDTO>> => {
   const response = await httpClient.get('/lfg/parties', { params });
   return response.data;
 };
