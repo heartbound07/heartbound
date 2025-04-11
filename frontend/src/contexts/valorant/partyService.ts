@@ -73,7 +73,7 @@ export const createParty = async (
   data: CreatePartyRequestDTO
 ): Promise<LFGPartyResponseDTO> => {
   try {
-    const response = await httpClient.post('/api/lfg/parties', data);
+    const response = await httpClient.post('/lfg/parties', data);
     return response.data;
   } catch (error: any) {
     // Propagate a user-friendly error message
@@ -82,7 +82,7 @@ export const createParty = async (
 };
 
 export const getParty = async (id: string): Promise<LFGPartyResponseDTO> => {
-  const response = await httpClient.get(`/api/lfg/parties/${id}`);
+  const response = await httpClient.get(`/lfg/parties/${id}`);
   return response.data;
 };
 
@@ -90,7 +90,7 @@ export const listParties = async (
   params?: ListPartiesParams
 ): Promise<any> => {
   // The params object can include page, size, game, title, and status filters.
-  const response = await httpClient.get('/api/lfg/parties', { params });
+  const response = await httpClient.get('/lfg/parties', { params });
   return response.data;
 };
 
@@ -98,55 +98,55 @@ export const updateParty = async (
   id: string,
   data: UpdatePartyRequestDTO
 ): Promise<LFGPartyResponseDTO> => {
-  const response = await httpClient.put(`/api/lfg/parties/${id}`, data);
+  const response = await httpClient.put(`/lfg/parties/${id}`, data);
   return response.data;
 };
 
 export const deleteParty = async (id: string): Promise<void> => {
-  await httpClient.delete(`/api/lfg/parties/${id}`);
+  await httpClient.delete(`/lfg/parties/${id}`);
 };
 
 export const joinParty = async (id: string): Promise<string> => {
-  const response = await httpClient.post(`/api/lfg/parties/${id}/join`);
+  const response = await httpClient.post(`/lfg/parties/${id}/join`);
   return response.data;
 };
 
 export const leaveParty = async (id: string): Promise<string> => {
-  const response = await httpClient.post(`/api/lfg/parties/${id}/leave`);
+  const response = await httpClient.post(`/lfg/parties/${id}/leave`);
   return response.data;
 };
 
 export const kickUserFromParty = async (partyId: string, userId: string): Promise<string> => {
-  const response = await httpClient.post(`/api/lfg/parties/${partyId}/kick/${userId}`);
+  const response = await httpClient.post(`/lfg/parties/${partyId}/kick/${userId}`);
   return response.data;
 };
 
 export const inviteUserToParty = async (partyId: string, userId: string): Promise<string> => {
-  const response = await httpClient.post(`/api/lfg/parties/${partyId}/invite/${userId}`);
+  const response = await httpClient.post(`/lfg/parties/${partyId}/invite/${userId}`);
   return response.data;
 };
 
 export const acceptInvitation = async (partyId: string): Promise<string> => {
-  const response = await httpClient.post(`/api/lfg/parties/${partyId}/accept-invite`);
+  const response = await httpClient.post(`/lfg/parties/${partyId}/accept-invite`);
   return response.data;
 };
 
 export const getInvitedUsers = async (partyId: string): Promise<string[]> => {
-  const response = await httpClient.get(`/api/lfg/parties/${partyId}/invites`);
+  const response = await httpClient.get(`/lfg/parties/${partyId}/invites`);
   return response.data;
 };
 
 export const requestToJoinParty = async (id: string): Promise<string> => {
-  const response = await httpClient.post(`/api/lfg/parties/${id}/request-join`);
+  const response = await httpClient.post(`/lfg/parties/${id}/request-join`);
   return response.data;
 };
 
 export const acceptJoinRequest = async (partyId: string, userId: string): Promise<string> => {
-  const response = await httpClient.post(`/api/lfg/parties/${partyId}/accept-join-request/${userId}`);
+  const response = await httpClient.post(`/lfg/parties/${partyId}/accept-join-request/${userId}`);
   return response.data;
 };
 
 export const rejectJoinRequest = async (partyId: string, userId: string): Promise<string> => {
-  const response = await httpClient.post(`/api/lfg/parties/${partyId}/reject-join-request/${userId}`);
+  const response = await httpClient.post(`/lfg/parties/${partyId}/reject-join-request/${userId}`);
   return response.data;
 };
