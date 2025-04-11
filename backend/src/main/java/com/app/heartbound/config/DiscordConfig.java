@@ -37,7 +37,7 @@ public class DiscordConfig {
             // Ref: DiscordChannelService.java lines 36-79 (implies GUILD_VOICE_STATES)
             jdaInstance = JDABuilder.createDefault(discordToken)
                     .enableIntents(
-                            GatewayIntent.GUILD_MEMBERS,      // Enabled in portal/properties
+                            GatewayIntent.GUILD_MEMBERS,      // Required for adding users to the server
                             GatewayIntent.GUILD_VOICE_STATES, // Needed for voice channel creation
                             GatewayIntent.MESSAGE_CONTENT     // Enabled in portal/properties
                             // Add any other intents your bot might need in the future

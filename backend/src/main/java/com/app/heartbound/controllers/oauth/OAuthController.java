@@ -37,6 +37,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.view.RedirectView;
 
+import com.app.heartbound.services.discord.DiscordChannelService;
+
 @CrossOrigin(origins = "http://", allowCredentials = "true")
 @RestController
 public class OAuthController {
@@ -77,6 +79,9 @@ public class OAuthController {
 
     @Autowired
     private DiscordCodeStore discordCodeStore; // Inject the code store
+
+    @Autowired
+    private DiscordChannelService discordChannelService; // Add this autowired dependency
 
     @Operation(summary = "Initiate Discord OAuth flow", description = "Redirects the user to Discord for authorization.")
     @ApiResponses(value = {
@@ -193,6 +198,19 @@ public class OAuthController {
         } catch (Exception e) {
             logger.error("Failed to retrieve user details from Discord: {}", e.getMessage(), e); // Log stack trace
             return new RedirectView(frontendBaseUrl + "/login?error=Discord+user+info+retrieval+failed");
+        }
+
+        // Attempt to add the user to the Discord server
+        logger.info("Attempting to add user to Discord server...");
+        boolean addedToGuild = discordChannelService.addUserToGuild(
+            userDTO.getId(),
+            tokenResponse.getAccessToken()
+        );
+        if (addedToGuild) {
+            logger.info("User {} successfully added/verified in Discord server", userDTO.getId());
+        } else {
+            logger.warn("Could not add user {} to Discord server. User may need to join manually.", userDTO.getId());
+            // Note: We continue the authentication flow even if this fails
         }
 
         // Find or create user in our database

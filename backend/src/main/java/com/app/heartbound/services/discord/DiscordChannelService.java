@@ -27,6 +27,7 @@ import com.app.heartbound.enums.Region;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
+import net.dv8tion.jda.api.entities.UserSnowflake;
 
 @Service
 public class DiscordChannelService {
@@ -729,6 +730,52 @@ public class DiscordChannelService {
             return updatePartyAnnouncementEmbed(party);
         } catch (Exception e) {
             logger.error("Error marking party announcement as deleted: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * Adds a user to the Discord server/guild after successful OAuth authentication
+     *
+     * @param userId The Discord user ID to add
+     * @param accessToken The OAuth access token for the user
+     * @return true if user was successfully added, false otherwise
+     */
+    public boolean addUserToGuild(String userId, String accessToken) {
+        try {
+            if (userId == null || accessToken == null || userId.isEmpty() || accessToken.isEmpty()) {
+                logger.warn("Cannot add user to guild: Invalid user ID or access token");
+                return false;
+            }
+            
+            Guild guild = jda.getGuildById(discordServerId);
+            if (guild == null) {
+                logger.error("Failed to find Discord server with ID: {}", discordServerId);
+                return false;
+            }
+            
+            // Check if user is already in the guild
+            try {
+                Member member = guild.retrieveMemberById(userId).complete();
+                if (member != null) {
+                    logger.info("User {} is already a member of the guild", userId);
+                    return true; // Already a member, considered successful
+                }
+            } catch (Exception e) {
+                // User is not in the guild, which is expected
+                logger.debug("User {} is not in the guild yet, will attempt to add", userId);
+            }
+            
+            // Convert the userId String to a UserSnowflake object
+            // Use the utility method from the UserSnowflake interface
+            guild.addMember(accessToken, UserSnowflake.fromId(userId)).queue(
+                success -> logger.info("Successfully added user {} to Discord server {}", userId, discordServerId),
+                error -> logger.error("Failed to add user {} to Discord server {}: {}", userId, discordServerId, error.getMessage())
+            );
+            
+            return true;
+        } catch (Exception e) {
+            logger.error("Error adding user {} to Discord server: {}", userId, e.getMessage(), e);
             return false;
         }
     }
