@@ -1268,7 +1268,7 @@ framer-motion@^12.4.10:
     clsx "^2.1.1"
     esbuild "0.25.1"
     framer-motion "^12.4.10"
-    frontend "file:../../../Users/Administrator/AppData/Local/Yarn/Cache/v6/npm-frontend-0.0.0-a80f8399-1eef-4fbd-8f01-0d4049b7b9a3-1744396303661/node_modules/frontend"
+    frontend "file:."
     lucide-react "^0.475.0"
     react "^18.2.0"
     react-colorful "^5.6.1"
