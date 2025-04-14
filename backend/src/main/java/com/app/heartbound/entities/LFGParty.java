@@ -135,6 +135,9 @@ public class LFGParty {
     @Column(name = "discord_invite_url")
     private String discordInviteUrl;
 
+    @Column(name = "discord_announcement_message_id")
+    private String discordAnnouncementMessageId;
+
     /**
      * PartyRequirements
      *

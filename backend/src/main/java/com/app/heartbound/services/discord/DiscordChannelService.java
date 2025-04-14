@@ -28,6 +28,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.entities.UserSnowflake;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class DiscordChannelService {
@@ -440,11 +441,14 @@ public class DiscordChannelService {
      * @param party The LFG party that was created
      * @return true if the announcement was sent successfully, false otherwise
      */
-    public boolean sendPartyCreationAnnouncement(LFGParty party) {
+    public CompletableFuture<String> sendPartyCreationAnnouncement(LFGParty party) {
+        CompletableFuture<String> future = new CompletableFuture<>();
+        
         try {
             if (party == null) {
                 logger.warn("Cannot send party creation announcement: Party is null");
-                return false;
+                future.complete(null);
+                return future;
             }
             
             // Determine the appropriate channel ID based on match type and region
@@ -453,19 +457,22 @@ public class DiscordChannelService {
             if (channelId == null) {
                 logger.info("No appropriate channel found for party announcement. Match type: {}, Region: {}", 
                             party.getMatchType(), party.getRequirements().getRegion());
-                return false;
+                future.complete(null);
+                return future;
             }
             
             Guild guild = jda.getGuildById(discordServerId);
             if (guild == null) {
                 logger.error("Failed to find Discord server with ID: {}", discordServerId);
-                return false;
+                future.complete(null);
+                return future;
             }
             
             TextChannel textChannel = guild.getTextChannelById(channelId);
             if (textChannel == null) {
                 logger.warn("Text channel with ID {} not found", channelId);
-                return false;
+                future.complete(null);
+                return future;
             }
             
             // Create and send the embed
@@ -478,14 +485,23 @@ public class DiscordChannelService {
             textChannel.sendMessageEmbeds(embed)
                 .setActionRow(joinButton)
                 .queue(
-                    success -> logger.info("Sent party creation announcement for party {} to channel {}", party.getId(), channelId),
-                    error -> logger.error("Failed to send party creation announcement: {}", error.getMessage())
+                    success -> {
+                        String messageId = success.getId();
+                        logger.info("Sent party creation announcement for party {} to channel {}, message ID: {}", 
+                                   party.getId(), channelId, messageId);
+                        future.complete(messageId);
+                    },
+                    error -> {
+                        logger.error("Failed to send party creation announcement: {}", error.getMessage());
+                        future.complete(null);
+                    }
                 );
             
-            return true;
+            return future;
         } catch (Exception e) {
             logger.error("Error sending party creation announcement: {}", e.getMessage(), e);
-            return false;
+            future.complete(null);
+            return future;
         }
     }
     
@@ -571,8 +587,24 @@ public class DiscordChannelService {
         if (party.getRequirements() != null && party.getRequirements().getRank() != null) {
             String rankName = party.getRequirements().getRank().name();
             String rankImageUrl = getRankImageUrl(rankName);
-            embed.setThumbnail(rankImageUrl);
-            logger.debug("Adding rank image for {} rank: {}", rankName, rankImageUrl);
+            if (rankImageUrl != null && !rankImageUrl.isEmpty()) {
+                // Ensure URL has proper http/https prefix
+                if (!rankImageUrl.startsWith("http://") && !rankImageUrl.startsWith("https://")) {
+                    // Either add a prefix
+                    rankImageUrl = "https://" + rankImageUrl;
+                    // Or log a warning and skip setting the thumbnail
+                    logger.warn("Invalid rank image URL format: {}. URL must start with http:// or https://", rankImageUrl);
+                } else {
+                    try {
+                        // Basic URL validation before setting the thumbnail
+                        embed.setThumbnail(rankImageUrl);
+                        logger.debug("Adding rank image for {} rank: {}", rankName, rankImageUrl);
+                    } catch (IllegalArgumentException e) {
+                        // Log the error and continue without the thumbnail
+                        logger.warn("Failed to set rank thumbnail image: {}", e.getMessage());
+                    }
+                }
+            }
         }
         
         // List participants (including party leader)
@@ -592,8 +624,7 @@ public class DiscordChannelService {
                     false);
         }
         
-        // Store party ID in the author URL for message identification
-        embed.setAuthor("\u200B", "https://heartbound.app/party/" + party.getId());
+        // No longer need to store party ID in the author URL for message identification
         
         return embed.build();
     }
@@ -608,6 +639,13 @@ public class DiscordChannelService {
         try {
             if (party == null) {
                 logger.warn("Cannot update party announcement: Party is null");
+                return false;
+            }
+            
+            // Get the Discord message ID directly from the party entity
+            String messageId = party.getDiscordAnnouncementMessageId();
+            if (messageId == null || messageId.isEmpty()) {
+                logger.warn("Cannot update party announcement: No Discord message ID stored for party {}", party.getId());
                 return false;
             }
             
@@ -632,99 +670,45 @@ public class DiscordChannelService {
                 return false;
             }
             
-            // Get the party's UUID string which we can use to find the right message
-            String partyIdStr = party.getId().toString();
+            // Create the updated embed
+            MessageEmbed newEmbed = createPartyAnnouncementEmbed(party);
+            
+            // Check if the party is closed
+            boolean isClosed = "closed".equalsIgnoreCase(party.getStatus());
             
             // Log party status when updating announcement
             logger.debug("Updating announcement for party {} with status: {}, participants: {}/{}", 
-                      partyIdStr, party.getStatus(), party.getParticipants().size(), party.getMaxPlayers());
+                      party.getId(), party.getStatus(), party.getParticipants().size(), party.getMaxPlayers());
             
-            // Retrieve recent messages and find the one with our party
-            textChannel.getHistory().retrievePast(100).queue(messages -> {
-                logger.debug("Searching through {} messages to find party announcement for {}", 
-                            messages.size(), partyIdStr);
-                boolean messageFound = false;
+            if (isClosed) {
+                // For closed parties, update the embed and remove the interactive components
+                textChannel.editMessageEmbedsById(messageId, newEmbed)
+                    .setComponents() // Clear all components
+                    .queue(
+                        success -> logger.info("Updated party announcement embed (removed components) for party {} ({})", 
+                                             party.getId(), messageId),
+                        error -> logger.error("Failed to update party announcement embed for party {} ({}): {}", 
+                                            party.getId(), messageId, error.getMessage())
+                    );
+            } else {
+                // For open parties, update the embed and preserve the Join button
+                String partyUrl = frontendBaseUrl + "/dashboard/valorant/" + party.getId();
+                Button joinButton = Button.link(partyUrl, "Join Party");
                 
-                for (net.dv8tion.jda.api.entities.Message message : messages) {
-                    // We need to find the message that has our party announcement
-                    // We can check if the message has our party URL in a button
-                    String partyUrl = frontendBaseUrl + "/dashboard/valorant/" + partyIdStr;
-                    
-                    boolean isTargetMessage = false;
-                    // Check if this message is our target by examining components/buttons
-                    if (!message.getComponents().isEmpty()) {
-                        for (ActionRow row : message.getActionRows()) {
-                            for (ItemComponent component : row.getComponents()) {
-                                if (component instanceof Button button) {
-                                    if (button.getUrl() != null && button.getUrl().equals(partyUrl)) {
-                                        isTargetMessage = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            if (isTargetMessage) break;
-                        }
-                    }
-                    
-                    // Also check embeds for this party ID (as an alternative way to identify)
-                    if (!isTargetMessage && !message.getEmbeds().isEmpty()) {
-                        for (MessageEmbed embed : message.getEmbeds()) {
-                            // Check author URL for the party ID
-                            if (embed.getAuthor() != null && 
-                                embed.getAuthor().getUrl() != null && 
-                                embed.getAuthor().getUrl().contains(partyIdStr)) {
-                                isTargetMessage = true;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    if (isTargetMessage) {
-                        messageFound = true;
-                        logger.debug("Found message for party {}. Current status: {}, Current buttons: {}", 
-                                   partyIdStr, party.getStatus(), !message.getComponents().isEmpty());
-                        
-                        // We found our message, update the embed
-                        MessageEmbed newEmbed = createPartyAnnouncementEmbed(party);
-                        String partyUrlLink = frontendBaseUrl + "/dashboard/valorant/" + party.getId();
-                        
-                        // Log the new embed's description for debugging
-                        logger.debug("New embed description for party {}: '{}'", 
-                                   partyIdStr, party.getStatus().equals("closed") ? "(CLOSED)" : "");
-                        
-                        // Check if the party is closed
-                        boolean isClosed = "closed".equalsIgnoreCase(party.getStatus());
-                        
-                        // Only include the join button if the party is not closed
-                        if (!isClosed) {
-                            Button joinButton = Button.link(partyUrlLink, "Join Party");
-                            message.editMessageEmbeds(newEmbed)
-                                   .setActionRow(joinButton)
-                                   .queue(
-                                        success -> logger.info("Successfully updated party announcement (open) for party {}", party.getId()),
-                                        error -> logger.error("Failed to update party announcement: {}", error.getMessage())
-                                   );
-                        } else {
-                            // For closed parties, remove all action rows (buttons)
-                            message.editMessageEmbeds(newEmbed)
-                                   .setComponents() // Empty component list removes all buttons
-                                   .queue(
-                                        success -> logger.info("Successfully updated party announcement (closed) for party {}", party.getId()),
-                                        error -> logger.error("Failed to update party announcement: {}", error.getMessage())
-                                   );
-                        }
-                        break;
-                    }
-                }
-                
-                if (!messageFound) {
-                    logger.warn("No announcement message found for party: {}", partyIdStr);
-                }
-            });
+                textChannel.editMessageEmbedsById(messageId, newEmbed)
+                    .setActionRow(joinButton)
+                    .queue(
+                        success -> logger.info("Updated party announcement embed for party {} ({})", 
+                                             party.getId(), messageId),
+                        error -> logger.error("Failed to update party announcement embed for party {} ({}): {}", 
+                                            party.getId(), messageId, error.getMessage())
+                    );
+            }
             
             return true;
         } catch (Exception e) {
-            logger.error("Error updating party announcement: {}", e.getMessage(), e);
+            logger.error("Error updating party announcement for party {}: {}", 
+                        party != null ? party.getId() : "unknown", e.getMessage(), e);
             return false;
         }
     }

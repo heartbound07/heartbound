@@ -105,7 +105,7 @@ public class LFGPartyService {
         party.setAgeRestriction(dto.getAgeRestriction());
 
         // Save the party first to get the ID
-        LFGParty savedParty = lfgPartyRepository.save(party);
+        final LFGParty savedParty = lfgPartyRepository.save(party);
         
         // After successful save, create a Discord voice channel only if voice preference allows
         try {
@@ -120,25 +120,14 @@ public class LFGPartyService {
                         savedParty.getRequirements().isInviteOnly(),
                         savedParty.getUserId()
                 );
-
-                // Update the party with Discord channel information
-                if (discordInfo.containsKey("channelId")) {
-                    String channelId = discordInfo.get("channelId");
-                    savedParty.setDiscordChannelId(channelId);
-                    
-                    // Send welcome message pinging the party owner
-                    discordChannelService.sendWelcomeMessageToVoiceChannel(
-                        channelId, 
-                        savedParty.getUserId(), 
-                        savedParty.getTitle()
-                    );
-                }
-                if (discordInfo.containsKey("inviteUrl")) {
-                    savedParty.setDiscordInviteUrl(discordInfo.get("inviteUrl"));
-                }
                 
-                // Save the party again with the Discord information
-                savedParty = lfgPartyRepository.save(savedParty);
+                // If Discord channel was created, store the ID and invite URL
+                if (discordInfo != null) {
+                    savedParty.setDiscordChannelId(discordInfo.get("channelId"));
+                    savedParty.setDiscordInviteUrl(discordInfo.get("inviteUrl"));
+                    // Save party again with Discord information
+                    lfgPartyRepository.save(savedParty);
+                }
             } else {
                 logger.info("Skipping Discord channel creation for party ID {} with voice preference: {}",
                            savedParty.getId(), savedParty.getVoicePreference());
@@ -152,7 +141,17 @@ public class LFGPartyService {
         // After all Discord setup is complete, send party announcement
         try {
             // Send party creation announcement to appropriate Discord channel
-            discordChannelService.sendPartyCreationAnnouncement(savedParty);
+            discordChannelService.sendPartyCreationAnnouncement(savedParty)
+                .thenAccept(messageId -> {
+                    if (messageId != null && !messageId.isEmpty()) {
+                        // Update the party with the Discord announcement message ID
+                        savedParty.setDiscordAnnouncementMessageId(messageId);
+                        // Save the updated party entity
+                        lfgPartyRepository.save(savedParty);
+                        logger.info("Stored Discord announcement message ID {} for party {}", 
+                                  messageId, savedParty.getId());
+                    }
+                });
             logger.info("Sent party creation announcement for party ID: {}", savedParty.getId());
         } catch (Exception e) {
             // Log error but continue with party creation flow
