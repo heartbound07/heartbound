@@ -56,6 +56,8 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api/swagger-ui/**", "/api/v3/api-docs/**").permitAll()
                 // Permit the root, error, and WebSocket handshake endpoints
                 .requestMatchers("/", "/error", "/ws/**").permitAll()
+                // Permit static resources
+                .requestMatchers("/images/**", "/css/**", "/js/**").permitAll()
                 // Permit endpoints for OAuth & authentication controllers
                 .requestMatchers("/auth/**", "/oauth2/**", "/api/auth/**", "/auth/discord/authorize", "/oauth2/callback/discord").permitAll()
                 // Permit user profile endpoints - updated paths

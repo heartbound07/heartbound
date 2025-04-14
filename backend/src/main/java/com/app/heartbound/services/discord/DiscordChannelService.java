@@ -38,6 +38,17 @@ public class DiscordChannelService {
     private static final String CASUAL_NA_CHANNEL_ID = "1222643176561705050";
     private static final String COMPETITIVE_NA_CHANNEL_ID = "1304321374248108083";
     
+    // Update this to use your application's URL instead of hardcoded domain
+    @Value("${frontend.base.url}")
+    private String frontendBaseUrl;
+    
+    // This will dynamically build the rank image URL from your application host
+    private String getRankImageUrl(String rankName) {
+        // Create a fully qualified URL that includes the context path
+        String backendUrl = frontendBaseUrl.replace(":3000", ":8080");
+        return backendUrl + "/api/images/ranks/" + rankName.toLowerCase() + ".png";
+    }
+    
     @Autowired
     private JDA jda;
     
@@ -46,9 +57,6 @@ public class DiscordChannelService {
     
     @Value("${discord.category.id}")
     private String discordCategoryId;
-    
-    @Value("${frontend.base.url}")
-    private String frontendBaseUrl;
     
     /**
      * Creates a voice channel for an LFG party and generates an invite link.
@@ -554,6 +562,14 @@ public class DiscordChannelService {
         } else {
             // Explicitly set an empty description for open parties
             embed.setDescription("");
+        }
+        
+        // Add the rank image as a thumbnail - using the dynamic method instead of constant
+        if (party.getRequirements() != null && party.getRequirements().getRank() != null) {
+            String rankName = party.getRequirements().getRank().name();
+            String rankImageUrl = getRankImageUrl(rankName);
+            embed.setThumbnail(rankImageUrl);
+            logger.debug("Adding rank image for {} rank: {}", rankName, rankImageUrl);
         }
         
         // List participants (including party leader)
