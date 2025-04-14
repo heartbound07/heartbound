@@ -1,12 +1,15 @@
 package com.app.heartbound.config;
 
+import com.app.heartbound.services.discord.LeaderboardCommandListener;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +24,9 @@ public class DiscordConfig {
     private String discordToken;
 
     private JDA jdaInstance;
+    
+    @Autowired
+    private LeaderboardCommandListener leaderboardCommandListener;
 
     @Bean
     public JDA jda() {
@@ -33,21 +39,17 @@ public class DiscordConfig {
         try {
             logger.info("Attempting to build JDA instance manually...");
             // Build JDA with necessary intents based on previous configuration and usage
-            // Ref: application.properties line 47
-            // Ref: DiscordChannelService.java lines 36-79 (implies GUILD_VOICE_STATES)
             jdaInstance = JDABuilder.createDefault(discordToken)
                     .enableIntents(
                             GatewayIntent.GUILD_MEMBERS,      // Required for adding users to the server
                             GatewayIntent.GUILD_VOICE_STATES, // Needed for voice channel creation
                             GatewayIntent.MESSAGE_CONTENT     // Enabled in portal/properties
-                            // Add any other intents your bot might need in the future
                     )
                     // Enable necessary caches
                     .enableCache(
                             CacheFlag.VOICE_STATE,         // Needed for voice operations
                             CacheFlag.MEMBER_OVERRIDES,    // Might be needed for category permissions
                             CacheFlag.ROLE_TAGS            // Often useful with members/permissions
-                            // Add CacheFlag.CHANNEL_STRUCTURE if issues persist, but it increases memory usage
                     )
                     // Disable unnecessary caches
                     .disableCache(
@@ -57,22 +59,48 @@ public class DiscordConfig {
                             CacheFlag.CLIENT_STATUS,
                             CacheFlag.ONLINE_STATUS,
                             CacheFlag.SCHEDULED_EVENTS
-                            // CacheFlag.FORUM_TAGS // If not using forums
                     )
+                    // Register the leaderboard listener
+                    .addEventListeners(leaderboardCommandListener)
                     .build();
 
-            // Waits until JDA is fully connected and ready. Consider adding a timeout.
+            // Waits until JDA is fully connected and ready
             jdaInstance.awaitReady();
             logger.info("JDA instance built and ready!");
+            
+            // Register slash commands
+            registerSlashCommands();
+            
             return jdaInstance;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             logger.error("JDA initialization was interrupted.", e);
             throw new RuntimeException("JDA initialization interrupted", e);
-        } catch (Exception e) { // Catch other potential exceptions (e.g., LoginException for invalid token)
+        } catch (Exception e) { // Catch other potential exceptions
             logger.error("Failed to build JDA instance. Check token and intents.", e);
-            // Throwing ensures the application context fails to load if JDA fails
             throw new RuntimeException("Failed to initialize JDA", e);
+        }
+    }
+    
+    /**
+     * Register all slash commands used by the application
+     */
+    private void registerSlashCommands() {
+        try {
+            logger.info("Registering slash commands...");
+            
+            // This will overwrite all existing global commands with the new definitions
+            jdaInstance.updateCommands()
+                .addCommands(
+                    Commands.slash("leaderboard", "Displays the user credit leaderboard")
+                    // Add any other slash commands here
+                )
+                .queue(
+                    commands -> logger.info("Successfully registered {} slash commands", commands.size()),
+                    error -> logger.error("Failed to register slash commands: {}", error.getMessage())
+                );
+        } catch (Exception e) {
+            logger.error("Error registering slash commands", e);
         }
     }
 
@@ -81,7 +109,6 @@ public class DiscordConfig {
     public void shutdown() {
         if (jdaInstance != null) {
             logger.info("Shutting down JDA instance...");
-            // shutdownNow() is generally preferred in a Spring context for faster cleanup
             jdaInstance.shutdownNow();
             logger.info("JDA instance shut down.");
         }
