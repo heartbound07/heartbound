@@ -42,11 +42,14 @@ public class DiscordChannelService {
     @Value("${frontend.base.url}")
     private String frontendBaseUrl;
     
+    // Add this value annotation for the backend URL
+    @Value("${backend.base.url}")
+    private String backendBaseUrl;
+    
     // This will dynamically build the rank image URL from your application host
     private String getRankImageUrl(String rankName) {
-        // Create a fully qualified URL that includes the context path
-        String backendUrl = frontendBaseUrl.replace(":3000", ":8080");
-        return backendUrl + "/api/images/ranks/" + rankName.toLowerCase() + ".png";
+        // Use the backend URL directly instead of deriving it from frontend URL
+        return backendBaseUrl + "/images/ranks/" + rankName.toLowerCase() + ".png";
     }
     
     @Autowired
