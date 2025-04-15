@@ -164,7 +164,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
         
         // Create a clickable link to the web leaderboard
         String leaderboardUrl = frontendBaseUrl + "/dashboard/leaderboard";
-        embed.setDescription("[View the online leaderboard](" + leaderboardUrl + ")");
+        embed.setDescription("View the [online leaderboard](" + leaderboardUrl + ")");
         embed.setColor(EMBED_COLOR);
         
         // Optional: Set thumbnail to top user's avatar if available
@@ -186,8 +186,20 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                                : user.getUsername();
             
             // Format each entry with rank, name, and credits
-            content.append(String.format("**#%d** | **%s** - %d credits\n", 
-                          rank, displayName, user.getCredits()));
+            // Use medal emojis for top 3 ranks
+            String rankDisplay;
+            if (rank == 1) {
+                rankDisplay = "🥇";
+            } else if (rank == 2) {
+                rankDisplay = "🥈";
+            } else if (rank == 3) {
+                rankDisplay = "🥉";
+            } else {
+                rankDisplay = "**#" + rank + "**";
+            }
+            
+            content.append(String.format("%s | **%s** - %d credits\n", 
+                          rankDisplay, displayName, user.getCredits()));
         }
         
         embed.addField("Rankings", content.toString(), false);
