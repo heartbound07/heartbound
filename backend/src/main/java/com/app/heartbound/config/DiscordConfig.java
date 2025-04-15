@@ -94,6 +94,7 @@ public class DiscordConfig {
                 .addCommands(
                     Commands.slash("leaderboard", "Displays the user credit leaderboard")
                     // Add any other slash commands here
+
                 )
                 .queue(
                     commands -> logger.info("Successfully registered {} slash commands", commands.size()),
@@ -113,4 +114,4 @@ public class DiscordConfig {
             logger.info("JDA instance shut down.");
         }
     }
-} 
+}

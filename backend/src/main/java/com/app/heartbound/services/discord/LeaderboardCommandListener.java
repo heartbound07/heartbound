@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.awt.Color;
@@ -24,6 +25,9 @@ public class LeaderboardCommandListener extends ListenerAdapter {
     private static final Color EMBED_COLOR = new Color(88, 101, 242); // Discord Blurple
 
     private final UserService userService;
+    
+    @Value("${frontend.base.url}")
+    private String frontendBaseUrl;
 
     @Autowired
     public LeaderboardCommandListener(UserService userService) {
@@ -156,8 +160,11 @@ public class LeaderboardCommandListener extends ListenerAdapter {
         
         // Build the embed
         EmbedBuilder embed = new EmbedBuilder();
-        embed.setTitle("User Credits Leaderboard");
-        embed.setDescription("Top users ranked by credits");
+        embed.setTitle("Leaderboard");
+        
+        // Create a clickable link to the web leaderboard
+        String leaderboardUrl = frontendBaseUrl + "/dashboard/leaderboard";
+        embed.setDescription("[View the online leaderboard](" + leaderboardUrl + ")");
         embed.setColor(EMBED_COLOR);
         
         // Optional: Set thumbnail to top user's avatar if available
