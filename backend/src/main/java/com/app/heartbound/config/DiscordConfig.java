@@ -2,6 +2,7 @@ package com.app.heartbound.config;
 
 import com.app.heartbound.services.discord.LeaderboardCommandListener;
 import com.app.heartbound.services.discord.ChatActivityListener;
+import com.app.heartbound.services.discord.CreditsCommandListener;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -31,6 +32,9 @@ public class DiscordConfig {
 
     @Autowired
     private ChatActivityListener chatActivityListener;
+
+    @Autowired
+    private CreditsCommandListener creditsCommandListener;
 
     @Bean
     public JDA jda() {
@@ -66,7 +70,7 @@ public class DiscordConfig {
                             CacheFlag.SCHEDULED_EVENTS
                     )
                     // Register all listeners
-                    .addEventListeners(leaderboardCommandListener, chatActivityListener)
+                    .addEventListeners(leaderboardCommandListener, chatActivityListener, creditsCommandListener)
                     .build();
 
             // Waits until JDA is fully connected and ready
@@ -97,9 +101,9 @@ public class DiscordConfig {
             // This will overwrite all existing global commands with the new definitions
             jdaInstance.updateCommands()
                 .addCommands(
-                    Commands.slash("leaderboard", "Displays the user credit leaderboard")
+                    Commands.slash("leaderboard", "Displays the user credit leaderboard"),
+                    Commands.slash("credits", "Check your current credit balance")
                     // Add any other slash commands here
-
                 )
                 .queue(
                     commands -> logger.info("Successfully registered {} slash commands", commands.size()),
