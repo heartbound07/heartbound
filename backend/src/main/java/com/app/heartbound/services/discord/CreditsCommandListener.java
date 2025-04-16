@@ -2,6 +2,8 @@ package com.app.heartbound.services.discord;
 
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
@@ -9,10 +11,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.awt.Color;
+
 @Component
 public class CreditsCommandListener extends ListenerAdapter {
     
     private static final Logger logger = LoggerFactory.getLogger(CreditsCommandListener.class);
+    private static final Color EMBED_COLOR = new Color(88, 101, 242); // Discord Blurple
     
     private final UserService userService;
     
@@ -50,9 +55,16 @@ public class CreditsCommandListener extends ListenerAdapter {
             Integer credits = user.getCredits();
             int currentCredits = (credits == null) ? 0 : credits;
             
-            // Construct and send the response
-            String message = String.format("You currently have %d credits.", currentCredits);
-            event.getHook().editOriginal(message).queue();
+            // Create embed for better visual presentation
+            EmbedBuilder embed = new EmbedBuilder()
+                .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
+                .setTitle("Balance")
+                .setDescription(String.format("You have %d credits", currentCredits))
+                .setColor(EMBED_COLOR)
+                .setFooter("Heartbound Credits", null);
+            
+            // Send the embed response
+            event.getHook().editOriginalEmbeds(embed.build()).queue();
             
             logger.debug("Credits information sent to user {}: {} credits", userId, currentCredits);
             
