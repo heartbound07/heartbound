@@ -1,6 +1,7 @@
 package com.app.heartbound.config;
 
 import com.app.heartbound.services.discord.LeaderboardCommandListener;
+import com.app.heartbound.services.discord.ChatActivityListener;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -28,6 +29,9 @@ public class DiscordConfig {
     @Autowired
     private LeaderboardCommandListener leaderboardCommandListener;
 
+    @Autowired
+    private ChatActivityListener chatActivityListener;
+
     @Bean
     public JDA jda() {
         if (discordToken == null || discordToken.isBlank() || discordToken.equals("${DISCORD_BOT_TOKEN}")) {
@@ -43,7 +47,8 @@ public class DiscordConfig {
                     .enableIntents(
                             GatewayIntent.GUILD_MEMBERS,      // Required for adding users to the server
                             GatewayIntent.GUILD_VOICE_STATES, // Needed for voice channel creation
-                            GatewayIntent.MESSAGE_CONTENT     // Enabled in portal/properties
+                            GatewayIntent.MESSAGE_CONTENT,    // Enabled in portal/properties
+                            GatewayIntent.GUILD_MESSAGES      // Required for receiving messages
                     )
                     // Enable necessary caches
                     .enableCache(
@@ -60,8 +65,8 @@ public class DiscordConfig {
                             CacheFlag.ONLINE_STATUS,
                             CacheFlag.SCHEDULED_EVENTS
                     )
-                    // Register the leaderboard listener
-                    .addEventListeners(leaderboardCommandListener)
+                    // Register all listeners
+                    .addEventListeners(leaderboardCommandListener, chatActivityListener)
                     .build();
 
             // Waits until JDA is fully connected and ready
