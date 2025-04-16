@@ -3,7 +3,6 @@ package com.app.heartbound.services.discord;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
@@ -60,8 +59,7 @@ public class CreditsCommandListener extends ListenerAdapter {
                 .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
                 .setTitle("Balance")
                 .setDescription(String.format("You have %d credits", currentCredits))
-                .setColor(EMBED_COLOR)
-                .setFooter("Heartbound Credits", null);
+                .setColor(EMBED_COLOR);
             
             // Send the embed response
             event.getHook().editOriginalEmbeds(embed.build()).queue();
