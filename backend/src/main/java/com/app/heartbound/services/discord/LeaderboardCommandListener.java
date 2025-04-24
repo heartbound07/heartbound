@@ -103,7 +103,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
             // Create pagination buttons
             Button prevButton = Button.secondary("leaderboard_prev:" + leaderboardType + ":1", "◀️")
                                .withDisabled(true); // Disabled on page 1
-            Button pageIndicator = Button.secondary("leaderboard_page_indicator", "Page 1 / " + totalPages)
+            Button pageIndicator = Button.secondary("leaderboard_page_indicator", "1/" + totalPages)
                                .withDisabled(true); // Always disabled - just an indicator
             Button nextButton = Button.secondary("leaderboard_next:" + leaderboardType + ":1", "▶️")
                                .withDisabled(totalPages <= 1); // Disabled if only one page
@@ -203,7 +203,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
             // Create updated pagination buttons
             Button prevButton = Button.secondary("leaderboard_prev:" + leaderboardType + ":" + targetPage, "◀️")
                                .withDisabled(targetPage <= 1); // Disabled on page 1
-            Button pageIndicator = Button.secondary("leaderboard_page_indicator", "Page " + targetPage + " / " + totalPages)
+            Button pageIndicator = Button.secondary("leaderboard_page_indicator", targetPage + "/" + totalPages)
                                .withDisabled(true); // Always disabled - just an indicator
             Button nextButton = Button.secondary("leaderboard_next:" + leaderboardType + ":" + targetPage, "▶️")
                                .withDisabled(targetPage >= totalPages); // Disabled on last page
@@ -295,7 +295,6 @@ public class LeaderboardCommandListener extends ListenerAdapter {
         }
         
         embed.addField("Rankings", content.toString(), false);
-        embed.setFooter("Total entries: " + users.size());
         
         logger.debug("[LEADERBOARD DEBUG] Building leaderboard embed: page={}/{}, type={}, users={}", 
                    page, totalPages, type, users.size());
