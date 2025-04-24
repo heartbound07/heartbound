@@ -284,7 +284,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                               rankDisplay, displayName, level, xp));
             } else {
                 int credits = user.getCredits() != null ? user.getCredits() : 0;
-                content.append(String.format("%s | **%s** - %d 💰\n", 
+                content.append(String.format("%s | **%s** - 💰 %d\n", 
                               rankDisplay, displayName, credits));
             }
         }
