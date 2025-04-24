@@ -31,4 +31,8 @@ public class UserProfileDTO {
     
     // User's credit balance
     private Integer credits;
+    
+    // Add level and experience
+    private Integer level;
+    private Integer experience;
 }

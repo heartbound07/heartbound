@@ -48,6 +48,10 @@ public class User {
     // Add credits field with default value
     private Integer credits = 0;
     
+    // Add level and experience fields with default values
+    private Integer level = 1;
+    private Integer experience = 0;
+    
     // Role-based security addition
     @ElementCollection(fetch = jakarta.persistence.FetchType.EAGER)
     @Enumerated(jakarta.persistence.EnumType.STRING)

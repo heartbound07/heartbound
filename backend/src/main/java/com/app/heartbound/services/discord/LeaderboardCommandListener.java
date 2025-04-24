@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.awt.Color;
+import java.util.Comparator;
 import java.util.List;
 
 @Component
@@ -43,6 +45,10 @@ public class LeaderboardCommandListener extends ListenerAdapter {
 
         logger.debug("Leaderboard command received from user: {}", event.getUser().getId());
         
+        // Get the leaderboard type (levels or credits)
+        OptionMapping typeOption = event.getOption("type");
+        String leaderboardType = typeOption == null ? "levels" : typeOption.getAsString();
+        
         // Acknowledge the interaction quickly to prevent timeout
         event.deferReply().queue();
         
@@ -56,16 +62,30 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                 return;
             }
             
+            // Sort based on the selected type
+            if ("levels".equals(leaderboardType)) {
+                // Sort by level (desc), then by experience (desc)
+                leaderboardUsers.sort(
+                    Comparator.comparing(UserProfileDTO::getLevel, Comparator.nullsFirst(Comparator.reverseOrder()))
+                    .thenComparing(UserProfileDTO::getExperience, Comparator.nullsFirst(Comparator.reverseOrder()))
+                );
+            } else {
+                // Sort by credits descending (already done in the service, but let's ensure it)
+                leaderboardUsers.sort(
+                    Comparator.comparing(UserProfileDTO::getCredits, Comparator.nullsFirst(Comparator.reverseOrder()))
+                );
+            }
+            
             // Calculate total pages
             int totalPages = (int) Math.ceil((double) leaderboardUsers.size() / PAGE_SIZE);
             int currentPage = 1; // Start with page 1
             
             // Build the initial embed for page 1
-            MessageEmbed embed = buildLeaderboardEmbed(leaderboardUsers, currentPage, totalPages);
+            MessageEmbed embed = buildLeaderboardEmbed(leaderboardUsers, currentPage, totalPages, leaderboardType);
             
             // Create pagination buttons
-            Button prevButton = Button.secondary("leaderboard_prev:" + currentPage, "◀️").withDisabled(true); // Disabled on page 1
-            Button nextButton = Button.secondary("leaderboard_next:" + currentPage, "▶️")
+            Button prevButton = Button.secondary("leaderboard_prev:" + leaderboardType + ":" + currentPage, "◀️").withDisabled(true); // Disabled on page 1
+            Button nextButton = Button.secondary("leaderboard_next:" + leaderboardType + ":" + currentPage, "▶️")
                                .withDisabled(totalPages <= 1); // Disabled if only 1 page
             
             // Send the initial response with buttons
@@ -93,11 +113,16 @@ public class LeaderboardCommandListener extends ListenerAdapter {
         event.deferEdit().queue();
         
         try {
-            // Parse current page and navigation direction
-            int currentPage;
+            // Parse component ID: format is leaderboard_<direction>:<type>:<page>
+            String[] parts = componentId.split(":");
+            if (parts.length != 3) {
+                logger.error("Invalid component ID format: {}", componentId);
+                return;
+            }
+            
+            String leaderboardType = parts[1];
+            int currentPage = Integer.parseInt(parts[2]);
             boolean isNext = componentId.startsWith("leaderboard_next:");
-            String pageStr = componentId.substring(componentId.indexOf(':') + 1);
-            currentPage = Integer.parseInt(pageStr);
             
             // Calculate target page
             int tempTargetPage = isNext ? currentPage + 1 : currentPage - 1;
@@ -111,6 +136,20 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                 return;
             }
             
+            // Sort based on the selected type
+            if ("levels".equals(leaderboardType)) {
+                // Sort by level (desc), then by experience (desc)
+                leaderboardUsers.sort(
+                    Comparator.comparing(UserProfileDTO::getLevel, Comparator.nullsFirst(Comparator.reverseOrder()))
+                    .thenComparing(UserProfileDTO::getExperience, Comparator.nullsFirst(Comparator.reverseOrder()))
+                );
+            } else {
+                // Sort by credits descending
+                leaderboardUsers.sort(
+                    Comparator.comparing(UserProfileDTO::getCredits, Comparator.nullsFirst(Comparator.reverseOrder()))
+                );
+            }
+            
             // Calculate total pages
             int totalPages = (int) Math.ceil((double) leaderboardUsers.size() / PAGE_SIZE);
             
@@ -122,12 +161,12 @@ public class LeaderboardCommandListener extends ListenerAdapter {
             final int targetPage = tempTargetPage;
             
             // Build the new embed for the target page
-            MessageEmbed embed = buildLeaderboardEmbed(leaderboardUsers, targetPage, totalPages);
+            MessageEmbed embed = buildLeaderboardEmbed(leaderboardUsers, targetPage, totalPages, leaderboardType);
             
             // Create updated pagination buttons
-            Button prevButton = Button.secondary("leaderboard_prev:" + targetPage, "◀️")
+            Button prevButton = Button.secondary("leaderboard_prev:" + leaderboardType + ":" + targetPage, "◀️")
                                .withDisabled(targetPage <= 1); // Disabled on page 1
-            Button nextButton = Button.secondary("leaderboard_next:" + targetPage, "▶️")
+            Button nextButton = Button.secondary("leaderboard_next:" + leaderboardType + ":" + targetPage, "▶️")
                                .withDisabled(targetPage >= totalPages); // Disabled on last page
             
             // Update the original message
@@ -150,7 +189,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
      * @param totalPages The total number of pages
      * @return A MessageEmbed containing the formatted leaderboard
      */
-    private MessageEmbed buildLeaderboardEmbed(List<UserProfileDTO> users, int page, int totalPages) {
+    private MessageEmbed buildLeaderboardEmbed(List<UserProfileDTO> users, int page, int totalPages, String type) {
         // Calculate start and end indices for the current page
         int startIndex = (page - 1) * PAGE_SIZE;
         int endIndex = Math.min(startIndex + PAGE_SIZE, users.size());
@@ -160,7 +199,13 @@ public class LeaderboardCommandListener extends ListenerAdapter {
         
         // Build the embed
         EmbedBuilder embed = new EmbedBuilder();
-        embed.setTitle("Leaderboard");
+        
+        // Set title based on leaderboard type
+        if ("levels".equals(type)) {
+            embed.setTitle("Level Leaderboard");
+        } else {
+            embed.setTitle("Credit Leaderboard");
+        }
         
         // Create a clickable link to the web leaderboard
         String leaderboardUrl = frontendBaseUrl + "/dashboard/leaderboard";
@@ -185,7 +230,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                                ? user.getDisplayName() 
                                : user.getUsername();
             
-            // Format each entry with rank, name, and credits
+            // Format each entry with rank, name, and depending on the type, either level/xp or credits
             // Use medal emojis for top 3 ranks
             String rankDisplay;
             if (rank == 1) {
@@ -198,12 +243,20 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                 rankDisplay = "**#" + rank + "**";
             }
             
-            content.append(String.format("%s | **%s** - %d credits\n", 
-                          rankDisplay, displayName, user.getCredits()));
+            if ("levels".equals(type)) {
+                int level = user.getLevel() != null ? user.getLevel() : 1;
+                int xp = user.getExperience() != null ? user.getExperience() : 0;
+                content.append(String.format("%s | **%s** - Level %d (%d XP)\n", 
+                              rankDisplay, displayName, level, xp));
+            } else {
+                int credits = user.getCredits() != null ? user.getCredits() : 0;
+                content.append(String.format("%s | **%s** - %d credits\n", 
+                              rankDisplay, displayName, credits));
+            }
         }
         
         embed.addField("Rankings", content.toString(), false);
-        embed.setFooter("Page " + page + " / " + totalPages);
+        embed.setFooter("Page " + page + " / " + totalPages + " • " + (type.equals("levels") ? "Levels" : "Credits") + " Leaderboard");
         
         return embed.build();
     }

@@ -19,6 +19,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 
 @Configuration
 public class DiscordConfig {
@@ -112,7 +114,12 @@ public class DiscordConfig {
             // This will overwrite all existing global commands with the new definitions
             jdaInstance.updateCommands()
                 .addCommands(
-                    Commands.slash("leaderboard", "Displays the user credit leaderboard"),
+                    Commands.slash("leaderboard", "Displays the user leaderboard by level or credits")
+                        .addOptions(
+                            new OptionData(OptionType.STRING, "type", "Sort leaderboard by 'levels' or 'credits'", false)
+                                .addChoice("Levels", "levels")
+                                .addChoice("Credits", "credits")
+                        ),
                     Commands.slash("credits", "Check your current credit balance"),
                     Commands.slash("welcome", "Sends the verification welcome message")
                         .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))

@@ -45,6 +45,24 @@ public class ChatActivityListener extends ListenerAdapter {
     @Value("${discord.activity.min-message-length:15}")
     private int minMessageLength;
     
+    @Value("${discord.leveling.enabled:true}")
+    private boolean levelingEnabled;
+    
+    @Value("${discord.leveling.xp-to-award:15}")
+    private int xpToAward;
+    
+    @Value("${discord.leveling.base-xp:100}")
+    private int baseXp;
+    
+    @Value("${discord.leveling.level-multiplier:50}")
+    private int levelMultiplier;
+    
+    @Value("${discord.leveling.level-exponent:2}")
+    private int levelExponent;
+    
+    @Value("${discord.leveling.level-factor:5}")
+    private int levelFactor;
+    
     // Track user cooldowns - userId -> lastMessageTimestamp
     private final ConcurrentHashMap<String, Instant> userCooldowns = new ConcurrentHashMap<>();
     
@@ -60,8 +78,8 @@ public class ChatActivityListener extends ListenerAdapter {
     
     @PostConstruct
     public void initialize() {
-        logger.info("ChatActivityListener initialized with: enabled={}, messageThreshold={}, timeWindowMinutes={}, cooldownSeconds={}, minMessageLength={}, creditsToAward={}",
-                activityEnabled, messageThreshold, timeWindowMinutes, cooldownSeconds, minMessageLength, creditsToAward);
+        logger.info("ChatActivityListener initialized with: enabled={}, messageThreshold={}, timeWindowMinutes={}, cooldownSeconds={}, minMessageLength={}, creditsToAward={}, levelingEnabled={}, xpToAward={}",
+                activityEnabled, messageThreshold, timeWindowMinutes, cooldownSeconds, minMessageLength, creditsToAward, levelingEnabled, xpToAward);
         
         // Start periodic cleanup of old tracking data
         cleanupScheduler = Executors.newSingleThreadScheduledExecutor();
@@ -101,10 +119,48 @@ public class ChatActivityListener extends ListenerAdapter {
         }
     }
     
+    private int calculateRequiredXp(int level) {
+        return baseXp + (levelFactor * (int)Math.pow(level, levelExponent)) + (levelMultiplier * level);
+    }
+    
+    private void checkAndProcessLevelUp(User user, String userId, net.dv8tion.jda.api.entities.channel.middleman.MessageChannel channel) {
+        if (!levelingEnabled) {
+            return;
+        }
+        
+        int currentLevel = user.getLevel() != null ? user.getLevel() : 1;
+        int currentXp = user.getExperience() != null ? user.getExperience() : 0;
+        int requiredXp = calculateRequiredXp(currentLevel);
+        
+        if (currentXp >= requiredXp) {
+            user.setLevel(currentLevel + 1);
+            user.setExperience(currentXp - requiredXp);
+            
+            try {
+                userService.updateUser(user);
+                
+                String levelUpMessage = String.format("�� Congratulations <@%s>! You've reached **Level %d**!", 
+                                                      userId, currentLevel + 1);
+                channel.sendMessage(levelUpMessage).queue(
+                    success -> logger.debug("Level up message sent for user {}", userId),
+                    error -> logger.error("Failed to send level up message for user {}: {}", userId, error.getMessage())
+                );
+                
+                logger.info("User {} leveled up to {} (XP: {} -> {})", 
+                           userId, currentLevel + 1, currentXp, user.getExperience());
+                
+                checkAndProcessLevelUp(user, userId, channel);
+                
+            } catch (Exception e) {
+                logger.error("Error updating user level for {}: {}", userId, e.getMessage(), e);
+            }
+        }
+    }
+    
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
         // Early returns for disabled feature or ineligible messages
-        if (!activityEnabled) {
+        if (!activityEnabled && !levelingEnabled) {
             return;
         }
         
@@ -140,6 +196,14 @@ public class ChatActivityListener extends ListenerAdapter {
             if (user == null) {
                 logger.warn("User {} not found in database, cannot track activity", userId);
                 return;
+            }
+            
+            if (levelingEnabled) {
+                int currentXp = user.getExperience() != null ? user.getExperience() : 0;
+                user.setExperience(currentXp + xpToAward);
+                logger.debug("Awarded {} XP to user {}. New XP: {}", xpToAward, userId, user.getExperience());
+                
+                checkAndProcessLevelUp(user, userId, event.getChannel());
             }
             
             // Track message in activity window
