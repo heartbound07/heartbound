@@ -11,6 +11,8 @@ export interface UserInfo {
   avatar?: string;
   roles?: Role[];
   credits?: number;
+  level?: number;
+  experience?: number;
 }
 
 export interface LoginRequest {

@@ -12,6 +12,8 @@ export interface UserProfileDTO {
   bannerUrl?: string;
   roles?: Role[];
   credits?: number;
+  level?: number;
+  experience?: number;
 }
 
 export interface UpdateProfileDTO {
