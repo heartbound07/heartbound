@@ -67,10 +67,12 @@ public class WelcomeCommandListener extends ListenerAdapter {
         // Acknowledge the command immediately to prevent timeout
         event.deferReply(true).queue();
         
+        logger.info("Admin {} triggered welcome message in channel {}", event.getUser().getId(), WELCOME_CHANNEL_ID);
+        
         // Send verification message to welcome channel
         welcomeListener.sendVerificationMessage(welcomeChannel, null);
         
-        // Provide feedback to the admin
-        event.getHook().editOriginal("Verification message sent to the welcome channel.").queue();
+        // Provide more detailed feedback to the admin
+        event.getHook().editOriginal("✅ Verification welcome message sent to the welcome channel.").queue();
     }
 } 

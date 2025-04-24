@@ -29,20 +29,13 @@ public class WelcomeListener extends ListenerAdapter {
     
     @Override
     public void onGuildMemberJoin(GuildMemberJoinEvent event) {
+        // Log the join event but don't send a welcome message
         Guild guild = event.getGuild();
         String memberId = event.getUser().getId();
         String memberName = event.getUser().getName();
         
         logger.info("New member joined: {} ({})", memberName, memberId);
-        
-        TextChannel welcomeChannel = guild.getTextChannelById(WELCOME_CHANNEL_ID);
-        if (welcomeChannel == null) {
-            logger.error("Welcome channel with ID {} not found", WELCOME_CHANNEL_ID);
-            return;
-        }
-        
-        // Create embed and button for verification
-        sendVerificationMessage(welcomeChannel, memberId);
+        // No longer automatically sending verification message
     }
     
     public void sendVerificationMessage(TextChannel channel, String mentionUserId) {
