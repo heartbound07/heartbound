@@ -17,6 +17,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 
 @Configuration
 public class DiscordConfig {
@@ -113,6 +115,7 @@ public class DiscordConfig {
                     Commands.slash("leaderboard", "Displays the user credit leaderboard"),
                     Commands.slash("credits", "Check your current credit balance"),
                     Commands.slash("welcome", "Sends the verification welcome message")
+                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
                     // Add any other slash commands here
                 )
                 .queue(
