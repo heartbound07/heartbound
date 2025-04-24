@@ -3,6 +3,8 @@ package com.app.heartbound.config;
 import com.app.heartbound.services.discord.LeaderboardCommandListener;
 import com.app.heartbound.services.discord.ChatActivityListener;
 import com.app.heartbound.services.discord.CreditsCommandListener;
+import com.app.heartbound.services.discord.WelcomeListener;
+import com.app.heartbound.services.discord.WelcomeCommandListener;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -35,6 +37,12 @@ public class DiscordConfig {
 
     @Autowired
     private CreditsCommandListener creditsCommandListener;
+
+    @Autowired
+    private WelcomeListener welcomeListener;
+
+    @Autowired
+    private WelcomeCommandListener welcomeCommandListener;
 
     @Bean
     public JDA jda() {
@@ -69,8 +77,9 @@ public class DiscordConfig {
                             CacheFlag.ONLINE_STATUS,
                             CacheFlag.SCHEDULED_EVENTS
                     )
-                    // Register all listeners
-                    .addEventListeners(leaderboardCommandListener, chatActivityListener, creditsCommandListener)
+                    // Register all listeners, including our new WelcomeListener
+                    .addEventListeners(leaderboardCommandListener, chatActivityListener, 
+                                      creditsCommandListener, welcomeListener, welcomeCommandListener)
                     .build();
 
             // Waits until JDA is fully connected and ready
@@ -102,7 +111,8 @@ public class DiscordConfig {
             jdaInstance.updateCommands()
                 .addCommands(
                     Commands.slash("leaderboard", "Displays the user credit leaderboard"),
-                    Commands.slash("credits", "Check your current credit balance")
+                    Commands.slash("credits", "Check your current credit balance"),
+                    Commands.slash("welcome", "Sends the verification welcome message")
                     // Add any other slash commands here
                 )
                 .queue(
