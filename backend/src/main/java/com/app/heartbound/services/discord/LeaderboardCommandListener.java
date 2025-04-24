@@ -101,13 +101,16 @@ public class LeaderboardCommandListener extends ListenerAdapter {
             MessageEmbed embed = buildLeaderboardEmbed(leaderboardUsers, currentPage, totalPages, leaderboardType);
             
             // Create pagination buttons
-            Button prevButton = Button.secondary("leaderboard_prev:" + leaderboardType + ":" + currentPage, "◀️").withDisabled(true); // Disabled on page 1
-            Button nextButton = Button.secondary("leaderboard_next:" + leaderboardType + ":" + currentPage, "▶️")
-                               .withDisabled(totalPages <= 1); // Disabled if only 1 page
+            Button prevButton = Button.secondary("leaderboard_prev:" + leaderboardType + ":1", "◀️")
+                               .withDisabled(true); // Disabled on page 1
+            Button pageIndicator = Button.secondary("leaderboard_page_indicator", "Page 1 / " + totalPages)
+                               .withDisabled(true); // Always disabled - just an indicator
+            Button nextButton = Button.secondary("leaderboard_next:" + leaderboardType + ":1", "▶️")
+                               .withDisabled(totalPages <= 1); // Disabled if only one page
             
             // Send the initial response with buttons
             event.getHook().sendMessageEmbeds(embed)
-                .addActionRow(prevButton, nextButton)
+                .setActionRow(prevButton, pageIndicator, nextButton)
                 .queue(success -> logger.debug("Leaderboard displayed successfully"),
                       error -> logger.error("Failed to send leaderboard", error));
             
@@ -200,12 +203,14 @@ public class LeaderboardCommandListener extends ListenerAdapter {
             // Create updated pagination buttons
             Button prevButton = Button.secondary("leaderboard_prev:" + leaderboardType + ":" + targetPage, "◀️")
                                .withDisabled(targetPage <= 1); // Disabled on page 1
+            Button pageIndicator = Button.secondary("leaderboard_page_indicator", "Page " + targetPage + " / " + totalPages)
+                               .withDisabled(true); // Always disabled - just an indicator
             Button nextButton = Button.secondary("leaderboard_next:" + leaderboardType + ":" + targetPage, "▶️")
                                .withDisabled(targetPage >= totalPages); // Disabled on last page
             
             // Update the original message
             event.getHook().editOriginalEmbeds(embed)
-                .setActionRow(prevButton, nextButton)
+                .setActionRow(prevButton, pageIndicator, nextButton)
                 .queue(success -> logger.debug("Pagination updated to page {}", targetPage),
                       error -> logger.error("Failed to update pagination", error));
             
@@ -284,13 +289,13 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                               rankDisplay, displayName, level, xp));
             } else {
                 int credits = user.getCredits() != null ? user.getCredits() : 0;
-                content.append(String.format("%s | **%s** - 💰 %d\n", 
+                content.append(String.format("%s | **%s** - 🪙 %d\n", 
                               rankDisplay, displayName, credits));
             }
         }
         
         embed.addField("Rankings", content.toString(), false);
-        embed.setFooter("Page " + page + " / " + totalPages);
+        embed.setFooter("Total entries: " + users.size());
         
         logger.debug("[LEADERBOARD DEBUG] Building leaderboard embed: page={}/{}, type={}, users={}", 
                    page, totalPages, type, users.size());
