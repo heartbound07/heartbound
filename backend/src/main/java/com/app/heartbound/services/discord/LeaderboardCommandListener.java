@@ -64,16 +64,33 @@ public class LeaderboardCommandListener extends ListenerAdapter {
             
             // Sort based on the selected type
             if ("levels".equals(leaderboardType)) {
-                // Sort by level (desc), then by experience (desc)
-                leaderboardUsers.sort(
-                    Comparator.comparing(UserProfileDTO::getLevel, Comparator.nullsFirst(Comparator.reverseOrder()))
-                    .thenComparing(UserProfileDTO::getExperience, Comparator.nullsFirst(Comparator.reverseOrder()))
-                );
+                // Sort by level (desc), then by experience (desc) with null-safe comparison
+                leaderboardUsers.sort((a, b) -> {
+                    Integer levelA = a.getLevel() != null ? a.getLevel() : 1;
+                    Integer levelB = b.getLevel() != null ? b.getLevel() : 1;
+                    
+                    int levelCompare = levelB.compareTo(levelA); // Descending order
+                    if (levelCompare != 0) {
+                        return levelCompare;
+                    }
+                    
+                    Integer xpA = a.getExperience() != null ? a.getExperience() : 0;
+                    Integer xpB = b.getExperience() != null ? b.getExperience() : 0;
+                    return xpB.compareTo(xpA); // Descending order
+                });
+                
+                logger.debug("[LEADERBOARD DEBUG] Sorted by levels. Top user: {}(Lvl {}, XP {})", 
+                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
+                           !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getLevel() != null ? leaderboardUsers.get(0).getLevel() : 1) : 0,
+                           !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getExperience() != null ? leaderboardUsers.get(0).getExperience() : 0) : 0);
             } else {
                 // Sort by credits descending (already done in the service, but let's ensure it)
                 leaderboardUsers.sort(
                     Comparator.comparing(UserProfileDTO::getCredits, Comparator.nullsFirst(Comparator.reverseOrder()))
                 );
+                logger.debug("[LEADERBOARD DEBUG] Sorted by credits. Top user: {}({} credits)", 
+                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
+                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getCredits() : 0);
             }
             
             // Calculate total pages
@@ -93,30 +110,6 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                 .addActionRow(prevButton, nextButton)
                 .queue(success -> logger.debug("Leaderboard displayed successfully"),
                       error -> logger.error("Failed to send leaderboard", error));
-            
-            logger.debug("[LEADERBOARD DEBUG] Fetched {} users for leaderboard", 
-                       leaderboardUsers != null ? leaderboardUsers.size() : 0);
-            
-            // After sorting the leaderboard
-            if ("levels".equals(leaderboardType)) {
-                // Sort by level (desc), then by experience (desc)
-                leaderboardUsers.sort(
-                    Comparator.comparing(UserProfileDTO::getLevel, Comparator.nullsFirst(Comparator.reverseOrder()))
-                    .thenComparing(UserProfileDTO::getExperience, Comparator.nullsFirst(Comparator.reverseOrder()))
-                );
-                logger.debug("[LEADERBOARD DEBUG] Sorted by levels. Top user: {}(Lvl {}, XP {})", 
-                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
-                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getLevel() : 0,
-                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getExperience() : 0);
-            } else {
-                // Sort by credits descending
-                leaderboardUsers.sort(
-                    Comparator.comparing(UserProfileDTO::getCredits, Comparator.nullsFirst(Comparator.reverseOrder()))
-                );
-                logger.debug("[LEADERBOARD DEBUG] Sorted by credits. Top user: {}({} credits)", 
-                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
-                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getCredits() : 0);
-            }
             
         } catch (Exception e) {
             logger.error("Error processing leaderboard command", e);
@@ -162,16 +155,33 @@ public class LeaderboardCommandListener extends ListenerAdapter {
             
             // Sort based on the selected type
             if ("levels".equals(leaderboardType)) {
-                // Sort by level (desc), then by experience (desc)
-                leaderboardUsers.sort(
-                    Comparator.comparing(UserProfileDTO::getLevel, Comparator.nullsFirst(Comparator.reverseOrder()))
-                    .thenComparing(UserProfileDTO::getExperience, Comparator.nullsFirst(Comparator.reverseOrder()))
-                );
+                // Sort by level (desc), then by experience (desc) with null-safe comparison
+                leaderboardUsers.sort((a, b) -> {
+                    Integer levelA = a.getLevel() != null ? a.getLevel() : 1;
+                    Integer levelB = b.getLevel() != null ? b.getLevel() : 1;
+                    
+                    int levelCompare = levelB.compareTo(levelA); // Descending order
+                    if (levelCompare != 0) {
+                        return levelCompare;
+                    }
+                    
+                    Integer xpA = a.getExperience() != null ? a.getExperience() : 0;
+                    Integer xpB = b.getExperience() != null ? b.getExperience() : 0;
+                    return xpB.compareTo(xpA); // Descending order
+                });
+                
+                logger.debug("[LEADERBOARD DEBUG] Sorted by levels. Top user: {}(Lvl {}, XP {})", 
+                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
+                           !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getLevel() != null ? leaderboardUsers.get(0).getLevel() : 1) : 0,
+                           !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getExperience() != null ? leaderboardUsers.get(0).getExperience() : 0) : 0);
             } else {
                 // Sort by credits descending
                 leaderboardUsers.sort(
                     Comparator.comparing(UserProfileDTO::getCredits, Comparator.nullsFirst(Comparator.reverseOrder()))
                 );
+                logger.debug("[LEADERBOARD DEBUG] Sorted by credits. Top user: {}({} credits)", 
+                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
+                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getCredits() : 0);
             }
             
             // Calculate total pages
