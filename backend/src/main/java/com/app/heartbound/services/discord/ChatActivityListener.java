@@ -132,23 +132,31 @@ public class ChatActivityListener extends ListenerAdapter {
         int currentXp = user.getExperience() != null ? user.getExperience() : 0;
         int requiredXp = calculateRequiredXp(currentLevel);
         
+        logger.debug("[XP DEBUG] Level check: User={}, Level={}, Current XP={}, Required XP={}", 
+                    userId, currentLevel, currentXp, requiredXp);
+        
         if (currentXp >= requiredXp) {
+            logger.debug("[XP DEBUG] LEVEL UP! User {} is leveling up from {} to {}", 
+                        userId, currentLevel, currentLevel + 1);
             user.setLevel(currentLevel + 1);
             user.setExperience(currentXp - requiredXp);
             
             try {
                 userService.updateUser(user);
                 
-                String levelUpMessage = String.format("�� Congratulations <@%s>! You've reached **Level %d**!", 
-                                                      userId, currentLevel + 1);
+                String levelUpMessage = String.format("🎉 Congratulations <@%s>! You've reached **Level %d**!", 
+                                                    userId, currentLevel + 1);
+                logger.debug("[XP DEBUG] Sending level up message to channel {}", channel.getId());
                 channel.sendMessage(levelUpMessage).queue(
-                    success -> logger.debug("Level up message sent for user {}", userId),
+                    success -> logger.debug("[XP DEBUG] Level up message sent for user {}", userId),
                     error -> logger.error("Failed to send level up message for user {}: {}", userId, error.getMessage())
                 );
                 
                 logger.info("User {} leveled up to {} (XP: {} -> {})", 
                            userId, currentLevel + 1, currentXp, user.getExperience());
                 
+                // Add debug log for recursive level check
+                logger.debug("[XP DEBUG] Checking for additional level ups");
                 checkAndProcessLevelUp(user, userId, channel);
                 
             } catch (Exception e) {
@@ -199,10 +207,15 @@ public class ChatActivityListener extends ListenerAdapter {
             }
             
             if (levelingEnabled) {
+                logger.debug("[XP DEBUG] About to award XP to {}: Current XP={}, Level={}, Adding {} XP", 
+                    userId, user.getExperience(), user.getLevel(), xpToAward);
                 int currentXp = user.getExperience() != null ? user.getExperience() : 0;
                 user.setExperience(currentXp + xpToAward);
-                logger.debug("Awarded {} XP to user {}. New XP: {}", xpToAward, userId, user.getExperience());
+                logger.debug("[XP DEBUG] Awarded {} XP to user {}. New XP: {}", xpToAward, userId, user.getExperience());
                 
+                // Add right before calling checkAndProcessLevelUp method
+                logger.debug("[XP DEBUG] Checking for level up: User={}, Level={}, XP={}", 
+                    userId, user.getLevel(), user.getExperience());
                 checkAndProcessLevelUp(user, userId, event.getChannel());
             }
             

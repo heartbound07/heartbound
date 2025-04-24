@@ -109,7 +109,7 @@ public class DiscordConfig {
      */
     private void registerSlashCommands() {
         try {
-            logger.info("Registering slash commands...");
+            logger.debug("[SLASH COMMAND DEBUG] Registering slash commands with Discord API");
             
             // This will overwrite all existing global commands with the new definitions
             jdaInstance.updateCommands()
@@ -126,7 +126,13 @@ public class DiscordConfig {
                     // Add any other slash commands here
                 )
                 .queue(
-                    commands -> logger.info("Successfully registered {} slash commands", commands.size()),
+                    commands -> {
+                        logger.info("Successfully registered {} slash commands", commands.size());
+                        commands.forEach(command -> 
+                            logger.debug("[SLASH COMMAND DEBUG] Registered command: /{} - {}", 
+                                       command.getName(), command.getDescription())
+                        );
+                    },
                     error -> logger.error("Failed to register slash commands: {}", error.getMessage())
                 );
         } catch (Exception e) {

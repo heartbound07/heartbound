@@ -94,6 +94,30 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                 .queue(success -> logger.debug("Leaderboard displayed successfully"),
                       error -> logger.error("Failed to send leaderboard", error));
             
+            logger.debug("[LEADERBOARD DEBUG] Fetched {} users for leaderboard", 
+                       leaderboardUsers != null ? leaderboardUsers.size() : 0);
+            
+            // After sorting the leaderboard
+            if ("levels".equals(leaderboardType)) {
+                // Sort by level (desc), then by experience (desc)
+                leaderboardUsers.sort(
+                    Comparator.comparing(UserProfileDTO::getLevel, Comparator.nullsFirst(Comparator.reverseOrder()))
+                    .thenComparing(UserProfileDTO::getExperience, Comparator.nullsFirst(Comparator.reverseOrder()))
+                );
+                logger.debug("[LEADERBOARD DEBUG] Sorted by levels. Top user: {}(Lvl {}, XP {})", 
+                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
+                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getLevel() : 0,
+                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getExperience() : 0);
+            } else {
+                // Sort by credits descending
+                leaderboardUsers.sort(
+                    Comparator.comparing(UserProfileDTO::getCredits, Comparator.nullsFirst(Comparator.reverseOrder()))
+                );
+                logger.debug("[LEADERBOARD DEBUG] Sorted by credits. Top user: {}({} credits)", 
+                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
+                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getCredits() : 0);
+            }
+            
         } catch (Exception e) {
             logger.error("Error processing leaderboard command", e);
             event.getHook().sendMessage("An error occurred while fetching the leaderboard data.")
@@ -257,6 +281,9 @@ public class LeaderboardCommandListener extends ListenerAdapter {
         
         embed.addField("Rankings", content.toString(), false);
         embed.setFooter("Page " + page + " / " + totalPages + " • " + (type.equals("levels") ? "Levels" : "Credits") + " Leaderboard");
+        
+        logger.debug("[LEADERBOARD DEBUG] Building leaderboard embed: page={}/{}, type={}, users={}", 
+                   page, totalPages, type, users.size());
         
         return embed.build();
     }
