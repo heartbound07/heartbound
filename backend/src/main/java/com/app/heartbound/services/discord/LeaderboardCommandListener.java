@@ -290,7 +290,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
         }
         
         embed.addField("Rankings", content.toString(), false);
-        embed.setFooter("Page " + page + " / " + totalPages + " • " + (type.equals("levels") ? "Levels" : "Credits") + " Leaderboard");
+        embed.setFooter("Page " + page + " / " + totalPages);
         
         logger.debug("[LEADERBOARD DEBUG] Building leaderboard embed: page={}/{}, type={}, users={}", 
                    page, totalPages, type, users.size());

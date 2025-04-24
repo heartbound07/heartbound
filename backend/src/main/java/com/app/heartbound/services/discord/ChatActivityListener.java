@@ -2,6 +2,7 @@ package com.app.heartbound.services.discord;
 
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import java.awt.Color;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -144,18 +146,57 @@ public class ChatActivityListener extends ListenerAdapter {
             try {
                 userService.updateUser(user);
                 
-                String levelUpMessage = String.format("🎉 Congratulations <@%s>! You've reached **Level %d**!", 
-                                                    userId, currentLevel + 1);
-                logger.debug("[XP DEBUG] Sending level up message to channel {}", channel.getId());
-                channel.sendMessage(levelUpMessage).queue(
-                    success -> logger.debug("[XP DEBUG] Level up message sent for user {}", userId),
-                    error -> logger.error("Failed to send level up message for user {}: {}", userId, error.getMessage())
-                );
+                // Get the achievement channel for level-up announcements
+                String achievementChannelId = "1304293304833146951";
+                net.dv8tion.jda.api.entities.channel.middleman.MessageChannel achievementChannel = 
+                    channel.getJDA().getChannelById(net.dv8tion.jda.api.entities.channel.middleman.MessageChannel.class, achievementChannelId);
+                
+                if (achievementChannel != null) {
+                    // Create an embed for the level-up announcement
+                    EmbedBuilder embed = new EmbedBuilder();
+                    embed.setTitle("Level Up Achievement!");
+                    embed.setDescription(String.format("<@%s>! You advanced to level %d!", userId, currentLevel + 1));
+                    embed.setColor(new Color(75, 181, 67)); // Green color
+                    embed.setTimestamp(java.time.Instant.now());
+                    
+                    // Add XP progress information
+                    int nextLevelXp = calculateRequiredXp(currentLevel + 1);
+                    embed.addField("Experience", String.format("%d/%d XP to next level", user.getExperience(), nextLevelXp), true);
+                    
+                    // Get the user's avatar if possible
+                    net.dv8tion.jda.api.entities.User discordUser = channel.getJDA().getUserById(userId);
+                    if (discordUser != null) {
+                        embed.setThumbnail(discordUser.getEffectiveAvatarUrl());
+                        embed.setAuthor(discordUser.getName(), null, discordUser.getEffectiveAvatarUrl());
+                    }
+                    
+                    // Send the embed to the achievement channel
+                    logger.debug("[XP DEBUG] Sending level up embed to achievement channel {}", achievementChannelId);
+                    achievementChannel.sendMessageEmbeds(embed.build()).queue(
+                        success -> logger.debug("[XP DEBUG] Level up embed sent for user {}", userId),
+                        error -> logger.error("Failed to send level up embed for user {}: {}", userId, error.getMessage())
+                    );
+                    
+                    // Also send a simple notification in the original channel
+                    String simpleNotification = String.format("🎉 <@%s> leveled up to **Level %d**! Check out <#%s> for details!",
+                        userId, currentLevel + 1, achievementChannelId);
+                    channel.sendMessage(simpleNotification).queue();
+                } else {
+                    // Fallback to the original channel if achievement channel not found
+                    logger.warn("[XP DEBUG] Achievement channel {} not found, sending to original channel", achievementChannelId);
+                    
+                    String levelUpMessage = String.format("�� Congratulations <@%s>! You've reached **Level %d**!", 
+                                                        userId, currentLevel + 1);
+                    channel.sendMessage(levelUpMessage).queue(
+                        success -> logger.debug("[XP DEBUG] Level up message sent for user {}", userId),
+                        error -> logger.error("Failed to send level up message for user {}: {}", userId, error.getMessage())
+                    );
+                }
                 
                 logger.info("User {} leveled up to {} (XP: {} -> {})", 
                            userId, currentLevel + 1, currentXp, user.getExperience());
                 
-                // Add debug log for recursive level check
+                // Check for additional level ups
                 logger.debug("[XP DEBUG] Checking for additional level ups");
                 checkAndProcessLevelUp(user, userId, channel);
                 
