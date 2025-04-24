@@ -24,6 +24,9 @@ public class WelcomeListener extends ListenerAdapter {
     @Value("${frontend.base.url}")
     private String frontendBaseUrl;
     
+    @Value("${backend.base.url}")
+    private String backendBaseUrl;
+    
     @Override
     public void onGuildMemberJoin(GuildMemberJoinEvent event) {
         Guild guild = event.getGuild();
@@ -49,6 +52,7 @@ public class WelcomeListener extends ListenerAdapter {
                 .setTitle("Welcome to Heartbound!")
                 .setDescription("In order to verify, you must sign up through the heartbound website")
                 .setColor(EMBED_COLOR)
+                .setImage(backendBaseUrl + "/images/ranks/welcome.jpg")
                 .setFooter("Heartbound Verification System", null);
             
             // Create the website button
