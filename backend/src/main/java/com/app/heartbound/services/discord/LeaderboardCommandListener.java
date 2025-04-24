@@ -88,7 +88,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                 leaderboardUsers.sort(
                     Comparator.comparing(UserProfileDTO::getCredits, Comparator.nullsFirst(Comparator.reverseOrder()))
                 );
-                logger.debug("[LEADERBOARD DEBUG] Sorted by credits. Top user: {}({} credits)", 
+                logger.debug("[LEADERBOARD DEBUG] Sorted by 💰. Top user: {}({} 💰)", 
                            !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
                            !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getCredits() : 0);
             }
@@ -284,7 +284,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                               rankDisplay, displayName, level, xp));
             } else {
                 int credits = user.getCredits() != null ? user.getCredits() : 0;
-                content.append(String.format("%s | **%s** - %d credits\n", 
+                content.append(String.format("%s | **%s** - %d 💰\n", 
                               rankDisplay, displayName, credits));
             }
         }

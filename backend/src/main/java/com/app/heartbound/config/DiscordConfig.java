@@ -117,8 +117,8 @@ public class DiscordConfig {
                     Commands.slash("leaderboard", "Displays the user leaderboard by level or credits")
                         .addOptions(
                             new OptionData(OptionType.STRING, "type", "Sort leaderboard by 'levels' or 'credits'", false)
-                                .addChoice("Levels", "levels")
-                                .addChoice("Credits", "credits")
+                                .addChoice("levels", "levels")
+                                .addChoice("credits", "credits")
                         ),
                     Commands.slash("credits", "Check your current credit balance"),
                     Commands.slash("welcome", "Sends the verification welcome message")
