@@ -273,7 +273,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
     <>
       <MobileBackdrop />
       <aside
-        className={`dashboard-nav ${isCollapsed ? 'collapsed' : 'expanded'} ${
+        className={`dashboard-nav flex flex-col ${isCollapsed ? 'collapsed' : 'expanded'} ${
           isMobileOpen ? 'mobile-open' : 'mobile-closed'
         } ${sidebarBackground}`}
         aria-label="Main navigation"
