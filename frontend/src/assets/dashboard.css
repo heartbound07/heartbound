@@ -61,33 +61,105 @@
   @apply grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto;
 }
 
-/* Games section styling */
+/* Updated games section styling with better responsiveness */
 .games-section {
   @apply flex flex-col items-center justify-center;
   width: 100%;
   max-width: 1200px; /* Limit maximum width */
   margin: 0 auto; /* Center horizontally */
-  height: calc(100vh - 120px); /* Take almost full height of viewport */
-  padding: 2rem; /* Add some padding */
+  min-height: calc(100vh - 120px); /* Use min-height instead of fixed height */
+  padding: 2rem 2rem 4rem 2rem; /* Increased bottom padding for scrolling space */
 }
 
 .games-title {
-  @apply text-3xl font-bold text-white text-center mb-8;
+  @apply text-3xl md:text-4xl lg:text-5xl font-bold text-white text-center;
+  /* removed mb-8 as it's now handled by the container */
 }
 
-/* Better responsive grid with more consistent centering */
+/* Better responsive grid with improved spacing and smaller minimum size */
 .games-grid {
   @apply grid gap-6 w-full place-items-center;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   max-width: 1100px; /* Limit the maximum width of the grid */
   margin: 0 auto; /* Center the grid */
 }
 
-/* Additional utility classes */
+/* Card title for GameCard */
 .card-title {
-  @apply text-white font-medium;
+  @apply text-white font-medium transition-all duration-300;
 }
 
+/* New animation for mobile tap hint */
+@keyframes tapHint {
+  0% { opacity: 0; transform: scale(0.8); }
+  20% { opacity: 0.8; transform: scale(1.1); }
+  60% { opacity: 0.5; transform: scale(0.9); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+.animate-tapHint {
+  animation: tapHint 2s ease-out forwards;
+  will-change: opacity, transform;
+}
+
+/* Responsive adjustments - refined for better scaling */
+@media (max-width: 1280px) {
+  .games-grid {
+    @apply grid-cols-2 gap-5;
+    max-width: 800px;
+  }
+  
+  .games-section {
+    padding: 1.5rem 1.5rem 3rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-content {
+    @apply ml-0 p-4;
+    margin-top: var(--header-height);
+    width: 100%;
+  }
+  
+  .games-title {
+    @apply text-3xl;
+  }
+  
+  .games-grid {
+    @apply grid-cols-2 gap-4;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+  
+  .games-section {
+    padding: 1rem 1rem 2.5rem;
+    min-height: calc(100vh - 100px);
+  }
+}
+
+@media (max-width: 640px) {
+  .games-grid {
+    @apply grid-cols-1 gap-4;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    max-width: 400px;
+  }
+  
+  .games-section {
+    padding: 1rem 0.75rem 2rem;
+  }
+  
+  .games-title {
+    @apply text-2xl;
+  }
+}
+
+@media (max-width: 480px) {
+  .games-grid {
+    grid-template-columns: 1fr; /* Single column for very small screens */
+    max-width: 280px;
+  }
+}
+
+/* Additional utility classes */
 .card-value {
   @apply text-white text-2xl font-bold;
 }
@@ -100,36 +172,6 @@
 /* Dashboard greeting animation enhancement */
 .dashboard-greeting {
   @apply transform transition-all duration-500;
-}
-
-/* Responsive adjustments */
-@media (max-width: 1280px) {
-  .games-grid {
-    @apply grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5;
-  }
-}
-
-@media (max-width: 768px) {
-  .dashboard-content {
-    @apply ml-0 p-4;
-    margin-top: var(--header-height);
-    width: 100%;
-  }
-  .dashboard-greeting {
-    @apply text-4xl;
-  }
-  .games-grid {
-    @apply grid-cols-1 sm:grid-cols-2 gap-4;
-  }
-}
-
-@media (max-width: 640px) {
-  .games-grid {
-    @apply grid-cols-1;
-  }
-  .stats-grid {
-    @apply grid-cols-1 gap-4;
-  }
 }
 
 /* We can remove these custom utilities and use arbitrary values directly */

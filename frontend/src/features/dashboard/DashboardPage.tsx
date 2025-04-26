@@ -86,7 +86,7 @@ export function DashboardPage() {
     <>
       <section className="games-section">
         <h2
-          className="games-title animate-fadeSlideIn mb-10"
+          className="games-title animate-fadeSlideIn mb-8"
           style={{ 
             fontFamily: "Grandstander, cursive", 
             textShadow: "0px 2px 6px rgba(0,0,0,0.4)",
@@ -99,13 +99,20 @@ export function DashboardPage() {
           {isLoading ? (
             // Render skeleton placeholders when loading
             Array(4).fill(0).map((_, index) => (
-              <div key={`skeleton-${index}`} className="flex justify-center p-3">
+              <div 
+                key={`skeleton-${index}`} 
+                className="flex justify-center p-3"
+                style={{
+                  opacity: 0,
+                  animation: `fadeSlideIn 0.5s ease-out ${index * 0.1}s forwards`
+                }}
+              >
                 <SkeletonGameCard theme="dashboard" />
               </div>
             ))
           ) : (
             // Render actual game cards once data is loaded
-            games.map((game) => (
+            games.map((game, index) => (
               <div
                 key={game.id}
                 onClick={() => {
@@ -114,12 +121,18 @@ export function DashboardPage() {
                   }
                 }}
                 className="flex justify-center p-3"
+                style={{
+                  opacity: 0,
+                  animation: `fadeSlideIn 0.5s ease-out ${index * 0.1}s forwards`
+                }}
               >
                 <GameCard
                   title={game.title}
                   image={game.image}
                   logo={game.logo}
                   alt={game.alt}
+                  isClickable={game.id === 'valorant'}
+                  isAvailable={game.id === 'valorant'}
                 />
               </div>
             ))
@@ -129,7 +142,7 @@ export function DashboardPage() {
 
       {/* Display error if any */}
       {error && !isLoading && (
-        <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-center">
+        <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-center animate-fadeIn">
           {error}
         </div>
       )}

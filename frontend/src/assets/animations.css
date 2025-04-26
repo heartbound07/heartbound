@@ -216,4 +216,33 @@
 .animate-rotate-up {
   animation: rotateUp 0.3s ease forwards;
   transform-origin: center;
+}
+
+/* Enhanced staggered card entrance */
+@keyframes fadeSlideInStaggered {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Mobile touch hint animation */
+@keyframes tapHint {
+  0% { opacity: 0; transform: scale(0.8); }
+  20% { opacity: 0.8; transform: scale(1.1); }
+  60% { opacity: 0.5; transform: scale(0.9); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+.animate-tapHint {
+  animation: tapHint 2s ease-out forwards;
+  will-change: opacity, transform;
 } 
