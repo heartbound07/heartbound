@@ -8,8 +8,10 @@
   flex-direction: column; /* Stack vertically on small screens */
   /* Add these to remove any default margins */
   margin: 0;
+  padding: 0;
   overflow: hidden;
   width: 100%;
+  position: relative;
 }
 
 @media (min-width: 768px) {
@@ -34,11 +36,13 @@
 .valorant-content {
   /* Allow the content area to fill the remaining space */
   flex: 1;
-  /* Remove the padding that's causing the gap */
+  /* Add proper padding to ensure content doesn't overflow */
   padding: 0;
-  /* Allow scrolling if the content exceeds the view height */
+  /* Allow scrolling within the content area only */
   overflow-y: auto;
   width: 100%;
+  height: 100vh; /* Limit to viewport height */
+  position: relative;
 }
 
 /* Responsive adjustments for small screens */
@@ -47,12 +51,24 @@
   .valorant-content.sidebar-collapsed {
     margin-left: 0;
     width: 100%;
-    padding-top: calc(var(--header-height) + 1rem);
+    /* Adjust top padding to account for mobile header */
+    padding-top: 60px; /* Simpler fixed value that works better on mobile */
     transition: none; /* Remove transition on mobile */
+    height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
   }
   
   .valorant-container {
-    position: relative;
+    position: fixed;
+    inset: 0;
     z-index: 1;
+    overflow: hidden;
   }
 } 
