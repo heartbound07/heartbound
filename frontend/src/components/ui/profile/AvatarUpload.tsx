@@ -4,6 +4,7 @@ import { auto } from '@cloudinary/url-gen/actions/resize'
 import { autoGravity } from '@cloudinary/url-gen/qualifiers/gravity'
 import { AdvancedImage } from '@cloudinary/react'
 import { Camera, X } from 'lucide-react'
+import { useAuth } from '@/contexts/auth'
 
 interface AvatarUploadProps {
   currentAvatarUrl?: string
@@ -22,10 +23,16 @@ export function AvatarUpload({
   size = 96, 
   className = '' 
 }: AvatarUploadProps) {
+  const { hasRole } = useAuth()
   const [isHovering, setIsHovering] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Define allowed file types based on user role
+  const isPremiumUser = hasRole('MONARCH') || hasRole('ADMIN') || hasRole('MODERATOR')
+  const acceptAttribute = isPremiumUser ? "image/jpeg, image/png, image/gif, image/jpg" : "image/jpeg, image/png, image/jpg"
+  const allowedExtensions = isPremiumUser ? ['jpg', 'jpeg', 'png', 'gif'] : ['jpg', 'jpeg', 'png']
 
   // Get Cloudinary settings from environment variables
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string
@@ -35,9 +42,18 @@ export function AvatarUpload({
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
       
-      // Validate file type
+      // Validate file type with role-based restrictions
       if (!file.type.match('image.*')) {
         setError('Please select an image file')
+        return
+      }
+      
+      // Additional validation for file extensions based on role
+      const fileExtension = file.name.split('.').pop()?.toLowerCase() || ''
+      if (!allowedExtensions.includes(fileExtension)) {
+        setError(isPremiumUser 
+          ? 'Please select a JPG, PNG, or GIF file' 
+          : 'Please select a JPG or PNG file')
         return
       }
       
@@ -53,6 +69,9 @@ export function AvatarUpload({
       const formData = new FormData()
       formData.append('file', file)
       formData.append('upload_preset', uploadPreset)
+      
+      // Add role-based tags to the upload
+      formData.append('tags', isPremiumUser ? 'premium-avatar' : 'standard-avatar')
 
       try {
         // Upload directly to Cloudinary
@@ -169,7 +188,7 @@ export function AvatarUpload({
       <input 
         ref={fileInputRef}
         type="file" 
-        accept="image/*" 
+        accept={acceptAttribute}
         onChange={handleFileChange} 
         className="hidden" 
         disabled={uploading}
