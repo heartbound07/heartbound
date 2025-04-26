@@ -184,17 +184,71 @@
 
 /* Responsive styles */
 @media (max-width: 768px) {
-  .dashboard-nav:not(.collapsed) {
+  .dashboard-nav {
+    transform: translateX(-100%);
+    z-index: 1000;
+    transition: transform var(--transition-speed) ease;
+    width: var(--sidebar-width) !important; /* Always use full width on mobile */
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Show sidebar when mobile-open class is applied */
+  .dashboard-nav.mobile-open {
     transform: translateX(0);
   }
   
+  /* Hide collapsed styles on mobile - we use transform instead */
   .dashboard-nav.collapsed {
-    transform: translateX(-100%);
+    width: var(--sidebar-width) !important;
   }
   
-  .dashboard-content {
-    margin-left: 0 !important;
-    width: 100% !important;
+  /* Style adjustments for mobile view */
+  .dashboard-nav .user-credits {
+    margin: 8px auto 0;
+  }
+  
+  /* Show all sidebar elements on mobile regardless of collapse state */
+  .dashboard-nav.collapsed .brand-text,
+  .dashboard-nav.collapsed .sidebar-label,
+  .dashboard-nav.collapsed .user-credits-value {
+    opacity: 1;
+    display: block;
+  }
+  
+  /* Mobile toggle button styling */
+  .mobile-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-speed) ease;
+    backdrop-filter: blur(4px);
+  }
+  
+  /* Hide the inner toggle button on mobile */
+  .dashboard-nav .toggle-sidebar-btn {
+    display: none;
+  }
+  
+  /* This ensures the header has centered content on mobile */
+  .dashboard-nav .brand-header {
+    justify-content: center !important;
+  }
+  
+  /* Center the brand text */
+  .dashboard-nav .brand-text {
+    margin: 0 auto;
+  }
+  
+  /* Hide the empty spacer div */
+  .dashboard-nav .header-spacer {
+    display: none;
+  }
+}
+
+/* Hide mobile toggle on larger screens */
+@media (min-width: 769px) {
+  .mobile-menu-toggle {
+    display: none;
   }
 }
 

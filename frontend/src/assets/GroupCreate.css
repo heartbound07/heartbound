@@ -36,6 +36,21 @@
   }
 }
 
+/* Improve modal positioning on mobile */
+@media (max-width: 768px) {
+  .group-create-modal-overlay.sidebar-expanded,
+  .group-create-modal-overlay.sidebar-collapsed {
+    padding-left: 0 !important; /* Remove sidebar offset on mobile */
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+  
+  .group-create-modal-content {
+    max-width: 90%; /* Limit width on small screens */
+    margin: 0 auto;
+  }
+}
+
 /* Section titles with accent dot */
 .section-title {
   display: flex;

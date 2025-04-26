@@ -115,10 +115,18 @@
 }
 
 @media (max-width: 768px) {
-  .dashboard-content {
-    @apply ml-0 p-4;
-    margin-top: var(--header-height);
-    width: 100%;
+  .dashboard-content,
+  .dashboard-content.sidebar-collapsed {
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding-top: calc(var(--header-height) + 1rem); /* Add space for fixed mobile header */
+    transition: none; /* Remove transition on mobile to prevent content shift */
+  }
+  
+  /* Container for the entire dashboard - ensure proper z-index layering */
+  .dashboard-container {
+    position: relative;
+    z-index: 1;
   }
   
   .games-title {

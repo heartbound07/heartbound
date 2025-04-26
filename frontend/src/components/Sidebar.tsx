@@ -47,6 +47,9 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
     return savedState ? JSON.parse(savedState) : false
   })
   
+  // Add a new state for tracking mobile overlay visibility
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  
   // Update localStorage and dispatch a custom event when isCollapsed changes
   useEffect(() => {
     localStorage.setItem('sidebar-collapsed', JSON.stringify(isCollapsed))
@@ -63,20 +66,21 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
     }
   }, [isCollapsed, onCollapseChange])
   
-  // Detect window size for responsive behavior
+  // Update the resize handler to also close mobile sidebar when resizing
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
-        setIsCollapsed(true)
+        setIsCollapsed(true);
+        setIsMobileOpen(false); // Close mobile sidebar when resizing
       }
     }
     
     // Set initial state based on window size
-    handleResize()
+    handleResize();
     
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Define games submenu items
   const gameItems = [
@@ -126,10 +130,20 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
   useEffect(() => {
     if (profileSectionRef.current && showProfilePreview) {
       const rect = profileSectionRef.current.getBoundingClientRect();
-      setPopupPosition({
-        top: rect.top,
-        left: rect.right + 10 // 10px offset from the sidebar
-      });
+      
+      // Adjust position for mobile
+      if (window.innerWidth < 768) {
+        setPopupPosition({
+          top: rect.bottom + 10, // Position below profile section on mobile
+          left: window.innerWidth / 2 - 150 // Center horizontally
+        });
+      } else {
+        // Desktop positioning (unchanged)
+        setPopupPosition({
+          top: rect.top,
+          left: rect.right + 10
+        });
+      }
     }
   }, [showProfilePreview, profileSectionRef.current]);
   
@@ -232,241 +246,278 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
     }
   };
 
-  return (
-    <aside 
-      className={`dashboard-nav h-full flex flex-col ${sidebarBackground} backdrop-blur-md border-r border-white/10 shadow-xl ${isCollapsed ? 'collapsed' : 'expanded'}`}
-      data-theme={theme}
-    >
-      {/* Brand Header with Toggle Button - Updated for proper centering in collapsed state */}
-      <div className={`px-4 py-4 border-b border-white/10 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
-        <button 
-          onClick={() => setIsCollapsed(!isCollapsed)} 
-          className="toggle-sidebar-btn text-white/80 hover:text-white p-2 rounded-md hover:bg-white/10 transition-colors"
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          <Menu size={20} />
-        </button>
-        
-        {!isCollapsed && (
-          <>
-            <h1 
-              className="brand-text text-center text-white text-xl font-bold cursor-pointer"
-              style={{ fontFamily: "Grandstander, cursive" }}
-              onClick={() => navigate('/dashboard')}
-            >
-              heartbound
-            </h1>
-            
-            {/* Empty div to balance the flex layout */}
-            <div className="w-8"></div>
-          </>
-        )}
-      </div>
-      
-      {/* User Profile Section - Avatar only when collapsed */}
+  // Modify the toggleMobileSidebar function to ensure sidebar is expanded when opened on mobile
+  const toggleMobileSidebar = () => {
+    // If we're opening the sidebar on mobile, make sure it's expanded
+    if (!isMobileOpen) {
+      setIsMobileOpen(true);
+      setIsCollapsed(false); // Force expanded state when opening on mobile
+    } else {
+      setIsMobileOpen(false);
+    }
+  };
+
+  // Add mobile backdrop for overlay pattern
+  const MobileBackdrop = () => {
+    if (!isMobileOpen || window.innerWidth >= 768) return null;
+    
+    return (
       <div 
-        ref={profileSectionRef}
-        className={`relative px-4 py-4 cursor-pointer transition-all duration-200 text-center
-          ${isProfilePage ? 'bg-white/5' : 'hover:bg-white/5'}`}
-        onClick={handleProfileClick}
+        className="fixed inset-0 bg-black/50 z-[999]" 
+        onClick={() => setIsMobileOpen(false)}
+      />
+    );
+  };
+
+  return (
+    <>
+      <MobileBackdrop />
+      <aside
+        className={`dashboard-nav ${isCollapsed ? 'collapsed' : 'expanded'} ${
+          isMobileOpen ? 'mobile-open' : 'mobile-closed'
+        } ${sidebarBackground}`}
+        aria-label="Main navigation"
       >
-        <div className={`flex ${isCollapsed ? 'flex-col items-center' : 'flex-row items-center justify-center'} ${isCollapsed ? '' : 'gap-3'}`}>
-          <div className="relative">
-            <img
-              src={user?.avatar || "/default-avatar.png"}
-              alt={user?.username || "User"}
-              className={`rounded-full object-cover ring-2 ring-primary/50 ring-offset-2 ring-offset-slate-900/50 ${isCollapsed ? 'w-10 h-10' : 'w-12 h-12'}`}
-            />
-            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-800"></div>
-          </div>
+        {/* Brand Header with Toggle Button - Updated for mobile */}
+        <div className={`brand-header px-4 py-4 border-b border-white/10 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
+          <button 
+            onClick={() => setIsCollapsed(!isCollapsed)} 
+            className="toggle-sidebar-btn text-white/80 hover:text-white p-2 rounded-md hover:bg-white/10 transition-colors"
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <Menu size={20} />
+          </button>
           
-          {/* User info - only shown when expanded */}
           {!isCollapsed && (
-            <div className="flex flex-col items-center">
-              {/* Display name on top */}
-              <span className="text-white font-medium text-sm truncate max-w-full">
-                {profile?.displayName || user?.username || "User"}
-              </span>
+            <>
+              <h1 
+                className="brand-text text-center text-white text-xl font-bold cursor-pointer"
+                style={{ fontFamily: "Grandstander, cursive" }}
+                onClick={() => navigate('/dashboard')}
+              >
+                heartbound
+              </h1>
               
-              {/* Username and pronouns on a row below */}
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className="text-white/70 text-xs truncate">
-                  {user?.username || "Guest"}
-                </span>
-                {profile?.pronouns && (
-                  <span className="text-white/60 text-xs truncate">
-                    • {profile.pronouns}
-                  </span>
-                )}
-              </div>
-            </div>
+              {/* Empty div to balance the flex layout */}
+              <div className="header-spacer w-8"></div>
+            </>
           )}
         </div>
         
-        {/* Credits display with improved positioning and transitions */}
-        <div className={`user-credits mt-3 ${isCollapsed ? 'mx-auto w-8 h-8 p-1' : 'mx-auto'} transition-all duration-200`}>
-          <FaCoins className="user-credits-icon" size={isCollapsed ? 16 : 18} />
-          {!isCollapsed && (
-            <span className="user-credits-value transition-opacity duration-200">
-              {user?.credits || 0}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Render the profile preview portal */}
-      <ProfilePreviewPortal />
-
-      {/* Navigation menu items - Icons only when collapsed */}
-      <nav className="flex-1 px-4 py-4">
-        <ul className="space-y-2">
-          {navItems.map((item) => {
-            const isActive = item.path === '/dashboard' 
-              ? (isMainDashboard || (item.hasSubmenu && onGamePage))
-              : location.pathname === item.path
-              
-            return (
-              <li key={item.path}>
-                <div>
-                  <button
-                    onClick={() => {
-                      // If sidebar is collapsed and clicking on Discover, expand the sidebar and show games submenu
-                      if (isCollapsed && item.path === "/dashboard") {
-                        setIsCollapsed(false);
-                        setGamesExpanded(true);
-                      } else if (item.path === "/dashboard" && gamesExpanded) {
-                        // If clicking on Dashboard while games are expanded, just collapse
-                        setGamesExpanded(false);
-                      } else if (item.hasSubmenu) {
-                        // Toggle submenu for items with submenus
-                        setGamesExpanded(!gamesExpanded);
-                      } else {
-                        // Navigate to the path for items without submenus
-                        navigate(item.path);
-                      }
-                    }}
-                    className={`w-full flex ${isCollapsed ? 'items-center justify-center' : 'items-center justify-start'} ${isCollapsed ? 'gap-1' : 'gap-2'} px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group relative
-                      ${
-                        isActive
-                          ? "bg-primary/20 text-white shadow-md"
-                          : "text-slate-300 hover:bg-white/5 hover:text-white"
-                      }`}
-                    aria-current={isActive ? "page" : undefined}
-                  >
-                    <span
-                      className={`transition-transform duration-200 ${isCollapsed ? '' : ''} ${isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
-                    >
-                      {item.icon}
+        {/* User Profile Section - Avatar only when collapsed */}
+        <div 
+          ref={profileSectionRef}
+          className={`relative px-4 py-4 cursor-pointer transition-all duration-200 text-center
+            ${isProfilePage ? 'bg-white/5' : 'hover:bg-white/5'}`}
+          onClick={handleProfileClick}
+        >
+          <div className={`flex ${isCollapsed ? 'flex-col items-center' : 'flex-row items-center justify-center'} ${isCollapsed ? '' : 'gap-3'}`}>
+            <div className="relative">
+              <img
+                src={user?.avatar || "/default-avatar.png"}
+                alt={user?.username || "User"}
+                className={`rounded-full object-cover ring-2 ring-primary/50 ring-offset-2 ring-offset-slate-900/50 ${isCollapsed ? 'w-10 h-10' : 'w-12 h-12'}`}
+              />
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-800"></div>
+            </div>
+            
+            {/* User info - only shown when expanded */}
+            {!isCollapsed && (
+              <div className="flex flex-col items-center">
+                {/* Display name on top */}
+                <span className="text-white font-medium text-sm truncate max-w-full">
+                  {profile?.displayName || user?.username || "User"}
+                </span>
+                
+                {/* Username and pronouns on a row below */}
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className="text-white/70 text-xs truncate">
+                    {user?.username || "Guest"}
+                  </span>
+                  {profile?.pronouns && (
+                    <span className="text-white/60 text-xs truncate">
+                      • {profile.pronouns}
                     </span>
-                    
-                    {/* Only show label when not collapsed */}
-                    {!isCollapsed && (
-                      <span className="sidebar-label">{item.label}</span>
-                    )}
-                    
-                    {item.hasSubmenu && !isMainDashboard && !isCollapsed && (
-                      <div 
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent parent button click
-                          setGamesExpanded(!gamesExpanded);
-                        }}
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-md cursor-pointer"
-                      >
-                        <ChevronRight 
-                          size={16} 
-                          className={`text-slate-400 transition-transform ${
-                            gamesExpanded ? "animate-rotate-down" : "animate-rotate-up"
-                          }`} 
-                        />
-                      </div>
-                    )}
-                    
-                    {isActive && !item.hasSubmenu && !isCollapsed && <div className="absolute right-2 top-1/2 transform -translate-y-1/2 w-1.5 h-5 bg-primary rounded-full"></div>}
-                  </button>
-                  
-                  {/* Games submenu - now left-aligned */}
-                  {item.hasSubmenu && !isMainDashboard && !isCollapsed && (
-                    <div className={gamesExpanded ? "animate-slideDown" : "animate-slideUp"}>
-                      <ul className="mt-1 pl-8 space-y-1">
-                        {gameItems.map((game) => {
-                          const isGameActive = location.pathname.includes(game.path)
-                          return (
-                            <li key={game.path}>
-                              <button
-                                onClick={() => navigate(game.path)}
-                                className={`w-full flex items-center justify-start gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                                  ${
-                                    isGameActive
-                                      ? "bg-primary/10 text-white"
-                                      : "text-slate-300 hover:bg-white/5 hover:text-white"
-                                  }`}
-                              >
-                                <img 
-                                  src={game.logo} 
-                                  alt={`${game.label} logo`} 
-                                  className="w-5 h-5 object-contain"
-                                />
-                                <span>{game.label}</span>
-                                {isGameActive && <div className="absolute right-2 w-1 h-4 bg-primary rounded-full"></div>}
-                              </button>
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    </div>
                   )}
                 </div>
-              </li>
-            )
-          })}
-        </ul>
-      </nav>
-
-      {/* Settings and Logout Footer - Updated */}
-      <div className="mt-auto px-4 pb-6 border-t border-white/10 pt-4">
-        {/* Container for buttons - Adjust justification based on collapsed state */}
-        <div className={`flex items-center gap-2 ${isCollapsed ? 'justify-center' : 'justify-start'}`}>
-          {/* Settings Button - Conditionally render only when expanded */}
-          {!isCollapsed && (
-            <button
-              onClick={() => navigate('/dashboard/settings')}
-              // Make settings button take available space when expanded
-              className={`flex-1 flex items-center justify-start gap-2 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
-                ${
-                  isSettingsPage
-                    ? "bg-primary/20 text-white shadow-md"
-                    : "text-slate-300 hover:bg-white/5 hover:text-white"
-                }`}
-              aria-current={isSettingsPage ? "page" : undefined}
-              aria-label="Settings"
-            >
-              <span
-                className={`transition-transform duration-200 ${isSettingsPage ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
-              >
-                <IoSettingsSharp size={20} />
+              </div>
+            )}
+          </div>
+          
+          {/* Credits display with improved positioning and transitions */}
+          <div className={`user-credits mt-3 ${isCollapsed ? 'mx-auto w-8 h-8 p-1' : 'mx-auto'} transition-all duration-200`}>
+            <FaCoins className="user-credits-icon" size={isCollapsed ? 16 : 18} />
+            {!isCollapsed && (
+              <span className="user-credits-value transition-opacity duration-200">
+                {user?.credits || 0}
               </span>
-              {/* Label is always shown when button is visible (not collapsed) */}
-              <span className="sidebar-label">Settings</span>
-              {/* Active indicator */}
-              {isSettingsPage && <div className="absolute right-2 w-1.5 h-5 bg-primary rounded-full"></div>}
-            </button>
-          )}
-
-          {/* Logout Button - Icon only, consistent size */}
-          <button
-            onClick={handleLogout} // This now calls the updated function
-            // Consistent size and centering, remove flex-1
-            className={`w-10 h-10 flex items-center justify-center p-0 rounded-lg text-sm font-medium transition-all duration-200 group text-slate-300 hover:bg-red-500/10 hover:text-red-400`}
-            aria-label="Logout"
-          >
-            <span className="text-slate-400 group-hover:text-red-400 transition-colors duration-200">
-              <LogOut size={20} />
-            </span>
-            {/* Label removed - Icon only */}
-          </button>
+            )}
+          </div>
         </div>
-      </div>
-    </aside>
+
+        {/* Render the profile preview portal */}
+        <ProfilePreviewPortal />
+
+        {/* Navigation menu items - Icons only when collapsed */}
+        <nav className="flex-1 px-4 py-4">
+          <ul className="space-y-2">
+            {navItems.map((item) => {
+              const isActive = item.path === '/dashboard' 
+                ? (isMainDashboard || (item.hasSubmenu && onGamePage))
+                : location.pathname === item.path
+                
+              return (
+                <li key={item.path}>
+                  <div>
+                    <button
+                      onClick={() => {
+                        // If sidebar is collapsed and clicking on Discover, expand the sidebar and show games submenu
+                        if (isCollapsed && item.path === "/dashboard") {
+                          setIsCollapsed(false);
+                          setGamesExpanded(true);
+                        } else if (item.path === "/dashboard" && gamesExpanded) {
+                          // If clicking on Dashboard while games are expanded, just collapse
+                          setGamesExpanded(false);
+                        } else if (item.hasSubmenu) {
+                          // Toggle submenu for items with submenus
+                          setGamesExpanded(!gamesExpanded);
+                        } else {
+                          // Navigate to the path for items without submenus
+                          navigate(item.path);
+                        }
+                      }}
+                      className={`w-full flex ${isCollapsed ? 'items-center justify-center' : 'items-center justify-start'} ${isCollapsed ? 'gap-1' : 'gap-2'} px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group relative
+                        ${
+                          isActive
+                            ? "bg-primary/20 text-white shadow-md"
+                            : "text-slate-300 hover:bg-white/5 hover:text-white"
+                        }`}
+                      aria-current={isActive ? "page" : undefined}
+                    >
+                      <span
+                        className={`transition-transform duration-200 ${isCollapsed ? '' : ''} ${isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
+                      >
+                        {item.icon}
+                      </span>
+                      
+                      {/* Only show label when not collapsed */}
+                      {!isCollapsed && (
+                        <span className="sidebar-label">{item.label}</span>
+                      )}
+                      
+                      {item.hasSubmenu && !isMainDashboard && !isCollapsed && (
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent parent button click
+                            setGamesExpanded(!gamesExpanded);
+                          }}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-md cursor-pointer"
+                        >
+                          <ChevronRight 
+                            size={16} 
+                            className={`text-slate-400 transition-transform ${
+                              gamesExpanded ? "animate-rotate-down" : "animate-rotate-up"
+                            }`} 
+                          />
+                        </div>
+                      )}
+                      
+                      {isActive && !item.hasSubmenu && !isCollapsed && <div className="absolute right-2 top-1/2 transform -translate-y-1/2 w-1.5 h-5 bg-primary rounded-full"></div>}
+                    </button>
+                    
+                    {/* Games submenu - now left-aligned */}
+                    {item.hasSubmenu && !isMainDashboard && !isCollapsed && (
+                      <div className={gamesExpanded ? "animate-slideDown" : "animate-slideUp"}>
+                        <ul className="mt-1 pl-8 space-y-1">
+                          {gameItems.map((game) => {
+                            const isGameActive = location.pathname.includes(game.path)
+                            return (
+                              <li key={game.path}>
+                                <button
+                                  onClick={() => navigate(game.path)}
+                                  className={`w-full flex items-center justify-start gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                                    ${
+                                      isGameActive
+                                        ? "bg-primary/10 text-white"
+                                        : "text-slate-300 hover:bg-white/5 hover:text-white"
+                                    }`}
+                                >
+                                  <img 
+                                    src={game.logo} 
+                                    alt={`${game.label} logo`} 
+                                    className="w-5 h-5 object-contain"
+                                  />
+                                  <span>{game.label}</span>
+                                  {isGameActive && <div className="absolute right-2 w-1 h-4 bg-primary rounded-full"></div>}
+                                </button>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </nav>
+
+        {/* Settings and Logout Footer - Updated */}
+        <div className="mt-auto px-4 pb-6 border-t border-white/10 pt-4">
+          {/* Container for buttons - Adjust justification based on collapsed state */}
+          <div className={`flex items-center gap-2 ${isCollapsed ? 'justify-center' : 'justify-start'}`}>
+            {/* Settings Button - Conditionally render only when expanded */}
+            {!isCollapsed && (
+              <button
+                onClick={() => navigate('/dashboard/settings')}
+                // Make settings button take available space when expanded
+                className={`flex-1 flex items-center justify-start gap-2 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
+                  ${
+                    isSettingsPage
+                      ? "bg-primary/20 text-white shadow-md"
+                      : "text-slate-300 hover:bg-white/5 hover:text-white"
+                  }`}
+                aria-current={isSettingsPage ? "page" : undefined}
+                aria-label="Settings"
+              >
+                <span
+                  className={`transition-transform duration-200 ${isSettingsPage ? "text-primary" : "text-slate-400 group-hover:text-slate-200"}`}
+                >
+                  <IoSettingsSharp size={20} />
+                </span>
+                {/* Label is always shown when button is visible (not collapsed) */}
+                <span className="sidebar-label">Settings</span>
+                {/* Active indicator */}
+                {isSettingsPage && <div className="absolute right-2 w-1.5 h-5 bg-primary rounded-full"></div>}
+              </button>
+            )}
+
+            {/* Logout Button - Icon only, consistent size */}
+            <button
+              onClick={handleLogout} // This now calls the updated function
+              // Consistent size and centering, remove flex-1
+              className={`w-10 h-10 flex items-center justify-center p-0 rounded-lg text-sm font-medium transition-all duration-200 group text-slate-300 hover:bg-red-500/10 hover:text-red-400`}
+              aria-label="Logout"
+            >
+              <span className="text-slate-400 group-hover:text-red-400 transition-colors duration-200">
+                <LogOut size={20} />
+              </span>
+              {/* Label removed - Icon only */}
+            </button>
+          </div>
+        </div>
+      </aside>
+      
+      {/* Add Mobile Toggle Button that's always visible on small screens */}
+      <button
+        onClick={toggleMobileSidebar}
+        className="mobile-menu-toggle fixed top-4 left-4 z-[1001] p-2 rounded-md bg-primary/20 text-white hover:bg-primary/30 md:hidden"
+        aria-label="Toggle mobile menu"
+      >
+        <Menu size={20} />
+      </button>
+    </>
   )
 }
 
