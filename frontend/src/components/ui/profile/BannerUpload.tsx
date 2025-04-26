@@ -27,6 +27,10 @@ export function BannerUpload({
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Define allowed file extensions
+  const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif']
+  const acceptAttribute = "image/jpeg, image/png, image/gif, image/jpg"
+
   // Get Cloudinary settings from environment variables
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string
   const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string
@@ -38,6 +42,13 @@ export function BannerUpload({
       // Validate file type
       if (!file.type.match('image.*')) {
         setError('Please select an image file')
+        return
+      }
+      
+      // Additional validation for file extensions
+      const fileExtension = file.name.split('.').pop()?.toLowerCase() || ''
+      if (!allowedExtensions.includes(fileExtension)) {
+        setError('Please select a JPG, PNG, or GIF file')
         return
       }
       
@@ -170,7 +181,7 @@ export function BannerUpload({
       <input 
         ref={fileInputRef}
         type="file" 
-        accept="image/*" 
+        accept={acceptAttribute}
         onChange={handleFileChange} 
         className="hidden" 
         disabled={uploading}
