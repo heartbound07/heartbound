@@ -213,7 +213,7 @@ export function ProfilePage() {
         <Toaster position="top-right" />
         
         {/* Settings Panel */}
-        <div className="flex w-full flex-col gap-8 lg:w-1/2">
+        <div className="flex w-full flex-col gap-8 lg:w-1/2 order-2 lg:order-1">
           <div className="rounded-2xl border border-white/10 bg-white/10 p-8 backdrop-blur-md shadow-lg">
             <h2 className="mb-6 text-lg font-medium text-white">Profile</h2>
 
@@ -351,19 +351,21 @@ export function ProfilePage() {
           </div>
         </div>
 
-        {/* Preview Panel */}
-        <ProfilePreview 
-          bannerColor={bannerColor}
-          bannerUrl={bannerUrl}
-          name={name || (user?.username || "")}
-          about={about}
-          pronouns={pronouns}
-          user={{ ...user, avatar: avatarUrl }}
-          showEditButton={false}
-          onClick={() => {
-            // For example, navigate to the user's detailed profile page.
-          }}
-        />
+        {/* Preview Panel - Wrapped in a div to apply order classes */}
+        <div className="order-1 lg:order-2">
+          <ProfilePreview 
+            bannerColor={bannerColor}
+            bannerUrl={bannerUrl}
+            name={name || (user?.username || "")}
+            about={about}
+            pronouns={pronouns}
+            user={{ ...user, avatar: avatarUrl }}
+            showEditButton={false}
+            onClick={() => {
+              // For example, navigate to the user's detailed profile page.
+            }}
+          />
+        </div>
       </div>
     </TooltipProvider>
   )
