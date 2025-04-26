@@ -45,7 +45,7 @@ export function LoginPage() {
       <Navigation className="font-grandstander" />
       <CloudBackground />
       <main className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-80px)] px-4 text-center">
-        <h1 className="font-grandstander text-7xl font-bold text-white mb-8 tracking-wide inline-block">
+        <h1 className="font-grandstander text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 md:mb-8 tracking-wide inline-block">
           {Array.from("heartbound").map((letter, i) => (
             <motion.span
               key={i}
@@ -64,7 +64,7 @@ export function LoginPage() {
         </h1>
         
         <motion.p 
-          className="text-2xl text-white/90 mb-12"
+          className="text-xl sm:text-2xl text-white/90 mb-8 sm:mb-10 md:mb-12"
           variants={subtitleVariants}
           initial="hidden"
           animate={titleComplete ? "visible" : "hidden"}
@@ -73,7 +73,7 @@ export function LoginPage() {
         </motion.p>
         
         <motion.div 
-          className="bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-lg w-[340px] mx-auto"
+          className="bg-white/10 backdrop-blur-md rounded-2xl p-6 sm:p-8 shadow-lg w-full max-w-[340px] mx-auto"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ 
             opacity: 1, 
