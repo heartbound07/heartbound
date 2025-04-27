@@ -40,7 +40,7 @@ export function SettingsPage() {
       <Toaster position="top-right" />
       
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Settings</h1>
+        <h1 className="text-3xl font-bold mb-8 text-center font-grandstander">Settings</h1>
         
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Settings Categories Navigation */}
