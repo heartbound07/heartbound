@@ -50,7 +50,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
         String leaderboardType = typeOption == null ? "levels" : typeOption.getAsString();
         
         // Acknowledge the interaction quickly to prevent timeout
-        event.deferReply().complete();
+        event.deferReply().queue();
         
         try {
             // Fetch the full leaderboard from UserService
