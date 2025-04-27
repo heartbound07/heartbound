@@ -21,7 +21,7 @@ import { Loader2 } from "lucide-react"
  * glassmorphism and responsive layout, matching the dashboard aesthetic.
  */
 export function SettingsPage() {
-  const [activeTab, setActiveTab] = useState("account")
+  const [activeTab, setActiveTab] = useState("appearance")
   const [isSaving, setIsSaving] = useState(false)
   
   // Mock save function - To be implemented later
@@ -65,37 +65,6 @@ export function SettingsPage() {
           
           {/* Settings Content Area */}
           <div className="w-full lg:w-3/4 space-y-8">
-            {/* Account Settings Section */}
-            {activeTab === "account" && (
-              <SettingsCard title="Account Settings">
-                <div className="space-y-6">
-                  <div className="h-16 bg-white/10 rounded-lg backdrop-blur-sm flex items-center px-4">
-                    <div className="w-full">
-                      <div className="text-sm font-medium">Username</div>
-                      <div className="text-white/60 text-sm">Change your display name</div>
-                    </div>
-                    <div className="w-60 h-10 bg-white/10 rounded-md"></div>
-                  </div>
-                  
-                  <div className="h-16 bg-white/10 rounded-lg backdrop-blur-sm flex items-center px-4">
-                    <div className="w-full">
-                      <div className="text-sm font-medium">Email Address</div>
-                      <div className="text-white/60 text-sm">Update your email</div>
-                    </div>
-                    <div className="w-60 h-10 bg-white/10 rounded-md"></div>
-                  </div>
-                  
-                  <div className="h-16 bg-white/10 rounded-lg backdrop-blur-sm flex items-center px-4">
-                    <div className="w-full">
-                      <div className="text-sm font-medium">Password</div>
-                      <div className="text-white/60 text-sm">Change your password</div>
-                    </div>
-                    <div className="w-40 h-10 bg-white/10 rounded-md"></div>
-                  </div>
-                </div>
-              </SettingsCard>
-            )}
-            
             {/* Appearance Settings Section */}
             {activeTab === "appearance" && (
               <SettingsCard title="Appearance">
@@ -264,11 +233,6 @@ function SettingsCard({ title, children }: { title: string, children: React.Reac
 
 // Settings tabs data
 const settingsTabs = [
-  {
-    id: "account",
-    label: "Account",
-    icon: <IoPersonOutline size={20} />
-  },
   {
     id: "appearance",
     label: "Appearance",
