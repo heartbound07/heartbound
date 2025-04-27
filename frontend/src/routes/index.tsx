@@ -15,6 +15,7 @@ import { DiscordCallback } from '@/features/auth/DiscordCallback';
 import { useAuth } from '@/contexts/auth';
 import { Navigate as RouterNavigate } from 'react-router-dom';
 import { LeaderboardPage } from '@/features/dashboard/LeaderboardPage';
+import { SettingsPage } from '@/features/settings/SettingsPage';
 
 // Admin route guard component
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -76,6 +77,7 @@ export function AppRoutes() {
             />
           </Route>
           <Route path="leaderboard" element={<LeaderboardPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
         <Route path="/dashboard/valorant" element={<ValorantPageLayout />}>
           <Route index element={<ValorantPage />} />
