@@ -5,6 +5,7 @@ import { UserRankCard } from '@/components/ui/leaderboard/UserRankCard';
 import { useAuth } from '@/contexts/auth/useAuth';
 import '@/assets/dashboard.css';
 import '@/assets/styles/fonts.css';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function LeaderboardPage() {
   const [users, setUsers] = useState<UserProfileDTO[]>([]);
@@ -45,17 +46,36 @@ export function LeaderboardPage() {
   }, [leaderboardType, user?.id, isAuthenticated]); // Re-fetch when these change
 
   return (
-    <div className="leaderboard-page-container">
-      <section className="dashboard-section mb-6">
+    <motion.div 
+      className="leaderboard-page-container"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      <motion.section 
+        className="dashboard-section mb-6"
+        initial={{ y: -20 }}
+        animate={{ y: 0 }}
+        transition={{ delay: 0.2, type: "spring" }}
+      >
         <div className="section-header mb-6 text-center">
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white font-grandstander">
+          <motion.h1 
+            className="text-2xl md:text-3xl lg:text-4xl font-bold text-white font-grandstander"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.3, type: "spring" }}
+          >
             Leaderboard
-          </h1>
+          </motion.h1>
           
-          {/* Toggle buttons for leaderboard type */}
-          <div className="flex justify-center mt-4">
+          <motion.div 
+            className="flex justify-center mt-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
             <div className="inline-flex rounded-md shadow-sm" role="group">
-              <button
+              <motion.button
                 type="button"
                 className={`px-4 py-2 text-sm font-medium rounded-l-lg ${
                   leaderboardType === 'credits' 
@@ -64,10 +84,12 @@ export function LeaderboardPage() {
                 }`}
                 onClick={() => setLeaderboardType('credits')}
                 aria-pressed={leaderboardType === 'credits'}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
                 Credits
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 type="button"
                 className={`px-4 py-2 text-sm font-medium rounded-r-lg ${
                   leaderboardType === 'level' 
@@ -76,28 +98,43 @@ export function LeaderboardPage() {
                 }`}
                 onClick={() => setLeaderboardType('level')}
                 aria-pressed={leaderboardType === 'level'}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
                 Levels
-              </button>
+              </motion.button>
             </div>
-          </div>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* User Rank Card - only show if user is authenticated and found in leaderboard */}
-      {isAuthenticated && currentUserProfile && (
-        <section className="dashboard-section mb-6">
-          <div className="max-w-2xl mx-auto">
-            <UserRankCard 
-              currentUser={currentUserProfile}
-              leaderboardUsers={users}
-              leaderboardType={leaderboardType}
-            />
-          </div>
-        </section>
-      )}
+      <AnimatePresence>
+        {isAuthenticated && currentUserProfile && (
+          <motion.section 
+            className="dashboard-section mb-6"
+            key="user-card"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -30 }}
+            transition={{ type: "spring" }}
+          >
+            <div className="max-w-2xl mx-auto">
+              <UserRankCard 
+                currentUser={currentUserProfile}
+                leaderboardUsers={users}
+                leaderboardType={leaderboardType}
+              />
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
 
-      <section className="dashboard-section">
+      <motion.section 
+        className="dashboard-section"
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, type: "spring" }}
+      >
         <div className="leaderboard-content">
           <Leaderboard 
             users={users}
@@ -109,7 +146,7 @@ export function LeaderboardPage() {
             leaderboardType={leaderboardType}
           />
         </div>
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
   );
 }

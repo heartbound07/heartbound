@@ -1,6 +1,7 @@
 import { UserProfileDTO } from '@/config/userService';
 import { FaCoins, FaStar, FaTrophy, FaCrown, FaMedal } from 'react-icons/fa';
 import { useTheme } from '@/contexts/ThemeContext';
+import { motion } from 'framer-motion';
 
 interface UserRankCardProps {
   currentUser: UserProfileDTO | null;
@@ -42,22 +43,37 @@ export function UserRankCard({
   const levelIconColor = theme === 'default' ? "text-blue-400" : "text-[var(--color-primary)]";
   
   return (
-    <div className={`leaderboard-container mb-6 theme-transition ${theme === 'default' ? 'theme-default' : 'theme-dark'}`}>
+    <motion.div 
+      className={`leaderboard-container mb-6 theme-transition ${theme === 'default' ? 'theme-default' : 'theme-dark'}`}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       <div className="p-4">
         <div className="flex items-center justify-center">
           <div className="flex items-center max-w-md">
-            <div className="relative mr-4">
+            <motion.div 
+              className="relative mr-4"
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+            >
               <img 
                 src={currentUser.avatar || "/default-avatar.png"} 
                 alt={currentUser.displayName || currentUser.username || "User"}
                 className="w-20 h-20 rounded-full object-cover border-2 border-[var(--color-primary)]"
               />
               {rankIcon && (
-                <div className="absolute -bottom-2 -right-2">
+                <motion.div 
+                  className="absolute -bottom-2 -right-2"
+                  initial={{ scale: 0, rotate: -45 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.4, type: "spring" }}
+                >
                   {rankIcon}
-                </div>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
             
             <div className="flex flex-col">
               <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">
@@ -93,6 +109,6 @@ export function UserRankCard({
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 } 

@@ -4,6 +4,7 @@ import { FaCoins, FaCrown, FaTrophy, FaMedal, FaStar } from 'react-icons/fa';
 import '@/assets/leaderboard.css';
 import { UserProfileModal } from '@/components/UserProfileModal';
 import { createPortal } from 'react-dom';
+import { motion } from 'framer-motion';
 
 interface LeaderboardProps {
   users: UserProfileDTO[];
@@ -72,19 +73,51 @@ export function Leaderboard({
     setModalOpen(true);
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: {
+        when: "beforeChildren",
+        staggerChildren: 0.08
+      }
+    }
+  };
+  
+  const rowVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
+
   return (
     <>
-      <div ref={containerRef} className={`leaderboard-container ${className}`}>
+      <motion.div 
+        ref={containerRef} 
+        className={`leaderboard-container ${className}`}
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
         {showHeader && (
-          <div className="leaderboard-header">
+          <motion.div 
+            className="leaderboard-header"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
             <h2 className="leaderboard-title">{title}</h2>
-          </div>
+          </motion.div>
         )}
 
         {error && (
-          <div className="leaderboard-error">
+          <motion.div 
+            className="leaderboard-error"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
             <p>{error}</p>
-          </div>
+          </motion.div>
         )}
 
         {isLoading ? (
@@ -106,74 +139,78 @@ export function Leaderboard({
                 {leaderboardType === 'credits' ? 'Credits' : 'Level'}
               </div>
             </div>
-            
-            {displayUsers.length === 0 ? (
-              <div className="leaderboard-empty">
-                <p>No users to display</p>
-              </div>
-            ) : (
-              displayUsers.map((user, index) => {
-                const { icon, className: rowClass } = getPositionDetails(index);
-                
-                return (
-                  <div 
-                    key={user.id} 
-                    className={`leaderboard-row ${rowClass} cursor-pointer`}
-                    onClick={(e) => handleUserClick(user, e)}
-                  >
-                    <div className="leaderboard-rank">
-                      {icon ? (
-                        <>
-                          <span className="leaderboard-rank-number">{index + 1}</span>
-                          <span className="leaderboard-rank-icon">{icon}</span>
-                        </>
-                      ) : (
-                        <span>{index + 1}</span>
-                      )}
-                    </div>
-                    <div className="leaderboard-user">
-                      <img 
-                        src={user.avatar || "/default-avatar.png"} 
-                        alt={user.displayName || user.username || 'User'} 
-                        className="leaderboard-avatar" 
-                        loading="lazy"
-                      />
-                      <div className="leaderboard-user-info">
-                        <span className="leaderboard-username">
-                          {user.displayName || user.username}
-                        </span>
-                        {!compact && user.displayName && user.username && (
-                          <span className="leaderboard-handle">@{user.username}</span>
+            <div className="leaderboard-body">
+              {displayUsers.length === 0 ? (
+                <div className="leaderboard-empty">
+                  <p>No users to display</p>
+                </div>
+              ) : (
+                displayUsers.map((user, index) => {
+                  const { icon, className: rowClass } = getPositionDetails(index);
+                  
+                  return (
+                    <motion.div
+                      key={user.id || index}
+                      className={`leaderboard-row ${rowClass} cursor-pointer`}
+                      onClick={(e) => handleUserClick(user, e)}
+                      variants={rowVariants}
+                      whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <div className="leaderboard-rank">
+                        {icon ? (
+                          <>
+                            <span className="leaderboard-rank-number">{index + 1}</span>
+                            <span className="leaderboard-rank-icon">{icon}</span>
+                          </>
+                        ) : (
+                          <span>{index + 1}</span>
                         )}
                       </div>
-                    </div>
-                    <div className="leaderboard-credits">
-                      {leaderboardType === 'credits' ? (
-                        <>
-                          <FaCoins className="text-yellow-400" />
-                          <span>{user.credits || 0}</span>
-                        </>
-                      ) : (
-                        <>
-                          <FaStar className="text-blue-400" />
-                          <span>
-                            {user.level || 1}
-                            {!compact && (
-                              <span className="text-xs text-gray-400 ml-1">
-                                ({user.experience || 0} XP)
-                              </span>
-                            )}
+                      <div className="leaderboard-user">
+                        <img 
+                          src={user.avatar || "/default-avatar.png"} 
+                          alt={user.displayName || user.username || 'User'} 
+                          className="leaderboard-avatar" 
+                          loading="lazy"
+                        />
+                        <div className="leaderboard-user-info">
+                          <span className="leaderboard-username">
+                            {user.displayName || user.username}
                           </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
+                          {!compact && user.displayName && user.username && (
+                            <span className="leaderboard-handle">@{user.username}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="leaderboard-credits">
+                        {leaderboardType === 'credits' ? (
+                          <>
+                            <FaCoins className="text-yellow-400" />
+                            <span>{user.credits || 0}</span>
+                          </>
+                        ) : (
+                          <>
+                            <FaStar className="text-blue-400" />
+                            <span>
+                              {user.level || 1}
+                              {!compact && (
+                                <span className="text-xs text-gray-400 ml-1">
+                                  ({user.experience || 0} XP)
+                                </span>
+                              )}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
+            </div>
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Render UserProfileModal using Portal to avoid containment issues */}
       {createPortal(
