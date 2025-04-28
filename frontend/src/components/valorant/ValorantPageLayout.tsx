@@ -4,6 +4,7 @@ import { DashboardNavigation } from '@/components/Sidebar';
 import '@/assets/dashboard.css';
 import '@/assets/animations.css';
 import '@/assets/valorant.css';
+import '@/assets/theme.css';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 

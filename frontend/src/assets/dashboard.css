@@ -25,8 +25,19 @@
 
 /* Container for the entire dashboard */
 .dashboard-container {
-  @apply min-h-screen w-full bg-gradient-to-br from-[#6B5BE6] to-[#8878f0] relative;
-  display: flex; /* Add flex display to properly align sidebar and content */
+  @apply min-h-screen w-full relative;
+  display: flex;
+  /* Remove this default background gradient */
+  /* background: linear-gradient(...); */
+}
+
+/* Update selectors to match how classes are actually applied in the component */
+.dashboard-container.theme-default {
+  background: linear-gradient(to bottom right, var(--color-bg-gradient-from, #6B5BE6), var(--color-bg-gradient-to, #8878f0));
+}
+
+.dashboard-container.theme-dark {
+  background: linear-gradient(to bottom right, var(--color-bg-gradient-from, #0F1923), var(--color-bg-gradient-to, #1F2731));
 }
 
 /* Content section for the dashboard - updated to handle collapsed sidebar */

@@ -19,8 +19,8 @@
   --color-primary-contrast: #ffffff;
   
   /* Background colors */
-  --color-bg-gradient-from: #111827;
-  --color-bg-gradient-to: #1f2937;
+  --color-bg-gradient-from: #6B5BE6;
+  --color-bg-gradient-to: #8878f0;
   --color-container-bg: rgba(26, 27, 30, 0.6);
   --color-card-bg: rgba(255, 255, 255, 0.1);
   --color-sidebar-bg: rgba(17, 24, 39, 0.85);

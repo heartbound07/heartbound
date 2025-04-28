@@ -3,6 +3,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DashboardNavigation } from '../Sidebar';
 import '@/assets/dashboard.css';
 import '@/assets/animations.css';
+import '@/assets/theme.css';
 import { useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 
