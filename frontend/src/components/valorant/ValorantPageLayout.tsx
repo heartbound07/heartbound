@@ -5,6 +5,7 @@ import '@/assets/dashboard.css';
 import '@/assets/animations.css';
 import '@/assets/valorant.css';
 import { useState, useEffect } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 /**
  * ValorantPageLayout
@@ -15,6 +16,7 @@ import { useState, useEffect } from 'react';
  * Now updated to properly handle sidebar collapse state changes and mobile overflow.
  */
 export function ValorantPageLayout() {
+  const { theme } = useTheme();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     // Initialize from localStorage when component mounts
     const savedState = localStorage.getItem('sidebar-collapsed');
@@ -47,8 +49,11 @@ export function ValorantPageLayout() {
   
   return (
     <ProtectedRoute>
-      <div className="valorant-container">
-        <DashboardNavigation onCollapseChange={(collapsed) => setSidebarCollapsed(collapsed)} />
+      <div className={`valorant-container theme-${theme}`}>
+        <DashboardNavigation 
+          theme={theme === 'dark' ? 'default' : 'dashboard'}
+          onCollapseChange={(collapsed) => setSidebarCollapsed(collapsed)} 
+        />
         <main className={`valorant-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
           <Outlet />
         </main>

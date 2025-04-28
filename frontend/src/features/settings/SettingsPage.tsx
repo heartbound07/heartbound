@@ -13,6 +13,8 @@ import { SiDiscord, SiRiotgames } from "react-icons/si" // Added for service ico
 import { Toaster } from "react-hot-toast"
 import { Loader2, ExternalLink } from "lucide-react"
 import { useAuth } from "@/contexts/auth" // Added auth context import
+import { useTheme } from "@/contexts/ThemeContext"
+import { Switch } from "@/components/ui/valorant/switch"
 
 // For future implementation 
 // import { useAuth } from "@/contexts/auth"
@@ -27,6 +29,7 @@ export function SettingsPage() {
   const [activeTab, setActiveTab] = useState("appearance")
   const [isSaving, setIsSaving] = useState(false)
   const { user, startDiscordOAuth } = useAuth() // Access auth context
+  const { theme } = useTheme()
   
   // Mock save function - To be implemented later
   const handleSave = () => {
@@ -73,15 +76,12 @@ export function SettingsPage() {
             {activeTab === "appearance" && (
               <SettingsCard title="Appearance">
                 <div className="space-y-6">
-                  <div className="h-16 bg-white/10 rounded-lg backdrop-blur-sm flex items-center px-4">
+                  <div className="bg-white/10 rounded-lg backdrop-blur-sm flex items-center px-4 py-4">
                     <div className="w-full">
                       <div className="text-sm font-medium">Theme</div>
                       <div className="text-white/60 text-sm">Choose your preferred theme</div>
                     </div>
-                    <div className="flex gap-2">
-                      <div className="w-10 h-10 rounded-md bg-gradient-to-b from-[#6B5BE6] to-[#8878f0]"></div>
-                      <div className="w-10 h-10 rounded-md bg-gradient-to-b from-[#0F1923] to-[#1F2731]"></div>
-                    </div>
+                    <ThemeSelector />
                   </div>
                   
                   <div className="h-16 bg-white/10 rounded-lg backdrop-blur-sm flex items-center px-4">
@@ -97,7 +97,7 @@ export function SettingsPage() {
                       <div className="text-sm font-medium">Motion Effects</div>
                       <div className="text-white/60 text-sm">Toggle animation effects</div>
                     </div>
-                    <div className="w-12 h-6 bg-white/10 rounded-full"></div>
+                    <Switch />
                   </div>
                 </div>
               </SettingsCard>
@@ -327,3 +327,45 @@ const settingsTabs = [
     icon: <IoHardwareChipOutline size={20} />
   }
 ]
+
+function ThemeSelector() {
+  const { theme, setTheme } = useTheme();
+  
+  return (
+    <div className="flex gap-3">
+      <button
+        onClick={() => setTheme('default')}
+        className={`w-14 h-14 rounded-md relative transition-all duration-200 ${
+          theme === 'default' 
+            ? 'ring-2 ring-primary ring-offset-2 ring-offset-gray-900 scale-110' 
+            : 'opacity-70 hover:opacity-100'
+        }`}
+        aria-label="Default theme"
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-[#6B5BE6] to-[#8878f0] rounded-md" />
+        {theme === 'default' && (
+          <div className="absolute bottom-1 right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+            <div className="w-2 h-2 bg-white rounded-full"></div>
+          </div>
+        )}
+      </button>
+      
+      <button
+        onClick={() => setTheme('dark')}
+        className={`w-14 h-14 rounded-md relative transition-all duration-200 ${
+          theme === 'dark' 
+            ? 'ring-2 ring-[#FF4655] ring-offset-2 ring-offset-gray-900 scale-110' 
+            : 'opacity-70 hover:opacity-100'
+        }`}
+        aria-label="Dark theme"
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0F1923] to-[#1F2731] rounded-md" />
+        {theme === 'dark' && (
+          <div className="absolute bottom-1 right-1 w-4 h-4 bg-[#FF4655] rounded-full flex items-center justify-center">
+            <div className="w-2 h-2 bg-white rounded-full"></div>
+          </div>
+        )}
+      </button>
+    </div>
+  );
+}

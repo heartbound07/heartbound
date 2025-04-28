@@ -2,6 +2,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { RootProvider } from '@/contexts/RootProvider'
 import { AppRoutes } from '@/routes'
 import '@/assets/App.css'
+import '@/assets/theme.css'
 
 function App() {
   return (
