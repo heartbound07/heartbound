@@ -53,7 +53,7 @@ export function UserRankCard({
                 className="w-20 h-20 rounded-full object-cover border-2 border-[var(--color-primary)]"
               />
               {rankIcon && (
-                <div className="absolute -bottom-2 -right-2 bg-[var(--color-card-bg)] rounded-full p-1 border border-[var(--color-primary)]">
+                <div className="absolute -bottom-2 -right-2">
                   {rankIcon}
                 </div>
               )}
