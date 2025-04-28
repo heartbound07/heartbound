@@ -282,7 +282,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
       <aside
         className={`dashboard-nav theme-${effectiveTheme} ${isCollapsed ? 'collapsed' : ''} ${
           isMobileOpen ? 'mobile-open' : ''
-        } ${sidebarBackground}`}
+        } ${sidebarBackground} flex flex-col`}
         aria-label="Main navigation"
       >
         {/* Brand Header with Toggle Button - Updated for mobile */}
