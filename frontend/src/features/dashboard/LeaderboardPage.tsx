@@ -5,7 +5,7 @@ import { UserRankCard } from '@/components/ui/leaderboard/UserRankCard';
 import { useAuth } from '@/contexts/auth/useAuth';
 import '@/assets/dashboard.css';
 import '@/assets/styles/fonts.css';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 
 export function LeaderboardPage() {
   const [users, setUsers] = useState<UserProfileDTO[]>([]);
@@ -74,63 +74,72 @@ export function LeaderboardPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            <div className="inline-flex rounded-md shadow-sm" role="group">
-              <motion.button
-                type="button"
-                className={`px-4 py-2 text-sm font-medium rounded-l-lg ${
-                  leaderboardType === 'credits' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-                onClick={() => setLeaderboardType('credits')}
-                aria-pressed={leaderboardType === 'credits'}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Credits
-              </motion.button>
-              <motion.button
-                type="button"
-                className={`px-4 py-2 text-sm font-medium rounded-r-lg ${
-                  leaderboardType === 'level' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-                onClick={() => setLeaderboardType('level')}
-                aria-pressed={leaderboardType === 'level'}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Levels
-              </motion.button>
-            </div>
+            <LayoutGroup id="filter-buttons">
+              <div className="inline-flex rounded-md shadow-sm relative" role="group">
+                <motion.div 
+                  className="absolute inset-0 bg-blue-600 rounded-lg z-0"
+                  initial={false}
+                  animate={{ 
+                    x: leaderboardType === 'credits' ? 0 : '100%', 
+                    width: '50%' 
+                  }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  layout
+                />
+                <motion.button
+                  type="button"
+                  className={`px-4 py-2 text-sm font-medium rounded-l-lg relative z-10 ${
+                    leaderboardType === 'credits' 
+                      ? 'text-white' 
+                      : 'text-gray-300 hover:text-white'
+                  }`}
+                  onClick={() => setLeaderboardType('credits')}
+                  aria-pressed={leaderboardType === 'credits'}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  layout
+                >
+                  <motion.span
+                    animate={{ 
+                      y: leaderboardType === 'credits' ? 0 : 5,
+                      opacity: leaderboardType === 'credits' ? 1 : 0.7 
+                    }}
+                    transition={{ type: "spring", stiffness: 500 }}
+                  >
+                    Credits
+                  </motion.span>
+                </motion.button>
+                <motion.button
+                  type="button"
+                  className={`px-4 py-2 text-sm font-medium rounded-r-lg relative z-10 ${
+                    leaderboardType === 'level' 
+                      ? 'text-white' 
+                      : 'text-gray-300 hover:text-white'
+                  }`}
+                  onClick={() => setLeaderboardType('level')}
+                  aria-pressed={leaderboardType === 'level'}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  layout
+                >
+                  <motion.span
+                    animate={{ 
+                      y: leaderboardType === 'level' ? 0 : 5,
+                      opacity: leaderboardType === 'level' ? 1 : 0.7 
+                    }}
+                    transition={{ type: "spring", stiffness: 500 }}
+                  >
+                    Levels
+                  </motion.span>
+                </motion.button>
+              </div>
+            </LayoutGroup>
           </motion.div>
         </div>
       </motion.section>
 
-      <AnimatePresence>
-        {isAuthenticated && currentUserProfile && (
-          <motion.section 
-            className="dashboard-section mb-6"
-            key="user-card"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -30 }}
-            transition={{ type: "spring" }}
-          >
-            <div className="max-w-2xl mx-auto">
-              <UserRankCard 
-                currentUser={currentUserProfile}
-                leaderboardUsers={users}
-                leaderboardType={leaderboardType}
-              />
-            </div>
-          </motion.section>
-        )}
-      </AnimatePresence>
-
       <motion.section 
-        className="dashboard-section"
+        className="dashboard-section mb-6"
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4, type: "spring" }}
@@ -147,6 +156,27 @@ export function LeaderboardPage() {
           />
         </div>
       </motion.section>
+
+      <AnimatePresence>
+        {isAuthenticated && currentUserProfile && (
+          <motion.section 
+            className="dashboard-section"
+            key="user-card"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -30 }}
+            transition={{ type: "spring", delay: 0.6 }}
+          >
+            <div className="flex justify-center w-full">
+              <UserRankCard 
+                currentUser={currentUserProfile}
+                leaderboardUsers={users}
+                leaderboardType={leaderboardType}
+              />
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
