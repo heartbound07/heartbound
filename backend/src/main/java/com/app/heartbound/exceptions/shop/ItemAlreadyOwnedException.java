@@ -1,4 +1,4 @@
-package com.app.heartbound.exceptions;
+package com.app.heartbound.exceptions.shop;
 
 public class ItemAlreadyOwnedException extends RuntimeException {
     public ItemAlreadyOwnedException(String message) {

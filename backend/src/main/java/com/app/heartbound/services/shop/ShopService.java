@@ -6,12 +6,13 @@ import com.app.heartbound.dto.shop.UserInventoryDTO;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
-import com.app.heartbound.exceptions.InsufficientCreditsException;
-import com.app.heartbound.exceptions.ItemAlreadyOwnedException;
-import com.app.heartbound.exceptions.RoleRequirementNotMetException;
+import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
+import com.app.heartbound.exceptions.shop.ItemAlreadyOwnedException;
+import com.app.heartbound.exceptions.shop.RoleRequirementNotMetException;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
 import com.app.heartbound.services.UserService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
