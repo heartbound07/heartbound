@@ -1,6 +1,7 @@
 /* Profile Editor Styles */
 .profile-container {
   @apply flex min-h-screen flex-col gap-8 p-6 text-white lg:flex-row;
+  background: linear-gradient(to bottom right, var(--color-bg-gradient-from), var(--color-bg-gradient-to));
 }
 
 .settings-panel {
@@ -8,7 +9,9 @@
 }
 
 .settings-card {
-  @apply rounded-xl border border-white/20 bg-white/15 p-6 backdrop-blur-xl shadow-lg transition-all duration-300;
+  @apply rounded-xl p-6 backdrop-blur-xl shadow-lg transition-all duration-300;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-card-bg);
 }
 
 .settings-title {
@@ -148,7 +151,7 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #6B5BE6, #8878f0);
+  background: linear-gradient(to bottom, var(--color-primary), var(--color-primary-hover));
   border-radius: 10px;
   border: 2px solid transparent;
   background-clip: content-box;
@@ -156,18 +159,19 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #7c6df0, #9889f3);
+  background: linear-gradient(to bottom, var(--color-primary-hover), var(--color-primary-light));
   background-clip: content-box;
 }
 
 /* For Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #7c6df0 rgba(15, 15, 25, 0.2);
+  scrollbar-color: var(--color-primary) rgba(15, 15, 25, 0.2);
 }
 
 /* Ensure that the ProfilePage container has proper overflow behavior */
-.flex.min-h-screen.flex-col.gap-8.bg-gradient-to-br.from-\[\#6B5BE6\].to-\[\#8878f0\] {
+.flex.min-h-screen.flex-col.gap-8 {
+  background: linear-gradient(to bottom right, var(--color-bg-gradient-from), var(--color-bg-gradient-to));
   overflow-y: auto;
   overflow-x: hidden;
 } 

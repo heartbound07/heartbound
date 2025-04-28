@@ -5,6 +5,7 @@ import { Save, Loader2, Palette, Check } from "lucide-react"
 import toast, { Toaster } from 'react-hot-toast'
 import { HexColorPicker } from "react-colorful"
 import "@/assets/profile.css"
+import { useTheme } from "@/contexts/ThemeContext"
 
 // Import Radix UI Popover component
 import * as Popover from '@radix-ui/react-popover'
@@ -129,6 +130,7 @@ const ColorPickerPopover = ({
 
 export function ProfilePage() {
   const { user, profile, updateUserProfile, isLoading, hasRole } = useAuth()
+  const { theme } = useTheme()
   const [about, setAbout] = useState("")
   const [name, setName] = useState("")
   const [pronouns, setPronouns] = useState("")
@@ -209,7 +211,7 @@ export function ProfilePage() {
 
   return (
     <TooltipProvider>
-      <div className="flex min-h-screen flex-col gap-8 bg-gradient-to-br from-[#6B5BE6] to-[#8878f0] p-6 text-white lg:flex-row">
+      <div className={`profile-container theme-${theme}`}>
         <Toaster position="top-right" />
         
         {/* Settings Panel */}
