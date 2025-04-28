@@ -10,6 +10,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.JoinTable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,6 +19,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 @Data
 @Entity
@@ -59,6 +62,15 @@ public class User {
     @Column(name = "role")
     private Set<Role> roles = new HashSet<>();
     
+    // Add inventory relationship
+    @ManyToMany(fetch = jakarta.persistence.FetchType.LAZY)
+    @JoinTable(
+        name = "user_inventory",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "item_id")
+    )
+    private Set<Shop> inventory = new HashSet<>();
+    
     // Helper methods for role management
     public void addRole(Role role) {
         if (this.roles == null) {
@@ -75,5 +87,19 @@ public class User {
         if (this.roles != null) {
             this.roles.remove(role);
         }
+    }
+    
+    // Helper methods for inventory management
+    public void addItem(Shop item) {
+        if (this.inventory == null) {
+            this.inventory = new HashSet<>();
+        }
+        this.inventory.add(item);
+    }
+    
+    public boolean hasItem(UUID itemId) {
+        return this.inventory != null && 
+               this.inventory.stream()
+                   .anyMatch(item -> item.getId().equals(itemId));
     }
 }

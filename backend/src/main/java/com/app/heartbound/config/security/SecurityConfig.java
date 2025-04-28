@@ -73,6 +73,11 @@ public class SecurityConfig {
                 // Monarch (premium) features
                 .requestMatchers("/premium/**").hasAnyRole("ADMIN", "MONARCH")
                 
+                // Shop endpoint permissions
+                .requestMatchers(HttpMethod.GET, "/api/shop/items/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/shop/purchase/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/shop/inventory").authenticated()
+                
                 // All other requests require authentication
                 .anyRequest().authenticated()
             )

@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Data transfer object for user profile information.
@@ -35,4 +36,9 @@ public class UserProfileDTO {
     // Add level and experience
     private Integer level;
     private Integer experience;
+    
+    // Optional fields for equipped items
+    private UUID equippedBannerId;
+    private UUID equippedEffectId;
+    private UUID equippedBadgeId;
 }
