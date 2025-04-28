@@ -54,7 +54,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
         
         try {
             // Fetch the full leaderboard from UserService
-            List<UserProfileDTO> leaderboardUsers = userService.getLeaderboardUsers();
+            List<UserProfileDTO> leaderboardUsers = userService.getLeaderboardUsers(leaderboardType);
             
             if (leaderboardUsers == null || leaderboardUsers.isEmpty()) {
                 // Handle empty leaderboard
@@ -148,7 +148,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
             int tempTargetPage = isNext ? currentPage + 1 : currentPage - 1;
             
             // Fetch the full leaderboard again
-            List<UserProfileDTO> leaderboardUsers = userService.getLeaderboardUsers();
+            List<UserProfileDTO> leaderboardUsers = userService.getLeaderboardUsers(leaderboardType);
             
             if (leaderboardUsers == null || leaderboardUsers.isEmpty()) {
                 // Handle empty leaderboard (rare edge case)

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { UserProfileDTO } from '@/config/userService';
-import { FaCoins, FaCrown, FaTrophy, FaMedal } from 'react-icons/fa';
+import { FaCoins, FaCrown, FaTrophy, FaMedal, FaStar } from 'react-icons/fa';
 import '@/assets/leaderboard.css';
 import { UserProfileModal } from '@/components/UserProfileModal';
 import { createPortal } from 'react-dom';
@@ -14,6 +14,7 @@ interface LeaderboardProps {
   showHeader?: boolean;
   compact?: boolean;
   className?: string;
+  leaderboardType?: 'credits' | 'level';
 }
 
 export function Leaderboard({
@@ -25,6 +26,7 @@ export function Leaderboard({
   showHeader = true,
   compact = false,
   className = "",
+  leaderboardType = 'credits',
 }: LeaderboardProps) {
   // State for handling user profile modal
   const [selectedUser, setSelectedUser] = useState<UserProfileDTO | null>(null);
@@ -103,7 +105,9 @@ export function Leaderboard({
             <div className="leaderboard-headers">
               <div className="leaderboard-header-rank">Rank</div>
               <div className="leaderboard-header-user">User</div>
-              <div className="leaderboard-header-credits">Credits</div>
+              <div className="leaderboard-header-credits">
+                {leaderboardType === 'credits' ? 'Credits' : 'Level'}
+              </div>
             </div>
             
             {displayUsers.length === 0 ? (
@@ -147,8 +151,24 @@ export function Leaderboard({
                       </div>
                     </div>
                     <div className="leaderboard-credits">
-                      <FaCoins className="text-yellow-400" />
-                      <span>{user.credits || 0}</span>
+                      {leaderboardType === 'credits' ? (
+                        <>
+                          <FaCoins className="text-yellow-400" />
+                          <span>{user.credits || 0}</span>
+                        </>
+                      ) : (
+                        <>
+                          <FaStar className="text-blue-400" />
+                          <span>
+                            {user.level || 1}
+                            {!compact && (
+                              <span className="text-xs text-gray-400 ml-1">
+                                ({user.experience || 0} XP)
+                              </span>
+                            )}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 );

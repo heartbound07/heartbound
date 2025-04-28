@@ -80,9 +80,11 @@ export const updateUserProfile = async (userId: string, profile: UpdateProfileDT
   }
 };
 
-export const getLeaderboardUsers = async (): Promise<UserProfileDTO[]> => {
+export const getLeaderboardUsers = async (sortBy: 'credits' | 'level' = 'credits'): Promise<UserProfileDTO[]> => {
   try {
-    const response = await httpClient.get('/users/leaderboard');
+    const response = await httpClient.get('/users/leaderboard', {
+      params: { sortBy }
+    });
     return response.data;
   } catch (error) {
     console.error('Error fetching leaderboard data:', error);

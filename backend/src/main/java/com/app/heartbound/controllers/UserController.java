@@ -213,11 +213,12 @@ public class UserController {
     }
     
     /**
-     * Get users for the leaderboard (sorted by credits)
+     * Get users for the leaderboard (sorted by credits or level)
      */
     @GetMapping("/leaderboard")
-    public ResponseEntity<List<UserProfileDTO>> getLeaderboardUsers() {
-        List<UserProfileDTO> leaderboardUsers = userService.getLeaderboardUsers();
+    public ResponseEntity<List<UserProfileDTO>> getLeaderboardUsers(
+            @RequestParam(required = false, defaultValue = "credits") String sortBy) {
+        List<UserProfileDTO> leaderboardUsers = userService.getLeaderboardUsers(sortBy);
         return ResponseEntity.ok(leaderboardUsers);
     }
 }

@@ -213,6 +213,8 @@ public class UserService {
                 .bannerUrl(user.getBannerUrl())
                 .roles(user.getRoles())
                 .credits(user.getCredits())
+                .level(user.getLevel())
+                .experience(user.getExperience())
                 .build();
     }
 
@@ -395,16 +397,42 @@ public class UserService {
     }
 
     /**
-     * Get users for the leaderboard, sorted by credits in descending order
+     * Get users for the leaderboard, sorted by credits or level/experience
+     * 
+     * @param sortBy Sorting criterion: "credits" or "level"
+     * @return List of sorted user profiles
      */
-    public List<UserProfileDTO> getLeaderboardUsers() {
-        // Fetch users, sort by credits descending, and map to DTOs
+    public List<UserProfileDTO> getLeaderboardUsers(String sortBy) {
+        // Fetch users
         List<User> users = userRepository.findAll();
         
-        return users.stream()
-            .sorted(Comparator.comparing(User::getCredits).reversed())
-            .map(this::mapToProfileDTO)
-            .collect(Collectors.toList());
+        // Sort based on the provided criterion
+        if ("level".equalsIgnoreCase(sortBy)) {
+            // Sort by level (desc), then by experience (desc) with null-safe comparison
+            return users.stream()
+                .sorted((a, b) -> {
+                    Integer levelA = a.getLevel() != null ? a.getLevel() : 1;
+                    Integer levelB = b.getLevel() != null ? b.getLevel() : 1;
+                    
+                    int levelCompare = levelB.compareTo(levelA); // Descending order
+                    if (levelCompare != 0) {
+                        return levelCompare;
+                    }
+                    
+                    Integer xpA = a.getExperience() != null ? a.getExperience() : 0;
+                    Integer xpB = b.getExperience() != null ? b.getExperience() : 0;
+                    return xpB.compareTo(xpA); // Descending order
+                })
+                .map(this::mapToProfileDTO)
+                .collect(Collectors.toList());
+        } else {
+            // Default: sort by credits descending
+            return users.stream()
+                .sorted(Comparator.comparing(user -> user.getCredits() != null ? user.getCredits() : 0, 
+                        Comparator.reverseOrder()))
+                .map(this::mapToProfileDTO)
+                .collect(Collectors.toList());
+        }
     }
 
     /**
