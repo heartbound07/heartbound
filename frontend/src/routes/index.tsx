@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/auth';
 import { Navigate as RouterNavigate } from 'react-router-dom';
 import { LeaderboardPage } from '@/features/dashboard/LeaderboardPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
+import { ShopPage } from '@/features/shop/ShopPage';
 
 // Admin route guard component
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -78,6 +79,9 @@ export function AppRoutes() {
           </Route>
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          
+          {/* Shop route */}
+          <Route path="shop" element={<ShopPage />} />
         </Route>
         <Route path="/dashboard/valorant" element={<ValorantPageLayout />}>
           <Route index element={<ValorantPage />} />
