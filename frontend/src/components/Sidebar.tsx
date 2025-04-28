@@ -31,6 +31,13 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
   const navigate = useNavigate()
   const location = useLocation()
   const { user, profile, hasRole, logout } = useAuth()
+  
+  // Add this to detect if we're on the Valorant page
+  const isValorantPage = location.pathname.includes('/valorant')
+  
+  // Use the detected page to override the theme if needed
+  const effectiveTheme = isValorantPage ? 'default' : theme
+  
   const [gamesExpanded, setGamesExpanded] = useState(() => {
     // Auto-expand if we're on a game page
     return location.pathname.includes('/dashboard/valorant')
@@ -168,7 +175,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
   }, [showProfilePreview])
   
   // Set background color based on theme
-  const sidebarBackground = theme === 'dashboard'
+  const sidebarBackground = effectiveTheme === 'dashboard'
     ? "bg-gradient-to-b from-[#5b48e6]/90 to-[#7a67ed]/90" // Match dashboard gradient
     : "bg-gradient-to-b from-[#0F1923]/90 to-[#1F2731]/90" // Match Valorant colors
 
@@ -273,8 +280,8 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
     <>
       <MobileBackdrop />
       <aside
-        className={`dashboard-nav flex flex-col ${isCollapsed ? 'collapsed' : 'expanded'} ${
-          isMobileOpen ? 'mobile-open' : 'mobile-closed'
+        className={`dashboard-nav theme-${effectiveTheme} ${isCollapsed ? 'collapsed' : ''} ${
+          isMobileOpen ? 'mobile-open' : ''
         } ${sidebarBackground}`}
         aria-label="Main navigation"
       >
