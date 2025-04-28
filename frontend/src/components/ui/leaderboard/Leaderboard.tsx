@@ -34,13 +34,10 @@ export function Leaderboard({
   const [clickPosition, setClickPosition] = useState<{ x: number, y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Sort users by credits in descending order
-  const sortedUsers = [...users].sort((a, b) => (b.credits || 0) - (a.credits || 0));
-  
   // Apply limit if specified, with a hard maximum of 500 entries
   const MAX_ENTRIES = 500;
   const effectiveLimit = limit ? Math.min(limit, MAX_ENTRIES) : MAX_ENTRIES;
-  const displayUsers = sortedUsers.slice(0, effectiveLimit);
+  const displayUsers = users.slice(0, effectiveLimit);
 
   // Get position-based styling and icon
   const getPositionDetails = (index: number) => {
