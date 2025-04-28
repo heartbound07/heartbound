@@ -27,16 +27,8 @@ import { Switch } from "@/components/ui/valorant/switch"
  */
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState("appearance")
-  const [isSaving, setIsSaving] = useState(false)
-  const { user, startDiscordOAuth } = useAuth() // Access auth context
+  const { user, startDiscordOAuth } = useAuth()
   const { theme } = useTheme()
-  
-  // Mock save function - To be implemented later
-  const handleSave = () => {
-    setIsSaving(true)
-    // Simulate API call delay
-    setTimeout(() => setIsSaving(false), 1000)
-  }
   
   return (
     <div className="min-h-screen p-6 text-white">
@@ -83,53 +75,21 @@ export function SettingsPage() {
                     </div>
                     <ThemeSelector />
                   </div>
-                  
-                  <div className="h-16 bg-white/10 rounded-lg backdrop-blur-sm flex items-center px-4">
-                    <div className="w-full">
-                      <div className="text-sm font-medium">Text Size</div>
-                      <div className="text-white/60 text-sm">Adjust the size of text</div>
-                    </div>
-                    <div className="w-40 h-6 bg-white/10 rounded-full"></div>
-                  </div>
-                  
-                  <div className="h-16 bg-white/10 rounded-lg backdrop-blur-sm flex items-center px-4">
-                    <div className="w-full">
-                      <div className="text-sm font-medium">Motion Effects</div>
-                      <div className="text-white/60 text-sm">Toggle animation effects</div>
-                    </div>
-                    <Switch />
-                  </div>
                 </div>
               </SettingsCard>
             )}
             
             {/* Notifications Settings Section */}
             {activeTab === "notifications" && (
-              <SettingsCard title="Notification Preferences">
-                <div className="space-y-6">
-                  <div className="h-16 bg-white/10 rounded-lg backdrop-blur-sm flex items-center px-4">
-                    <div className="w-full">
-                      <div className="text-sm font-medium">Game Invites</div>
-                      <div className="text-white/60 text-sm">Receive notifications for game invites</div>
-                    </div>
-                    <div className="w-12 h-6 bg-white/10 rounded-full"></div>
+              <SettingsCard title="Notifications">
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="mb-4 p-4 rounded-full bg-white/10 text-white/70">
+                    <IoNotificationsOutline size={36} />
                   </div>
-                  
-                  <div className="h-16 bg-white/10 rounded-lg backdrop-blur-sm flex items-center px-4">
-                    <div className="w-full">
-                      <div className="text-sm font-medium">Friend Requests</div>
-                      <div className="text-white/60 text-sm">Notifications for new friend requests</div>
-                    </div>
-                    <div className="w-12 h-6 bg-white/10 rounded-full"></div>
-                  </div>
-                  
-                  <div className="h-16 bg-white/10 rounded-lg backdrop-blur-sm flex items-center px-4">
-                    <div className="w-full">
-                      <div className="text-sm font-medium">Email Notifications</div>
-                      <div className="text-white/60 text-sm">Receive important updates via email</div>
-                    </div>
-                    <div className="w-12 h-6 bg-white/10 rounded-full"></div>
-                  </div>
+                  <h3 className="text-xl font-medium text-white/90 mb-2">Coming Soon</h3>
+                  <p className="text-white/50 max-w-md">
+                    Notification preferences will be available in a future update. Stay tuned!
+                  </p>
                 </div>
               </SettingsCard>
             )}
@@ -137,30 +97,14 @@ export function SettingsPage() {
             {/* Privacy Settings Section */}
             {activeTab === "privacy" && (
               <SettingsCard title="Privacy & Security">
-                <div className="space-y-6">
-                  <div className="h-16 bg-white/10 rounded-lg backdrop-blur-sm flex items-center px-4">
-                    <div className="w-full">
-                      <div className="text-sm font-medium">Profile Visibility</div>
-                      <div className="text-white/60 text-sm">Control who can see your profile</div>
-                    </div>
-                    <div className="w-32 h-10 bg-white/10 rounded-md"></div>
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="mb-4 p-4 rounded-full bg-white/10 text-white/70">
+                    <IoShieldOutline size={36} />
                   </div>
-                  
-                  <div className="h-16 bg-white/10 rounded-lg backdrop-blur-sm flex items-center px-4">
-                    <div className="w-full">
-                      <div className="text-sm font-medium">Two-Factor Authentication</div>
-                      <div className="text-white/60 text-sm">Enable 2FA for extra security</div>
-                    </div>
-                    <div className="w-12 h-6 bg-white/10 rounded-full"></div>
-                  </div>
-                  
-                  <div className="h-16 bg-white/10 rounded-lg backdrop-blur-sm flex items-center px-4">
-                    <div className="w-full">
-                      <div className="text-sm font-medium">Data Collection</div>
-                      <div className="text-white/60 text-sm">Manage data sharing preferences</div>
-                    </div>
-                    <div className="w-12 h-6 bg-white/10 rounded-full"></div>
-                  </div>
+                  <h3 className="text-xl font-medium text-white/90 mb-2">Coming Soon</h3>
+                  <p className="text-white/50 max-w-md">
+                    Privacy and security settings will be available in a future update.
+                  </p>
                 </div>
               </SettingsCard>
             )}
@@ -168,32 +112,14 @@ export function SettingsPage() {
             {/* Devices Settings Section */}
             {activeTab === "devices" && (
               <SettingsCard title="Devices & Sessions">
-                <div className="space-y-6">
-                  <div className="bg-white/10 rounded-lg backdrop-blur-sm p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <div>
-                        <div className="text-sm font-medium">Current Session</div>
-                        <div className="text-white/60 text-xs">Windows • Chrome • Last active now</div>
-                      </div>
-                      <div className="px-2 py-1 text-xs bg-green-500/20 text-green-300 rounded-full">Active</div>
-                    </div>
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="mb-4 p-4 rounded-full bg-white/10 text-white/70">
+                    <IoHardwareChipOutline size={36} />
                   </div>
-                  
-                  <div className="bg-white/10 rounded-lg backdrop-blur-sm p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <div>
-                        <div className="text-sm font-medium">Mobile Device</div>
-                        <div className="text-white/60 text-xs">iOS • Safari • Last active 2 days ago</div>
-                      </div>
-                      <div className="w-20 h-8 bg-white/10 rounded-md"></div>
-                    </div>
-                  </div>
-                  
-                  <div className="h-12 flex justify-center items-center">
-                    <div className="w-48 h-10 bg-white/10 rounded-md flex items-center justify-center">
-                      <span className="text-white/60 text-sm">Log Out All Devices</span>
-                    </div>
-                  </div>
+                  <h3 className="text-xl font-medium text-white/90 mb-2">Coming Soon</h3>
+                  <p className="text-white/50 max-w-md">
+                    Device management and session controls will be available in a future update.
+                  </p>
                 </div>
               </SettingsCard>
             )}
@@ -244,7 +170,7 @@ export function SettingsPage() {
                           Connect
                         </button>
                         <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-primary/80 text-white text-xs rounded-full">
-                          Soon
+                          Coming Soon
                         </div>
                       </div>
                     </div>
@@ -258,29 +184,6 @@ export function SettingsPage() {
                   </div>
                 </div>
               </SettingsCard>
-            )}
-            
-            {/* Save Button */}
-            {activeTab !== "connections" && (
-              <div className="flex justify-end mt-6">
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="flex items-center gap-2 px-6 py-3 rounded-lg bg-primary hover:bg-primary/90 text-white font-medium transition-colors disabled:opacity-70"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <>
-                      <IoSaveOutline size={20} />
-                      <span>Save Settings</span>
-                    </>
-                  )}
-                </button>
-              </div>
             )}
           </div>
         </div>
