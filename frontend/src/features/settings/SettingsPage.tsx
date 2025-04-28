@@ -1,20 +1,17 @@
 import { useState } from "react"
 import "@/assets/dashboard.css"
 import { 
-  IoPersonOutline, 
   IoColorPaletteOutline, 
   IoNotificationsOutline,
   IoShieldOutline,
   IoHardwareChipOutline,
-  IoSaveOutline,
   IoLinkOutline  // Added for Connections tab
 } from "react-icons/io5"
 import { SiDiscord, SiRiotgames } from "react-icons/si" // Added for service icons
 import { Toaster } from "react-hot-toast"
-import { Loader2, ExternalLink } from "lucide-react"
+import { ExternalLink } from "lucide-react"
 import { useAuth } from "@/contexts/auth" // Added auth context import
 import { useTheme } from "@/contexts/ThemeContext"
-import { Switch } from "@/components/ui/valorant/switch"
 
 // For future implementation 
 // import { useAuth } from "@/contexts/auth"
@@ -28,7 +25,6 @@ import { Switch } from "@/components/ui/valorant/switch"
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState("appearance")
   const { user, startDiscordOAuth } = useAuth()
-  const { theme } = useTheme()
   
   return (
     <div className="min-h-screen p-6 text-white">
