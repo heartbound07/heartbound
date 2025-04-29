@@ -7,6 +7,7 @@ import '@/assets/dashboard.css';
 import '@/assets/styles/fonts.css';
 import '@/assets/Inventory.css';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
+import { formatDisplayText } from '@/utils/formatters';
 
 interface ShopItem {
   id: string;
@@ -25,6 +26,19 @@ interface ToastNotification {
   message: string;
   type: 'success' | 'error' | 'info';
 }
+
+// Add category mapping for special cases
+const categoryDisplayMapping: Record<string, string> = {
+  'USER_COLOR': 'Nameplate',
+  'LISTING': 'Listing Color',
+  'ACCENT': 'Profile Accent'
+};
+
+// Format category for display with custom mappings
+const formatCategoryDisplay = (category: string): string => {
+  return categoryDisplayMapping[category] || formatDisplayText(category);
+};
+
 export function InventoryPage() {
   const { user, updateUserProfile } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -182,7 +196,7 @@ export function InventoryPage() {
                       : 'category-button-inactive'
                   }`}
                 >
-                  {category}
+                  {formatCategoryDisplay(category)}
                 </button>
               ))}
             </div>
@@ -192,7 +206,7 @@ export function InventoryPage() {
         {/* Inventory items */}
         <div>
           <h2 className="text-2xl font-bold text-white mb-4">
-            {selectedCategory ? `${selectedCategory} Items` : 'All Items'}
+            {selectedCategory ? `${formatCategoryDisplay(selectedCategory)} Items` : 'All Items'}
           </h2>
           
           {loading ? (
@@ -273,7 +287,7 @@ export function InventoryPage() {
                       
                       <div className="flex justify-between items-center">
                         <div className="text-xs text-slate-400">
-                          Category: {item.category}
+                          Category: {formatCategoryDisplay(item.category)}
                         </div>
                         
                         {/* Equip/Unequip button */}
