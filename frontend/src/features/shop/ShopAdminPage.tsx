@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/auth';
 import httpClient from '@/lib/api/httpClient';
 import { Toast } from '@/components/Toast';
 import { ImageUpload } from '@/components/ui/shop/ImageUpload';
+import { getRarityColor } from '@/utils/rarityHelpers';
 
 interface ShopItem {
   id: string;
@@ -17,6 +18,7 @@ interface ShopItem {
   expired: boolean;
   isDeleting?: boolean;
   discordRoleId?: string;
+  rarity: string;
 }
 
 interface ShopFormData {
@@ -29,6 +31,7 @@ interface ShopFormData {
   expiresAt: string | null;
   active: boolean;
   discordRoleId?: string;
+  rarity: string;
 }
 
 interface ToastNotification {
@@ -54,7 +57,8 @@ export function ShopAdminPage() {
     requiredRole: null,
     expiresAt: null,
     active: true,
-    discordRoleId: ''
+    discordRoleId: '',
+    rarity: 'COMMON'
   });
   
   // Available categories
@@ -62,6 +66,9 @@ export function ShopAdminPage() {
   
   // Available roles for role-restricted items
   const roles = ['ADMIN', 'MODERATOR', 'MONARCH'];
+  
+  // Add this after the roles array
+  const rarities = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY'];
   
   useEffect(() => {
     fetchShopItems();
@@ -169,7 +176,8 @@ export function ShopAdminPage() {
       requiredRole: item.requiredRole,
       expiresAt: item.expiresAt,
       active: item.active,
-      discordRoleId: item.discordRoleId || ''
+      discordRoleId: item.discordRoleId || '',
+      rarity: item.rarity || 'COMMON'
     });
   };
   
@@ -218,7 +226,8 @@ export function ShopAdminPage() {
       requiredRole: null,
       expiresAt: null,
       active: true,
-      discordRoleId: ''
+      discordRoleId: '',
+      rarity: 'COMMON'
     });
     setEditingItem(null);
   };
@@ -400,6 +409,26 @@ export function ShopAdminPage() {
                 </p>
               </div>
             )}
+            
+            <div className="mb-4">
+              <label htmlFor="rarity" className="block text-sm font-medium text-slate-300 mb-1">
+                Rarity
+              </label>
+              <select
+                id="rarity"
+                name="rarity"
+                value={formData.rarity}
+                onChange={handleInputChange}
+                className="block w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white"
+              >
+                {rarities.map(rarity => (
+                  <option key={rarity} value={rarity}>{rarity.charAt(0) + rarity.slice(1).toLowerCase()}</option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-slate-400">
+                The rarity level affects the item's border color and badge in the shop.
+              </p>
+            </div>
           </div>
           
           <div className="flex justify-end mt-6 space-x-3">
@@ -430,6 +459,7 @@ export function ShopAdminPage() {
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Item</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Category</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Price</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Rarity</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Actions</th>
             </tr>
@@ -458,6 +488,18 @@ export function ShopAdminPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{item.category}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{item.price}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span 
+                      className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                      style={{
+                        backgroundColor: getRarityColor(item.rarity) + '20',
+                        color: getRarityColor(item.rarity),
+                        border: `1px solid ${getRarityColor(item.rarity)}`
+                      }}
+                    >
+                      {item.rarity.charAt(0) + item.rarity.slice(1).toLowerCase()}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {item.expired ? (
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">

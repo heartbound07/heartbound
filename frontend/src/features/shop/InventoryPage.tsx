@@ -5,6 +5,7 @@ import httpClient from '@/lib/api/httpClient';
 import { Toast } from '@/components/Toast';
 import '@/assets/dashboard.css';
 import '@/assets/styles/fonts.css';
+import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 
 interface ShopItem {
   id: string;
@@ -15,6 +16,7 @@ interface ShopItem {
   imageUrl: string;
   owned: boolean;
   equipped?: boolean;
+  rarity: string;
 }
 
 interface ToastNotification {
@@ -213,79 +215,93 @@ export function InventoryPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {items.map((item) => (
-                <motion.div
-                  key={item.id}
-                  whileHover={{ y: -5 }}
-                  className={`bg-slate-800/30 border ${
-                    item.equipped ? 'border-primary border-2' : 'border-slate-700'
-                  } rounded-lg overflow-hidden`}
-                >
-                  {/* Item image */}
-                  <div className="h-40 bg-slate-700/50 flex items-center justify-center relative">
-                    {item.imageUrl ? (
-                      <img 
-                        src={item.imageUrl} 
-                        alt={item.name}
-                        className="h-full w-full object-cover" 
-                      />
-                    ) : (
-                      <span className="text-slate-400">No Image</span>
-                    )}
-                    
-                    {/* Equipped badge */}
-                    {item.equipped && (
-                      <div className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded-full">
-                        Equipped
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-medium text-white">{item.name}</h3>
-                      {item.price > 0 && (
-                        <div className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs">
-                          Purchased
+              {items.map((item) => {
+                const rarityColor = getRarityColor(item.rarity);
+                
+                return (
+                  <motion.div
+                    key={item.id}
+                    whileHover={{ y: -5 }}
+                    className={`bg-slate-800/30 border-2 rounded-lg overflow-hidden`}
+                    style={{ 
+                      borderColor: item.equipped ? 'var(--color-primary, #0088cc)' : rarityColor,
+                      borderWidth: '2px'
+                    }}
+                  >
+                    {/* Item image */}
+                    <div className="h-40 bg-slate-700/50 flex items-center justify-center relative">
+                      {item.imageUrl ? (
+                        <img 
+                          src={item.imageUrl} 
+                          alt={item.name}
+                          className="h-full w-full object-cover" 
+                        />
+                      ) : (
+                        <span className="text-slate-400">No Image</span>
+                      )}
+                      
+                      {/* Equipped badge */}
+                      {item.equipped && (
+                        <div className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded-full">
+                          Equipped
                         </div>
                       )}
+                      
+                      {/* Rarity badge */}
+                      <div 
+                        className="absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-semibold"
+                        style={getRarityBadgeStyle(item.rarity)}
+                      >
+                        {getRarityLabel(item.rarity)}
+                      </div>
                     </div>
                     
-                    {item.description && (
-                      <p className="text-slate-300 text-sm mb-3">{item.description}</p>
-                    )}
-                    
-                    <div className="flex justify-between items-center">
-                      <div className="text-xs text-slate-400">
-                        Category: {item.category}
+                    <div className="p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="font-medium text-white">{item.name}</h3>
+                        {item.price > 0 && (
+                          <div className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs">
+                            Purchased
+                          </div>
+                        )}
                       </div>
                       
-                      {/* Equip/Unequip button */}
-                      {item.equipped ? (
-                        <button
-                          onClick={() => handleUnequipItem(item.category)}
-                          disabled={actionInProgress !== null}
-                          className={`px-3 py-1 rounded bg-slate-700 text-white text-sm hover:bg-slate-600 transition-colors ${
-                            actionInProgress === item.category ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
-                        >
-                          {actionInProgress === item.category ? 'Processing...' : 'Unequip'}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleEquipItem(item.id)}
-                          disabled={actionInProgress !== null}
-                          className={`px-3 py-1 rounded bg-primary text-white text-sm hover:bg-primary-dark transition-colors ${
-                            actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
-                        >
-                          {actionInProgress === item.id ? 'Processing...' : 'Equip'}
-                        </button>
+                      {item.description && (
+                        <p className="text-slate-300 text-sm mb-3">{item.description}</p>
                       )}
+                      
+                      <div className="flex justify-between items-center">
+                        <div className="text-xs text-slate-400">
+                          Category: {item.category}
+                        </div>
+                        
+                        {/* Equip/Unequip button */}
+                        {item.equipped ? (
+                          <button
+                            onClick={() => handleUnequipItem(item.category)}
+                            disabled={actionInProgress !== null}
+                            className={`px-3 py-1 rounded bg-slate-700 text-white text-sm hover:bg-slate-600 transition-colors ${
+                              actionInProgress === item.category ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                          >
+                            {actionInProgress === item.category ? 'Processing...' : 'Unequip'}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleEquipItem(item.id)}
+                            disabled={actionInProgress !== null}
+                            className={`px-3 py-1 rounded bg-primary text-white text-sm hover:bg-primary-dark transition-colors ${
+                              actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                          >
+                            {actionInProgress === item.id ? 'Processing...' : 'Equip'}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </div>

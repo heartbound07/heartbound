@@ -2,6 +2,7 @@ package com.app.heartbound.dto.shop;
 
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.enums.ShopCategory;
+import com.app.heartbound.enums.ItemRarity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,6 +24,7 @@ public class ShopDTO {
     private String imageUrl;
     private Role requiredRole;
     private boolean owned;  // Indicates if the current user owns this item
+    private ItemRarity rarity = ItemRarity.COMMON;  // Default to COMMON
     private boolean active = true;
     private LocalDateTime expiresAt;
     private boolean expired = false;

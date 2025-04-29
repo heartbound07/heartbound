@@ -1,5 +1,6 @@
 package com.app.heartbound.entities;
 
+import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.enums.ShopCategory;
 import jakarta.persistence.*;
@@ -41,6 +42,10 @@ public class Shop {
     private ShopCategory category;
     
     private String imageUrl;
+    
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    private ItemRarity rarity = ItemRarity.COMMON;
     
     @NotNull
     private Boolean isActive = true;

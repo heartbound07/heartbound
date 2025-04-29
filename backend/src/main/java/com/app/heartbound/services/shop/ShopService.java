@@ -6,6 +6,7 @@ import com.app.heartbound.dto.shop.UserInventoryDTO;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.enums.ShopCategory;
+import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
 import com.app.heartbound.exceptions.shop.ItemAlreadyOwnedException;
@@ -323,6 +324,7 @@ public class ShopService {
             .owned(owned)
             .expiresAt(shop.getExpiresAt())
             .discordRoleId(shop.getDiscordRoleId())
+            .rarity(shop.getRarity() != null ? shop.getRarity() : ItemRarity.COMMON)
             .build();
     }
     
@@ -345,6 +347,7 @@ public class ShopService {
             .isActive(shopDTO.isActive())
             .expiresAt(shopDTO.getExpiresAt())
             .discordRoleId(shopDTO.getDiscordRoleId())
+            .rarity(shopDTO.getRarity() != null ? shopDTO.getRarity() : ItemRarity.COMMON)
             .build();
         
         return shopRepository.save(newItem);
@@ -373,6 +376,7 @@ public class ShopService {
         existingItem.setExpiresAt(shopDTO.getExpiresAt());
         existingItem.setIsActive(shopDTO.isActive());
         existingItem.setDiscordRoleId(shopDTO.getDiscordRoleId());
+        existingItem.setRarity(shopDTO.getRarity() != null ? shopDTO.getRarity() : ItemRarity.COMMON);
         
         return shopRepository.save(existingItem);
     }

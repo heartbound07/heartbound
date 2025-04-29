@@ -1,0 +1,67 @@
+/* Rarity color variables */
+:root {
+  --rarity-legendary: #FFD700;
+  --rarity-epic: #A020F0;
+  --rarity-rare: #007BFF;
+  --rarity-uncommon: #28A745;
+  --rarity-common: #6c757d;
+}
+
+/* Rarity border classes */
+.rarity-border-legendary {
+  border: 2px solid var(--rarity-legendary);
+}
+
+.rarity-border-epic {
+  border: 2px solid var(--rarity-epic);
+}
+
+.rarity-border-rare {
+  border: 2px solid var(--rarity-rare);
+}
+
+.rarity-border-uncommon {
+  border: 2px solid var(--rarity-uncommon);
+}
+
+.rarity-border-common {
+  border: 2px solid var(--rarity-common);
+}
+
+/* Rarity badge classes */
+.rarity-badge {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.rarity-badge-legendary {
+  background-color: rgba(255, 215, 0, 0.15);
+  color: var(--rarity-legendary);
+  border: 1px solid var(--rarity-legendary);
+}
+
+.rarity-badge-epic {
+  background-color: rgba(160, 32, 240, 0.15);
+  color: var(--rarity-epic);
+  border: 1px solid var(--rarity-epic);
+}
+
+.rarity-badge-rare {
+  background-color: rgba(0, 123, 255, 0.15);
+  color: var(--rarity-rare);
+  border: 1px solid var(--rarity-rare);
+}
+
+.rarity-badge-uncommon {
+  background-color: rgba(40, 167, 69, 0.15);
+  color: var(--rarity-uncommon);
+  border: 1px solid var(--rarity-uncommon);
+}
+
+.rarity-badge-common {
+  background-color: rgba(108, 117, 125, 0.15);
+  color: var(--rarity-common);
+  border: 1px solid var(--rarity-common);
+} 

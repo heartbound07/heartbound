@@ -10,6 +10,7 @@ import '@/assets/dashboard.css';
 import '@/assets/styles/fonts.css';
 import '@/assets/shoppage.css';
 import React, { forwardRef } from 'react';
+import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 
 // Add category mapping for special cases
 const categoryDisplayMapping: Record<string, string> = {
@@ -32,6 +33,7 @@ interface ShopItem {
   imageUrl: string;
   requiredRole: Role | null;
   owned: boolean;
+  rarity: string;
 }
 
 interface ToastNotification {
@@ -54,6 +56,9 @@ const ShopItemCard = forwardRef(({
   user: any;
   isRecentlyPurchased?: boolean;
 }, ref) => {
+  // Get rarity color for border
+  const rarityColor = getRarityColor(item.rarity);
+  
   return (
     <motion.div
       ref={ref as React.RefObject<HTMLDivElement>}
@@ -63,6 +68,7 @@ const ShopItemCard = forwardRef(({
       exit={{ opacity: 0, scale: 0.95 }}
       whileHover={{ y: -5 }}
       className={`shop-item-card ${isRecentlyPurchased ? 'shop-item-recent-purchase' : ''}`}
+      style={{ borderColor: rarityColor, borderWidth: '2px' }}
     >
       {/* Item image */}
       <div className="shop-item-image">
@@ -89,6 +95,14 @@ const ShopItemCard = forwardRef(({
             {item.requiredRole} Required
           </div>
         )}
+        
+        {/* Rarity badge */}
+        <div 
+          className="absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-semibold"
+          style={getRarityBadgeStyle(item.rarity)}
+        >
+          {getRarityLabel(item.rarity)}
+        </div>
         
         {/* Recent purchase effect */}
         {isRecentlyPurchased && (
