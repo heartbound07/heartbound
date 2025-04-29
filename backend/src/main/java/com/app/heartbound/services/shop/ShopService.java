@@ -5,6 +5,7 @@ import com.app.heartbound.dto.shop.ShopDTO;
 import com.app.heartbound.dto.shop.UserInventoryDTO;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.entities.User;
+import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
 import com.app.heartbound.exceptions.shop.ItemAlreadyOwnedException;
@@ -45,15 +46,22 @@ public class ShopService {
     /**
      * Get all available shop items
      * @param userId Optional user ID to check ownership status
-     * @param category Optional category filter
+     * @param categoryStr Optional category filter as string
      * @return List of shop items
      */
-    public List<ShopDTO> getAvailableShopItems(String userId, String category) {
+    public List<ShopDTO> getAvailableShopItems(String userId, String categoryStr) {
         List<Shop> items;
         
         // Filter by category if provided
-        if (category != null && !category.isEmpty()) {
-            items = shopRepository.findByCategoryAndIsActiveTrue(category);
+        if (categoryStr != null && !categoryStr.isEmpty()) {
+            try {
+                ShopCategory category = ShopCategory.valueOf(categoryStr);
+                items = shopRepository.findByCategoryAndIsActiveTrue(category);
+            } catch (IllegalArgumentException e) {
+                // Invalid category string, return empty list
+                logger.warn("Invalid category filter: {}", categoryStr);
+                return Collections.emptyList();
+            }
         } else {
             items = shopRepository.findByIsActiveTrue();
         }
@@ -269,7 +277,7 @@ public class ShopService {
     
     /**
      * Get all distinct shop categories from active items
-     * @return List of unique category names
+     * @return List of unique category names as strings
      */
     public List<String> getShopCategories() {
         logger.debug("Fetching all distinct shop categories");
@@ -277,11 +285,12 @@ public class ShopService {
         // Get all active shop items
         List<Shop> items = shopRepository.findByIsActiveTrue();
         
-        // Extract unique categories
+        // Extract unique categories and convert to strings
         return items.stream()
             .map(Shop::getCategory)
             .filter(Objects::nonNull)
             .distinct()
+            .map(ShopCategory::name)  // Convert enum to string
             .sorted()  // Optional: sort categories alphabetically
             .collect(Collectors.toList());
     }

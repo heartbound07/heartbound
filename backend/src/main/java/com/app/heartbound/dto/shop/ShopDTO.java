@@ -1,6 +1,7 @@
 package com.app.heartbound.dto.shop;
 
 import com.app.heartbound.enums.Role;
+import com.app.heartbound.enums.ShopCategory;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,7 +18,7 @@ public class ShopDTO {
     private String name;
     private String description;
     private Integer price;
-    private String category;
+    private ShopCategory category;
     private String imageUrl;
     private Role requiredRole;
     private boolean owned;  // Indicates if the current user owns this item

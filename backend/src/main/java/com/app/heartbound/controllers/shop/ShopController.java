@@ -4,6 +4,7 @@ import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.dto.shop.ShopDTO;
 import com.app.heartbound.dto.shop.UserInventoryDTO;
+import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
 import com.app.heartbound.exceptions.shop.ItemAlreadyOwnedException;
@@ -18,8 +19,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/shop")
@@ -159,12 +162,22 @@ public class ShopController {
     
     /**
      * Get all distinct shop categories
-     * @return List of category names
+     * @return List of category names as strings
      */
     @GetMapping("/categories")
     public ResponseEntity<List<String>> getShopCategories() {
         try {
+            // Option 1: Get categories from active items
             List<String> categories = shopService.getShopCategories();
+            
+            // Option 2: If we want to always return all possible categories,
+            // regardless of whether they have active items
+            if (categories.isEmpty()) {
+                categories = Arrays.stream(ShopCategory.values())
+                    .map(ShopCategory::name)
+                    .collect(Collectors.toList());
+            }
+            
             return ResponseEntity.ok(categories);
         } catch (Exception e) {
             // Log the error

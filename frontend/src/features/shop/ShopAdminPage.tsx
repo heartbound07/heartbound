@@ -47,8 +47,8 @@ export function ShopAdminPage() {
     requiredRole: null
   });
   
-  // Available categories (these could also come from an API)
-  const categories = ['BANNER', 'PROFILE_EFFECT', 'BADGE', 'OTHER'];
+  // Available categories
+  const categories = ['USER_COLOR', 'LISTING', 'ACCENT'];
   
   // Available roles for role-restricted items
   const roles = ['ADMIN', 'MODERATOR', 'MONARCH', 'PREMIUM'];

@@ -1,6 +1,7 @@
 package com.app.heartbound.entities;
 
 import com.app.heartbound.enums.Role;
+import com.app.heartbound.enums.ShopCategory;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -36,7 +37,8 @@ public class Shop {
     private Integer price;
     
     @NotNull
-    private String category;
+    @Enumerated(EnumType.STRING)
+    private ShopCategory category;
     
     private String imageUrl;
     
