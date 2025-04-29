@@ -349,11 +349,6 @@ export function InventoryPage() {
                               {getRarityLabel(item.rarity)}
                             </div>
                           </div>
-                          {item.price > 0 && (
-                            <div className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs">
-                              Purchased
-                            </div>
-                          )}
                         </div>
                         
                         {item.description && (
@@ -361,9 +356,15 @@ export function InventoryPage() {
                         )}
                         
                         <div className="flex justify-between items-center">
-                          <div className="text-xs" style={{ color: rarityColor }}>
-                            Rarity: {getRarityLabel(item.rarity)}
-                          </div>
+                          {item.price > 0 ? (
+                            <div className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs">
+                              Purchased
+                            </div>
+                          ) : (
+                            <div className="px-2 py-1 bg-blue-600/20 text-blue-300 rounded text-xs">
+                              Promotional
+                            </div>
+                          )}
                           
                           {/* Equip/Unequip button */}
                           {item.equipped ? (
