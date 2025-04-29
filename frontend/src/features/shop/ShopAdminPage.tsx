@@ -12,6 +12,8 @@ interface ShopItem {
   imageUrl: string;
   requiredRole: string | null;
   isActive: boolean;
+  expiresAt: string | null;
+  expired?: boolean;
   isDeleting?: boolean;
 }
 
@@ -22,6 +24,8 @@ interface ShopFormData {
   category: string;
   imageUrl: string;
   requiredRole: string | null;
+  expiresAt: string | null;
+  isActive: boolean;
 }
 
 interface ToastNotification {
@@ -44,7 +48,9 @@ export function ShopAdminPage() {
     price: 0,
     category: '',
     imageUrl: '',
-    requiredRole: null
+    requiredRole: null,
+    expiresAt: null,
+    isActive: true
   });
   
   // Available categories
@@ -96,6 +102,9 @@ export function ShopAdminPage() {
     // Handle numeric conversion for price
     if (name === 'price') {
       setFormData({ ...formData, [name]: parseInt(value) || 0 });
+    } else if (name === 'expiresAt') {
+      // Handle empty value for expiresAt
+      setFormData({ ...formData, [name]: value || null });
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -110,24 +119,26 @@ export function ShopAdminPage() {
     setSubmitting(true);
     
     try {
-      const actionType = editingItem ? 'update' : 'create';
-      const toastId = `shop-item-${actionType}-${Date.now()}`;
+      const payload = {
+        ...formData,
+        ...(editingItem && { id: editingItem.id })
+      };
       
       if (editingItem) {
         // Update existing item
-        await httpClient.put(`/shop/admin/items/${editingItem.id}`, formData);
+        await httpClient.put(`/shop/admin/items/${editingItem.id}`, payload);
         
         // Only show toast if another with same message doesn't exist
         if (!toasts.some(t => t.message === 'Item updated successfully')) {
-          showToast('Item updated successfully', 'success', toastId);
+          showToast('Item updated successfully', 'success');
         }
       } else {
         // Create new item
-        await httpClient.post('/shop/admin/items', formData);
+        await httpClient.post('/shop/admin/items', payload);
         
         // Only show toast if another with same message doesn't exist
         if (!toasts.some(t => t.message === 'Item created successfully')) {
-          showToast('Item created successfully', 'success', toastId);
+          showToast('Item created successfully', 'success');
         }
       }
       
@@ -149,8 +160,10 @@ export function ShopAdminPage() {
       description: item.description,
       price: item.price,
       category: item.category,
-      imageUrl: item.imageUrl,
-      requiredRole: item.requiredRole
+      imageUrl: item.imageUrl || '',
+      requiredRole: item.requiredRole,
+      expiresAt: item.expiresAt ? item.expiresAt.substring(0, 16) : null,
+      isActive: item.isActive
     });
   };
   
@@ -190,15 +203,22 @@ export function ShopAdminPage() {
   };
   
   const resetForm = () => {
-    setEditingItem(null);
     setFormData({
       name: '',
       description: '',
       price: 0,
       category: '',
       imageUrl: '',
-      requiredRole: null
+      requiredRole: null,
+      expiresAt: null,
+      isActive: true
     });
+    setEditingItem(null);
+  };
+  
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData({ ...formData, [name]: checked });
   };
   
   if (loading) {
@@ -306,6 +326,22 @@ export function ShopAdminPage() {
               />
             </div>
             
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">
+                Expires At (Optional)
+              </label>
+              <input
+                type="datetime-local"
+                name="expiresAt"
+                value={formData.expiresAt || ''}
+                onChange={handleInputChange}
+                className="w-full bg-slate-700/50 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <div className="text-xs text-slate-400 mt-1">
+                Leave empty for items that never expire
+              </div>
+            </div>
+            
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-300 mb-1">
                 Description
@@ -317,6 +353,24 @@ export function ShopAdminPage() {
                 rows={3}
                 className="w-full bg-slate-700/50 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
               ></textarea>
+            </div>
+            
+            <div className="mb-4">
+              <label className="flex items-center space-x-2 text-sm font-medium text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={formData.isActive}
+                  onChange={handleCheckboxChange}
+                  className="w-4 h-4 accent-primary"
+                />
+                <span>Active</span>
+              </label>
+              <p className="text-xs text-slate-400 mt-1">
+                {editingItem?.expired ? 
+                  "This item has expired. You can reactivate it by setting a new expiration date or removing the expiration." : 
+                  "Inactive items won't be visible in the shop."
+                }
+              </p>
             </div>
           </div>
           
@@ -377,11 +431,24 @@ export function ShopAdminPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{item.category}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{item.price}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      item.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {item.isActive ? 'Active' : 'Inactive'}
-                    </span>
+                    {item.expired ? (
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                        Expired
+                      </span>
+                    ) : item.isActive ? (
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                        Active
+                      </span>
+                    ) : (
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                        Inactive
+                      </span>
+                    )}
+                    {item.expiresAt && !item.expired && (
+                      <div className="text-xs text-slate-400 mt-1">
+                        Expires: {new Date(item.expiresAt).toLocaleString()}
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button

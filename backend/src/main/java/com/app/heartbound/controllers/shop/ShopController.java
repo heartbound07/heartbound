@@ -122,6 +122,7 @@ public class ShopController {
     @PostMapping("/admin/items")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ShopDTO> createShopItem(@RequestBody ShopDTO shopDTO) {
+        logger.debug("Received create shop item request with active status: {}", shopDTO.isActive());
         Shop newItem = shopService.createShopItem(shopDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(shopService.getShopItemById(newItem.getId(), null));
@@ -136,6 +137,7 @@ public class ShopController {
         @PathVariable UUID itemId,
         @RequestBody ShopDTO shopDTO
     ) {
+        logger.debug("Received update shop item request for ID {} with active status: {}", itemId, shopDTO.isActive());
         Shop updatedItem = shopService.updateShopItem(itemId, shopDTO);
         return ResponseEntity.ok(shopService.getShopItemById(updatedItem.getId(), null));
     }

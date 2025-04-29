@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.Objects;
+import java.time.LocalDateTime;
 
 @Service
 public class ShopService {
@@ -51,19 +52,28 @@ public class ShopService {
      */
     public List<ShopDTO> getAvailableShopItems(String userId, String categoryStr) {
         List<Shop> items;
+        LocalDateTime now = LocalDateTime.now();
         
         // Filter by category if provided
         if (categoryStr != null && !categoryStr.isEmpty()) {
             try {
                 ShopCategory category = ShopCategory.valueOf(categoryStr);
-                items = shopRepository.findByCategoryAndIsActiveTrue(category);
+                // Get active items that either have no expiry or haven't expired yet
+                items = shopRepository.findByCategoryAndIsActiveTrue(category)
+                    .stream()
+                    .filter(item -> item.getExpiresAt() == null || item.getExpiresAt().isAfter(now))
+                    .collect(Collectors.toList());
             } catch (IllegalArgumentException e) {
                 // Invalid category string, return empty list
                 logger.warn("Invalid category filter: {}", categoryStr);
                 return Collections.emptyList();
             }
         } else {
-            items = shopRepository.findByIsActiveTrue();
+            // Get all active items that either have no expiry or haven't expired yet
+            items = shopRepository.findByIsActiveTrue()
+                .stream()
+                .filter(item -> item.getExpiresAt() == null || item.getExpiresAt().isAfter(now))
+                .collect(Collectors.toList());
         }
         
         // Convert to DTOs and check ownership if userId is provided
@@ -186,6 +196,7 @@ public class ShopService {
             .imageUrl(shop.getImageUrl())
             .requiredRole(shop.getRequiredRole())
             .owned(owned)
+            .expiresAt(shop.getExpiresAt())
             .build();
     }
     
@@ -196,7 +207,7 @@ public class ShopService {
      */
     @Transactional
     public Shop createShopItem(ShopDTO shopDTO) {
-        logger.debug("Creating new shop item: {}", shopDTO.getName());
+        logger.debug("Creating new shop item: {} with active status: {}", shopDTO.getName(), shopDTO.isActive());
         
         Shop newItem = Shop.builder()
             .name(shopDTO.getName())
@@ -205,7 +216,8 @@ public class ShopService {
             .category(shopDTO.getCategory())
             .imageUrl(shopDTO.getImageUrl())
             .requiredRole(shopDTO.getRequiredRole())
-            .isActive(true)
+            .isActive(shopDTO.isActive())
+            .expiresAt(shopDTO.getExpiresAt())
             .build();
         
         return shopRepository.save(newItem);
@@ -219,7 +231,7 @@ public class ShopService {
      */
     @Transactional
     public Shop updateShopItem(UUID itemId, ShopDTO shopDTO) {
-        logger.debug("Updating shop item {}: {}", itemId, shopDTO.getName());
+        logger.debug("Updating shop item {}: {} with active status: {}", itemId, shopDTO.getName(), shopDTO.isActive());
         
         Shop existingItem = shopRepository.findById(itemId)
             .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
@@ -231,7 +243,8 @@ public class ShopService {
         existingItem.setCategory(shopDTO.getCategory());
         existingItem.setImageUrl(shopDTO.getImageUrl());
         existingItem.setRequiredRole(shopDTO.getRequiredRole());
-        // Don't update isActive here unless explicitly needed
+        existingItem.setExpiresAt(shopDTO.getExpiresAt());
+        existingItem.setIsActive(shopDTO.isActive());
         
         return shopRepository.save(existingItem);
     }
@@ -264,12 +277,19 @@ public class ShopService {
      */
     public List<ShopDTO> getAllShopItems() {
         List<Shop> items = shopRepository.findAll();
+        LocalDateTime now = LocalDateTime.now();
         
         return items.stream()
             .map(item -> {
                 ShopDTO dto = mapToShopDTO(item, null);
                 // Add isActive status to the DTO for admin UI
                 dto.setActive(item.getIsActive());
+                
+                // Determine if item is expired
+                boolean expired = item.getExpiresAt() != null && 
+                                 item.getExpiresAt().isBefore(now);
+                dto.setExpired(expired);
+                
                 return dto;
             })
             .collect(Collectors.toList());

@@ -53,4 +53,6 @@ public class Shop {
     
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+    
+    private LocalDateTime expiresAt;
 }

@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -23,4 +24,6 @@ public class ShopDTO {
     private Role requiredRole;
     private boolean owned;  // Indicates if the current user owns this item
     private boolean active = true;
+    private LocalDateTime expiresAt;
+    private boolean expired = false;
 }
