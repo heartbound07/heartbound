@@ -159,6 +159,9 @@ export function ShopPage() {
   const [purchaseInProgress, setPurchaseInProgress] = useState(false);
   const [recentPurchases, setRecentPurchases] = useState<{[key: string]: number}>({});
   
+  // Minimum loading time in milliseconds
+  const MIN_LOADING_TIME = 800;
+  
   // Toast notification functions
   const showToast = (message: string, type: 'success' | 'error' | 'info') => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -171,7 +174,10 @@ export function ShopPage() {
   
   useEffect(() => {
     const fetchShopItems = async () => {
+      // Record the start time
+      const startTime = Date.now();
       setLoading(true);
+      
       try {
         const response = await httpClient.get('/shop/items', {
           params: selectedCategory ? { category: selectedCategory } : {}
@@ -181,7 +187,17 @@ export function ShopPage() {
         console.error('Error fetching shop items:', error);
         showToast('Failed to load shop items', 'error');
       } finally {
-        setLoading(false);
+        // Calculate elapsed time
+        const elapsedTime = Date.now() - startTime;
+        
+        // If elapsed time is less than minimum loading time, wait before hiding loader
+        if (elapsedTime < MIN_LOADING_TIME) {
+          setTimeout(() => {
+            setLoading(false);
+          }, MIN_LOADING_TIME - elapsedTime);
+        } else {
+          setLoading(false);
+        }
       }
     };
     
