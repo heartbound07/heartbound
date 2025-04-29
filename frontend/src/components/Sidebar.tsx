@@ -5,7 +5,7 @@ import "@/assets/styles/fonts.css"
 import "@/assets/animations.css"
 import { MdDashboard, MdAdminPanelSettings } from "react-icons/md"
 import { IoSettingsSharp } from "react-icons/io5"
-import { FaCoins, FaTrophy, FaShoppingCart } from "react-icons/fa"
+import { FaCoins, FaTrophy, FaShoppingCart, FaBoxOpen } from "react-icons/fa"
 import { useState, useRef, useEffect } from "react"
 import { ChevronRight, Menu, LogOut } from "lucide-react"
 import { ProfilePreview } from "@/components/ui/profile/ProfilePreview"
@@ -108,7 +108,8 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
   // Determine if we're on the leaderboard page
 
   // Determine if we're on the shop page
-  const isShopPage = location.pathname.includes('/dashboard/shop')
+
+  // Determine if we're on the inventory page
 
   // Add admin panel to nav items if the user is an admin
   const navItems = [
@@ -123,6 +124,13 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
       path: "/dashboard/shop",
       label: "Shop",
       icon: <FaShoppingCart size={20} />,
+      hasSubmenu: false
+    },
+    // Add inventory navigation item
+    {
+      path: "/dashboard/inventory",
+      label: "Inventory",
+      icon: <FaBoxOpen size={20} />,
       hasSubmenu: false
     },
     // Add leaderboard navigation item

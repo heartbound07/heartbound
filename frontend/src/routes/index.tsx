@@ -19,6 +19,7 @@ import { SettingsPage } from '@/features/settings/SettingsPage';
 import { ShopPage } from '@/features/shop/ShopPage';
 import { useEffect } from 'react';
 import { ShopAdminPage } from '@/features/shop/ShopAdminPage';
+import { InventoryPage } from '@/features/shop/InventoryPage';
 
 // Admin route guard component
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -112,6 +113,9 @@ export function AppRoutes() {
               } 
             />
           </Route>
+          
+          {/* Inventory route */}
+          <Route path="inventory" element={<InventoryPage />} />
         </Route>
         <Route path="/dashboard/valorant" element={<ValorantPageLayout />}>
           <Route index element={<ValorantPage />} />
