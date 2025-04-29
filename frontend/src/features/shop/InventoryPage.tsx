@@ -356,22 +356,17 @@ export function InventoryPage() {
                         )}
                         
                         <div className="flex justify-between items-center">
-                          {item.price > 0 ? (
-                            <div className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs">
-                              Purchased
-                            </div>
-                          ) : (
-                            <div className="px-2 py-1 bg-blue-600/20 text-blue-300 rounded text-xs">
-                              Promotional
-                            </div>
-                          )}
+                          {/* Always show Purchased badge regardless of price */}
+                          <div className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs flex items-center">
+                            Purchased
+                          </div>
                           
                           {/* Equip/Unequip button */}
                           {item.equipped ? (
                             <button
                               onClick={() => handleUnequipItem(item.category)}
                               disabled={actionInProgress !== null}
-                              className={`item-action-button unequip-button ${
+                              className={`item-action-button unequip-button h-8 flex items-center ${
                                 actionInProgress === item.category ? 'opacity-50 cursor-not-allowed' : ''
                               }`}
                             >
@@ -381,7 +376,7 @@ export function InventoryPage() {
                             <button
                               onClick={() => handleEquipItem(item.id)}
                               disabled={actionInProgress !== null}
-                              className={`item-action-button equip-button ${
+                              className={`item-action-button equip-button h-8 flex items-center ${
                                 actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
                               }`}
                             >
