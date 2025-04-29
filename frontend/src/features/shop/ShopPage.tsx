@@ -231,7 +231,18 @@ export function ShopPage() {
         const response = await httpClient.get('/shop/items', {
           params: selectedCategory ? { category: selectedCategory } : {}
         });
-        setItems(response.data);
+        
+        // Sort items: not owned items first, then owned items
+        const sortedItems = [...response.data].sort((a, b) => {
+          // If ownership status is different, sort by ownership (false before true)
+          if (a.owned !== b.owned) {
+            return a.owned ? 1 : -1;
+          }
+          // If both items have same ownership status, preserve original order
+          return 0;
+        });
+        
+        setItems(sortedItems);
       } catch (error) {
         console.error('Error fetching shop items:', error);
         showToast('Failed to load shop items', 'error');
