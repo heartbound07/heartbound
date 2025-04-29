@@ -37,8 +37,8 @@ public class UserProfileDTO {
     private Integer level;
     private Integer experience;
     
-    // Optional fields for equipped items
-    private UUID equippedBannerId;
-    private UUID equippedEffectId;
-    private UUID equippedBadgeId;
+    // Update the fields for equipped items to match the specific categories
+    private UUID equippedUserColorId;
+    private UUID equippedListingId;
+    private UUID equippedAccentId;
 }

@@ -26,4 +26,13 @@ public class ShopDTO {
     private boolean active = true;
     private LocalDateTime expiresAt;
     private boolean expired = false;
+    private boolean equipped;
+
+    public boolean isEquipped() {
+        return equipped;
+    }
+
+    public void setEquipped(boolean equipped) {
+        this.equipped = equipped;
+    }
 }

@@ -9,6 +9,7 @@ import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
 import com.app.heartbound.exceptions.shop.ItemAlreadyOwnedException;
+import com.app.heartbound.exceptions.shop.ItemNotEquippableException;
 import com.app.heartbound.exceptions.shop.RoleRequirementNotMetException;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
@@ -156,22 +157,95 @@ public class ShopService {
     }
     
     /**
-     * Get a user's inventory
+     * Equips an item for a user
      * @param userId User ID
-     * @return Set of shop items owned by the user
+     * @param itemId Item ID
+     * @return Updated UserProfileDTO
      */
-    public UserInventoryDTO getUserInventory(String userId) {
+    @Transactional
+    public UserProfileDTO equipItem(String userId, UUID itemId) {
+        logger.debug("Equipping item {} for user {}", itemId, userId);
+        
+        // Get user and item
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         
-        Set<ShopDTO> items = user.getInventory()
-            .stream()
-            .map(item -> mapToShopDTO(item, user))
+        Shop item = shopRepository.findById(itemId)
+            .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
+        
+        // Check if user owns the item
+        if (!user.hasItem(itemId)) {
+            throw new ItemAlreadyOwnedException("You don't own this item");
+        }
+        
+        // Set the item as equipped based on its category
+        ShopCategory category = item.getCategory();
+        if (category == null) {
+            throw new ItemNotEquippableException("This item cannot be equipped");
+        }
+        
+        // Unequip any previously equipped item in this category
+        user.setEquippedItemIdByCategory(category, itemId);
+        
+        // Save user changes
+        user = userRepository.save(user);
+        
+        // Return updated profile
+        return userService.mapToProfileDTO(user);
+    }
+    
+    /**
+     * Unequips an item for a user by category
+     * @param userId User ID
+     * @param category Shop category to unequip
+     * @return Updated UserProfileDTO
+     */
+    @Transactional
+    public UserProfileDTO unequipItem(String userId, ShopCategory category) {
+        logger.debug("Unequipping item of category {} for user {}", category, userId);
+        
+        // Get user
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // Unequip the item in the specified category
+        user.setEquippedItemIdByCategory(category, null);
+        
+        // Save user changes
+        user = userRepository.save(user);
+        
+        // Return updated profile
+        return userService.mapToProfileDTO(user);
+    }
+    
+    /**
+     * Gets a user's inventory with equipped status
+     * @param userId User ID
+     * @return User's inventory with equipped status
+     */
+    public UserInventoryDTO getUserInventory(String userId) {
+        logger.debug("Getting inventory for user {}", userId);
+        
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        Set<Shop> inventory = user.getInventory();
+        Set<ShopDTO> itemDTOs = inventory.stream()
+            .map(item -> {
+                ShopDTO dto = mapToShopDTO(item, user);
+                
+                // Add equipped status to each item
+                if (item.getCategory() != null) {
+                    UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
+                    dto.setEquipped(equippedItemId != null && equippedItemId.equals(item.getId()));
+                }
+                
+                return dto;
+            })
             .collect(Collectors.toSet());
         
         return UserInventoryDTO.builder()
-            .userId(userId)
-            .items(items)
+            .items(itemDTOs)
             .build();
     }
     

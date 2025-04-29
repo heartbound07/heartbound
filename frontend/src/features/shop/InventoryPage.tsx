@@ -14,6 +14,7 @@ interface ShopItem {
   category: string;
   imageUrl: string;
   owned: boolean;
+  equipped?: boolean;
 }
 
 interface ToastNotification {
@@ -21,14 +22,14 @@ interface ToastNotification {
   message: string;
   type: 'success' | 'error' | 'info';
 }
-
 export function InventoryPage() {
-  const { } = useAuth();
+  const { user, updateUserProfile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ShopItem[]>([]);
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   
   // Toast notification functions
   const showToast = (message: string, type: 'success' | 'error' | 'info') => {
@@ -40,36 +41,98 @@ export function InventoryPage() {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
   
-  useEffect(() => {
-    const fetchInventory = async () => {
-      setLoading(true);
-      try {
-        const response = await httpClient.get('/shop/inventory');
+  const fetchInventory = async () => {
+    setLoading(true);
+    try {
+      const response = await httpClient.get('/shop/inventory');
+      
+      if (response.data && response.data.items) {
+        // Extract unique categories from items with proper type assertion
+        const uniqueCategories = [...new Set(response.data.items.map((item: ShopItem) => item.category))] as string[];
+        setCategories(uniqueCategories);
         
-        if (response.data && response.data.items) {
-          // Extract unique categories from items with proper type assertion
-          const uniqueCategories = [...new Set(response.data.items.map((item: ShopItem) => item.category))] as string[];
-          setCategories(uniqueCategories);
+        // Filter items by category if a category is selected
+        const filteredItems = selectedCategory 
+          ? response.data.items.filter((item: ShopItem) => item.category === selectedCategory)
+          : response.data.items;
           
-          // Filter items by category if a category is selected
-          const filteredItems = selectedCategory 
-            ? response.data.items.filter((item: ShopItem) => item.category === selectedCategory)
-            : response.data.items;
-            
-          setItems(filteredItems);
-        } else {
-          setItems([]);
-        }
-      } catch (error) {
-        console.error('Error fetching inventory:', error);
-        showToast('Failed to load your inventory', 'error');
-      } finally {
-        setLoading(false);
+        setItems(filteredItems);
+      } else {
+        setItems([]);
       }
-    };
-    
+    } catch (error) {
+      console.error('Error fetching inventory:', error);
+      showToast('Failed to load your inventory', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
     fetchInventory();
   }, [selectedCategory]);
+  
+  const handleEquipItem = async (itemId: string) => {
+    if (actionInProgress) return;
+    
+    setActionInProgress(itemId);
+    try {
+      const response = await httpClient.post(`/shop/equip/${itemId}`);
+      showToast('Item equipped successfully!', 'success');
+      
+      // Update local user profile with the updated profile from response
+      if (response.data) {
+        await updateUserProfile({
+          displayName: response.data.displayName || user?.username || '',
+          pronouns: response.data.pronouns || '',
+          about: response.data.about || '',
+          bannerColor: response.data.bannerColor || ''
+        });
+      }
+      
+      // Refresh inventory to show updated equipped status
+      await fetchInventory();
+    } catch (error: any) {
+      console.error('Error equipping item:', error);
+      showToast(
+        error.response?.data?.message || 'Failed to equip item', 
+        'error'
+      );
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+  
+  const handleUnequipItem = async (category: string) => {
+    if (actionInProgress) return;
+    
+    setActionInProgress(category);
+    try {
+      const response = await httpClient.post(`/shop/unequip/${category}`);
+      showToast('Item unequipped successfully!', 'success');
+      
+      // Update local user profile with the updated profile from response
+      if (response.data) {
+        await updateUserProfile({
+          displayName: response.data.displayName || user?.username || '',
+          pronouns: response.data.pronouns || '',
+          about: response.data.about || '',
+          bannerColor: response.data.bannerColor || ''
+        });
+      }
+      
+      // Refresh inventory to show updated equipped status
+      await fetchInventory();
+    } catch (error: any) {
+      console.error('Error unequipping item:', error);
+      showToast(
+        error.response?.data?.message || 'Failed to unequip item', 
+        'error'
+      );
+    } finally {
+      setActionInProgress(null);
+    }
+  };
   
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -154,10 +217,12 @@ export function InventoryPage() {
                 <motion.div
                   key={item.id}
                   whileHover={{ y: -5 }}
-                  className="bg-slate-800/30 border border-slate-700 rounded-lg overflow-hidden"
+                  className={`bg-slate-800/30 border ${
+                    item.equipped ? 'border-primary border-2' : 'border-slate-700'
+                  } rounded-lg overflow-hidden`}
                 >
                   {/* Item image */}
-                  <div className="h-40 bg-slate-700/50 flex items-center justify-center">
+                  <div className="h-40 bg-slate-700/50 flex items-center justify-center relative">
                     {item.imageUrl ? (
                       <img 
                         src={item.imageUrl} 
@@ -166,6 +231,13 @@ export function InventoryPage() {
                       />
                     ) : (
                       <span className="text-slate-400">No Image</span>
+                    )}
+                    
+                    {/* Equipped badge */}
+                    {item.equipped && (
+                      <div className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded-full">
+                        Equipped
+                      </div>
                     )}
                   </div>
                   
@@ -183,8 +255,33 @@ export function InventoryPage() {
                       <p className="text-slate-300 text-sm mb-3">{item.description}</p>
                     )}
                     
-                    <div className="text-xs text-slate-400 mt-2">
-                      Category: {item.category}
+                    <div className="flex justify-between items-center">
+                      <div className="text-xs text-slate-400">
+                        Category: {item.category}
+                      </div>
+                      
+                      {/* Equip/Unequip button */}
+                      {item.equipped ? (
+                        <button
+                          onClick={() => handleUnequipItem(item.category)}
+                          disabled={actionInProgress !== null}
+                          className={`px-3 py-1 rounded bg-slate-700 text-white text-sm hover:bg-slate-600 transition-colors ${
+                            actionInProgress === item.category ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          {actionInProgress === item.category ? 'Processing...' : 'Unequip'}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleEquipItem(item.id)}
+                          disabled={actionInProgress !== null}
+                          className={`px-3 py-1 rounded bg-primary text-white text-sm hover:bg-primary-dark transition-colors ${
+                            actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          {actionInProgress === item.id ? 'Processing...' : 'Equip'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -196,5 +293,6 @@ export function InventoryPage() {
     </div>
   );
 }
+
 
 export default InventoryPage;

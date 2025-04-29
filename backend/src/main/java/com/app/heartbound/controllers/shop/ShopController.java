@@ -8,6 +8,7 @@ import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
 import com.app.heartbound.exceptions.shop.ItemAlreadyOwnedException;
+import com.app.heartbound.exceptions.shop.ItemNotEquippableException;
 import com.app.heartbound.exceptions.shop.RoleRequirementNotMetException;
 import com.app.heartbound.services.shop.ShopService;
 import org.slf4j.Logger;
@@ -185,6 +186,64 @@ public class ShopController {
             // Log the error
             logger.error("Error retrieving shop categories", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    /**
+     * Equip an item
+     * @param itemId Item ID
+     * @param authentication Authentication containing user ID
+     * @return Updated user profile
+     */
+    @PostMapping("/equip/{itemId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> equipItem(
+        @PathVariable UUID itemId,
+        Authentication authentication
+    ) {
+        String userId = authentication.getName();
+        
+        try {
+            UserProfileDTO updatedProfile = shopService.equipItem(userId, itemId);
+            return ResponseEntity.ok(updatedProfile);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (ItemAlreadyOwnedException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (ItemNotEquippableException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An error occurred while equipping the item"));
+        }
+    }
+    
+    /**
+     * Unequip an item by category
+     * @param category Category to unequip
+     * @param authentication Authentication containing user ID
+     * @return Updated user profile
+     */
+    @PostMapping("/unequip/{category}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> unequipItem(
+        @PathVariable ShopCategory category,
+        Authentication authentication
+    ) {
+        String userId = authentication.getName();
+        
+        try {
+            UserProfileDTO updatedProfile = shopService.unequipItem(userId, category);
+            return ResponseEntity.ok(updatedProfile);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An error occurred while unequipping the item"));
         }
     }
     

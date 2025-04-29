@@ -1,7 +1,7 @@
 package com.app.heartbound.entities;
 
 import com.app.heartbound.enums.Role;
-
+import com.app.heartbound.enums.ShopCategory;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -71,6 +71,16 @@ public class User {
     )
     private Set<Shop> inventory = new HashSet<>();
     
+    // Add these fields to store equipped item IDs
+    @Column(name = "equipped_user_color_id")
+    private UUID equippedUserColorId;
+
+    @Column(name = "equipped_listing_id")
+    private UUID equippedListingId;
+
+    @Column(name = "equipped_accent_id")
+    private UUID equippedAccentId;
+    
     // Helper methods for role management
     public void addRole(Role role) {
         if (this.roles == null) {
@@ -101,5 +111,59 @@ public class User {
         return this.inventory != null && 
                this.inventory.stream()
                    .anyMatch(item -> item.getId().equals(itemId));
+    }
+
+    // Add getter/setter methods for the new fields
+    public UUID getEquippedUserColorId() {
+        return equippedUserColorId;
+    }
+
+    public void setEquippedUserColorId(UUID equippedUserColorId) {
+        this.equippedUserColorId = equippedUserColorId;
+    }
+
+    public UUID getEquippedListingId() {
+        return equippedListingId;
+    }
+
+    public void setEquippedListingId(UUID equippedListingId) {
+        this.equippedListingId = equippedListingId;
+    }
+
+    public UUID getEquippedAccentId() {
+        return equippedAccentId;
+    }
+
+    public void setEquippedAccentId(UUID equippedAccentId) {
+        this.equippedAccentId = equippedAccentId;
+    }
+
+    // Helper method to get equipped item ID by category
+    public UUID getEquippedItemIdByCategory(ShopCategory category) {
+        switch (category) {
+            case USER_COLOR:
+                return getEquippedUserColorId();
+            case LISTING:
+                return getEquippedListingId();
+            case ACCENT:
+                return getEquippedAccentId();
+            default:
+                return null;
+        }
+    }
+
+    // Helper method to set equipped item ID by category
+    public void setEquippedItemIdByCategory(ShopCategory category, UUID itemId) {
+        switch (category) {
+            case USER_COLOR:
+                setEquippedUserColorId(itemId);
+                break;
+            case LISTING:
+                setEquippedListingId(itemId);
+                break;
+            case ACCENT:
+                setEquippedAccentId(itemId);
+                break;
+        }
     }
 }
