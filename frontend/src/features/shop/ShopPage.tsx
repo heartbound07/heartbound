@@ -44,12 +44,14 @@ const ShopItemCard = ({
   item, 
   handlePurchase, 
   purchaseInProgress, 
-  user 
+  user,
+  isRecentlyPurchased = false
 }: { 
   item: ShopItem; 
   handlePurchase: (id: string) => void; 
   purchaseInProgress: boolean;
   user: any;
+  isRecentlyPurchased?: boolean;
 }) => {
   return (
     <motion.div
@@ -58,7 +60,7 @@ const ShopItemCard = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       whileHover={{ y: -5 }}
-      className="shop-item-card"
+      className={`shop-item-card ${isRecentlyPurchased ? 'shop-item-recent-purchase' : ''}`}
     >
       {/* Item image */}
       <div className="shop-item-image">
@@ -84,6 +86,16 @@ const ShopItemCard = ({
           <div className="item-badge badge-required">
             {item.requiredRole} Required
           </div>
+        )}
+        
+        {/* Recent purchase effect */}
+        {isRecentlyPurchased && (
+          <motion.div 
+            initial={{ opacity: 0.8 }}
+            animate={{ opacity: 0 }}
+            transition={{ duration: 2 }}
+            className="absolute inset-0 bg-green-500/20 rounded-t-lg z-10"
+          />
         )}
       </div>
       
@@ -384,6 +396,7 @@ export function ShopPage() {
                     handlePurchase={handlePurchase}
                     purchaseInProgress={purchaseInProgress}
                     user={user}
+                    isRecentlyPurchased={!!recentPurchases[item.id] && (Date.now() - recentPurchases[item.id] < 5000)}
                   />
                 ))}
               </AnimatePresence>

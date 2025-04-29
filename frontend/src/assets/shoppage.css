@@ -240,3 +240,8 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+.shop-item-recent-purchase {
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.5);
+  transition: box-shadow 0.3s ease-in-out;
+}
