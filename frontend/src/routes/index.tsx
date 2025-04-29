@@ -17,12 +17,32 @@ import { Navigate as RouterNavigate } from 'react-router-dom';
 import { LeaderboardPage } from '@/features/dashboard/LeaderboardPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { ShopPage } from '@/features/shop/ShopPage';
+import { useEffect } from 'react';
+import { ShopAdminPage } from '@/features/shop/ShopAdminPage';
 
 // Admin route guard component
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { hasRole } = useAuth();
   
   if (!hasRole('ADMIN')) {
+    return <RouterNavigate to="/dashboard" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
+// Create a separate AdminShopRoute component for shop admin features
+function AdminShopRoute({ children }: { children: React.ReactNode }) {
+  const { hasRole, user } = useAuth();
+  
+  useEffect(() => {
+    // Enhanced security logging
+    console.log(`Admin shop access attempt by user: ${user?.id || 'unknown'}`);
+  }, [user]);
+  
+  // Double security check
+  if (!hasRole('ADMIN')) {
+    console.warn('Unauthorized admin shop access attempt blocked');
     return <RouterNavigate to="/dashboard" replace />;
   }
   
@@ -80,8 +100,18 @@ export function AppRoutes() {
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="settings" element={<SettingsPage />} />
           
-          {/* Shop route */}
-          <Route path="shop" element={<ShopPage />} />
+          {/* Shop routes with proper protection */}
+          <Route path="shop">
+            <Route index element={<ShopPage />} />
+            <Route 
+              path="admin" 
+              element={
+                <AdminShopRoute>
+                  <ShopAdminPage />
+                </AdminShopRoute>
+              } 
+            />
+          </Route>
         </Route>
         <Route path="/dashboard/valorant" element={<ValorantPageLayout />}>
           <Route index element={<ValorantPage />} />

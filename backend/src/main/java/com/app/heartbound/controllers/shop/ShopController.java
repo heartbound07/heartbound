@@ -1,6 +1,7 @@
 package com.app.heartbound.controllers.shop;
 
 import com.app.heartbound.dto.UserProfileDTO;
+import com.app.heartbound.entities.Shop;
 import com.app.heartbound.dto.shop.ShopDTO;
 import com.app.heartbound.dto.shop.UserInventoryDTO;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
@@ -8,6 +9,8 @@ import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
 import com.app.heartbound.exceptions.shop.ItemAlreadyOwnedException;
 import com.app.heartbound.exceptions.shop.RoleRequirementNotMetException;
 import com.app.heartbound.services.shop.ShopService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,11 +22,12 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/shop")
+@RequestMapping("/shop")
 public class ShopController {
     
     private final ShopService shopService;
-    
+    private static final Logger logger = LoggerFactory.getLogger(ShopController.class);
+        
     @Autowired
     public ShopController(ShopService shopService) {
         this.shopService = shopService;
@@ -107,6 +111,66 @@ public class ShopController {
         String userId = authentication.getName();
         UserInventoryDTO inventory = shopService.getUserInventory(userId);
         return ResponseEntity.ok(inventory);
+    }
+    
+    /**
+     * Admin endpoint to create a new shop item
+     */
+    @PostMapping("/admin/items")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ShopDTO> createShopItem(@RequestBody ShopDTO shopDTO) {
+        Shop newItem = shopService.createShopItem(shopDTO);
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(shopService.getShopItemById(newItem.getId(), null));
+    }
+    
+    /**
+     * Admin endpoint to update an existing shop item
+     */
+    @PutMapping("/admin/items/{itemId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ShopDTO> updateShopItem(
+        @PathVariable UUID itemId,
+        @RequestBody ShopDTO shopDTO
+    ) {
+        Shop updatedItem = shopService.updateShopItem(itemId, shopDTO);
+        return ResponseEntity.ok(shopService.getShopItemById(updatedItem.getId(), null));
+    }
+    
+    /**
+     * Admin endpoint to delete a shop item
+     */
+    @DeleteMapping("/admin/items/{itemId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteShopItem(@PathVariable UUID itemId) {
+        shopService.deleteShopItem(itemId);
+        return ResponseEntity.noContent().build();
+    }
+    
+    /**
+     * Admin endpoint to get all shop items (including inactive)
+     */
+    @GetMapping("/admin/items")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<ShopDTO>> getAllShopItems() {
+        List<ShopDTO> items = shopService.getAllShopItems();
+        return ResponseEntity.ok(items);
+    }
+    
+    /**
+     * Get all distinct shop categories
+     * @return List of category names
+     */
+    @GetMapping("/categories")
+    public ResponseEntity<List<String>> getShopCategories() {
+        try {
+            List<String> categories = shopService.getShopCategories();
+            return ResponseEntity.ok(categories);
+        } catch (Exception e) {
+            // Log the error
+            logger.error("Error retrieving shop categories", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
     
     /**

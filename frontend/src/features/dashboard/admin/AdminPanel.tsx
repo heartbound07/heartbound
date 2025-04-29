@@ -32,6 +32,18 @@ export function AdminPanel() {
             </button>
           </div>
           
+          {/* Shop Management Card */}
+          <div className="bg-slate-800/50 rounded-lg p-5 border border-white/5 hover:border-primary/20 transition-all duration-300">
+            <h2 className="text-lg font-semibold text-white mb-3">Shop Management</h2>
+            <p className="text-slate-300 mb-4">Create and manage shop items, categories, and inventory</p>
+            <button 
+              className="px-4 py-2 bg-primary/20 text-primary hover:bg-primary/30 rounded-md transition-colors"
+              onClick={() => navigateTo('/dashboard/shop/admin')}
+            >
+              Manage Shop
+            </button>
+          </div>
+          
           <div className="bg-slate-800/50 rounded-lg p-5 border border-white/5 hover:border-primary/20 transition-all duration-300">
             <h2 className="text-lg font-semibold text-white mb-3">Content Management</h2>
             <p className="text-slate-300 mb-4">Manage site content and announcements</p>

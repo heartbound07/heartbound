@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Objects;
 
 @Service
 public class ShopService {
@@ -178,5 +179,100 @@ public class ShopService {
             .requiredRole(shop.getRequiredRole())
             .owned(owned)
             .build();
+    }
+    
+    /**
+     * Create a new shop item
+     * @param shopDTO Shop item DTO
+     * @return Created shop item
+     */
+    @Transactional
+    public Shop createShopItem(ShopDTO shopDTO) {
+        logger.debug("Creating new shop item: {}", shopDTO.getName());
+        
+        Shop newItem = Shop.builder()
+            .name(shopDTO.getName())
+            .description(shopDTO.getDescription())
+            .price(shopDTO.getPrice())
+            .category(shopDTO.getCategory())
+            .imageUrl(shopDTO.getImageUrl())
+            .isActive(true)
+            .requiredRole(shopDTO.getRequiredRole())
+            .build();
+        
+        return shopRepository.save(newItem);
+    }
+    
+    /**
+     * Update an existing shop item
+     * @param itemId Item ID
+     * @param shopDTO Updated shop item data
+     * @return Updated shop item
+     */
+    @Transactional
+    public Shop updateShopItem(UUID itemId, ShopDTO shopDTO) {
+        logger.debug("Updating shop item {}: {}", itemId, shopDTO.getName());
+        
+        Shop existingItem = shopRepository.findById(itemId)
+            .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
+        
+        // Update fields
+        existingItem.setName(shopDTO.getName());
+        existingItem.setDescription(shopDTO.getDescription());
+        existingItem.setPrice(shopDTO.getPrice());
+        existingItem.setCategory(shopDTO.getCategory());
+        existingItem.setImageUrl(shopDTO.getImageUrl());
+        existingItem.setRequiredRole(shopDTO.getRequiredRole());
+        // Don't update isActive here unless explicitly needed
+        
+        return shopRepository.save(existingItem);
+    }
+    
+    /**
+     * Toggle a shop item's active status (soft delete)
+     * @param itemId Item ID
+     * @return Updated shop item
+     */
+    @Transactional
+    public void deleteShopItem(UUID itemId) {
+        logger.debug("Deleting shop item {}", itemId);
+        
+        Shop item = shopRepository.findById(itemId)
+            .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
+        
+        // Soft delete by setting isActive to false
+        item.setIsActive(false);
+        shopRepository.save(item);
+    }
+    
+    /**
+     * Get all shop items including inactive ones (admin only)
+     * @return List of all shop items
+     */
+    public List<ShopDTO> getAllShopItems() {
+        List<Shop> items = shopRepository.findAll();
+        
+        return items.stream()
+            .map(item -> mapToShopDTO(item, null))
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get all distinct shop categories from active items
+     * @return List of unique category names
+     */
+    public List<String> getShopCategories() {
+        logger.debug("Fetching all distinct shop categories");
+        
+        // Get all active shop items
+        List<Shop> items = shopRepository.findByIsActiveTrue();
+        
+        // Extract unique categories
+        return items.stream()
+            .map(Shop::getCategory)
+            .filter(Objects::nonNull)
+            .distinct()
+            .sorted()  // Optional: sort categories alphabetically
+            .collect(Collectors.toList());
     }
 }
