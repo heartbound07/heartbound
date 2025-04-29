@@ -196,8 +196,8 @@ public class ShopService {
             .price(shopDTO.getPrice())
             .category(shopDTO.getCategory())
             .imageUrl(shopDTO.getImageUrl())
-            .isActive(true)
             .requiredRole(shopDTO.getRequiredRole())
+            .isActive(true)
             .build();
         
         return shopRepository.save(newItem);
@@ -229,20 +229,25 @@ public class ShopService {
     }
     
     /**
-     * Toggle a shop item's active status (soft delete)
+     * Delete a shop item completely (hard delete)
      * @param itemId Item ID
-     * @return Updated shop item
      */
     @Transactional
     public void deleteShopItem(UUID itemId) {
-        logger.debug("Deleting shop item {}", itemId);
+        logger.debug("Hard deleting shop item {}", itemId);
         
         Shop item = shopRepository.findById(itemId)
             .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
         
-        // Soft delete by setting isActive to false
-        item.setIsActive(false);
-        shopRepository.save(item);
+        // First, check if item is in any user's inventory and remove it
+        List<User> usersWithItem = userRepository.findByInventoryContaining(item);
+        for (User user : usersWithItem) {
+            user.getInventory().removeIf(i -> i.getId().equals(itemId));
+            userRepository.save(user);
+        }
+        
+        // Hard delete the item
+        shopRepository.delete(item);
     }
     
     /**
@@ -253,7 +258,12 @@ public class ShopService {
         List<Shop> items = shopRepository.findAll();
         
         return items.stream()
-            .map(item -> mapToShopDTO(item, null))
+            .map(item -> {
+                ShopDTO dto = mapToShopDTO(item, null);
+                // Add isActive status to the DTO for admin UI
+                dto.setActive(item.getIsActive());
+                return dto;
+            })
             .collect(Collectors.toList());
     }
     

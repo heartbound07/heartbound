@@ -12,6 +12,7 @@ interface ShopItem {
   imageUrl: string;
   requiredRole: string | null;
   isActive: boolean;
+  isDeleting?: boolean;
 }
 
 interface ShopFormData {
@@ -30,11 +31,12 @@ interface ToastNotification {
 }
 
 export function ShopAdminPage() {
-  const { user } = useAuth();
+  const { } = useAuth();
   const [items, setItems] = useState<ShopItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<ShopItem | null>(null);
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
+  const [submitting, setSubmitting] = useState(false);
   
   const [formData, setFormData] = useState<ShopFormData>({
     name: '',
@@ -92,6 +94,11 @@ export function ShopAdminPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Prevent duplicate submissions
+    if (submitting) return;
+    
+    setSubmitting(true);
+    
     try {
       if (editingItem) {
         // Update existing item
@@ -109,6 +116,8 @@ export function ShopAdminPage() {
     } catch (error) {
       console.error('Error saving shop item:', error);
       showToast('Failed to save shop item', 'error');
+    } finally {
+      setSubmitting(false);
     }
   };
   
@@ -124,16 +133,38 @@ export function ShopAdminPage() {
     });
   };
   
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this item?')) return;
+  const handleDelete = async (itemId: string) => {
+    // Prevent duplicate operations
+    if (items.find(item => item.id === itemId)?.isDeleting) {
+      return;
+    }
+    
+    // Add confirmation dialog
+    if (!confirm('Are you sure you want to permanently delete this item? This cannot be undone.')) {
+      return;
+    }
     
     try {
-      await httpClient.delete(`/shop/admin/items/${id}`);
+      // Mark as deleting in UI
+      setItems(prev => prev.map(item => 
+        item.id === itemId ? { ...item, isDeleting: true } : item
+      ));
+      
+      // Call API
+      await httpClient.delete(`/shop/admin/items/${itemId}`);
+      
+      // Remove from UI immediately
+      setItems(prev => prev.filter(item => item.id !== itemId));
       showToast('Item deleted successfully', 'success');
-      fetchShopItems();
     } catch (error) {
-      console.error('Error deleting shop item:', error);
-      showToast('Failed to delete shop item', 'error');
+      console.error('Error deleting item:', error);
+      
+      // Reset the deleting state
+      setItems(prev => prev.map(item => 
+        item.id === itemId ? { ...item, isDeleting: false } : item
+      ));
+      
+      showToast('Failed to delete item', 'error');
     }
   };
   
@@ -340,9 +371,10 @@ export function ShopAdminPage() {
                     </button>
                     <button
                       onClick={() => handleDelete(item.id)}
-                      className="text-red-400 hover:text-red-300"
+                      disabled={item.isDeleting}
+                      className={`text-red-500 hover:text-red-700 ${item.isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      Delete
+                      {item.isDeleting ? 'Deleting...' : 'Delete'}
                     </button>
                   </td>
                 </tr>

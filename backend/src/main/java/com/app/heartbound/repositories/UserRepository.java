@@ -2,6 +2,7 @@ package com.app.heartbound.repositories;
 
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
+import com.app.heartbound.entities.Shop;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -23,4 +24,7 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     // Find users by username or email containing a search term
     Page<User> findByUsernameContainingOrEmailContaining(String username, String email, Pageable pageable);
+
+    // Add this method to your existing UserRepository interface
+    List<User> findByInventoryContaining(Shop item);
 }

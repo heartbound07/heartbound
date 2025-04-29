@@ -21,4 +21,5 @@ public class ShopDTO {
     private String imageUrl;
     private Role requiredRole;
     private boolean owned;  // Indicates if the current user owns this item
+    private boolean active = true;
 }
