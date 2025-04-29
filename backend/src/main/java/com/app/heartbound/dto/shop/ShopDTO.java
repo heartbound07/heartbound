@@ -27,6 +27,7 @@ public class ShopDTO {
     private LocalDateTime expiresAt;
     private boolean expired = false;
     private boolean equipped;
+    private String discordRoleId;
 
     public boolean isEquipped() {
         return equipped;

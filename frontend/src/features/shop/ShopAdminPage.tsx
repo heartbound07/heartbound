@@ -15,6 +15,7 @@ interface ShopItem {
   active: boolean;
   expired: boolean;
   isDeleting?: boolean;
+  discordRoleId?: string;
 }
 
 interface ShopFormData {
@@ -26,6 +27,7 @@ interface ShopFormData {
   requiredRole: string | null;
   expiresAt: string | null;
   active: boolean;
+  discordRoleId?: string;
 }
 
 interface ToastNotification {
@@ -50,7 +52,8 @@ export function ShopAdminPage() {
     imageUrl: '',
     requiredRole: null,
     expiresAt: null,
-    active: true
+    active: true,
+    discordRoleId: ''
   });
   
   // Available categories
@@ -158,13 +161,14 @@ export function ShopAdminPage() {
     setEditingItem(item);
     setFormData({
       name: item.name,
-      description: item.description,
+      description: item.description || '',
       price: item.price,
       category: item.category,
       imageUrl: item.imageUrl || '',
       requiredRole: item.requiredRole,
-      expiresAt: item.expiresAt ? item.expiresAt.substring(0, 16) : null,
-      active: item.active
+      expiresAt: item.expiresAt,
+      active: item.active,
+      discordRoleId: item.discordRoleId || ''
     });
   };
   
@@ -212,7 +216,8 @@ export function ShopAdminPage() {
       imageUrl: '',
       requiredRole: null,
       expiresAt: null,
-      active: true
+      active: true,
+      discordRoleId: ''
     });
     setEditingItem(null);
   };
@@ -362,6 +367,25 @@ export function ShopAdminPage() {
                 }
               </p>
             </div>
+            
+            {formData.category === 'USER_COLOR' && (
+              <div className="mb-4">
+                <label htmlFor="discordRoleId" className="block text-sm font-medium text-slate-300 mb-1">
+                  Discord Role ID
+                </label>
+                <input
+                  id="discordRoleId"
+                  type="text"
+                  value={formData.discordRoleId || ''}
+                  onChange={(e) => setFormData({...formData, discordRoleId: e.target.value})}
+                  className="block w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white"
+                  placeholder="Discord role ID for USER_COLOR items"
+                />
+                <p className="mt-1 text-xs text-slate-400">
+                  Enter the Discord role ID to be granted when this color is equipped. Leave empty for no role.
+                </p>
+              </div>
+            )}
           </div>
           
           <div className="flex justify-end mt-6 space-x-3">

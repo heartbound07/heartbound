@@ -14,6 +14,7 @@ import com.app.heartbound.exceptions.shop.RoleRequirementNotMetException;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
 import com.app.heartbound.services.UserService;
+import com.app.heartbound.services.discord.DiscordService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,17 +33,20 @@ public class ShopService {
     private final ShopRepository shopRepository;
     private final UserRepository userRepository;
     private final UserService userService;
+    private final DiscordService discordService;
     private static final Logger logger = LoggerFactory.getLogger(ShopService.class);
     
     @Autowired
     public ShopService(
         ShopRepository shopRepository,
         UserRepository userRepository,
-        UserService userService
+        UserService userService,
+        DiscordService discordService
     ) {
         this.shopRepository = shopRepository;
         this.userRepository = userRepository;
         this.userService = userService;
+        this.discordService = discordService;
     }
     
     /**
@@ -149,6 +153,16 @@ public class ShopService {
         user.setCredits(user.getCredits() - item.getPrice());
         user.addItem(item);
         
+        // Grant Discord role if this is a USER_COLOR item with a discordRoleId
+        if (item.getCategory() == ShopCategory.USER_COLOR && 
+            item.getDiscordRoleId() != null && 
+            !item.getDiscordRoleId().isEmpty()) {
+            
+            logger.debug("Granting Discord role {} to user {} for purchased item", 
+                        item.getDiscordRoleId(), userId);
+            discordService.grantRole(userId, item.getDiscordRoleId());
+        }
+        
         User savedUser = userRepository.save(user);
         logger.info("User {} successfully purchased item {}", userId, itemId);
         
@@ -187,6 +201,29 @@ public class ShopService {
         // Unequip any previously equipped item in this category
         user.setEquippedItemIdByCategory(category, itemId);
         
+        // If this is a USER_COLOR item, handle Discord role changes
+        if (category == ShopCategory.USER_COLOR) {
+            // Check if there was a previously equipped item of the same category
+            UUID previousItemId = user.getEquippedItemIdByCategory(category);
+            if (previousItemId != null && !previousItemId.equals(itemId)) {
+                // Find the previous item to get its Discord role ID
+                shopRepository.findById(previousItemId).ifPresent(previousItem -> {
+                    if (previousItem.getDiscordRoleId() != null && !previousItem.getDiscordRoleId().isEmpty()) {
+                        logger.debug("Removing previous Discord role {} from user {}", 
+                                    previousItem.getDiscordRoleId(), userId);
+                        discordService.removeRole(userId, previousItem.getDiscordRoleId());
+                    }
+                });
+            }
+            
+            // Grant the new role if it has a discordRoleId
+            if (item.getDiscordRoleId() != null && !item.getDiscordRoleId().isEmpty()) {
+                logger.debug("Granting Discord role {} to user {} for equipped item", 
+                            item.getDiscordRoleId(), userId);
+                discordService.grantRole(userId, item.getDiscordRoleId());
+            }
+        }
+        
         // Save user changes
         user = userRepository.save(user);
         
@@ -210,6 +247,20 @@ public class ShopService {
         
         // Unequip the item in the specified category
         user.setEquippedItemIdByCategory(category, null);
+        
+        // If this is a USER_COLOR category, remove associated Discord role
+        if (category == ShopCategory.USER_COLOR) {
+            UUID equippedItemId = user.getEquippedItemIdByCategory(category);
+            if (equippedItemId != null) {
+                shopRepository.findById(equippedItemId).ifPresent(equippedItem -> {
+                    if (equippedItem.getDiscordRoleId() != null && !equippedItem.getDiscordRoleId().isEmpty()) {
+                        logger.debug("Removing Discord role {} from user {} for unequipped item", 
+                                    equippedItem.getDiscordRoleId(), userId);
+                        discordService.removeRole(userId, equippedItem.getDiscordRoleId());
+                    }
+                });
+            }
+        }
         
         // Save user changes
         user = userRepository.save(user);
@@ -271,6 +322,7 @@ public class ShopService {
             .requiredRole(shop.getRequiredRole())
             .owned(owned)
             .expiresAt(shop.getExpiresAt())
+            .discordRoleId(shop.getDiscordRoleId())
             .build();
     }
     
@@ -292,6 +344,7 @@ public class ShopService {
             .requiredRole(shopDTO.getRequiredRole())
             .isActive(shopDTO.isActive())
             .expiresAt(shopDTO.getExpiresAt())
+            .discordRoleId(shopDTO.getDiscordRoleId())
             .build();
         
         return shopRepository.save(newItem);
@@ -319,6 +372,7 @@ public class ShopService {
         existingItem.setRequiredRole(shopDTO.getRequiredRole());
         existingItem.setExpiresAt(shopDTO.getExpiresAt());
         existingItem.setIsActive(shopDTO.isActive());
+        existingItem.setDiscordRoleId(shopDTO.getDiscordRoleId());
         
         return shopRepository.save(existingItem);
     }

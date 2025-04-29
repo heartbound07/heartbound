@@ -55,4 +55,6 @@ public class Shop {
     private LocalDateTime updatedAt;
     
     private LocalDateTime expiresAt;
+    
+    private String discordRoleId;
 }
