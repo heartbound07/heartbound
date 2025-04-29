@@ -340,7 +340,15 @@ export function InventoryPage() {
                       
                       <div className="inventory-item-content">
                         <div className="flex justify-between items-center mb-2">
-                          <h3 className="font-medium text-white">{item.name}</h3>
+                          <div className="flex items-center">
+                            <h3 className="font-medium text-white mr-2">{item.name}</h3>
+                            <div 
+                              className="px-2 py-0.5 rounded text-xs font-semibold"
+                              style={getRarityBadgeStyle(item.rarity)}
+                            >
+                              {getRarityLabel(item.rarity)}
+                            </div>
+                          </div>
                           {item.price > 0 && (
                             <div className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs">
                               Purchased
