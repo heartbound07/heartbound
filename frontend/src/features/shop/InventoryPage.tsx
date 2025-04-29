@@ -5,6 +5,7 @@ import httpClient from '@/lib/api/httpClient';
 import { Toast } from '@/components/Toast';
 import '@/assets/dashboard.css';
 import '@/assets/styles/fonts.css';
+import '@/assets/Inventory.css';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 
 interface ShopItem {
@@ -139,8 +140,8 @@ export function InventoryPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">My Inventory</h1>
-        <p className="text-slate-400">
+        <h1 className="inventory-title">My Inventory</h1>
+        <p className="inventory-subtitle">
           View all items you've purchased from the shop.
         </p>
       </div>
@@ -159,13 +160,13 @@ export function InventoryPage() {
         {categories.length > 0 && (
           <div>
             <h2 className="text-2xl font-bold text-white mb-4">Categories</h2>
-            <div className="flex flex-wrap gap-2 mb-6">
+            <div className="inventory-categories">
               <button 
                 onClick={() => setSelectedCategory(null)}
-                className={`px-4 py-2 rounded-lg transition-colors ${
+                className={`category-button ${
                   selectedCategory === null 
-                    ? 'bg-primary text-white' 
-                    : 'bg-slate-800/50 text-white hover:bg-slate-700'
+                    ? 'category-button-active' 
+                    : 'category-button-inactive'
                 }`}
               >
                 All Items
@@ -175,10 +176,10 @@ export function InventoryPage() {
                 <button 
                   key={category}
                   onClick={() => setSelectedCategory(category)}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
+                  className={`category-button ${
                     selectedCategory === category 
-                      ? 'bg-primary text-white' 
-                      : 'bg-slate-800/50 text-white hover:bg-slate-700'
+                      ? 'category-button-active' 
+                      : 'category-button-inactive'
                   }`}
                 >
                   {category}
@@ -195,12 +196,12 @@ export function InventoryPage() {
           </h2>
           
           {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+            <div className="inventory-loader">
+              <div className="loader-spinner animate-spin"></div>
             </div>
           ) : items.length === 0 ? (
-            <div className="text-center py-12 bg-slate-800/30 border border-slate-700 rounded-lg">
-              <div className="text-slate-400 mb-2">
+            <div className="empty-inventory">
+              <div className="empty-inventory-message">
                 {selectedCategory ? 
                   `You don't have any items in the ${selectedCategory} category yet.` : 
                   "Your inventory is empty."
@@ -208,13 +209,13 @@ export function InventoryPage() {
               </div>
               <button 
                 onClick={() => window.location.href = '/dashboard/shop'}
-                className="px-4 py-2 bg-primary/80 hover:bg-primary text-white rounded transition-colors"
+                className="visit-shop-button"
               >
                 Visit Shop
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="inventory-grid">
               {items.map((item) => {
                 const rarityColor = getRarityColor(item.rarity);
                 
@@ -222,14 +223,14 @@ export function InventoryPage() {
                   <motion.div
                     key={item.id}
                     whileHover={{ y: -5 }}
-                    className={`bg-slate-800/30 border rounded-lg overflow-hidden`}
+                    className="inventory-item-card"
                     style={{ 
                       borderColor: item.equipped ? 'var(--color-primary, #0088cc)' : rarityColor,
                       borderWidth: '1px'
                     }}
                   >
                     {/* Item image */}
-                    <div className="h-40 bg-slate-700/50 flex items-center justify-center relative">
+                    <div className="inventory-item-image">
                       {item.imageUrl ? (
                         <img 
                           src={item.imageUrl} 
@@ -242,7 +243,7 @@ export function InventoryPage() {
                       
                       {/* Equipped badge */}
                       {item.equipped && (
-                        <div className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded-full">
+                        <div className="equipped-badge">
                           Equipped
                         </div>
                       )}
@@ -256,7 +257,7 @@ export function InventoryPage() {
                       </div>
                     </div>
                     
-                    <div className="p-4">
+                    <div className="inventory-item-content">
                       <div className="flex justify-between items-center mb-2">
                         <h3 className="font-medium text-white">{item.name}</h3>
                         {item.price > 0 && (
@@ -280,7 +281,7 @@ export function InventoryPage() {
                           <button
                             onClick={() => handleUnequipItem(item.category)}
                             disabled={actionInProgress !== null}
-                            className={`px-3 py-1 rounded bg-slate-700 text-white text-sm hover:bg-slate-600 transition-colors ${
+                            className={`item-action-button unequip-button ${
                               actionInProgress === item.category ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                           >
@@ -290,7 +291,7 @@ export function InventoryPage() {
                           <button
                             onClick={() => handleEquipItem(item.id)}
                             disabled={actionInProgress !== null}
-                            className={`px-3 py-1 rounded bg-primary text-white text-sm hover:bg-primary-dark transition-colors ${
+                            className={`item-action-button equip-button ${
                               actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                           >
