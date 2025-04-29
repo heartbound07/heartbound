@@ -245,21 +245,21 @@ public class ShopService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         
+        // Get the currently equipped item ID BEFORE unequipping
+        UUID currentlyEquippedItemId = user.getEquippedItemIdByCategory(category);
+        
         // Unequip the item in the specified category
         user.setEquippedItemIdByCategory(category, null);
         
         // If this is a USER_COLOR category, remove associated Discord role
-        if (category == ShopCategory.USER_COLOR) {
-            UUID equippedItemId = user.getEquippedItemIdByCategory(category);
-            if (equippedItemId != null) {
-                shopRepository.findById(equippedItemId).ifPresent(equippedItem -> {
-                    if (equippedItem.getDiscordRoleId() != null && !equippedItem.getDiscordRoleId().isEmpty()) {
-                        logger.debug("Removing Discord role {} from user {} for unequipped item", 
-                                    equippedItem.getDiscordRoleId(), userId);
-                        discordService.removeRole(userId, equippedItem.getDiscordRoleId());
-                    }
-                });
-            }
+        if (category == ShopCategory.USER_COLOR && currentlyEquippedItemId != null) {
+            shopRepository.findById(currentlyEquippedItemId).ifPresent(equippedItem -> {
+                if (equippedItem.getDiscordRoleId() != null && !equippedItem.getDiscordRoleId().isEmpty()) {
+                    logger.debug("Removing Discord role {} from user {} for unequipped item", 
+                                equippedItem.getDiscordRoleId(), userId);
+                    discordService.removeRole(userId, equippedItem.getDiscordRoleId());
+                }
+            });
         }
         
         // Save user changes

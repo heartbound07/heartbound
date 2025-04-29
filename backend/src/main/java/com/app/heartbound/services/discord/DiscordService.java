@@ -86,7 +86,7 @@ public class DiscordService {
      * Remove a Discord role from a user
      * @param userId Discord user ID
      * @param roleId Discord role ID
-     * @return true if successful, false otherwise
+     * @return true if the process was initiated successfully, false otherwise
      */
     public boolean removeRole(String userId, String roleId) {
         if (userId == null || roleId == null || userId.isEmpty() || roleId.isEmpty()) {
@@ -107,13 +107,21 @@ public class DiscordService {
                 return false;
             }
 
+            // Add more detailed logging
+            logger.debug("Attempting to remove role {} from user {}", roleId, userId);
+            
             // Retrieve member and remove role asynchronously
             guild.retrieveMemberById(userId).queue(
                 member -> {
-                    guild.removeRoleFromMember(member, role).queue(
-                        success -> logger.info("Successfully removed role {} from user {}", roleId, userId),
-                        error -> handleRoleError("remove", error, userId, roleId)
-                    );
+                    // Check if member has the role before removing
+                    if (member.getRoles().contains(role)) {
+                        guild.removeRoleFromMember(member, role).queue(
+                            success -> logger.info("Successfully removed role {} from user {}", roleId, userId),
+                            error -> handleRoleError("remove", error, userId, roleId)
+                        );
+                    } else {
+                        logger.debug("User {} doesn't have role {}, no need to remove", userId, roleId);
+                    }
                 },
                 error -> {
                     if (error instanceof ErrorResponseException) {
