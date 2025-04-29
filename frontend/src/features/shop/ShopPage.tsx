@@ -91,14 +91,6 @@ const ShopItemCard = forwardRef(({
           </div>
         )}
         
-        {/* Rarity badge */}
-        <div 
-          className="absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-semibold"
-          style={getRarityBadgeStyle(item.rarity)}
-        >
-          {getRarityLabel(item.rarity)}
-        </div>
-        
         {/* Recent purchase effect */}
         {isRecentlyPurchased && (
           <motion.div 
@@ -112,7 +104,15 @@ const ShopItemCard = forwardRef(({
       
       <div className="shop-item-content">
         <div className="flex justify-between items-center mb-2">
-          <h3 className="font-medium text-white text-lg">{item.name}</h3>
+          <div className="flex items-center">
+            <h3 className="font-medium text-white text-lg mr-2">{item.name}</h3>
+            <div 
+              className="px-2 py-0.5 rounded text-xs font-semibold"
+              style={getRarityBadgeStyle(item.rarity)}
+            >
+              {getRarityLabel(item.rarity)}
+            </div>
+          </div>
           <div className="flex items-center">
             <FaCoins className="text-yellow-400 mr-1" size={14} />
             <span className="text-yellow-400 font-medium">{item.price}</span>
