@@ -84,12 +84,7 @@ const ShopItemCard = forwardRef(({
           </div>
         )}
         
-        {/* Status badges */}
-        {item.owned && (
-          <div className="item-badge badge-owned">
-            Owned
-          </div>
-        )}
+        {/* Status badges - Removed "Owned" badge, keeping only role requirement badge */}
         {!item.owned && item.requiredRole && user?.roles && !user.roles.includes(item.requiredRole) && (
           <div className="item-badge badge-required">
             {item.requiredRole} Required
@@ -128,34 +123,57 @@ const ShopItemCard = forwardRef(({
           <p className="text-slate-300 text-sm mb-3 line-clamp-2">{item.description}</p>
         )}
         
+        {/* Enhanced purchase button */}
         {item.owned ? (
           <button 
             disabled
-            className="purchase-button purchase-button-disabled bg-green-600/30 text-green-300"
+            className="purchase-button purchase-button-owned"
           >
+            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
             Owned
           </button>
         ) : item.requiredRole && user?.roles && !user.roles.includes(item.requiredRole) ? (
           <button 
             disabled
-            className="purchase-button purchase-button-disabled bg-amber-600/30 text-amber-300"
+            className="purchase-button purchase-button-required"
           >
-            Requires {item.requiredRole} Role
+            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            {item.requiredRole} Required
           </button>
         ) : (user?.credits ?? 0) < item.price ? (
           <button 
             disabled
-            className="purchase-button purchase-button-disabled bg-red-600/30 text-red-300"
+            className="purchase-button purchase-button-insufficient"
           >
+            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             Not Enough Credits
           </button>
         ) : (
           <button 
             onClick={() => handlePurchase(item.id)}
             disabled={purchaseInProgress}
-            className={`purchase-button purchase-button-active ${purchaseInProgress ? 'opacity-70' : ''}`}
+            className={`purchase-button purchase-button-active ${purchaseInProgress ? 'purchase-button-processing' : ''}`}
           >
-            {purchaseInProgress ? 'Processing...' : 'Purchase'}
+            {purchaseInProgress ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...
+              </>
+            ) : (
+              <>
+                <FaCoins className="mr-2" size={14} />
+                Purchase
+              </>
+            )}
           </button>
         )}
       </div>

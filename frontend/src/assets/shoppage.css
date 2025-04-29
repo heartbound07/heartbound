@@ -84,6 +84,7 @@
   margin-bottom: 2.5rem;
 }
 
+/* Enhanced shop item card */
 .shop-item-card {
   position: relative;
   border-radius: 0.75rem;
@@ -91,9 +92,10 @@
   border: 1px solid rgba(148, 163, 184, 0.1);
   overflow: hidden;
   transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-/* Rest of the CSS remains unchanged */
 .shop-item-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
@@ -180,28 +182,71 @@
   background-color: rgba(30, 41, 59, 0.8);
 }
 
+/* Enhanced purchase button */
 .purchase-button {
   width: 100%;
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
   border-radius: 0.5rem;
   font-weight: 500;
   transition: all 0.2s ease;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
 }
 
 .purchase-button-active {
-  background-color: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: white;
+  box-shadow: 0 4px 6px -1px rgba(var(--color-primary-rgb), 0.2);
 }
 
 .purchase-button-active:hover {
-  background-color: var(--color-primary-dark);
+  background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary-dark) 100%);
+  box-shadow: 0 6px 8px -1px rgba(var(--color-primary-rgb), 0.25);
+  transform: translateY(-1px);
 }
 
+.purchase-button-active:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px -1px rgba(var(--color-primary-rgb), 0.2);
+}
+
+.purchase-button-owned {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.3) 100%);
+  color: rgb(16, 185, 129);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  cursor: default;
+}
+
+.purchase-button-required {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.3) 100%);
+  color: rgb(245, 158, 11);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  cursor: default;
+}
+
+.purchase-button-insufficient {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.3) 100%);
+  color: rgb(239, 68, 68);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  cursor: default;
+}
+
+.purchase-button-processing {
+  opacity: 0.8;
+  cursor: wait;
+}
+
+/* No longer needed - remove or comment out */
+/*
 .purchase-button-disabled {
   cursor: not-allowed;
   opacity: 0.8;
 }
+*/
 
 .skeleton {
   background: linear-gradient(
