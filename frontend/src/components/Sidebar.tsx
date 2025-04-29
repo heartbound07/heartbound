@@ -119,25 +119,25 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
       icon: <MdDashboard size={20} />,
       hasSubmenu: true
     },
-    // Add shop navigation item
+    // Leaderboard moved to position between Discover and Shop
+    {
+      path: "/dashboard/leaderboard",
+      label: "Leaderboard",
+      icon: <FaTrophy size={20} />,
+      hasSubmenu: false
+    },
+    // Shop navigation item
     {
       path: "/dashboard/shop",
       label: "Shop",
       icon: <FaShoppingCart size={20} />,
       hasSubmenu: false
     },
-    // Add inventory navigation item
+    // Inventory navigation item
     {
       path: "/dashboard/inventory",
       label: "Inventory",
       icon: <FaBoxOpen size={20} />,
-      hasSubmenu: false
-    },
-    // Add leaderboard navigation item
-    {
-      path: "/dashboard/leaderboard",
-      label: "Leaderboard",
-      icon: <FaTrophy size={20} />,
       hasSubmenu: false
     },
     // Only show admin panel option if user has ADMIN role
