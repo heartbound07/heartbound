@@ -58,9 +58,13 @@ export function ShopAdminPage() {
   }, []);
   
   // Toast notification functions
-  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
-    const id = Math.random().toString(36).substring(2, 9);
-    setToasts(prev => [...prev, { id, message, type }]);
+  const showToast = (message: string, type: 'success' | 'error' | 'info', id?: string) => {
+    const toastId = id || Math.random().toString(36).substring(2, 9);
+    
+    // Don't add duplicate toasts with the same message and type
+    if (!toasts.some(toast => toast.message === message && toast.type === type)) {
+      setToasts(prev => [...prev, { id: toastId, message, type }]);
+    }
   };
   
   const removeToast = (id: string) => {
@@ -71,10 +75,16 @@ export function ShopAdminPage() {
     try {
       setLoading(true);
       const response = await httpClient.get('/shop/admin/items');
+      
+      // Use functional update to ensure we're working with the latest state
       setItems(response.data);
+      return response.data; // Return the data for potential further processing
     } catch (error) {
       console.error('Error fetching shop items:', error);
-      showToast('Failed to load shop items', 'error');
+      if (!toasts.some(t => t.message === 'Failed to load shop items')) {
+        showToast('Failed to load shop items', 'error');
+      }
+      return [];
     } finally {
       setLoading(false);
     }
@@ -100,19 +110,30 @@ export function ShopAdminPage() {
     setSubmitting(true);
     
     try {
+      const actionType = editingItem ? 'update' : 'create';
+      const toastId = `shop-item-${actionType}-${Date.now()}`;
+      
       if (editingItem) {
         // Update existing item
         await httpClient.put(`/shop/admin/items/${editingItem.id}`, formData);
-        showToast('Item updated successfully', 'success');
+        
+        // Only show toast if another with same message doesn't exist
+        if (!toasts.some(t => t.message === 'Item updated successfully')) {
+          showToast('Item updated successfully', 'success', toastId);
+        }
       } else {
         // Create new item
         await httpClient.post('/shop/admin/items', formData);
-        showToast('Item created successfully', 'success');
+        
+        // Only show toast if another with same message doesn't exist
+        if (!toasts.some(t => t.message === 'Item created successfully')) {
+          showToast('Item created successfully', 'success', toastId);
+        }
       }
       
       // Reset form and refresh items
       resetForm();
-      fetchShopItems();
+      await fetchShopItems(); // Use await to ensure completion before setting submitting to false
     } catch (error) {
       console.error('Error saving shop item:', error);
       showToast('Failed to save shop item', 'error');
