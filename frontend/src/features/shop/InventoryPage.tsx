@@ -266,13 +266,7 @@ export function InventoryPage() {
                           </div>
                         )}
                         
-                        {/* Rarity badge */}
-                        <div 
-                          className="absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-semibold"
-                          style={getRarityBadgeStyle(item.rarity)}
-                        >
-                          {getRarityLabel(item.rarity)}
-                        </div>
+                        {/* Category badge (in place of rarity badge) */}
                       </div>
                       
                       <div className="inventory-item-content">
@@ -290,8 +284,8 @@ export function InventoryPage() {
                         )}
                         
                         <div className="flex justify-between items-center">
-                          <div className="text-xs text-slate-400">
-                            Category: {formatCategoryDisplay(item.category)}
+                          <div className="text-xs" style={{ color: rarityColor }}>
+                            Rarity: {getRarityLabel(item.rarity)}
                           </div>
                           
                           {/* Equip/Unequip button */}
