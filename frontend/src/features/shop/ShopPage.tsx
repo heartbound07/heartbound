@@ -5,9 +5,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import httpClient from '@/lib/api/httpClient';
 import { Toast } from '@/components/Toast';
 import { Role } from '@/contexts/auth/types';
+import { formatDisplayText } from '@/utils/formatters';
 import '@/assets/dashboard.css';
 import '@/assets/styles/fonts.css';
 import '@/assets/shoppage.css';
+
+// Add category mapping for special cases
+const categoryDisplayMapping: Record<string, string> = {
+  'USER_COLOR': 'Nameplate',
+  'LISTING': 'Listing Color',
+  'ACCENT': 'Profile Accent'
+};
+
+// Format category for display with custom mappings
+const formatCategoryDisplay = (category: string): string => {
+  return categoryDisplayMapping[category] || formatDisplayText(category);
+};
 
 interface ShopItem {
   id: string;
@@ -304,7 +317,7 @@ export function ShopPage() {
                     : 'category-button-inactive'
                 }`}
               >
-                {category}
+                {formatCategoryDisplay(category)}
               </button>
             ))}
           </div>
@@ -317,7 +330,9 @@ export function ShopPage() {
           transition={{ duration: 0.4, delay: 0.2 }}
         >
           <h2 className="text-2xl font-bold text-white mb-4">
-            {selectedCategory ? `${selectedCategory} Items` : 'All Items'}
+            {selectedCategory 
+              ? `${formatCategoryDisplay(selectedCategory)} Items` 
+              : 'All Items'}
           </h2>
           
           {loading ? (
