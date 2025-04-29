@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import httpClient from '@/lib/api/httpClient';
 import { Toast } from '@/components/Toast';
 import '@/assets/dashboard.css';
@@ -230,93 +230,99 @@ export function InventoryPage() {
             </div>
           ) : (
             <div className="inventory-grid">
-              {items.map((item) => {
-                const rarityColor = getRarityColor(item.rarity);
-                
-                return (
-                  <motion.div
-                    key={item.id}
-                    whileHover={{ y: -5 }}
-                    className="inventory-item-card"
-                    style={{ 
-                      borderColor: item.equipped ? 'var(--color-primary, #0088cc)' : rarityColor,
-                      borderWidth: '1px'
-                    }}
-                  >
-                    {/* Item image */}
-                    <div className="inventory-item-image">
-                      {item.imageUrl ? (
-                        <img 
-                          src={item.imageUrl} 
-                          alt={item.name}
-                          className="h-full w-full object-cover" 
-                        />
-                      ) : (
-                        <span className="text-slate-400">No Image</span>
-                      )}
-                      
-                      {/* Equipped badge */}
-                      {item.equipped && (
-                        <div className="equipped-badge">
-                          Equipped
-                        </div>
-                      )}
-                      
-                      {/* Rarity badge */}
-                      <div 
-                        className="absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-semibold"
-                        style={getRarityBadgeStyle(item.rarity)}
-                      >
-                        {getRarityLabel(item.rarity)}
-                      </div>
-                    </div>
-                    
-                    <div className="inventory-item-content">
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-medium text-white">{item.name}</h3>
-                        {item.price > 0 && (
-                          <div className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs">
-                            Purchased
+              <AnimatePresence mode="popLayout">
+                {items.map((item) => {
+                  const rarityColor = getRarityColor(item.rarity);
+                  
+                  return (
+                    <motion.div
+                      key={item.id}
+                      layout
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      whileHover={{ y: -5 }}
+                      className="inventory-item-card"
+                      style={{ 
+                        borderColor: item.equipped ? 'var(--color-primary, #0088cc)' : rarityColor,
+                        borderWidth: '1px'
+                      }}
+                    >
+                      {/* Item image */}
+                      <div className="inventory-item-image">
+                        {item.imageUrl ? (
+                          <img 
+                            src={item.imageUrl} 
+                            alt={item.name}
+                            className="h-full w-full object-cover" 
+                          />
+                        ) : (
+                          <span className="text-slate-400">No Image</span>
+                        )}
+                        
+                        {/* Equipped badge */}
+                        {item.equipped && (
+                          <div className="equipped-badge">
+                            Equipped
                           </div>
                         )}
+                        
+                        {/* Rarity badge */}
+                        <div 
+                          className="absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-semibold"
+                          style={getRarityBadgeStyle(item.rarity)}
+                        >
+                          {getRarityLabel(item.rarity)}
+                        </div>
                       </div>
                       
-                      {item.description && (
-                        <p className="text-slate-300 text-sm mb-3">{item.description}</p>
-                      )}
-                      
-                      <div className="flex justify-between items-center">
-                        <div className="text-xs text-slate-400">
-                          Category: {formatCategoryDisplay(item.category)}
+                      <div className="inventory-item-content">
+                        <div className="flex justify-between items-center mb-2">
+                          <h3 className="font-medium text-white">{item.name}</h3>
+                          {item.price > 0 && (
+                            <div className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs">
+                              Purchased
+                            </div>
+                          )}
                         </div>
                         
-                        {/* Equip/Unequip button */}
-                        {item.equipped ? (
-                          <button
-                            onClick={() => handleUnequipItem(item.category)}
-                            disabled={actionInProgress !== null}
-                            className={`item-action-button unequip-button ${
-                              actionInProgress === item.category ? 'opacity-50 cursor-not-allowed' : ''
-                            }`}
-                          >
-                            {actionInProgress === item.category ? 'Processing...' : 'Unequip'}
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleEquipItem(item.id)}
-                            disabled={actionInProgress !== null}
-                            className={`item-action-button equip-button ${
-                              actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
-                            }`}
-                          >
-                            {actionInProgress === item.id ? 'Processing...' : 'Equip'}
-                          </button>
+                        {item.description && (
+                          <p className="text-slate-300 text-sm mb-3">{item.description}</p>
                         )}
+                        
+                        <div className="flex justify-between items-center">
+                          <div className="text-xs text-slate-400">
+                            Category: {formatCategoryDisplay(item.category)}
+                          </div>
+                          
+                          {/* Equip/Unequip button */}
+                          {item.equipped ? (
+                            <button
+                              onClick={() => handleUnequipItem(item.category)}
+                              disabled={actionInProgress !== null}
+                              className={`item-action-button unequip-button ${
+                                actionInProgress === item.category ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                            >
+                              {actionInProgress === item.category ? 'Processing...' : 'Unequip'}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleEquipItem(item.id)}
+                              disabled={actionInProgress !== null}
+                              className={`item-action-button equip-button ${
+                                actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                            >
+                              {actionInProgress === item.id ? 'Processing...' : 'Equip'}
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
             </div>
           )}
         </div>
