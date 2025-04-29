@@ -8,6 +8,7 @@ import '@/assets/styles/fonts.css';
 import '@/assets/Inventory.css';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 import { formatDisplayText } from '@/utils/formatters';
+import { Skeleton } from '@/components/ui/SkeletonUI';
 
 interface ShopItem {
   id: string;
@@ -37,6 +38,61 @@ const categoryDisplayMapping: Record<string, string> = {
 // Format category for display with custom mappings
 const formatCategoryDisplay = (category: string): string => {
   return categoryDisplayMapping[category] || formatDisplayText(category);
+};
+
+// Inventory Item Skeleton Component
+const InventoryItemSkeleton = () => {
+  return (
+    <div className="inventory-item-card">
+      {/* Image skeleton */}
+      <div className="inventory-item-image">
+        <Skeleton 
+          width="100%" 
+          height="100%" 
+          theme="dashboard"
+        />
+      </div>
+      
+      {/* Content skeleton */}
+      <div className="inventory-item-content">
+        <div className="flex justify-between items-center mb-2">
+          <Skeleton 
+            width="60%" 
+            height="20px" 
+            theme="dashboard"
+            className="mb-2"
+          />
+          <Skeleton 
+            width="20%" 
+            height="16px" 
+            theme="dashboard"
+            className="rounded"
+          />
+        </div>
+        
+        <Skeleton 
+          width="100%" 
+          height="40px" 
+          theme="dashboard"
+          className="mb-3"
+        />
+        
+        <div className="flex justify-between items-center">
+          <Skeleton 
+            width="40%" 
+            height="14px" 
+            theme="dashboard"
+          />
+          <Skeleton 
+            width="30%" 
+            height="28px" 
+            theme="dashboard"
+            className="rounded"
+          />
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export function InventoryPage() {
@@ -203,14 +259,27 @@ export function InventoryPage() {
         )}
         
         {/* Inventory items */}
-        <div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
           <h2 className="text-2xl font-bold text-white mb-4">
             {selectedCategory ? `${formatCategoryDisplay(selectedCategory)} Items` : 'All Items'}
           </h2>
           
           {loading ? (
-            <div className="inventory-loader">
-              <div className="loader-spinner animate-spin"></div>
+            <div className="inventory-grid">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.1 * index }}
+                >
+                  <InventoryItemSkeleton />
+                </motion.div>
+              ))}
             </div>
           ) : items.length === 0 ? (
             <div className="empty-inventory">
@@ -318,7 +387,7 @@ export function InventoryPage() {
               </AnimatePresence>
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );
