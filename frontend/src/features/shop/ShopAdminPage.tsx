@@ -11,9 +11,9 @@ interface ShopItem {
   category: string;
   imageUrl: string;
   requiredRole: string | null;
-  isActive: boolean;
   expiresAt: string | null;
-  expired?: boolean;
+  active: boolean;
+  expired: boolean;
   isDeleting?: boolean;
 }
 
@@ -25,7 +25,7 @@ interface ShopFormData {
   imageUrl: string;
   requiredRole: string | null;
   expiresAt: string | null;
-  isActive: boolean;
+  active: boolean;
 }
 
 interface ToastNotification {
@@ -50,7 +50,7 @@ export function ShopAdminPage() {
     imageUrl: '',
     requiredRole: null,
     expiresAt: null,
-    isActive: true
+    active: true
   });
   
   // Available categories
@@ -154,6 +154,7 @@ export function ShopAdminPage() {
   };
   
   const handleEdit = (item: ShopItem) => {
+    console.log("Editing item with active state:", item.active);
     setEditingItem(item);
     setFormData({
       name: item.name,
@@ -163,7 +164,7 @@ export function ShopAdminPage() {
       imageUrl: item.imageUrl || '',
       requiredRole: item.requiredRole,
       expiresAt: item.expiresAt ? item.expiresAt.substring(0, 16) : null,
-      isActive: item.isActive
+      active: item.active
     });
   };
   
@@ -211,14 +212,15 @@ export function ShopAdminPage() {
       imageUrl: '',
       requiredRole: null,
       expiresAt: null,
-      isActive: true
+      active: true
     });
     setEditingItem(null);
   };
   
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
-    setFormData({ ...formData, [name]: checked });
+    console.log(`Checkbox ${name} changed to: ${checked}`);
+    setFormData(prev => ({ ...prev, [name]: checked }));
   };
   
   if (loading) {
@@ -342,24 +344,12 @@ export function ShopAdminPage() {
               </div>
             </div>
             
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-300 mb-1">
-                Description
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                rows={3}
-                className="w-full bg-slate-700/50 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
-              ></textarea>
-            </div>
-            
             <div className="mb-4">
               <label className="flex items-center space-x-2 text-sm font-medium text-slate-300">
                 <input
                   type="checkbox"
-                  checked={formData.isActive}
+                  name="active"
+                  checked={formData.active}
                   onChange={handleCheckboxChange}
                   className="w-4 h-4 accent-primary"
                 />
@@ -435,7 +425,7 @@ export function ShopAdminPage() {
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
                         Expired
                       </span>
-                    ) : item.isActive ? (
+                    ) : item.active ? (
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                         Active
                       </span>
