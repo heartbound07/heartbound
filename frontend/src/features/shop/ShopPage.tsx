@@ -68,7 +68,7 @@ const ShopItemCard = forwardRef(({
       exit={{ opacity: 0, scale: 0.95 }}
       whileHover={{ y: -5 }}
       className={`shop-item-card ${isRecentlyPurchased ? 'shop-item-recent-purchase' : ''}`}
-      style={{ borderColor: rarityColor, borderWidth: '2px' }}
+      style={{ borderColor: rarityColor, borderWidth: '1px' }}
     >
       {/* Item image */}
       <div className="shop-item-image">

@@ -222,10 +222,10 @@ export function InventoryPage() {
                   <motion.div
                     key={item.id}
                     whileHover={{ y: -5 }}
-                    className={`bg-slate-800/30 border-2 rounded-lg overflow-hidden`}
+                    className={`bg-slate-800/30 border rounded-lg overflow-hidden`}
                     style={{ 
                       borderColor: item.equipped ? 'var(--color-primary, #0088cc)' : rarityColor,
-                      borderWidth: '2px'
+                      borderWidth: '1px'
                     }}
                   >
                     {/* Item image */}

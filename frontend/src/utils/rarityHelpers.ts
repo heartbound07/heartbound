@@ -20,7 +20,7 @@ export const getRarityLabel = (rarity: string): string => {
 // Helper function to get border style based on rarity
 export const getRarityBorderStyle = (rarity: string): string => {
   const color = getRarityColor(rarity);
-  return `border-2 border-[${color}]`;
+  return `border-1 border-[${color}]`;
 };
 
 // Helper function to get badge style based on rarity

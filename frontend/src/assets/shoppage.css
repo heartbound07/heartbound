@@ -242,6 +242,32 @@
 }
 
 .shop-item-recent-purchase {
-  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.5);
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.5);
   transition: box-shadow 0.3s ease-in-out;
+}
+
+/* Add these rarity border classes for thinner borders */
+.rarity-border {
+  border-width: 1px;
+  border-style: solid;
+}
+
+.rarity-border-legendary {
+  border-color: var(--rarity-legendary);
+}
+
+.rarity-border-epic {
+  border-color: var(--rarity-epic);
+}
+
+.rarity-border-rare {
+  border-color: var(--rarity-rare);
+}
+
+.rarity-border-uncommon {
+  border-color: var(--rarity-uncommon);
+}
+
+.rarity-border-common {
+  border-color: var(--rarity-common);
 }
