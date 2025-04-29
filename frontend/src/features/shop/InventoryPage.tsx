@@ -173,7 +173,6 @@ export function InventoryPage() {
         {/* Categories */}
         {categories.length > 0 && (
           <div>
-            <h2 className="text-2xl font-bold text-white mb-4">Categories</h2>
             <div className="inventory-categories">
               <button 
                 onClick={() => setSelectedCategory(null)}

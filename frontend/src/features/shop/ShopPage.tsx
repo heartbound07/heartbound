@@ -370,7 +370,6 @@ export function ShopPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
-          <h2 className="text-2xl font-bold text-white mb-4">Categories</h2>
           <div className="category-filters">
             <button 
               onClick={() => setSelectedCategory(null)}
