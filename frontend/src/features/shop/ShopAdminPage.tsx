@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth';
 import httpClient from '@/lib/api/httpClient';
 import { Toast } from '@/components/Toast';
+import { ImageUpload } from '@/components/ui/shop/ImageUpload';
 
 interface ShopItem {
   id: string;
@@ -228,6 +229,16 @@ export function ShopAdminPage() {
     setFormData(prev => ({ ...prev, [name]: checked }));
   };
   
+  // Add function to handle image upload
+  const handleImageUpload = (url: string) => {
+    setFormData({ ...formData, imageUrl: url });
+  };
+  
+  // Add function to handle image removal
+  const handleImageRemove = () => {
+    setFormData({ ...formData, imageUrl: '' });
+  };
+  
   if (loading) {
     return <div className="flex justify-center p-8">Loading shop items...</div>;
   }
@@ -322,15 +333,18 @@ export function ShopAdminPage() {
             
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-300 mb-1">
-                Image URL
+                Item Image
               </label>
-              <input
-                type="text"
-                name="imageUrl"
-                value={formData.imageUrl}
-                onChange={handleInputChange}
-                className="w-full bg-slate-700/50 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              <ImageUpload 
+                currentImageUrl={formData.imageUrl}
+                onUpload={handleImageUpload}
+                onRemove={handleImageRemove}
+                showRemoveButton={!!formData.imageUrl}
+                className="mb-2"
               />
+              <p className="text-xs text-slate-400 mt-1">
+                Click to upload an image for this shop item. Supported formats: JPG, PNG, GIF, WebP (max 5MB)
+              </p>
             </div>
             
             <div>
