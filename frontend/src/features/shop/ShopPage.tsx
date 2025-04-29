@@ -9,6 +9,7 @@ import { formatDisplayText } from '@/utils/formatters';
 import '@/assets/dashboard.css';
 import '@/assets/styles/fonts.css';
 import '@/assets/shoppage.css';
+import React, { forwardRef } from 'react';
 
 // Add category mapping for special cases
 const categoryDisplayMapping: Record<string, string> = {
@@ -40,7 +41,7 @@ interface ToastNotification {
 }
 
 // Shop Item Card Component
-const ShopItemCard = ({ 
+const ShopItemCard = forwardRef(({ 
   item, 
   handlePurchase, 
   purchaseInProgress, 
@@ -52,9 +53,10 @@ const ShopItemCard = ({
   purchaseInProgress: boolean;
   user: any;
   isRecentlyPurchased?: boolean;
-}) => {
+}, ref) => {
   return (
     <motion.div
+      ref={ref as React.RefObject<HTMLDivElement>}
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -145,7 +147,10 @@ const ShopItemCard = ({
       </div>
     </motion.div>
   );
-};
+});
+
+// Add a display name for better debugging
+ShopItemCard.displayName = 'ShopItemCard';
 
 // Skeleton loader for shop items
 const ShopItemSkeleton = () => {
