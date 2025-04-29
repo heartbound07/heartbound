@@ -57,7 +57,7 @@ export function ShopAdminPage() {
   const categories = ['USER_COLOR', 'LISTING', 'ACCENT'];
   
   // Available roles for role-restricted items
-  const roles = ['ADMIN', 'MODERATOR', 'MONARCH', 'PREMIUM'];
+  const roles = ['ADMIN', 'MODERATOR', 'MONARCH'];
   
   useEffect(() => {
     fetchShopItems();
