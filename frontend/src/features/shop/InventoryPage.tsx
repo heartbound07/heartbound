@@ -9,6 +9,7 @@ import '@/assets/Inventory.css';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 import { formatDisplayText } from '@/utils/formatters';
 import { Skeleton } from '@/components/ui/SkeletonUI';
+import NameplatePreview from '@/components/NameplatePreview';
 
 interface ShopItem {
   id: string;
@@ -326,9 +327,19 @@ export function InventoryPage() {
                         borderWidth: '1px'
                       }}
                     >
-                      {/* Item image */}
+                      {/* Item image or nameplate preview */}
                       <div className="inventory-item-image">
-                        {item.imageUrl ? (
+                        {item.category === 'USER_COLOR' ? (
+                          <NameplatePreview
+                            username={user?.username || "Username"}
+                            avatar={user?.avatar || "/default-avatar.png"}
+                            color={item.imageUrl}
+                            fallbackColor={getRarityColor(item.rarity)}
+                            message="Your equipped nameplate color"
+                            className="h-full w-full"
+                            size="sm"
+                          />
+                        ) : item.imageUrl ? (
                           <img 
                             src={item.imageUrl} 
                             alt={item.name}
