@@ -5,6 +5,7 @@ import com.app.heartbound.services.discord.ChatActivityListener;
 import com.app.heartbound.services.discord.CreditsCommandListener;
 import com.app.heartbound.services.discord.WelcomeListener;
 import com.app.heartbound.services.discord.WelcomeCommandListener;
+import com.app.heartbound.services.discord.ShopCommandListener;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -47,6 +49,10 @@ public class DiscordConfig {
 
     @Autowired
     private WelcomeCommandListener welcomeCommandListener;
+
+    @Lazy
+    @Autowired
+    private ShopCommandListener shopCommandListener;
 
     @Bean
     public JDA jda() {
@@ -83,7 +89,7 @@ public class DiscordConfig {
                     )
                     // Register all listeners, including our new WelcomeListener
                     .addEventListeners(leaderboardCommandListener, chatActivityListener, 
-                                      creditsCommandListener, welcomeListener, welcomeCommandListener)
+                                      creditsCommandListener, welcomeListener, welcomeCommandListener, shopCommandListener)
                     .build();
 
             // Waits until JDA is fully connected and ready
@@ -122,13 +128,13 @@ public class DiscordConfig {
                         ),
                     Commands.slash("credits", "Check your current credit balance"),
                     Commands.slash("welcome", "Sends the verification welcome message")
-                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
-                    // Add any other slash commands here
+                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR)),
+                    Commands.slash("shop", "Displays items currently available in the shop")
                 )
                 .queue(
-                    commands -> {
-                        logger.info("Successfully registered {} slash commands", commands.size());
-                        commands.forEach(command -> 
+                    cmds -> {
+                        logger.info("Successfully registered {} slash commands", cmds.size());
+                        cmds.forEach(command -> 
                             logger.debug("[SLASH COMMAND DEBUG] Registered command: /{} - {}", 
                                        command.getName(), command.getDescription())
                         );
