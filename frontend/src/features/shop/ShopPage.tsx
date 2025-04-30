@@ -258,7 +258,18 @@ export function ShopPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
   const [purchaseInProgress, setPurchaseInProgress] = useState(false);
-  const [recentPurchases, setRecentPurchases] = useState<{[key: string]: number}>({});
+  const [recentPurchases, setRecentPurchases] = useState<Record<string, number>>({});
+  // Add rarity sort order state
+  const [raritySortOrder, setRaritySortOrder] = useState<'default' | 'asc' | 'desc'>('default');
+  
+  // Define rarity order for sorting
+  const RARITY_ORDER: Record<string, number> = {
+    'COMMON': 0,
+    'UNCOMMON': 1,
+    'RARE': 2,
+    'EPIC': 3,
+    'LEGENDARY': 4
+  };
   
   // Minimum loading time in milliseconds
   const MIN_LOADING_TIME = 800;
@@ -273,6 +284,29 @@ export function ShopPage() {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
   
+  // Sort items based on rarity order and ownership status
+  const sortItems = (itemsToSort: ShopItem[]): ShopItem[] => {
+    return [...itemsToSort].sort((a, b) => {
+      // Primary sort: not owned items first (maintain existing behavior)
+      if (a.owned !== b.owned) {
+        return a.owned ? 1 : -1;
+      }
+      
+      // Secondary sort: by rarity when rarity sort is active
+      if (raritySortOrder !== 'default') {
+        const rarityA = RARITY_ORDER[a.rarity] || 0;
+        const rarityB = RARITY_ORDER[b.rarity] || 0;
+        
+        return raritySortOrder === 'asc' 
+          ? rarityA - rarityB  // Common to Legendary
+          : rarityB - rarityA; // Legendary to Common
+      }
+      
+      // Default: maintain original order if ownership status is the same
+      return 0;
+    });
+  };
+  
   useEffect(() => {
     const fetchShopItems = async () => {
       // Record the start time
@@ -284,17 +318,9 @@ export function ShopPage() {
           params: selectedCategory ? { category: selectedCategory } : {}
         });
         
-        // Sort items: not owned items first, then owned items
-        const sortedItems = [...response.data].sort((a, b) => {
-          // If ownership status is different, sort by ownership (false before true)
-          if (a.owned !== b.owned) {
-            return a.owned ? 1 : -1;
-          }
-          // If both items have same ownership status, preserve original order
-          return 0;
-        });
+        // Apply sorting with ownership and rarity consideration
+        setItems(sortItems(response.data));
         
-        setItems(sortedItems);
       } catch (error) {
         console.error('Error fetching shop items:', error);
         showToast('Failed to load shop items', 'error');
@@ -315,6 +341,13 @@ export function ShopPage() {
     
     fetchShopItems();
   }, [selectedCategory]);
+  
+  // Add effect to re-sort items when sort order changes
+  useEffect(() => {
+    if (items.length > 0) {
+      setItems(sortItems([...items]));
+    }
+  }, [raritySortOrder]);
   
   useEffect(() => {
     const fetchCategories = async () => {
@@ -456,11 +489,37 @@ export function ShopPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
         >
-          <h2 className="text-2xl font-bold text-white mb-4">
-            {selectedCategory 
-              ? `${formatCategoryDisplay(selectedCategory)} Items` 
-              : 'All Items'}
-          </h2>
+          <div className="flex flex-wrap items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-white">
+              {selectedCategory 
+                ? `${formatCategoryDisplay(selectedCategory)} Items` 
+                : 'All Items'}
+            </h2>
+            
+            {/* Rarity sort controls */}
+            {!loading && items.length > 0 && (
+              <motion.div 
+                className="sort-control-container"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
+              >
+                <span className="text-sm text-slate-300 mr-2">Sort by:</span>
+                <motion.select
+                  value={raritySortOrder}
+                  onChange={(e) => setRaritySortOrder(e.target.value as 'default' | 'asc' | 'desc')}
+                  className="inventory-sort-dropdown"
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                >
+                  <option value="default">Default (Available first)</option>
+                  <option value="asc">Rarity: Common to Legendary</option>
+                  <option value="desc">Rarity: Legendary to Common</option>
+                </motion.select>
+              </motion.div>
+            )}
+          </div>
           
           {loading ? (
             // Display skeleton loaders while loading
