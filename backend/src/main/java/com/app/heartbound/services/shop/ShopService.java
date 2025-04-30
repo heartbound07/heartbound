@@ -154,16 +154,6 @@ public class ShopService {
         user.setCredits(user.getCredits() - item.getPrice());
         user.addItem(item);
         
-        // Grant Discord role if this is a USER_COLOR item with a discordRoleId
-        if (item.getCategory() == ShopCategory.USER_COLOR && 
-            item.getDiscordRoleId() != null && 
-            !item.getDiscordRoleId().isEmpty()) {
-            
-            logger.debug("Granting Discord role {} to user {} for purchased item", 
-                        item.getDiscordRoleId(), userId);
-            discordService.grantRole(userId, item.getDiscordRoleId());
-        }
-        
         User savedUser = userRepository.save(user);
         logger.info("User {} successfully purchased item {}", userId, itemId);
         
