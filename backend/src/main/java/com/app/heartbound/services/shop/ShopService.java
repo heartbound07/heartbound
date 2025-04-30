@@ -199,30 +199,47 @@ public class ShopService {
             throw new ItemNotEquippableException("This item cannot be equipped");
         }
         
-        // Unequip any previously equipped item in this category
-        user.setEquippedItemIdByCategory(category, itemId);
-        
-        // If this is a USER_COLOR item, handle Discord role changes
+        // Handle Discord role management for USER_COLOR items
         if (category == ShopCategory.USER_COLOR) {
             // Check if there was a previously equipped item of the same category
             UUID previousItemId = user.getEquippedItemIdByCategory(category);
             if (previousItemId != null && !previousItemId.equals(itemId)) {
-                // Find the previous item to get its Discord role ID
+                // Find the previous item to get its Discord role ID and handle removal synchronously
                 shopRepository.findById(previousItemId).ifPresent(previousItem -> {
-                    if (previousItem.getDiscordRoleId() != null && !previousItem.getDiscordRoleId().isEmpty()) {
-                        logger.debug("Removing previous Discord role {} from user {}", 
-                                    previousItem.getDiscordRoleId(), userId);
-                        discordService.removeRole(userId, previousItem.getDiscordRoleId());
+                    String previousRoleId = previousItem.getDiscordRoleId();
+                    if (previousRoleId != null && !previousRoleId.isEmpty()) {
+                        logger.debug("Removing previous Discord role {} from user {} before equipping new item", 
+                                previousRoleId, userId);
+                        
+                        // Ensure role removal occurs and log any failures
+                        boolean removalSuccess = discordService.removeRole(userId, previousRoleId);
+                        if (!removalSuccess) {
+                            // Log the issue but continue with equipping the new item
+                            logger.warn("Failed to remove previous Discord role {} from user {}. " +
+                                    "Continuing with equipping new item.", previousRoleId, userId);
+                        } else {
+                            logger.debug("Successfully removed previous Discord role {} from user {}", 
+                                    previousRoleId, userId);
+                        }
                     }
                 });
             }
             
+            // Now unequip the previous item and set the new one
+            user.setEquippedItemIdByCategory(category, itemId);
+            
             // Grant the new role if it has a discordRoleId
-            if (item.getDiscordRoleId() != null && !item.getDiscordRoleId().isEmpty()) {
-                logger.debug("Granting Discord role {} to user {} for equipped item", 
-                            item.getDiscordRoleId(), userId);
-                discordService.grantRole(userId, item.getDiscordRoleId());
+            String newRoleId = item.getDiscordRoleId();
+            if (newRoleId != null && !newRoleId.isEmpty()) {
+                logger.debug("Granting Discord role {} to user {} for equipped item", newRoleId, userId);
+                boolean grantSuccess = discordService.grantRole(userId, newRoleId);
+                if (!grantSuccess) {
+                    logger.warn("Failed to grant Discord role {} to user {}", newRoleId, userId);
+                }
             }
+        } else {
+            // For other categories, simply update the equipped item
+            user.setEquippedItemIdByCategory(category, itemId);
         }
         
         // Save user changes
