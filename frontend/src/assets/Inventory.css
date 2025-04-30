@@ -250,6 +250,19 @@
 }
 
 /* Sort controls styling */
+.sort-control-container {
+  display: flex;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .sort-control-container {
+    margin-top: 0;
+  }
+}
+
+/* Enhanced dropdown styling */
 select.inventory-sort-dropdown {
   background-color: rgba(30, 41, 59, 0.5);
   color: white;
@@ -265,22 +278,31 @@ select.inventory-sort-dropdown {
   background-position: right 0.5rem center;
   background-size: 1.25em 1.25em;
   padding-right: 2.5rem;
+  min-width: 200px; /* Ensure dropdown is wide enough for all options */
 }
 
 select.inventory-sort-dropdown:hover,
 select.inventory-sort-dropdown:focus {
   background-color: rgba(30, 41, 59, 0.8);
   outline: none;
+  border-color: rgba(148, 163, 184, 0.4);
 }
 
-.sort-control-container {
+/* Remove the now-unused filter-controls-container styles */
+/* The code below can be removed if it's not used elsewhere */
+.filter-controls-container {
   display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   align-items: center;
-  margin-top: 0.5rem;
 }
 
-@media (min-width: 640px) {
+@media (max-width: 640px) {
   .sort-control-container {
-    margin-top: 0;
+    width: 100%;
+  }
+  
+  .inventory-sort-dropdown {
+    width: 100%;
   }
 }

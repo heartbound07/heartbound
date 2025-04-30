@@ -104,7 +104,8 @@ export function InventoryPage() {
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
-  const [raritySortOrder, setRaritySortOrder] = useState<'default' | 'asc' | 'desc'>('default');
+  // Update type to remove price-based options
+  const [sortOrder, setSortOrder] = useState<'default' | 'rarity-asc' | 'rarity-desc'>('default');
   
   // Define rarity order for sorting
   const RARITY_ORDER: Record<string, number> = {
@@ -125,27 +126,43 @@ export function InventoryPage() {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
   
-  // Sort items based on rarity order and equipped status
+  // Simplified sort function without price sorting options
   const sortItems = (itemsToSort: ShopItem[]): ShopItem[] => {
-    return [...itemsToSort].sort((a, b) => {
-      // Primary sort: equipped items first (maintain existing behavior)
-      if (a.equipped !== b.equipped) {
-        return a.equipped ? -1 : 1;
-      }
-      
-      // Secondary sort: by rarity when rarity sort is active
-      if (raritySortOrder !== 'default') {
-        const rarityA = RARITY_ORDER[a.rarity] || 0;
-        const rarityB = RARITY_ORDER[b.rarity] || 0;
+    // Make a copy to avoid mutating the original
+    let result = [...itemsToSort];
+    
+    // Apply sorting based on selected option
+    switch (sortOrder) {
+      case 'rarity-asc': // Common to Legendary
+        return result.sort((a, b) => {
+          // Primary sort: equipped items first
+          if (a.equipped !== b.equipped) {
+            return a.equipped ? -1 : 1;
+          }
+          // Secondary sort: by rarity
+          const rarityA = RARITY_ORDER[a.rarity] || 0;
+          const rarityB = RARITY_ORDER[b.rarity] || 0;
+          return rarityA - rarityB;
+        });
         
-        return raritySortOrder === 'asc' 
-          ? rarityA - rarityB  // Common to Legendary
-          : rarityB - rarityA; // Legendary to Common
-      }
-      
-      // Default: maintain original order if equipped status is the same
-      return 0;
-    });
+      case 'rarity-desc': // Legendary to Common
+        return result.sort((a, b) => {
+          // Primary sort: equipped items first
+          if (a.equipped !== b.equipped) {
+            return a.equipped ? -1 : 1;
+          }
+          // Secondary sort: by rarity
+          const rarityA = RARITY_ORDER[a.rarity] || 0;
+          const rarityB = RARITY_ORDER[b.rarity] || 0;
+          return rarityB - rarityA;
+        });
+        
+      default: // Default sorting (equipped first)
+        return result.sort((a, b) => {
+          return a.equipped && !b.equipped ? -1 : 
+                 !a.equipped && b.equipped ? 1 : 0;
+        });
+    }
   };
   
   const fetchInventory = async () => {
@@ -154,17 +171,17 @@ export function InventoryPage() {
       const response = await httpClient.get('/shop/inventory');
       
       if (response.data && response.data.items) {
-        // Extract unique categories from items with proper type assertion
+        // Extract unique categories
         const uniqueCategories = [...new Set(response.data.items.map((item: ShopItem) => item.category))] as string[];
         setCategories(uniqueCategories);
         
-        // Filter items by category if a category is selected
-        const filteredItems = selectedCategory 
+        // Filter items by category if selected
+        const categoryFiltered = selectedCategory 
           ? response.data.items.filter((item: ShopItem) => item.category === selectedCategory)
           : response.data.items;
         
-        // Apply sorting with rarity consideration
-        setItems(sortItems(filteredItems));
+        // Apply sorting
+        setItems(sortItems(categoryFiltered));
       } else {
         setItems([]);
       }
@@ -180,12 +197,12 @@ export function InventoryPage() {
     fetchInventory();
   }, [selectedCategory]);
   
-  // Add effect to re-sort items when sort order changes
+  // Modify useEffect for sorting when the sort order changes
   useEffect(() => {
     if (items.length > 0) {
       setItems(sortItems([...items]));
     }
-  }, [raritySortOrder]);
+  }, [sortOrder]);
   
   const handleEquipItem = async (itemId: string) => {
     if (actionInProgress) return;
@@ -317,7 +334,7 @@ export function InventoryPage() {
               {selectedCategory ? `${formatCategoryDisplay(selectedCategory)} Items` : 'All Items'}
             </h2>
             
-            {/* Rarity sort controls */}
+            {/* Single consolidated sort dropdown with fewer options */}
             {!loading && items.length > 0 && (
               <motion.div 
                 className="sort-control-container"
@@ -327,16 +344,16 @@ export function InventoryPage() {
               >
                 <span className="text-sm text-slate-300 mr-2">Sort by:</span>
                 <motion.select
-                  value={raritySortOrder}
-                  onChange={(e) => setRaritySortOrder(e.target.value as 'default' | 'asc' | 'desc')}
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as 'default' | 'rarity-asc' | 'rarity-desc')}
                   className="inventory-sort-dropdown"
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
                   <option value="default">Default (Equipped first)</option>
-                  <option value="asc">Rarity: Common to Legendary</option>
-                  <option value="desc">Rarity: Legendary to Common</option>
+                  <option value="rarity-desc">Legendary to Common</option>
+                  <option value="rarity-asc">Common to Legendary</option>
                 </motion.select>
               </motion.div>
             )}

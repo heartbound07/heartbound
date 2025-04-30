@@ -259,8 +259,7 @@ export function ShopPage() {
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
   const [purchaseInProgress, setPurchaseInProgress] = useState(false);
   const [recentPurchases, setRecentPurchases] = useState<Record<string, number>>({});
-  // Add rarity sort order state
-  const [raritySortOrder, setRaritySortOrder] = useState<'default' | 'asc' | 'desc'>('default');
+  const [sortOrder, setSortOrder] = useState<'default' | 'rarity-asc' | 'rarity-desc' | 'price-asc' | 'price-desc'>('default');
   
   // Define rarity order for sorting
   const RARITY_ORDER: Record<string, number> = {
@@ -284,27 +283,46 @@ export function ShopPage() {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
   
-  // Sort items based on rarity order and ownership status
+  // Combined sort function for shop items
   const sortItems = (itemsToSort: ShopItem[]): ShopItem[] => {
-    return [...itemsToSort].sort((a, b) => {
-      // Primary sort: not owned items first (maintain existing behavior)
-      if (a.owned !== b.owned) {
-        return a.owned ? 1 : -1;
-      }
-      
-      // Secondary sort: by rarity when rarity sort is active
-      if (raritySortOrder !== 'default') {
-        const rarityA = RARITY_ORDER[a.rarity] || 0;
-        const rarityB = RARITY_ORDER[b.rarity] || 0;
+    // Make a copy of the array to avoid mutating the original
+    let result = [...itemsToSort];
+    
+    // Apply sorting based on selected option
+    switch (sortOrder) {
+      case 'price-asc': // Low to High
+        return result.sort((a, b) => a.price - b.price);
         
-        return raritySortOrder === 'asc' 
-          ? rarityA - rarityB  // Common to Legendary
-          : rarityB - rarityA; // Legendary to Common
-      }
-      
-      // Default: maintain original order if ownership status is the same
-      return 0;
-    });
+      case 'price-desc': // High to Low
+        return result.sort((a, b) => b.price - a.price);
+        
+      case 'rarity-asc': // Common to Legendary
+        return result.sort((a, b) => {
+          // Primary sort: not owned items first
+          if (a.owned !== b.owned) {
+            return a.owned ? 1 : -1;
+          }
+          // Secondary sort: by rarity
+          const rarityA = RARITY_ORDER[a.rarity] || 0;
+          const rarityB = RARITY_ORDER[b.rarity] || 0;
+          return rarityA - rarityB;
+        });
+        
+      case 'rarity-desc': // Legendary to Common
+        return result.sort((a, b) => {
+          // Primary sort: not owned items first
+          if (a.owned !== b.owned) {
+            return a.owned ? 1 : -1;
+          }
+          // Secondary sort: by rarity
+          const rarityA = RARITY_ORDER[a.rarity] || 0;
+          const rarityB = RARITY_ORDER[b.rarity] || 0;
+          return rarityB - rarityA;
+        });
+        
+      default: // Default sort (not owned first)
+        return result.sort((a) => a.owned ? 1 : -1);
+    }
   };
   
   useEffect(() => {
@@ -318,7 +336,7 @@ export function ShopPage() {
           params: selectedCategory ? { category: selectedCategory } : {}
         });
         
-        // Apply sorting with ownership and rarity consideration
+        // Apply sorting with all criteria
         setItems(sortItems(response.data));
         
       } catch (error) {
@@ -340,14 +358,7 @@ export function ShopPage() {
     };
     
     fetchShopItems();
-  }, [selectedCategory]);
-  
-  // Add effect to re-sort items when sort order changes
-  useEffect(() => {
-    if (items.length > 0) {
-      setItems(sortItems([...items]));
-    }
-  }, [raritySortOrder]);
+  }, [selectedCategory, sortOrder]);
   
   useEffect(() => {
     const fetchCategories = async () => {
@@ -496,7 +507,7 @@ export function ShopPage() {
                 : 'All Items'}
             </h2>
             
-            {/* Rarity sort controls */}
+            {/* Single consolidated sort dropdown */}
             {!loading && items.length > 0 && (
               <motion.div 
                 className="sort-control-container"
@@ -506,16 +517,18 @@ export function ShopPage() {
               >
                 <span className="text-sm text-slate-300 mr-2">Sort by:</span>
                 <motion.select
-                  value={raritySortOrder}
-                  onChange={(e) => setRaritySortOrder(e.target.value as 'default' | 'asc' | 'desc')}
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as 'default' | 'rarity-asc' | 'rarity-desc' | 'price-asc' | 'price-desc')}
                   className="inventory-sort-dropdown"
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
-                  <option value="default">Default (Available first)</option>
-                  <option value="asc">Common to Legendary</option>
-                  <option value="desc">Legendary to Common</option>
+                  <option value="default">Default</option>
+                  <option value="rarity-desc">Legendary to Common</option>
+                  <option value="rarity-asc">Common to Legendary</option>
+                  <option value="price-asc">Low to High</option>
+                  <option value="price-desc">High to Low</option>
                 </motion.select>
               </motion.div>
             )}
