@@ -129,7 +129,7 @@ export function ImageUpload({
   }
   
   // Function called when an image is loaded in the crop interface
-  const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+  const onImageLoad = useCallback(() => {
     // Create a default crop area that covers most of the image (without aspect ratio constraint)
     setCrop({
       unit: '%',

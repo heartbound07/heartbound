@@ -61,14 +61,18 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = ({
           className={`font-medium ${textSizes[size]}`} 
           style={{ 
             color: displayColor,
-            fontWeight: 600 
+            fontWeight: 600,
+            fontFamily: '"gg sans", sans-serif'
           }}
         >
           {username}
         </span>
         
         {message && (
-          <span className={`text-slate-300 ${messageSizes[size]} mt-1`}>
+          <span 
+            className={`text-slate-300 ${messageSizes[size]} mt-1`}
+            style={{ fontFamily: '"gg sans", sans-serif' }}
+          >
             {message}
           </span>
         )}
