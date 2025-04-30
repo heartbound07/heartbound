@@ -5,6 +5,7 @@ import com.app.heartbound.services.UserService;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -125,7 +126,7 @@ public class ChatActivityListener extends ListenerAdapter {
         return baseXp + (levelFactor * (int)Math.pow(level, levelExponent)) + (levelMultiplier * level);
     }
     
-    private void checkAndProcessLevelUp(User user, String userId, net.dv8tion.jda.api.entities.channel.middleman.MessageChannel channel) {
+    private void checkAndProcessLevelUp(User user, String userId, MessageChannel channel) {
         if (!levelingEnabled) {
             return;
         }
@@ -149,7 +150,7 @@ public class ChatActivityListener extends ListenerAdapter {
                 // Get the achievement channel for level-up announcements
                 String achievementChannelId = "1304293304833146951";
                 net.dv8tion.jda.api.entities.channel.middleman.MessageChannel achievementChannel = 
-                    channel.getJDA().getChannelById(net.dv8tion.jda.api.entities.channel.middleman.MessageChannel.class, achievementChannelId);
+                    channel.getJDA().getChannelById(MessageChannel.class, achievementChannelId);
                 
                 if (achievementChannel != null) {
                     // Create an embed for the level-up announcement
@@ -185,7 +186,7 @@ public class ChatActivityListener extends ListenerAdapter {
                     // Fallback to the original channel if achievement channel not found
                     logger.warn("[XP DEBUG] Achievement channel {} not found, sending to original channel", achievementChannelId);
                     
-                    String levelUpMessage = String.format("�� Congratulations <@%s>! You've reached **Level %d**!", 
+                    String levelUpMessage = String.format("Congratulations <@%s>! You've reached **Level %d**!", 
                                                         userId, currentLevel + 1);
                     channel.sendMessage(levelUpMessage).queue(
                         success -> logger.debug("[XP DEBUG] Level up message sent for user {}", userId),
@@ -247,52 +248,96 @@ public class ChatActivityListener extends ListenerAdapter {
                 return;
             }
             
+            boolean userUpdated = false; // Flag to track if user needs saving
+            String achievementChannelId = "1304293304833146951";
+            MessageChannel achievementChannel = 
+                event.getJDA().getChannelById(MessageChannel.class, achievementChannelId);
+            
+            if (achievementChannel == null) {
+                logger.warn("Achievement channel with ID {} not found", achievementChannelId);
+                return;
+            }
+            
+            int awardedXp = 0;
+            int awardedCredits = 0;
+            
             if (levelingEnabled) {
-                logger.debug("[XP DEBUG] About to award XP to {}: Current XP={}, Level={}, Adding {} XP", 
+                logger.debug("[XP DEBUG] About to award XP to {}: Current XP={}, Level={}, Adding {} XP",
                     userId, user.getExperience(), user.getLevel(), xpToAward);
                 int currentXp = user.getExperience() != null ? user.getExperience() : 0;
                 user.setExperience(currentXp + xpToAward);
+                userUpdated = true; // Mark user for update
+                awardedXp = xpToAward;
                 logger.debug("[XP DEBUG] Awarded {} XP to user {}. New XP: {}", xpToAward, userId, user.getExperience());
                 
                 // Add right before calling checkAndProcessLevelUp method
-                logger.debug("[XP DEBUG] Checking for level up: User={}, Level={}, XP={}", 
+                logger.debug("[XP DEBUG] Checking for level up: User={}, Level={}, XP={}",
                     userId, user.getLevel(), user.getExperience());
-                checkAndProcessLevelUp(user, userId, event.getChannel());
+                checkAndProcessLevelUp(user, userId, event.getChannel()); // Note: checkAndProcessLevelUp calls updateUser internally on level up
             }
             
-            // Track message in activity window
-            List<Instant> userMessages = userActivity.computeIfAbsent(userId, k -> new ArrayList<>());
-            
-            // Remove messages outside the time window
-            Instant cutoff = now.minusSeconds(timeWindowMinutes * 60);
-            userMessages.removeIf(timestamp -> timestamp.isBefore(cutoff));
-            
-            // Add current message
-            userMessages.add(now);
-            
-            // Check if threshold reached
-            if (userMessages.size() >= messageThreshold) {
-                // Award credits
-                try {
-                    int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
-                    int newCredits = currentCredits + creditsToAward;
-                    
-                    // Update user credits (note: this directly updates user and saves)
-                    user.setCredits(newCredits);
-                    userService.updateUser(user); // Using updateUser instead of updateUserCredits to avoid @PreAuthorize restriction
-                    
-                    logger.info("Awarded {} credits to user {} for chat activity. New balance: {}", 
-                                creditsToAward, userId, newCredits);
-                    
-                    // Reset activity tracking for this user after awarding
-                    userActivity.remove(userId);
-                    
-                } catch (Exception e) {
-                    logger.error("Error awarding credits to user {}: {}", userId, e.getMessage(), e);
+            // Track message in activity window (Only if activity rewards are enabled)
+            if (activityEnabled) {
+                List<Instant> userMessages = userActivity.computeIfAbsent(userId, k -> new ArrayList<>());
+                
+                // Remove messages outside the time window
+                Instant cutoff = now.minusSeconds(timeWindowMinutes * 60);
+                userMessages.removeIf(timestamp -> timestamp.isBefore(cutoff));
+                
+                // Add current message
+                userMessages.add(now);
+                
+                // Check if threshold reached
+                if (userMessages.size() >= messageThreshold) {
+                    // Award credits
+                    try {
+                        int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
+                        int newCredits = currentCredits + creditsToAward;
+                        
+                        // Update user credits
+                        user.setCredits(newCredits);
+                        userUpdated = true; // Mark user for update
+                        awardedCredits = creditsToAward;
+                        
+                        logger.info("Awarded {} credits to user {} for chat activity. New balance: {}",
+                                    creditsToAward, userId, newCredits);
+                        
+                        // Reset activity tracking for this user after awarding
+                        userActivity.remove(userId);
+                        
+                    } catch (Exception e) {
+                        logger.error("Error awarding credits to user {}: {}", userId, e.getMessage(), e);
+                    }
+                } else {
+                    logger.debug("User {} has {} messages in the activity window. Threshold is {}",
+                                userId, userMessages.size(), messageThreshold);
                 }
-            } else {
-                logger.debug("User {} has {} messages in the activity window. Threshold is {}", 
-                            userId, userMessages.size(), messageThreshold);
+            }
+            
+            // Send notification if XP or credits were awarded
+            if (awardedXp > 0 || awardedCredits > 0) {
+                EmbedBuilder notificationEmbed = new EmbedBuilder();
+                notificationEmbed.setDescription(String.format("<@%s>! You have gained %d xp, and %d credits!", 
+                                                userId, awardedXp, awardedCredits));
+                notificationEmbed.setColor(new Color(75, 181, 67)); // Green color
+                notificationEmbed.setTimestamp(Instant.now());
+                
+                achievementChannel.sendMessageEmbeds(notificationEmbed.build()).queue(
+                    success -> logger.debug("Sent XP/Credits notification to user {}", userId),
+                    failure -> logger.error("Failed to send notification to user {}: {}", userId, failure.getMessage())
+                );
+            }
+            
+            // Persist changes if XP or Credits were potentially updated and not handled by level up
+            // Note: checkAndProcessLevelUp already saves the user if a level up occurs.
+            // We only need to save here if XP was added but no level up happened, or if credits were added.
+            if (userUpdated && (user.getLevel() == null || calculateRequiredXp(user.getLevel()) > user.getExperience())) {
+                 try {
+                     userService.updateUser(user);
+                     logger.debug("Persisted user {} state after activity processing.", userId);
+                 } catch (Exception e) {
+                     logger.error("Error saving user state for {} after activity processing: {}", userId, e.getMessage(), e);
+                 }
             }
             
         } catch (Exception e) {
