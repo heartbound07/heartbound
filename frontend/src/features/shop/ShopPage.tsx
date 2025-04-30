@@ -514,8 +514,8 @@ export function ShopPage() {
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
                   <option value="default">Default (Available first)</option>
-                  <option value="asc">Rarity: Common to Legendary</option>
-                  <option value="desc">Rarity: Legendary to Common</option>
+                  <option value="asc">Common to Legendary</option>
+                  <option value="desc">Legendary to Common</option>
                 </motion.select>
               </motion.div>
             )}
