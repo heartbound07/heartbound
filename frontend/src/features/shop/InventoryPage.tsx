@@ -293,7 +293,13 @@ export function InventoryPage() {
                       : 'category-button-inactive'
                   }`}
                 >
-                  {formatCategoryDisplay(category)}
+                  <motion.span
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                  >
+                    {formatCategoryDisplay(category)}
+                  </motion.span>
                 </button>
               ))}
             </div>
@@ -313,18 +319,26 @@ export function InventoryPage() {
             
             {/* Rarity sort controls */}
             {!loading && items.length > 0 && (
-              <div className="sort-control-container">
+              <motion.div 
+                className="sort-control-container"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
+              >
                 <span className="text-sm text-slate-300 mr-2">Sort by:</span>
-                <select
+                <motion.select
                   value={raritySortOrder}
                   onChange={(e) => setRaritySortOrder(e.target.value as 'default' | 'asc' | 'desc')}
                   className="inventory-sort-dropdown"
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
                   <option value="default">Default (Equipped first)</option>
                   <option value="asc">Rarity: Common to Legendary</option>
                   <option value="desc">Rarity: Legendary to Common</option>
-                </select>
-              </div>
+                </motion.select>
+              </motion.div>
             )}
           </div>
           
@@ -342,20 +356,28 @@ export function InventoryPage() {
               ))}
             </div>
           ) : items.length === 0 ? (
-            <div className="empty-inventory">
+            <motion.div 
+              className="empty-inventory"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
               <div className="empty-inventory-message">
                 {selectedCategory ? 
                   `You don't have any items in the ${selectedCategory} category yet.` : 
                   "Your inventory is empty."
                 }
               </div>
-              <button 
+              <motion.button 
                 onClick={() => window.location.href = '/dashboard/shop'}
                 className="visit-shop-button"
+                whileHover={{ scale: 1.05, backgroundColor: 'rgba(var(--color-primary-rgb, 0, 136, 204), 0.9)' }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
               >
                 Visit Shop
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
           ) : (
             <div className="inventory-grid">
               <AnimatePresence mode="popLayout">
@@ -369,7 +391,13 @@ export function InventoryPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
-                      whileHover={{ y: -5 }}
+                      transition={{ 
+                        type: "spring",
+                        stiffness: 300, 
+                        damping: 24,
+                        duration: 0.4 
+                      }}
+                      whileHover={{ y: -5, transition: { duration: 0.2 } }}
                       className="inventory-item-card"
                       style={{ 
                         borderColor: item.equipped ? 'var(--color-primary, #0088cc)' : rarityColor,
