@@ -80,7 +80,8 @@ const ShopItemCard = forwardRef(({
             color={item.imageUrl}
             fallbackColor={rarityColor}
             message="This is the color for the Nameplate!"
-            className="rounded-t-lg"
+            className="h-full w-full rounded-t-lg"
+            size="md"
           />
           
           {/* Status badges - Removed "Owned" badge, keeping only role requirement badge */}
