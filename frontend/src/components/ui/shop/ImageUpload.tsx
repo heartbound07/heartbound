@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react'
 import { Upload, X, Check, RotateCw } from 'lucide-react'
-import ReactCrop, { Crop, centerCrop, makeAspectCrop, PixelCrop } from 'react-image-crop'
+import ReactCrop, { Crop , PixelCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -10,27 +10,6 @@ interface ImageUploadProps {
   onRemove?: () => void
   showRemoveButton?: boolean
   className?: string
-}
-
-// Helper function to create a centered crop with specific aspect ratio
-function centerAspectCrop(
-  mediaWidth: number,
-  mediaHeight: number,
-  aspect: number,
-) {
-  return centerCrop(
-    makeAspectCrop(
-      {
-        unit: '%',
-        width: 90,
-      },
-      aspect,
-      mediaWidth,
-      mediaHeight,
-    ),
-    mediaWidth,
-    mediaHeight,
-  )
 }
 
 export function ImageUpload({ 
@@ -151,10 +130,14 @@ export function ImageUpload({
   
   // Function called when an image is loaded in the crop interface
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
-    const { width, height } = e.currentTarget
-    // Create a centered square crop
-    const crop = centerAspectCrop(width, height, 1)
-    setCrop(crop)
+    // Create a default crop area that covers most of the image (without aspect ratio constraint)
+    setCrop({
+      unit: '%',
+      width: 90,
+      height: 90,
+      x: 5,
+      y: 5
+    })
   }, [])
   
   // Handle image container click to open file picker
@@ -359,7 +342,6 @@ export function ImageUpload({
                     crop={crop}
                     onChange={(_, percentCrop) => setCrop(percentCrop)}
                     onComplete={(c) => setCompletedCrop(c)}
-                    aspect={1}
                     className={`max-h-[50vh] w-full bg-slate-900/50 ${rotation ? 'transform' : ''}`}
                     style={{ transform: `rotate(${rotation}deg)` }}
                   >

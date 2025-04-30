@@ -70,37 +70,86 @@ const ShopItemCard = forwardRef(({
       className={`shop-item-card ${isRecentlyPurchased ? 'shop-item-recent-purchase' : ''}`}
       style={{ borderColor: rarityColor, borderWidth: '1px' }}
     >
-      {/* Item image */}
-      <div className="shop-item-image">
-        {item.imageUrl ? (
-          <img 
-            src={item.imageUrl} 
-            alt={item.name}
-            className="h-full w-full object-cover" 
-          />
-        ) : (
-          <div className="h-full w-full flex items-center justify-center bg-slate-800/50">
-            <span className="text-slate-400">No Image</span>
+      {/* Item image or Discord preview for USER_COLOR */}
+      {item.category === 'USER_COLOR' ? (
+        <div className="shop-item-image discord-preview">
+          <div className="flex items-center p-4 bg-slate-800 rounded-t-lg">
+            {/* User avatar */}
+            <img 
+              src={user?.avatar || "/default-avatar.png"} 
+              alt={user?.username || "User"}
+              className="h-10 w-10 rounded-full mr-3 object-cover" 
+            />
+            
+            <div className="flex flex-col">
+              {/* Username with preview color */}
+              <span 
+                className="font-medium text-lg" 
+                style={{ 
+                  color: item.imageUrl && item.imageUrl.startsWith('#') 
+                    ? item.imageUrl 
+                    : rarityColor, 
+                  fontWeight: 600 
+                }}
+              >
+                {user?.username || "Username"}
+              </span>
+              
+              <span className="text-slate-300 text-xs mt-1">
+                This is the color for the Nameplate!
+              </span>
+            </div>
           </div>
-        )}
-        
-        {/* Status badges - Removed "Owned" badge, keeping only role requirement badge */}
-        {!item.owned && item.requiredRole && user?.roles && !user.roles.includes(item.requiredRole) && (
-          <div className="item-badge badge-required">
-            {item.requiredRole} Required
-          </div>
-        )}
-        
-        {/* Recent purchase effect */}
-        {isRecentlyPurchased && (
-          <motion.div 
-            initial={{ opacity: 0.8 }}
-            animate={{ opacity: 0 }}
-            transition={{ duration: 2 }}
-            className="absolute inset-0 bg-green-500/20 rounded-t-lg z-10"
-          />
-        )}
-      </div>
+          
+          {/* Status badges - Removed "Owned" badge, keeping only role requirement badge */}
+          {!item.owned && item.requiredRole && user?.roles && !user.roles.includes(item.requiredRole) && (
+            <div className="item-badge badge-required">
+              {item.requiredRole} Required
+            </div>
+          )}
+          
+          {/* Recent purchase effect */}
+          {isRecentlyPurchased && (
+            <motion.div 
+              initial={{ opacity: 0.8 }}
+              animate={{ opacity: 0 }}
+              transition={{ duration: 2 }}
+              className="absolute inset-0 bg-green-500/20 rounded-t-lg z-10"
+            />
+          )}
+        </div>
+      ) : (
+        <div className="shop-item-image">
+          {item.imageUrl ? (
+            <img 
+              src={item.imageUrl} 
+              alt={item.name}
+              className="h-full w-full object-cover" 
+            />
+          ) : (
+            <div className="h-full w-full flex items-center justify-center bg-slate-800/50">
+              <span className="text-slate-400">No Image</span>
+            </div>
+          )}
+          
+          {/* Status badges - Removed "Owned" badge, keeping only role requirement badge */}
+          {!item.owned && item.requiredRole && user?.roles && !user.roles.includes(item.requiredRole) && (
+            <div className="item-badge badge-required">
+              {item.requiredRole} Required
+            </div>
+          )}
+          
+          {/* Recent purchase effect */}
+          {isRecentlyPurchased && (
+            <motion.div 
+              initial={{ opacity: 0.8 }}
+              animate={{ opacity: 0 }}
+              transition={{ duration: 2 }}
+              className="absolute inset-0 bg-green-500/20 rounded-t-lg z-10"
+            />
+          )}
+        </div>
+      )}
       
       <div className="shop-item-content">
         <div className="flex justify-between items-center mb-2">
