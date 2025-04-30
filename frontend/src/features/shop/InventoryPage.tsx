@@ -129,7 +129,17 @@ export function InventoryPage() {
           ? response.data.items.filter((item: ShopItem) => item.category === selectedCategory)
           : response.data.items;
           
-        setItems(filteredItems);
+        // Sort items: equipped items first, then unequipped
+        const sortedItems = [...filteredItems].sort((a, b) => {
+          // If equipped status is different, sort equipped items first
+          if (a.equipped !== b.equipped) {
+            return a.equipped ? -1 : 1;
+          }
+          // If both have same equipped status, maintain original order
+          return 0;
+        });
+        
+        setItems(sortedItems);
       } else {
         setItems([]);
       }
