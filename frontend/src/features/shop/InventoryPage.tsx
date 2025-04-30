@@ -104,6 +104,16 @@ export function InventoryPage() {
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
+  const [raritySortOrder, setRaritySortOrder] = useState<'default' | 'asc' | 'desc'>('default');
+  
+  // Define rarity order for sorting
+  const RARITY_ORDER: Record<string, number> = {
+    'COMMON': 0,
+    'UNCOMMON': 1,
+    'RARE': 2,
+    'EPIC': 3,
+    'LEGENDARY': 4
+  };
   
   // Toast notification functions
   const showToast = (message: string, type: 'success' | 'error' | 'info') => {
@@ -113,6 +123,29 @@ export function InventoryPage() {
   
   const removeToast = (id: string) => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
+  };
+  
+  // Sort items based on rarity order and equipped status
+  const sortItems = (itemsToSort: ShopItem[]): ShopItem[] => {
+    return [...itemsToSort].sort((a, b) => {
+      // Primary sort: equipped items first (maintain existing behavior)
+      if (a.equipped !== b.equipped) {
+        return a.equipped ? -1 : 1;
+      }
+      
+      // Secondary sort: by rarity when rarity sort is active
+      if (raritySortOrder !== 'default') {
+        const rarityA = RARITY_ORDER[a.rarity] || 0;
+        const rarityB = RARITY_ORDER[b.rarity] || 0;
+        
+        return raritySortOrder === 'asc' 
+          ? rarityA - rarityB  // Common to Legendary
+          : rarityB - rarityA; // Legendary to Common
+      }
+      
+      // Default: maintain original order if equipped status is the same
+      return 0;
+    });
   };
   
   const fetchInventory = async () => {
@@ -129,18 +162,9 @@ export function InventoryPage() {
         const filteredItems = selectedCategory 
           ? response.data.items.filter((item: ShopItem) => item.category === selectedCategory)
           : response.data.items;
-          
-        // Sort items: equipped items first, then unequipped
-        const sortedItems = [...filteredItems].sort((a, b) => {
-          // If equipped status is different, sort equipped items first
-          if (a.equipped !== b.equipped) {
-            return a.equipped ? -1 : 1;
-          }
-          // If both have same equipped status, maintain original order
-          return 0;
-        });
         
-        setItems(sortedItems);
+        // Apply sorting with rarity consideration
+        setItems(sortItems(filteredItems));
       } else {
         setItems([]);
       }
@@ -155,6 +179,13 @@ export function InventoryPage() {
   useEffect(() => {
     fetchInventory();
   }, [selectedCategory]);
+  
+  // Add effect to re-sort items when sort order changes
+  useEffect(() => {
+    if (items.length > 0) {
+      setItems(sortItems([...items]));
+    }
+  }, [raritySortOrder]);
   
   const handleEquipItem = async (itemId: string) => {
     if (actionInProgress) return;
@@ -275,9 +306,27 @@ export function InventoryPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
         >
-          <h2 className="text-2xl font-bold text-white mb-4">
-            {selectedCategory ? `${formatCategoryDisplay(selectedCategory)} Items` : 'All Items'}
-          </h2>
+          <div className="flex flex-wrap items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-white">
+              {selectedCategory ? `${formatCategoryDisplay(selectedCategory)} Items` : 'All Items'}
+            </h2>
+            
+            {/* Rarity sort controls */}
+            {!loading && items.length > 0 && (
+              <div className="sort-control-container">
+                <span className="text-sm text-slate-300 mr-2">Sort by:</span>
+                <select
+                  value={raritySortOrder}
+                  onChange={(e) => setRaritySortOrder(e.target.value as 'default' | 'asc' | 'desc')}
+                  className="inventory-sort-dropdown"
+                >
+                  <option value="default">Default (Equipped first)</option>
+                  <option value="asc">Rarity: Common to Legendary</option>
+                  <option value="desc">Rarity: Legendary to Common</option>
+                </select>
+              </div>
+            )}
+          </div>
           
           {loading ? (
             <div className="inventory-grid">
