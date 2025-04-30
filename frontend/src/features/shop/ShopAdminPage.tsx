@@ -342,18 +342,27 @@ export function ShopAdminPage() {
             
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-300 mb-1">
-                Item Image
+                {formData.category === 'USER_COLOR' ? 'Color Selection' : 'Item Image'}
               </label>
-              <ImageUpload 
-                currentImageUrl={formData.imageUrl}
-                onUpload={handleImageUpload}
-                onRemove={handleImageRemove}
-                showRemoveButton={!!formData.imageUrl}
-                className="mb-2"
-              />
-              <p className="text-xs text-slate-400 mt-1">
-                Click to upload an image for this shop item. Supported formats: JPG, PNG, GIF, WebP (max 5MB)
-              </p>
+              
+              {formData.category !== 'USER_COLOR' ? (
+                <>
+                  <ImageUpload 
+                    currentImageUrl={formData.imageUrl}
+                    onUpload={handleImageUpload}
+                    onRemove={handleImageRemove}
+                    showRemoveButton={!!formData.imageUrl}
+                    className="mb-2"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">
+                    Click to upload an image for this shop item. Supported formats: JPG, PNG, GIF, WebP (max 5MB)
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs text-slate-400 mt-1">
+                  Please use the color picker below to set the nameplate color.
+                </p>
+              )}
             </div>
             
             <div>
@@ -392,22 +401,67 @@ export function ShopAdminPage() {
             </div>
             
             {formData.category === 'USER_COLOR' && (
-              <div className="mb-4">
-                <label htmlFor="discordRoleId" className="block text-sm font-medium text-slate-300 mb-1">
-                  Discord Role ID
-                </label>
-                <input
-                  id="discordRoleId"
-                  type="text"
-                  value={formData.discordRoleId || ''}
-                  onChange={(e) => setFormData({...formData, discordRoleId: e.target.value})}
-                  className="block w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white"
-                  placeholder="Discord role ID for USER_COLOR items"
-                />
-                <p className="mt-1 text-xs text-slate-400">
-                  Enter the Discord role ID to be granted when this color is equipped. Leave empty for no role.
-                </p>
-              </div>
+              <>
+                <div className="mb-4">
+                  <label htmlFor="colorPicker" className="block text-sm font-medium text-slate-300 mb-1">
+                    Nameplate Color
+                  </label>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      id="colorPicker"
+                      type="color"
+                      value={formData.imageUrl && formData.imageUrl.startsWith('#') ? formData.imageUrl : '#ffffff'}
+                      onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+                      className="h-10 w-14 p-1 bg-slate-700 border border-slate-600 rounded cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={formData.imageUrl || ''}
+                      onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+                      className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white"
+                      placeholder="#RRGGBB Hex Color"
+                    />
+                    <div 
+                      className="h-10 w-10 rounded border border-slate-600"
+                      style={{ backgroundColor: formData.imageUrl || '#ffffff' }}
+                    ></div>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Choose a color for this nameplate. This will be displayed in the user's name in Discord.
+                  </p>
+                </div>
+
+                <div className="mb-4">
+                  <label htmlFor="discordRoleId" className="block text-sm font-medium text-slate-300 mb-1">
+                    Discord Role ID
+                  </label>
+                  <input
+                    id="discordRoleId"
+                    type="text"
+                    value={formData.discordRoleId || ''}
+                    onChange={(e) => setFormData({...formData, discordRoleId: e.target.value})}
+                    className="block w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white"
+                    placeholder="Discord role ID for USER_COLOR items"
+                  />
+                  <p className="mt-1 text-xs text-slate-400">
+                    Enter the Discord role ID to be granted when this color is equipped. Leave empty for no role.
+                  </p>
+                </div>
+                
+                {/* Preview section */}
+                <div className="mb-4 p-4 bg-slate-800 rounded-md border border-slate-600">
+                  <h4 className="text-sm font-medium text-slate-300 mb-2">Preview</h4>
+                  <div className="flex items-center space-x-3 p-3 bg-slate-900 rounded">
+                    <div className="w-10 h-10 rounded-full bg-slate-700"></div>
+                    <div>
+                      <span style={{ color: formData.imageUrl || '#ffffff', fontWeight: 600 }}>
+                        Username
+                      </span>
+                      <p className="text-xs text-slate-400">This is how the color will appear</p>
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
             
             <div className="mb-4">
