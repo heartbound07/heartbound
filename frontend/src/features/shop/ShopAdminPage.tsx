@@ -4,6 +4,7 @@ import httpClient from '@/lib/api/httpClient';
 import { Toast } from '@/components/Toast';
 import { ImageUpload } from '@/components/ui/shop/ImageUpload';
 import { getRarityColor } from '@/utils/rarityHelpers';
+import NameplatePreview from '@/components/NameplatePreview';
 
 interface ShopItem {
   id: string;
@@ -451,15 +452,13 @@ export function ShopAdminPage() {
                 {/* Preview section */}
                 <div className="mb-4 p-4 bg-slate-800 rounded-md border border-slate-600">
                   <h4 className="text-sm font-medium text-slate-300 mb-2">Preview</h4>
-                  <div className="flex items-center space-x-3 p-3 bg-slate-900 rounded">
-                    <div className="w-10 h-10 rounded-full bg-slate-700"></div>
-                    <div>
-                      <span style={{ color: formData.imageUrl || '#ffffff', fontWeight: 600 }}>
-                        Username
-                      </span>
-                      <p className="text-xs text-slate-400">This is how the color will appear</p>
-                    </div>
-                  </div>
+                  <NameplatePreview
+                    username="Username"
+                    color={formData.imageUrl}
+                    message="This is how the color will appear"
+                    size="md"
+                    className="bg-slate-900 rounded"
+                  />
                 </div>
               </>
             )}
