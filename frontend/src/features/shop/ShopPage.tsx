@@ -88,7 +88,7 @@ const ShopItemCard = forwardRef(({
       exit={{ opacity: 0, scale: 0.95 }}
       whileHover={{ y: -5 }}
       className={`shop-item-card ${isRecentlyPurchased ? 'shop-item-recent-purchase' : ''}`}
-      style={{ borderColor: rarityColor, borderWidth: '1px' }}
+      style={{ borderColor: 'transparent' }}
     >
       {/* Item image or Discord preview for USER_COLOR */}
       {item.category === 'USER_COLOR' ? (
