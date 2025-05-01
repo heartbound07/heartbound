@@ -66,14 +66,14 @@ public class ChatActivityListener extends ListenerAdapter {
     @Value("${discord.leveling.level-factor:5}")
     private int levelFactor;
     
+    @Value("${discord.leveling.credits-per-level:50}")
+    private int creditsPerLevel;
+    
     // Track user cooldowns - userId -> lastMessageTimestamp
     private final ConcurrentHashMap<String, Instant> userCooldowns = new ConcurrentHashMap<>();
     
     // Track user activity - userId -> list of message timestamps
     private final ConcurrentHashMap<String, List<Instant>> userActivity = new ConcurrentHashMap<>();
-    
-    // Add tracking map for users who have received credits and when
-    private final ConcurrentHashMap<String, Instant> lastCreditAward = new ConcurrentHashMap<>();
     
     private ScheduledExecutorService cleanupScheduler;
     
@@ -84,8 +84,8 @@ public class ChatActivityListener extends ListenerAdapter {
     
     @PostConstruct
     public void initialize() {
-        logger.info("ChatActivityListener initialized with: enabled={}, messageThreshold={}, timeWindowMinutes={}, cooldownSeconds={}, minMessageLength={}, creditsToAward={}, levelingEnabled={}, xpToAward={}",
-                activityEnabled, messageThreshold, timeWindowMinutes, cooldownSeconds, minMessageLength, creditsToAward, levelingEnabled, xpToAward);
+        logger.info("ChatActivityListener initialized with: enabled={}, messageThreshold={}, timeWindowMinutes={}, cooldownSeconds={}, minMessageLength={}, levelingEnabled={}, xpToAward={}, creditsPerLevel={}",
+                activityEnabled, messageThreshold, timeWindowMinutes, cooldownSeconds, minMessageLength, levelingEnabled, xpToAward, creditsPerLevel);
         
         // Start periodic cleanup of old tracking data
         cleanupScheduler = Executors.newSingleThreadScheduledExecutor();
@@ -119,9 +119,6 @@ public class ChatActivityListener extends ListenerAdapter {
             // Remove empty activity lists
             userActivity.entrySet().removeIf(entry -> entry.getValue().isEmpty());
             
-            // Clean up old credit award tracking entries
-            lastCreditAward.entrySet().removeIf(entry -> entry.getValue().isBefore(cutoff));
-            
             logger.debug("Activity data cleanup completed. Active users in tracking: {}", userActivity.size());
         } catch (Exception e) {
             logger.error("Error during activity data cleanup", e);
@@ -150,6 +147,12 @@ public class ChatActivityListener extends ListenerAdapter {
             user.setLevel(currentLevel + 1);
             user.setExperience(currentXp - requiredXp);
             
+            // Award credits for leveling up
+            int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
+            user.setCredits(currentCredits + creditsPerLevel);
+            logger.info("Awarded {} credits to user {} for leveling up to {}. New balance: {}",
+                        creditsPerLevel, userId, currentLevel + 1, user.getCredits());
+            
             try {
                 userService.updateUser(user);
                 
@@ -162,13 +165,17 @@ public class ChatActivityListener extends ListenerAdapter {
                     // Create an embed for the level-up announcement
                     EmbedBuilder embed = new EmbedBuilder();
                     embed.setTitle("Level Up Achievement!");
-                    embed.setDescription(String.format("<@%s>! You advanced to level %d!", userId, currentLevel + 1));
+                    embed.setDescription(String.format("<@%s>! You advanced to level %d and earned %d credits!", 
+                                                          userId, currentLevel + 1, creditsPerLevel));
                     embed.setColor(new Color(75, 181, 67)); // Green color
                     embed.setTimestamp(java.time.Instant.now());
                     
                     // Add XP progress information
                     int nextLevelXp = calculateRequiredXp(currentLevel + 1);
                     embed.addField("Experience", String.format("%d/%d XP to next level", user.getExperience(), nextLevelXp), true);
+                    
+                    // Add credits information
+                    embed.addField("Credits Awarded", String.format("🪙 %d", creditsPerLevel), true);
                     
                     // Get the user's avatar if possible
                     net.dv8tion.jda.api.entities.User discordUser = channel.getJDA().getUserById(userId);
@@ -185,23 +192,23 @@ public class ChatActivityListener extends ListenerAdapter {
                     );
                     
                     // Also send a simple notification in the original channel
-                    String simpleNotification = String.format("🎉 <@%s> leveled up to **Level %d**! Check out <#%s> for details!",
-                        userId, currentLevel + 1, achievementChannelId);
+                    String simpleNotification = String.format("🎉 <@%s> leveled up to **Level %d** and earned **%d credits**! Check out <#%s> for details!",
+                        userId, currentLevel + 1, creditsPerLevel, achievementChannelId);
                     channel.sendMessage(simpleNotification).queue();
                 } else {
                     // Fallback to the original channel if achievement channel not found
                     logger.warn("[XP DEBUG] Achievement channel {} not found, sending to original channel", achievementChannelId);
                     
-                    String levelUpMessage = String.format("Congratulations <@%s>! You've reached **Level %d**!", 
-                                                        userId, currentLevel + 1);
+                    String levelUpMessage = String.format("Congratulations <@%s>! You've reached **Level %d** and earned **%d credits**!", 
+                                                        userId, currentLevel + 1, creditsPerLevel);
                     channel.sendMessage(levelUpMessage).queue(
                         success -> logger.debug("[XP DEBUG] Level up message sent for user {}", userId),
                         error -> logger.error("Failed to send level up message for user {}: {}", userId, error.getMessage())
                     );
                 }
                 
-                logger.info("User {} leveled up to {} (XP: {} -> {})", 
-                           userId, currentLevel + 1, currentXp, user.getExperience());
+                logger.info("User {} leveled up to {} (XP: {} -> {}, Credits: +{})", 
+                           userId, currentLevel + 1, currentXp, user.getExperience(), creditsPerLevel);
                 
                 // Check for additional level ups
                 logger.debug("[XP DEBUG] Checking for additional level ups");
@@ -265,7 +272,7 @@ public class ChatActivityListener extends ListenerAdapter {
             }
             
             int awardedXp = 0;
-            int awardedCredits = 0;
+            int initialLevel = user.getLevel() != null ? user.getLevel() : 1;
             
             if (levelingEnabled) {
                 logger.debug("[XP DEBUG] About to award XP to {}: Current XP={}, Level={}, Adding {} XP",
@@ -276,13 +283,35 @@ public class ChatActivityListener extends ListenerAdapter {
                 awardedXp = xpToAward;
                 logger.debug("[XP DEBUG] Awarded {} XP to user {}. New XP: {}", xpToAward, userId, user.getExperience());
                 
+                // Save user's level before potential level-up for later comparison
+                int requiredXpForNextLevel = calculateRequiredXp(initialLevel);
+                
                 // Add right before calling checkAndProcessLevelUp method
                 logger.debug("[XP DEBUG] Checking for level up: User={}, Level={}, XP={}",
                     userId, user.getLevel(), user.getExperience());
                 checkAndProcessLevelUp(user, userId, event.getChannel()); // Note: checkAndProcessLevelUp calls updateUser internally on level up
+                
+                // If user didn't level up, send XP-only notification
+                if (initialLevel == user.getLevel()) {
+                    EmbedBuilder notificationEmbed = new EmbedBuilder();
+                    notificationEmbed.setDescription(String.format("<@%s>! You have gained %d xp!", 
+                                                userId, awardedXp));
+                    notificationEmbed.setColor(new Color(75, 181, 67)); // Green color
+                    
+                    // Add footer showing XP progress
+                    int currentXpAfterAward = user.getExperience() != null ? user.getExperience() : 0;
+                    notificationEmbed.setFooter(String.format("%d/%d to next level", 
+                            currentXpAfterAward, requiredXpForNextLevel));
+                    
+                    // Queue the embed send
+                    achievementChannel.sendMessageEmbeds(notificationEmbed.build()).queue(
+                        success -> logger.debug("Sent XP notification to user {}", userId),
+                        failure -> logger.error("Failed to send XP notification to user {}: {}", userId, failure.getMessage())
+                    );
+                }
             }
             
-            // Track message in activity window (Only if activity rewards are enabled)
+            // Track message in activity window (for stats purposes only, not for credits)
             if (activityEnabled) {
                 List<Instant> userMessages = userActivity.computeIfAbsent(userId, k -> new ArrayList<>());
                 
@@ -290,69 +319,15 @@ public class ChatActivityListener extends ListenerAdapter {
                 Instant cutoff = now.minusSeconds(timeWindowMinutes * 60);
                 userMessages.removeIf(timestamp -> timestamp.isBefore(cutoff));
                 
-                // Check if user has already received credits in this time window
-                Instant lastAward = lastCreditAward.get(userId);
-                boolean alreadyAwarded = (lastAward != null && lastAward.isAfter(cutoff));
-                
                 // Add current message
                 userMessages.add(now);
                 
-                logger.debug("[CREDITS DEBUG] User {} has {} messages in window. Threshold: {}. Already awarded: {}", 
-                            userId, userMessages.size(), messageThreshold, alreadyAwarded);
-                
-                logger.debug("[CREDITS DETAIL] User={}, Messages in window={}, Messages needed={}, Time window={} min, Already awarded={}, Current credits={}", 
-                    userId, userMessages.size(), messageThreshold, timeWindowMinutes, alreadyAwarded, user.getCredits());
-                
-                // Check if threshold reached and credits not already awarded in this window
-                if (userMessages.size() >= messageThreshold && !alreadyAwarded) {
-                    // Award credits
-                    try {
-                        int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
-                        int newCredits = currentCredits + creditsToAward;
-                        
-                        // Update user credits
-                        user.setCredits(newCredits);
-                        userUpdated = true; // Mark user for update
-                        awardedCredits = creditsToAward;
-                        
-                        logger.info("Awarded {} credits to user {} for chat activity. New balance: {}",
-                                    creditsToAward, userId, newCredits);
-                        
-                        // Mark that user has received credits in this time window
-                        lastCreditAward.put(userId, now);
-                        
-                        // Force immediate update of credits to ensure they are saved
-                        userService.updateUser(user);
-                        
-                    } catch (Exception e) {
-                        logger.error("Error awarding credits to user {}: {}", userId, e.getMessage(), e);
-                        logger.debug("Credit award exception details", e);
-                        // Reset the awarded flag on failure to allow retrying on next message
-                        lastCreditAward.remove(userId);
-                    }
-                } else {
-                    logger.debug("User {} has {} messages in the activity window. Threshold is {}", 
-                                userId, userMessages.size(), messageThreshold);
-                }
+                logger.debug("[ACTIVITY DEBUG] User {} has {} messages in window. Time window={} min", 
+                            userId, userMessages.size(), timeWindowMinutes);
             }
             
-            // Send notification if XP or credits were awarded
-            if (awardedXp > 0 || awardedCredits > 0) {
-                EmbedBuilder notificationEmbed = new EmbedBuilder();
-                notificationEmbed.setDescription(String.format("<@%s>! You have gained %d xp, and %d credits!", 
-                                                userId, awardedXp, awardedCredits));
-                notificationEmbed.setColor(new Color(75, 181, 67)); // Green color
-                notificationEmbed.setTimestamp(Instant.now());
-                
-                achievementChannel.sendMessageEmbeds(notificationEmbed.build()).queue(
-                    success -> logger.debug("Sent XP/Credits notification to user {}", userId),
-                    failure -> logger.error("Failed to send notification to user {}: {}", userId, failure.getMessage())
-                );
-            }
-            
-            // Persist changes if XP or Credits were potentially updated and not handled by level up
-            // Note: checkAndProcessLevelUp already saves the user if a level up occurs.
-            // We only need to save here if XP was added but no level up happened, or if credits were added.
+            // Persist changes if XP was added but no level up happened
+            // Level-up already saves changes internally in checkAndProcessLevelUp
             if (userUpdated && (user.getLevel() == null || calculateRequiredXp(user.getLevel()) > user.getExperience())) {
                 try {
                     userService.updateUser(user);
