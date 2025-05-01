@@ -55,6 +55,12 @@ public class InventoryCommandListener extends ListenerAdapter {
         RARITY_ROLE_IDS.put(ItemRarity.COMMON, "1367569157469765662");
     }
 
+    private enum SortMode {
+        DEFAULT, // Alphabetical by name
+        RARITY_DESC, // Legendary to Common
+        RARITY_ASC   // Common to Legendary
+    }
+
     public InventoryCommandListener(@Lazy UserService userService) {
         this.userService = userService;
         logger.info("InventoryCommandListener initialized");
@@ -134,16 +140,22 @@ public class InventoryCommandListener extends ListenerAdapter {
             // Pagination
             int totalPages = (int) Math.ceil((double) inventoryList.size() / PAGE_SIZE);
             int currentPage = 1;
+            SortMode sortMode = SortMode.DEFAULT; // Default sort mode
 
             // Build initial embed and buttons
             MessageEmbed embed = buildInventoryEmbed(inventoryList, currentPage, totalPages, event.getUser());
-            Button prevButton = Button.secondary("inventory_prev:" + userId + ":" + currentPage, "◀️").withDisabled(true);
+            
+            // Filter button - shows current sort mode
+            Button filterButton = Button.secondary("inventory_filter:" + userId + ":" + currentPage + ":" + sortMode, "Filter: A-Z");
+            
+            // Previous, page indicator, next buttons
+            Button prevButton = Button.secondary("inventory_prev:" + userId + ":" + currentPage + ":" + sortMode, "◀️").withDisabled(true);
             Button pageIndicator = Button.secondary("inventory_page_indicator", "1/" + totalPages).withDisabled(true);
-            Button nextButton = Button.secondary("inventory_next:" + userId + ":" + currentPage, "▶️").withDisabled(totalPages <= 1);
+            Button nextButton = Button.secondary("inventory_next:" + userId + ":" + currentPage + ":" + sortMode, "▶️").withDisabled(totalPages <= 1);
 
             // Send response
             event.getHook().editOriginalEmbeds(embed)
-                    .setActionRow(prevButton, pageIndicator, nextButton)
+                    .setActionRow(filterButton, prevButton, pageIndicator, nextButton)
                     .queue();
 
         } catch (Exception e) {
@@ -164,7 +176,7 @@ public class InventoryCommandListener extends ListenerAdapter {
         event.deferEdit().queue();
 
         String[] parts = componentId.split(":");
-        if (parts.length != 3) {
+        if (parts.length != 4) {
             logger.warn("Invalid inventory button ID format: {}", componentId);
             event.getHook().editOriginal("Invalid button interaction.").queue();
             return;
@@ -173,69 +185,85 @@ public class InventoryCommandListener extends ListenerAdapter {
         String action = parts[0];
         String originalUserId = parts[1];
         int currentPage;
+        SortMode sortMode;
+        
         try {
             currentPage = Integer.parseInt(parts[2]);
-        } catch (NumberFormatException e) {
-            logger.error("Error parsing page number from button ID: {}", componentId, e);
+            sortMode = SortMode.valueOf(parts[3]);
+        } catch (IllegalArgumentException e) {
+            logger.error("Error parsing page number or sort mode from button ID: {}", componentId, e);
             event.getHook().editOriginal("Invalid button configuration.").queue();
             return;
         }
 
-        // Security check: Only the original command user can paginate
+        // Security check: Only the original command user can interact
         if (!event.getUser().getId().equals(originalUserId)) {
             event.reply("You cannot interact with this inventory display.").setEphemeral(true).queue();
             return;
         }
 
-        logger.debug("Inventory pagination: User {}, Action {}, CurrentPage {}", originalUserId, action, currentPage);
+        logger.debug("Inventory interaction: User {}, Action {}, CurrentPage {}, SortMode {}", 
+                    originalUserId, action, currentPage, sortMode);
 
         try {
             // Fetch user and inventory again
             User user = userService.getUserById(originalUserId);
             if (user == null) {
-                // Should ideally not happen if they could trigger the command initially
-                logger.error("User {} not found during inventory pagination", originalUserId);
+                logger.error("User {} not found during inventory interaction", originalUserId);
                 event.getHook().editOriginal("Could not find your account data.").queue();
                 return;
             }
 
             Set<Shop> inventorySet = user.getInventory();
             List<Shop> inventoryList = new ArrayList<>(inventorySet);
-            inventoryList.sort(Comparator.comparing(Shop::getName)); // Ensure consistent sorting
+            
+            // Apply sorting based on sortMode
+            applySorting(inventoryList, sortMode);
 
             if (inventoryList.isEmpty()) {
-                // Should also not happen if pagination buttons exist, but handle defensively
-                EmbedBuilder embed = new EmbedBuilder()
-                        .setTitle("Your Inventory")
-                        .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
-                        .setColor(EMBED_COLOR)
-                        .setDescription("Your inventory appears empty now.");
-                event.getHook().editOriginalEmbeds(embed.build()).setComponents().queue(); // Remove buttons
+                // Handle empty inventory...
                 return;
             }
 
             int totalPages = (int) Math.ceil((double) inventoryList.size() / PAGE_SIZE);
             int targetPage = currentPage;
+            SortMode targetSortMode = sortMode;
 
+            // Handle button actions
             if (action.equals("inventory_prev")) {
                 targetPage = Math.max(1, currentPage - 1);
             } else if (action.equals("inventory_next")) {
                 targetPage = Math.min(totalPages, currentPage + 1);
+            } else if (action.equals("inventory_filter")) {
+                // Cycle through sort modes
+                targetSortMode = getNextSortMode(sortMode);
+                // Reset to page 1 when changing sort mode
+                targetPage = 1;
+                // Re-sort the list with the new mode
+                applySorting(inventoryList, targetSortMode);
             }
 
             // Build updated embed and buttons
             MessageEmbed newEmbed = buildInventoryEmbed(inventoryList, targetPage, totalPages, event.getUser());
-            Button prevButton = Button.secondary("inventory_prev:" + originalUserId + ":" + targetPage, "◀️").withDisabled(targetPage <= 1);
-            Button pageIndicator = Button.secondary("inventory_page_indicator", targetPage + "/" + totalPages).withDisabled(true);
-            Button nextButton = Button.secondary("inventory_next:" + originalUserId + ":" + targetPage, "▶️").withDisabled(targetPage >= totalPages);
+            
+            // Filter button label based on current sort mode
+            String filterLabel = getFilterLabel(targetSortMode);
+            Button filterButton = Button.secondary("inventory_filter:" + originalUserId + ":" + targetPage + ":" + targetSortMode, filterLabel);
+            
+            Button prevButton = Button.secondary("inventory_prev:" + originalUserId + ":" + targetPage + ":" + targetSortMode, "◀️")
+                    .withDisabled(targetPage <= 1);
+            Button pageIndicator = Button.secondary("inventory_page_indicator", targetPage + "/" + totalPages)
+                    .withDisabled(true);
+            Button nextButton = Button.secondary("inventory_next:" + originalUserId + ":" + targetPage + ":" + targetSortMode, "▶️")
+                    .withDisabled(targetPage >= totalPages);
 
             // Update the original message
             event.getHook().editOriginalEmbeds(newEmbed)
-                    .setActionRow(prevButton, pageIndicator, nextButton)
+                    .setActionRow(filterButton, prevButton, pageIndicator, nextButton)
                     .queue();
 
         } catch (Exception e) {
-            logger.error("Error processing inventory pagination for user {}", originalUserId, e);
+            logger.error("Error processing inventory interaction for user {}", originalUserId, e);
             event.getHook().editOriginal("An error occurred while updating your inventory display.").queue();
         }
     }
@@ -353,5 +381,65 @@ public class InventoryCommandListener extends ListenerAdapter {
         String rarityName = rarity.name();
         // Capitalize first letter, lowercase the rest
         return rarityName.charAt(0) + rarityName.substring(1).toLowerCase();
+    }
+
+    /**
+     * Get the next sort mode in the cycle
+     */
+    private SortMode getNextSortMode(SortMode currentMode) {
+        switch (currentMode) {
+            case DEFAULT:
+                return SortMode.RARITY_DESC;
+            case RARITY_DESC:
+                return SortMode.RARITY_ASC;
+            case RARITY_ASC:
+            default:
+                return SortMode.DEFAULT;
+        }
+    }
+
+    /**
+     * Get the filter button label based on the current sort mode
+     */
+    private String getFilterLabel(SortMode sortMode) {
+        switch (sortMode) {
+            case RARITY_DESC:
+                return "Filter: ⭐→⭐⭐⭐"; // Legendary to Common
+            case RARITY_ASC:
+                return "Filter: ⭐⭐⭐→⭐"; // Common to Legendary
+            case DEFAULT:
+            default:
+                return "Filter: A-Z"; // Alphabetical
+        }
+    }
+
+    /**
+     * Apply the appropriate sorting to the inventory list
+     */
+    private void applySorting(List<Shop> items, SortMode sortMode) {
+        switch (sortMode) {
+            case RARITY_DESC:
+                // Sort by rarity (highest to lowest)
+                items.sort((a, b) -> {
+                    if (a.getRarity() == null) return 1;
+                    if (b.getRarity() == null) return -1;
+                    // Legendary is 0, Common is 4 in enum ordinal - so we need to reverse
+                    return Integer.compare(a.getRarity().ordinal(), b.getRarity().ordinal());
+                });
+                break;
+            case RARITY_ASC:
+                // Sort by rarity (lowest to highest)
+                items.sort((a, b) -> {
+                    if (a.getRarity() == null) return -1;
+                    if (b.getRarity() == null) return 1;
+                    return Integer.compare(b.getRarity().ordinal(), a.getRarity().ordinal());
+                });
+                break;
+            case DEFAULT:
+            default:
+                // Sort alphabetically by name (default)
+                items.sort(Comparator.comparing(Shop::getName));
+                break;
+        }
     }
 } 
