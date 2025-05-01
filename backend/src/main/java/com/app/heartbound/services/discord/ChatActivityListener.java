@@ -365,7 +365,7 @@ public class ChatActivityListener extends ListenerAdapter {
             }
             
             boolean userUpdated = false; // Flag to track if user needs saving
-            String achievementChannelId = "1304293304833146951";
+            String achievementChannelId = "1303106586650218518";
             MessageChannel achievementChannel = 
                 event.getJDA().getChannelById(MessageChannel.class, achievementChannelId);
             
@@ -403,7 +403,7 @@ public class ChatActivityListener extends ListenerAdapter {
                     
                     // Add footer showing XP progress
                     int currentXpAfterAward = user.getExperience() != null ? user.getExperience() : 0;
-                    notificationEmbed.setFooter(String.format("%d/%d to next level", 
+                    notificationEmbed.setFooter(String.format("%d/%d XP to next level", 
                             currentXpAfterAward, requiredXpForNextLevel));
                     
                     // Queue the embed send
