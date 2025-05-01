@@ -12,6 +12,7 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,9 +154,12 @@ public class InventoryCommandListener extends ListenerAdapter {
             Button pageIndicator = Button.secondary("inventory_page_indicator", "1/" + totalPages).withDisabled(true);
             Button nextButton = Button.secondary("inventory_next:" + userId + ":" + currentPage + ":" + sortMode, "▶️").withDisabled(totalPages <= 1);
 
-            // Send response
+            // Send response with pagination buttons in first row, filter button in second row
             event.getHook().editOriginalEmbeds(embed)
-                    .setActionRow(filterButton, prevButton, pageIndicator, nextButton)
+                    .setComponents(
+                        ActionRow.of(prevButton, pageIndicator, nextButton),
+                        ActionRow.of(filterButton)
+                    )
                     .queue();
 
         } catch (Exception e) {
@@ -257,9 +261,12 @@ public class InventoryCommandListener extends ListenerAdapter {
             Button nextButton = Button.secondary("inventory_next:" + originalUserId + ":" + targetPage + ":" + targetSortMode, "▶️")
                     .withDisabled(targetPage >= totalPages);
 
-            // Update the original message
+            // Update the original message with two rows of buttons
             event.getHook().editOriginalEmbeds(newEmbed)
-                    .setActionRow(filterButton, prevButton, pageIndicator, nextButton)
+                    .setComponents(
+                        ActionRow.of(prevButton, pageIndicator, nextButton),
+                        ActionRow.of(filterButton)
+                    )
                     .queue();
 
         } catch (Exception e) {
