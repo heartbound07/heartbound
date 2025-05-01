@@ -63,8 +63,11 @@ public class ShopCommandListener extends ListenerAdapter {
         event.deferReply().queue();
         
         try {
-            // Fetch all available shop items
-            List<ShopDTO> shopItems = shopService.getAvailableShopItems(null, null);
+            // Get the user ID for ownership checking
+            String userId = event.getUser().getId();
+            
+            // Fetch all available shop items with ownership status for this user
+            List<ShopDTO> shopItems = shopService.getAvailableShopItems(userId, null);
             
             if (shopItems == null || shopItems.isEmpty()) {
                 // Handle empty shop
@@ -124,8 +127,11 @@ public class ShopCommandListener extends ListenerAdapter {
                 tempTargetPage = currentPage + 1;
             }
             
-            // Fetch all available shop items
-            List<ShopDTO> shopItems = shopService.getAvailableShopItems(null, null);
+            // Get the user ID for ownership checking
+            String userId = event.getUser().getId();
+            
+            // Fetch all available shop items with ownership status for this user
+            List<ShopDTO> shopItems = shopService.getAvailableShopItems(userId, null);
             
             if (shopItems == null || shopItems.isEmpty()) {
                 // Handle empty shop
@@ -212,11 +218,25 @@ public class ShopCommandListener extends ListenerAdapter {
                 
                 // Add role mention with price - remove coin emoji entirely
                 shopContent.append("<@&").append(item.getDiscordRoleId()).append("> - ");
-                shopContent.append(item.getPrice()).append("\n");
+                shopContent.append(item.getPrice());
+                
+                // Add the UNLOCKED role mention if item is owned by the user
+                if (item.isOwned()) {
+                    shopContent.append(" <@&1367370372457959515>");
+                }
+                
+                shopContent.append("\n");
             } else {
                 // Regular item with name and price - remove coin emoji entirely
                 shopContent.append("**").append(item.getName()).append("** - ");
-                shopContent.append(item.getPrice()).append("\n");
+                shopContent.append(item.getPrice());
+                
+                // Add the UNLOCKED role mention if item is owned by the user
+                if (item.isOwned()) {
+                    shopContent.append(" <@&1367370372457959515>");
+                }
+                
+                shopContent.append("\n");
             }
         }
         
