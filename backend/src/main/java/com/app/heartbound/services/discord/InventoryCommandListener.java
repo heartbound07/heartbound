@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -261,12 +262,19 @@ public class InventoryCommandListener extends ListenerAdapter {
             Button nextButton = Button.secondary("inventory_next:" + originalUserId + ":" + targetPage + ":" + targetSortMode, "▶️")
                     .withDisabled(targetPage >= totalPages);
 
-            // Update the original message with two rows of buttons
+            // Create list of action rows for pagination
+            List<ActionRow> actionRows = Arrays.asList(
+                ActionRow.of(prevButton, pageIndicator, nextButton), // First row: pagination
+                ActionRow.of(
+                    Button.secondary("placeholder1", " ").asDisabled(), // Left placeholder
+                    filterButton, // Centered filter button
+                    Button.secondary("placeholder2", " ").asDisabled()  // Right placeholder
+                ) // Second row: filter with placeholders for centering
+            );
+
+            // Update the original message with both action rows
             event.getHook().editOriginalEmbeds(newEmbed)
-                    .setComponents(
-                        ActionRow.of(prevButton, pageIndicator, nextButton),
-                        ActionRow.of(filterButton)
-                    )
+                    .setComponents(actionRows)
                     .queue();
 
         } catch (Exception e) {
