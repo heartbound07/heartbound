@@ -2,8 +2,10 @@ package com.app.heartbound.services.discord;
 
 import com.app.heartbound.dto.shop.ShopDTO;
 import com.app.heartbound.enums.ItemRarity;
+import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.services.shop.ShopService;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -75,7 +77,8 @@ public class ShopCommandListener extends ListenerAdapter {
             int currentPage = 1; // Start with page 1
             
             // Build the initial embed for page 1
-            MessageEmbed embed = buildShopEmbed(shopItems, currentPage, totalPages);
+            Guild guild = event.getGuild(); // Get the guild from the event
+            MessageEmbed embed = buildShopEmbed(shopItems, currentPage, totalPages, guild);
             
             // Create pagination buttons
             Button prevButton = Button.secondary("shop_prev:1", "◀️").withDisabled(true); // Disabled on page 1
@@ -109,7 +112,6 @@ public class ShopCommandListener extends ListenerAdapter {
         
         try {
             // Extract the current page from the button ID
-            // Format: "shop_prev:1" or "shop_next:1"
             String[] parts = componentId.split(":");
             String action = parts[0]; // "shop_prev" or "shop_next"
             int currentPage = Integer.parseInt(parts[1]);
@@ -142,7 +144,8 @@ public class ShopCommandListener extends ListenerAdapter {
             final int targetPage = tempTargetPage;
             
             // Build the new embed for the target page
-            MessageEmbed embed = buildShopEmbed(shopItems, targetPage, totalPages);
+            Guild guild = event.getGuild(); // Get the guild from the event
+            MessageEmbed embed = buildShopEmbed(shopItems, targetPage, totalPages, guild);
             
             // Create updated pagination buttons
             Button prevButton = Button.secondary("shop_prev:" + targetPage, "◀️").withDisabled(targetPage <= 1);
@@ -152,10 +155,7 @@ public class ShopCommandListener extends ListenerAdapter {
             // Update the original message
             event.getHook().editOriginalEmbeds(embed)
                 .setActionRow(prevButton, pageIndicator, nextButton)
-                .queue(
-                    success -> logger.debug("Shop pagination updated to page {}", targetPage),
-                    error -> logger.error("Failed to update shop pagination", error)
-                );
+                .queue();
             
         } catch (Exception e) {
             logger.error("Error processing shop pagination", e);
@@ -169,9 +169,10 @@ public class ShopCommandListener extends ListenerAdapter {
      * @param items The full list of shop items
      * @param page The current page (1-based)
      * @param totalPages The total number of pages
+     * @param guild The Discord guild (server)
      * @return A MessageEmbed containing the formatted shop items
      */
-    private MessageEmbed buildShopEmbed(List<ShopDTO> items, int page, int totalPages) {
+    private MessageEmbed buildShopEmbed(List<ShopDTO> items, int page, int totalPages, Guild guild) {
         // Calculate start and end indices for the current page
         int startIndex = (page - 1) * PAGE_SIZE;
         int endIndex = Math.min(startIndex + PAGE_SIZE, items.size());
@@ -181,49 +182,49 @@ public class ShopCommandListener extends ListenerAdapter {
         
         // Build the embed
         EmbedBuilder embed = new EmbedBuilder();
-        embed.setTitle("Heartbound Item Shop");
         
-        // Create a clickable link to the web shop
-        String shopUrl = frontendBaseUrl + "/shop";
-        embed.setDescription("Browse and purchase items in the [web shop](" + shopUrl + ")");
+        // Set server icon and name as the embed's author
+        if (guild != null) {
+            embed.setAuthor(
+                guild.getName(), 
+                null, 
+                guild.getIconUrl() != null ? guild.getIconUrl() : null
+            );
+        }
+        
+        // Set "Shop" as the title
+        embed.setTitle("Shop");
         embed.setColor(EMBED_COLOR);
         
-        // Optional: Set thumbnail to the application logo or first item image
-        if (!pageItems.isEmpty() && pageItems.get(0).getImageUrl() != null 
-              && pageItems.get(0).getImageUrl().startsWith("http")) {
-            embed.setThumbnail(pageItems.get(0).getImageUrl());
-        }
+        // Create clickable link to the web shop
+        String shopUrl = frontendBaseUrl + "/dashboard/shop";
+        embed.setDescription("Browse and purchase items in the [web shop](" + shopUrl + ")");
         
-        // Build the formatted shop item entries
+        // Build a consolidated shop items list
+        StringBuilder shopContent = new StringBuilder();
+        
         for (ShopDTO item : pageItems) {
-            // Format the item name based on rarity
-            String formattedName = item.getName();
-            String rarityLabel = formatRarityLabel(item.getRarity());
-            
-            // Create value content with price, category, and optional description
-            StringBuilder valueContent = new StringBuilder();
-            valueContent.append("🪙 **").append(item.getPrice()).append("** credits\n");
-            valueContent.append("**Rarity:** ").append(rarityLabel).append("\n");
-            
-            if (item.getCategory() != null) {
-                valueContent.append("**Category:** ").append(formatCategoryDisplay(item.getCategory().name())).append("\n");
+            // Special handling for USER_COLOR items with role IDs
+            if (item.getCategory() != null && 
+                item.getCategory() == ShopCategory.USER_COLOR && 
+                item.getDiscordRoleId() != null && 
+                !item.getDiscordRoleId().isEmpty()) {
+                
+                // Add role mention with price - coin emoji before amount
+                shopContent.append("<@&").append(item.getDiscordRoleId()).append("> - ");
+                shopContent.append("🪙 ").append(item.getPrice()).append("\n");
+            } else {
+                // Regular item with name and price - coin emoji before amount
+                shopContent.append("**").append(item.getName()).append("** - ");
+                shopContent.append("🪙 ").append(item.getPrice()).append("\n");
             }
-            
-            if (item.getDescription() != null && !item.getDescription().isEmpty()) {
-                // Truncate description if too long
-                String description = item.getDescription();
-                if (description.length() > 100) {
-                    description = description.substring(0, 97) + "...";
-                }
-                valueContent.append(description);
-            }
-            
-            // Add the field for this item
-            embed.addField(formattedName, valueContent.toString(), false);
         }
         
-        // Set footer with pagination info
-        embed.setFooter("Page " + page + " of " + totalPages, null);
+        // Add all shop items as a single field with empty name
+        embed.addField("", shopContent.toString(), false);
+        
+        // Set footer with only usage instruction, no pagination info
+        embed.setFooter("Use /buy <role> to buy a role!", null);
         
         return embed.build();
     }
