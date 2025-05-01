@@ -4,6 +4,7 @@ import com.app.heartbound.dto.shop.ShopDTO;
 import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.services.shop.ShopService;
+import com.app.heartbound.services.UserService;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -22,7 +23,6 @@ import java.awt.Color;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 @Component
 public class ShopCommandListener extends ListenerAdapter {
@@ -42,13 +42,15 @@ public class ShopCommandListener extends ListenerAdapter {
     }
 
     private final ShopService shopService;
+    private final UserService userService;
     
     @Value("${frontend.base.url}")
     private String frontendBaseUrl;
 
     @Autowired
-    public ShopCommandListener(@Lazy ShopService shopService) {
+    public ShopCommandListener(@Lazy ShopService shopService, UserService userService) {
         this.shopService = shopService;
+        this.userService = userService;
         logger.info("ShopCommandListener initialized");
     }
 
@@ -89,7 +91,8 @@ public class ShopCommandListener extends ListenerAdapter {
             
             // Build the initial embed for page 1
             Guild guild = event.getGuild(); // Get the guild from the event
-            MessageEmbed embed = buildShopEmbed(shopItems, currentPage, totalPages, guild);
+            String userName = event.getUser().getName(); // Get user's name
+            MessageEmbed embed = buildShopEmbed(shopItems, currentPage, totalPages, guild, userId, userName);
             
             // Create pagination buttons - include original user ID in button IDs
             Button prevButton = Button.secondary("shop_prev:" + userId + ":" + currentPage, "◀️").withDisabled(true); // Disabled on page 1
@@ -185,7 +188,8 @@ public class ShopCommandListener extends ListenerAdapter {
             
             // Build the new embed for the target page
             Guild guild = event.getGuild(); // Get the guild from the event
-            MessageEmbed embed = buildShopEmbed(shopItems, targetPage, totalPages, guild);
+            String userName = event.getUser().getName(); // Get user's name
+            MessageEmbed embed = buildShopEmbed(shopItems, targetPage, totalPages, guild, userId, userName);
             
             // Create updated pagination buttons with original author ID
             Button prevButton = Button.secondary("shop_prev:" + originalAuthorId + ":" + targetPage, "◀️").withDisabled(targetPage <= 1);
@@ -214,9 +218,11 @@ public class ShopCommandListener extends ListenerAdapter {
      * @param page The current page (1-based)
      * @param totalPages The total number of pages
      * @param guild The Discord guild (server)
+     * @param userId The ID of the user viewing the shop
+     * @param userName The display name of the user viewing the shop
      * @return A MessageEmbed containing the formatted shop items
      */
-    private MessageEmbed buildShopEmbed(List<ShopDTO> items, int page, int totalPages, Guild guild) {
+    private MessageEmbed buildShopEmbed(List<ShopDTO> items, int page, int totalPages, Guild guild, String userId, String userName) {
         // Calculate start and end indices for the current page
         int startIndex = (page - 1) * PAGE_SIZE;
         int endIndex = Math.min(startIndex + PAGE_SIZE, items.size());
@@ -290,7 +296,24 @@ public class ShopCommandListener extends ListenerAdapter {
         
         // Add all shop items as a single field with empty name
         embed.addField("", shopContent.toString(), false);
-         
+        
+        // Add user's credits to footer
+        try {
+            // Get user's credits
+            com.app.heartbound.entities.User user = userService.getUserById(userId);
+            if (user != null) {
+                String username = user.getUsername();
+                Integer credits = user.getCredits();
+                int userCredits = (credits != null) ? credits : 0;
+                
+                // Set footer with user's credits
+                embed.setFooter(username + ", you have " + userCredits + " credits", null);
+            }
+        } catch (Exception e) {
+            logger.debug("Could not retrieve credits info for user {}: {}", userId, e.getMessage());
+            // If we can't get credits info, don't add a footer
+        }
+
         return embed.build();
     }
     
