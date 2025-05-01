@@ -97,7 +97,7 @@ const InventoryItemSkeleton = () => {
 };
 
 export function InventoryPage() {
-  const { user, updateUserProfile } = useAuth();
+  const { user, updateUserProfile, profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ShopItem[]>([]);
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
@@ -215,10 +215,12 @@ export function InventoryPage() {
       // Update local user profile with the updated profile from response
       if (response.data) {
         await updateUserProfile({
-          displayName: response.data.displayName || user?.username || '',
-          pronouns: response.data.pronouns || '',
-          about: response.data.about || '',
-          bannerColor: response.data.bannerColor || ''
+          displayName: response.data.displayName || profile?.displayName || user?.username || '',
+          pronouns: response.data.pronouns || profile?.pronouns || '',
+          about: response.data.about || profile?.about || '',
+          bannerColor: response.data.bannerColor || profile?.bannerColor || '',
+          bannerUrl: response.data.bannerUrl || profile?.bannerUrl || '',
+          avatar: response.data.avatar || user?.avatar || ''
         });
       }
       
@@ -246,10 +248,12 @@ export function InventoryPage() {
       // Update local user profile with the updated profile from response
       if (response.data) {
         await updateUserProfile({
-          displayName: response.data.displayName || user?.username || '',
-          pronouns: response.data.pronouns || '',
-          about: response.data.about || '',
-          bannerColor: response.data.bannerColor || ''
+          displayName: response.data.displayName || profile?.displayName || user?.username || '',
+          pronouns: response.data.pronouns || profile?.pronouns || '',
+          about: response.data.about || profile?.about || '',
+          bannerColor: response.data.bannerColor || profile?.bannerColor || '',
+          bannerUrl: response.data.bannerUrl || profile?.bannerUrl || '',
+          avatar: response.data.avatar || user?.avatar || ''
         });
       }
       
