@@ -77,6 +77,15 @@ public class ChatActivityListener extends ListenerAdapter {
     
     private ScheduledExecutorService cleanupScheduler;
     
+    // Add these constants for role IDs at the top of the class
+    private static final long LEVEL_5_ROLE_ID = 1161732022704816250L;
+    private static final long LEVEL_15_ROLE_ID = 1162632126068437063L;
+    private static final long LEVEL_30_ROLE_ID = 1162628059296432148L;
+    private static final long LEVEL_40_ROLE_ID = 1162628114195697794L;
+    private static final long LEVEL_50_ROLE_ID = 1166539666674167888L;
+    private static final long LEVEL_70_ROLE_ID = 1170429914185465906L;
+    private static final long LEVEL_100_ROLE_ID = 1162628179043823657L;
+    
     @Autowired
     public ChatActivityListener(UserService userService) {
         this.userService = userService;
@@ -142,19 +151,23 @@ public class ChatActivityListener extends ListenerAdapter {
                     userId, currentLevel, currentXp, requiredXp);
         
         if (currentXp >= requiredXp) {
+            int newLevel = currentLevel + 1;
             logger.debug("[XP DEBUG] LEVEL UP! User {} is leveling up from {} to {}", 
-                        userId, currentLevel, currentLevel + 1);
-            user.setLevel(currentLevel + 1);
+                        userId, currentLevel, newLevel);
+            user.setLevel(newLevel);
             user.setExperience(currentXp - requiredXp);
             
             // Award credits for leveling up
             int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
             user.setCredits(currentCredits + creditsPerLevel);
             logger.info("Awarded {} credits to user {} for leveling up to {}. New balance: {}",
-                        creditsPerLevel, userId, currentLevel + 1, user.getCredits());
+                        creditsPerLevel, userId, newLevel, user.getCredits());
             
             try {
                 userService.updateUser(user);
+                
+                // Check if user reached a level milestone and assign role
+                checkAndAssignRoleForLevel(newLevel, userId, channel);
                 
                 // Get the achievement channel for level-up announcements
                 String achievementChannelId = "1304293304833146951";
@@ -166,12 +179,12 @@ public class ChatActivityListener extends ListenerAdapter {
                     EmbedBuilder embed = new EmbedBuilder();
                     embed.setTitle("Level Up Achievement!");
                     embed.setDescription(String.format("<@%s>! You advanced to level %d and earned %d credits!", 
-                                                          userId, currentLevel + 1, creditsPerLevel));
+                                                          userId, newLevel, creditsPerLevel));
                     embed.setColor(new Color(75, 181, 67)); // Green color
                     embed.setTimestamp(java.time.Instant.now());
                     
                     // Add XP progress information
-                    int nextLevelXp = calculateRequiredXp(currentLevel + 1);
+                    int nextLevelXp = calculateRequiredXp(newLevel);
                     embed.addField("Experience", String.format("%d/%d XP to next level", user.getExperience(), nextLevelXp), true);
                     
                     // Add credits information
@@ -193,14 +206,14 @@ public class ChatActivityListener extends ListenerAdapter {
                     
                     // Also send a simple notification in the original channel
                     String simpleNotification = String.format("🎉 <@%s> leveled up to **Level %d** and earned **%d credits**! Check out <#%s> for details!",
-                        userId, currentLevel + 1, creditsPerLevel, achievementChannelId);
+                        userId, newLevel, creditsPerLevel, achievementChannelId);
                     channel.sendMessage(simpleNotification).queue();
                 } else {
                     // Fallback to the original channel if achievement channel not found
                     logger.warn("[XP DEBUG] Achievement channel {} not found, sending to original channel", achievementChannelId);
                     
                     String levelUpMessage = String.format("Congratulations <@%s>! You've reached **Level %d** and earned **%d credits**!", 
-                                                        userId, currentLevel + 1, creditsPerLevel);
+                                                        userId, newLevel, creditsPerLevel);
                     channel.sendMessage(levelUpMessage).queue(
                         success -> logger.debug("[XP DEBUG] Level up message sent for user {}", userId),
                         error -> logger.error("Failed to send level up message for user {}: {}", userId, error.getMessage())
@@ -208,7 +221,7 @@ public class ChatActivityListener extends ListenerAdapter {
                 }
                 
                 logger.info("User {} leveled up to {} (XP: {} -> {}, Credits: +{})", 
-                           userId, currentLevel + 1, currentXp, user.getExperience(), creditsPerLevel);
+                           userId, newLevel, currentXp, user.getExperience(), creditsPerLevel);
                 
                 // Check for additional level ups
                 logger.debug("[XP DEBUG] Checking for additional level ups");
@@ -217,6 +230,96 @@ public class ChatActivityListener extends ListenerAdapter {
             } catch (Exception e) {
                 logger.error("Error updating user level for {}: {}", userId, e.getMessage(), e);
             }
+        }
+    }
+    
+    /**
+     * Checks if the user has reached a level milestone and assigns the appropriate role
+     * 
+     * @param level The new level the user has reached
+     * @param userId The Discord ID of the user
+     * @param channel The message channel for context
+     */
+    private void checkAndAssignRoleForLevel(int level, String userId, MessageChannel channel) {
+        // Early return if not in a guild channel
+        if (!(channel instanceof net.dv8tion.jda.api.entities.channel.concrete.TextChannel)) {
+            logger.debug("[ROLE DEBUG] Not a guild channel, skipping role assignment for user {}", userId);
+            return;
+        }
+        
+        long roleId = 0L;
+        
+        // Determine which role to assign based on level
+        if (level >= 100) {
+            roleId = LEVEL_100_ROLE_ID;
+        } else if (level >= 70) {
+            roleId = LEVEL_70_ROLE_ID;
+        } else if (level >= 50) {
+            roleId = LEVEL_50_ROLE_ID;
+        } else if (level >= 40) {
+            roleId = LEVEL_40_ROLE_ID;
+        } else if (level >= 30) {
+            roleId = LEVEL_30_ROLE_ID;
+        } else if (level >= 15) {
+            roleId = LEVEL_15_ROLE_ID;
+        } else if (level >= 5) {
+            roleId = LEVEL_5_ROLE_ID;
+        }
+        
+        // If no milestone reached, return
+        if (roleId == 0L) {
+            return;
+        }
+        
+        // Get the guild and member
+        net.dv8tion.jda.api.entities.Guild guild = 
+            ((net.dv8tion.jda.api.entities.channel.concrete.TextChannel) channel).getGuild();
+        
+        try {
+            // Get the role by ID
+            net.dv8tion.jda.api.entities.Role role = guild.getRoleById(roleId);
+            if (role == null) {
+                logger.warn("[ROLE DEBUG] Role with ID {} not found in guild {}", roleId, guild.getId());
+                return;
+            }
+            
+            // Get the member and add the role
+            guild.retrieveMemberById(userId).queue(member -> {
+                // Only add the role if the member doesn't already have it
+                if (!member.getRoles().contains(role)) {
+                    guild.addRoleToMember(member, role).queue(
+                        success -> {
+                            logger.info("[ROLE DEBUG] Successfully added role {} to user {} for reaching level {}", 
+                                       role.getName(), userId, level);
+                            
+                            // Send role achievement notification
+                            EmbedBuilder roleEmbed = new EmbedBuilder();
+                            roleEmbed.setTitle("Role Achievement Unlocked!");
+                            roleEmbed.setDescription(String.format("<@%s> has earned the **%s** role for reaching Level %d!", 
+                                                                  userId, role.getName(), level));
+                            roleEmbed.setColor(role.getColor());
+                            roleEmbed.setTimestamp(java.time.Instant.now());
+                            
+                            // Get achievement channel
+                            String achievementChannelId = "1304293304833146951";
+                            net.dv8tion.jda.api.entities.channel.middleman.MessageChannel achievementChannel = 
+                                channel.getJDA().getChannelById(MessageChannel.class, achievementChannelId);
+                            
+                            if (achievementChannel != null) {
+                                achievementChannel.sendMessageEmbeds(roleEmbed.build()).queue();
+                            }
+                        },
+                        error -> logger.error("[ROLE DEBUG] Failed to add role {} to user {}: {}", 
+                                            role.getName(), userId, error.getMessage())
+                    );
+                } else {
+                    logger.debug("[ROLE DEBUG] User {} already has the role {} for level {}", 
+                                userId, role.getName(), level);
+                }
+            }, error -> logger.error("[ROLE DEBUG] Failed to retrieve member {}: {}", userId, error.getMessage()));
+            
+        } catch (Exception e) {
+            logger.error("[ROLE DEBUG] Error assigning role for level {} to user {}: {}", level, userId, e.getMessage(), e);
         }
     }
     
