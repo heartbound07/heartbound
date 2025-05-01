@@ -400,7 +400,9 @@ export function ShopPage() {
           displayName: updatedProfile.displayName || profile?.displayName || user?.username || '',
           pronouns: updatedProfile.pronouns || profile?.pronouns || '',
           about: updatedProfile.about || profile?.about || '',
-          bannerColor: updatedProfile.bannerColor || profile?.bannerColor || ''
+          bannerColor: updatedProfile.bannerColor || profile?.bannerColor || '',
+          bannerUrl: updatedProfile.bannerUrl || profile?.bannerUrl || '',
+          avatar: updatedProfile.avatar || user?.avatar || ''
         });
       }
     } catch (error: any) {
