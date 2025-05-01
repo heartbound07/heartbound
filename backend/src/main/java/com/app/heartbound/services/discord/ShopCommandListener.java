@@ -23,6 +23,7 @@ import java.awt.Color;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Component
 public class ShopCommandListener extends ListenerAdapter {
@@ -73,6 +74,19 @@ public class ShopCommandListener extends ListenerAdapter {
             try {
                 // Try to fetch items with ownership status
                 shopItems = shopService.getAvailableShopItems(userId, null);
+                
+                // Filter out items already owned by the user
+                shopItems = shopItems.stream()
+                    .filter(item -> {
+                        try {
+                            return !item.isOwned();
+                        } catch (Exception e) {
+                            // If we can't determine ownership, keep the item
+                            return true;
+                        }
+                    })
+                    .collect(Collectors.toList());
+                
             } catch (Exception e) {
                 // If lazy loading fails, fall back to getting items without ownership status
                 logger.warn("Failed to get shop items with ownership status, falling back to basic shop display: {}", e.getMessage());
@@ -81,7 +95,7 @@ public class ShopCommandListener extends ListenerAdapter {
             
             if (shopItems == null || shopItems.isEmpty()) {
                 // Handle empty shop
-                event.getHook().sendMessage("The shop is currently empty. Check back later for new items!").queue();
+                event.getHook().sendMessage("The shop is currently empty or you've purchased all available items!").queue();
                 return;
             }
             
@@ -123,31 +137,22 @@ public class ShopCommandListener extends ListenerAdapter {
             return; // Not our button
         }
         
+        // Acknowledge the button click immediately
+        event.deferEdit().queue();
+        
         try {
-            // Extract the current page and original author from the button ID
+            // Extract the current page from the button ID
             String[] parts = componentId.split(":");
-            
-            // Validate the parts array has the expected format
-            if (parts.length < 3) {
-                logger.warn("Invalid button ID format: {}", componentId);
-                event.reply("This button is no longer valid.").setEphemeral(true).queue();
-                return;
-            }
-            
             String action = parts[0]; // "shop_prev" or "shop_next"
-            String originalAuthorId = parts[1]; // User ID of the original command author
+            String originalUserId = parts[1]; // User ID stored in the button
             int currentPage = Integer.parseInt(parts[2]);
             
-            // Authorization check - ensure only original author can interact
-            if (!event.getUser().getId().equals(originalAuthorId)) {
-                logger.debug("Unauthorized button interaction by user {} on shop menu owned by {}", 
-                        event.getUser().getId(), originalAuthorId);
-                event.reply("You can only interact with your own shop message.").setEphemeral(true).queue();
+            // Only allow the original user to interact with buttons
+            if (!event.getUser().getId().equals(originalUserId)) {
+                // Silently ignore if it's not the original user
+                event.getHook().editOriginal("This shop menu belongs to someone else. Please use your own /shop command.").queue();
                 return;
             }
-            
-            // Now that we've confirmed authorization, acknowledge the valid interaction
-            event.deferEdit().queue();
             
             // Determine the target page based on the button clicked
             int tempTargetPage = currentPage;
@@ -164,6 +169,19 @@ public class ShopCommandListener extends ListenerAdapter {
             try {
                 // Try to fetch items with ownership status
                 shopItems = shopService.getAvailableShopItems(userId, null);
+                
+                // Filter out items already owned by the user
+                shopItems = shopItems.stream()
+                    .filter(item -> {
+                        try {
+                            return !item.isOwned();
+                        } catch (Exception e) {
+                            // If we can't determine ownership, keep the item
+                            return true;
+                        }
+                    })
+                    .collect(Collectors.toList());
+                
             } catch (Exception e) {
                 // If lazy loading fails, fall back to getting items without ownership status
                 logger.warn("Failed to get shop items with ownership status, falling back to basic shop display: {}", e.getMessage());
@@ -172,7 +190,7 @@ public class ShopCommandListener extends ListenerAdapter {
             
             if (shopItems == null || shopItems.isEmpty()) {
                 // Handle empty shop
-                event.getHook().editOriginal("The shop is currently empty. Check back later for new items!").queue();
+                event.getHook().editOriginal("The shop is currently empty or you've purchased all available items!").queue();
                 return;
             }
             
@@ -192,9 +210,9 @@ public class ShopCommandListener extends ListenerAdapter {
             MessageEmbed embed = buildShopEmbed(shopItems, targetPage, totalPages, guild, userId, userName);
             
             // Create updated pagination buttons with original author ID
-            Button prevButton = Button.secondary("shop_prev:" + originalAuthorId + ":" + targetPage, "◀️").withDisabled(targetPage <= 1);
+            Button prevButton = Button.secondary("shop_prev:" + originalUserId + ":" + targetPage, "◀️").withDisabled(targetPage <= 1);
             Button pageIndicator = Button.secondary("shop_page_indicator", targetPage + "/" + totalPages).withDisabled(true);
-            Button nextButton = Button.secondary("shop_next:" + originalAuthorId + ":" + targetPage, "▶️").withDisabled(targetPage >= totalPages);
+            Button nextButton = Button.secondary("shop_next:" + originalUserId + ":" + targetPage, "▶️").withDisabled(targetPage >= totalPages);
             
             // Update the original message
             event.getHook().editOriginalEmbeds(embed)
@@ -263,33 +281,11 @@ public class ShopCommandListener extends ListenerAdapter {
                 // Add role mention with price
                 shopContent.append("<@&").append(item.getDiscordRoleId()).append("> - ");
                 shopContent.append(item.getPrice());
-                
-                // Safely check ownership status
-                try {
-                    if (item.isOwned()) {
-                        shopContent.append(" ✅");
-                    }
-                } catch (Exception e) {
-                    // Skip adding the UNLOCKED tag if we can't determine ownership
-                    logger.debug("Could not determine ownership status for item {}", item.getId());
-                }
-                
                 shopContent.append("\n");
             } else {
                 // Regular item with name and price
                 shopContent.append("**").append(item.getName()).append("** - ");
                 shopContent.append(item.getPrice());
-                
-                // Safely check ownership status
-                try {
-                    if (item.isOwned()) {
-                        shopContent.append(" <@&1367370372457959515>");
-                    }
-                } catch (Exception e) {
-                    // Skip adding the UNLOCKED tag if we can't determine ownership
-                    logger.debug("Could not determine ownership status for item {}", item.getId());
-                }
-                
                 shopContent.append("\n");
             }
         }
