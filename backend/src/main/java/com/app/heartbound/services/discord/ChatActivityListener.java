@@ -300,6 +300,9 @@ public class ChatActivityListener extends ListenerAdapter {
                 logger.debug("[CREDITS DEBUG] User {} has {} messages in window. Threshold: {}. Already awarded: {}", 
                             userId, userMessages.size(), messageThreshold, alreadyAwarded);
                 
+                logger.debug("[CREDITS DETAIL] User={}, Messages in window={}, Messages needed={}, Time window={} min, Already awarded={}, Current credits={}", 
+                    userId, userMessages.size(), messageThreshold, timeWindowMinutes, alreadyAwarded, user.getCredits());
+                
                 // Check if threshold reached and credits not already awarded in this window
                 if (userMessages.size() >= messageThreshold && !alreadyAwarded) {
                     // Award credits
@@ -323,6 +326,9 @@ public class ChatActivityListener extends ListenerAdapter {
                         
                     } catch (Exception e) {
                         logger.error("Error awarding credits to user {}: {}", userId, e.getMessage(), e);
+                        logger.debug("Credit award exception details", e);
+                        // Reset the awarded flag on failure to allow retrying on next message
+                        lastCreditAward.remove(userId);
                     }
                 } else {
                     logger.debug("User {} has {} messages in the activity window. Threshold is {}", 
