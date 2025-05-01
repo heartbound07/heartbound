@@ -405,12 +405,12 @@ public class InventoryCommandListener extends ListenerAdapter {
     private String getFilterLabel(SortMode sortMode) {
         switch (sortMode) {
             case RARITY_DESC:
-                return "Filter: ⭐→⭐⭐⭐"; // Legendary to Common
+                return "⭐→⭐⭐⭐"; // Legendary to Common
             case RARITY_ASC:
-                return "Filter: ⭐⭐⭐→⭐"; // Common to Legendary
+                return "⭐⭐⭐→⭐"; // Common to Legendary
             case DEFAULT:
             default:
-                return "Filter: A-Z"; // Alphabetical
+                return "A-Z"; // Alphabetical
         }
     }
 
