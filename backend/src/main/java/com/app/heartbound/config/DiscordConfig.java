@@ -6,6 +6,7 @@ import com.app.heartbound.services.discord.CreditsCommandListener;
 import com.app.heartbound.services.discord.WelcomeListener;
 import com.app.heartbound.services.discord.WelcomeCommandListener;
 import com.app.heartbound.services.discord.ShopCommandListener;
+import com.app.heartbound.services.discord.InventoryCommandListener;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -55,6 +56,9 @@ public class DiscordConfig {
     @Autowired
     private ShopCommandListener shopCommandListener;
 
+    @Autowired
+    private InventoryCommandListener inventoryCommandListener;
+
     @Bean
     public JDA jda() {
         if (discordToken == null || discordToken.isBlank() || discordToken.equals("${DISCORD_BOT_TOKEN}")) {
@@ -90,7 +94,8 @@ public class DiscordConfig {
                     )
                     // Register all listeners EXCEPT shopCommandListener (we'll register it manually)
                     .addEventListeners(leaderboardCommandListener, chatActivityListener, 
-                                      creditsCommandListener, welcomeListener, welcomeCommandListener)
+                                      creditsCommandListener, welcomeListener, welcomeCommandListener,
+                                      inventoryCommandListener)
                     .build();
 
             // Waits until JDA is fully connected and ready
@@ -133,7 +138,8 @@ public class DiscordConfig {
                     Commands.slash("credits", "Check your current credit balance"),
                     Commands.slash("welcome", "Sends the verification welcome message")
                         .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR)),
-                    Commands.slash("shop", "Displays items currently available in the shop")
+                    Commands.slash("shop", "Displays items currently available in the shop"),
+                    Commands.slash("inventory", "Displays the items you currently own")
                 )
                 .queue(
                     cmds -> {
