@@ -94,8 +94,8 @@ public class InventoryCommandListener extends ListenerAdapter {
             return; // Not our command
         }
 
-        // Defer reply ephemerally
-        event.deferReply(true).queue();
+        // Defer reply publicly (removed 'true' parameter that made it ephemeral)
+        event.deferReply().queue();
         String userId = event.getUser().getId();
         logger.info("User {} requested /inventory", userId);
 
@@ -279,7 +279,7 @@ public class InventoryCommandListener extends ListenerAdapter {
                     }
                 } else {
                     // Regular item with name
-                    inventoryContent.append("**").append(item.getName()).append("** - ");
+                    inventoryContent.append("**").append(item.getName()).append("** | ");
                     
                     // Add category and rarity for non-USER_COLOR items
                     inventoryContent.append(formatCategoryDisplay(item.getCategory() != null ? item.getCategory().name() : "Unknown"));
