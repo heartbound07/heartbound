@@ -248,7 +248,7 @@ public class ShopCommandListener extends ListenerAdapter {
         
         // Create clickable link to the web shop
         String shopUrl = frontendBaseUrl + "/dashboard/shop";
-        embed.setDescription("Browse and purchase items in the [web shop](" + shopUrl + ")");
+        embed.setDescription("Browse and purchase items in the [shop](" + shopUrl + ")");
         
         // Build a consolidated shop items list
         StringBuilder shopContent = new StringBuilder();
