@@ -210,22 +210,19 @@ public class ShopCommandListener extends ListenerAdapter {
                 item.getDiscordRoleId() != null && 
                 !item.getDiscordRoleId().isEmpty()) {
                 
-                // Add role mention with price - coin emoji before amount
+                // Add role mention with price - remove coin emoji entirely
                 shopContent.append("<@&").append(item.getDiscordRoleId()).append("> - ");
-                shopContent.append("🪙 ").append(item.getPrice()).append("\n");
+                shopContent.append(item.getPrice()).append("\n");
             } else {
-                // Regular item with name and price - coin emoji before amount
+                // Regular item with name and price - remove coin emoji entirely
                 shopContent.append("**").append(item.getName()).append("** - ");
-                shopContent.append("🪙 ").append(item.getPrice()).append("\n");
+                shopContent.append(item.getPrice()).append("\n");
             }
         }
         
         // Add all shop items as a single field with empty name
         embed.addField("", shopContent.toString(), false);
-        
-        // Set footer with only usage instruction, no pagination info
-        embed.setFooter("Use /buy <role> to buy a role!", null);
-        
+         
         return embed.build();
     }
     
