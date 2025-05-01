@@ -147,7 +147,7 @@ public class InventoryCommandListener extends ListenerAdapter {
             MessageEmbed embed = buildInventoryEmbed(inventoryList, currentPage, totalPages, event.getUser());
             
             // Filter button - shows current sort mode
-            Button filterButton = Button.secondary("inventory_filter:" + userId + ":" + currentPage + ":" + sortMode, "Filter: A-Z");
+            Button filterButton = Button.secondary("inventory_filter:" + userId + ":" + currentPage + ":" + sortMode, "A-Z");
             
             // Previous, page indicator, next buttons
             Button prevButton = Button.secondary("inventory_prev:" + userId + ":" + currentPage + ":" + sortMode, "◀️").withDisabled(true);
