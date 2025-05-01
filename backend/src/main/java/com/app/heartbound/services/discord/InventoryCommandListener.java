@@ -12,7 +12,6 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -155,12 +154,9 @@ public class InventoryCommandListener extends ListenerAdapter {
             Button pageIndicator = Button.secondary("inventory_page_indicator", "1/" + totalPages).withDisabled(true);
             Button nextButton = Button.secondary("inventory_next:" + userId + ":" + currentPage + ":" + sortMode, "▶️").withDisabled(totalPages <= 1);
 
-            // Send response with pagination buttons in first row, filter button in second row
+            // Send response
             event.getHook().editOriginalEmbeds(embed)
-                    .setComponents(
-                        ActionRow.of(prevButton, pageIndicator, nextButton),
-                        ActionRow.of(filterButton)
-                    )
+                    .setActionRow(filterButton, prevButton, pageIndicator, nextButton)
                     .queue();
 
         } catch (Exception e) {
@@ -262,19 +258,9 @@ public class InventoryCommandListener extends ListenerAdapter {
             Button nextButton = Button.secondary("inventory_next:" + originalUserId + ":" + targetPage + ":" + targetSortMode, "▶️")
                     .withDisabled(targetPage >= totalPages);
 
-            // Create list of action rows for pagination
-            List<ActionRow> actionRows = Arrays.asList(
-                ActionRow.of(prevButton, pageIndicator, nextButton), // First row: pagination
-                ActionRow.of(
-                    Button.secondary("placeholder1", " ").asDisabled(), // Left placeholder
-                    filterButton, // Centered filter button
-                    Button.secondary("placeholder2", " ").asDisabled()  // Right placeholder
-                ) // Second row: filter with placeholders for centering
-            );
-
-            // Update the original message with both action rows
+            // Update the original message
             event.getHook().editOriginalEmbeds(newEmbed)
-                    .setComponents(actionRows)
+                    .setActionRow(filterButton, prevButton, pageIndicator, nextButton)
                     .queue();
 
         } catch (Exception e) {
