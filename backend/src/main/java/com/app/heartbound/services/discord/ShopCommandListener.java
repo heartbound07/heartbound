@@ -91,10 +91,10 @@ public class ShopCommandListener extends ListenerAdapter {
             Guild guild = event.getGuild(); // Get the guild from the event
             MessageEmbed embed = buildShopEmbed(shopItems, currentPage, totalPages, guild);
             
-            // Create pagination buttons
-            Button prevButton = Button.secondary("shop_prev:1", "◀️").withDisabled(true); // Disabled on page 1
+            // Create pagination buttons - include original user ID in button IDs
+            Button prevButton = Button.secondary("shop_prev:" + userId + ":" + currentPage, "◀️").withDisabled(true); // Disabled on page 1
             Button pageIndicator = Button.secondary("shop_page_indicator", "1/" + totalPages).withDisabled(true);
-            Button nextButton = Button.secondary("shop_next:1", "▶️").withDisabled(totalPages <= 1);
+            Button nextButton = Button.secondary("shop_next:" + userId + ":" + currentPage, "▶️").withDisabled(totalPages <= 1);
             
             // Send the response with buttons
             event.getHook().sendMessageEmbeds(embed)
@@ -120,14 +120,31 @@ public class ShopCommandListener extends ListenerAdapter {
             return; // Not our button
         }
         
-        // Acknowledge the button click immediately
-        event.deferEdit().queue();
-        
         try {
-            // Extract the current page from the button ID
+            // Extract the current page and original author from the button ID
             String[] parts = componentId.split(":");
+            
+            // Validate the parts array has the expected format
+            if (parts.length < 3) {
+                logger.warn("Invalid button ID format: {}", componentId);
+                event.reply("This button is no longer valid.").setEphemeral(true).queue();
+                return;
+            }
+            
             String action = parts[0]; // "shop_prev" or "shop_next"
-            int currentPage = Integer.parseInt(parts[1]);
+            String originalAuthorId = parts[1]; // User ID of the original command author
+            int currentPage = Integer.parseInt(parts[2]);
+            
+            // Authorization check - ensure only original author can interact
+            if (!event.getUser().getId().equals(originalAuthorId)) {
+                logger.debug("Unauthorized button interaction by user {} on shop menu owned by {}", 
+                        event.getUser().getId(), originalAuthorId);
+                event.reply("You can only interact with your own shop message.").setEphemeral(true).queue();
+                return;
+            }
+            
+            // Now that we've confirmed authorization, acknowledge the valid interaction
+            event.deferEdit().queue();
             
             // Determine the target page based on the button clicked
             int tempTargetPage = currentPage;
@@ -170,10 +187,10 @@ public class ShopCommandListener extends ListenerAdapter {
             Guild guild = event.getGuild(); // Get the guild from the event
             MessageEmbed embed = buildShopEmbed(shopItems, targetPage, totalPages, guild);
             
-            // Create updated pagination buttons
-            Button prevButton = Button.secondary("shop_prev:" + targetPage, "◀️").withDisabled(targetPage <= 1);
+            // Create updated pagination buttons with original author ID
+            Button prevButton = Button.secondary("shop_prev:" + originalAuthorId + ":" + targetPage, "◀️").withDisabled(targetPage <= 1);
             Button pageIndicator = Button.secondary("shop_page_indicator", targetPage + "/" + totalPages).withDisabled(true);
-            Button nextButton = Button.secondary("shop_next:" + targetPage, "▶️").withDisabled(targetPage >= totalPages);
+            Button nextButton = Button.secondary("shop_next:" + originalAuthorId + ":" + targetPage, "▶️").withDisabled(targetPage >= totalPages);
             
             // Update the original message
             event.getHook().editOriginalEmbeds(embed)
@@ -181,9 +198,12 @@ public class ShopCommandListener extends ListenerAdapter {
                 .queue(success -> logger.debug("Pagination updated to page {}", targetPage),
                       error -> logger.error("Failed to update pagination", error));
             
+        } catch (NumberFormatException e) {
+            logger.error("Error parsing page number from button ID", e);
+            event.reply("Invalid button configuration.").setEphemeral(true).queue();
         } catch (Exception e) {
             logger.error("Error processing shop pagination", e);
-            // The interaction acknowledgment already happened, so just log the error
+            event.reply("An error occurred while updating the shop.").setEphemeral(true).queue();
         }
     }
     
