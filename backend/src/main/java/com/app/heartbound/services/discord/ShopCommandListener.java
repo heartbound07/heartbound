@@ -267,7 +267,7 @@ public class ShopCommandListener extends ListenerAdapter {
                 // Safely check ownership status
                 try {
                     if (item.isOwned()) {
-                        shopContent.append(" <@&1367370372457959515>");
+                        shopContent.append(" ✅");
                     }
                 } catch (Exception e) {
                     // Skip adding the UNLOCKED tag if we can't determine ownership
