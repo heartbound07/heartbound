@@ -251,7 +251,7 @@ const ShopItemSkeleton = () => {
 };
 
 export function ShopPage() {
-  const { user, updateUserProfile } = useAuth();
+  const { user, profile, updateUserProfile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ShopItem[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -380,27 +380,28 @@ export function ShopPage() {
     
     setPurchaseInProgress(true);
     try {
-      await httpClient.post(`/shop/purchase/${itemId}`);
+      // Store the purchase response which contains updated user profile
+      const purchaseResponse = await httpClient.post(`/shop/purchase/${itemId}`);
       showToast('Item purchased successfully!', 'success');
       
       // Mark recent purchase for animation
       setRecentPurchases(prev => ({...prev, [itemId]: Date.now()}));
       
+      // Refresh shop items
       const response = await httpClient.get('/shop/items', {
         params: selectedCategory ? { category: selectedCategory } : {}
       });
       setItems(response.data);
       
-      // Update user profile to refresh credits
-      try {
+      // Update user profile to refresh credits while preserving other profile data
+      if (purchaseResponse.data) {
+        const updatedProfile = purchaseResponse.data;
         await updateUserProfile({
-          displayName: user?.username || '',
-          pronouns: '', 
-          about: '',
-          bannerColor: ''
+          displayName: updatedProfile.displayName || profile?.displayName || user?.username || '',
+          pronouns: updatedProfile.pronouns || profile?.pronouns || '',
+          about: updatedProfile.about || profile?.about || '',
+          bannerColor: updatedProfile.bannerColor || profile?.bannerColor || ''
         });
-      } catch (profileError) {
-        console.error('Error updating profile:', profileError);
       }
     } catch (error: any) {
       console.error('Purchase error:', error);
