@@ -60,61 +60,56 @@ public class ShopCommandListener extends ListenerAdapter {
 
         logger.debug("Shop command received from user: {}", event.getUser().getId());
         
-        // CRITICAL: Acknowledge the interaction immediately with no delay
+        // Acknowledge the interaction immediately
         event.deferReply().queue();
         
-        CompletableFuture.runAsync(() -> {
+        try {
+            // Get the user ID for ownership checking
+            String userId = event.getUser().getId();
+            List<ShopDTO> shopItems;
+            
             try {
-                // Get the user ID for ownership checking
-                String userId = event.getUser().getId();
-                List<ShopDTO> shopItems;
-                
-                try {
-                    // Try to fetch items with ownership status
-                    shopItems = shopService.getAvailableShopItems(userId, null);
-                } catch (Exception e) {
-                    // If lazy loading fails, fall back to getting items without ownership status
-                    logger.warn("Failed to get shop items with ownership status, falling back to basic shop display: {}", e.getMessage());
-                    shopItems = shopService.getAvailableShopItems(null, null);
-                }
-                
-                if (shopItems == null || shopItems.isEmpty()) {
-                    // Handle empty shop
-                    event.getHook().sendMessage("The shop is currently empty. Check back later for new items!").queue();
-                    return;
-                }
-                
-                // Calculate total pages
-                int totalPages = (int) Math.ceil((double) shopItems.size() / PAGE_SIZE);
-                int currentPage = 1; // Start with page 1
-                
-                // Build the initial embed for page 1
-                Guild guild = event.getGuild(); // Get the guild from the event
-                MessageEmbed embed = buildShopEmbed(shopItems, currentPage, totalPages, guild);
-                
-                // Create pagination buttons
-                Button prevButton = Button.secondary("shop_prev:1", "◀️").withDisabled(true); // Disabled on page 1
-                Button pageIndicator = Button.secondary("shop_page_indicator", "1/" + totalPages).withDisabled(true);
-                Button nextButton = Button.secondary("shop_next:1", "▶️").withDisabled(totalPages <= 1);
-                
-                // Send the initial response with buttons - with simpler error handling
-                try {
-                    event.getHook().sendMessageEmbeds(embed)
-                        .addActionRow(prevButton, pageIndicator, nextButton)
-                        .queue();
-                } catch (Exception e) {
-                    logger.error("Failed to send shop embed, trying simplified message", e);
-                    event.getHook().sendMessage("Shop items are available! Visit the web shop for details.").queue();
-                }
+                // Try to fetch items with ownership status
+                shopItems = shopService.getAvailableShopItems(userId, null);
             } catch (Exception e) {
-                logger.error("Failed to process shop command", e);
-                try {
-                    event.getHook().sendMessage("Sorry, an unexpected error occurred. Please try again later.").queue();
-                } catch (Exception ignored) {
-                    logger.error("Failed to send any response for shop command", e);
-                }
+                // If lazy loading fails, fall back to getting items without ownership status
+                logger.warn("Failed to get shop items with ownership status, falling back to basic shop display: {}", e.getMessage());
+                shopItems = shopService.getAvailableShopItems(null, null);
             }
-        });
+            
+            if (shopItems == null || shopItems.isEmpty()) {
+                // Handle empty shop
+                event.getHook().sendMessage("The shop is currently empty. Check back later for new items!").queue();
+                return;
+            }
+            
+            // Calculate total pages
+            int totalPages = (int) Math.ceil((double) shopItems.size() / PAGE_SIZE);
+            int currentPage = 1; // Start with page 1
+            
+            // Build the initial embed for page 1
+            Guild guild = event.getGuild(); // Get the guild from the event
+            MessageEmbed embed = buildShopEmbed(shopItems, currentPage, totalPages, guild);
+            
+            // Create pagination buttons
+            Button prevButton = Button.secondary("shop_prev:1", "◀️").withDisabled(true); // Disabled on page 1
+            Button pageIndicator = Button.secondary("shop_page_indicator", "1/" + totalPages).withDisabled(true);
+            Button nextButton = Button.secondary("shop_next:1", "▶️").withDisabled(totalPages <= 1);
+            
+            // Send the response with buttons
+            event.getHook().sendMessageEmbeds(embed)
+                .addActionRow(prevButton, pageIndicator, nextButton)
+                .queue(success -> logger.debug("Shop displayed successfully"),
+                      error -> logger.error("Failed to send shop", error));
+            
+        } catch (Exception e) {
+            logger.error("Error processing shop command", e);
+            try {
+                event.getHook().sendMessage("An error occurred while fetching the shop data.").queue();
+            } catch (Exception ignored) {
+                logger.error("Failed to send error message", ignored);
+            }
+        }
     }
     
     @Override
