@@ -56,6 +56,7 @@ public class ShopService {
      * @param categoryStr Optional category filter as string
      * @return List of shop items
      */
+    @Transactional(readOnly = true)
     public List<ShopDTO> getAvailableShopItems(String userId, String categoryStr) {
         List<Shop> items;
         LocalDateTime now = LocalDateTime.now();
@@ -316,8 +317,10 @@ public class ShopService {
      */
     private ShopDTO mapToShopDTO(Shop shop, User user) {
         boolean owned = false;
-        if (user != null && user.getInventory() != null) {
-            owned = user.hasItem(shop.getId());
+        if (user != null) {
+            // This accesses the lazy-loaded inventory, which works when inside @Transactional
+            owned = user.getInventory().stream()
+                .anyMatch(item -> item.getId().equals(shop.getId()));
         }
         
         return ShopDTO.builder()
