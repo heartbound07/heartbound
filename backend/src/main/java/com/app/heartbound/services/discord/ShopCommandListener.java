@@ -123,71 +123,68 @@ public class ShopCommandListener extends ListenerAdapter {
         // Acknowledge the button click immediately
         event.deferEdit().queue();
         
-        CompletableFuture.runAsync(() -> {
-            try {
-                // Extract the current page from the button ID
-                String[] parts = componentId.split(":");
-                String action = parts[0]; // "shop_prev" or "shop_next"
-                int currentPage = Integer.parseInt(parts[1]);
-                
-                // Determine the target page based on the button clicked
-                int tempTargetPage = currentPage;
-                if (action.equals("shop_prev")) {
-                    tempTargetPage = currentPage - 1;
-                } else if (action.equals("shop_next")) {
-                    tempTargetPage = currentPage + 1;
-                }
-                
-                // Get the user ID for ownership checking
-                String userId = event.getUser().getId();
-                List<ShopDTO> shopItems;
-                
-                try {
-                    // Try to fetch items with ownership status
-                    shopItems = shopService.getAvailableShopItems(userId, null);
-                } catch (Exception e) {
-                    // If lazy loading fails, fall back to getting items without ownership status
-                    logger.warn("Failed to get shop items with ownership status, falling back to basic shop display: {}", e.getMessage());
-                    shopItems = shopService.getAvailableShopItems(null, null);
-                }
-                
-                if (shopItems == null || shopItems.isEmpty()) {
-                    // Handle empty shop
-                    event.getHook().sendMessage("The shop is currently empty. Check back later for new items!").queue();
-                    return;
-                }
-                
-                // Calculate total pages
-                int totalPages = (int) Math.ceil((double) shopItems.size() / PAGE_SIZE);
-                
-                // Safety check for valid page number
-                if (tempTargetPage < 1) tempTargetPage = 1;
-                if (tempTargetPage > totalPages) tempTargetPage = totalPages;
-                
-                // Create final variable for use in lambda
-                final int targetPage = tempTargetPage;
-                
-                // Build the new embed for the target page
-                Guild guild = event.getGuild(); // Get the guild from the event
-                MessageEmbed embed = buildShopEmbed(shopItems, targetPage, totalPages, guild);
-                
-                // Create updated pagination buttons
-                Button prevButton = Button.secondary("shop_prev:" + targetPage, "◀️").withDisabled(targetPage <= 1);
-                Button pageIndicator = Button.secondary("shop_page_indicator", targetPage + "/" + totalPages).withDisabled(true);
-                Button nextButton = Button.secondary("shop_next:" + targetPage, "▶️").withDisabled(targetPage >= totalPages);
-                
-                // Update the original message with simpler error handling
-                try {
-                    event.getHook().editOriginalEmbeds(embed)
-                        .setActionRow(prevButton, pageIndicator, nextButton)
-                        .queue();
-                } catch (Exception e) {
-                    logger.error("Failed to update shop page", e);
-                }
-            } catch (Exception e) {
-                logger.error("Error processing shop pagination", e);
+        try {
+            // Extract the current page from the button ID
+            String[] parts = componentId.split(":");
+            String action = parts[0]; // "shop_prev" or "shop_next"
+            int currentPage = Integer.parseInt(parts[1]);
+            
+            // Determine the target page based on the button clicked
+            int tempTargetPage = currentPage;
+            if (action.equals("shop_prev")) {
+                tempTargetPage = currentPage - 1;
+            } else if (action.equals("shop_next")) {
+                tempTargetPage = currentPage + 1;
             }
-        });
+            
+            // Get the user ID for ownership checking
+            String userId = event.getUser().getId();
+            List<ShopDTO> shopItems;
+            
+            try {
+                // Try to fetch items with ownership status
+                shopItems = shopService.getAvailableShopItems(userId, null);
+            } catch (Exception e) {
+                // If lazy loading fails, fall back to getting items without ownership status
+                logger.warn("Failed to get shop items with ownership status, falling back to basic shop display: {}", e.getMessage());
+                shopItems = shopService.getAvailableShopItems(null, null);
+            }
+            
+            if (shopItems == null || shopItems.isEmpty()) {
+                // Handle empty shop
+                event.getHook().editOriginal("The shop is currently empty. Check back later for new items!").queue();
+                return;
+            }
+            
+            // Calculate total pages
+            int totalPages = (int) Math.ceil((double) shopItems.size() / PAGE_SIZE);
+            
+            // Safety check for valid page number
+            if (tempTargetPage < 1) tempTargetPage = 1;
+            if (tempTargetPage > totalPages) tempTargetPage = totalPages;
+            
+            // Create final variable for use in lambda
+            final int targetPage = tempTargetPage;
+            
+            // Build the new embed for the target page
+            Guild guild = event.getGuild(); // Get the guild from the event
+            MessageEmbed embed = buildShopEmbed(shopItems, targetPage, totalPages, guild);
+            
+            // Create updated pagination buttons
+            Button prevButton = Button.secondary("shop_prev:" + targetPage, "◀️").withDisabled(targetPage <= 1);
+            Button pageIndicator = Button.secondary("shop_page_indicator", targetPage + "/" + totalPages).withDisabled(true);
+            Button nextButton = Button.secondary("shop_next:" + targetPage, "▶️").withDisabled(targetPage >= totalPages);
+            
+            // Update the original message
+            event.getHook().editOriginalEmbeds(embed)
+                .setActionRow(prevButton, pageIndicator, nextButton)
+                .queue(success -> logger.debug("Pagination updated to page {}", targetPage),
+                      error -> logger.error("Failed to update pagination", error));
+            
+        } catch (Exception e) {
+            logger.error("Error processing shop pagination", e);
+            // The interaction acknowledgment already happened, so just log the error
+        }
     }
     
     /**
