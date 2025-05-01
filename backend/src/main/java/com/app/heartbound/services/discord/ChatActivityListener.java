@@ -143,7 +143,7 @@ public class ChatActivityListener extends ListenerAdapter {
             return;
         }
         
-        int currentLevel = user.getLevel() != null ? user.getLevel() : 1;
+        int currentLevel = (user.getLevel() != null) ? user.getLevel() : 1;
         int currentXp = user.getExperience() != null ? user.getExperience() : 0;
         int requiredXp = calculateRequiredXp(currentLevel);
         
@@ -375,7 +375,7 @@ public class ChatActivityListener extends ListenerAdapter {
             }
             
             int awardedXp = 0;
-            int initialLevel = user.getLevel() != null ? user.getLevel() : 1;
+            int initialLevel = (user.getLevel() != null) ? user.getLevel() : 1;
             
             if (levelingEnabled) {
                 logger.debug("[XP DEBUG] About to award XP to {}: Current XP={}, Level={}, Adding {} XP",
