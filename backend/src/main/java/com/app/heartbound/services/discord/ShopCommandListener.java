@@ -22,6 +22,7 @@ import java.awt.Color;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @Component
 public class ShopCommandListener extends ListenerAdapter {
@@ -59,47 +60,61 @@ public class ShopCommandListener extends ListenerAdapter {
 
         logger.debug("Shop command received from user: {}", event.getUser().getId());
         
-        // Acknowledge the interaction quickly to prevent timeout
+        // CRITICAL: Acknowledge the interaction immediately with no delay
         event.deferReply().queue();
         
-        try {
-            // Get the user ID for ownership checking
-            String userId = event.getUser().getId();
-            
-            // Fetch all available shop items with ownership status for this user
-            List<ShopDTO> shopItems = shopService.getAvailableShopItems(userId, null);
-            
-            if (shopItems == null || shopItems.isEmpty()) {
-                // Handle empty shop
-                event.getHook().sendMessage("The shop is currently empty. Check back later for new items!").queue();
-                return;
+        CompletableFuture.runAsync(() -> {
+            try {
+                // Get the user ID for ownership checking
+                String userId = event.getUser().getId();
+                List<ShopDTO> shopItems;
+                
+                try {
+                    // Try to fetch items with ownership status
+                    shopItems = shopService.getAvailableShopItems(userId, null);
+                } catch (Exception e) {
+                    // If lazy loading fails, fall back to getting items without ownership status
+                    logger.warn("Failed to get shop items with ownership status, falling back to basic shop display: {}", e.getMessage());
+                    shopItems = shopService.getAvailableShopItems(null, null);
+                }
+                
+                if (shopItems == null || shopItems.isEmpty()) {
+                    // Handle empty shop
+                    event.getHook().sendMessage("The shop is currently empty. Check back later for new items!").queue();
+                    return;
+                }
+                
+                // Calculate total pages
+                int totalPages = (int) Math.ceil((double) shopItems.size() / PAGE_SIZE);
+                int currentPage = 1; // Start with page 1
+                
+                // Build the initial embed for page 1
+                Guild guild = event.getGuild(); // Get the guild from the event
+                MessageEmbed embed = buildShopEmbed(shopItems, currentPage, totalPages, guild);
+                
+                // Create pagination buttons
+                Button prevButton = Button.secondary("shop_prev:1", "◀️").withDisabled(true); // Disabled on page 1
+                Button pageIndicator = Button.secondary("shop_page_indicator", "1/" + totalPages).withDisabled(true);
+                Button nextButton = Button.secondary("shop_next:1", "▶️").withDisabled(totalPages <= 1);
+                
+                // Send the initial response with buttons - with simpler error handling
+                try {
+                    event.getHook().sendMessageEmbeds(embed)
+                        .addActionRow(prevButton, pageIndicator, nextButton)
+                        .queue();
+                } catch (Exception e) {
+                    logger.error("Failed to send shop embed, trying simplified message", e);
+                    event.getHook().sendMessage("Shop items are available! Visit the web shop for details.").queue();
+                }
+            } catch (Exception e) {
+                logger.error("Failed to process shop command", e);
+                try {
+                    event.getHook().sendMessage("Sorry, an unexpected error occurred. Please try again later.").queue();
+                } catch (Exception ignored) {
+                    logger.error("Failed to send any response for shop command", e);
+                }
             }
-            
-            // Calculate total pages
-            int totalPages = (int) Math.ceil((double) shopItems.size() / PAGE_SIZE);
-            int currentPage = 1; // Start with page 1
-            
-            // Build the initial embed for page 1
-            Guild guild = event.getGuild(); // Get the guild from the event
-            MessageEmbed embed = buildShopEmbed(shopItems, currentPage, totalPages, guild);
-            
-            // Create pagination buttons
-            Button prevButton = Button.secondary("shop_prev:1", "◀️").withDisabled(true); // Disabled on page 1
-            Button pageIndicator = Button.secondary("shop_page_indicator", "1/" + totalPages).withDisabled(true);
-            Button nextButton = Button.secondary("shop_next:1", "▶️").withDisabled(totalPages <= 1);
-            
-            // Send the initial response with buttons
-            event.getHook().sendMessageEmbeds(embed)
-                .setActionRow(prevButton, pageIndicator, nextButton)
-                .queue(
-                    success -> logger.debug("Shop items displayed successfully"),
-                    error -> logger.error("Failed to send shop items", error)
-                );
-            
-        } catch (Exception e) {
-            logger.error("Error processing shop command", e);
-            event.getHook().sendMessage("An error occurred while fetching the shop data.").queue();
-        }
+        });
     }
     
     @Override
@@ -113,60 +128,71 @@ public class ShopCommandListener extends ListenerAdapter {
         // Acknowledge the button click immediately
         event.deferEdit().queue();
         
-        try {
-            // Extract the current page from the button ID
-            String[] parts = componentId.split(":");
-            String action = parts[0]; // "shop_prev" or "shop_next"
-            int currentPage = Integer.parseInt(parts[1]);
-            
-            // Determine the target page based on the button clicked
-            int tempTargetPage = currentPage;
-            if (action.equals("shop_prev")) {
-                tempTargetPage = currentPage - 1;
-            } else if (action.equals("shop_next")) {
-                tempTargetPage = currentPage + 1;
+        CompletableFuture.runAsync(() -> {
+            try {
+                // Extract the current page from the button ID
+                String[] parts = componentId.split(":");
+                String action = parts[0]; // "shop_prev" or "shop_next"
+                int currentPage = Integer.parseInt(parts[1]);
+                
+                // Determine the target page based on the button clicked
+                int tempTargetPage = currentPage;
+                if (action.equals("shop_prev")) {
+                    tempTargetPage = currentPage - 1;
+                } else if (action.equals("shop_next")) {
+                    tempTargetPage = currentPage + 1;
+                }
+                
+                // Get the user ID for ownership checking
+                String userId = event.getUser().getId();
+                List<ShopDTO> shopItems;
+                
+                try {
+                    // Try to fetch items with ownership status
+                    shopItems = shopService.getAvailableShopItems(userId, null);
+                } catch (Exception e) {
+                    // If lazy loading fails, fall back to getting items without ownership status
+                    logger.warn("Failed to get shop items with ownership status, falling back to basic shop display: {}", e.getMessage());
+                    shopItems = shopService.getAvailableShopItems(null, null);
+                }
+                
+                if (shopItems == null || shopItems.isEmpty()) {
+                    // Handle empty shop
+                    event.getHook().sendMessage("The shop is currently empty. Check back later for new items!").queue();
+                    return;
+                }
+                
+                // Calculate total pages
+                int totalPages = (int) Math.ceil((double) shopItems.size() / PAGE_SIZE);
+                
+                // Safety check for valid page number
+                if (tempTargetPage < 1) tempTargetPage = 1;
+                if (tempTargetPage > totalPages) tempTargetPage = totalPages;
+                
+                // Create final variable for use in lambda
+                final int targetPage = tempTargetPage;
+                
+                // Build the new embed for the target page
+                Guild guild = event.getGuild(); // Get the guild from the event
+                MessageEmbed embed = buildShopEmbed(shopItems, targetPage, totalPages, guild);
+                
+                // Create updated pagination buttons
+                Button prevButton = Button.secondary("shop_prev:" + targetPage, "◀️").withDisabled(targetPage <= 1);
+                Button pageIndicator = Button.secondary("shop_page_indicator", targetPage + "/" + totalPages).withDisabled(true);
+                Button nextButton = Button.secondary("shop_next:" + targetPage, "▶️").withDisabled(targetPage >= totalPages);
+                
+                // Update the original message with simpler error handling
+                try {
+                    event.getHook().editOriginalEmbeds(embed)
+                        .setActionRow(prevButton, pageIndicator, nextButton)
+                        .queue();
+                } catch (Exception e) {
+                    logger.error("Failed to update shop page", e);
+                }
+            } catch (Exception e) {
+                logger.error("Error processing shop pagination", e);
             }
-            
-            // Get the user ID for ownership checking
-            String userId = event.getUser().getId();
-            
-            // Fetch all available shop items with ownership status for this user
-            List<ShopDTO> shopItems = shopService.getAvailableShopItems(userId, null);
-            
-            if (shopItems == null || shopItems.isEmpty()) {
-                // Handle empty shop
-                event.getHook().sendMessage("The shop is currently empty. Check back later for new items!").queue();
-                return;
-            }
-            
-            // Calculate total pages
-            int totalPages = (int) Math.ceil((double) shopItems.size() / PAGE_SIZE);
-            
-            // Safety check for valid page number
-            if (tempTargetPage < 1) tempTargetPage = 1;
-            if (tempTargetPage > totalPages) tempTargetPage = totalPages;
-            
-            // Create final variable for use in lambda
-            final int targetPage = tempTargetPage;
-            
-            // Build the new embed for the target page
-            Guild guild = event.getGuild(); // Get the guild from the event
-            MessageEmbed embed = buildShopEmbed(shopItems, targetPage, totalPages, guild);
-            
-            // Create updated pagination buttons
-            Button prevButton = Button.secondary("shop_prev:" + targetPage, "◀️").withDisabled(targetPage <= 1);
-            Button pageIndicator = Button.secondary("shop_page_indicator", targetPage + "/" + totalPages).withDisabled(true);
-            Button nextButton = Button.secondary("shop_next:" + targetPage, "▶️").withDisabled(targetPage >= totalPages);
-            
-            // Update the original message
-            event.getHook().editOriginalEmbeds(embed)
-                .setActionRow(prevButton, pageIndicator, nextButton)
-                .queue();
-            
-        } catch (Exception e) {
-            logger.error("Error processing shop pagination", e);
-            // The interaction acknowledgment already happened, so just log the error
-        }
+        });
     }
     
     /**
@@ -216,24 +242,34 @@ public class ShopCommandListener extends ListenerAdapter {
                 item.getDiscordRoleId() != null && 
                 !item.getDiscordRoleId().isEmpty()) {
                 
-                // Add role mention with price - remove coin emoji entirely
+                // Add role mention with price
                 shopContent.append("<@&").append(item.getDiscordRoleId()).append("> - ");
                 shopContent.append(item.getPrice());
                 
-                // Add the UNLOCKED role mention if item is owned by the user
-                if (item.isOwned()) {
-                    shopContent.append(" <@&1367370372457959515>");
+                // Safely check ownership status
+                try {
+                    if (item.isOwned()) {
+                        shopContent.append(" <@&1367370372457959515>");
+                    }
+                } catch (Exception e) {
+                    // Skip adding the UNLOCKED tag if we can't determine ownership
+                    logger.debug("Could not determine ownership status for item {}", item.getId());
                 }
                 
                 shopContent.append("\n");
             } else {
-                // Regular item with name and price - remove coin emoji entirely
+                // Regular item with name and price
                 shopContent.append("**").append(item.getName()).append("** - ");
                 shopContent.append(item.getPrice());
                 
-                // Add the UNLOCKED role mention if item is owned by the user
-                if (item.isOwned()) {
-                    shopContent.append(" <@&1367370372457959515>");
+                // Safely check ownership status
+                try {
+                    if (item.isOwned()) {
+                        shopContent.append(" <@&1367370372457959515>");
+                    }
+                } catch (Exception e) {
+                    // Skip adding the UNLOCKED tag if we can't determine ownership
+                    logger.debug("Could not determine ownership status for item {}", item.getId());
                 }
                 
                 shopContent.append("\n");
