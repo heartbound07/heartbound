@@ -365,7 +365,7 @@ public class ChatActivityListener extends ListenerAdapter {
             }
             
             boolean userUpdated = false; // Flag to track if user needs saving
-            String achievementChannelId = "1303106586650218518";
+            String achievementChannelId = "1304293304833146951";
             MessageChannel achievementChannel = 
                 event.getJDA().getChannelById(MessageChannel.class, achievementChannelId);
             
