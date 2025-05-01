@@ -23,6 +23,7 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 public class DiscordConfig {
@@ -87,14 +88,17 @@ public class DiscordConfig {
                             CacheFlag.ONLINE_STATUS,
                             CacheFlag.SCHEDULED_EVENTS
                     )
-                    // Register all listeners, including our new WelcomeListener
+                    // Register all listeners EXCEPT shopCommandListener (we'll register it manually)
                     .addEventListeners(leaderboardCommandListener, chatActivityListener, 
-                                      creditsCommandListener, welcomeListener, welcomeCommandListener, shopCommandListener)
+                                      creditsCommandListener, welcomeListener, welcomeCommandListener)
                     .build();
 
             // Waits until JDA is fully connected and ready
             jdaInstance.awaitReady();
             logger.info("JDA instance built and ready!");
+            
+            // Register shop command listener manually
+            shopCommandListener.registerWithJDA(jdaInstance);
             
             // Register slash commands
             registerSlashCommands();
@@ -151,8 +155,23 @@ public class DiscordConfig {
     public void shutdown() {
         if (jdaInstance != null) {
             logger.info("Shutting down JDA instance...");
-            jdaInstance.shutdownNow();
-            logger.info("JDA instance shut down.");
+            
+            try {
+                // First, unregister all event listeners to prevent events during shutdown
+                // Note: the ShopCommandListener will handle its own unregistration
+                jdaInstance.shutdownNow();
+                
+                // Wait for JDA to fully shut down with a timeout
+                boolean shutdownComplete = jdaInstance.awaitShutdown(10, TimeUnit.SECONDS);
+                
+                if (shutdownComplete) {
+                    logger.info("JDA instance shut down successfully.");
+                } else {
+                    logger.warn("JDA instance shutdown timed out after 10 seconds.");
+                }
+            } catch (Exception e) {
+                logger.error("Error during JDA shutdown", e);
+            }
         }
     }
 }

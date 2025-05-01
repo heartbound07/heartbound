@@ -25,6 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import jakarta.annotation.PreDestroy;
+import net.dv8tion.jda.api.JDA;
+
 @Component
 public class ShopCommandListener extends ListenerAdapter {
     
@@ -47,12 +50,51 @@ public class ShopCommandListener extends ListenerAdapter {
     
     @Value("${frontend.base.url}")
     private String frontendBaseUrl;
+    
+    // Add field to track registration status
+    private boolean isRegistered = false;
+    private JDA jdaInstance;
 
     @Autowired
     public ShopCommandListener(@Lazy ShopService shopService, UserService userService) {
         this.shopService = shopService;
         this.userService = userService;
         logger.info("ShopCommandListener initialized");
+    }
+    
+    /**
+     * Register this listener with the JDA instance.
+     * This method is called by DiscordConfig after JDA is initialized.
+     * 
+     * @param jda The JDA instance to register with
+     */
+    public void registerWithJDA(JDA jda) {
+        if (jda != null && !isRegistered) {
+            this.jdaInstance = jda;
+            jda.addEventListener(this);
+            this.isRegistered = true;
+            logger.debug("ShopCommandListener registered with JDA");
+        }
+    }
+    
+    /**
+     * Clean up method called before bean destruction.
+     * Ensures this listener is removed from JDA to prevent events during shutdown.
+     */
+    @PreDestroy
+    public void cleanup() {
+        logger.debug("ShopCommandListener cleanup started");
+        if (isRegistered && jdaInstance != null) {
+            try {
+                jdaInstance.removeEventListener(this);
+                logger.info("ShopCommandListener successfully unregistered from JDA");
+            } catch (Exception e) {
+                logger.warn("Error while unregistering ShopCommandListener: {}", e.getMessage());
+            }
+            isRegistered = false;
+            jdaInstance = null;
+        }
+        logger.debug("ShopCommandListener cleanup completed");
     }
 
     @Override
