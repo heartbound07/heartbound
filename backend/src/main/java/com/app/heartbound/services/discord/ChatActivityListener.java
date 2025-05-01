@@ -305,6 +305,9 @@ public class ChatActivityListener extends ListenerAdapter {
                         // Reset activity tracking for this user after awarding
                         userActivity.remove(userId);
                         
+                        // Force immediate update of credits to ensure they are saved
+                        userService.updateUser(user);
+                        
                     } catch (Exception e) {
                         logger.error("Error awarding credits to user {}: {}", userId, e.getMessage(), e);
                     }
@@ -332,12 +335,12 @@ public class ChatActivityListener extends ListenerAdapter {
             // Note: checkAndProcessLevelUp already saves the user if a level up occurs.
             // We only need to save here if XP was added but no level up happened, or if credits were added.
             if (userUpdated && (user.getLevel() == null || calculateRequiredXp(user.getLevel()) > user.getExperience())) {
-                 try {
-                     userService.updateUser(user);
-                     logger.debug("Persisted user {} state after activity processing.", userId);
-                 } catch (Exception e) {
-                     logger.error("Error saving user state for {} after activity processing: {}", userId, e.getMessage(), e);
-                 }
+                try {
+                    userService.updateUser(user);
+                    logger.debug("Persisted user {} state after activity processing.", userId);
+                } catch (Exception e) {
+                    logger.error("Error saving user state for {} after activity processing: {}", userId, e.getMessage(), e);
+                }
             }
             
         } catch (Exception e) {
