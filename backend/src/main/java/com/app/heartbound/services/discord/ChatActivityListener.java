@@ -72,6 +72,9 @@ public class ChatActivityListener extends ListenerAdapter {
     // Track user activity - userId -> list of message timestamps
     private final ConcurrentHashMap<String, List<Instant>> userActivity = new ConcurrentHashMap<>();
     
+    // Add tracking map for users who have received credits and when
+    private final ConcurrentHashMap<String, Instant> lastCreditAward = new ConcurrentHashMap<>();
+    
     private ScheduledExecutorService cleanupScheduler;
     
     @Autowired
@@ -115,6 +118,9 @@ public class ChatActivityListener extends ListenerAdapter {
             
             // Remove empty activity lists
             userActivity.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+            
+            // Clean up old credit award tracking entries
+            lastCreditAward.entrySet().removeIf(entry -> entry.getValue().isBefore(cutoff));
             
             logger.debug("Activity data cleanup completed. Active users in tracking: {}", userActivity.size());
         } catch (Exception e) {
@@ -284,11 +290,18 @@ public class ChatActivityListener extends ListenerAdapter {
                 Instant cutoff = now.minusSeconds(timeWindowMinutes * 60);
                 userMessages.removeIf(timestamp -> timestamp.isBefore(cutoff));
                 
+                // Check if user has already received credits in this time window
+                Instant lastAward = lastCreditAward.get(userId);
+                boolean alreadyAwarded = (lastAward != null && lastAward.isAfter(cutoff));
+                
                 // Add current message
                 userMessages.add(now);
                 
-                // Check if threshold reached
-                if (userMessages.size() >= messageThreshold) {
+                logger.debug("[CREDITS DEBUG] User {} has {} messages in window. Threshold: {}. Already awarded: {}", 
+                            userId, userMessages.size(), messageThreshold, alreadyAwarded);
+                
+                // Check if threshold reached and credits not already awarded in this window
+                if (userMessages.size() >= messageThreshold && !alreadyAwarded) {
                     // Award credits
                     try {
                         int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
@@ -302,8 +315,8 @@ public class ChatActivityListener extends ListenerAdapter {
                         logger.info("Awarded {} credits to user {} for chat activity. New balance: {}",
                                     creditsToAward, userId, newCredits);
                         
-                        // Reset activity tracking for this user after awarding
-                        userActivity.remove(userId);
+                        // Mark that user has received credits in this time window
+                        lastCreditAward.put(userId, now);
                         
                         // Force immediate update of credits to ensure they are saved
                         userService.updateUser(user);
@@ -312,7 +325,7 @@ public class ChatActivityListener extends ListenerAdapter {
                         logger.error("Error awarding credits to user {}: {}", userId, e.getMessage(), e);
                     }
                 } else {
-                    logger.debug("User {} has {} messages in the activity window. Threshold is {}",
+                    logger.debug("User {} has {} messages in the activity window. Threshold is {}", 
                                 userId, userMessages.size(), messageThreshold);
                 }
             }
