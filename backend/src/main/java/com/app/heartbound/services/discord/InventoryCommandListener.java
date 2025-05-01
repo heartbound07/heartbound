@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional; // Import for potential future use
+import org.springframework.beans.factory.annotation.Value;
 
 import java.awt.Color;
 import java.util.ArrayList;
@@ -35,6 +36,10 @@ public class InventoryCommandListener extends ListenerAdapter {
     private static final Color EMBED_COLOR = new Color(88, 101, 242); // Discord Blurple
 
     private final UserService userService;
+
+    // Add frontend base URL from application.properties
+    @Value("${frontend.base.url}")
+    private String frontendBaseUrl;
 
     // JDA registration management
     private boolean isRegistered = false;
@@ -252,6 +257,10 @@ public class InventoryCommandListener extends ListenerAdapter {
         embed.setAuthor(discordUser.getName(), null, discordUser.getEffectiveAvatarUrl());
         embed.setColor(EMBED_COLOR);
         
+        // Add description with clickable link to web inventory
+        String inventoryUrl = frontendBaseUrl + "/dashboard/inventory";
+        embed.setDescription("To equip an item go to your [inventory](" + inventoryUrl + ")");
+        
         // Build inventory content
         StringBuilder inventoryContent = new StringBuilder();
         
@@ -267,7 +276,7 @@ public class InventoryCommandListener extends ListenerAdapter {
                     !item.getDiscordRoleId().isEmpty()) {
                     
                     // For USER_COLOR, display role ID and rarity role ID
-                    inventoryContent.append("<@&").append(item.getDiscordRoleId()).append("> - ");
+                    inventoryContent.append("<@&").append(item.getDiscordRoleId()).append("> | ");
                     
                     // Add rarity role mention instead of text description
                     String rarityRoleId = RARITY_ROLE_IDS.get(item.getRarity());
