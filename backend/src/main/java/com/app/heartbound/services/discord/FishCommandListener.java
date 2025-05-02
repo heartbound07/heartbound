@@ -112,18 +112,13 @@ public class FishCommandListener extends ListenerAdapter {
                 // Select a random fish emoji
                 String fishEmoji = FISH_EMOJIS.get(RANDOM.nextInt(FISH_EMOJIS.size()));
                 
-                // Determine credit amount (1-100)
-                creditChange = RANDOM.nextInt(100) + 1;
+                // Determine credit amount (1-20 for normal catches)
+                creditChange = RANDOM.nextInt(20) + 1;
                 
                 // Bonus for rare catches
                 if (RARE_CATCHES.contains(fishEmoji)) {
-                    // For rare catches, ensure minimum of 50 credits or add 20 bonus credits
-                    if (creditChange < 50) {
-                        creditChange = 50 + RANDOM.nextInt(51); // 50-100 range for rare catches
-                    } else {
-                        creditChange += 20; // Add 20 bonus credits
-                        if (creditChange > 100) creditChange = 100; // Cap at 100
-                    }
+                    // For rare catches, use 50-70 range
+                    creditChange = 50 + RANDOM.nextInt(21); // 50-70 range for rare catches
                     
                     message.append("**WOW!** You caught a rare ").append(fishEmoji);
                 } else {
