@@ -7,9 +7,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,19 +18,18 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Discord Bot Management", description = "APIs for managing Discord bot settings")
 @SecurityRequirement(name = "bearerAuth")
 @PreAuthorize("hasRole('ADMIN')")
+@RequiredArgsConstructor
+@Slf4j
 public class DiscordSettingsController {
 
-    private static final Logger logger = LoggerFactory.getLogger(DiscordSettingsController.class);
-
-    @Autowired
-    private DiscordBotSettingsService discordBotSettingsService;
+    private final DiscordBotSettingsService discordBotSettingsService;
 
     @GetMapping("/settings")
     @Operation(summary = "Get Discord bot settings", description = "Retrieves current Discord bot activity and leveling settings")
     @ApiResponse(responseCode = "200", description = "Settings retrieved successfully")
     @ApiResponse(responseCode = "403", description = "Access denied")
     public ResponseEntity<DiscordBotSettingsDTO> getSettings() {
-        logger.info("GET request for Discord bot settings");
+        log.info("GET request for Discord bot settings");
         return ResponseEntity.ok(discordBotSettingsService.getCurrentSettings());
     }
 
@@ -41,7 +39,7 @@ public class DiscordSettingsController {
     @ApiResponse(responseCode = "400", description = "Invalid settings data")
     @ApiResponse(responseCode = "403", description = "Access denied")
     public ResponseEntity<DiscordBotSettingsDTO> updateSettings(@Valid @RequestBody DiscordBotSettingsDTO settings) {
-        logger.info("PUT request to update Discord bot settings");
+        log.info("PUT request to update Discord bot settings");
         return ResponseEntity.ok(discordBotSettingsService.updateSettings(settings));
     }
 } 
