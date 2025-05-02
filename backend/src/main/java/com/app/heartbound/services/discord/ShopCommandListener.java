@@ -191,8 +191,13 @@ public class ShopCommandListener extends ListenerAdapter {
             
             // Only allow the original user to interact with buttons
             if (!event.getUser().getId().equals(originalUserId)) {
-                // Silently ignore if it's not the original user
-                event.getHook().editOriginal("This shop menu belongs to someone else. Please use your own /shop command.").queue();
+                // Cancel the deferred edit
+                event.getHook().deleteOriginal().queue();
+                
+                // Send an ephemeral message that only the clicking user can see
+                event.reply("This shop menu belongs to someone else. Please use your own /shop command.")
+                    .setEphemeral(true) // Makes the message private to the user
+                    .queue();
                 return;
             }
             
