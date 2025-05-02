@@ -105,10 +105,24 @@ export function DiscordBotSettings() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     
-    setSettings(prevSettings => ({
-      ...prevSettings,
-      [name]: type === 'checkbox' ? checked : type === 'number' ? parseInt(value, 10) : value
-    }));
+    if (type === 'checkbox') {
+      setSettings(prevSettings => ({
+        ...prevSettings,
+        [name]: checked
+      }));
+    } else if (type === 'number') {
+      // Handle empty string case to avoid NaN
+      const numValue = value === '' ? 0 : parseInt(value, 10);
+      setSettings(prevSettings => ({
+        ...prevSettings,
+        [name]: isNaN(numValue) ? 0 : numValue
+      }));
+    } else {
+      setSettings(prevSettings => ({
+        ...prevSettings,
+        [name]: value
+      }));
+    }
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
