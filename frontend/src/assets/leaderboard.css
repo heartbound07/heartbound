@@ -326,3 +326,28 @@
     letter-spacing: 0.5px;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
+  
+  /* Override scrollbar styling for leaderboard page only */
+  .leaderboard-page-container {
+    /* Reset Firefox scrollbar */
+    scrollbar-color: transparent transparent;
+    scrollbar-width: none;
+  }
+  
+  /* Reset Webkit scrollbar for leaderboard page */
+  .leaderboard-page-container::-webkit-scrollbar,
+  .leaderboard-page-container *::-webkit-scrollbar {
+    width: 0;
+    background-color: transparent;
+  }
+  
+  .leaderboard-page-container::-webkit-scrollbar-thumb,
+  .leaderboard-page-container *::-webkit-scrollbar-thumb {
+    background: transparent;
+    border: none;
+  }
+  
+  .leaderboard-page-container::-webkit-scrollbar-track,
+  .leaderboard-page-container *::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
