@@ -453,4 +453,41 @@ public class ChatActivityListener extends ListenerAdapter {
             logger.error("Error processing message from user {}: {}", userId, e.getMessage(), e);
         }
     }
+
+    public void updateSettings(
+            Boolean activityEnabled,
+            Integer creditsToAward,
+            Integer messageThreshold,
+            Integer timeWindowMinutes,
+            Integer cooldownSeconds,
+            Integer minMessageLength,
+            Boolean levelingEnabled,
+            Integer xpToAward,
+            Integer baseXp,
+            Integer levelMultiplier,
+            Integer levelExponent,
+            Integer levelFactor,
+            Integer creditsPerLevel) {
+        
+        if (activityEnabled != null) this.activityEnabled = activityEnabled;
+        if (creditsToAward != null) this.creditsToAward = creditsToAward;
+        if (messageThreshold != null) this.messageThreshold = messageThreshold;
+        if (timeWindowMinutes != null) this.timeWindowMinutes = timeWindowMinutes;
+        if (cooldownSeconds != null) this.cooldownSeconds = cooldownSeconds;
+        if (minMessageLength != null) this.minMessageLength = minMessageLength;
+        
+        if (levelingEnabled != null) this.levelingEnabled = levelingEnabled;
+        if (xpToAward != null) this.xpToAward = xpToAward;
+        if (baseXp != null) this.baseXp = baseXp;
+        if (levelMultiplier != null) this.levelMultiplier = levelMultiplier;
+        if (levelExponent != null) this.levelExponent = levelExponent;
+        if (levelFactor != null) this.levelFactor = levelFactor;
+        if (creditsPerLevel != null) this.creditsPerLevel = creditsPerLevel;
+        
+        logger.info("Discord bot activity and leveling settings updated at runtime");
+        logger.debug("Activity: enabled={}, credits={}, threshold={}, window={}, cooldown={}, minLength={}",
+                   activityEnabled, creditsToAward, messageThreshold, timeWindowMinutes, cooldownSeconds, minMessageLength);
+        logger.debug("Leveling: enabled={}, xp={}, baseXp={}, multiplier={}, exponent={}, factor={}, creditsPerLevel={}",
+                   levelingEnabled, xpToAward, baseXp, levelMultiplier, levelExponent, levelFactor, creditsPerLevel);
+    }
 } 

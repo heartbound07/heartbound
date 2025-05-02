@@ -9,6 +9,7 @@ import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { ProfilePage } from '@/features/dashboard/ProfilePage';
 import { AdminPanel } from '@/features/dashboard/admin/AdminPanel';
 import { UserManagement } from '@/features/dashboard/admin/UserManagement';
+import { DiscordBotSettings } from '@/features/dashboard/admin/DiscordBotSettings';
 import ValorantPage from '@/features/valorant/ValorantPage';
 import ValorantPartyDetails from '@/features/valorant/ValorantPartyDetails';
 import { DiscordCallback } from '@/features/auth/DiscordCallback';
@@ -94,6 +95,14 @@ export function AppRoutes() {
               element={
                 <AdminRoute>
                   <UserManagement />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="discord-settings"
+              element={
+                <AdminRoute>
+                  <DiscordBotSettings />
                 </AdminRoute>
               } 
             />

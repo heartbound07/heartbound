@@ -44,6 +44,18 @@ export function AdminPanel() {
             </button>
           </div>
           
+          {/* Discord Bot Settings Card */}
+          <div className="bg-slate-800/50 rounded-lg p-5 border border-white/5 hover:border-primary/20 transition-all duration-300">
+            <h2 className="text-lg font-semibold text-white mb-3">Discord Bot Settings</h2>
+            <p className="text-slate-300 mb-4">Configure Discord bot activity and leveling settings</p>
+            <button 
+              className="px-4 py-2 bg-primary/20 text-primary hover:bg-primary/30 rounded-md transition-colors"
+              onClick={() => navigateTo('/dashboard/admin/discord-settings')}
+            >
+              Configure Bot
+            </button>
+          </div>
+          
           <div className="bg-slate-800/50 rounded-lg p-5 border border-white/5 hover:border-primary/20 transition-all duration-300">
             <h2 className="text-lg font-semibold text-white mb-3">Content Management</h2>
             <p className="text-slate-300 mb-4">Manage site content and announcements</p>
