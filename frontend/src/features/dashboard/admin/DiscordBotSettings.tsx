@@ -603,145 +603,130 @@ export function DiscordBotSettings() {
               
               <div className="space-y-4">
                 {/* Level role mapping with badges */}
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <div className="flex items-center justify-center w-8 h-8 bg-emerald-900/30 text-emerald-400 rounded-full mr-3">
-                      <span className="text-xs font-bold">5</span>
-                    </div>
-                    <label htmlFor="level5RoleId" className="block text-white">
-                      Level 5 Role ID
-                    </label>
-                  </div>
-                  <input
-                    type="text"
-                    id="level5RoleId"
-                    name="level5RoleId"
-                    value={settings.level5RoleId}
-                    onChange={handleChange}
-                    placeholder="Discord Role ID"
-                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <div className="flex items-center justify-center w-8 h-8 bg-blue-900/30 text-blue-400 rounded-full mr-3">
-                      <span className="text-xs font-bold">15</span>
-                    </div>
-                    <label htmlFor="level15RoleId" className="block text-white">
-                      Level 15 Role ID
-                    </label>
-                  </div>
-                  <input
-                    type="text"
-                    id="level15RoleId"
-                    name="level15RoleId"
-                    value={settings.level15RoleId}
-                    onChange={handleChange}
-                    placeholder="Discord Role ID"
-                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <div className="flex items-center justify-center w-8 h-8 bg-purple-900/30 text-purple-400 rounded-full mr-3">
-                      <span className="text-xs font-bold">30</span>
-                    </div>
-                    <label htmlFor="level30RoleId" className="block text-white">
-                      Level 30 Role ID
-                    </label>
-                  </div>
-                  <input
-                    type="text"
-                    id="level30RoleId"
-                    name="level30RoleId"
-                    value={settings.level30RoleId}
-                    onChange={handleChange}
-                    placeholder="Discord Role ID"
-                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <div className="flex items-center justify-center w-8 h-8 bg-yellow-900/30 text-yellow-400 rounded-full mr-3">
-                      <span className="text-xs font-bold">40</span>
-                    </div>
-                    <label htmlFor="level40RoleId" className="block text-white">
-                      Level 40 Role ID
-                    </label>
-                  </div>
-                  <input
-                    type="text"
-                    id="level40RoleId"
-                    name="level40RoleId"
-                    value={settings.level40RoleId}
-                    onChange={handleChange}
-                    placeholder="Discord Role ID"
-                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center">
-                      <div className="flex items-center justify-center w-8 h-8 bg-orange-900/30 text-orange-400 rounded-full mr-3">
-                        <span className="text-xs font-bold">50</span>
-                      </div>
-                      <label htmlFor="level50RoleId" className="block text-white">
-                        Level 50
+                <div className="mt-5 space-y-4">
+                  <h3 className="text-lg font-semibold text-white flex items-center">
+                    <FiAward className="mr-2 text-primary" size={20} />
+                    Discord Role IDs
+                  </h3>
+                  <p className="text-sm text-slate-400">
+                    Configure the Discord role IDs that will be automatically assigned to users when they reach specific level milestones.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="level5RoleId" className="block text-sm font-medium text-slate-300">
+                        Level 5 Role ID
                       </label>
+                      <input
+                        type="text"
+                        id="level5RoleId"
+                        name="level5RoleId"
+                        value={settings.level5RoleId || ''}
+                        onChange={handleChange}
+                        className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                        placeholder="Enter Discord Role ID"
+                      />
                     </div>
-                    <input
-                      type="text"
-                      id="level50RoleId"
-                      name="level50RoleId"
-                      value={settings.level50RoleId}
-                      onChange={handleChange}
-                      placeholder="Role ID"
-                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
+                    
+                    <div>
+                      <label htmlFor="level15RoleId" className="block text-sm font-medium text-slate-300">
+                        Level 15 Role ID
+                      </label>
+                      <input
+                        type="text"
+                        id="level15RoleId"
+                        name="level15RoleId"
+                        value={settings.level15RoleId || ''}
+                        onChange={handleChange}
+                        className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                        placeholder="Enter Discord Role ID"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="level30RoleId" className="block text-sm font-medium text-slate-300">
+                        Level 30 Role ID
+                      </label>
+                      <input
+                        type="text"
+                        id="level30RoleId"
+                        name="level30RoleId"
+                        value={settings.level30RoleId || ''}
+                        onChange={handleChange}
+                        className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                        placeholder="Enter Discord Role ID"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="level40RoleId" className="block text-sm font-medium text-slate-300">
+                        Level 40 Role ID
+                      </label>
+                      <input
+                        type="text"
+                        id="level40RoleId"
+                        name="level40RoleId"
+                        value={settings.level40RoleId || ''}
+                        onChange={handleChange}
+                        className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                        placeholder="Enter Discord Role ID"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="level50RoleId" className="block text-sm font-medium text-slate-300">
+                        Level 50 Role ID
+                      </label>
+                      <input
+                        type="text"
+                        id="level50RoleId"
+                        name="level50RoleId"
+                        value={settings.level50RoleId || ''}
+                        onChange={handleChange}
+                        className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                        placeholder="Enter Discord Role ID"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="level70RoleId" className="block text-sm font-medium text-slate-300">
+                        Level 70 Role ID
+                      </label>
+                      <input
+                        type="text"
+                        id="level70RoleId"
+                        name="level70RoleId"
+                        value={settings.level70RoleId || ''}
+                        onChange={handleChange}
+                        className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                        placeholder="Enter Discord Role ID"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="level100RoleId" className="block text-sm font-medium text-slate-300">
+                        Level 100 Role ID
+                      </label>
+                      <input
+                        type="text"
+                        id="level100RoleId"
+                        name="level100RoleId"
+                        value={settings.level100RoleId || ''}
+                        onChange={handleChange}
+                        className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                        placeholder="Enter Discord Role ID"
+                      />
+                    </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <div className="flex items-center">
-                      <div className="flex items-center justify-center w-8 h-8 bg-pink-900/30 text-pink-400 rounded-full mr-3">
-                        <span className="text-xs font-bold">70</span>
-                      </div>
-                      <label htmlFor="level70RoleId" className="block text-white">
-                        Level 70
-                      </label>
-                    </div>
-                    <input
-                      type="text"
-                      id="level70RoleId"
-                      name="level70RoleId"
-                      value={settings.level70RoleId}
-                      onChange={handleChange}
-                      placeholder="Role ID"
-                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center">
-                      <div className="flex items-center justify-center w-8 h-8 bg-red-900/30 text-red-400 rounded-full mr-3">
-                        <span className="text-xs font-bold">100</span>
-                      </div>
-                      <label htmlFor="level100RoleId" className="block text-white">
-                        Level 100
-                      </label>
-                    </div>
-                    <input
-                      type="text"
-                      id="level100RoleId"
-                      name="level100RoleId"
-                      value={settings.level100RoleId}
-                      onChange={handleChange}
-                      placeholder="Role ID"
-                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-sm text-yellow-200">
+                    <p className="font-medium flex items-center">
+                      <HiOutlineInformationCircle className="mr-1.5" size={16} />
+                      How to find Discord Role IDs
+                    </p>
+                    <p className="mt-1 text-yellow-100/80">
+                      In Discord, enable Developer Mode in Settings → Advanced, then right-click on a role and select "Copy ID".
+                    </p>
                   </div>
                 </div>
               </div>

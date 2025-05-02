@@ -77,14 +77,14 @@ public class ChatActivityListener extends ListenerAdapter {
     
     private ScheduledExecutorService cleanupScheduler;
     
-    // Add these constants for role IDs at the top of the class
-    private static final long LEVEL_5_ROLE_ID = 1161732022704816250L;
-    private static final long LEVEL_15_ROLE_ID = 1162632126068437063L;
-    private static final long LEVEL_30_ROLE_ID = 1162628059296432148L;
-    private static final long LEVEL_40_ROLE_ID = 1162628114195697794L;
-    private static final long LEVEL_50_ROLE_ID = 1166539666674167888L;
-    private static final long LEVEL_70_ROLE_ID = 1170429914185465906L;
-    private static final long LEVEL_100_ROLE_ID = 1162628179043823657L;
+    // Replace static constants with configurable fields
+    private String level5RoleId = "1161732022704816250";
+    private String level15RoleId = "1162632126068437063";
+    private String level30RoleId = "1162628059296432148";
+    private String level40RoleId = "1162628114195697794";
+    private String level50RoleId = "1166539666674167888";
+    private String level70RoleId = "1170429914185465906";
+    private String level100RoleId = "1162628179043823657";
     
     @Autowired
     public ChatActivityListener(UserService userService) {
@@ -247,27 +247,41 @@ public class ChatActivityListener extends ListenerAdapter {
             return;
         }
         
-        long roleId = 0L;
+        String roleIdString = null;
         
         // Determine which role to assign based on level
         if (level >= 100) {
-            roleId = LEVEL_100_ROLE_ID;
+            roleIdString = level100RoleId;
         } else if (level >= 70) {
-            roleId = LEVEL_70_ROLE_ID;
+            roleIdString = level70RoleId;
         } else if (level >= 50) {
-            roleId = LEVEL_50_ROLE_ID;
+            roleIdString = level50RoleId;
         } else if (level >= 40) {
-            roleId = LEVEL_40_ROLE_ID;
+            roleIdString = level40RoleId;
         } else if (level >= 30) {
-            roleId = LEVEL_30_ROLE_ID;
+            roleIdString = level30RoleId;
         } else if (level >= 15) {
-            roleId = LEVEL_15_ROLE_ID;
+            roleIdString = level15RoleId;
         } else if (level >= 5) {
-            roleId = LEVEL_5_ROLE_ID;
+            roleIdString = level5RoleId;
         }
         
-        // If no milestone reached, return
-        if (roleId == 0L) {
+        // If no milestone reached or roleId not configured, return
+        if (roleIdString == null || roleIdString.isEmpty()) {
+            logger.debug("[ROLE DEBUG] No role ID configured for level {}, skipping role assignment", level);
+            return;
+        }
+        
+        // Add debug log for the role ID being used
+        logger.debug("[ROLE DEBUG] Level {} reached. Attempting to use configured Role ID: '{}'", level, roleIdString);
+        
+        // Parse the role ID string to long
+        long roleId;
+        try {
+            roleId = Long.parseLong(roleIdString);
+        } catch (NumberFormatException e) {
+            logger.error("[ROLE DEBUG] Failed to parse configured Role ID '{}' for level {} into a long: {}", 
+                roleIdString, level, e.getMessage());
             return;
         }
         
@@ -467,7 +481,14 @@ public class ChatActivityListener extends ListenerAdapter {
             Integer levelMultiplier,
             Integer levelExponent,
             Integer levelFactor,
-            Integer creditsPerLevel) {
+            Integer creditsPerLevel,
+            String level5RoleId,
+            String level15RoleId,
+            String level30RoleId,
+            String level40RoleId,
+            String level50RoleId,
+            String level70RoleId,
+            String level100RoleId) {
         
         if (activityEnabled != null) this.activityEnabled = activityEnabled;
         if (creditsToAward != null) this.creditsToAward = creditsToAward;
@@ -484,10 +505,21 @@ public class ChatActivityListener extends ListenerAdapter {
         if (levelFactor != null) this.levelFactor = levelFactor;
         if (creditsPerLevel != null) this.creditsPerLevel = creditsPerLevel;
         
-        logger.info("Discord bot activity and leveling settings updated at runtime");
+        // Update role ID settings
+        if (level5RoleId != null) this.level5RoleId = level5RoleId;
+        if (level15RoleId != null) this.level15RoleId = level15RoleId;
+        if (level30RoleId != null) this.level30RoleId = level30RoleId;
+        if (level40RoleId != null) this.level40RoleId = level40RoleId;
+        if (level50RoleId != null) this.level50RoleId = level50RoleId;
+        if (level70RoleId != null) this.level70RoleId = level70RoleId;
+        if (level100RoleId != null) this.level100RoleId = level100RoleId;
+        
+        logger.info("Discord bot activity, leveling and role settings updated at runtime");
         logger.debug("Activity: enabled={}, credits={}, threshold={}, window={}, cooldown={}, minLength={}",
                    activityEnabled, creditsToAward, messageThreshold, timeWindowMinutes, cooldownSeconds, minMessageLength);
         logger.debug("Leveling: enabled={}, xp={}, baseXp={}, multiplier={}, exponent={}, factor={}, creditsPerLevel={}",
                    levelingEnabled, xpToAward, baseXp, levelMultiplier, levelExponent, levelFactor, creditsPerLevel);
+        logger.debug("Role IDs: level5={}, level15={}, level30={}, level40={}, level50={}, level70={}, level100={}",
+                  level5RoleId, level15RoleId, level30RoleId, level40RoleId, level50RoleId, level70RoleId, level100RoleId);
     }
 } 

@@ -4,27 +4,21 @@ import com.app.heartbound.dto.discord.DiscordBotSettingsDTO;
 import com.app.heartbound.entities.DiscordBotSettings;
 import com.app.heartbound.repositories.DiscordBotSettingsRepository;
 import jakarta.annotation.PostConstruct;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class DiscordBotSettingsService {
     
-    private static final Logger logger = LoggerFactory.getLogger(DiscordBotSettingsService.class);
-    
-    @Autowired
-    private DiscordBotSettingsRepository repository;
-    
-    @Autowired
-    private ChatActivityListener chatActivityListener;
-    
-    @Autowired
-    private Environment environment;
+    private final DiscordBotSettingsRepository repository;
+    private final ChatActivityListener chatActivityListener;
+    private final Environment environment;
     
     // Import default values from application.properties
     @Value("${discord.activity.enabled:true}")
@@ -75,23 +69,17 @@ public class DiscordBotSettingsService {
     public void initializeSettings() {
         // Check if settings exist, if not create with defaults
         if (repository.count() == 0) {
-            logger.info("Initializing Discord bot settings with defaults");
+            log.info("Initializing Discord bot settings with defaults");
             DiscordBotSettings settings = new DiscordBotSettings();
-            // Set all default values
-            settings.setActivityEnabled(defaultActivityEnabled);
-            settings.setCreditsToAward(defaultCreditsToAward);
-            settings.setMessageThreshold(defaultMessageThreshold);
-            settings.setTimeWindowMinutes(defaultTimeWindowMinutes);
-            settings.setCooldownSeconds(defaultCooldownSeconds);
-            settings.setMinMessageLength(defaultMinMessageLength);
             
-            settings.setLevelingEnabled(defaultLevelingEnabled);
-            settings.setXpToAward(defaultXpToAward);
-            settings.setBaseXp(defaultBaseXp);
-            settings.setLevelMultiplier(defaultLevelMultiplier);
-            settings.setLevelExponent(defaultLevelExponent);
-            settings.setLevelFactor(defaultLevelFactor);
-            settings.setCreditsPerLevel(defaultCreditsPerLevel);
+            // Default role IDs
+            settings.setLevel5RoleId("1161732022704816250");
+            settings.setLevel15RoleId("1162632126068437063");
+            settings.setLevel30RoleId("1162628059296432148");
+            settings.setLevel40RoleId("1162628114195697794");
+            settings.setLevel50RoleId("1166539666674167888");
+            settings.setLevel70RoleId("1170429914185465906");
+            settings.setLevel100RoleId("1162628179043823657");
             
             repository.save(settings);
         }
@@ -106,6 +94,7 @@ public class DiscordBotSettingsService {
                 .orElseThrow(() -> new RuntimeException("Discord bot settings not found"));
         
         DiscordBotSettingsDTO dto = new DiscordBotSettingsDTO();
+        // Map entity to DTO (this would be cleaner with ModelMapper or MapStruct)
         dto.setActivityEnabled(settings.getActivityEnabled());
         dto.setCreditsToAward(settings.getCreditsToAward());
         dto.setMessageThreshold(settings.getMessageThreshold());
@@ -120,6 +109,15 @@ public class DiscordBotSettingsService {
         dto.setLevelExponent(settings.getLevelExponent());
         dto.setLevelFactor(settings.getLevelFactor());
         dto.setCreditsPerLevel(settings.getCreditsPerLevel());
+        
+        // Map role IDs
+        dto.setLevel5RoleId(settings.getLevel5RoleId());
+        dto.setLevel15RoleId(settings.getLevel15RoleId());
+        dto.setLevel30RoleId(settings.getLevel30RoleId());
+        dto.setLevel40RoleId(settings.getLevel40RoleId());
+        dto.setLevel50RoleId(settings.getLevel50RoleId());
+        dto.setLevel70RoleId(settings.getLevel70RoleId());
+        dto.setLevel100RoleId(settings.getLevel100RoleId());
         
         return dto;
     }
@@ -145,6 +143,15 @@ public class DiscordBotSettingsService {
         settings.setLevelFactor(dto.getLevelFactor());
         settings.setCreditsPerLevel(dto.getCreditsPerLevel());
         
+        // Update role IDs
+        settings.setLevel5RoleId(dto.getLevel5RoleId());
+        settings.setLevel15RoleId(dto.getLevel15RoleId());
+        settings.setLevel30RoleId(dto.getLevel30RoleId());
+        settings.setLevel40RoleId(dto.getLevel40RoleId());
+        settings.setLevel50RoleId(dto.getLevel50RoleId());
+        settings.setLevel70RoleId(dto.getLevel70RoleId());
+        settings.setLevel100RoleId(dto.getLevel100RoleId());
+        
         repository.save(settings);
         
         // Apply the updated settings to the ChatActivityListener
@@ -161,10 +168,17 @@ public class DiscordBotSettingsService {
             settings.getLevelMultiplier(),
             settings.getLevelExponent(),
             settings.getLevelFactor(),
-            settings.getCreditsPerLevel()
+            settings.getCreditsPerLevel(),
+            settings.getLevel5RoleId(),
+            settings.getLevel15RoleId(),
+            settings.getLevel30RoleId(),
+            settings.getLevel40RoleId(),
+            settings.getLevel50RoleId(),
+            settings.getLevel70RoleId(),
+            settings.getLevel100RoleId()
         );
         
-        logger.info("Discord bot settings updated successfully");
+        log.info("Discord bot settings updated successfully");
         return dto;
     }
     
@@ -186,12 +200,19 @@ public class DiscordBotSettingsService {
                     settings.getLevelMultiplier(),
                     settings.getLevelExponent(),
                     settings.getLevelFactor(),
-                    settings.getCreditsPerLevel()
+                    settings.getCreditsPerLevel(),
+                    settings.getLevel5RoleId(),
+                    settings.getLevel15RoleId(),
+                    settings.getLevel30RoleId(),
+                    settings.getLevel40RoleId(),
+                    settings.getLevel50RoleId(),
+                    settings.getLevel70RoleId(),
+                    settings.getLevel100RoleId()
                 );
-                logger.info("Applied Discord bot settings from database");
+                log.info("Applied Discord bot settings from database");
             }
         } catch (Exception e) {
-            logger.error("Error applying Discord bot settings: " + e.getMessage(), e);
+            log.error("Error applying Discord bot settings: " + e.getMessage(), e);
         }
     }
 } 

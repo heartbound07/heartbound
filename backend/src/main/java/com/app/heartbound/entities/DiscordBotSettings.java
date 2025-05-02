@@ -3,9 +3,12 @@ package com.app.heartbound.entities;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "discord_bot_settings")
+@Getter @Setter
 public class DiscordBotSettings {
     
     @Id
@@ -25,6 +28,14 @@ public class DiscordBotSettings {
     private Integer levelExponent = 2;
     private Integer levelFactor = 5;
     private Integer creditsPerLevel = 50;
+
+    private String level5RoleId = "1161732022704816250";
+    private String level15RoleId = "1162632126068437063";
+    private String level30RoleId = "1162628059296432148";
+    private String level40RoleId = "1162628114195697794";
+    private String level50RoleId = "1166539666674167888";
+    private String level70RoleId = "1170429914185465906";
+    private String level100RoleId = "1162628179043823657";
 
     // Getters and setters
     public Long getId() {
@@ -140,5 +151,61 @@ public class DiscordBotSettings {
 
     public void setCreditsPerLevel(Integer creditsPerLevel) {
         this.creditsPerLevel = creditsPerLevel;
+    }
+
+    public String getLevel5RoleId() {
+        return level5RoleId;
+    }
+
+    public void setLevel5RoleId(String level5RoleId) {
+        this.level5RoleId = level5RoleId;
+    }
+
+    public String getLevel15RoleId() {
+        return level15RoleId;
+    }
+
+    public void setLevel15RoleId(String level15RoleId) {
+        this.level15RoleId = level15RoleId;
+    }
+
+    public String getLevel30RoleId() {
+        return level30RoleId;
+    }
+
+    public void setLevel30RoleId(String level30RoleId) {
+        this.level30RoleId = level30RoleId;
+    }
+
+    public String getLevel40RoleId() {
+        return level40RoleId;
+    }
+
+    public void setLevel40RoleId(String level40RoleId) {
+        this.level40RoleId = level40RoleId;
+    }
+
+    public String getLevel50RoleId() {
+        return level50RoleId;
+    }
+
+    public void setLevel50RoleId(String level50RoleId) {
+        this.level50RoleId = level50RoleId;
+    }
+
+    public String getLevel70RoleId() {
+        return level70RoleId;
+    }
+
+    public void setLevel70RoleId(String level70RoleId) {
+        this.level70RoleId = level70RoleId;
+    }
+
+    public String getLevel100RoleId() {
+        return level100RoleId;
+    }
+
+    public void setLevel100RoleId(String level100RoleId) {
+        this.level100RoleId = level100RoleId;
     }
 } 
