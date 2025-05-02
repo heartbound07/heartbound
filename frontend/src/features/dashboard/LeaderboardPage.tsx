@@ -74,66 +74,43 @@ export function LeaderboardPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            <LayoutGroup id="filter-buttons">
-              <div className="inline-flex rounded-md shadow-sm relative" role="group">
-                <motion.div 
-                  className="absolute inset-0 bg-blue-600 rounded-lg z-0"
-                  initial={false}
-                  animate={{ 
-                    x: leaderboardType === 'credits' ? 0 : '100%', 
-                    width: '50%' 
-                  }}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  layout
-                />
+            <div className="bg-[#1F2731]/60 backdrop-blur-sm rounded-xl p-2 shadow-lg border border-white/5">
+              <div className="bg-[#1F2731] p-1 rounded-lg inline-flex">
                 <motion.button
                   type="button"
-                  className={`px-4 py-2 text-sm font-medium rounded-l-lg relative z-10 ${
-                    leaderboardType === 'credits' 
-                      ? 'text-white' 
-                      : 'text-gray-300 hover:text-white'
-                  }`}
-                  onClick={() => setLeaderboardType('credits')}
-                  aria-pressed={leaderboardType === 'credits'}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  layout
-                >
-                  <motion.span
-                    animate={{ 
-                      y: leaderboardType === 'credits' ? 0 : 5,
-                      opacity: leaderboardType === 'credits' ? 1 : 0.7 
-                    }}
-                    transition={{ type: "spring", stiffness: 500 }}
-                  >
-                    Credits
-                  </motion.span>
-                </motion.button>
-                <motion.button
-                  type="button"
-                  className={`px-4 py-2 text-sm font-medium rounded-r-lg relative z-10 ${
+                  className={`px-4 py-2 text-sm font-medium rounded-md relative z-10 inline-flex items-center ${
                     leaderboardType === 'level' 
-                      ? 'text-white' 
-                      : 'text-gray-300 hover:text-white'
+                      ? 'bg-[#FF4655] text-white' 
+                      : 'text-gray-300 hover:text-white bg-transparent hover:bg-white/5'
                   }`}
                   onClick={() => setLeaderboardType('level')}
                   aria-pressed={leaderboardType === 'level'}
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ scale: leaderboardType === 'level' ? 1 : 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  layout
                 >
-                  <motion.span
-                    animate={{ 
-                      y: leaderboardType === 'level' ? 0 : 5,
-                      opacity: leaderboardType === 'level' ? 1 : 0.7 
-                    }}
-                    transition={{ type: "spring", stiffness: 500 }}
-                  >
+                  <motion.span>
                     Levels
                   </motion.span>
                 </motion.button>
+                
+                <motion.button
+                  type="button"
+                  className={`px-4 py-2 text-sm font-medium rounded-md relative z-10 inline-flex items-center ${
+                    leaderboardType === 'credits' 
+                      ? 'bg-[#FF4655] text-white' 
+                      : 'text-gray-300 hover:text-white bg-transparent hover:bg-white/5'
+                  }`}
+                  onClick={() => setLeaderboardType('credits')}
+                  aria-pressed={leaderboardType === 'credits'}
+                  whileHover={{ scale: leaderboardType === 'credits' ? 1 : 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <motion.span>
+                    Credits
+                  </motion.span>
+                </motion.button>
               </div>
-            </LayoutGroup>
+            </div>
           </motion.div>
         </div>
       </motion.section>
