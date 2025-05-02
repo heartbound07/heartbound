@@ -7,6 +7,7 @@ import com.app.heartbound.services.discord.WelcomeListener;
 import com.app.heartbound.services.discord.WelcomeCommandListener;
 import com.app.heartbound.services.discord.ShopCommandListener;
 import com.app.heartbound.services.discord.InventoryCommandListener;
+import com.app.heartbound.services.discord.FishCommandListener;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -59,6 +60,9 @@ public class DiscordConfig {
     @Autowired
     private InventoryCommandListener inventoryCommandListener;
 
+    @Autowired
+    private FishCommandListener fishCommandListener;
+
     @Bean
     public JDA jda() {
         if (discordToken == null || discordToken.isBlank() || discordToken.equals("${DISCORD_BOT_TOKEN}")) {
@@ -95,7 +99,7 @@ public class DiscordConfig {
                     // Register all listeners EXCEPT shopCommandListener (we'll register it manually)
                     .addEventListeners(leaderboardCommandListener, chatActivityListener, 
                                       creditsCommandListener, welcomeListener, welcomeCommandListener,
-                                      inventoryCommandListener)
+                                      inventoryCommandListener, fishCommandListener)
                     .build();
 
             // Waits until JDA is fully connected and ready
@@ -139,7 +143,8 @@ public class DiscordConfig {
                     Commands.slash("welcome", "Sends the verification welcome message")
                         .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR)),
                     Commands.slash("shop", "Displays items currently available in the shop"),
-                    Commands.slash("inventory", "Displays the items you currently own")
+                    Commands.slash("inventory", "Displays the items you currently own"),
+                    Commands.slash("fish", "Go fishing for a chance to win or lose credits")
                 )
                 .queue(
                     cmds -> {
