@@ -43,7 +43,7 @@ const initialSettings: DiscordBotSettingsData = {
 };
 
 export function DiscordBotSettings() {
-  const { hasRole, tokens } = useAuth();
+  const { hasRole } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [settings, setSettings] = useState<DiscordBotSettingsData>(initialSettings);
