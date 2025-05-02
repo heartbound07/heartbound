@@ -129,12 +129,25 @@ export function DiscordBotSettings() {
   }, []);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type } = e.target;
+    
+    // Add validation for role ID fields
+    if (name.endsWith('RoleId')) {
+      // Allow empty string or digits only
+      if (value === '' || /^\d+$/.test(value)) {
+        setSettings({
+          ...settings,
+          [name]: value
+        });
+      }
+      // Don't update state if invalid input
+      return;
+    }
     
     if (type === 'checkbox') {
       setSettings(prevSettings => ({
         ...prevSettings,
-        [name]: checked
+        [name]: e.target.checked
       }));
     } else if (type === 'number') {
       // Handle empty string case to avoid NaN
