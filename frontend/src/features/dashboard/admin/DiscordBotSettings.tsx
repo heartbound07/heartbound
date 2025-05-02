@@ -18,6 +18,13 @@ interface DiscordBotSettingsData {
   levelExponent: number;
   levelFactor: number;
   creditsPerLevel: number;
+  level5RoleId: string;
+  level15RoleId: string;
+  level30RoleId: string;
+  level40RoleId: string;
+  level50RoleId: string;
+  level70RoleId: string;
+  level100RoleId: string;
 }
 
 interface ToastNotification {
@@ -39,7 +46,14 @@ const initialSettings: DiscordBotSettingsData = {
   levelMultiplier: 50,
   levelExponent: 2,
   levelFactor: 5,
-  creditsPerLevel: 50
+  creditsPerLevel: 50,
+  level5RoleId: "1161732022704816250",
+  level15RoleId: "1162632126068437063",
+  level30RoleId: "1162628059296432148",
+  level40RoleId: "1162628114195697794",
+  level50RoleId: "1166539666674167888",
+  level70RoleId: "1170429914185465906",
+  level100RoleId: "1162628179043823657"
 };
 
 const calculateRequiredXp = (level: number, baseXp: number, levelMultiplier: number, levelExponent: number, levelFactor: number): number => {
@@ -455,6 +469,128 @@ export function DiscordBotSettings() {
             </div>
           </div>
           
+          {/* Level Role Settings Section */}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-white mb-4 border-b border-white/10 pb-2">
+              Level Role Rewards
+            </h2>
+            <p className="text-slate-300 mb-4">Configure which Discord role IDs will be granted at each level milestone.</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label htmlFor="level5RoleId" className="block text-white">
+                  Level 5 Role ID
+                </label>
+                <input
+                  type="text"
+                  id="level5RoleId"
+                  name="level5RoleId"
+                  value={settings.level5RoleId}
+                  onChange={handleChange}
+                  placeholder="Discord Role ID"
+                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+                <p className="text-slate-400 text-sm">Role awarded at level 5</p>
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="level15RoleId" className="block text-white">
+                  Level 15 Role ID
+                </label>
+                <input
+                  type="text"
+                  id="level15RoleId"
+                  name="level15RoleId"
+                  value={settings.level15RoleId}
+                  onChange={handleChange}
+                  placeholder="Discord Role ID"
+                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+                <p className="text-slate-400 text-sm">Role awarded at level 15</p>
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="level30RoleId" className="block text-white">
+                  Level 30 Role ID
+                </label>
+                <input
+                  type="text"
+                  id="level30RoleId"
+                  name="level30RoleId"
+                  value={settings.level30RoleId}
+                  onChange={handleChange}
+                  placeholder="Discord Role ID"
+                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+                <p className="text-slate-400 text-sm">Role awarded at level 30</p>
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="level40RoleId" className="block text-white">
+                  Level 40 Role ID
+                </label>
+                <input
+                  type="text"
+                  id="level40RoleId"
+                  name="level40RoleId"
+                  value={settings.level40RoleId}
+                  onChange={handleChange}
+                  placeholder="Discord Role ID"
+                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+                <p className="text-slate-400 text-sm">Role awarded at level 40</p>
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="level50RoleId" className="block text-white">
+                  Level 50 Role ID
+                </label>
+                <input
+                  type="text"
+                  id="level50RoleId"
+                  name="level50RoleId"
+                  value={settings.level50RoleId}
+                  onChange={handleChange}
+                  placeholder="Discord Role ID"
+                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+                <p className="text-slate-400 text-sm">Role awarded at level 50</p>
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="level70RoleId" className="block text-white">
+                  Level 70 Role ID
+                </label>
+                <input
+                  type="text"
+                  id="level70RoleId"
+                  name="level70RoleId"
+                  value={settings.level70RoleId}
+                  onChange={handleChange}
+                  placeholder="Discord Role ID"
+                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+                <p className="text-slate-400 text-sm">Role awarded at level 70</p>
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="level100RoleId" className="block text-white">
+                  Level 100 Role ID
+                </label>
+                <input
+                  type="text"
+                  id="level100RoleId"
+                  name="level100RoleId"
+                  value={settings.level100RoleId}
+                  onChange={handleChange}
+                  placeholder="Discord Role ID"
+                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+                <p className="text-slate-400 text-sm">Role awarded at level 100</p>
+              </div>
+            </div>
+          </div>
+          
           {/* Save Button */}
           <div className="flex justify-end mt-6">
             <button
@@ -532,13 +668,24 @@ export function DiscordBotSettings() {
         </div>
         
         <div className="mt-4 text-slate-400 text-sm">
+          <h3 className="font-semibold text-slate-300 mb-2">Role Rewards at Levels:</h3>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <span className="bg-slate-800 px-2 py-1 rounded">Level 5</span>
+            <span className="bg-slate-800 px-2 py-1 rounded">Level 15</span>
+            <span className="bg-slate-800 px-2 py-1 rounded">Level 30</span>
+            <span className="bg-slate-800 px-2 py-1 rounded">Level 40</span>
+            <span className="bg-slate-800 px-2 py-1 rounded">Level 50</span>
+            <span className="bg-slate-800 px-2 py-1 rounded">Level 70</span>
+            <span className="bg-slate-800 px-2 py-1 rounded">Level 100</span>
+          </div>
+          
           <h3 className="font-semibold text-slate-300 mb-2">How this works:</h3>
           <ul className="list-disc list-inside space-y-1">
             <li>Uses the XP formula: baseXp + (levelMultiplier × level^levelExponent ÷ levelFactor)</li>
             <li>Calculates total XP needed to reach the target level</li>
             <li>Estimates messages needed based on XP per message ({settings.xpToAward} XP)</li>
             <li>Estimates time based on the cooldown between messages ({settings.cooldownSeconds} seconds)</li>
-            <li>Different role rewards are given at levels 5, 15, 30, 40, 50, 70, and 100</li>
+            <li>Discord roles are automatically assigned at the level milestones shown above</li>
           </ul>
         </div>
       </div>
