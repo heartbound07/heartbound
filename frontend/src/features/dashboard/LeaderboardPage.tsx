@@ -50,7 +50,7 @@ export function LeaderboardPage() {
 
   return (
     <motion.div 
-      className="leaderboard-page-container"
+      className={`leaderboard-page-container theme-transition ${theme === 'default' ? 'theme-default' : 'theme-dark'}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -77,15 +77,15 @@ export function LeaderboardPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            <div className="bg-[var(--color-container-bg)] backdrop-blur-sm rounded-xl p-2 shadow-lg border border-[var(--color-border)]">
+            <div className="bg-theme-container backdrop-blur-sm rounded-xl p-2 shadow-lg border border-theme">
               <div className="bg-[var(--color-sidebar-bg)] p-1 rounded-lg inline-flex">
                 <motion.button
                   type="button"
                   className={`px-4 py-2 text-sm font-medium rounded-md relative z-10 inline-flex items-center ${
                     leaderboardType === 'level' 
-                      ? 'bg-[var(--color-primary)] text-[var(--color-primary-contrast)]' 
+                      ? 'bg-theme-primary text-[var(--color-primary-contrast)]' 
                       : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-transparent hover:bg-white/5'
-                  } transition-all duration-300`}
+                  } theme-transition`}
                   onClick={() => setLeaderboardType('level')}
                   aria-pressed={leaderboardType === 'level'}
                   whileHover={{ scale: leaderboardType === 'level' ? 1 : 1.05 }}
@@ -100,9 +100,9 @@ export function LeaderboardPage() {
                   type="button"
                   className={`px-4 py-2 text-sm font-medium rounded-md relative z-10 inline-flex items-center ${
                     leaderboardType === 'credits' 
-                      ? 'bg-[var(--color-primary)] text-[var(--color-primary-contrast)]' 
+                      ? 'bg-theme-primary text-[var(--color-primary-contrast)]' 
                       : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-transparent hover:bg-white/5'
-                  } transition-all duration-300`}
+                  } theme-transition`}
                   onClick={() => setLeaderboardType('credits')}
                   aria-pressed={leaderboardType === 'credits'}
                   whileHover={{ scale: leaderboardType === 'credits' ? 1 : 1.05 }}
