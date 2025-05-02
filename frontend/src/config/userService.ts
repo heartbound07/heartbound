@@ -91,3 +91,13 @@ export const getLeaderboardUsers = async (sortBy: 'credits' | 'level' = 'credits
     return [];
   }
 };
+
+export const getCurrentUserProfile = async (): Promise<UserProfileDTO> => {
+  try {
+    const response = await httpClient.get('/users/me');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching current user profile:', error);
+    throw error;
+  }
+};

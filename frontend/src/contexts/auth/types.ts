@@ -73,6 +73,7 @@ export interface AuthContextValue extends AuthState {
   updateParty: (id: string, data: UpdatePartyRequestDTO) => Promise<LFGPartyResponseDTO>;
   deleteParty: (id: string) => Promise<void>;
   joinParty: (id: string) => Promise<string>;
+  fetchCurrentUserProfile: () => Promise<void>;
 }
 
 export interface AuthProviderProps {

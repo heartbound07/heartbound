@@ -488,6 +488,68 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const fetchCurrentUserProfile = async () => {
+    if (!state.isAuthenticated || !state.user?.id) {
+      console.warn('[Auth] Cannot fetch profile: User not authenticated');
+      return;
+    }
+    
+    try {
+      setAuthLoading(true);
+      console.log('[Auth] Fetching current user profile...');
+      
+      const profileData = await userService.getCurrentUserProfile();
+      console.log('[Auth] Current user profile received:', profileData);
+      
+      if (profileData) {
+        // Update user with possibly new data from profile
+        const updatedUser: UserInfo = {
+          ...state.user,
+          username: profileData.username || state.user.username,
+          avatar: profileData.avatar || state.user.avatar,
+          roles: profileData.roles || state.user.roles,
+          credits: profileData.credits ?? state.user.credits,
+          level: profileData.level ?? state.user.level,
+          experience: profileData.experience ?? state.user.experience
+        };
+        
+        // Update profile status
+        const profileStatus: ProfileStatus = {
+          isComplete: true,
+          displayName: profileData.displayName || profileData.username || state.user.username,
+          pronouns: profileData.pronouns || '',
+          about: profileData.about || '',
+          bannerColor: profileData.bannerColor || 'bg-white/10',
+          bannerUrl: profileData.bannerUrl || '',
+          avatar: profileData.avatar || state.user.avatar || ''
+        };
+        
+        // Update state with both user and profile
+        setAuthState(updatedUser);
+        updateAuthProfile(profileStatus);
+        
+        // Also update localStorage to persist new profile data
+        const authStorage = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (authStorage) {
+          try {
+            const authData = JSON.parse(authStorage);
+            authData.user = updatedUser;
+            authData.profile = profileStatus;
+            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+            console.log('[Auth] Updated user and profile in localStorage');
+          } catch (e) {
+            console.error('[Auth] Error updating localStorage:', e);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[Auth] Error fetching current user profile:', error);
+      setAuthError(error instanceof Error ? error.message : 'Failed to fetch user profile');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   // Add a debug mount/unmount effect
   useEffect(() => {
     console.log('[DEBUG] AuthProvider mounted');
@@ -568,7 +630,8 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     deleteParty: partyService.deleteParty,
     joinParty: partyService.joinParty,
     updateUserProfile,
-  }), [state, login, logout, tokens, startDiscordOAuth, exchangeDiscordCode, updateProfile, refreshToken, hasRole, updateUserProfile, setAuthError]);
+    fetchCurrentUserProfile
+  }), [state, login, logout, tokens, startDiscordOAuth, exchangeDiscordCode, updateProfile, refreshToken, hasRole, updateUserProfile, setAuthError, fetchCurrentUserProfile]);
 
   return (
     <AuthContext.Provider value={contextValue}>

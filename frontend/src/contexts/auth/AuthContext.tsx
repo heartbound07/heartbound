@@ -24,4 +24,5 @@ export const AuthContext = createContext<AuthContextValue>({
   updateParty: async () => { throw new Error('Not implemented'); },
   deleteParty: async () => { throw new Error('Not implemented'); },
   joinParty: async () => { throw new Error('Not implemented'); },
+  fetchCurrentUserProfile: async () => {},
 }); 

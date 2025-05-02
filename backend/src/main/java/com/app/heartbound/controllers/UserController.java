@@ -221,4 +221,23 @@ public class UserController {
         List<UserProfileDTO> leaderboardUsers = userService.getLeaderboardUsers(sortBy);
         return ResponseEntity.ok(leaderboardUsers);
     }
+    
+    /**
+     * Endpoint to get the authenticated user's own profile
+     */
+    @GetMapping("/me")
+    public ResponseEntity<UserProfileDTO> getCurrentUserProfile(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        String userId = authentication.getName();
+        User user = userService.getUserById(userId);
+        
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        
+        return ResponseEntity.ok(userService.mapToProfileDTO(user));
+    }
 }
