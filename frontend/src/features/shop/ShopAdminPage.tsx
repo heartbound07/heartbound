@@ -5,6 +5,20 @@ import { Toast } from '@/components/Toast';
 import { ImageUpload } from '@/components/ui/shop/ImageUpload';
 import { getRarityColor } from '@/utils/rarityHelpers';
 import NameplatePreview from '@/components/NameplatePreview';
+import { 
+  HiOutlineCheck, 
+  HiOutlineCollection, 
+  HiOutlineShoppingCart, 
+  HiOutlineColorSwatch,
+  HiOutlineTag,
+  HiOutlineCash,
+  HiOutlineExclamation,
+  HiOutlineClock,
+  HiOutlineCalendar,
+  HiOutlineTrash,
+  HiOutlinePencil,
+  HiOutlineStar
+} from 'react-icons/hi';
 
 interface ShopItem {
   id: string;
@@ -250,7 +264,14 @@ export function ShopAdminPage() {
   };
   
   if (loading) {
-    return <div className="flex justify-center p-8">Loading shop items...</div>;
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex flex-col items-center justify-center h-96">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-slate-300">Loading shop items...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -267,87 +288,234 @@ export function ShopAdminPage() {
         ))}
       </div>
       
-      <h1 className="text-2xl font-bold mb-6 text-white">Shop Management</h1>
+      <div className="flex items-center mb-6">
+        <HiOutlineShoppingCart className="text-primary mr-3" size={26} />
+        <h1 className="text-2xl font-bold text-white">Shop Management</h1>
+      </div>
       
       {/* Form section */}
-      <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4 text-white">
+      <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 mb-8 transition-all duration-300 hover:shadow-xl">
+        <h2 className="text-xl font-semibold mb-6 text-white flex items-center">
+          <HiOutlineTag className="text-primary mr-2" size={20} />
           {editingItem ? 'Edit Item' : 'Create New Item'}
         </h2>
         
         <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
-                Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-                className="w-full bg-slate-700/50 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
-                Price (Credits)
-              </label>
-              <input
-                type="number"
-                name="price"
-                value={formData.price}
-                onChange={handleInputChange}
-                required
-                min="0"
-                className="w-full bg-slate-700/50 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
-                Category
-              </label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                required
-                className="w-full bg-slate-700/50 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="">Select Category</option>
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
-                Required Role (Optional)
-              </label>
-              <select
-                name="requiredRole"
-                value={formData.requiredRole || ''}
-                onChange={handleInputChange}
-                className="w-full bg-slate-700/50 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="">None (Available to Everyone)</option>
-                {roles.map(role => (
-                  <option key={role} value={role}>{role}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-300 mb-1">
-                {formData.category === 'USER_COLOR' ? 'Color Selection' : 'Item Image'}
-              </label>
+          <div className="space-y-6">
+            {/* Basic Information */}
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
+              <h3 className="text-md font-medium text-slate-200 mb-4 flex items-center">
+                <HiOutlineCollection className="mr-2 text-primary" size={18} />
+                Basic Information
+              </h3>
               
-              {formData.category !== 'USER_COLOR' ? (
-                <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    Price (Credits)
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <HiOutlineCash className="text-slate-400" size={16} />
+                    </div>
+                    <input
+                      type="number"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleInputChange}
+                      required
+                      min="0"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-md pl-9 pr-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    Category
+                  </label>
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map(category => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    Required Role (Optional)
+                  </label>
+                  <select
+                    name="requiredRole"
+                    value={formData.requiredRole || ''}
+                    onChange={handleInputChange}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                  >
+                    <option value="">None (Available to Everyone)</option>
+                    {roles.map(role => (
+                      <option key={role} value={role}>{role}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    Rarity
+                  </label>
+                  <select
+                    id="rarity"
+                    name="rarity"
+                    value={formData.rarity}
+                    onChange={handleInputChange}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                  >
+                    {rarities.map(rarity => (
+                      <option key={rarity} value={rarity}>
+                        {rarity.charAt(0) + rarity.slice(1).toLowerCase()}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-400 mt-1">
+                    The rarity level affects the item's border color and badge in the shop.
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    <div className="flex items-center">
+                      <HiOutlineCalendar className="mr-1.5 text-slate-400" size={16} />
+                      Expires At (Optional)
+                    </div>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    name="expiresAt"
+                    value={formData.expiresAt || ''}
+                    onChange={handleInputChange}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">
+                    Leave empty for items that never expire
+                  </p>
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                <label className="flex items-center space-x-2 text-sm font-medium text-slate-300">
+                  <input
+                    type="checkbox"
+                    name="active"
+                    checked={formData.active}
+                    onChange={handleCheckboxChange}
+                    className="w-4 h-4 rounded text-primary focus:ring-primary bg-slate-800 border-slate-600"
+                  />
+                  <span>Active</span>
+                </label>
+                <p className="text-xs text-slate-400 mt-1 ml-6">
+                  {editingItem?.expired ? 
+                    "This item has expired. You can reactivate it by setting a new expiration date or removing the expiration." : 
+                    "Inactive items won't be visible in the shop."
+                  }
+                </p>
+              </div>
+            </div>
+            
+            {/* Image & Appearance */}
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
+              <h3 className="text-md font-medium text-slate-200 mb-4 flex items-center">
+                <HiOutlineColorSwatch className="mr-2 text-primary" size={18} />
+                Item Appearance
+              </h3>
+              
+              {formData.category === 'USER_COLOR' ? (
+                <div className="space-y-5">
+                  <div>
+                    <label htmlFor="colorPicker" className="block text-sm font-medium text-slate-300 mb-1">
+                      Nameplate Color
+                    </label>
+                    <div className="flex items-center space-x-3">
+                      <input
+                        id="colorPicker"
+                        type="color"
+                        value={formData.imageUrl && formData.imageUrl.startsWith('#') ? formData.imageUrl : '#ffffff'}
+                        onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+                        className="h-10 w-14 p-1 bg-slate-800 border border-slate-700 rounded cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={formData.imageUrl || ''}
+                        onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+                        className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="#RRGGBB Hex Color"
+                      />
+                      <div 
+                        className="h-10 w-10 rounded border border-slate-600"
+                        style={{ backgroundColor: formData.imageUrl || '#ffffff' }}
+                      ></div>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-400">
+                      Choose a color for this nameplate. This will be displayed in the user's name in Discord.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="discordRoleId" className="block text-sm font-medium text-slate-300 mb-1">
+                      Discord Role ID
+                    </label>
+                    <input
+                      id="discordRoleId"
+                      type="text"
+                      value={formData.discordRoleId || ''}
+                      onChange={(e) => setFormData({...formData, discordRoleId: e.target.value})}
+                      className="block w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="Discord role ID for USER_COLOR items"
+                    />
+                    <p className="mt-1 text-xs text-slate-400">
+                      Enter the Discord role ID to be granted when this color is equipped. Leave empty for no role.
+                    </p>
+                  </div>
+                  
+                  {/* Preview section */}
+                  <div className="mt-4 p-5 bg-slate-900 rounded-md border border-slate-700">
+                    <h4 className="text-sm font-medium text-slate-300 mb-3 flex items-center">
+                      <HiOutlineExclamation className="mr-1.5 text-yellow-400" size={16} />
+                      Preview
+                    </h4>
+                    <NameplatePreview
+                      username="Username"
+                      color={formData.imageUrl}
+                      message="This is how the color will appear"
+                      size="md"
+                      className="bg-slate-800/80 rounded-md"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Item Image
+                  </label>
                   <ImageUpload 
                     currentImageUrl={formData.imageUrl}
                     onUpload={handleImageUpload}
@@ -355,132 +523,26 @@ export function ShopAdminPage() {
                     showRemoveButton={!!formData.imageUrl}
                     className="mb-2"
                   />
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-slate-400 mt-2">
                     Click to upload an image for this shop item. Supported formats: JPG, PNG, GIF, WebP (max 5MB)
                   </p>
-                </>
-              ) : (
-                <p className="text-xs text-slate-400 mt-1">
-                  Please use the color picker below to set the nameplate color.
-                </p>
+                </div>
               )}
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
-                Expires At (Optional)
-              </label>
-              <input
-                type="datetime-local"
-                name="expiresAt"
-                value={formData.expiresAt || ''}
+            {/* Description */}
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
+              <h3 className="text-md font-medium text-slate-200 mb-4">
+                Description
+              </h3>
+              <textarea
+                name="description"
+                value={formData.description}
                 onChange={handleInputChange}
-                className="w-full bg-slate-700/50 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <div className="text-xs text-slate-400 mt-1">
-                Leave empty for items that never expire
-              </div>
-            </div>
-            
-            <div className="mb-4">
-              <label className="flex items-center space-x-2 text-sm font-medium text-slate-300">
-                <input
-                  type="checkbox"
-                  name="active"
-                  checked={formData.active}
-                  onChange={handleCheckboxChange}
-                  className="w-4 h-4 accent-primary"
-                />
-                <span>Active</span>
-              </label>
-              <p className="text-xs text-slate-400 mt-1">
-                {editingItem?.expired ? 
-                  "This item has expired. You can reactivate it by setting a new expiration date or removing the expiration." : 
-                  "Inactive items won't be visible in the shop."
-                }
-              </p>
-            </div>
-            
-            {formData.category === 'USER_COLOR' && (
-              <>
-                <div className="mb-4">
-                  <label htmlFor="colorPicker" className="block text-sm font-medium text-slate-300 mb-1">
-                    Nameplate Color
-                  </label>
-                  <div className="flex items-center space-x-3">
-                    <input
-                      id="colorPicker"
-                      type="color"
-                      value={formData.imageUrl && formData.imageUrl.startsWith('#') ? formData.imageUrl : '#ffffff'}
-                      onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
-                      className="h-10 w-14 p-1 bg-slate-700 border border-slate-600 rounded cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={formData.imageUrl || ''}
-                      onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
-                      className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white"
-                      placeholder="#RRGGBB Hex Color"
-                    />
-                    <div 
-                      className="h-10 w-10 rounded border border-slate-600"
-                      style={{ backgroundColor: formData.imageUrl || '#ffffff' }}
-                    ></div>
-                  </div>
-                  <p className="mt-1 text-xs text-slate-400">
-                    Choose a color for this nameplate. This will be displayed in the user's name in Discord.
-                  </p>
-                </div>
-
-                <div className="mb-4">
-                  <label htmlFor="discordRoleId" className="block text-sm font-medium text-slate-300 mb-1">
-                    Discord Role ID
-                  </label>
-                  <input
-                    id="discordRoleId"
-                    type="text"
-                    value={formData.discordRoleId || ''}
-                    onChange={(e) => setFormData({...formData, discordRoleId: e.target.value})}
-                    className="block w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white"
-                    placeholder="Discord role ID for USER_COLOR items"
-                  />
-                  <p className="mt-1 text-xs text-slate-400">
-                    Enter the Discord role ID to be granted when this color is equipped. Leave empty for no role.
-                  </p>
-                </div>
-                
-                {/* Preview section */}
-                <div className="mb-4 p-4 bg-slate-800 rounded-md border border-slate-600">
-                  <h4 className="text-sm font-medium text-slate-300 mb-2">Preview</h4>
-                  <NameplatePreview
-                    username="Username"
-                    color={formData.imageUrl}
-                    message="This is how the color will appear"
-                    size="md"
-                    className="bg-slate-900 rounded"
-                  />
-                </div>
-              </>
-            )}
-            
-            <div className="mb-4">
-              <label htmlFor="rarity" className="block text-sm font-medium text-slate-300 mb-1">
-                Rarity
-              </label>
-              <select
-                id="rarity"
-                name="rarity"
-                value={formData.rarity}
-                onChange={handleInputChange}
-                className="block w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white"
-              >
-                {rarities.map(rarity => (
-                  <option key={rarity} value={rarity}>{rarity.charAt(0) + rarity.slice(1).toLowerCase()}</option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-slate-400">
-                The rarity level affects the item's border color and badge in the shop.
-              </p>
+                rows={3}
+                className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                placeholder="Enter item description..."
+              ></textarea>
             </div>
           </div>
           
@@ -489,110 +551,179 @@ export function ShopAdminPage() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-4 py-2 border border-slate-600 rounded bg-slate-700 text-white hover:bg-slate-600 transition-colors"
+                className="px-4 py-2 border border-slate-600 rounded-md bg-slate-800 text-white hover:bg-slate-700 transition-colors flex items-center"
               >
                 Cancel
               </button>
             )}
             <button
               type="submit"
-              className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded transition-colors"
+              disabled={submitting}
+              className={`px-5 py-2 bg-primary hover:bg-primary/90 text-white rounded-md transition-all duration-300 flex items-center ${
+                submitting ? 'opacity-70 cursor-not-allowed' : 'transform hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20'
+              }`}
             >
-              {editingItem ? 'Update Item' : 'Create Item'}
+              {submitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  {editingItem ? 'Updating...' : 'Creating...'}
+                </>
+              ) : (
+                <>
+                  <HiOutlineCheck className="mr-2" size={18} />
+                  {editingItem ? 'Update Item' : 'Create Item'}
+                </>
+              )}
             </button>
           </div>
         </form>
       </div>
       
       {/* Items table */}
-      <div className="bg-slate-800/50 border border-slate-700 rounded-lg overflow-hidden">
-        <table className="min-w-full">
-          <thead>
-            <tr className="bg-slate-700/50">
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Item</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Category</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Price</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Rarity</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-700">
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-4 text-center text-slate-400">
-                  No items found. Create your first shop item above.
-                </td>
+      <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 overflow-hidden transition-all duration-300 hover:shadow-xl">
+        <div className="p-5 border-b border-slate-700">
+          <h2 className="text-xl font-semibold text-white flex items-center">
+            <HiOutlineCollection className="text-primary mr-2" size={20} />
+            Shop Items
+          </h2>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-700">
+            <thead>
+              <tr className="bg-slate-800/70">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Item</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Category</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Price</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Rarity</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Actions</th>
               </tr>
-            ) : (
-              items.map(item => (
-                <tr key={item.id} className="hover:bg-slate-700/30">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      {item.imageUrl && (
-                        <img 
-                          src={item.imageUrl} 
-                          alt={item.name} 
-                          className="h-10 w-10 rounded-full mr-3 bg-slate-700 object-cover"
-                        />
-                      )}
-                      <div className="text-sm font-medium text-white">{item.name}</div>
+            </thead>
+            <tbody className="divide-y divide-slate-700/70 bg-slate-800/20">
+              {items.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-400">
+                    <div className="flex flex-col items-center">
+                      <HiOutlineExclamation className="text-slate-500 mb-2" size={24} />
+                      <p>No items found. Create your first shop item above.</p>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{item.category}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{item.price}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span 
-                      className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
-                      style={{
-                        backgroundColor: getRarityColor(item.rarity) + '20',
-                        color: getRarityColor(item.rarity),
-                        border: `1px solid ${getRarityColor(item.rarity)}`
-                      }}
-                    >
-                      {item.rarity.charAt(0) + item.rarity.slice(1).toLowerCase()}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {item.expired ? (
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                        Expired
-                      </span>
-                    ) : item.active ? (
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                        Active
-                      </span>
-                    ) : (
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                        Inactive
-                      </span>
-                    )}
-                    {item.expiresAt && !item.expired && (
-                      <div className="text-xs text-slate-400 mt-1">
-                        Expires: {new Date(item.expiresAt).toLocaleString()}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => handleEdit(item)}
-                      className="text-indigo-400 hover:text-indigo-300 mr-3"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      disabled={item.isDeleting}
-                      className={`text-red-500 hover:text-red-700 ${item.isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      {item.isDeleting ? 'Deleting...' : 'Delete'}
-                    </button>
-                  </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                items.map(item => (
+                  <tr key={item.id} className="hover:bg-slate-800/40 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        {item.category === 'USER_COLOR' ? (
+                          <div 
+                            className="h-10 w-10 rounded-full mr-3 flex items-center justify-center"
+                            style={{ 
+                              backgroundColor: item.imageUrl || '#ffffff',
+                              border: `2px solid ${getRarityColor(item.rarity)}`
+                            }}
+                          >
+                            <HiOutlineColorSwatch className="text-white text-opacity-80" size={16} />
+                          </div>
+                        ) : (
+                          item.imageUrl ? (
+                            <div className="h-10 w-10 rounded-full overflow-hidden mr-3" style={{ 
+                              border: `2px solid ${getRarityColor(item.rarity)}`
+                            }}>
+                              <img 
+                                src={item.imageUrl} 
+                                alt={item.name} 
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-10 w-10 rounded-full mr-3 bg-slate-700 flex items-center justify-center"
+                              style={{ border: `2px solid ${getRarityColor(item.rarity)}` }}
+                            >
+                              <HiOutlineCollection className="text-slate-400" size={16} />
+                            </div>
+                          )
+                        )}
+                        <div className="text-sm font-medium text-white">{item.name}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{item.category}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center text-sm text-yellow-400">
+                        <HiOutlineCash className="mr-1" size={14} />
+                        <span>{item.price}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span 
+                        className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                        style={{
+                          backgroundColor: getRarityColor(item.rarity) + '20',
+                          color: getRarityColor(item.rarity),
+                          border: `1px solid ${getRarityColor(item.rarity)}`
+                        }}
+                      >
+                        <HiOutlineStar className="mr-1" size={14} />
+                        {item.rarity.charAt(0) + item.rarity.slice(1).toLowerCase()}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {item.expired ? (
+                        <span className="px-2 py-1 inline-flex items-center text-xs leading-5 font-semibold rounded-full bg-red-900/30 text-red-400 border border-red-700">
+                          <HiOutlineClock className="mr-1" size={14} />
+                          Expired
+                        </span>
+                      ) : item.active ? (
+                        <span className="px-2 py-1 inline-flex items-center text-xs leading-5 font-semibold rounded-full bg-green-900/30 text-green-400 border border-green-700">
+                          <HiOutlineCheck className="mr-1" size={14} />
+                          Active
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 inline-flex items-center text-xs leading-5 font-semibold rounded-full bg-slate-700/50 text-slate-400 border border-slate-600">
+                          Inactive
+                        </span>
+                      )}
+                      {item.expiresAt && !item.expired && (
+                        <div className="text-xs text-slate-400 mt-1 flex items-center">
+                          <HiOutlineClock className="mr-1" size={12} />
+                          Expires: {new Date(item.expiresAt).toLocaleString()}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-3">
+                        <button
+                          onClick={() => handleEdit(item)}
+                          className="text-primary hover:text-primary/80 flex items-center"
+                        >
+                          <HiOutlinePencil className="mr-1" size={16} />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          disabled={item.isDeleting}
+                          className={`text-red-500 hover:text-red-400 flex items-center ${item.isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          {item.isDeleting ? (
+                            <>
+                              <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin mr-1"></div>
+                              Deleting...
+                            </>
+                          ) : (
+                            <>
+                              <HiOutlineTrash className="mr-1" size={16} />
+                              Delete
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
