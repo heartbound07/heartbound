@@ -386,6 +386,15 @@ public class ChatActivityListener extends ListenerAdapter {
                 awardedXp = xpToAward;
                 logger.debug("[XP DEBUG] Awarded {} XP to user {}. New XP: {}", xpToAward, userId, user.getExperience());
                 
+                // Award credits alongside XP for each eligible message
+                if (activityEnabled && creditsToAward > 0) {
+                    int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
+                    user.setCredits(currentCredits + creditsToAward);
+                    logger.debug("[CREDITS DEBUG] Awarded {} credits to user {}. New balance: {}", 
+                        creditsToAward, userId, user.getCredits());
+                    userUpdated = true; // Ensure user is marked for update
+                }
+                
                 // Save user's level before potential level-up for later comparison
                 int requiredXpForNextLevel = calculateRequiredXp(initialLevel);
                 
