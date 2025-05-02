@@ -420,88 +420,110 @@ export function InventoryPage() {
                       }}
                       whileHover={{ y: -5, transition: { duration: 0.2 } }}
                       className="inventory-item-card"
-                      style={{ 
-                        borderColor: item.equipped ? 'var(--color-primary, #0088cc)' : rarityColor,
-                        borderWidth: '1px'
-                      }}
                     >
-                      {/* Item image or nameplate preview */}
-                      <div className="inventory-item-image">
-                        {item.category === 'USER_COLOR' ? (
-                          <NameplatePreview
-                            username={user?.username || "Username"}
-                            avatar={user?.avatar || "/default-avatar.png"}
-                            color={item.imageUrl}
-                            fallbackColor={getRarityColor(item.rarity)}
-                            message="Your equipped nameplate color"
-                            className="h-full w-full"
-                            size="sm"
-                          />
-                        ) : item.imageUrl ? (
-                          <img 
-                            src={item.imageUrl} 
-                            alt={item.name}
-                            className="h-full w-full object-cover" 
-                          />
-                        ) : (
-                          <span className="text-slate-400">No Image</span>
-                        )}
-                        
-                        {/* Equipped badge */}
-                        {item.equipped && (
-                          <div className="equipped-badge">
-                            Equipped
-                          </div>
-                        )}
-                        
-                        {/* Category badge (in place of rarity badge) */}
-                      </div>
+                      {/* Animated rarity glow effect */}
+                      <motion.div
+                        className={`rarity-glow ${item.equipped ? 'rarity-glow-equipped' : ''}`}
+                        initial={{ opacity: 0 }}
+                        animate={{ 
+                          opacity: [0.4, 0.8, 0.4],
+                          boxShadow: [
+                            `0 0 5px 1px ${rarityColor}80`,
+                            `0 0 10px 2px ${rarityColor}90`,
+                            `0 0 5px 1px ${rarityColor}80`
+                          ]
+                        }}
+                        transition={{
+                          duration: 3,
+                          repeat: Infinity,
+                          repeatType: "reverse",
+                          ease: "easeInOut"
+                        }}
+                      />
                       
-                      <div className="inventory-item-content">
-                        <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center">
-                            <h3 className="font-medium text-white mr-2">{item.name}</h3>
-                            <div 
-                              className="px-2 py-0.5 rounded text-xs font-semibold"
-                              style={getRarityBadgeStyle(item.rarity)}
-                            >
-                              {getRarityLabel(item.rarity)}
+                      {/* Item content with border */}
+                      <div 
+                        className="inventory-item-inner"
+                        style={{ 
+                          borderColor: item.equipped ? 'var(--color-primary, #0088cc)' : rarityColor
+                        }}
+                      >
+                        {/* Item image or nameplate preview */}
+                        <div className="inventory-item-image">
+                          {item.category === 'USER_COLOR' ? (
+                            <NameplatePreview
+                              username={user?.username || "Username"}
+                              avatar={user?.avatar || "/default-avatar.png"}
+                              color={item.imageUrl}
+                              fallbackColor={getRarityColor(item.rarity)}
+                              message="Your equipped nameplate color"
+                              className="h-full w-full"
+                              size="sm"
+                            />
+                          ) : item.imageUrl ? (
+                            <img 
+                              src={item.imageUrl} 
+                              alt={item.name}
+                              className="h-full w-full object-cover" 
+                            />
+                          ) : (
+                            <span className="text-slate-400">No Image</span>
+                          )}
+                          
+                          {/* Equipped badge */}
+                          {item.equipped && (
+                            <div className="equipped-badge">
+                              Equipped
                             </div>
-                          </div>
+                          )}
                         </div>
                         
-                        {item.description && (
-                          <p className="text-slate-300 text-sm mb-3">{item.description}</p>
-                        )}
-                        
-                        <div className="flex justify-between items-center">
-                          {/* Always show Purchased badge regardless of price */}
-                          <div className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs flex items-center">
-                            Purchased
+                        <div className="inventory-item-content">
+                          <div className="flex justify-between items-center mb-2">
+                            <div className="flex items-center">
+                              <h3 className="font-medium text-white mr-2">{item.name}</h3>
+                              <div 
+                                className="px-2 py-0.5 rounded text-xs font-semibold"
+                                style={getRarityBadgeStyle(item.rarity)}
+                              >
+                                {getRarityLabel(item.rarity)}
+                              </div>
+                            </div>
                           </div>
                           
-                          {/* Equip/Unequip button */}
-                          {item.equipped ? (
-                            <button
-                              onClick={() => handleUnequipItem(item.category)}
-                              disabled={actionInProgress !== null}
-                              className={`item-action-button unequip-button h-8 flex items-center ${
-                                actionInProgress === item.category ? 'opacity-50 cursor-not-allowed' : ''
-                              }`}
-                            >
-                              {actionInProgress === item.category ? 'Processing...' : 'Unequip'}
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleEquipItem(item.id)}
-                              disabled={actionInProgress !== null}
-                              className={`item-action-button equip-button h-8 flex items-center ${
-                                actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
-                              }`}
-                            >
-                              {actionInProgress === item.id ? 'Processing...' : 'Equip'}
-                            </button>
+                          {item.description && (
+                            <p className="text-slate-300 text-sm mb-3">{item.description}</p>
                           )}
+                          
+                          <div className="flex justify-between items-center">
+                            {/* Always show Purchased badge regardless of price */}
+                            <div className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs flex items-center">
+                              Purchased
+                            </div>
+                            
+                            {/* Equip/Unequip button */}
+                            {item.equipped ? (
+                              <button
+                                onClick={() => handleUnequipItem(item.category)}
+                                disabled={actionInProgress !== null}
+                                className={`item-action-button unequip-button h-8 flex items-center ${
+                                  actionInProgress === item.category ? 'opacity-50 cursor-not-allowed' : ''
+                                }`}
+                              >
+                                {actionInProgress === item.category ? 'Processing...' : 'Unequip'}
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleEquipItem(item.id)}
+                                disabled={actionInProgress !== null}
+                                className={`item-action-button equip-button h-8 flex items-center ${
+                                  actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
+                                }`}
+                              >
+                                {actionInProgress === item.id ? 'Processing...' : 'Equip'}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </motion.div>
