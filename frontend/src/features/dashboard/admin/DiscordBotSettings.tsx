@@ -3,6 +3,18 @@ import { useAuth } from '@/contexts/auth';
 import { Navigate } from 'react-router-dom';
 import httpClient from '@/lib/api/httpClient';
 import { Toast } from '@/components/Toast';
+import { 
+  HiOutlineCheck, 
+  HiOutlineInformationCircle, 
+  HiOutlineLightningBolt, 
+  HiOutlineChat, 
+  HiOutlineClock, 
+  HiOutlineChartBar, 
+  HiOutlineBadgeCheck, 
+  HiOutlineCalculator,
+} from 'react-icons/hi';
+import { FiActivity, FiSettings, FiUsers, FiAward } from 'react-icons/fi';
+import { motion } from 'framer-motion';
 
 interface DiscordBotSettingsData {
   activityEnabled: boolean;
@@ -218,477 +230,659 @@ export function DiscordBotSettings() {
     });
   };
   
+  // Loading state view with animation
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex flex-col items-center justify-center h-96">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-white text-lg">Loading Discord Bot Settings...</p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-4 md:p-6 max-w-6xl">
       {/* Toast notifications */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map(toast => (
-          <Toast
+          <motion.div
             key={toast.id}
-            message={toast.message}
-            type={toast.type}
-            onClose={() => removeToast(toast.id)}
-          />
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 50 }}
+          >
+            <Toast
+              key={toast.id}
+              message={toast.message}
+              type={toast.type}
+              onClose={() => removeToast(toast.id)}
+            />
+          </motion.div>
         ))}
       </div>
-
-      <div className="bg-gradient-to-b from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-xl shadow-xl p-6 border border-white/10">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-white">Discord Bot Settings</h1>
-          {isLoading && <div className="text-primary animate-pulse">Loading...</div>}
-        </div>
-        
-        {error && (
-          <div className="bg-red-900/50 text-red-200 p-4 rounded-lg mb-6 border border-red-700">
-            {error}
-          </div>
-        )}
-        
-        <form onSubmit={handleSubmit}>
-          {/* Chat Activity Settings Section */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-white mb-4 border-b border-white/10 pb-2">
-              Chat Activity Settings
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-white">
-                  <input
-                    type="checkbox"
-                    id="activityEnabled"
-                    name="activityEnabled"
-                    checked={settings.activityEnabled}
-                    onChange={handleChange}
-                    className="rounded border-slate-700 bg-slate-800 text-primary focus:ring-primary focus:ring-offset-slate-900"
-                  />
-                  Enable Chat Activity Rewards
-                </label>
-                <p className="text-slate-400 text-sm">When enabled, users earn credits for being active in Discord chat</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="creditsToAward" className="block text-white">
-                  Credits to Award
-                </label>
-                <input
-                  type="number"
-                  id="creditsToAward"
-                  name="creditsToAward"
-                  value={settings.creditsToAward}
-                  onChange={handleChange}
-                  min="1"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">Credits awarded when a user meets the message threshold</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="messageThreshold" className="block text-white">
-                  Message Threshold
-                </label>
-                <input
-                  type="number"
-                  id="messageThreshold"
-                  name="messageThreshold"
-                  value={settings.messageThreshold}
-                  onChange={handleChange}
-                  min="1"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">Number of messages required within the time window to earn credits</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="timeWindowMinutes" className="block text-white">
-                  Time Window (minutes)
-                </label>
-                <input
-                  type="number"
-                  id="timeWindowMinutes"
-                  name="timeWindowMinutes"
-                  value={settings.timeWindowMinutes}
-                  onChange={handleChange}
-                  min="1"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">Time period in which messages are counted for the threshold</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="cooldownSeconds" className="block text-white">
-                  Cooldown (seconds)
-                </label>
-                <input
-                  type="number"
-                  id="cooldownSeconds"
-                  name="cooldownSeconds"
-                  value={settings.cooldownSeconds}
-                  onChange={handleChange}
-                  min="1"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">Cooldown between counting messages from the same user</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="minMessageLength" className="block text-white">
-                  Minimum Message Length
-                </label>
-                <input
-                  type="number"
-                  id="minMessageLength"
-                  name="minMessageLength"
-                  value={settings.minMessageLength}
-                  onChange={handleChange}
-                  min="1"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">Minimum character length for a message to count</p>
-              </div>
-            </div>
-          </div>
-          
-          {/* Leveling System Settings Section */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-white mb-4 border-b border-white/10 pb-2">
-              Leveling System Settings
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-white">
-                  <input
-                    type="checkbox"
-                    id="levelingEnabled"
-                    name="levelingEnabled"
-                    checked={settings.levelingEnabled}
-                    onChange={handleChange}
-                    className="rounded border-slate-700 bg-slate-800 text-primary focus:ring-primary focus:ring-offset-slate-900"
-                  />
-                  Enable Leveling System
-                </label>
-                <p className="text-slate-400 text-sm">When enabled, users earn XP and level up for being active in Discord</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="xpToAward" className="block text-white">
-                  XP to Award per Message
-                </label>
-                <input
-                  type="number"
-                  id="xpToAward"
-                  name="xpToAward"
-                  value={settings.xpToAward}
-                  onChange={handleChange}
-                  min="1"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">XP awarded for each valid message</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="baseXp" className="block text-white">
-                  Base XP
-                </label>
-                <input
-                  type="number"
-                  id="baseXp"
-                  name="baseXp"
-                  value={settings.baseXp}
-                  onChange={handleChange}
-                  min="1"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">Base XP required for the first level</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="levelMultiplier" className="block text-white">
-                  Level Multiplier
-                </label>
-                <input
-                  type="number"
-                  id="levelMultiplier"
-                  name="levelMultiplier"
-                  value={settings.levelMultiplier}
-                  onChange={handleChange}
-                  min="1"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">Multiplier used in level XP calculation</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="levelExponent" className="block text-white">
-                  Level Exponent
-                </label>
-                <input
-                  type="number"
-                  id="levelExponent"
-                  name="levelExponent"
-                  value={settings.levelExponent}
-                  onChange={handleChange}
-                  min="1"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">Exponent for level scaling</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="levelFactor" className="block text-white">
-                  Level Factor
-                </label>
-                <input
-                  type="number"
-                  id="levelFactor"
-                  name="levelFactor"
-                  value={settings.levelFactor}
-                  onChange={handleChange}
-                  min="1"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">Additional factor for level scaling</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="creditsPerLevel" className="block text-white">
-                  Credits per Level Up
-                </label>
-                <input
-                  type="number"
-                  id="creditsPerLevel"
-                  name="creditsPerLevel"
-                  value={settings.creditsPerLevel}
-                  onChange={handleChange}
-                  min="1"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">Credits awarded when a user levels up</p>
-              </div>
-            </div>
-          </div>
-          
-          {/* Level Role Settings Section */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-white mb-4 border-b border-white/10 pb-2">
-              Level Role Rewards
-            </h2>
-            <p className="text-slate-300 mb-4">Configure which Discord role IDs will be granted at each level milestone.</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="level5RoleId" className="block text-white">
-                  Level 5 Role ID
-                </label>
-                <input
-                  type="text"
-                  id="level5RoleId"
-                  name="level5RoleId"
-                  value={settings.level5RoleId}
-                  onChange={handleChange}
-                  placeholder="Discord Role ID"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">Role awarded at level 5</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="level15RoleId" className="block text-white">
-                  Level 15 Role ID
-                </label>
-                <input
-                  type="text"
-                  id="level15RoleId"
-                  name="level15RoleId"
-                  value={settings.level15RoleId}
-                  onChange={handleChange}
-                  placeholder="Discord Role ID"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">Role awarded at level 15</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="level30RoleId" className="block text-white">
-                  Level 30 Role ID
-                </label>
-                <input
-                  type="text"
-                  id="level30RoleId"
-                  name="level30RoleId"
-                  value={settings.level30RoleId}
-                  onChange={handleChange}
-                  placeholder="Discord Role ID"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">Role awarded at level 30</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="level40RoleId" className="block text-white">
-                  Level 40 Role ID
-                </label>
-                <input
-                  type="text"
-                  id="level40RoleId"
-                  name="level40RoleId"
-                  value={settings.level40RoleId}
-                  onChange={handleChange}
-                  placeholder="Discord Role ID"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">Role awarded at level 40</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="level50RoleId" className="block text-white">
-                  Level 50 Role ID
-                </label>
-                <input
-                  type="text"
-                  id="level50RoleId"
-                  name="level50RoleId"
-                  value={settings.level50RoleId}
-                  onChange={handleChange}
-                  placeholder="Discord Role ID"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">Role awarded at level 50</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="level70RoleId" className="block text-white">
-                  Level 70 Role ID
-                </label>
-                <input
-                  type="text"
-                  id="level70RoleId"
-                  name="level70RoleId"
-                  value={settings.level70RoleId}
-                  onChange={handleChange}
-                  placeholder="Discord Role ID"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">Role awarded at level 70</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="level100RoleId" className="block text-white">
-                  Level 100 Role ID
-                </label>
-                <input
-                  type="text"
-                  id="level100RoleId"
-                  name="level100RoleId"
-                  value={settings.level100RoleId}
-                  onChange={handleChange}
-                  placeholder="Discord Role ID"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-                <p className="text-slate-400 text-sm">Role awarded at level 100</p>
-              </div>
-            </div>
-          </div>
-          
-          {/* Save Button */}
-          <div className="flex justify-end mt-6">
-            <button
-              type="submit"
-              disabled={isLoading || isSaving}
-              className={`px-6 py-3 bg-primary/80 hover:bg-primary text-white font-semibold rounded-md transition-colors ${
-                (isLoading || isSaving) ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            >
-              {isSaving ? 'Saving...' : 'Save Settings'}
-            </button>
-          </div>
-        </form>
+      
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-white mb-2 flex items-center">
+          <FiSettings className="mr-3 text-primary" size={28} />
+          Discord Bot Settings
+        </h1>
+        <p className="text-slate-400 max-w-3xl">
+          Configure how the Discord bot awards activity credits, manages the leveling system, and assigns role rewards.
+        </p>
       </div>
       
-      <div className="bg-gradient-to-b from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-xl shadow-xl p-6 border border-white/10 mt-8">
-        <h2 className="text-xl font-bold text-white mb-4">Level Progression Estimator</h2>
-        <p className="text-slate-300 mb-6">Estimate time and messages needed to reach a target level based on current settings.</p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      {/* Error message */}
+      {error && (
+        <motion.div 
+          className="mb-6 bg-red-900/40 border border-red-500/50 rounded-lg p-4 text-red-200"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <p className="flex items-center">
+            <HiOutlineInformationCircle className="mr-2 flex-shrink-0" size={20} />
+            {error}
+          </p>
+        </motion.div>
+      )}
+      
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Activity Settings */}
           <div>
-            <label htmlFor="targetLevel" className="block text-sm font-medium text-slate-300 mb-2">
-              Target Level
-            </label>
-            <div className="flex items-center">
-              <input
-                id="targetLevel"
-                type="number"
-                min="2"
-                value={targetLevel || ''}
-                onChange={(e) => {
-                  const val = e.target.value === '' ? 2 : parseInt(e.target.value);
-                  setTargetLevel(isNaN(val) ? 2 : val);
-                }}
-                className="bg-slate-800 text-white border border-slate-700 rounded-md py-2 px-3 w-full focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-              <button
-                onClick={calculateLevelProgression}
-                className="ml-4 px-4 py-2 bg-primary/80 hover:bg-primary text-white font-semibold rounded-md transition-colors"
-              >
-                Calculate
-              </button>
-            </div>
-          </div>
-          
-          {estimationResults && (
-            <div className="bg-slate-800/50 rounded-lg p-5 border border-white/5">
-              <h3 className="text-lg font-semibold text-white mb-3">Results</h3>
-              <div className="space-y-2 text-slate-300">
-                <p><span className="font-medium">Total XP Required:</span> {estimationResults.totalXpRequired.toLocaleString()} XP</p>
-                <p><span className="font-medium">Messages Needed:</span> {estimationResults.messagesNeeded.toLocaleString()} messages</p>
-                
-                <div className="mt-4 border-t border-slate-700 pt-3">
-                  <h4 className="font-medium text-white mb-2">Time Estimates:</h4>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-emerald-400">Perfect-case Scenario</p>
-                      <p className="text-white">{estimationResults.timeNeeded}</p>
-                      <p className="text-xs text-slate-400 italic">Assumes messages sent exactly at cooldown rate, 24/7 activity</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-sm font-medium text-yellow-400">Realistic Scenario</p>
-                      <p className="text-white">{estimationResults.realisticTimeNeeded}</p>
-                      <p className="text-xs text-slate-400 italic">Assumes ~2 hours of active chatting per day with natural pauses</p>
-                    </div>
+            {/* Activity Credits Settings Card */}
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 mb-8 transition-all duration-300 hover:shadow-xl">
+              <div className="flex items-center mb-4">
+                <HiOutlineChat className="text-primary mr-3" size={24} />
+                <h2 className="text-xl font-semibold text-white">
+                  Activity Credits Settings
+                </h2>
+              </div>
+              
+              <div className="space-y-6">
+                <div className="relative flex items-center mt-2">
+                  <div className="flex items-center h-5">
+                    <input
+                      type="checkbox"
+                      id="activityEnabled"
+                      name="activityEnabled"
+                      checked={settings.activityEnabled}
+                      onChange={handleChange}
+                      className="form-checkbox h-5 w-5 rounded text-primary border-slate-600 bg-slate-800 focus:ring-primary focus:ring-offset-slate-900"
+                    />
+                  </div>
+                  <div className="ml-3 text-white">
+                    <label htmlFor="activityEnabled" className="text-base font-medium flex items-center">
+                      Enable Activity Credits
+                      <div className="group relative ml-2">
+                        <HiOutlineInformationCircle className="text-slate-400 hover:text-primary cursor-help transition-colors" size={18} />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-950 rounded-md shadow-lg text-sm text-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                          When enabled, users earn credits for being active in Discord chat.
+                        </div>
+                      </div>
+                    </label>
+                    <p className="text-slate-400 text-sm mt-1">Award credits for active participation in Discord</p>
                   </div>
                 </div>
                 
-                <p className="mt-3"><span className="font-medium">Credits from Leveling:</span> {estimationResults.creditsEarned.toLocaleString()} credits</p>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <label htmlFor="creditsToAward" className="text-white flex items-center">
+                        Credits to Award
+                        <div className="group relative ml-2">
+                          <HiOutlineInformationCircle className="text-slate-400 hover:text-primary cursor-help transition-colors" size={16} />
+                          <div className="absolute bottom-full left-0 mb-2 w-60 p-3 bg-slate-950 rounded-md shadow-lg text-sm text-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                            Credits awarded when a user meets the message threshold
+                          </div>
+                        </div>
+                      </label>
+                      <span className="text-primary font-semibold">{settings.creditsToAward}</span>
+                    </div>
+                    <input
+                      type="range"
+                      id="creditsToAward"
+                      name="creditsToAward"
+                      value={settings.creditsToAward}
+                      onChange={handleChange}
+                      min="1"
+                      max="50"
+                      className="w-full appearance-none h-2 bg-slate-700 rounded-lg outline-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                    />
+                    <input
+                      type="number"
+                      id="creditsToAwardExact"
+                      name="creditsToAward"
+                      value={settings.creditsToAward || ''}
+                      onChange={handleChange}
+                      min="1"
+                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label htmlFor="messageThreshold" className="block text-white">
+                      Message Threshold
+                    </label>
+                    <input
+                      type="number"
+                      id="messageThreshold"
+                      name="messageThreshold"
+                      value={settings.messageThreshold || ''}
+                      onChange={handleChange}
+                      min="1"
+                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                    <p className="text-slate-400 text-sm">Number of messages required within the time window to earn credits</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label htmlFor="timeWindowMinutes" className="block text-white flex items-center">
+                        <HiOutlineClock className="mr-1.5" size={16} />
+                        Time Window (minutes)
+                      </label>
+                      <input
+                        type="number"
+                        id="timeWindowMinutes"
+                        name="timeWindowMinutes"
+                        value={settings.timeWindowMinutes || ''}
+                        onChange={handleChange}
+                        min="1"
+                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                      />
+                      <p className="text-slate-400 text-sm">Period in which messages are counted</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="cooldownSeconds" className="block text-white flex items-center">
+                        <FiActivity className="mr-1.5" size={16} />
+                        Cooldown (seconds)
+                      </label>
+                      <input
+                        type="number"
+                        id="cooldownSeconds"
+                        name="cooldownSeconds"
+                        value={settings.cooldownSeconds || ''}
+                        onChange={handleChange}
+                        min="1"
+                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                      />
+                      <p className="text-slate-400 text-sm">Cooldown between counting messages</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label htmlFor="minMessageLength" className="block text-white">
+                      Minimum Message Length
+                    </label>
+                    <input
+                      type="number"
+                      id="minMessageLength"
+                      name="minMessageLength"
+                      value={settings.minMessageLength || ''}
+                      onChange={handleChange}
+                      min="1"
+                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                    <p className="text-slate-400 text-sm">Minimum character length for a message to count</p>
+                  </div>
+                </div>
               </div>
             </div>
-          )}
-        </div>
-        
-        <div className="mt-4 text-slate-400 text-sm">
-          <h3 className="font-semibold text-slate-300 mb-2">Role Rewards at Levels:</h3>
-          <div className="flex flex-wrap gap-2 mb-4">
-            <span className="bg-slate-800 px-2 py-1 rounded">Level 5</span>
-            <span className="bg-slate-800 px-2 py-1 rounded">Level 15</span>
-            <span className="bg-slate-800 px-2 py-1 rounded">Level 30</span>
-            <span className="bg-slate-800 px-2 py-1 rounded">Level 40</span>
-            <span className="bg-slate-800 px-2 py-1 rounded">Level 50</span>
-            <span className="bg-slate-800 px-2 py-1 rounded">Level 70</span>
-            <span className="bg-slate-800 px-2 py-1 rounded">Level 100</span>
+            
+            {/* Leveling System Card */}
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 mb-8 transition-all duration-300 hover:shadow-xl">
+              <div className="flex items-center mb-4">
+                <HiOutlineChartBar className="text-primary mr-3" size={24} />
+                <h2 className="text-xl font-semibold text-white">
+                  Leveling System Settings
+                </h2>
+              </div>
+              
+              <div className="space-y-6">
+                <div className="relative flex items-center mt-2">
+                  <div className="flex items-center h-5">
+                    <input
+                      type="checkbox"
+                      id="levelingEnabled"
+                      name="levelingEnabled"
+                      checked={settings.levelingEnabled}
+                      onChange={handleChange}
+                      className="form-checkbox h-5 w-5 rounded text-primary border-slate-600 bg-slate-800 focus:ring-primary focus:ring-offset-slate-900"
+                    />
+                  </div>
+                  <div className="ml-3 text-white">
+                    <label htmlFor="levelingEnabled" className="text-base font-medium flex items-center">
+                      Enable Leveling System
+                      <div className="group relative ml-2">
+                        <HiOutlineInformationCircle className="text-slate-400 hover:text-primary cursor-help transition-colors" size={18} />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-950 rounded-md shadow-lg text-sm text-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                          When enabled, users earn XP and level up for being active in Discord
+                        </div>
+                      </div>
+                    </label>
+                    <p className="text-slate-400 text-sm mt-1">Award XP and levels for Discord activity</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label htmlFor="xpToAward" className="block text-white flex items-center">
+                        <HiOutlineLightningBolt className="mr-1.5" size={16} />
+                        XP per Message
+                      </label>
+                      <input
+                        type="number"
+                        id="xpToAward"
+                        name="xpToAward"
+                        value={settings.xpToAward || ''}
+                        onChange={handleChange}
+                        min="1"
+                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                      />
+                      <p className="text-slate-400 text-sm">XP awarded for each valid message</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="creditsPerLevel" className="block text-white flex items-center">
+                        <FiAward className="mr-1.5" size={16} />
+                        Credits per Level Up
+                      </label>
+                      <input
+                        type="number"
+                        id="creditsPerLevel"
+                        name="creditsPerLevel"
+                        value={settings.creditsPerLevel || ''}
+                        onChange={handleChange}
+                        min="1"
+                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                      />
+                      <p className="text-slate-400 text-sm">Credits awarded when a user levels up</p>
+                    </div>
+                  </div>
+                  
+                  {/* Level Formula Settings */}
+                  <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700/50 mb-2">
+                    <h3 className="text-white font-medium mb-3 flex items-center">
+                      <HiOutlineCalculator className="mr-1.5" size={16} />
+                      Level Formula Parameters
+                    </h3>
+                    
+                    <p className="text-slate-300 text-sm mb-4">
+                      Formula: <span className="font-mono bg-slate-800 px-2 py-0.5 rounded">baseXP + (levelMultiplier × level^exponent ÷ factor)</span>
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label htmlFor="baseXp" className="block text-white">
+                          Base XP
+                        </label>
+                        <input
+                          type="number"
+                          id="baseXp"
+                          name="baseXp"
+                          value={settings.baseXp || ''}
+                          onChange={handleChange}
+                          min="1"
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                        />
+                        <p className="text-slate-400 text-sm">Base XP for level 1</p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label htmlFor="levelMultiplier" className="block text-white">
+                          Level Multiplier
+                        </label>
+                        <input
+                          type="number"
+                          id="levelMultiplier"
+                          name="levelMultiplier"
+                          value={settings.levelMultiplier || ''}
+                          onChange={handleChange}
+                          min="1"
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                        />
+                        <p className="text-slate-400 text-sm">Multiplier for XP scaling</p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label htmlFor="levelExponent" className="block text-white">
+                          Level Exponent
+                        </label>
+                        <input
+                          type="number"
+                          id="levelExponent"
+                          name="levelExponent"
+                          value={settings.levelExponent || ''}
+                          onChange={handleChange}
+                          min="1"
+                          step="0.1"
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                        />
+                        <p className="text-slate-400 text-sm">Power to raise level to</p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label htmlFor="levelFactor" className="block text-white">
+                          Level Factor
+                        </label>
+                        <input
+                          type="number"
+                          id="levelFactor"
+                          name="levelFactor"
+                          value={settings.levelFactor || ''}
+                          onChange={handleChange}
+                          min="1"
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                        />
+                        <p className="text-slate-400 text-sm">Divisor for XP scaling</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           
-          <h3 className="font-semibold text-slate-300 mb-2">How this works:</h3>
-          <ul className="list-disc list-inside space-y-1">
-            <li>Uses the XP formula: baseXp + (levelMultiplier × level^levelExponent ÷ levelFactor)</li>
-            <li>Calculates total XP needed to reach the target level</li>
-            <li>Estimates messages needed based on XP per message ({settings.xpToAward} XP)</li>
-            <li>Estimates time based on the cooldown between messages ({settings.cooldownSeconds} seconds)</li>
-            <li>Discord roles are automatically assigned at the level milestones shown above</li>
-          </ul>
+          {/* Right Column - Role Rewards and Calculator */}
+          <div>
+            {/* Level Role Rewards Card */}
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 mb-8 transition-all duration-300 hover:shadow-xl">
+              <div className="flex items-center mb-4">
+                <FiUsers className="text-primary mr-3" size={24} />
+                <h2 className="text-xl font-semibold text-white">
+                  Level Role Rewards
+                </h2>
+              </div>
+              
+              <p className="text-slate-300 mb-4">Configure which Discord role IDs will be granted at each level milestone.</p>
+              
+              <div className="space-y-4">
+                {/* Level role mapping with badges */}
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <div className="flex items-center justify-center w-8 h-8 bg-emerald-900/30 text-emerald-400 rounded-full mr-3">
+                      <span className="text-xs font-bold">5</span>
+                    </div>
+                    <label htmlFor="level5RoleId" className="block text-white">
+                      Level 5 Role ID
+                    </label>
+                  </div>
+                  <input
+                    type="text"
+                    id="level5RoleId"
+                    name="level5RoleId"
+                    value={settings.level5RoleId}
+                    onChange={handleChange}
+                    placeholder="Discord Role ID"
+                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <div className="flex items-center justify-center w-8 h-8 bg-blue-900/30 text-blue-400 rounded-full mr-3">
+                      <span className="text-xs font-bold">15</span>
+                    </div>
+                    <label htmlFor="level15RoleId" className="block text-white">
+                      Level 15 Role ID
+                    </label>
+                  </div>
+                  <input
+                    type="text"
+                    id="level15RoleId"
+                    name="level15RoleId"
+                    value={settings.level15RoleId}
+                    onChange={handleChange}
+                    placeholder="Discord Role ID"
+                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <div className="flex items-center justify-center w-8 h-8 bg-purple-900/30 text-purple-400 rounded-full mr-3">
+                      <span className="text-xs font-bold">30</span>
+                    </div>
+                    <label htmlFor="level30RoleId" className="block text-white">
+                      Level 30 Role ID
+                    </label>
+                  </div>
+                  <input
+                    type="text"
+                    id="level30RoleId"
+                    name="level30RoleId"
+                    value={settings.level30RoleId}
+                    onChange={handleChange}
+                    placeholder="Discord Role ID"
+                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <div className="flex items-center justify-center w-8 h-8 bg-yellow-900/30 text-yellow-400 rounded-full mr-3">
+                      <span className="text-xs font-bold">40</span>
+                    </div>
+                    <label htmlFor="level40RoleId" className="block text-white">
+                      Level 40 Role ID
+                    </label>
+                  </div>
+                  <input
+                    type="text"
+                    id="level40RoleId"
+                    name="level40RoleId"
+                    value={settings.level40RoleId}
+                    onChange={handleChange}
+                    placeholder="Discord Role ID"
+                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center">
+                      <div className="flex items-center justify-center w-8 h-8 bg-orange-900/30 text-orange-400 rounded-full mr-3">
+                        <span className="text-xs font-bold">50</span>
+                      </div>
+                      <label htmlFor="level50RoleId" className="block text-white">
+                        Level 50
+                      </label>
+                    </div>
+                    <input
+                      type="text"
+                      id="level50RoleId"
+                      name="level50RoleId"
+                      value={settings.level50RoleId}
+                      onChange={handleChange}
+                      placeholder="Role ID"
+                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center">
+                      <div className="flex items-center justify-center w-8 h-8 bg-pink-900/30 text-pink-400 rounded-full mr-3">
+                        <span className="text-xs font-bold">70</span>
+                      </div>
+                      <label htmlFor="level70RoleId" className="block text-white">
+                        Level 70
+                      </label>
+                    </div>
+                    <input
+                      type="text"
+                      id="level70RoleId"
+                      name="level70RoleId"
+                      value={settings.level70RoleId}
+                      onChange={handleChange}
+                      placeholder="Role ID"
+                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center">
+                      <div className="flex items-center justify-center w-8 h-8 bg-red-900/30 text-red-400 rounded-full mr-3">
+                        <span className="text-xs font-bold">100</span>
+                      </div>
+                      <label htmlFor="level100RoleId" className="block text-white">
+                        Level 100
+                      </label>
+                    </div>
+                    <input
+                      type="text"
+                      id="level100RoleId"
+                      name="level100RoleId"
+                      value={settings.level100RoleId}
+                      onChange={handleChange}
+                      placeholder="Role ID"
+                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Save Button */}
+            <div className="flex justify-end mb-8">
+              <button
+                type="submit"
+                disabled={isLoading || isSaving}
+                className={`px-6 py-3 bg-primary text-white font-semibold rounded-md shadow-lg transition-all duration-300 flex items-center ${
+                  (isLoading || isSaving) 
+                    ? 'opacity-50 cursor-not-allowed' 
+                    : 'hover:bg-primary/90 hover:shadow-primary/20 transform hover:-translate-y-0.5'
+                }`}
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Saving Settings...
+                  </>
+                ) : (
+                  <>
+                    <HiOutlineCheck className="mr-2" size={20} />
+                    Save Settings
+                  </>
+                )}
+              </button>
+            </div>
+            
+            {/* Level Progression Estimator Card */}
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6">
+              <div className="flex items-center mb-4">
+                <HiOutlineCalculator className="text-primary mr-3" size={24} />
+                <h2 className="text-xl font-semibold text-white">
+                  Level Progression Estimator
+                </h2>
+              </div>
+              
+              <p className="text-slate-300 mb-4">
+                Estimate time and messages needed to reach a target level based on current settings.
+              </p>
+              
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <label htmlFor="targetLevel" className="block text-white font-medium">
+                    Target Level
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      id="targetLevel"
+                      type="number"
+                      min="2"
+                      value={targetLevel || ''}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? 2 : parseInt(e.target.value);
+                        setTargetLevel(isNaN(val) ? 2 : val);
+                      }}
+                      className="bg-slate-800 text-white border border-slate-700 rounded-lg py-3 px-4 w-full focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      placeholder="Enter a level number..."
+                    />
+                    <button
+                      onClick={calculateLevelProgression}
+                      className="px-5 py-3 bg-primary/80 hover:bg-primary text-white font-semibold rounded-lg transition-colors flex items-center whitespace-nowrap"
+                    >
+                      <HiOutlineCalculator className="mr-2" size={18} />
+                      Calculate
+                    </button>
+                  </div>
+                </div>
+                
+                {estimationResults && (
+                  <motion.div 
+                    className="bg-slate-800/70 rounded-lg p-5 border border-white/5"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <h3 className="text-lg font-semibold text-white mb-3 flex items-center">
+                      <HiOutlineBadgeCheck className="mr-2 text-primary" size={22} />
+                      Results for Level {targetLevel}
+                    </h3>
+                    
+                    <div className="space-y-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-slate-800/80 rounded-lg p-3">
+                          <p className="text-sm font-medium text-slate-400">Total XP Required</p>
+                          <p className="text-xl font-semibold text-white">{estimationResults.totalXpRequired.toLocaleString()} XP</p>
+                        </div>
+                        
+                        <div className="bg-slate-800/80 rounded-lg p-3">
+                          <p className="text-sm font-medium text-slate-400">Messages Needed</p>
+                          <p className="text-xl font-semibold text-white">{estimationResults.messagesNeeded.toLocaleString()}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-slate-800/80 rounded-lg divide-y divide-slate-700/50">
+                        <div className="p-3">
+                          <p className="text-sm font-medium text-emerald-400 flex items-center">
+                            <FiActivity className="mr-1.5" size={16} />
+                            Perfect-case Timeline
+                          </p>
+                          <p className="text-white font-medium mt-1">{estimationResults.timeNeeded}</p>
+                          <p className="text-xs text-slate-400 italic">Assumes messages sent exactly at cooldown rate</p>
+                        </div>
+                        
+                        <div className="p-3">
+                          <p className="text-sm font-medium text-yellow-400 flex items-center">
+                            <FiUsers className="mr-1.5" size={16} />
+                            Realistic Timeline
+                          </p>
+                          <p className="text-white font-medium mt-1">{estimationResults.realisticTimeNeeded}</p>
+                          <p className="text-xs text-slate-400 italic">Based on ~2 hours of daily activity</p>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-slate-800/80 rounded-lg p-3">
+                        <p className="text-sm font-medium text-slate-400">Credits from Leveling</p>
+                        <p className="text-xl font-semibold text-white">{estimationResults.creditsEarned.toLocaleString()} credits</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+                
+                <div className="bg-slate-800/30 rounded-lg p-4 text-sm text-slate-400">
+                  <h4 className="font-medium text-white mb-2 flex items-center">
+                    <HiOutlineInformationCircle className="mr-1.5" size={16} />
+                    How the Level Formula Works
+                  </h4>
+                  <ul className="list-disc list-inside space-y-1 ml-1">
+                    <li>XP formula: <span className="font-mono bg-slate-800 px-1.5 py-0.5 rounded text-xs">baseXp + (levelMultiplier × level^levelExponent ÷ levelFactor)</span></li>
+                    <li>Time estimate assumes message cooldown of {settings.cooldownSeconds} seconds</li>
+                    <li>Users earn {settings.xpToAward} XP per message and {settings.creditsPerLevel} credits per level</li>
+                    <li>Discord roles are automatically assigned at levels 5, 15, 30, 40, 50, 70, and 100</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
