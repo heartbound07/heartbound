@@ -59,6 +59,7 @@ export function DiscordBotSettings() {
     timeNeeded: string;
     totalXpRequired: number;
     creditsEarned: number;
+    realisticTimeNeeded: string;
   } | null>(null);
   
   // Additional security check - redirect if not admin
@@ -149,13 +150,23 @@ export function DiscordBotSettings() {
     }
     
     // Calculate messages needed based on XP per message
-    const messagesNeeded = Math.ceil(totalXpRequired / (settings.xpToAward || 1)); // Prevent division by zero
+    const messagesNeeded = Math.ceil(totalXpRequired / (settings.xpToAward || 1));
     
-    // Calculate minimum time needed (perfect scenario with no delays beyond cooldown)
-    const timeInSeconds = messagesNeeded * (settings.cooldownSeconds || 1); // Prevent multiplication by zero
+    // Perfect-case time calculation (assuming messages sent at exact cooldown)
+    const timeInSeconds = messagesNeeded * (settings.cooldownSeconds || 1);
     const days = Math.floor(timeInSeconds / 86400);
     const hours = Math.floor((timeInSeconds % 86400) / 3600);
     const minutes = Math.floor((timeInSeconds % 3600) / 60);
+    
+    // Realistic scenario - assumes average of 2 hours of active chatting per day
+    // and messages sent at 2x the minimum cooldown rate on average
+    const activeHoursPerDay = 2;
+    const messageRateMultiplier = 2;
+    const realisticTimeInSeconds = timeInSeconds * messageRateMultiplier;
+    const realisticTotalDays = Math.ceil(realisticTimeInSeconds / (activeHoursPerDay * 3600));
+    
+    const realisticWeeks = Math.floor(realisticTotalDays / 7);
+    const realisticDays = realisticTotalDays % 7;
     
     // Calculate credits earned from leveling
     const creditsEarned = (targetLevel - 1) * (settings.creditsPerLevel || 0);
@@ -166,11 +177,16 @@ export function DiscordBotSettings() {
         ? `${hours} hours, ${minutes} minutes` 
         : `${minutes} minutes`;
         
+    const realisticTimeNeeded = realisticWeeks > 0
+      ? `${realisticWeeks} weeks and ${realisticDays} days`
+      : `${realisticTotalDays} days`;
+        
     setEstimationResults({
       messagesNeeded,
       timeNeeded,
       totalXpRequired,
-      creditsEarned
+      creditsEarned,
+      realisticTimeNeeded
     });
   };
   
@@ -476,9 +492,26 @@ export function DiscordBotSettings() {
               <div className="space-y-2 text-slate-300">
                 <p><span className="font-medium">Total XP Required:</span> {estimationResults.totalXpRequired.toLocaleString()} XP</p>
                 <p><span className="font-medium">Messages Needed:</span> {estimationResults.messagesNeeded.toLocaleString()} messages</p>
-                <p><span className="font-medium">Minimum Time Needed:</span> {estimationResults.timeNeeded}</p>
-                <p><span className="font-medium">Credits from Leveling:</span> {estimationResults.creditsEarned.toLocaleString()} credits</p>
-                <p className="text-xs text-slate-400 italic mt-2">Note: This is a perfect-case estimate assuming consistent messaging at the cooldown rate.</p>
+                
+                <div className="mt-4 border-t border-slate-700 pt-3">
+                  <h4 className="font-medium text-white mb-2">Time Estimates:</h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-emerald-400">Perfect-case Scenario</p>
+                      <p className="text-white">{estimationResults.timeNeeded}</p>
+                      <p className="text-xs text-slate-400 italic">Assumes messages sent exactly at cooldown rate, 24/7 activity</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm font-medium text-yellow-400">Realistic Scenario</p>
+                      <p className="text-white">{estimationResults.realisticTimeNeeded}</p>
+                      <p className="text-xs text-slate-400 italic">Assumes ~2 hours of active chatting per day with natural pauses</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <p className="mt-3"><span className="font-medium">Credits from Leveling:</span> {estimationResults.creditsEarned.toLocaleString()} credits</p>
               </div>
             </div>
           )}
