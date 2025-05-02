@@ -42,6 +42,10 @@ const initialSettings: DiscordBotSettingsData = {
   creditsPerLevel: 50
 };
 
+const calculateRequiredXp = (level: number, baseXp: number, levelMultiplier: number, levelExponent: number, levelFactor: number): number => {
+  return Math.floor(baseXp + (levelMultiplier * Math.pow(level, levelExponent) / levelFactor));
+};
+
 export function DiscordBotSettings() {
   const { hasRole } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
@@ -49,6 +53,13 @@ export function DiscordBotSettings() {
   const [settings, setSettings] = useState<DiscordBotSettingsData>(initialSettings);
   const [error, setError] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
+  const [targetLevel, setTargetLevel] = useState<number>(10);
+  const [estimationResults, setEstimationResults] = useState<{
+    messagesNeeded: number;
+    timeNeeded: string;
+    totalXpRequired: number;
+    creditsEarned: number;
+  } | null>(null);
   
   // Additional security check - redirect if not admin
   if (!hasRole('ADMIN')) {
@@ -116,6 +127,51 @@ export function DiscordBotSettings() {
     } finally {
       setIsSaving(false);
     }
+  };
+  
+  const calculateLevelProgression = () => {
+    // Validate target level
+    if (!targetLevel || targetLevel < 2) {
+      showToast('Target level must be at least 2', 'error');
+      return;
+    }
+    
+    let totalXpRequired = 0;
+    // Sum up XP required for all levels from 1 to target
+    for (let level = 1; level < targetLevel; level++) {
+      totalXpRequired += calculateRequiredXp(
+        level, 
+        settings.baseXp, 
+        settings.levelMultiplier, 
+        settings.levelExponent, 
+        settings.levelFactor
+      );
+    }
+    
+    // Calculate messages needed based on XP per message
+    const messagesNeeded = Math.ceil(totalXpRequired / (settings.xpToAward || 1)); // Prevent division by zero
+    
+    // Calculate minimum time needed (perfect scenario with no delays beyond cooldown)
+    const timeInSeconds = messagesNeeded * (settings.cooldownSeconds || 1); // Prevent multiplication by zero
+    const days = Math.floor(timeInSeconds / 86400);
+    const hours = Math.floor((timeInSeconds % 86400) / 3600);
+    const minutes = Math.floor((timeInSeconds % 3600) / 60);
+    
+    // Calculate credits earned from leveling
+    const creditsEarned = (targetLevel - 1) * (settings.creditsPerLevel || 0);
+    
+    const timeNeeded = days > 0 
+      ? `${days} days, ${hours} hours, ${minutes} minutes` 
+      : hours > 0 
+        ? `${hours} hours, ${minutes} minutes` 
+        : `${minutes} minutes`;
+        
+    setEstimationResults({
+      messagesNeeded,
+      timeNeeded,
+      totalXpRequired,
+      creditsEarned
+    });
   };
   
   return (
@@ -382,6 +438,62 @@ export function DiscordBotSettings() {
             </button>
           </div>
         </form>
+      </div>
+      
+      <div className="bg-gradient-to-b from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-xl shadow-xl p-6 border border-white/10 mt-8">
+        <h2 className="text-xl font-bold text-white mb-4">Level Progression Estimator</h2>
+        <p className="text-slate-300 mb-6">Estimate time and messages needed to reach a target level based on current settings.</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <label htmlFor="targetLevel" className="block text-sm font-medium text-slate-300 mb-2">
+              Target Level
+            </label>
+            <div className="flex items-center">
+              <input
+                id="targetLevel"
+                type="number"
+                min="2"
+                value={targetLevel || ''}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? 2 : parseInt(e.target.value);
+                  setTargetLevel(isNaN(val) ? 2 : val);
+                }}
+                className="bg-slate-800 text-white border border-slate-700 rounded-md py-2 px-3 w-full focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <button
+                onClick={calculateLevelProgression}
+                className="ml-4 px-4 py-2 bg-primary/80 hover:bg-primary text-white font-semibold rounded-md transition-colors"
+              >
+                Calculate
+              </button>
+            </div>
+          </div>
+          
+          {estimationResults && (
+            <div className="bg-slate-800/50 rounded-lg p-5 border border-white/5">
+              <h3 className="text-lg font-semibold text-white mb-3">Results</h3>
+              <div className="space-y-2 text-slate-300">
+                <p><span className="font-medium">Total XP Required:</span> {estimationResults.totalXpRequired.toLocaleString()} XP</p>
+                <p><span className="font-medium">Messages Needed:</span> {estimationResults.messagesNeeded.toLocaleString()} messages</p>
+                <p><span className="font-medium">Minimum Time Needed:</span> {estimationResults.timeNeeded}</p>
+                <p><span className="font-medium">Credits from Leveling:</span> {estimationResults.creditsEarned.toLocaleString()} credits</p>
+                <p className="text-xs text-slate-400 italic mt-2">Note: This is a perfect-case estimate assuming consistent messaging at the cooldown rate.</p>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        <div className="mt-4 text-slate-400 text-sm">
+          <h3 className="font-semibold text-slate-300 mb-2">How this works:</h3>
+          <ul className="list-disc list-inside space-y-1">
+            <li>Uses the XP formula: baseXp + (levelMultiplier × level^levelExponent ÷ levelFactor)</li>
+            <li>Calculates total XP needed to reach the target level</li>
+            <li>Estimates messages needed based on XP per message ({settings.xpToAward} XP)</li>
+            <li>Estimates time based on the cooldown between messages ({settings.cooldownSeconds} seconds)</li>
+            <li>Different role rewards are given at levels 5, 15, 30, 40, 50, 70, and 100</li>
+          </ul>
+        </div>
       </div>
     </div>
   );
