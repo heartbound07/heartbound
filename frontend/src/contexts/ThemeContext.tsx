@@ -13,7 +13,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     // Initialize from localStorage when component mounts
     const savedTheme = localStorage.getItem('app-theme');
-    return (savedTheme === 'default' || savedTheme === 'dark') ? savedTheme : 'default';
+    return (savedTheme === 'default' || savedTheme === 'dark') ? savedTheme : 'dark';
   });
 
   // Update localStorage and apply theme when theme changes
