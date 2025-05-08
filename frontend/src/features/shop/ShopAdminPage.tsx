@@ -27,6 +27,7 @@ interface ShopItem {
   price: number;
   category: string;
   imageUrl: string;
+  thumbnailUrl?: string;
   requiredRole: string | null;
   expiresAt: string | null;
   active: boolean;
@@ -42,6 +43,7 @@ interface ShopFormData {
   price: number;
   category: string;
   imageUrl: string;
+  thumbnailUrl?: string;
   requiredRole: string | null;
   expiresAt: string | null;
   active: boolean;
@@ -69,6 +71,7 @@ export function ShopAdminPage() {
     price: 0,
     category: '',
     imageUrl: '',
+    thumbnailUrl: '',
     requiredRole: null,
     expiresAt: null,
     active: true,
@@ -188,6 +191,7 @@ export function ShopAdminPage() {
       price: item.price,
       category: item.category,
       imageUrl: item.imageUrl || '',
+      thumbnailUrl: item.thumbnailUrl || '',
       requiredRole: item.requiredRole,
       expiresAt: item.expiresAt,
       active: item.active,
@@ -238,6 +242,7 @@ export function ShopAdminPage() {
       price: 0,
       category: '',
       imageUrl: '',
+      thumbnailUrl: '',
       requiredRole: null,
       expiresAt: null,
       active: true,
@@ -529,6 +534,24 @@ export function ShopAdminPage() {
                 </div>
               )}
             </div>
+            
+            {/* In the form, add this conditional thumbnail upload field */}
+            {formData.category === 'BADGE' && (
+              <div className="mb-6">
+                <label className="mb-2 block text-sm font-medium text-white">
+                  Badge Thumbnail (Circle Format)
+                </label>
+                <p className="mb-2 text-xs text-white/60">
+                  This circular image will be shown on user profiles when the badge is equipped.
+                </p>
+                <ImageUpload
+                  currentImageUrl={formData.thumbnailUrl || ''}
+                  onUpload={(url) => setFormData({ ...formData, thumbnailUrl: url })}
+                  onRemove={() => setFormData({ ...formData, thumbnailUrl: '' })}
+                  showRemoveButton={!!formData.thumbnailUrl}
+                />
+              </div>
+            )}
             
             {/* Description */}
             <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
