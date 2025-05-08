@@ -2,6 +2,7 @@ package com.app.heartbound.entities;
 
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.enums.ShopCategory;
+import com.app.heartbound.exceptions.shop.BadgeLimitException;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -20,6 +21,7 @@ import lombok.NoArgsConstructor;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.LinkedHashSet;
 
 @Data
 @Entity
@@ -28,6 +30,8 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class User {
+    
+    private static final int MAX_BADGES = 5; // You can change this number as needed
     
     @Id
     private String id; // External (OAuth) user id
@@ -88,7 +92,7 @@ public class User {
         joinColumns = @JoinColumn(name = "user_id")
     )
     @Column(name = "badge_id")
-    private Set<UUID> equippedBadgeIds = new HashSet<>();
+    private Set<UUID> equippedBadgeIds = new LinkedHashSet<>();
     
     // Helper methods for role management
     public void addRole(Role role) {
@@ -151,6 +155,10 @@ public class User {
     public void addEquippedBadge(UUID badgeId) {
         if (this.equippedBadgeIds == null) {
             this.equippedBadgeIds = new HashSet<>();
+        }
+        // Add configurable badge limit (e.g., from application properties)
+        if (this.equippedBadgeIds.size() >= MAX_BADGES) {
+            throw new BadgeLimitException("Maximum number of badges (" + MAX_BADGES + ") already equipped");
         }
         this.equippedBadgeIds.add(badgeId);
     }

@@ -204,30 +204,11 @@ export function BadgeUpload({
         }, 'image/png')
       })
       
-      // Create a new file from the blob with a new name
-      const fileExtension = 'png'
-      const fileName = `badge_${Date.now()}.${fileExtension}`
-      const circularFile = new File([circularBlob], fileName, { type: `image/${fileExtension}` })
-      
       // Upload to Cloudinary
-      const formData = new FormData()
-      formData.append('file', circularFile)
-      formData.append('upload_preset', uploadPreset)
-      formData.append('folder', 'heartbound/badges')
-      
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: 'POST',
-        body: formData,
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Upload failed with status: ${response.status}`)
-      }
-      
-      const data = await response.json()
+      const url = await uploadToCloudinary(circularBlob)
       
       // Pass the secure URL to the parent component
-      onUpload(data.secure_url)
+      onUpload(url)
       
       // Close the crop modal and reset states
       setShowCropModal(false)
@@ -246,6 +227,38 @@ export function BadgeUpload({
       }
     }
   }
+
+  // Enhanced error handling for Cloudinary uploads
+  const uploadToCloudinary = async (blob: Blob): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', blob);
+    formData.append('upload_preset', uploadPreset);
+    
+    try {
+      setUploading(true);
+      
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        {
+          method: 'POST',
+          body: formData
+        }
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Upload failed');
+      }
+      
+      const data = await response.json();
+      return data.secure_url;
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      throw new Error(`Upload failed: ${error.message || 'Unknown error'}`);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // Function to initiate file upload via the hidden input
   const handleClickUpload = () => {

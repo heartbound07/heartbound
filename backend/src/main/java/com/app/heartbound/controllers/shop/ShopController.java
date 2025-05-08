@@ -262,12 +262,19 @@ public class ShopController {
         String userId = authentication.getName();
         
         try {
+            // Validate UUID format
+            if (badgeId == null) {
+                return ResponseEntity.badRequest()
+                    .body(new ErrorResponse("Invalid badge ID format"));
+            }
+            
             UserProfileDTO updatedProfile = shopService.unequipBadge(userId, badgeId);
             return ResponseEntity.ok(updatedProfile);
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse(e.getMessage()));
         } catch (Exception e) {
+            logger.error("Error unequipping badge: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse("An error occurred while unequipping the badge"));
         }

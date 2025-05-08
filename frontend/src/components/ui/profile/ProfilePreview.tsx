@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { motion } from "framer-motion"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/profile/avatar";
 import { Button } from "@/components/ui/profile/button";
@@ -38,26 +38,30 @@ export function ProfilePreview({
   
   // Add debug logging on component mount and when props change
   useEffect(() => {
-    console.debug(
-      'ProfilePreview badgeData:', 
-      { 
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug('ProfilePreview badgeData:', { 
         equippedBadgeIds, 
         badgeMapKeys: Object.keys(badgeMap),
         badgeMap 
+      });
+      
+      // Check for missing badge URLs
+      const missingBadges = equippedBadgeIds.filter(id => !badgeMap[id]);
+      if (missingBadges.length > 0) {
+        console.warn(`Missing badge URLs for ${missingBadges.length} badge(s):`, missingBadges);
       }
-    );
-    
-    // Check for missing badge URLs
-    const missingBadges = equippedBadgeIds.filter(id => !badgeMap[id]);
-    if (missingBadges.length > 0) {
-      console.warn(`Missing badge URLs for ${missingBadges.length} badge(s):`, missingBadges);
     }
   }, [equippedBadgeIds, badgeMap]);
   
   // Limit the number of badges to display before showing "+X more"
   const MAX_VISIBLE_BADGES = 5;
-  const visibleBadges = equippedBadgeIds.slice(0, MAX_VISIBLE_BADGES);
-  const extraBadgesCount = Math.max(0, equippedBadgeIds.length - MAX_VISIBLE_BADGES);
+  
+  // Add useMemo for badge processing
+  const { visibleBadges, extraBadgesCount } = useMemo(() => {
+    const visible = equippedBadgeIds.slice(0, MAX_VISIBLE_BADGES);
+    const extra = Math.max(0, equippedBadgeIds.length - MAX_VISIBLE_BADGES);
+    return { visibleBadges: visible, extraBadgesCount: extra };
+  }, [equippedBadgeIds, MAX_VISIBLE_BADGES]);
   
   // Detect if text overflows 2 lines
   useEffect(() => {
@@ -89,6 +93,22 @@ export function ProfilePreview({
     setIsExpanded(!isExpanded);
   };
 
+  // Use a trusted image URL or default to placeholder
+  const safeImageUrl = (url: string | undefined) => {
+    if (!url) return '/images/placeholder-badge.png';
+    
+    try {
+      const parsedUrl = new URL(url);
+      // Only allow images from trusted domains 
+      if (['your-cdn.com', 'res.cloudinary.com'].includes(parsedUrl.hostname)) {
+        return url;
+      }
+      return '/images/placeholder-badge.png';
+    } catch (e) {
+      return '/images/placeholder-badge.png';
+    }
+  };
+
   return (
     <div className="w-[300px]" onClick={onClick}>
       <motion.div
@@ -116,31 +136,27 @@ export function ProfilePreview({
               {/* Badge display - positioned right after the avatar */}
               {equippedBadgeIds && equippedBadgeIds.length > 0 && (
                 <div className="absolute -right-2 bottom-0 flex flex-row-reverse items-center gap-1 transition-all">
-                  {visibleBadges.map((badgeId) => {
-                    // Add debug info for each badge
+                  {visibleBadges.map(badgeId => {
                     const badgeUrl = badgeMap[badgeId];
-                    const hasBadgeUrl = !!badgeUrl;
-                    
                     return (
                       <TooltipProvider key={badgeId}>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div 
-                              className="h-8 w-8 rounded-full bg-black/40 p-0.5 backdrop-blur-sm border border-white/10 hover:scale-110 transition-transform cursor-pointer"
-                            >
+                            <div className="badge-wrapper">
                               <img 
-                                src={badgeUrl || `/image/${badgeId}`}
-                                alt="Badge" 
-                                className="h-full w-full object-cover rounded-full"
-                                onError={(e) => {
-                                  console.warn(`Failed to load badge image for ${badgeId}. Had URL? ${hasBadgeUrl ? 'Yes: ' + badgeUrl : 'No'}`);
-                                  (e.target as HTMLImageElement).src = "/badge-placeholder.svg";
-                                }}
+                                src={safeImageUrl(badgeUrl)} 
+                                alt={`${name}'s badge`}
+                                className="w-6 h-6 rounded-full object-cover"
                               />
                             </div>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {badgeUrl ? 'Badge' : 'Badge (missing image)'}
+                            <div className="text-center">
+                              <p className="font-semibold">{name || "Badge"}</p>
+                              {about && (
+                                <p className="text-xs text-gray-200">{about}</p>
+                              )}
+                            </div>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>

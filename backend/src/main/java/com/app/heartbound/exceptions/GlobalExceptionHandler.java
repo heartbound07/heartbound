@@ -11,6 +11,7 @@ import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import com.app.heartbound.exceptions.AuthenticationException;
 import com.app.heartbound.exceptions.InvalidTokenException;
 import com.app.heartbound.exceptions.RateLimitExceededException;
+import com.app.heartbound.exceptions.shop.BadgeLimitException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -104,6 +105,19 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()
         );
         return new ResponseEntity<>(response, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    @ExceptionHandler(BadgeLimitException.class)
+    public ResponseEntity<ErrorResponse> handleBadgeLimitException(BadgeLimitException ex,
+                                                          HttpServletRequest request) {
+        ErrorResponse response = new ErrorResponse(
+                Instant.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Badge Limit Exceeded",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     // Structured error response structure.

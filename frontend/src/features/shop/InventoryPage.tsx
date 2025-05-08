@@ -227,11 +227,14 @@ export function InventoryPage() {
       // Refresh inventory to show updated equipped status
       await fetchInventory();
     } catch (error: any) {
-      console.error('Error equipping item:', error);
-      showToast(
-        error.response?.data?.message || 'Failed to equip item', 
-        'error'
-      );
+      const errorMessage = error.response?.data?.message || 'Failed to equip item';
+      
+      // Special handling for badge limit errors
+      if (errorMessage.includes('Maximum number of badges')) {
+        showToast('You\'ve reached the maximum number of equipped badges. Please unequip a badge first.', 'info');
+      } else {
+        showToast(errorMessage, 'error');
+      }
     } finally {
       setActionInProgress(null);
     }

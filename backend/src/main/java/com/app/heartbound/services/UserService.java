@@ -5,6 +5,7 @@ import com.app.heartbound.dto.UpdateProfileDTO;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
+import com.app.heartbound.entities.Shop;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
@@ -26,6 +27,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.HashMap;
+import java.util.ArrayList;
 
 @Service
 public class UserService {
@@ -214,16 +216,20 @@ public class UserService {
                      user.getEquippedBadgeIds() != null ? user.getEquippedBadgeIds().size() : 0);
 
         if (user.getEquippedBadgeIds() != null && !user.getEquippedBadgeIds().isEmpty()) {
+            // Batch fetch all badges in one query instead of individual lookups
+            List<Shop> badges = shopRepository.findAllByIdIn(new ArrayList<>(user.getEquippedBadgeIds()));
+            Map<UUID, Shop> badgeMap = badges.stream()
+                .collect(Collectors.toMap(Shop::getId, badge -> badge));
+            
             for (UUID badgeId : user.getEquippedBadgeIds()) {
-                shopRepository.findById(badgeId).ifPresent(badge -> {
-                    logger.debug("Badge {} found, thumbnailUrl: {}", badgeId, badge.getThumbnailUrl());
-                    if (badge.getThumbnailUrl() != null && !badge.getThumbnailUrl().isEmpty()) {
-                        badgeUrls.put(badgeId.toString(), badge.getThumbnailUrl());
-                        logger.debug("Added badge {} with URL {} to badgeUrls map", badgeId, badge.getThumbnailUrl());
-                    } else {
-                        logger.warn("Badge {} has no thumbnailUrl", badgeId);
-                    }
-                });
+                Shop badge = badgeMap.get(badgeId);
+                if (badge != null && badge.getThumbnailUrl() != null && !badge.getThumbnailUrl().isEmpty()) {
+                    badgeUrls.put(badgeId.toString(), badge.getThumbnailUrl());
+                } else {
+                    logger.warn("Badge {} has no thumbnailUrl or wasn't found", badgeId);
+                    // Could add a default thumbnail here
+                    // badgeUrls.put(badgeId.toString(), DEFAULT_BADGE_URL);
+                }
             }
         }
 
