@@ -81,6 +81,15 @@ public class User {
     @Column(name = "equipped_accent_id")
     private UUID equippedAccentId;
     
+    // Add these fields to store multiple equipped badge IDs
+    @ElementCollection(fetch = jakarta.persistence.FetchType.EAGER)
+    @CollectionTable(
+        name = "user_equipped_badges", 
+        joinColumns = @JoinColumn(name = "user_id")
+    )
+    @Column(name = "badge_id")
+    private Set<UUID> equippedBadgeIds = new HashSet<>();
+    
     // Helper methods for role management
     public void addRole(Role role) {
         if (this.roles == null) {
@@ -138,6 +147,28 @@ public class User {
         this.equippedAccentId = equippedAccentId;
     }
 
+    // Helper methods for badge management
+    public void addEquippedBadge(UUID badgeId) {
+        if (this.equippedBadgeIds == null) {
+            this.equippedBadgeIds = new HashSet<>();
+        }
+        this.equippedBadgeIds.add(badgeId);
+    }
+
+    public void removeEquippedBadge(UUID badgeId) {
+        if (this.equippedBadgeIds != null) {
+            this.equippedBadgeIds.remove(badgeId);
+        }
+    }
+
+    public Set<UUID> getEquippedBadgeIds() {
+        return equippedBadgeIds != null ? equippedBadgeIds : new HashSet<>();
+    }
+
+    public boolean isBadgeEquipped(UUID badgeId) {
+        return this.equippedBadgeIds != null && this.equippedBadgeIds.contains(badgeId);
+    }
+
     // Helper method to get equipped item ID by category
     public UUID getEquippedItemIdByCategory(ShopCategory category) {
         switch (category) {
@@ -147,6 +178,8 @@ public class User {
                 return getEquippedListingId();
             case ACCENT:
                 return getEquippedAccentId();
+            case BADGE:
+                throw new UnsupportedOperationException("BADGE category supports multiple equipped items. Use getEquippedBadgeIds() instead.");
             default:
                 return null;
         }
@@ -163,6 +196,10 @@ public class User {
                 break;
             case ACCENT:
                 setEquippedAccentId(itemId);
+                break;
+            case BADGE:
+                throw new UnsupportedOperationException("BADGE category supports multiple equipped items. Use addEquippedBadge() or removeEquippedBadge() instead.");
+            default:
                 break;
         }
     }

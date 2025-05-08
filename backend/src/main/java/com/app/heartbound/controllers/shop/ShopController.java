@@ -248,6 +248,32 @@ public class ShopController {
     }
     
     /**
+     * Unequip a specific badge
+     * @param badgeId Badge ID to unequip
+     * @param authentication Authentication containing user ID
+     * @return Updated user profile
+     */
+    @PostMapping("/unequip/badge/{badgeId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> unequipBadge(
+        @PathVariable UUID badgeId,
+        Authentication authentication
+    ) {
+        String userId = authentication.getName();
+        
+        try {
+            UserProfileDTO updatedProfile = shopService.unequipBadge(userId, badgeId);
+            return ResponseEntity.ok(updatedProfile);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An error occurred while unequipping the badge"));
+        }
+    }
+    
+    /**
      * Simple error response class
      */
     private static class ErrorResponse {

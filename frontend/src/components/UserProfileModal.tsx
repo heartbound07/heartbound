@@ -151,6 +151,7 @@ export function UserProfileModal({ isOpen, onClose, userProfile, position }: Use
               pronouns={userProfile.pronouns}
               user={{ avatar: userProfile.avatar, username: userProfile.username }}
               showEditButton={false}
+              equippedBadgeIds={userProfile.equippedBadgeIds || []}
             />
           </motion.div>
         </motion.div>

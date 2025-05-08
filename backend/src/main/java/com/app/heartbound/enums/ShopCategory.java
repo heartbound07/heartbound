@@ -6,5 +6,6 @@ package com.app.heartbound.enums;
 public enum ShopCategory {
     USER_COLOR,
     LISTING,
-    ACCENT
+    ACCENT,
+    BADGE
 } 

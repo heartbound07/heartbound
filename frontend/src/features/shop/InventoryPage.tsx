@@ -270,6 +270,37 @@ export function InventoryPage() {
     }
   };
   
+  // Add a function to handle badge unequipping
+  const handleUnequipBadge = async (badgeId: string) => {
+    if (actionInProgress !== null) return;
+    
+    setActionInProgress(badgeId);
+    
+    try {
+      const response = await httpClient.post(`/shop/unequip/badge/${badgeId}`);
+      if (response.data) {
+        // Update user profile
+        updateUserProfile(response.data);
+        
+        // Update equipped status in the items state
+        const updatedItems = items.map(item => {
+          if (item.id === badgeId && item.category === 'BADGE') {
+            return { ...item, equipped: false };
+          }
+          return item;
+        });
+        setItems(updatedItems);
+        
+        showToast("Badge unequipped successfully!", "success");
+      }
+    } catch (error) {
+      console.error("Failed to unequip badge:", error);
+      showToast("Failed to unequip badge", "error");
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+  
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
@@ -502,26 +533,50 @@ export function InventoryPage() {
                             </div>
                             
                             {/* Equip/Unequip button */}
-                            {item.equipped ? (
-                              <button
-                                onClick={() => handleUnequipItem(item.category)}
-                                disabled={actionInProgress !== null}
-                                className={`item-action-button unequip-button h-8 flex items-center ${
-                                  actionInProgress === item.category ? 'opacity-50 cursor-not-allowed' : ''
-                                }`}
-                              >
-                                {actionInProgress === item.category ? 'Processing...' : 'Unequip'}
-                              </button>
+                            {item.category === 'BADGE' ? (
+                              item.equipped ? (
+                                <button
+                                  onClick={() => handleUnequipBadge(item.id)}
+                                  disabled={actionInProgress !== null}
+                                  className={`item-action-button unequip-button h-8 flex items-center ${
+                                    actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
+                                  }`}
+                                >
+                                  {actionInProgress === item.id ? 'Processing...' : 'Unequip'}
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleEquipItem(item.id)}
+                                  disabled={actionInProgress !== null}
+                                  className={`item-action-button equip-button h-8 flex items-center ${
+                                    actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
+                                  }`}
+                                >
+                                  {actionInProgress === item.id ? 'Processing...' : 'Equip'}
+                                </button>
+                              )
                             ) : (
-                              <button
-                                onClick={() => handleEquipItem(item.id)}
-                                disabled={actionInProgress !== null}
-                                className={`item-action-button equip-button h-8 flex items-center ${
-                                  actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
-                                }`}
-                              >
-                                {actionInProgress === item.id ? 'Processing...' : 'Equip'}
-                              </button>
+                              item.equipped ? (
+                                <button
+                                  onClick={() => handleUnequipItem(item.category)}
+                                  disabled={actionInProgress !== null}
+                                  className={`item-action-button unequip-button h-8 flex items-center ${
+                                    actionInProgress === item.category ? 'opacity-50 cursor-not-allowed' : ''
+                                  }`}
+                                >
+                                  {actionInProgress === item.category ? 'Processing...' : 'Unequip'}
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleEquipItem(item.id)}
+                                  disabled={actionInProgress !== null}
+                                  className={`item-action-button equip-button h-8 flex items-center ${
+                                    actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
+                                  }`}
+                                >
+                                  {actionInProgress === item.id ? 'Processing...' : 'Equip'}
+                                </button>
+                              )
                             )}
                           </div>
                         </div>

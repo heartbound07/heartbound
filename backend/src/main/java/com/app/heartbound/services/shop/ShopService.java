@@ -190,8 +190,30 @@ public class ShopService {
             throw new ItemNotEquippableException("This item cannot be equipped");
         }
         
-        // Handle Discord role management for USER_COLOR items
-        if (category == ShopCategory.USER_COLOR) {
+        // Special handling for BADGE category - allows multiple equipped items
+        if (category == ShopCategory.BADGE) {
+            // Check if badge is already equipped
+            if (user.isBadgeEquipped(itemId)) {
+                logger.debug("Badge {} is already equipped for user {}", itemId, userId);
+                return userService.mapToProfileDTO(user);
+            }
+            
+            // Add badge to equipped badges
+            user.addEquippedBadge(itemId);
+            logger.debug("Added badge {} to user {}'s equipped badges", itemId, userId);
+            
+            // Apply Discord role if applicable
+            if (item.getDiscordRoleId() != null && !item.getDiscordRoleId().isEmpty()) {
+                logger.debug("Adding Discord role {} for user {} for badge", 
+                           item.getDiscordRoleId(), userId);
+                boolean grantSuccess = discordService.grantRole(userId, item.getDiscordRoleId());
+                if (!grantSuccess) {
+                    logger.warn("Failed to grant Discord role {} to user {} for badge", 
+                              item.getDiscordRoleId(), userId);
+                }
+            }
+        } else if (category == ShopCategory.USER_COLOR) {
+            // Handle Discord role management for USER_COLOR items
             // Check if there was a previously equipped item of the same category
             UUID previousItemId = user.getEquippedItemIdByCategory(category);
             if (previousItemId != null && !previousItemId.equals(itemId)) {
@@ -254,6 +276,11 @@ public class ShopService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         
+        // Badge category requires specific badge ID to unequip
+        if (category == ShopCategory.BADGE) {
+            throw new UnsupportedOperationException("BADGE category requires a specific badge ID to unequip. Use unequipBadge(userId, badgeId) instead.");
+        }
+        
         // Get the currently equipped item ID BEFORE unequipping
         UUID currentlyEquippedItemId = user.getEquippedItemIdByCategory(category);
         
@@ -269,6 +296,56 @@ public class ShopService {
                     discordService.removeRole(userId, equippedItem.getDiscordRoleId());
                 }
             });
+        }
+        
+        // Save user changes
+        user = userRepository.save(user);
+        
+        // Return updated profile
+        return userService.mapToProfileDTO(user);
+    }
+    
+    /**
+     * Unequips a specific badge for a user
+     * @param userId User ID
+     * @param badgeId Badge ID to unequip
+     * @return Updated UserProfileDTO
+     */
+    @Transactional
+    public UserProfileDTO unequipBadge(String userId, UUID badgeId) {
+        logger.debug("Unequipping badge {} for user {}", badgeId, userId);
+        
+        // Get user
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // Check if user has the badge equipped
+        if (!user.isBadgeEquipped(badgeId)) {
+            logger.debug("Badge {} is not equipped for user {}", badgeId, userId);
+            return userService.mapToProfileDTO(user);
+        }
+        
+        // Get badge item for possible Discord role handling
+        Shop badge = shopRepository.findById(badgeId)
+            .orElseThrow(() -> new ResourceNotFoundException("Badge not found with ID: " + badgeId));
+        
+        // Check that it's actually a badge
+        if (badge.getCategory() != ShopCategory.BADGE) {
+            throw new ItemNotEquippableException("Item is not a badge");
+        }
+        
+        // Remove the badge from equipped badges
+        user.removeEquippedBadge(badgeId);
+        
+        // Handle Discord role if applicable
+        if (badge.getDiscordRoleId() != null && !badge.getDiscordRoleId().isEmpty()) {
+            logger.debug("Removing Discord role {} from user {} for unequipped badge", 
+                        badge.getDiscordRoleId(), userId);
+            boolean removalSuccess = discordService.removeRole(userId, badge.getDiscordRoleId());
+            if (!removalSuccess) {
+                logger.warn("Failed to remove Discord role {} from user {} for badge", 
+                          badge.getDiscordRoleId(), userId);
+            }
         }
         
         // Save user changes
@@ -296,8 +373,12 @@ public class ShopService {
                 
                 // Add equipped status to each item
                 if (item.getCategory() != null) {
-                    UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
-                    dto.setEquipped(equippedItemId != null && equippedItemId.equals(item.getId()));
+                    if (item.getCategory() == ShopCategory.BADGE) {
+                        dto.setEquipped(user.isBadgeEquipped(item.getId()));
+                    } else {
+                        UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
+                        dto.setEquipped(equippedItemId != null && equippedItemId.equals(item.getId()));
+                    }
                 }
                 
                 return dto;

@@ -203,19 +203,24 @@ public class UserService {
         }
         
         return UserProfileDTO.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .avatar(avatarUrl)
-                .displayName(user.getDisplayName())
-                .pronouns(user.getPronouns())
-                .about(user.getAbout())
-                .bannerColor(user.getBannerColor())
-                .bannerUrl(user.getBannerUrl())
-                .roles(user.getRoles())
-                .credits(user.getCredits())
-                .level(user.getLevel())
-                .experience(user.getExperience())
-                .build();
+            .id(user.getId())
+            .username(user.getUsername())
+            .avatar(user.getAvatar())
+            .displayName(user.getDisplayName())
+            .pronouns(user.getPronouns())
+            .about(user.getAbout())
+            .bannerColor(user.getBannerColor())
+            .bannerUrl(user.getBannerUrl())
+            .roles(user.getRoles())
+            .credits(user.getCredits())
+            .level(user.getLevel())
+            .experience(user.getExperience())
+            .equippedUserColorId(user.getEquippedUserColorId())
+            .equippedListingId(user.getEquippedListingId())
+            .equippedAccentId(user.getEquippedAccentId())
+            // Add the equipped badge IDs
+            .equippedBadgeIds(user.getEquippedBadgeIds())
+            .build();
     }
 
     /**

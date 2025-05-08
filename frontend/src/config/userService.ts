@@ -14,6 +14,10 @@ export interface UserProfileDTO {
   credits?: number;
   level?: number;
   experience?: number;
+  equippedUserColorId?: string;
+  equippedListingId?: string;
+  equippedAccentId?: string;
+  equippedBadgeIds?: string[];
 }
 
 export interface UpdateProfileDTO {

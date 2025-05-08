@@ -41,4 +41,7 @@ public class UserProfileDTO {
     private UUID equippedUserColorId;
     private UUID equippedListingId;
     private UUID equippedAccentId;
+
+    // Add this field for equipped badges
+    private Set<UUID> equippedBadgeIds;
 }

@@ -4,6 +4,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/profile/ava
 import { Button } from "@/components/ui/profile/button";
 import { UserIcon, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/profile/tooltip";
 
 interface ProfilePreviewProps {
   bannerColor: string;
@@ -14,6 +15,7 @@ interface ProfilePreviewProps {
   user?: { avatar?: string; username?: string } | null;
   onClick?: () => void;
   showEditButton?: boolean;
+  equippedBadgeIds?: string[];
 }
 
 export function ProfilePreview({ 
@@ -24,12 +26,18 @@ export function ProfilePreview({
   pronouns,
   user, 
   onClick,
-  showEditButton = true
+  showEditButton = true,
+  equippedBadgeIds = []
 }: ProfilePreviewProps) {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
   const [hasOverflow, setHasOverflow] = useState(false);
   const bioRef = useRef<HTMLParagraphElement>(null);
+  
+  // Limit the number of badges to display before showing "+X more"
+  const MAX_VISIBLE_BADGES = 5;
+  const visibleBadges = equippedBadgeIds.slice(0, MAX_VISIBLE_BADGES);
+  const extraBadgesCount = Math.max(0, equippedBadgeIds.length - MAX_VISIBLE_BADGES);
   
   // Detect if text overflows 2 lines
   useEffect(() => {
@@ -84,6 +92,49 @@ export function ProfilePreview({
                 <AvatarImage src={user?.avatar || "/placeholder.svg"} />
                 <AvatarFallback>{user?.username ? user.username.charAt(0).toUpperCase() : "P"}</AvatarFallback>
               </Avatar>
+              
+              {/* Badge display - positioned right after the avatar */}
+              {equippedBadgeIds && equippedBadgeIds.length > 0 && (
+                <div className="absolute -right-2 bottom-0 flex flex-row-reverse items-center gap-1 transition-all">
+                  {visibleBadges.map((badgeId) => (
+                    <TooltipProvider key={badgeId}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div 
+                            className="h-8 w-8 rounded-full bg-black/40 p-0.5 backdrop-blur-sm border border-white/10 hover:scale-110 transition-transform cursor-pointer"
+                          >
+                            <img 
+                              src={`/api/shop/image/${badgeId}`} 
+                              alt="Badge" 
+                              className="h-full w-full object-cover rounded-full"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/badge-placeholder.svg";
+                              }}
+                            />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>Badge</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ))}
+                  
+                  {extraBadgesCount > 0 && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div 
+                            className="h-6 w-6 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold hover:bg-white/30 transition-colors"
+                            style={{ width: 24, height: 24 }}
+                          >
+                            +{extraBadgesCount}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>{extraBadgesCount} more badge(s)</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           
@@ -136,7 +187,7 @@ export function ProfilePreview({
                       </>
                     ) : (
                       <>
-                        <span>View full bio</span>
+                        <span>Show more</span>
                         <ChevronDown size={14} className="ml-1" />
                       </>
                     )}
