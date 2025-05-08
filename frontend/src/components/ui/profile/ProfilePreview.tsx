@@ -35,6 +35,7 @@ export function ProfilePreview({
   const [isExpanded, setIsExpanded] = useState(false);
   const [hasOverflow, setHasOverflow] = useState(false);
   const bioRef = useRef<HTMLParagraphElement>(null);
+  const [hoveredBadgeId, setHoveredBadgeId] = useState<string | null>(null);
   
   // Add debug logging on component mount and when props change
   useEffect(() => {
@@ -155,47 +156,65 @@ export function ProfilePreview({
             
             {/* Badge display - relocated to appear next to display name */}
             {equippedBadgeIds && equippedBadgeIds.length > 0 && (
-              <div className="flex flex-row items-center gap-1 transition-all">
+              <div className="flex flex-row items-center gap-1 transition-all relative">
                 {visibleBadges.map(badgeId => {
                   const badgeUrl = badgeMap[badgeId];
+                  // Get badge name from the ID (using the key in badgeMap or a display name)
+                  const badgeName = badgeMap[badgeId]?.split('/').pop()?.split('.')[0] || "Badge";
+                  
                   return (
-                    <TooltipProvider key={badgeId}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="badge-wrapper">
-                            <img 
-                              src={safeImageUrl(badgeUrl)} 
-                              alt={`${name}'s badge`}
-                              className="w-5 h-5 rounded-full object-cover"
-                            />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <div className="text-center">
-                            <p className="font-semibold">{name || "Badge"}</p>
-                            {about && (
-                              <p className="text-xs text-gray-200">{about}</p>
-                            )}
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <div key={badgeId} className="relative">
+                      <button 
+                        type="button"
+                        className="badge-wrapper p-0 m-0 border-0 bg-transparent cursor-pointer focus:outline-none"
+                        onMouseEnter={() => setHoveredBadgeId(badgeId)}
+                        onMouseLeave={() => setHoveredBadgeId(null)}
+                        aria-label={`Badge: ${badgeName}`}
+                      >
+                        <img 
+                          src={safeImageUrl(badgeUrl)} 
+                          alt={`Badge`}
+                          className="w-5 h-5 rounded-full object-cover"
+                        />
+                      </button>
+                      
+                      {/* Custom tooltip implementation */}
+                      {hoveredBadgeId === badgeId && (
+                        <div 
+                          className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-800 text-white text-sm font-semibold rounded-md shadow-md border border-gray-700 z-[9999] whitespace-nowrap"
+                        >
+                          {badgeName}
+                          {/* Tooltip arrow */}
+                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
                 
                 {extraBadgesCount > 0 && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div 
-                          className="h-5 w-5 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold hover:bg-white/30 transition-colors"
-                        >
-                          +{extraBadgesCount}
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>{extraBadgesCount} more badge(s)</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <div className="relative">
+                    <button 
+                      type="button"
+                      className="h-5 w-5 p-0 m-0 border-0 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold hover:bg-white/30 transition-colors cursor-pointer focus:outline-none"
+                      onMouseEnter={() => setHoveredBadgeId('extra')}
+                      onMouseLeave={() => setHoveredBadgeId(null)}
+                      aria-label="More badges"
+                    >
+                      +{extraBadgesCount}
+                    </button>
+                    
+                    {/* Custom tooltip for extra badges */}
+                    {hoveredBadgeId === 'extra' && (
+                      <div 
+                        className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-800 text-white text-sm font-semibold rounded-md shadow-md border border-gray-700 z-[9999] whitespace-nowrap"
+                      >
+                        {extraBadgesCount} more badge(s)
+                        {/* Tooltip arrow */}
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             )}
