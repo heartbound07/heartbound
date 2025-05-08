@@ -104,7 +104,7 @@ export function ProfilePreview({
                             className="h-8 w-8 rounded-full bg-black/40 p-0.5 backdrop-blur-sm border border-white/10 hover:scale-110 transition-transform cursor-pointer"
                           >
                             <img 
-                              src={`/api/shop/image/${badgeId}`} 
+                              src={`/image/${badgeId}`} 
                               alt="Badge" 
                               className="h-full w-full object-cover rounded-full"
                               onError={(e) => {
