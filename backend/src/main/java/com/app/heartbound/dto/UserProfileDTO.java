@@ -48,4 +48,7 @@ public class UserProfileDTO {
     
     // Add this field to map badge IDs to their thumbnail URLs
     private Map<String, String> badgeUrls;
+    
+    // Add this field to map badge IDs to their names
+    private Map<String, String> badgeNames;
 }

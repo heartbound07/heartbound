@@ -4,7 +4,6 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/profile/ava
 import { Button } from "@/components/ui/profile/button";
 import { UserIcon, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/profile/tooltip";
 
 interface ProfilePreviewProps {
   bannerColor: string;
@@ -17,6 +16,7 @@ interface ProfilePreviewProps {
   showEditButton?: boolean;
   equippedBadgeIds?: string[];
   badgeMap?: Record<string, string>;
+  badgeNames?: Record<string, string>;
 }
 
 export function ProfilePreview({ 
@@ -29,7 +29,8 @@ export function ProfilePreview({
   onClick,
   showEditButton = true,
   equippedBadgeIds = [],
-  badgeMap = {}
+  badgeMap = {},
+  badgeNames = {}
 }: ProfilePreviewProps) {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -159,8 +160,8 @@ export function ProfilePreview({
               <div className="flex flex-row items-center gap-1 transition-all relative">
                 {visibleBadges.map(badgeId => {
                   const badgeUrl = badgeMap[badgeId];
-                  // Get badge name from the ID (using the key in badgeMap or a display name)
-                  const badgeName = badgeMap[badgeId]?.split('/').pop()?.split('.')[0] || "Badge";
+                  // Use the badge name from the badgeNames map if available, fallback to a generic name
+                  const badgeName = badgeNames[badgeId] || "Badge";
                   
                   return (
                     <div key={badgeId} className="relative">

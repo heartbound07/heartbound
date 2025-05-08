@@ -152,6 +152,7 @@ export function UserProfileModal({ isOpen, onClose, userProfile, position }: Use
               user={{ avatar: userProfile.avatar, username: userProfile.username }}
               equippedBadgeIds={userProfile.equippedBadgeIds || []}
               badgeMap={userProfile.badgeUrls || {}}
+              badgeNames={userProfile.badgeNames || {}}
               showEditButton={false}
             />
           </motion.div>

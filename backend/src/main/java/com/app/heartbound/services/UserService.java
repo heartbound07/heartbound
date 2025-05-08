@@ -210,51 +210,46 @@ public class UserService {
             logger.debug("Using custom avatar URL for user: {}: {}", user.getId(), avatarUrl);
         }
         
-        // Create a map of badge IDs to their thumbnail URLs
+        // Get the user's equipped badges if any
+        Set<UUID> badgeIds = user.getEquippedBadgeIds();
+        
+        // Create maps for badge URLs and names
         Map<String, String> badgeUrls = new HashMap<>();
-        logger.debug("User {} has {} equipped badges", user.getId(), 
-                     user.getEquippedBadgeIds() != null ? user.getEquippedBadgeIds().size() : 0);
-
-        if (user.getEquippedBadgeIds() != null && !user.getEquippedBadgeIds().isEmpty()) {
-            // Batch fetch all badges in one query instead of individual lookups
-            List<Shop> badges = shopRepository.findAllByIdIn(new ArrayList<>(user.getEquippedBadgeIds()));
-            Map<UUID, Shop> badgeMap = badges.stream()
-                .collect(Collectors.toMap(Shop::getId, badge -> badge));
+        Map<String, String> badgeNames = new HashMap<>();
+        
+        // If user has equipped badges, fetch their details
+        if (badgeIds != null && !badgeIds.isEmpty()) {
+            List<Shop> badges = shopRepository.findAllByIdIn(badgeIds);
             
-            for (UUID badgeId : user.getEquippedBadgeIds()) {
-                Shop badge = badgeMap.get(badgeId);
-                if (badge != null && badge.getThumbnailUrl() != null && !badge.getThumbnailUrl().isEmpty()) {
-                    badgeUrls.put(badgeId.toString(), badge.getThumbnailUrl());
-                } else {
-                    logger.warn("Badge {} has no thumbnailUrl or wasn't found", badgeId);
-                    // Could add a default thumbnail here
-                    // badgeUrls.put(badgeId.toString(), DEFAULT_BADGE_URL);
-                }
+            // Populate both maps (URLs and names)
+            for (Shop badge : badges) {
+                String idStr = badge.getId().toString();
+                badgeUrls.put(idStr, badge.getThumbnailUrl());
+                badgeNames.put(idStr, badge.getName()); // Add the actual badge name
             }
         }
-
-        logger.debug("Final badgeUrls map contains {} entries", badgeUrls.size());
-
+        
+        // Build and return the DTO with all user profile data
         return UserProfileDTO.builder()
-            .id(user.getId())
-            .username(user.getUsername())
-            .avatar(user.getAvatar())
-            .displayName(user.getDisplayName())
-            .pronouns(user.getPronouns())
-            .about(user.getAbout())
-            .bannerColor(user.getBannerColor())
-            .bannerUrl(user.getBannerUrl())
-            .roles(user.getRoles())
-            .credits(user.getCredits())
-            .level(user.getLevel())
-            .experience(user.getExperience())
-            .equippedUserColorId(user.getEquippedUserColorId())
-            .equippedListingId(user.getEquippedListingId())
-            .equippedAccentId(user.getEquippedAccentId())
-            // Add the equipped badge IDs
-            .equippedBadgeIds(user.getEquippedBadgeIds())
-            .badgeUrls(badgeUrls) // Add the badge URL map
-            .build();
+                .id(user.getId())
+                .username(user.getUsername())
+                .avatar(user.getDiscordAvatarUrl())
+                .displayName(user.getDisplayName())
+                .pronouns(user.getPronouns())
+                .about(user.getAbout())
+                .bannerColor(user.getBannerColor())
+                .bannerUrl(user.getBannerUrl())
+                .roles(user.getRoles())
+                .credits(user.getCredits())
+                .level(user.getLevel())
+                .experience(user.getExperience())
+                .equippedUserColorId(user.getEquippedUserColorId())
+                .equippedListingId(user.getEquippedListingId())
+                .equippedAccentId(user.getEquippedAccentId())
+                .equippedBadgeIds(badgeIds)
+                .badgeUrls(badgeUrls)
+                .badgeNames(badgeNames) // Add the badge names map
+                .build();
     }
 
     /**
