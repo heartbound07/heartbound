@@ -77,7 +77,7 @@ export function ShopAdminPage() {
   });
   
   // Available categories
-  const categories = ['USER_COLOR', 'LISTING', 'ACCENT'];
+  const categories = ['USER_COLOR', 'LISTING', 'ACCENT', 'BADGE'];
   
   // Available roles for role-restricted items
   const roles = ['ADMIN', 'MODERATOR', 'MONARCH'];
