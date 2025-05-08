@@ -132,54 +132,6 @@ export function ProfilePreview({
                 <AvatarImage src={user?.avatar || "/placeholder.svg"} />
                 <AvatarFallback>{user?.username ? user.username.charAt(0).toUpperCase() : "P"}</AvatarFallback>
               </Avatar>
-              
-              {/* Badge display - positioned right after the avatar */}
-              {equippedBadgeIds && equippedBadgeIds.length > 0 && (
-                <div className="absolute -right-2 bottom-0 flex flex-row-reverse items-center gap-1 transition-all">
-                  {visibleBadges.map(badgeId => {
-                    const badgeUrl = badgeMap[badgeId];
-                    return (
-                      <TooltipProvider key={badgeId}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="badge-wrapper">
-                              <img 
-                                src={safeImageUrl(badgeUrl)} 
-                                alt={`${name}'s badge`}
-                                className="w-6 h-6 rounded-full object-cover"
-                              />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <div className="text-center">
-                              <p className="font-semibold">{name || "Badge"}</p>
-                              {about && (
-                                <p className="text-xs text-gray-200">{about}</p>
-                              )}
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    );
-                  })}
-                  
-                  {extraBadgesCount > 0 && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div 
-                            className="h-6 w-6 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold hover:bg-white/30 transition-colors"
-                            style={{ width: 24, height: 24 }}
-                          >
-                            +{extraBadgesCount}
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>{extraBadgesCount} more badge(s)</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                </div>
-              )}
             </div>
           </div>
           
@@ -197,10 +149,59 @@ export function ProfilePreview({
           )}
         </div>
         <div className="p-4 pt-12">
-          {/* Display name on top */}
-          <h2 className="text-lg font-bold truncate">{name || "Display Name"}</h2>
+          {/* Display name with badges next to it */}
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold truncate">{name || "Display Name"}</h2>
+            
+            {/* Badge display - relocated to appear next to display name */}
+            {equippedBadgeIds && equippedBadgeIds.length > 0 && (
+              <div className="flex flex-row items-center gap-1 transition-all">
+                {visibleBadges.map(badgeId => {
+                  const badgeUrl = badgeMap[badgeId];
+                  return (
+                    <TooltipProvider key={badgeId}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="badge-wrapper">
+                            <img 
+                              src={safeImageUrl(badgeUrl)} 
+                              alt={`${name}'s badge`}
+                              className="w-5 h-5 rounded-full object-cover"
+                            />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="text-center">
+                            <p className="font-semibold">{name || "Badge"}</p>
+                            {about && (
+                              <p className="text-xs text-gray-200">{about}</p>
+                            )}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  );
+                })}
+                
+                {extraBadgesCount > 0 && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div 
+                          className="h-5 w-5 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold hover:bg-white/30 transition-colors"
+                        >
+                          +{extraBadgesCount}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>{extraBadgesCount} more badge(s)</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
+            )}
+          </div>
           
-          {/* Username and pronouns on a row below */}
+          {/* Username and pronouns on a row below - without badges now */}
           <div className="flex items-center gap-2 mt-1 mb-3">
             <span className="text-xs text-white/80 truncate">{user?.username || "Guest"}</span>
             {pronouns && <span className="text-xs text-white/60 truncate">• {pronouns}</span>}
