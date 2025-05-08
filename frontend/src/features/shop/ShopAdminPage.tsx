@@ -19,6 +19,7 @@ import {
   HiOutlinePencil,
   HiOutlineStar
 } from 'react-icons/hi';
+import { BadgeUpload } from '@/components/ui/shop/BadgeUpload';
 
 interface ShopItem {
   id: string;
@@ -539,12 +540,12 @@ export function ShopAdminPage() {
             {formData.category === 'BADGE' && (
               <div className="mb-6">
                 <label className="mb-2 block text-sm font-medium text-white">
-                  Badge Thumbnail (Circle Format)
+                  Badge Image (Circle Format)
                 </label>
                 <p className="mb-2 text-xs text-white/60">
                   This circular image will be shown on user profiles when the badge is equipped.
                 </p>
-                <ImageUpload
+                <BadgeUpload
                   currentImageUrl={formData.thumbnailUrl || ''}
                   onUpload={(url) => setFormData({ ...formData, thumbnailUrl: url })}
                   onRemove={() => setFormData({ ...formData, thumbnailUrl: '' })}
