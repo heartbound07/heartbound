@@ -62,4 +62,6 @@ public class Shop {
     private LocalDateTime expiresAt;
     
     private String discordRoleId;
+    
+    private String thumbnailUrl;
 }

@@ -16,6 +16,7 @@ interface ProfilePreviewProps {
   onClick?: () => void;
   showEditButton?: boolean;
   equippedBadgeIds?: string[];
+  badgeMap?: Record<string, string>;
 }
 
 export function ProfilePreview({ 
@@ -27,12 +28,31 @@ export function ProfilePreview({
   user, 
   onClick,
   showEditButton = true,
-  equippedBadgeIds = []
+  equippedBadgeIds = [],
+  badgeMap = {}
 }: ProfilePreviewProps) {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
   const [hasOverflow, setHasOverflow] = useState(false);
   const bioRef = useRef<HTMLParagraphElement>(null);
+  
+  // Add debug logging on component mount and when props change
+  useEffect(() => {
+    console.debug(
+      'ProfilePreview badgeData:', 
+      { 
+        equippedBadgeIds, 
+        badgeMapKeys: Object.keys(badgeMap),
+        badgeMap 
+      }
+    );
+    
+    // Check for missing badge URLs
+    const missingBadges = equippedBadgeIds.filter(id => !badgeMap[id]);
+    if (missingBadges.length > 0) {
+      console.warn(`Missing badge URLs for ${missingBadges.length} badge(s):`, missingBadges);
+    }
+  }, [equippedBadgeIds, badgeMap]);
   
   // Limit the number of badges to display before showing "+X more"
   const MAX_VISIBLE_BADGES = 5;
@@ -96,27 +116,36 @@ export function ProfilePreview({
               {/* Badge display - positioned right after the avatar */}
               {equippedBadgeIds && equippedBadgeIds.length > 0 && (
                 <div className="absolute -right-2 bottom-0 flex flex-row-reverse items-center gap-1 transition-all">
-                  {visibleBadges.map((badgeId) => (
-                    <TooltipProvider key={badgeId}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div 
-                            className="h-8 w-8 rounded-full bg-black/40 p-0.5 backdrop-blur-sm border border-white/10 hover:scale-110 transition-transform cursor-pointer"
-                          >
-                            <img 
-                              src={`/image/${badgeId}`} 
-                              alt="Badge" 
-                              className="h-full w-full object-cover rounded-full"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = "/badge-placeholder.svg";
-                              }}
-                            />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>Badge</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  ))}
+                  {visibleBadges.map((badgeId) => {
+                    // Add debug info for each badge
+                    const badgeUrl = badgeMap[badgeId];
+                    const hasBadgeUrl = !!badgeUrl;
+                    
+                    return (
+                      <TooltipProvider key={badgeId}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div 
+                              className="h-8 w-8 rounded-full bg-black/40 p-0.5 backdrop-blur-sm border border-white/10 hover:scale-110 transition-transform cursor-pointer"
+                            >
+                              <img 
+                                src={badgeUrl || `/image/${badgeId}`}
+                                alt="Badge" 
+                                className="h-full w-full object-cover rounded-full"
+                                onError={(e) => {
+                                  console.warn(`Failed to load badge image for ${badgeId}. Had URL? ${hasBadgeUrl ? 'Yes: ' + badgeUrl : 'No'}`);
+                                  (e.target as HTMLImageElement).src = "/badge-placeholder.svg";
+                                }}
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {badgeUrl ? 'Badge' : 'Badge (missing image)'}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    );
+                  })}
                   
                   {extraBadgesCount > 0 && (
                     <TooltipProvider>

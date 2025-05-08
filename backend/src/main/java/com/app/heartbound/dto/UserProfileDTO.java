@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.Set;
 import java.util.UUID;
+import java.util.Map;
 
 /**
  * Data transfer object for user profile information.
@@ -44,4 +45,7 @@ public class UserProfileDTO {
 
     // Add this field for equipped badges
     private Set<UUID> equippedBadgeIds;
+    
+    // Add this field to map badge IDs to their thumbnail URLs
+    private Map<String, String> badgeUrls;
 }

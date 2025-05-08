@@ -439,7 +439,10 @@ public class ShopService {
             .expiresAt(shopDTO.getExpiresAt())
             .discordRoleId(shopDTO.getDiscordRoleId())
             .rarity(shopDTO.getRarity() != null ? shopDTO.getRarity() : ItemRarity.COMMON)
+            .thumbnailUrl(shopDTO.getThumbnailUrl())
             .build();
+        
+        logger.debug("Creating new shop item with thumbnailUrl: {}", shopDTO.getThumbnailUrl());
         
         return shopRepository.save(newItem);
     }
@@ -468,6 +471,10 @@ public class ShopService {
         existingItem.setIsActive(shopDTO.isActive());
         existingItem.setDiscordRoleId(shopDTO.getDiscordRoleId());
         existingItem.setRarity(shopDTO.getRarity() != null ? shopDTO.getRarity() : ItemRarity.COMMON);
+        existingItem.setThumbnailUrl(shopDTO.getThumbnailUrl());
+        
+        logger.debug("Updating shop item with ID: {}, thumbnailUrl: {}", 
+                     existingItem.getId(), shopDTO.getThumbnailUrl());
         
         return shopRepository.save(existingItem);
     }

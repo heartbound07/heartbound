@@ -18,6 +18,7 @@ export interface UserProfileDTO {
   equippedListingId?: string;
   equippedAccentId?: string;
   equippedBadgeIds?: string[];
+  badgeUrls?: Record<string, string>;
 }
 
 export interface UpdateProfileDTO {

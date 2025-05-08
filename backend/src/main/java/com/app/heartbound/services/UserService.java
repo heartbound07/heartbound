@@ -6,6 +6,7 @@ import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.repositories.UserRepository;
+import com.app.heartbound.repositories.shop.ShopRepository;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import org.slf4j.Logger;
@@ -22,21 +23,26 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.Comparator;
+import java.util.Map;
+import java.util.UUID;
+import java.util.HashMap;
 
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
+    private final ShopRepository shopRepository;
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     // Read admin Discord ID from environment variables
     @Value("${admin.discord.id}")
     private String adminDiscordId;
 
-    // Constructor-based dependency injection for UserRepository
+    // Constructor-based dependency injection for UserRepository and ShopRepository
     @Autowired
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, ShopRepository shopRepository) {
         this.userRepository = userRepository;
+        this.shopRepository = shopRepository;
     }
 
     /**
@@ -202,6 +208,27 @@ public class UserService {
             logger.debug("Using custom avatar URL for user: {}: {}", user.getId(), avatarUrl);
         }
         
+        // Create a map of badge IDs to their thumbnail URLs
+        Map<String, String> badgeUrls = new HashMap<>();
+        logger.debug("User {} has {} equipped badges", user.getId(), 
+                     user.getEquippedBadgeIds() != null ? user.getEquippedBadgeIds().size() : 0);
+
+        if (user.getEquippedBadgeIds() != null && !user.getEquippedBadgeIds().isEmpty()) {
+            for (UUID badgeId : user.getEquippedBadgeIds()) {
+                shopRepository.findById(badgeId).ifPresent(badge -> {
+                    logger.debug("Badge {} found, thumbnailUrl: {}", badgeId, badge.getThumbnailUrl());
+                    if (badge.getThumbnailUrl() != null && !badge.getThumbnailUrl().isEmpty()) {
+                        badgeUrls.put(badgeId.toString(), badge.getThumbnailUrl());
+                        logger.debug("Added badge {} with URL {} to badgeUrls map", badgeId, badge.getThumbnailUrl());
+                    } else {
+                        logger.warn("Badge {} has no thumbnailUrl", badgeId);
+                    }
+                });
+            }
+        }
+
+        logger.debug("Final badgeUrls map contains {} entries", badgeUrls.size());
+
         return UserProfileDTO.builder()
             .id(user.getId())
             .username(user.getUsername())
@@ -220,6 +247,7 @@ public class UserService {
             .equippedAccentId(user.getEquippedAccentId())
             // Add the equipped badge IDs
             .equippedBadgeIds(user.getEquippedBadgeIds())
+            .badgeUrls(badgeUrls) // Add the badge URL map
             .build();
     }
 

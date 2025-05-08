@@ -22,6 +22,7 @@ public class ShopDTO {
     private Integer price;
     private ShopCategory category;
     private String imageUrl;
+    private String thumbnailUrl;
     private Role requiredRole;
     private boolean owned;  // Indicates if the current user owns this item
     private ItemRarity rarity = ItemRarity.COMMON;  // Default to COMMON

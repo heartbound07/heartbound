@@ -144,14 +144,15 @@ export function UserProfileModal({ isOpen, onClose, userProfile, position }: Use
             </motion.button>
             
             <ProfilePreview
-              bannerColor={userProfile.bannerColor || "bg-white/10"}
+              bannerColor={userProfile.bannerColor || "bg-primary"}
               bannerUrl={userProfile.bannerUrl}
               name={userProfile.displayName || userProfile.username}
               about={userProfile.about}
               pronouns={userProfile.pronouns}
               user={{ avatar: userProfile.avatar, username: userProfile.username }}
-              showEditButton={false}
               equippedBadgeIds={userProfile.equippedBadgeIds || []}
+              badgeMap={userProfile.badgeUrls || {}}
+              showEditButton={false}
             />
           </motion.div>
         </motion.div>
