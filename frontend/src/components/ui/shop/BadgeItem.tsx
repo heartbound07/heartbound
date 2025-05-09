@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { ShopItem } from '../../../features/shop/InventoryPage';
 import { getRarityColor, getRarityLabel } from '@/utils/rarityHelpers';
@@ -22,6 +22,7 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
   const iconContainerRef = useRef<HTMLDivElement>(null);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
   const rarityColor = getRarityColor(badge.rarity);
+  const timerRef = useRef<number | null>(null);
   
   // Prefer thumbnailUrl for badges if available, fallback to imageUrl
   const badgeImageUrl = badge.thumbnailUrl || badge.imageUrl;
@@ -34,8 +35,67 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
         top: rect.top + window.scrollY - 10, // Position above the image with a small gap
         left: rect.left + rect.width / 2 + window.scrollX
       });
+      
+      // Set a timer to hide the details after 3 seconds
+      timerRef.current = window.setTimeout(() => {
+        setShowDetails(false);
+      }, 3000);
     }
+    
+    // Clean up the timer when showDetails changes or component unmounts
+    return () => {
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
   }, [showDetails]);
+  
+  // Handle mouse enter to cancel auto-hide
+  const handleMouseEnter = () => {
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+  
+  // Handle mouse leave to restart auto-hide
+  const handleMouseLeave = () => {
+    if (showDetails) {
+      timerRef.current = window.setTimeout(() => {
+        setShowDetails(false);
+      }, 1000);
+    }
+  };
+  
+  // Create animation variants for more sophisticated effects
+  const popupVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: -20,
+      scale: 0.95
+    },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 500,
+        damping: 25,
+        duration: 0.3
+      }
+    },
+    exit: { 
+      opacity: 0, 
+      y: -10,
+      scale: 0.9,
+      transition: {
+        duration: 0.2,
+        ease: "easeOut"
+      }
+    }
+  };
   
   return (
     <motion.div 
@@ -135,28 +195,46 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
         </div>
       </div>
       
-      {/* Use Portal for description popup */}
-      {showDetails && badge.description && document.body && createPortal(
-        <motion.div 
-          className="badge-details-portal"
-          style={{
-            position: 'absolute',
-            top: `${popupPosition.top}px`,
-            left: `${popupPosition.left}px`,
-            transform: 'translate(-50%, -100%)',
-            zIndex: 9999
-          }}
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
-        >
-          <div className="badge-details-content">
-            <p className="badge-description">{badge.description}</p>
-          </div>
-          <div className="badge-details-arrow"></div>
-        </motion.div>,
+      {/* Portal with AnimatePresence for exit animations */}
+      {document.body && createPortal(
+        <AnimatePresence>
+          {showDetails && badge.description && (
+            <motion.div 
+              className="badge-details-portal"
+              style={{
+                position: 'absolute',
+                top: `${popupPosition.top}px`,
+                left: `${popupPosition.left}px`,
+                transform: 'translate(-50%, -100%)',
+                zIndex: 9999
+              }}
+              variants={popupVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+            >
+              <motion.div 
+                className="badge-details-content"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+              >
+                <p className="badge-description">{badge.description}</p>
+              </motion.div>
+              <motion.div 
+                className="badge-details-arrow"
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>,
         document.body
       )}
     </motion.div>
