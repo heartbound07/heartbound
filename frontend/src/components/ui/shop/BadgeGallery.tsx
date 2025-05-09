@@ -1,5 +1,5 @@
 import React from 'react';
-import BadgeItem from './BadgeItem';
+import BadgeItem from './BadgeItem';    
 import { motion } from 'framer-motion';
 import { ShopItem } from '../../../features/shop/InventoryPage';
 
@@ -21,11 +21,8 @@ const BadgeGallery: React.FC<BadgeGalleryProps> = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="badge-gallery"
-    >
-      <h2 className="badge-gallery-title">Badge Collection</h2>
-      <p className="badge-gallery-subtitle">Show off your achievements with these unique badges</p>
-      
+      className="badge-gallery flex justify-center items-center min-h-[50vh]"
+    > 
       <div className="badge-gallery-grid">
         {badges.map(badge => (
           <BadgeItem

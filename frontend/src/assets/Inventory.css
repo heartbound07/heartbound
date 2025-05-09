@@ -335,8 +335,11 @@ select.inventory-sort-dropdown:focus {
 
 /* Badge Gallery Styles */
 .badge-gallery {
-  margin-top: 2rem;
-  animation: fadeIn 0.5s ease-in-out;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 1.5rem 0;
 }
 
 .badge-gallery-title {
@@ -357,8 +360,11 @@ select.inventory-sort-dropdown:focus {
 
 .badge-gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1.5rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 /* Badge Item Styles */
