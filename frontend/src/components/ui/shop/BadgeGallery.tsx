@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import BadgeItem from './BadgeItem';    
 import { motion } from 'framer-motion';
 import { ShopItem } from '../../../features/shop/InventoryPage';
@@ -16,6 +16,14 @@ const BadgeGallery: React.FC<BadgeGalleryProps> = ({
   onUnequip, 
   actionInProgress 
 }) => {
+  // Add state to track which badge is showing details (if any)
+  const [activeDetailsId, setActiveDetailsId] = useState<string | null>(null);
+  
+  // Function to toggle details for a badge
+  const toggleDetails = (badgeId: string) => {
+    setActiveDetailsId(currentId => currentId === badgeId ? null : badgeId);
+  };
+  
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -31,6 +39,8 @@ const BadgeGallery: React.FC<BadgeGalleryProps> = ({
             onEquip={onEquip}
             onUnequip={onUnequip}
             isProcessing={actionInProgress === badge.id}
+            showDetails={activeDetailsId === badge.id}
+            onToggleDetails={() => toggleDetails(badge.id)}
           />
         ))}
       </div>

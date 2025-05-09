@@ -10,15 +10,18 @@ interface BadgeItemProps {
   onEquip: (id: string) => void;
   onUnequip: (id: string) => void;
   isProcessing: boolean;
+  showDetails: boolean;
+  onToggleDetails: () => void;
 }
 
 const BadgeItem: React.FC<BadgeItemProps> = ({
   badge,
   onEquip,
   onUnequip,
-  isProcessing
+  isProcessing,
+  showDetails,
+  onToggleDetails
 }) => {
-  const [showDetails, setShowDetails] = useState(false);
   const iconContainerRef = useRef<HTMLDivElement>(null);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
   const rarityColor = getRarityColor(badge.rarity);
@@ -38,7 +41,7 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
       
       // Set a timer to hide the details after 3 seconds
       timerRef.current = window.setTimeout(() => {
-        setShowDetails(false);
+        onToggleDetails(); // This will hide details by calling the parent function
       }, 3000);
     }
     
@@ -49,7 +52,7 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
         timerRef.current = null;
       }
     };
-  }, [showDetails]);
+  }, [showDetails, onToggleDetails]);
   
   // Handle mouse enter to cancel auto-hide
   const handleMouseEnter = () => {
@@ -63,7 +66,7 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
   const handleMouseLeave = () => {
     if (showDetails) {
       timerRef.current = window.setTimeout(() => {
-        setShowDetails(false);
+        onToggleDetails();
       }, 1000);
     }
   };
@@ -101,7 +104,7 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
     <motion.div 
       className="badge-item"
       whileHover={{ y: -5, transition: { duration: 0.2 } }}
-      onClick={() => setShowDetails(!showDetails)}
+      onClick={onToggleDetails}
     >
       <div className="badge-item-wrapper">
         {/* Badge icon with rarity border */}
@@ -195,7 +198,7 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
         </div>
       </div>
       
-      {/* Portal with AnimatePresence for exit animations - now showing for all badges */}
+      {/* Portal with AnimatePresence for exit animations */}
       {document.body && createPortal(
         <AnimatePresence>
           {showDetails && (
