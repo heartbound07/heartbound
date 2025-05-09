@@ -34,9 +34,21 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
   useEffect(() => {
     if (showDetails && iconContainerRef.current) {
       const rect = iconContainerRef.current.getBoundingClientRect();
+      
+      // Get viewport dimensions for mobile-friendly positioning
+      const viewportWidth = window.innerWidth;
+      
+      // Adjust left position to ensure popup stays within viewport
+      let leftPos = rect.left + rect.width / 2 + window.scrollX;
+      
+      // For very small screens, ensure the popup doesn't go off-screen
+      const isMobile = viewportWidth <= 640;
+      const mobileOffset = isMobile ? -10 : 0; // Slight adjustment for mobile
+      
       setPopupPosition({
-        top: rect.top + window.scrollY - 10, // Position above the image with a small gap
-        left: rect.left + rect.width / 2 + window.scrollX
+        // On mobile, position slightly higher to ensure visibility
+        top: rect.top + window.scrollY - (isMobile ? 5 : 10),
+        left: leftPos + mobileOffset
       });
       
       // Set a timer to hide the details after 3 seconds
@@ -84,9 +96,9 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
       scale: 1,
       transition: {
         type: "spring",
-        stiffness: 500,
-        damping: 25,
-        duration: 0.3
+        stiffness: window.innerWidth <= 640 ? 400 : 500,
+        damping: window.innerWidth <= 640 ? 30 : 25,
+        duration: window.innerWidth <= 640 ? 0.25 : 0.3
       }
     },
     exit: { 
@@ -94,9 +106,27 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
       y: -10,
       scale: 0.9,
       transition: {
-        duration: 0.2,
+        duration: window.innerWidth <= 640 ? 0.15 : 0.2,
         ease: "easeOut"
       }
+    }
+  };
+  
+  // Add this function to handle touch interactions better
+  const handleTouchInteraction = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    
+    // Cancel any existing auto-hide timer on touch
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    // Set a slightly longer timer for touch devices
+    if (showDetails) {
+      timerRef.current = window.setTimeout(() => {
+        onToggleDetails();
+      }, 4000); // Longer timeout for mobile users to read the content
     }
   };
   
@@ -203,7 +233,7 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
         <AnimatePresence>
           {showDetails && (
             <motion.div 
-              className="badge-details-portal"
+              className={`badge-details-portal ${window.innerWidth <= 640 ? 'badge-details-mobile' : ''}`}
               style={{
                 position: 'absolute',
                 top: `${popupPosition.top}px`,
@@ -220,6 +250,8 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
               }}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
+              onTouchStart={handleTouchInteraction}
+              onTouchEnd={handleTouchInteraction}
             >
               <motion.div 
                 className="badge-details-content"

@@ -329,42 +329,43 @@ export function InventoryPage() {
       
       <div className="inventory-container">
         {/* Categories */}
-        {categories.length > 0 && (
-          <div>
-            <div className="inventory-categories">
-              <button 
-                onClick={() => setSelectedCategory(null)}
+        <motion.div 
+          className="inventory-categories"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+        >
+          {/* Add a horizontal scroll container for small screens */}
+          <div className="inventory-categories-scroll-container">
+            <motion.button
+              key="all"
+              onClick={() => setSelectedCategory(null)}
+              className={`category-button ${
+                selectedCategory === null ? 'category-button-active' : 'category-button-inactive'
+              }`}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            >
+              All Items
+            </motion.button>
+            
+            {categories.map((category) => (
+              <motion.button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
                 className={`category-button ${
-                  selectedCategory === null 
-                    ? 'category-button-active' 
-                    : 'category-button-inactive'
+                  selectedCategory === category ? 'category-button-active' : 'category-button-inactive'
                 }`}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
               >
-                All Items
-              </button>
-              
-              {categories.map((category) => (
-                <button 
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`category-button ${
-                    selectedCategory === category 
-                      ? 'category-button-active' 
-                      : 'category-button-inactive'
-                  }`}
-                >
-                  <motion.span
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                  >
-                    {formatCategoryDisplay(category)}
-                  </motion.span>
-                </button>
-              ))}
-            </div>
+                {formatCategoryDisplay(category)}
+              </motion.button>
+            ))}
           </div>
-        )}
+        </motion.div>
         
         {/* Inventory items */}
         <motion.div
