@@ -27,8 +27,7 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
     <motion.div 
       className="badge-item"
       whileHover={{ y: -5, transition: { duration: 0.2 } }}
-      onMouseEnter={() => setShowDetails(true)}
-      onMouseLeave={() => setShowDetails(false)}
+      onClick={() => setShowDetails(!showDetails)}
     >
       <div className="badge-item-wrapper">
         {/* Badge icon with rarity border */}
@@ -86,39 +85,48 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
           {getRarityLabel(badge.rarity)}
         </div>
         
-        {/* Badge details on hover */}
+        {/* Badge details on click */}
         {showDetails && (
           <motion.div 
             className="badge-details"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
+            onClick={(e) => e.stopPropagation()} // Prevent triggering parent onClick
           >
             {badge.description && (
               <p className="badge-description">{badge.description}</p>
             )}
             
-            {/* Equip/Unequip button */}
-            {badge.equipped ? (
-              <button
-                onClick={() => onUnequip(badge.id)}
-                disabled={isProcessing}
-                className={`badge-action-button badge-unequip-button ${
-                  isProcessing ? 'badge-action-processing' : ''
-                }`}
-              >
-                {isProcessing ? 'Processing...' : 'Unequip'}
-              </button>
-            ) : (
-              <button
-                onClick={() => onEquip(badge.id)}
-                disabled={isProcessing}
-                className={`badge-action-button badge-equip-button ${
-                  isProcessing ? 'badge-action-processing' : ''
-                }`}
-              >
-                {isProcessing ? 'Processing...' : 'Equip'}
-              </button>
-            )}
+            {/* Equip/Unequip button - center alignment fix */}
+            <div className="badge-action-container">
+              {badge.equipped ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent the badge item click handler
+                    onUnequip(badge.id);
+                  }}
+                  disabled={isProcessing}
+                  className={`badge-action-button badge-unequip-button ${
+                    isProcessing ? 'badge-action-processing' : ''
+                  }`}
+                >
+                  {isProcessing ? 'Processing...' : 'Unequip'}
+                </button>
+              ) : (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent the badge item click handler
+                    onEquip(badge.id);
+                  }}
+                  disabled={isProcessing}
+                  className={`badge-action-button badge-equip-button ${
+                    isProcessing ? 'badge-action-processing' : ''
+                  }`}
+                >
+                  {isProcessing ? 'Processing...' : 'Equip'}
+                </button>
+              )}
+            </div>
           </motion.div>
         )}
       </div>
