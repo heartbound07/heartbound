@@ -97,7 +97,7 @@ const InventoryItemSkeleton = () => {
 };
 
 export function InventoryPage() {
-  const { user, updateUserProfile, profile } = useAuth();
+  const { user, updateUserProfile, profile, fetchCurrentUserProfile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ShopItem[]>([]);
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
@@ -209,22 +209,11 @@ export function InventoryPage() {
     
     setActionInProgress(itemId);
     try {
-      const response = await httpClient.post(`/shop/equip/${itemId}`);
+      await httpClient.post(`/shop/equip/${itemId}`);
       showToast('Item equipped successfully!', 'success');
       
-      // Update local user profile with the updated profile from response
-      if (response.data) {
-        await updateUserProfile({
-          displayName: response.data.displayName || profile?.displayName || user?.username || '',
-          pronouns: response.data.pronouns || profile?.pronouns || '',
-          about: response.data.about || profile?.about || '',
-          bannerColor: response.data.bannerColor || profile?.bannerColor || '',
-          bannerUrl: response.data.bannerUrl || profile?.bannerUrl || '',
-          avatar: response.data.avatar || user?.avatar || ''
-        });
-      }
+      await fetchCurrentUserProfile();
       
-      // Refresh inventory to show updated equipped status
       await fetchInventory();
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to equip item';
@@ -273,32 +262,19 @@ export function InventoryPage() {
     }
   };
   
-  // Add a function to handle badge unequipping
-  const handleUnequipBadge = async (badgeId: string) => {
-    if (actionInProgress !== null) return;
+  const handleUnequipBadge = async (itemId: string) => {
+    if (actionInProgress) return;
     
-    setActionInProgress(badgeId);
-    
+    setActionInProgress(itemId);
     try {
-      const response = await httpClient.post(`/shop/unequip/badge/${badgeId}`);
-      if (response.data) {
-        // Update user profile
-        updateUserProfile(response.data);
-        
-        // Update equipped status in the items state
-        const updatedItems = items.map(item => {
-          if (item.id === badgeId && item.category === 'BADGE') {
-            return { ...item, equipped: false };
-          }
-          return item;
-        });
-        setItems(updatedItems);
-        
-        showToast("Badge unequipped successfully!", "success");
-      }
-    } catch (error) {
-      console.error("Failed to unequip badge:", error);
-      showToast("Failed to unequip badge", "error");
+      await httpClient.post(`/shop/unequip/${itemId}`);
+      showToast('Badge unequipped successfully!', 'success');
+      
+      await fetchCurrentUserProfile();
+      await fetchInventory();
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to unequip badge';
+      showToast(errorMessage, 'error');
     } finally {
       setActionInProgress(null);
     }

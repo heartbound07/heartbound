@@ -1,5 +1,5 @@
 import { CreatePartyRequestDTO, LFGPartyResponseDTO, ListPartiesParams, UpdatePartyRequestDTO } from '../valorant/partyService';
-import { UpdateProfileDTO } from '@/config/userService';
+import { UpdateProfileDTO, UserProfileDTO } from '@/config/userService';
 
 export type Role = 'USER' | 'MONARCH' | 'MODERATOR' | 'ADMIN';
 
@@ -26,20 +26,9 @@ export interface RegisterRequest {
   password: string;
 }
 
-export interface ProfileStatus {
-  isComplete: boolean;
-  requiredFields?: string[];
-  displayName?: string;
-  pronouns?: string;
-  about?: string;
-  bannerColor?: string;
-  bannerUrl?: string;
-  avatar?: string;
-}
-
 export interface AuthState {
   user: UserInfo | null;
-  profile: ProfileStatus | null;
+  profile: UserProfileDTO | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -62,7 +51,7 @@ export interface AuthContextValue extends AuthState {
   clearError: () => void;
   startDiscordOAuth: () => Promise<void>;
   exchangeDiscordCode: (code: string) => Promise<void>;
-  updateProfile: (profile: ProfileStatus) => void;
+  updateProfile: (profile: UserProfileDTO) => void;
   updateUserProfile: (profile: UpdateProfileDTO) => Promise<void>;
   hasRole: (role: Role) => boolean;
   

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
-import { AuthState, UserInfo, ProfileStatus } from '../contexts/auth/types';
+import { AuthState, UserInfo } from '../contexts/auth/types';
+import { UserProfileDTO } from '@/config/userService';
 
 export function useAuthState() {
   const [state, setState] = useState<AuthState>({
@@ -16,7 +17,7 @@ export function useAuthState() {
   };
 
   // Update authentication state
-  const setAuthState = useCallback((user: UserInfo | null, profile: ProfileStatus | null = null) => {
+  const setAuthState = useCallback((user: UserInfo | null, profile: UserProfileDTO | null = null) => {
     setState(prevState => ({
       user,
       profile: profile || prevState.profile,
@@ -48,7 +49,7 @@ export function useAuthState() {
   }, []);
 
   // Update profile
-  const updateAuthProfile = useCallback((profile: ProfileStatus) => {
+  const updateAuthProfile = useCallback((profile: UserProfileDTO) => {
     setState(prev => ({ ...prev, profile }));
   }, []);
 

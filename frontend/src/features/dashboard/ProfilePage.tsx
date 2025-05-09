@@ -353,7 +353,7 @@ export function ProfilePage() {
           </div>
         </div>
 
-        {/* Preview Panel - Wrapped in a div to apply order classes */}
+        {/* Preview Panel */}
         <div className="order-1 lg:order-2">
           <ProfilePreview 
             bannerColor={bannerColor}
@@ -366,6 +366,9 @@ export function ProfilePage() {
             onClick={() => {
               // For example, navigate to the user's detailed profile page.
             }}
+            equippedBadgeIds={profile?.equippedBadgeIds || []}
+            badgeMap={profile?.badgeUrls || {}}
+            badgeNames={profile?.badgeNames || {}}
           />
         </div>
       </div>

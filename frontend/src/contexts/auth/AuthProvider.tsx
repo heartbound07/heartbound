@@ -6,14 +6,13 @@ import {
   TokenPair,
   UserInfo,
   AuthProviderProps,
-  ProfileStatus,
 } from './types';
 import { AUTH_STORAGE_KEY, AUTH_ENDPOINTS, DISCORD_OAUTH_STATE_KEY } from './constants';
 import * as partyService from '../valorant/partyService';
 import axios from 'axios';
 import webSocketService from '../../config/WebSocketService';
 import * as userService from '../../config/userService';
-import { UpdateProfileDTO } from '@/config/userService';
+import { UpdateProfileDTO, UserProfileDTO } from '@/config/userService';
 import { tokenStorage } from './tokenStorage';
 import { useAuthState } from '../../hooks/useAuthState';
 import { useTokenManagement } from '../../hooks/useTokenManagement';
@@ -28,6 +27,18 @@ declare global {
 // Place these outside the component to persist across renders
 let refreshInProgress = false;
 let refreshPromise: Promise<string | undefined> | null = null;
+
+// Add ProfileStatus interface definition locally since it's no longer in types.ts
+interface ProfileStatus {
+  isComplete: boolean;
+  requiredFields?: string[];
+  displayName?: string;
+  pronouns?: string;
+  about?: string;
+  bannerColor?: string;
+  bannerUrl?: string;
+  avatar?: string;
+}
 
 const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   // Use our new custom hooks
@@ -53,7 +64,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const [initialized, setInitialized] = useState(false);
   const initRan = useRef(false); // Track if init logic ran for this instance
 
-  const persistAuthState = useCallback((user: UserInfo, tokenPair: TokenPair, profile: ProfileStatus | null = null) => {
+  const persistAuthState = useCallback((user: UserInfo, tokenPair: TokenPair, profile: UserProfileDTO | null = null) => {
     // Use the tokenStorage directly instead of a state-updating function
     tokenStorage.setTokens(tokenPair);
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user, profile }));
@@ -64,29 +75,39 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       const errorData = await response.json();
       throw new Error(errorData.message || 'Authentication failed');
     }
-    const data = await response.json();
-    // Ensure full token pair is returned from the backend
-    if (
-      !data.accessToken ||
-      !data.refreshToken ||
-      !data.tokenType ||
-      !data.expiresIn ||
-      !data.scope ||
-      !isUserInfo(data.user)
-    ) {
-      throw new Error('Invalid authentication response');
-    }
-    const { accessToken, refreshToken, tokenType, expiresIn, scope, user } = data;
-    const decodedToken = parseJwt(accessToken);
-    persistAuthState(user, { accessToken, refreshToken, tokenType, expiresIn, scope }, null);
-    scheduleTokenRefresh(decodedToken.exp - Math.floor(Date.now() / 1000));
-    updateTokens({ accessToken, refreshToken, tokenType, expiresIn, scope });
-    setAuthState(user);
+    const tokenPair: TokenPair = await response.json();
+    updateTokens(tokenPair);
 
-    // Reconnect WebSocket after successful authentication/token update
-    webSocketService.reconnectWithFreshToken();
-    console.log('WebSocket reconnect triggered after auth response.');
-  }, [persistAuthState, scheduleTokenRefresh, parseJwt, updateTokens, setAuthState]);
+    const decodedToken = parseJwt(tokenPair.accessToken);
+    if (decodedToken && decodedToken.sub) {
+      // Fetch the full user profile which is UserProfileDTO
+      const userProfileData = await userService.getCurrentUserProfile(); 
+      if (userProfileData) {
+        const userInfo: UserInfo = {
+          id: userProfileData.id,
+          username: userProfileData.username,
+          email: '', // Set email to empty string since it doesn't exist on UserProfileDTO
+          avatar: userProfileData.avatar,
+          roles: userProfileData.roles,
+          credits: userProfileData.credits,
+          level: userProfileData.level,
+          experience: userProfileData.experience,
+        };
+        // Pass userProfileData directly as it's UserProfileDTO
+        setAuthState(userInfo, userProfileData); 
+        persistAuthState(userInfo, tokenPair, userProfileData);
+        
+        // Fix: Pass a callback function instead of just the token
+        // or check the WebSocketService implementation to see what it expects
+        webSocketService.connect(() => tokenPair.accessToken);
+        
+        // Alternative if the service is meant to accept a token directly:
+        // webSocketService.connect(tokenPair.accessToken as any);
+      } else {
+        throw new Error('Failed to fetch user profile after login.');
+      }
+    }
+  }, [updateTokens, parseJwt, setAuthState, persistAuthState]);
 
   const login = useCallback(async (credentials: LoginRequest) => {
     setAuthLoading(true);
@@ -399,7 +420,8 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           };
           
           console.log('[Auth] Created profileStatus:', profileStatus);
-          updateAuthProfile(profileStatus);
+          // Convert ProfileStatus to UserProfileDTO or modify updateAuthProfile to accept both
+          updateAuthProfile(profileData); // Use the full profileData instead
           
           // Also ensure the profile is persisted to localStorage
           const authStorage = localStorage.getItem(AUTH_STORAGE_KEY);
@@ -417,14 +439,15 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       } catch (profileError) {
         console.error('[Auth] Error fetching user profile after login:', profileError);
         // Create fallback profile from user data
-        const fallbackProfile: ProfileStatus = {
-          isComplete: false,
+        const fallbackProfile = {
+          id: user.id,
+          username: user.username || '',
+          avatar: user.avatar || '',
           displayName: user.username || '',
           pronouns: '',
           about: '',
           bannerColor: 'bg-white/10',
-          bannerUrl: '',
-          avatar: user.avatar || ''
+          bannerUrl: ''
         };
         console.log('[Auth] Using fallback profile:', fallbackProfile);
         updateAuthProfile(fallbackProfile);
@@ -445,110 +468,57 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
   }, [updateTokens, setAuthState, updateAuthProfile, setAuthLoading, setAuthError, clearAuthState]);
 
-  const updateProfile = useCallback((profile: ProfileStatus) => {
-    updateAuthProfile(profile);
+  // Fix for updateProfile to handle both ProfileStatus and UserProfileDTO
+  const updateProfile = useCallback((newProfileData: UserProfileDTO) => {
+    // Convert UserProfileDTO to ProfileStatus if needed
+    // or directly update the auth profile with the UserProfileDTO
+    updateAuthProfile(newProfileData);
   }, [updateAuthProfile]);
 
-  const updateUserProfile = async (profile: UpdateProfileDTO) => {
-    if (!state.user?.id) {
-      throw new Error('User not authenticated');
-    }
-    
+  const updateUserProfile = async (profileData: UpdateProfileDTO) => {
+    if (!state.user) throw new Error("User not authenticated");
+    setAuthLoading(true);
     try {
-      setAuthLoading(true);
-      const updatedProfile = await userService.updateUserProfile(state.user.id, profile);
-      
-      // Create updated user with new avatar
-      const updatedUser = {
-        ...state.user,
-        avatar: updatedProfile.avatar,
-        credits: updatedProfile.credits ?? state.user.credits
-      };
-      
-      // Update auth state with the new user info
-      setAuthState(updatedUser);
-      
-      // Update profile separately using updateAuthProfile
-      updateAuthProfile({
-        ...(state.profile || {}),
-        isComplete: true,
-        displayName: updatedProfile.displayName,
-        pronouns: updatedProfile.pronouns,
-        about: updatedProfile.about,
-        bannerColor: updatedProfile.bannerColor,
-        bannerUrl: updatedProfile.bannerUrl,
-        avatar: updatedProfile.avatar
-      });
-      
-    } catch (error) {
-      setAuthError(error instanceof Error ? error.message : 'Failed to update profile');
-      throw error;
-    } finally {
+      const updatedProfile = await userService.updateUserProfile(state.user.id, profileData);
+      // updatedProfile is UserProfileDTO from the backend
+      updateAuthProfile(updatedProfile); // Pass directly, no cast needed
       setAuthLoading(false);
+    } catch (error: any) {
+      setAuthError(error.message || 'Failed to update profile');
+      setAuthLoading(false);
+      throw error;
     }
   };
 
-  const fetchCurrentUserProfile = async () => {
-    if (!state.isAuthenticated || !state.user?.id) {
-      console.warn('[Auth] Cannot fetch profile: User not authenticated');
+  // Fix for the Discord auth function where ProfileStatus is used
+  // Look for code like this around line 395:
+  const fetchCurrentUserProfile = useCallback(async () => {
+    if (!tokens?.accessToken) {
       return;
     }
-    
+    setAuthLoading(true);
     try {
-      setAuthLoading(true);
-      console.log('[Auth] Fetching current user profile...');
-      
-      const profileData = await userService.getCurrentUserProfile();
-      console.log('[Auth] Current user profile received:', profileData);
-      
-      if (profileData) {
-        // Update user with possibly new data from profile
-        const updatedUser: UserInfo = {
-          ...state.user,
-          username: profileData.username || state.user.username,
-          avatar: profileData.avatar || state.user.avatar,
-          roles: profileData.roles || state.user.roles,
-          credits: profileData.credits ?? state.user.credits,
-          level: profileData.level ?? state.user.level,
-          experience: profileData.experience ?? state.user.experience
+      const userProfileData = await userService.getCurrentUserProfile();
+      if (userProfileData) {
+        const userInfo: UserInfo = {
+          id: userProfileData.id,
+          username: userProfileData.username,
+          email: '', // Set email to empty string since it doesn't exist on UserProfileDTO
+          avatar: userProfileData.avatar,
+          roles: userProfileData.roles,
+          credits: userProfileData.credits,
+          level: userProfileData.level,
+          experience: userProfileData.experience,
         };
-        
-        // Update profile status
-        const profileStatus: ProfileStatus = {
-          isComplete: true,
-          displayName: profileData.displayName || profileData.username || state.user.username,
-          pronouns: profileData.pronouns || '',
-          about: profileData.about || '',
-          bannerColor: profileData.bannerColor || 'bg-white/10',
-          bannerUrl: profileData.bannerUrl || '',
-          avatar: profileData.avatar || state.user.avatar || ''
-        };
-        
-        // Update state with both user and profile
-        setAuthState(updatedUser);
-        updateAuthProfile(profileStatus);
-        
-        // Also update localStorage to persist new profile data
-        const authStorage = localStorage.getItem(AUTH_STORAGE_KEY);
-        if (authStorage) {
-          try {
-            const authData = JSON.parse(authStorage);
-            authData.user = updatedUser;
-            authData.profile = profileStatus;
-            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
-            console.log('[Auth] Updated user and profile in localStorage');
-          } catch (e) {
-            console.error('[Auth] Error updating localStorage:', e);
-          }
-        }
+        // Pass userProfileData directly
+        setAuthState(userInfo, userProfileData);
       }
-    } catch (error) {
-      console.error('[Auth] Error fetching current user profile:', error);
-      setAuthError(error instanceof Error ? error.message : 'Failed to fetch user profile');
+    } catch (error: any) {
+      console.error('Failed to fetch current user profile:', error);
     } finally {
       setAuthLoading(false);
     }
-  };
+  }, [tokens?.accessToken, setAuthState, setAuthLoading]);
 
   // Add a debug mount/unmount effect
   useEffect(() => {
