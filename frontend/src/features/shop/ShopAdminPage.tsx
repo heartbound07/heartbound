@@ -554,6 +554,28 @@ export function ShopAdminPage() {
               </div>
             )}
             
+            {/* Discord Role ID input - show for USER_COLOR and BADGE categories */}
+            {(formData.category === 'USER_COLOR' || formData.category === 'BADGE') && (
+              <div>
+                <label htmlFor="discordRoleId" className="block text-sm font-medium text-slate-300 mb-1">
+                  Discord Role ID
+                </label>
+                <input
+                  id="discordRoleId"
+                  type="text"
+                  value={formData.discordRoleId || ''}
+                  onChange={(e) => setFormData({...formData, discordRoleId: e.target.value})}
+                  className="block w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder={`Discord role ID for ${formData.category} items`}
+                />
+                <p className="mt-1 text-xs text-slate-400">
+                  {formData.category === 'USER_COLOR' 
+                    ? "Enter the Discord role ID to be granted when this color is equipped. Leave empty for no role."
+                    : "Enter the Discord role ID to be granted when this badge is equipped. Leave empty for no role."}
+                </p>
+              </div>
+            )}
+            
             {/* Description */}
             <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
               <h3 className="text-md font-medium text-slate-200 mb-4">
