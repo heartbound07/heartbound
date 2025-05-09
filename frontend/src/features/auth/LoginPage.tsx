@@ -1,4 +1,5 @@
 import { CloudBackground } from '@/components/backgrounds/CloudBackground';
+import { Navigation } from '@/components/ui/Navigation';
 import { DiscordLoginButton } from '@/components/ui/DiscordLoginButton';
 import { DiscordIcon } from '@/components/ui/DiscordIcon';
 import { motion } from 'framer-motion';
@@ -11,58 +12,21 @@ import {
   Users, 
   Clock, 
   Target, 
-  Headphones, 
+  Headphones,
   Info, 
   ArrowDown, 
   ArrowRight, 
   UserCircle
 } from 'lucide-react';
 
-// Custom Navigation component for landing page with smooth scroll
-function LandingNavigation({ className = '', scrollToSection }: { className?: string, scrollToSection: (ref: React.RefObject<HTMLDivElement>) => void }) {
-  // Refs are passed from parent component
-  return (
-    <nav className={`relative z-10 p-4 ${className}`}>
-      <ul className="flex justify-center gap-8 text-white font-medium">
-        <li>
-          <button
-            onClick={() => scrollToSection(document.getElementById('competitive-section') as unknown as React.RefObject<HTMLDivElement>)}
-            className="group relative inline-block text-white transition-all duration-300 transform hover:scale-105 hover:bg-white/20 px-2 py-1 rounded"
-          >
-            competitive
-          </button>
-        </li>
-        <li>
-          <button
-            onClick={() => scrollToSection(document.getElementById('duo-section') as unknown as React.RefObject<HTMLDivElement>)}
-            className="group relative inline-block text-white transition-all duration-300 transform hover:scale-105 hover:bg-white/20 px-2 py-1 rounded"
-          >
-            find a duo
-          </button>
-        </li>
-        <li>
-          <button
-            onClick={() => scrollToSection(document.getElementById('discord-section') as unknown as React.RefObject<HTMLDivElement>)}
-            className="group relative inline-block text-white transition-all duration-300 transform hover:scale-105 hover:bg-white/20 px-2 py-1 rounded"
-          >
-            discord
-          </button>
-        </li>
-        <li>
-          <button
-            onClick={() => scrollToSection(document.getElementById('how-it-works-section') as unknown as React.RefObject<HTMLDivElement>)}
-            className="group relative inline-block text-white transition-all duration-300 transform hover:scale-105 hover:bg-white/20 px-2 py-1 rounded"
-          >
-            how it works
-          </button>
-        </li>
-      </ul>
-    </nav>
-  );
-}
-
 export function LoginPage() {
   const [titleComplete, setTitleComplete] = useState(false);
+  
+  // References for sections
+  const competitiveRef = useRef<HTMLElement>(null);
+  const duoRef = useRef<HTMLElement>(null);
+  const discordRef = useRef<HTMLElement>(null);
+  const howItWorksRef = useRef<HTMLElement>(null);
   
   // Animation variants for letter-by-letter animation
   const letterVariants = {
@@ -91,9 +55,34 @@ export function LoginPage() {
     }
   };
   
-  // Scroll handler function for navigation
-  const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
-    ref.current?.scrollIntoView({ behavior: 'smooth' });
+  // Handle scroll to section from Navigation
+  const handleSectionClick = (section: string) => {
+    let targetRef;
+    
+    switch(section) {
+      case 'competitive':
+        targetRef = competitiveRef;
+        break;
+      case 'find-a-duo':
+        targetRef = duoRef;
+        break;
+      case 'discord':
+        targetRef = discordRef;
+        break;
+      case 'how-it-works':
+        targetRef = howItWorksRef;
+        break;
+      default:
+        return;
+    }
+    
+    if (targetRef?.current) {
+      // Using framer-motion's AnimatePresence for scroll animation
+      window.scrollTo({
+        top: targetRef.current.offsetTop - 80, // Adjust for header height
+        behavior: 'smooth'
+      });
+    }
   };
   
   // Trigger subtitle animation after title animation completes
@@ -102,23 +91,24 @@ export function LoginPage() {
     return () => clearTimeout(timer);
   }, []);
   
-  // References for sections
-  const competitiveRef = useRef<HTMLDivElement>(null);
-  const duoRef = useRef<HTMLDivElement>(null);
-  const discordRef = useRef<HTMLDivElement>(null);
-  const howItWorksRef = useRef<HTMLDivElement>(null);
-  
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#6B5BE6] to-[#8878f0] relative overflow-hidden">
-      {/* Fixed Navigation with custom scroll function */}
+      {/* Fixed Navigation with proper parameters */}
       <div className="sticky top-0 z-50 backdrop-blur-md bg-white/5">
-        <LandingNavigation className="font-grandstander" scrollToSection={scrollToSection} />
+        <Navigation 
+          className="font-grandstander" 
+          onSectionClick={handleSectionClick}
+          isLandingPage={true}
+        />
       </div>
       
       <CloudBackground />
       
-      {/* Hero Section - Maintained from original LoginPage */}
+      {/* Hero Section - Updated with matching style */}
       <section className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-80px)] px-4 text-center">
+        {/* Add subtle matching backdrop similar to navigation */}
+        <div className="absolute inset-0 bg-white/5 backdrop-blur-[2px] z-[-1] rounded-lg"></div>
+        
         <h1 className="font-grandstander text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 md:mb-8 tracking-wide inline-block">
           {Array.from("heartbound").map((letter, i) => (
             <motion.span
@@ -163,7 +153,7 @@ export function LoginPage() {
         </motion.div>
         
         <motion.button
-          onClick={() => scrollToSection(competitiveRef)}
+          onClick={() => handleSectionClick('competitive')}
           className="flex items-center justify-center mt-10 text-white/80 hover:text-white focus:outline-none transition-all"
           initial={{ opacity: 0, y: 20 }}
           animate={{ 
@@ -184,7 +174,6 @@ export function LoginPage() {
       {/* Competitive Section */}
       <section 
         ref={competitiveRef}
-        id="competitive-section"
         className="relative z-10 py-20 px-4 min-h-screen flex items-center"
       >
         <motion.div 
@@ -236,8 +225,7 @@ export function LoginPage() {
       {/* Find a Duo Section */}
       <section 
         ref={duoRef}
-        id="duo-section"
-        className="relative z-10 py-20 px-4 min-h-screen flex items-center bg-gradient-to-br from-[#7E6AE6] to-[#9889f5]"
+        className="relative z-10 py-20 px-4 min-h-screen flex items-center bg-gradient-to-b from-transparent to-[#5d4fcf]/30"
       >
         <motion.div 
           className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center"
@@ -289,8 +277,7 @@ export function LoginPage() {
       {/* Discord Section */}
       <section 
         ref={discordRef}
-        id="discord-section"
-        className="relative z-10 py-20 px-4 min-h-screen flex items-center"
+        className="relative z-10 py-20 px-4 flex items-center"
       >
         <motion.div 
           className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center"
@@ -357,8 +344,7 @@ export function LoginPage() {
       {/* How It Works Section */}
       <section 
         ref={howItWorksRef}
-        id="how-it-works-section"
-        className="relative z-10 py-20 px-4 min-h-screen flex items-center"
+        className="relative z-10 py-20 px-4"
       >
         <motion.div 
           className="max-w-6xl mx-auto"
