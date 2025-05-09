@@ -6,6 +6,7 @@ import {
   TokenPair,
   UserInfo,
   AuthProviderProps,
+  ProfileStatus,
 } from './types';
 import { AUTH_STORAGE_KEY, AUTH_ENDPOINTS, DISCORD_OAUTH_STATE_KEY } from './constants';
 import * as partyService from '../valorant/partyService';
@@ -27,18 +28,6 @@ declare global {
 // Place these outside the component to persist across renders
 let refreshInProgress = false;
 let refreshPromise: Promise<string | undefined> | null = null;
-
-// Add ProfileStatus interface definition locally since it's no longer in types.ts
-interface ProfileStatus {
-  isComplete: boolean;
-  requiredFields?: string[];
-  displayName?: string;
-  pronouns?: string;
-  about?: string;
-  bannerColor?: string;
-  bannerUrl?: string;
-  avatar?: string;
-}
 
 const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   // Use our new custom hooks

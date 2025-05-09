@@ -15,6 +15,17 @@ export interface UserInfo {
   experience?: number;
 }
 
+export interface ProfileStatus {
+  isComplete: boolean;
+  requiredFields?: string[];
+  displayName?: string;
+  pronouns?: string;
+  about?: string;
+  bannerColor?: string;
+  bannerUrl?: string;
+  avatar?: string;
+}
+
 export interface LoginRequest {
   username: string;
   password: string;
