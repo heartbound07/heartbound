@@ -85,48 +85,48 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
           {getRarityLabel(badge.rarity)}
         </div>
         
-        {/* Badge details on click */}
-        {showDetails && (
+        {/* Moved equip/unequip button outside of details - always visible */}
+        <div className="badge-action-container badge-action-persistent">
+          {badge.equipped ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent the badge item click handler
+                onUnequip(badge.id);
+              }}
+              disabled={isProcessing}
+              className={`badge-action-button badge-unequip-button ${
+                isProcessing ? 'badge-action-processing' : ''
+              }`}
+            >
+              {isProcessing ? 'Processing...' : 'Unequip'}
+            </button>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent the badge item click handler
+                onEquip(badge.id);
+              }}
+              disabled={isProcessing}
+              className={`badge-action-button badge-equip-button ${
+                isProcessing ? 'badge-action-processing' : ''
+              }`}
+            >
+              {isProcessing ? 'Processing...' : 'Equip'}
+            </button>
+          )}
+        </div>
+        
+        {/* Badge details on click - now only shows description */}
+        {showDetails && badge.description && (
           <motion.div 
-            className="badge-details"
+            className="badge-details badge-details-description-only"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            onClick={(e) => e.stopPropagation()} // Prevent triggering parent onClick
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent triggering parent onClick
+            }}
           >
-            {badge.description && (
-              <p className="badge-description">{badge.description}</p>
-            )}
-            
-            {/* Equip/Unequip button - center alignment fix */}
-            <div className="badge-action-container">
-              {badge.equipped ? (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent the badge item click handler
-                    onUnequip(badge.id);
-                  }}
-                  disabled={isProcessing}
-                  className={`badge-action-button badge-unequip-button ${
-                    isProcessing ? 'badge-action-processing' : ''
-                  }`}
-                >
-                  {isProcessing ? 'Processing...' : 'Unequip'}
-                </button>
-              ) : (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent the badge item click handler
-                    onEquip(badge.id);
-                  }}
-                  disabled={isProcessing}
-                  className={`badge-action-button badge-equip-button ${
-                    isProcessing ? 'badge-action-processing' : ''
-                  }`}
-                >
-                  {isProcessing ? 'Processing...' : 'Equip'}
-                </button>
-              )}
-            </div>
+            <p className="badge-description">{badge.description}</p>
           </motion.div>
         )}
       </div>

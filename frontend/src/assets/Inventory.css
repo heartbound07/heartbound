@@ -365,6 +365,7 @@ select.inventory-sort-dropdown:focus {
 .badge-item {
   cursor: pointer;
   position: relative;
+  z-index: 1;
 }
 
 .badge-item:active .badge-icon-container {
@@ -372,10 +373,12 @@ select.inventory-sort-dropdown:focus {
 }
 
 .badge-item-wrapper {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100%;
+  isolation: isolate;
 }
 
 .badge-icon-container {
@@ -447,7 +450,7 @@ select.inventory-sort-dropdown:focus {
   opacity: 0.3;
 }
 
-/* Badge details and interactions */
+/* Badge details and interactions - fixed positioning */
 .badge-details {
   position: absolute;
   top: 100%;
@@ -458,10 +461,15 @@ select.inventory-sort-dropdown:focus {
   border-radius: 0.5rem;
   padding: 0.75rem;
   margin-top: 0.5rem;
-  z-index: 10;
+  z-index: 30;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(148, 163, 184, 0.2);
   backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+  right: auto;
 }
 
 .badge-details:before {
@@ -485,6 +493,16 @@ select.inventory-sort-dropdown:focus {
   overflow-y: auto;
 }
 
+/* Ensure the button container takes full width and centers its content */
+.badge-action-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Make sure the button itself is properly sized and centered */
 .badge-action-button {
   width: 100%;
   font-size: 0.75rem;
@@ -492,6 +510,11 @@ select.inventory-sort-dropdown:focus {
   padding: 0.375rem 0;
   border-radius: 0.25rem;
   transition: all 0.2s ease;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
 }
 
 .badge-equip-button {
@@ -542,23 +565,50 @@ select.inventory-sort-dropdown:focus {
   }
 }
 
-/* Add this to ensure buttons are properly centered */
-.badge-action-container {
-  display: flex;
-  justify-content: center;
-  width: 100%;
+/* Add styles for the persistent action button */
+.badge-action-persistent {
+  margin-top: 0.5rem;
+  width: 90%;
 }
 
-/* Ensure button text is centered */
-.badge-action-button {
-  width: 100%;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 0.375rem 0;
-  border-radius: 0.25rem;
-  transition: all 0.2s ease;
+/* Modify badge details to be description-only */
+.badge-details-description-only {
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  width: 180px;
+}
+
+/* Adjust max height for badge details with persistent button */
+.badge-description {
+  color: #e2e8f0;
+  font-size: 0.8rem;
+  max-height: 80px;
+  overflow-y: auto;
   text-align: center;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  margin-bottom: 0;
+}
+
+/* Update responsive adjustments */
+@media (max-width: 640px) {
+  /* ... existing code ... */
+  
+  .badge-action-persistent {
+    width: 95%;
+  }
+  
+  .badge-details-description-only {
+    width: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* ... existing code ... */
+  
+  .badge-action-persistent {
+    width: 100%;
+  }
+  
+  .badge-details-description-only {
+    width: 140px;
+  }
 }
