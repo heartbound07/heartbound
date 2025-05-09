@@ -24,7 +24,6 @@ declare global {
     interface Timeout {}
   }
 }
-
 // Place these outside the component to persist across renders
 let refreshInProgress = false;
 let refreshPromise: Promise<string | undefined> | null = null;
