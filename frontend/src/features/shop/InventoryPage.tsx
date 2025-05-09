@@ -10,14 +10,16 @@ import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rar
 import { formatDisplayText } from '@/utils/formatters';
 import { Skeleton } from '@/components/ui/SkeletonUI';
 import NameplatePreview from '@/components/NameplatePreview';
+import BadgeGallery from '@/components/ui/shop/BadgeGallery';
 
-interface ShopItem {
+export interface ShopItem {
   id: string;
   name: string;
   description: string;
   price: number;
   category: string;
   imageUrl: string;
+  thumbnailUrl?: string;
   owned: boolean;
   equipped?: boolean;
   rarity: string;
@@ -304,8 +306,11 @@ export function InventoryPage() {
     }
   };
   
+  // Filter badges from items
+  const badgeItems = items.filter(item => item.category === 'BADGE');
+  
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="inventory-title">My Inventory</h1>
         <p className="inventory-subtitle">
@@ -322,7 +327,7 @@ export function InventoryPage() {
         />
       ))}
       
-      <div className="space-y-8">
+      <div className="inventory-container">
         {/* Categories */}
         {categories.length > 0 && (
           <div>
@@ -434,167 +439,184 @@ export function InventoryPage() {
               </motion.button>
             </motion.div>
           ) : (
-            <div className="inventory-grid">
-              <AnimatePresence mode="popLayout">
-                {items.map((item) => {
-                  const rarityColor = getRarityColor(item.rarity);
-                  
-                  return (
-                    <motion.div
-                      key={item.id}
-                      layout
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ 
-                        type: "spring",
-                        stiffness: 300, 
-                        damping: 24,
-                        duration: 0.4 
-                      }}
-                      whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                      className="inventory-item-card"
-                    >
-                      {/* Animated rarity glow effect */}
-                      <motion.div
-                        className={`rarity-glow ${item.equipped ? 'rarity-glow-equipped' : ''}`}
-                        initial={{ opacity: 0 }}
-                        animate={{ 
-                          opacity: [0.4, 0.8, 0.4],
-                          boxShadow: [
-                            `0 0 5px 1px ${rarityColor}80`,
-                            `0 0 10px 2px ${rarityColor}90`,
-                            `0 0 5px 1px ${rarityColor}80`
-                          ]
-                        }}
-                        transition={{
-                          duration: 3,
-                          repeat: Infinity,
-                          repeatType: "reverse",
-                          ease: "easeInOut"
-                        }}
-                      />
+            <motion.div
+              className="inventory-content"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              {/* Render BadgeGallery when BADGE category is selected */}
+              {selectedCategory === 'BADGE' ? (
+                <BadgeGallery
+                  badges={badgeItems}
+                  onEquip={handleEquipItem}
+                  onUnequip={handleUnequipBadge}
+                  actionInProgress={actionInProgress}
+                />
+              ) : (
+                // Existing grid view for non-badge categories or All
+                <div className="inventory-grid">
+                  <AnimatePresence mode="popLayout">
+                    {items.map((item) => {
+                      const rarityColor = getRarityColor(item.rarity);
                       
-                      {/* Item content with border */}
-                      <div 
-                        className="inventory-item-inner"
-                        style={{ 
-                          borderColor: item.equipped ? 'var(--color-primary, #0088cc)' : rarityColor
-                        }}
-                      >
-                        {/* Item image or nameplate preview */}
-                        <div className="inventory-item-image">
-                          {item.category === 'USER_COLOR' ? (
-                            <NameplatePreview
-                              username={user?.username || "Username"}
-                              avatar={user?.avatar || "/default-avatar.png"}
-                              color={item.imageUrl}
-                              fallbackColor={getRarityColor(item.rarity)}
-                              message="Your equipped nameplate color"
-                              className="h-full w-full"
-                              size="sm"
-                            />
-                          ) : item.imageUrl ? (
-                            <img 
-                              src={item.imageUrl} 
-                              alt={item.name}
-                              className="h-full w-full object-cover" 
-                            />
-                          ) : (
-                            <span className="text-slate-400">No Image</span>
-                          )}
+                      return (
+                        <motion.div
+                          key={item.id}
+                          layout
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={{ 
+                            type: "spring",
+                            stiffness: 300, 
+                            damping: 24,
+                            duration: 0.4 
+                          }}
+                          whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                          className="inventory-item-card"
+                        >
+                          {/* Animated rarity glow effect */}
+                          <motion.div
+                            className={`rarity-glow ${item.equipped ? 'rarity-glow-equipped' : ''}`}
+                            initial={{ opacity: 0 }}
+                            animate={{ 
+                              opacity: [0.4, 0.8, 0.4],
+                              boxShadow: [
+                                `0 0 5px 1px ${rarityColor}80`,
+                                `0 0 10px 2px ${rarityColor}90`,
+                                `0 0 5px 1px ${rarityColor}80`
+                              ]
+                            }}
+                            transition={{
+                              duration: 3,
+                              repeat: Infinity,
+                              repeatType: "reverse",
+                              ease: "easeInOut"
+                            }}
+                          />
                           
-                          {/* Equipped badge */}
-                          {item.equipped && (
-                            <div className="equipped-badge">
-                              Equipped
+                          {/* Item content with border */}
+                          <div 
+                            className="inventory-item-inner"
+                            style={{ 
+                              borderColor: item.equipped ? 'var(--color-primary, #0088cc)' : rarityColor
+                            }}
+                          >
+                            {/* Item image or nameplate preview */}
+                            <div className="inventory-item-image">
+                              {item.category === 'USER_COLOR' ? (
+                                <NameplatePreview
+                                  username={user?.username || "Username"}
+                                  avatar={user?.avatar || "/default-avatar.png"}
+                                  color={item.imageUrl}
+                                  fallbackColor={getRarityColor(item.rarity)}
+                                  message="Your equipped nameplate color"
+                                  className="h-full w-full"
+                                  size="sm"
+                                />
+                              ) : item.imageUrl ? (
+                                <img 
+                                  src={item.imageUrl} 
+                                  alt={item.name}
+                                  className="h-full w-full object-cover" 
+                                />
+                              ) : (
+                                <span className="text-slate-400">No Image</span>
+                              )}
+                              
+                              {/* Equipped badge */}
+                              {item.equipped && (
+                                <div className="equipped-badge">
+                                  Equipped
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                        
-                        <div className="inventory-item-content">
-                          <div className="flex justify-between items-center mb-2">
-                            <div className="flex items-center">
-                              <h3 className="font-medium text-white mr-2">{item.name}</h3>
-                              <div 
-                                className="px-2 py-0.5 rounded text-xs font-semibold"
-                                style={getRarityBadgeStyle(item.rarity)}
-                              >
-                                {getRarityLabel(item.rarity)}
+                            
+                            <div className="inventory-item-content">
+                              <div className="flex justify-between items-center mb-2">
+                                <div className="flex items-center">
+                                  <h3 className="font-medium text-white mr-2">{item.name}</h3>
+                                  <div 
+                                    className="px-2 py-0.5 rounded text-xs font-semibold"
+                                    style={getRarityBadgeStyle(item.rarity)}
+                                  >
+                                    {getRarityLabel(item.rarity)}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {item.description && (
+                                <p className="text-slate-300 text-sm mb-3">{item.description}</p>
+                              )}
+                              
+                              <div className="flex justify-between items-center">
+                                {/* Always show Purchased badge regardless of price */}
+                                <div className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs flex items-center">
+                                  Purchased
+                                </div>
+                                
+                                {/* Equip/Unequip button */}
+                                {item.category === 'BADGE' ? (
+                                  item.equipped ? (
+                                    <button
+                                      onClick={() => handleUnequipBadge(item.id)}
+                                      disabled={actionInProgress !== null}
+                                      className={`item-action-button unequip-button h-8 flex items-center ${
+                                        actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
+                                      }`}
+                                    >
+                                      {actionInProgress === item.id ? 'Processing...' : 'Unequip'}
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleEquipItem(item.id)}
+                                      disabled={actionInProgress !== null}
+                                      className={`item-action-button equip-button h-8 flex items-center ${
+                                        actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
+                                      }`}
+                                    >
+                                      {actionInProgress === item.id ? 'Processing...' : 'Equip'}
+                                    </button>
+                                  )
+                                ) : (
+                                  item.equipped ? (
+                                    <button
+                                      onClick={() => handleUnequipItem(item.category)}
+                                      disabled={actionInProgress !== null}
+                                      className={`item-action-button unequip-button h-8 flex items-center ${
+                                        actionInProgress === item.category ? 'opacity-50 cursor-not-allowed' : ''
+                                      }`}
+                                    >
+                                      {actionInProgress === item.category ? 'Processing...' : 'Unequip'}
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleEquipItem(item.id)}
+                                      disabled={actionInProgress !== null}
+                                      className={`item-action-button equip-button h-8 flex items-center ${
+                                        actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
+                                      }`}
+                                    >
+                                      {actionInProgress === item.id ? 'Processing...' : 'Equip'}
+                                    </button>
+                                  )
+                                )}
                               </div>
                             </div>
                           </div>
-                          
-                          {item.description && (
-                            <p className="text-slate-300 text-sm mb-3">{item.description}</p>
-                          )}
-                          
-                          <div className="flex justify-between items-center">
-                            {/* Always show Purchased badge regardless of price */}
-                            <div className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs flex items-center">
-                              Purchased
-                            </div>
-                            
-                            {/* Equip/Unequip button */}
-                            {item.category === 'BADGE' ? (
-                              item.equipped ? (
-                                <button
-                                  onClick={() => handleUnequipBadge(item.id)}
-                                  disabled={actionInProgress !== null}
-                                  className={`item-action-button unequip-button h-8 flex items-center ${
-                                    actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
-                                  }`}
-                                >
-                                  {actionInProgress === item.id ? 'Processing...' : 'Unequip'}
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleEquipItem(item.id)}
-                                  disabled={actionInProgress !== null}
-                                  className={`item-action-button equip-button h-8 flex items-center ${
-                                    actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
-                                  }`}
-                                >
-                                  {actionInProgress === item.id ? 'Processing...' : 'Equip'}
-                                </button>
-                              )
-                            ) : (
-                              item.equipped ? (
-                                <button
-                                  onClick={() => handleUnequipItem(item.category)}
-                                  disabled={actionInProgress !== null}
-                                  className={`item-action-button unequip-button h-8 flex items-center ${
-                                    actionInProgress === item.category ? 'opacity-50 cursor-not-allowed' : ''
-                                  }`}
-                                >
-                                  {actionInProgress === item.category ? 'Processing...' : 'Unequip'}
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleEquipItem(item.id)}
-                                  disabled={actionInProgress !== null}
-                                  className={`item-action-button equip-button h-8 flex items-center ${
-                                    actionInProgress === item.id ? 'opacity-50 cursor-not-allowed' : ''
-                                  }`}
-                                >
-                                  {actionInProgress === item.id ? 'Processing...' : 'Equip'}
-                                </button>
-                              )
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-            </div>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+              )}
+            </motion.div>
           )}
         </motion.div>
       </div>
     </div>
   );
 }
-
 
 export default InventoryPage;
