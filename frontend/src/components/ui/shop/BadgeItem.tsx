@@ -195,10 +195,10 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
         </div>
       </div>
       
-      {/* Portal with AnimatePresence for exit animations */}
+      {/* Portal with AnimatePresence for exit animations - now showing for all badges */}
       {document.body && createPortal(
         <AnimatePresence>
-          {showDetails && badge.description && (
+          {showDetails && (
             <motion.div 
               className="badge-details-portal"
               style={{
@@ -224,7 +224,12 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.1 }}
               >
-                <p className="badge-description">{badge.description}</p>
+                <p className="badge-description">
+                  {badge.description ? 
+                    badge.description : 
+                    <span className="text-slate-400 italic">This badge has no description</span>
+                  }
+                </p>
               </motion.div>
               <motion.div 
                 className="badge-details-arrow"
