@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { ShopItem } from '../../../features/shop/InventoryPage';
 import { getRarityColor, getRarityLabel } from '@/utils/rarityHelpers';
 import { HiOutlineCheck } from 'react-icons/hi';
@@ -18,10 +19,23 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
   isProcessing
 }) => {
   const [showDetails, setShowDetails] = useState(false);
+  const iconContainerRef = useRef<HTMLDivElement>(null);
+  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
   const rarityColor = getRarityColor(badge.rarity);
   
   // Prefer thumbnailUrl for badges if available, fallback to imageUrl
   const badgeImageUrl = badge.thumbnailUrl || badge.imageUrl;
+  
+  // Update popup position when details are shown
+  useEffect(() => {
+    if (showDetails && iconContainerRef.current) {
+      const rect = iconContainerRef.current.getBoundingClientRect();
+      setPopupPosition({
+        top: rect.top + window.scrollY - 10, // Position above the image with a small gap
+        left: rect.left + rect.width / 2 + window.scrollX
+      });
+    }
+  }, [showDetails]);
   
   return (
     <motion.div 
@@ -32,6 +46,7 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
       <div className="badge-item-wrapper">
         {/* Badge icon with rarity border */}
         <div 
+          ref={iconContainerRef}
           className="badge-icon-container"
           style={{ 
             borderColor: badge.equipped ? 'var(--color-primary, #0088cc)' : rarityColor 
@@ -115,21 +130,32 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
             </button>
           )}
         </div>
-        
-        {/* Badge details on click - now only shows description */}
-        {showDetails && badge.description && (
-          <motion.div 
-            className="badge-details badge-details-description-only"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            onClick={(e) => {
-              e.stopPropagation(); // Prevent triggering parent onClick
-            }}
-          >
-            <p className="badge-description">{badge.description}</p>
-          </motion.div>
-        )}
       </div>
+      
+      {/* Use Portal for description popup */}
+      {showDetails && badge.description && document.body && createPortal(
+        <motion.div 
+          className="badge-details-portal"
+          style={{
+            position: 'absolute',
+            top: `${popupPosition.top}px`,
+            left: `${popupPosition.left}px`,
+            transform: 'translate(-50%, -100%)',
+            zIndex: 9999
+          }}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          <div className="badge-details-content">
+            <p className="badge-description">{badge.description}</p>
+          </div>
+          <div className="badge-details-arrow"></div>
+        </motion.div>,
+        document.body
+      )}
     </motion.div>
   );
 };
