@@ -52,18 +52,21 @@ const BadgeItem: React.FC<BadgeItemProps> = ({
             borderColor: badge.equipped ? 'var(--color-primary, #0088cc)' : rarityColor 
           }}
         >
-          {/* Equipped indicator */}
+          {/* Equipped indicator - now will be above the icon */}
           {badge.equipped && (
             <div className="badge-equipped-indicator">
               <HiOutlineCheck size={16} />
             </div>
           )}
           
-          <img 
-            src={badgeImageUrl} 
-            alt={badge.name}
-            className="badge-icon"
-          />
+          {/* Added inner container for image */}
+          <div className="badge-icon-inner">
+            <img 
+              src={badgeImageUrl} 
+              alt={badge.name}
+              className="badge-icon"
+            />
+          </div>
           
           {/* Rarity glow effect */}
           <motion.div
