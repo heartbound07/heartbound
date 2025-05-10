@@ -351,3 +351,133 @@
   .leaderboard-page-container *::-webkit-scrollbar-track {
     background-color: transparent;
   }
+  
+  /* Pagination styles */
+  .leaderboard-pagination {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .leaderboard-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .leaderboard-pagination-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.8);
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+  }
+  
+  .leaderboard-pagination-button:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+  }
+  
+  .leaderboard-pagination-button:active:not(:disabled) {
+    transform: translateY(0);
+  }
+  
+  .leaderboard-pagination-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  
+  .leaderboard-pagination-pages {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  
+  .leaderboard-pagination-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    border-radius: 0.5rem;
+    padding: 0 0.5rem;
+    background-color: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+    transition: all 0.15s ease;
+  }
+  
+  .leaderboard-pagination-number:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: white;
+  }
+  
+  .leaderboard-pagination-number.active {
+    background-color: var(--color-primary, #0284c7);
+    color: white;
+    font-weight: 600;
+  }
+  
+  .leaderboard-pagination-ellipsis {
+    color: rgba(255, 255, 255, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    font-weight: bold;
+  }
+  
+  .leaderboard-pagination-info {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+  }
+  
+  /* Responsive pagination styles */
+  @media (max-width: 768px) {
+    .leaderboard-pagination {
+      padding: 0.875rem 1rem;
+    }
+    
+    .leaderboard-pagination-button {
+      width: 32px;
+      height: 32px;
+    }
+    
+    .leaderboard-pagination-number {
+      min-width: 28px;
+      height: 28px;
+      font-size: 0.8rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .leaderboard-pagination-pages {
+      gap: 0.125rem;
+    }
+    
+    .leaderboard-pagination-button {
+      width: 28px;
+      height: 28px;
+    }
+    
+    .leaderboard-pagination-number {
+      min-width: 24px;
+      height: 24px;
+      padding: 0 0.25rem;
+      font-size: 0.75rem;
+    }
+    
+    /* On very small screens, hide some page numbers */
+    .leaderboard-pagination-pages button:not(.active):nth-child(4),
+    .leaderboard-pagination-pages button:not(.active):nth-child(5) {
+      display: none;
+    }
+  }

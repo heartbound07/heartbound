@@ -133,6 +133,7 @@ export function LeaderboardPage() {
             className="shadow-xl"
             limit={100}
             leaderboardType={leaderboardType}
+            itemsPerPage={9}
           />
         </div>
       </motion.section>

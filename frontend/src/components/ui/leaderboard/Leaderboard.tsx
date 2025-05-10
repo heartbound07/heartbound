@@ -1,10 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { UserProfileDTO } from '@/config/userService';
 import { FaCoins, FaCrown, FaTrophy, FaMedal, FaStar } from 'react-icons/fa';
 import '@/assets/leaderboard.css';
 import { UserProfileModal } from '@/components/UserProfileModal';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface LeaderboardProps {
   users: UserProfileDTO[];
@@ -16,6 +17,7 @@ interface LeaderboardProps {
   compact?: boolean;
   className?: string;
   leaderboardType?: 'credits' | 'level';
+  itemsPerPage?: number;
 }
 
 export function Leaderboard({
@@ -28,17 +30,43 @@ export function Leaderboard({
   compact = false,
   className = "",
   leaderboardType = 'credits',
+  itemsPerPage = 9,
 }: LeaderboardProps) {
   // State for handling user profile modal
   const [selectedUser, setSelectedUser] = useState<UserProfileDTO | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [clickPosition, setClickPosition] = useState<{ x: number, y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Apply limit if specified, with a hard maximum of 500 entries
   const MAX_ENTRIES = 500;
   const effectiveLimit = limit ? Math.min(limit, MAX_ENTRIES) : MAX_ENTRIES;
-  const displayUsers = users.slice(0, effectiveLimit);
+  const limitedUsers = users.slice(0, effectiveLimit);
+  
+  // Pagination calculations
+  const totalPages = Math.ceil(limitedUsers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const displayUsers = limitedUsers.slice(startIndex, startIndex + itemsPerPage);
+  
+  // Pagination controls
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+  
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+  
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
   // Get position-based styling and icon
   const getPositionDetails = (index: number) => {
@@ -89,6 +117,11 @@ export function Leaderboard({
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
   };
+
+  // Reset to first page when leaderboard type or users change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [leaderboardType, users]);
 
   return (
     <>
@@ -146,7 +179,8 @@ export function Leaderboard({
                 </div>
               ) : (
                 displayUsers.map((user, index) => {
-                  const { icon, className: rowClass } = getPositionDetails(index);
+                  const actualIndex = startIndex + index; // Calculate real position for proper styling
+                  const { icon, className: rowClass } = getPositionDetails(actualIndex);
                   
                   return (
                     <motion.div
@@ -160,11 +194,11 @@ export function Leaderboard({
                       <div className="leaderboard-rank">
                         {icon ? (
                           <>
-                            <span className="leaderboard-rank-number">{index + 1}</span>
+                            <span className="leaderboard-rank-number">{actualIndex + 1}</span>
                             <span className="leaderboard-rank-icon">{icon}</span>
                           </>
                         ) : (
-                          <span>{index + 1}</span>
+                          <span>{actualIndex + 1}</span>
                         )}
                       </div>
                       <div className="leaderboard-user">
@@ -208,6 +242,57 @@ export function Leaderboard({
                 })
               )}
             </div>
+            
+            {/* Pagination Controls */}
+            {!isLoading && limitedUsers.length > 0 && totalPages > 1 && (
+              <motion.div 
+                className="leaderboard-pagination"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <div className="leaderboard-pagination-controls">
+                  <button 
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
+                    className="leaderboard-pagination-button"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  
+                  <div className="leaderboard-pagination-pages">
+                    {generatePaginationNumbers(currentPage, totalPages).map((page, index) => (
+                      <React.Fragment key={index}>
+                        {page === "..." ? (
+                          <span className="leaderboard-pagination-ellipsis">...</span>
+                        ) : (
+                          <button
+                            onClick={() => goToPage(page as number)}
+                            className={`leaderboard-pagination-number ${currentPage === page ? 'active' : ''}`}
+                            aria-current={currentPage === page ? 'page' : undefined}
+                          >
+                            {page}
+                          </button>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                  
+                  <button 
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                    className="leaderboard-pagination-button"
+                    aria-label="Next page"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+                <div className="leaderboard-pagination-info">
+                  Page {currentPage} of {totalPages}
+                </div>
+              </motion.div>
+            )}
           </div>
         )}
       </motion.div>
@@ -225,4 +310,29 @@ export function Leaderboard({
       )}
     </>
   );
+}
+
+// Helper function to generate pagination numbers with ellipsis for large page counts
+function generatePaginationNumbers(currentPage: number, totalPages: number) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  
+  if (currentPage <= 3) {
+    return [1, 2, 3, 4, "...", totalPages - 1, totalPages];
+  }
+  
+  if (currentPage >= totalPages - 2) {
+    return [1, 2, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  }
+  
+  return [
+    1, 
+    "...", 
+    currentPage - 1, 
+    currentPage, 
+    currentPage + 1, 
+    "...", 
+    totalPages
+  ];
 }
