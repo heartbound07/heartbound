@@ -267,21 +267,38 @@ public class OAuthController {
 
         if (discordAvatarFromDTO != null && !discordAvatarFromDTO.isEmpty()) {
             boolean changed = false;
-            if (!discordAvatarFromDTO.equals(user.getAvatar())) {
-                user.setAvatar(discordAvatarFromDTO); // Set the primary avatar field
+            String currentPrimaryAvatar = user.getAvatar();
+            String currentDiscordAvatarCache = user.getDiscordAvatarUrl();
+
+            // Logic to update the primary avatar:
+            // Only update if the current primary avatar is null, empty, or the "USE_DISCORD_AVATAR" marker,
+            // AND it's different from the new Discord avatar.
+            if ((currentPrimaryAvatar == null || currentPrimaryAvatar.isEmpty() || "USE_DISCORD_AVATAR".equals(currentPrimaryAvatar))
+                && !discordAvatarFromDTO.equals(currentPrimaryAvatar)) {
+                user.setAvatar(discordAvatarFromDTO);
+                logger.debug("Updating primary avatar for user {} from '{}' to '{}' (was null, empty, or USE_DISCORD_AVATAR).", user.getId(), currentPrimaryAvatar, discordAvatarFromDTO);
                 changed = true;
+            } else if (currentPrimaryAvatar != null && !currentPrimaryAvatar.isEmpty() && !"USE_DISCORD_AVATAR".equals(currentPrimaryAvatar)) {
+                // User has a custom avatar, ensure it's not accidentally overwritten by a non-changed check below.
+                // Log that we are preserving the custom avatar.
+                if (!discordAvatarFromDTO.equals(currentPrimaryAvatar)) {
+                     logger.debug("User {} has a custom primary avatar '{}'. Preserving it over Discord avatar '{}'.", user.getId(), currentPrimaryAvatar, discordAvatarFromDTO);
+                }
             }
-            // Also update the specific discordAvatarUrl field if it's a CDN URL (which it should be)
-            if (discordAvatarFromDTO.contains("cdn.discordapp.com") && !discordAvatarFromDTO.equals(user.getDiscordAvatarUrl())) {
+
+            // Always update the specific discordAvatarUrl field if it's different and a valid Discord CDN URL.
+            // This ensures the cached Discord avatar is always up-to-date.
+            if (discordAvatarFromDTO.contains("cdn.discordapp.com") && !discordAvatarFromDTO.equals(currentDiscordAvatarCache)) {
                 user.setDiscordAvatarUrl(discordAvatarFromDTO);
+                logger.debug("Updating cached discordAvatarUrl for user {} from '{}' to '{}'.", user.getId(), currentDiscordAvatarCache, discordAvatarFromDTO);
                 changed = true;
             }
 
             if (changed) {
                 userService.updateUser(user); // Persist the changes
-                logger.info("User avatar explicitly updated from Discord for user {} during OAuth callback.", user.getId());
+                logger.info("User avatar data updated (if necessary) from Discord for user {} during OAuth callback.", user.getId());
             } else {
-                logger.debug("User avatar for user {} was already consistent with Discord data.", user.getId());
+                logger.debug("User avatar data for user {} required no updates based on Discord data or custom avatar was preserved.", user.getId());
             }
         }
 
