@@ -22,6 +22,8 @@ services:
       - postgres
     env_file:
       - ./backend/.env
+    volumes:
+      - ./backend/src:/app/src
 
   frontend:
     build:
