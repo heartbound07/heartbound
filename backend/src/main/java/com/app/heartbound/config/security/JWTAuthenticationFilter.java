@@ -15,6 +15,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.app.heartbound.enums.Role;
+import com.app.heartbound.exceptions.InvalidTokenException;
+import io.jsonwebtoken.Claims;
 
 import java.util.List;
 import java.util.Set;
@@ -47,29 +49,29 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
             logger.debug("JWT token extracted from Authorization header.");
-            if (jwtTokenProvider.validateToken(token)) {
-                String userId = jwtTokenProvider.getUserIdFromJWT(token);
-                Set<Role> roles = jwtTokenProvider.getRolesFromJWT(token);
+            try {
+                Claims claims = jwtTokenProvider.parseAndValidateAccessToken(token); // Single parse and validation
+                String userId = claims.getSubject();
+                Set<Role> roles = jwtTokenProvider.getRolesFromClaims(claims); // Extract roles from claims
                 
                 if (userId != null && !userId.isEmpty()) {
                     logger.debug("JWT token validated. Setting authentication for user id: {}", userId);
                     
-                    // Convert roles to Spring Security GrantedAuthorities
                     List<GrantedAuthority> authorities = roles.stream()
                             .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
                             .collect(Collectors.toList());
                     
-                    // Create authentication with authorities
                     UsernamePasswordAuthenticationToken authentication = 
                         new UsernamePasswordAuthenticationToken(userId, null, authorities);
                     
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                     logger.debug("User {} authenticated with roles: {}", userId, roles);
                 } else {
-                    logger.warn("JWT token validated but no user ID was found.");
+                    logger.warn("JWT token validated but no user ID was found in claims.");
                 }
-            } else {
-                logger.warn("Invalid JWT token provided in header.");
+            } catch (InvalidTokenException e) {
+                logger.warn("Invalid JWT token provided in header: {}", e.getMessage());
+                // SecurityContextHolder is not populated, request proceeds without authentication
             }
         } else {
             logger.debug("No Authorization header with Bearer token found.");

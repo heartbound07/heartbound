@@ -363,4 +363,69 @@ public class JWTTokenProvider {
         });
         logger.debug("Cleaned up expired tokens. Remaining: {}", usedRefreshTokens.size());
     }
+
+    /**
+     * Parses and validates an access token, returning its claims.
+     * Uses the access token secret key for verification.
+     *
+     * @param token The JWT access token string.
+     * @return The Claims object from the token.
+     * @throws InvalidTokenException if the token is invalid, expired, or malformed.
+     */
+    public Claims parseAndValidateAccessToken(String token) throws InvalidTokenException {
+        try {
+            return Jwts.parser()
+                    .verifyWith(this.key) // Use access token key
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (SignatureException ex) {
+            logger.error("Invalid JWT signature: {}", ex.getMessage());
+            throw new InvalidTokenException("Invalid JWT signature", ex);
+        } catch (MalformedJwtException ex) {
+            logger.error("Invalid JWT token: {}", ex.getMessage());
+            throw new InvalidTokenException("Invalid JWT token", ex);
+        } catch (ExpiredJwtException ex) {
+            logger.error("Expired JWT token: {}", ex.getMessage());
+            throw new InvalidTokenException("Expired JWT token", ex);
+        } catch (UnsupportedJwtException ex) {
+            logger.error("Unsupported JWT token: {}", ex.getMessage());
+            throw new InvalidTokenException("Unsupported JWT token", ex);
+        } catch (IllegalArgumentException ex) {
+            logger.error("JWT claims string is empty or invalid: {}", ex.getMessage());
+            throw new InvalidTokenException("JWT claims string is empty or invalid", ex);
+        } catch (io.jsonwebtoken.JwtException ex) { // Catch-all for other JWT related issues
+            logger.error("JWT processing error: {}", ex.getMessage());
+            throw new InvalidTokenException("Error processing JWT", ex);
+        }
+    }
+
+    /**
+     * Extracts roles from a Claims object.
+     *
+     * @param claims The Claims object.
+     * @return A Set of Roles.
+     */
+    @SuppressWarnings("unchecked")
+    public Set<Role> getRolesFromClaims(Claims claims) {
+        List<String> roleNames = claims.get("roles", List.class);
+        if (roleNames == null || roleNames.isEmpty()) {
+            logger.warn("No roles claim found in JWT claims.");
+            return Collections.emptySet();
+        }
+        return roleNames.stream()
+                .map(roleName -> {
+                    try {
+                        if (roleName.startsWith("ROLE_")) {
+                            return Role.valueOf(roleName.substring(5).toUpperCase());
+                        }
+                        return Role.valueOf(roleName.toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        logger.warn("Invalid role name '{}' in JWT claims.", roleName);
+                        return null; // Skip invalid role
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
 }
