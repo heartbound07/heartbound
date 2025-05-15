@@ -41,6 +41,9 @@ public class JWTTokenProvider {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
+    @Value("${jwt.refresh-secret}")
+    private String jwtRefreshSecret;
+
     @Value("${jwt.access-token-expiration-ms}")
     private long jwtExpirationInMs;
 
@@ -51,17 +54,30 @@ public class JWTTokenProvider {
     public static final String TOKEN_TYPE_REFRESH = "REFRESH";
 
     private SecretKey key;
+    private SecretKey refreshKey;
     private final Set<String> usedRefreshTokens = ConcurrentHashMap.newKeySet();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     @PostConstruct
     public void init() {
         if (jwtSecret == null || jwtSecret.trim().isEmpty()) {
-            logger.error("JWT secret is not configured. Please set 'jwt.secret' in application properties.");
-            throw new IllegalStateException("JWT secret is not configured.");
+            logger.error("JWT access secret is not configured. Please set 'jwt.secret' in application properties.");
+            throw new IllegalStateException("JWT access secret is not configured.");
         }
         this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-        logger.info("JWT Secret Key initialized.");
+        logger.info("JWT Access Secret Key initialized.");
+
+        if (jwtRefreshSecret == null || jwtRefreshSecret.trim().isEmpty()) {
+            logger.error("JWT refresh secret is not configured. Please set 'jwt.refresh-secret' in application properties.");
+            throw new IllegalStateException("JWT refresh secret is not configured.");
+        }
+        if (jwtRefreshSecret.equals(jwtSecret)) {
+            logger.error("JWT access secret and refresh secret must be different.");
+            throw new IllegalStateException("JWT access and refresh secrets cannot be the same.");
+        }
+        this.refreshKey = Keys.hmacShaKeyFor(jwtRefreshSecret.getBytes(StandardCharsets.UTF_8));
+        logger.info("JWT Refresh Secret Key initialized.");
+
         logger.debug("JWT Access Token Expiration (ms): {}", jwtExpirationInMs);
         logger.debug("JWT Refresh Token Expiration (ms): {}", jwtRefreshExpirationInMs);
         scheduler.scheduleAtFixedRate(this::cleanupUsedTokens, 1, 1, TimeUnit.HOURS);
@@ -128,6 +144,13 @@ public class JWTTokenProvider {
 
         Set<String> roleNames = roles != null ? roles.stream().map(Role::name).collect(Collectors.toSet()) : Collections.emptySet();
 
+        SecretKey signingKey;
+        if (TOKEN_TYPE_REFRESH.equals(tokenType)) {
+            signingKey = this.refreshKey;
+        } else {
+            signingKey = this.key;
+        }
+
         return Jwts.builder()
                 .subject(userId)
                 .claim("roles", roleNames)
@@ -139,7 +162,7 @@ public class JWTTokenProvider {
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .id(jti)
-                .signWith(key, Jwts.SIG.HS512)
+                .signWith(signingKey, Jwts.SIG.HS512)
                 .compact();
     }
 
@@ -247,11 +270,15 @@ public class JWTTokenProvider {
 
     public String getJtiFromToken(String token) {
         try {
-            Claims claims = getAllClaimsFromToken(token);
+            Claims claims = Jwts.parser()
+                            .verifyWith(this.refreshKey)
+                            .build()
+                            .parseSignedClaims(token)
+                            .getPayload();
             return claims.getId();
         } catch (JwtException e) {
-            logger.error("Could not get JTI from token: {}", e.getMessage());
-            throw new InvalidTokenException("Invalid token, cannot extract JTI.", e);
+            logger.error("Could not get JTI from refresh token: {}", e.getMessage());
+            throw new InvalidTokenException("Invalid refresh token, cannot extract JTI.", e);
         }
     }
 
@@ -302,7 +329,7 @@ public class JWTTokenProvider {
 
     public String getUserIdFromRefreshToken(String token) {
         Claims claims = Jwts.parser()
-                .verifyWith(key)
+                .verifyWith(this.refreshKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
