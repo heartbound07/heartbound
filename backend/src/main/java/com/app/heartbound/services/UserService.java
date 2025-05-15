@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 @Service
 public class UserService {
@@ -55,68 +56,139 @@ public class UserService {
         String username = userDTO.getUsername();
         String discriminator = userDTO.getDiscriminator();
         String email = userDTO.getEmail();
-        String avatar = userDTO.getAvatar();
-        
-        logger.debug("Creating or updating user with ID: {}", id);
-        
-        // Check if user exists
-        User user = userRepository.findById(id).orElse(new User());
-        
-        // Log the current credits for debugging
-        Integer currentCredits = user.getCredits();
-        logger.debug("Current credits for user {}: {}", id, currentCredits);
-        
-        // Basic user info
-        user.setId(id);
+        // This is the avatar URL fetched fresh from Discord via the DTO
+        String discordAvatarFetched = userDTO.getAvatar(); 
+
+        logger.debug("Attempting to create or update user with ID: {}. DTO Avatar: {}", id, discordAvatarFetched);
+
+        User user = userRepository.findById(id).orElse(null);
+        boolean isNewUser = (user == null);
+
+        if (isNewUser) {
+            logger.debug("User with ID: {} not found. Creating new user.", id);
+            user = new User();
+            user.setId(id);
+            
+            // New user: set primary and Discord-specific avatar to the one from Discord
+            user.setAvatar(discordAvatarFetched);
+            user.setDiscordAvatarUrl(discordAvatarFetched);
+            logger.debug("New user {}: Set avatar and discordAvatarUrl to '{}'", id, discordAvatarFetched);
+
+            // Initialize default roles, credits, level, experience for new user
+            // Ensure roles are initialized, defaulting to USER if not provided
+            Set<Role> initialRoles = userDTO.getRoles();
+            if (initialRoles == null || initialRoles.isEmpty()) {
+                initialRoles = Set.of(Role.USER);
+            }
+            // Add ADMIN role if this is the admin user
+            if (id.equals(adminDiscordId)) {
+                initialRoles.add(Role.ADMIN); // Make sure this is a mutable set if adding
+                logger.info("Admin role automatically assigned to new user ID: {}", id);
+            }
+            user.setRoles(initialRoles);
+            
+            user.setCredits(userDTO.getCredits() != null ? userDTO.getCredits() : 0); // Default credits
+            user.setLevel(1); // Default level
+            user.setExperience(0); // Default experience
+            // Set other new user defaults as needed (e.g., displayName, pronouns, etc.)
+            user.setDisplayName(username); // Default display name to username for new users
+
+        } else {
+            // Existing User Logic
+            logger.debug("Found existing user with ID: {}. Current primary avatar: '{}', current Discord cache: '{}'",
+                    id, user.getAvatar(), user.getDiscordAvatarUrl());
+
+            // 1. Always update the dedicated Discord avatar URL cache
+            if (discordAvatarFetched != null) {
+                if (!discordAvatarFetched.equals(user.getDiscordAvatarUrl())) {
+                    user.setDiscordAvatarUrl(discordAvatarFetched);
+                    logger.debug("Existing user {}: Updated discordAvatarUrl from '{}' to '{}'", id, user.getDiscordAvatarUrl(), discordAvatarFetched);
+                }
+            } else if (user.getDiscordAvatarUrl() != null) { 
+                // If Discord API returns no avatar (null), clear our cache of it.
+                user.setDiscordAvatarUrl(null);
+                logger.debug("Existing user {}: Cleared discordAvatarUrl as DTO avatar was null.", id);
+            }
+
+            // 2. Conditionally update the primary avatar
+            String currentPrimaryAvatar = user.getAvatar();
+            if (discordAvatarFetched != null) { 
+                // If current primary avatar is null, empty, or explicitly set to "USE_DISCORD_AVATAR",
+                // then update it with the new one from Discord.
+                if (currentPrimaryAvatar == null || currentPrimaryAvatar.isEmpty() || "USE_DISCORD_AVATAR".equals(currentPrimaryAvatar)) {
+                    if (!discordAvatarFetched.equals(currentPrimaryAvatar)) {
+                        user.setAvatar(discordAvatarFetched);
+                        logger.debug("Existing user {}: Updated primary avatar to Discord avatar '{}' (was blank, null, or USE_DISCORD_AVATAR). Old: '{}'", id, discordAvatarFetched, currentPrimaryAvatar);
+                    } else {
+                        logger.debug("Existing user {}: Primary avatar ('{}') already matches Discord avatar and was eligible for update. No change.", id, currentPrimaryAvatar);
+                    }
+                } else {
+                    // User has a custom primary avatar (e.g., Cloudinary URL). Preserve it.
+                    logger.debug("Existing user {}: Preserved custom primary avatar '{}'. (New Discord avatar from DTO was '{}')", currentPrimaryAvatar, id, discordAvatarFetched);
+                }
+            } else { // discordAvatarFetched is null
+                // If Discord provides no avatar, and user was using "USE_DISCORD_AVATAR",
+                // their primary avatar will effectively become null/default after this.
+                // The mapToProfileDTO logic might then apply a default.
+                // No direct change to user.setAvatar() here if discordAvatarFetched is null,
+                // unless currentPrimaryAvatar was "USE_DISCORD_AVATAR" and you want to explicitly clear it.
+                // For now, if discordAvatarFetched is null, we don't change a custom avatar.
+                // If it was "USE_DISCORD_AVATAR", it will reflect the (now null) discordAvatarUrl implicitly.
+                logger.debug("Existing user {}: DTO avatar is null. Primary avatar is '{}'. No change to primary avatar from this path.", id, currentPrimaryAvatar);
+            }
+        }
+
+        // Update common fields for both new and existing users from DTO
+        // (Username, discriminator, email might change on Discord)
         user.setUsername(username);
         user.setDiscriminator(discriminator);
-        user.setEmail(email);
-        
-        // Determine if this is from OAuth (usually lacks credits information)
-        boolean isFromOAuth = userDTO.getCredits() == null || 
-                              (userDTO.getCredits() == 0 && currentCredits != null && currentCredits > 0);
-        
-        // Explicitly handle credits preservation for OAuth login
-        if (isFromOAuth) {
-            logger.debug("OAuth login detected - preserving existing credits: {}", currentCredits);
-            // Do nothing - keep existing credits
-        } else if (userDTO.getCredits() != null) {
-            // Normal update with provided credits
-            logger.debug("Updating credits from {} to {}", currentCredits, userDTO.getCredits());
-            user.setCredits(userDTO.getCredits());
-        } else if (user.getCredits() == null) {
-            // Initialize credits for brand new users
-            logger.debug("Initializing credits to 0 for new user");
-            user.setCredits(0);
+        if (email != null) { // Only update email if provided by Discord
+            user.setEmail(email);
         }
         
-        // Check if user is admin based on the admin Discord ID from environment
+        // Ensure admin role for the configured admin ID (applies to existing users too if role was removed)
         if (id.equals(adminDiscordId)) {
-            logger.info("Admin user detected with ID: {}. Adding ADMIN role.", id);
-            user.addRole(Role.ADMIN);
+            if (user.getRoles() == null) user.setRoles(new HashSet<>()); // Ensure roles set is initialized
+            if (!user.getRoles().contains(Role.ADMIN)) {
+                user.addRole(Role.ADMIN);
+                logger.info("Admin role ensured for user ID: {}", id);
+            }
         }
-        
-        // Ensure user has at least USER role
+        // Ensure every user has at least the USER role
         if (user.getRoles() == null || user.getRoles().isEmpty()) {
+            if (user.getRoles() == null) user.setRoles(new HashSet<>());
             user.addRole(Role.USER);
+            logger.debug("Default USER role ensured for user ID: {}", id);
         }
-        
-        // Update avatar if provided
-        if (avatar != null && !avatar.isEmpty()) {
-            logger.debug("Updating avatar for user: {}", id);
-            user.setAvatar(avatar);
+
+        // Credits logic:
+        // For new users, credits are initialized when the user object is created.
+        // For existing users, generally, OAuth sync should not overwrite credits unless explicitly intended.
+        // The original logic for `isFromOAuth` was complex. A common pattern:
+        // if userDTO.getCredits() is null (typical for basic Discord profile fetch), preserve existing credits.
+        if (!isNewUser) { // For existing users
+            if (userDTO.getCredits() == null) {
+                // DTO doesn't provide credits (likely OAuth profile sync), so preserve existing.
+                if (user.getCredits() == null) { // If existing credits are somehow null, default to 0.
+                    user.setCredits(0);
+                    logger.debug("Existing user {}: Initialized null credits to 0.", id);
+                }
+                // Otherwise, user.getCredits() remains unchanged.
+                logger.debug("Existing user {}: DTO credits null, preserving existing credits: {}", id, user.getCredits());
+            } else {
+                // DTO provides credits. This implies an intentional update or a flow where credits are included.
+                if (!userDTO.getCredits().equals(user.getCredits())) {
+                    user.setCredits(userDTO.getCredits());
+                    logger.debug("Existing user {}: Updated credits from DTO to {}", id, userDTO.getCredits());
+                }
+            }
         }
-        
-        // Store the Discord avatar URL for caching
-        if (avatar != null && avatar.contains("cdn.discordapp.com")) {
-            logger.debug("Updated Discord avatar cache for user: {}", id);
-            user.setDiscordAvatarUrl(avatar);
-        }
-        
-        user = userRepository.save(user);
-        logger.info("Updated existing user: {}. Credits: {}", username, user.getCredits());
-        
-        return user;
+        // For new users, credits are set during initialization.
+
+        logger.debug("Saving user {} with final state - Avatar: '{}', DiscordAvatarUrl: '{}', Roles: {}, Credits: {}",
+                id, user.getAvatar(), user.getDiscordAvatarUrl(), user.getRoles(), user.getCredits());
+                
+        return userRepository.save(user);
     }
 
     /**
