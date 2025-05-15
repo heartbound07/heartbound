@@ -78,11 +78,17 @@ public class UserService {
             // Ensure roles are initialized, defaulting to USER if not provided
             Set<Role> initialRoles = userDTO.getRoles();
             if (initialRoles == null || initialRoles.isEmpty()) {
-                initialRoles = Set.of(Role.USER);
+                // Ensure initialRoles is a mutable set
+                initialRoles = new HashSet<>();
+                initialRoles.add(Role.USER);
+            } else {
+                // If roles are provided by DTO, ensure it's a mutable copy
+                initialRoles = new HashSet<>(initialRoles);
             }
+
             // Add ADMIN role if this is the admin user
             if (id.equals(adminDiscordId)) {
-                initialRoles.add(Role.ADMIN); // Make sure this is a mutable set if adding
+                initialRoles.add(Role.ADMIN); 
                 logger.info("Admin role automatically assigned to new user ID: {}", id);
             }
             user.setRoles(initialRoles);
