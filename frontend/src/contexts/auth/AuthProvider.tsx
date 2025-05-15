@@ -159,10 +159,42 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           
           updateTokens(tokenPair);
           
-          return accessToken;
+          // Fetch user profile and update auth state after successful token refresh
+          try {
+            console.log('[RefreshToken] Successfully refreshed tokens. Fetching user profile...');
+            const userProfileData = await userService.getCurrentUserProfile();
+            if (userProfileData) {
+              const userInfo: UserInfo = {
+                id: userProfileData.id,
+                username: userProfileData.username,
+                email: '', // Consistent with UserProfileDTO not having email
+                avatar: userProfileData.avatar,
+                roles: userProfileData.roles || [],
+                credits: userProfileData.credits || 0,
+                level: userProfileData.level || 0,
+                experience: userProfileData.experience || 0,
+              };
+              setAuthState(userInfo, userProfileData);
+              webSocketService.reconnectWithFreshToken(); // Ensure WebSocket uses the new token
+              console.log('[RefreshToken] User profile fetched and auth state updated after token refresh.');
+              return accessToken; // SUCCESS: token refreshed, profile fetched
+            } else {
+              console.error('[RefreshToken] Critical: Failed to fetch user profile after successful token refresh. No profile data returned.');
+              clearAuthState();
+              updateTokens(null); // Clear the newly set (but now problematic) tokens
+              return undefined; // FAILURE: profile fetch failed
+            }
+          } catch (profileError: any) {
+            console.error('[RefreshToken] Critical: Error fetching user profile after successful token refresh:', profileError);
+            clearAuthState();
+            updateTokens(null); // Clear the newly set (but now problematic) tokens
+            return undefined; // FAILURE: profile fetch errored
+          }
         } else {
           console.log('Invalid token response received during refresh');
           console.log('Response data:', response.data);
+          // No specific clearAuthState() here as updateTokens(null) might be too aggressive if it was just a malformed response but refresh token is still good.
+          // However, if the refresh endpoint itself implies an invalid refresh token (e.g. 401), that's handled below.
           return undefined;
         }
       } catch (error: any) {
@@ -204,46 +236,52 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           if (decodedToken) console.log('[AuthInit] Access token expired or invalid, attempting refresh...');
           else console.log('[AuthInit] No access token, attempting refresh with refresh token...');
 
-          const newAccessTokenValue = await refreshToken();
+          const newAccessTokenValue = await refreshToken(); // This now handles token, profile, authState, websocket
           
           if (!newAccessTokenValue) {
-            console.log('[AuthInit] Token refresh failed during initialization.');
-            if (!tokenStorage.getRefreshToken()) {
-                clearAuthState();
-                updateTokens(null);
-            }
-            return;
+            console.log('[AuthInit] Token refresh process failed during initialization. Auth state should have been cleared by refreshToken.');
+            // refreshToken() handles its own cleanup (clearing auth state and tokens) on any failure.
+            return; // Exit initialization
           }
           
-          const refreshedTokenPair = tokenStorage.getTokens();
-          if (!refreshedTokenPair?.accessToken) {
-              console.error("[AuthInit] Access token not available even after successful refresh call indicated.");
-              clearAuthState();
-              updateTokens(null);
-              return;
-          }
-          currentTokenPair = refreshedTokenPair;
+          // If newAccessTokenValue is truthy, refreshToken has successfully:
+          // 1. Refreshed tokens and updated storage.
+          // 2. Fetched the user profile.
+          // 3. Called setAuthState with user info and profile.
+          // 4. Called webSocketService.reconnectWithFreshToken().
+          console.log('[AuthInit] Session successfully re-established and user profile updated via token refresh mechanism.');
+          // No further profile fetching or setAuthState needed here.
+
         } else {
           console.log('[AuthInit] Existing access token is valid.');
-          updateTokens(currentTokenPair);
+          updateTokens(currentTokenPair); // Ensure tokens hook state is aligned with the valid tokens from storage
+
+          console.log('[AuthInit] Fetching user profile with existing valid token...');
+          const userProfileData = await userService.getCurrentUserProfile(); // Uses the valid currentTokenPair.accessToken via httpClient
+
+          if (userProfileData) {
+            const userInfo: UserInfo = {
+              id: userProfileData.id,
+              username: userProfileData.username,
+              email: '', // Consistent with UserProfileDTO not having email
+              avatar: userProfileData.avatar,
+              roles: userProfileData.roles || [],
+              credits: userProfileData.credits || 0,
+              level: userProfileData.level || 0,
+              experience: userProfileData.experience || 0,
+            };
+            setAuthState(userInfo, userProfileData);
+            console.log('[AuthInit] Authentication state restored, user profile fetched using existing token.');
+            // Connect WebSocket with the current valid access token
+            webSocketService.connect(() => currentTokenPair.accessToken);
+          } else {
+            console.error('[AuthInit] Failed to fetch user profile with existing valid token. Clearing auth state.');
+            clearAuthState();
+            updateTokens(null); // Clear tokens as profile is essential
+            setAuthError('Failed to fetch user profile during initialization with existing token.');
+            return; // Exit initialization
+          }
         }
-
-        console.log('[AuthInit] Fetching user profile...');
-        const userProfileData = await userService.getCurrentUserProfile();
-
-        const userInfo: UserInfo = {
-          id: userProfileData.id,
-          username: userProfileData.username,
-          email: '', 
-          avatar: userProfileData.avatar,
-          roles: userProfileData.roles || [],
-          credits: userProfileData.credits || 0,
-          level: userProfileData.level || 0,
-          experience: userProfileData.experience || 0,
-        };
-        setAuthState(userInfo, userProfileData);
-        console.log('[AuthInit] Authentication state restored, user profile fetched.');
-
       } else {
         console.log('[AuthInit] No refresh token found. User is not authenticated.');
         clearAuthState();
@@ -255,7 +293,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       updateTokens(null); 
       setAuthError(error instanceof Error ? error.message : 'Failed to initialize session.');
     }
-  }, [refreshToken, parseJwt, clearAuthState, updateTokens, setAuthState, setAuthError]);
+  }, [refreshToken, parseJwt, clearAuthState, updateTokens, setAuthState, setAuthError]); // Dependencies for initializeAuth
 
   const startDiscordOAuth = useCallback(async () => {
     console.log('[AuthProvider] Starting Discord OAuth flow...');
