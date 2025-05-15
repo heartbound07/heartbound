@@ -351,7 +351,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
             
             {/* User info - only shown when expanded */}
             {!isCollapsed && (
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-start">
                 {/* Display name on top */}
                 <span className="text-white font-medium text-sm truncate max-w-full">
                   {profile?.displayName || user?.username || "User"}
