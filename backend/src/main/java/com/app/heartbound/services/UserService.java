@@ -161,32 +161,18 @@ public class UserService {
             logger.debug("Default USER role ensured for user ID: {}", id);
         }
 
-        // Credits logic:
-        // For new users, credits are initialized when the user object is created.
-        // For existing users, generally, OAuth sync should not overwrite credits unless explicitly intended.
-        // The original logic for `isFromOAuth` was complex. A common pattern:
-        // if userDTO.getCredits() is null (typical for basic Discord profile fetch), preserve existing credits.
-        if (!isNewUser) { // For existing users
-            if (userDTO.getCredits() == null) {
-                // DTO doesn't provide credits (likely OAuth profile sync), so preserve existing.
-                if (user.getCredits() == null) { // If existing credits are somehow null, default to 0.
-                    user.setCredits(0);
-                    logger.debug("Existing user {}: Initialized null credits to 0.", id);
-                }
-                // Otherwise, user.getCredits() remains unchanged.
-                logger.debug("Existing user {}: DTO credits null, preserving existing credits: {}", id, user.getCredits());
-            } else {
-                // DTO provides credits. This implies an intentional update or a flow where credits are included.
-                if (!userDTO.getCredits().equals(user.getCredits())) {
-                    user.setCredits(userDTO.getCredits());
-                    logger.debug("Existing user {}: Updated credits from DTO to {}", id, userDTO.getCredits());
-                }
-            }
-        }
-        // For new users, credits are set during initialization.
+        // For existing users, credits, level, and experience are managed by other
+        // parts of the application (e.g., admin panel, game mechanics).
+        // The OAuth sync (createOrUpdateUser) should primarily sync Discord profile data
+        // (username, avatar, email, roles) and should not overwrite these
+        // application-specific values from a DTO that defaults them.
 
-        logger.debug("Saving user {} with final state - Avatar: '{}', DiscordAvatarUrl: '{}', Roles: {}, Credits: {}",
-                id, user.getAvatar(), user.getDiscordAvatarUrl(), user.getRoles(), user.getCredits());
+        // New users have their credits, level, and experience initialized earlier.
+        // For existing users, their current credits, level, and experience (loaded from DB)
+        // will be preserved as we are not setting them from the userDTO here.
+
+        logger.debug("Saving user {} with final state - Avatar: '{}', DiscordAvatarUrl: '{}', Roles: {}, Credits: {}, Level: {}, Experience: {}",
+                id, user.getAvatar(), user.getDiscordAvatarUrl(), user.getRoles(), user.getCredits(), user.getLevel(), user.getExperience());
                 
         return userRepository.save(user);
     }
