@@ -6,17 +6,13 @@ import jakarta.servlet.http.HttpSession;
 import java.util.Base64;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.Set;
 
 import com.app.heartbound.dto.UserDTO;
 import com.app.heartbound.dto.oauth.OAuthTokenResponse;
 import com.app.heartbound.services.oauth.OAuthService;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.oauth.DiscordCodeStore;
-import com.app.heartbound.config.security.JWTTokenProvider;
 import com.app.heartbound.entities.User;
-import com.app.heartbound.enums.Role;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -61,7 +57,6 @@ public class OAuthController {
     private String frontendBaseUrl;
 
     // Discord endpoints
-    private static final String DISCORD_AUTH_URL = "https://discord.com/api/oauth2/authorize";
     private static final String DISCORD_TOKEN_URL = "https://discord.com/api/oauth2/token";
 
     // Session key for storing the state originated from the frontend
@@ -73,9 +68,6 @@ public class OAuthController {
 
     @Autowired
     private UserService userService; // Inject UserService to persist user details
-
-    @Autowired
-    private JWTTokenProvider jwtTokenProvider;
 
     @Autowired
     private DiscordCodeStore discordCodeStore; // Inject the code store
@@ -269,13 +261,27 @@ public class OAuthController {
         );
         // --- End Secure Code Exchange ---
 
-        // Optional: Update cached Discord avatar URL
-        String discordAvatarUrl = userDTO.getAvatar();
-        if (discordAvatarUrl != null && discordAvatarUrl.contains("cdn.discordapp.com")) {
-            if (!discordAvatarUrl.equals(user.getDiscordAvatarUrl())) {
-                 user.setDiscordAvatarUrl(discordAvatarUrl);
-                 // userService.updateUser(user); // Consider if needed
-                 logger.debug("Updated cached Discord avatar URL during OAuth flow for user {}", user.getId());
+        // Ensure the user's avatar in the application reflects their Discord avatar
+        // userDTO.getAvatar() contains the full Discord CDN URL from oauthService.getUserInfo()
+        String discordAvatarFromDTO = userDTO.getAvatar(); 
+
+        if (discordAvatarFromDTO != null && !discordAvatarFromDTO.isEmpty()) {
+            boolean changed = false;
+            if (!discordAvatarFromDTO.equals(user.getAvatar())) {
+                user.setAvatar(discordAvatarFromDTO); // Set the primary avatar field
+                changed = true;
+            }
+            // Also update the specific discordAvatarUrl field if it's a CDN URL (which it should be)
+            if (discordAvatarFromDTO.contains("cdn.discordapp.com") && !discordAvatarFromDTO.equals(user.getDiscordAvatarUrl())) {
+                user.setDiscordAvatarUrl(discordAvatarFromDTO);
+                changed = true;
+            }
+
+            if (changed) {
+                userService.updateUser(user); // Persist the changes
+                logger.info("User avatar explicitly updated from Discord for user {} during OAuth callback.", user.getId());
+            } else {
+                logger.debug("User avatar for user {} was already consistent with Discord data.", user.getId());
             }
         }
 
