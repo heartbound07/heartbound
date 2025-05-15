@@ -191,20 +191,20 @@ public class UserService {
     public UserProfileDTO mapToProfileDTO(User user) {
         String avatarUrl = user.getAvatar();
         
-        // If the special marker is found, use the cached Discord avatar
+        // If the primary avatar is the special marker, use the cached Discord URL
         if ("USE_DISCORD_AVATAR".equals(avatarUrl)) {
-            logger.debug("Special avatar marker found for user: {}", user.getId());
-            
+            logger.debug("Primary avatar is USE_DISCORD_AVATAR, attempting to use cached Discord avatar.");
+            // Use cached Discord avatar if available
             if (user.getDiscordAvatarUrl() != null && !user.getDiscordAvatarUrl().isEmpty()) {
                 avatarUrl = user.getDiscordAvatarUrl();
                 logger.debug("Using cached Discord avatar URL: {}", avatarUrl);
             } else {
                 // Fallback if no cached avatar is found
-                avatarUrl = "/default-avatar.png";
+                avatarUrl = "/default-avatar.png"; // Consider a consistent default placeholder
                 logger.warn("No cached Discord avatar URL found for user: {}, using default", user.getId());
             }
         } else if (avatarUrl == null || avatarUrl.isEmpty()) {
-            avatarUrl = "/default-avatar.png";
+            avatarUrl = "/default-avatar.png"; // Consider a consistent default placeholder
             logger.debug("Empty avatar URL for user: {}, using default", user.getId());
         } else {
             logger.debug("Using custom avatar URL for user: {}: {}", user.getId(), avatarUrl);
@@ -233,7 +233,7 @@ public class UserService {
         return UserProfileDTO.builder()
                 .id(user.getId())
                 .username(user.getUsername())
-                .avatar(user.getDiscordAvatarUrl())
+                .avatar(avatarUrl)
                 .displayName(user.getDisplayName())
                 .pronouns(user.getPronouns())
                 .about(user.getAbout())

@@ -396,17 +396,36 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     updateAuthProfile(newProfileData);
   }, [updateAuthProfile]);
 
-  const updateUserProfile = async (profileData: UpdateProfileDTO) => {
-    if (!state.user) throw new Error("User not authenticated");
+  const updateUserProfile = async (profileUpdateData: UpdateProfileDTO): Promise<void> => {
+    if (!state.user) {
+      const err = new Error("User not authenticated to update profile.");
+      setAuthError(err.message); // Ensure setAuthError is used
+      throw err;
+    }
+    
     setAuthLoading(true);
     try {
-      const updatedProfile = await userService.updateUserProfile(state.user.id, profileData);
-      updateAuthProfile(updatedProfile);
+      // This call returns the full updated UserProfileDTO from the backend
+      const updatedProfileResponse: UserProfileDTO = await userService.updateUserProfile(state.user.id, profileUpdateData);
+      console.log('[AuthProvider] updateUserProfile - Received from backend:', JSON.stringify(updatedProfileResponse));
+
+      const updatedUserInfo: UserInfo = {
+        ...state.user, 
+        avatar: updatedProfileResponse.avatar, 
+        username: updatedProfileResponse.username, 
+      };
+      console.log('[AuthProvider] updateUserProfile - updatedUserInfo to be set:', JSON.stringify(updatedUserInfo));
+
+      setAuthState(updatedUserInfo, updatedProfileResponse);
+      console.log('[AuthProvider] updateUserProfile - Called setAuthState.');
+      
       setAuthLoading(false);
-    } catch (error: any) {
-      setAuthError(error.message || 'Failed to update profile');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update profile';
+      console.error('Error in updateUserProfile:', error);
+      setAuthError(errorMessage);
       setAuthLoading(false);
-      throw error;
+      throw error; // Re-throw error so ProfilePage can catch it for toast notifications
     }
   };
 
