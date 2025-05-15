@@ -2,19 +2,19 @@ package com.app.heartbound.config.security;
 
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.exceptions.InvalidTokenException;
+import com.app.heartbound.exceptions.JwtException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.SignatureException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.Set;
@@ -27,31 +27,36 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import java.util.Objects;
 
 @Component
 public class JWTTokenProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(JWTTokenProvider.class);
 
-    @Value("${jwt.secret}")
+    @Value("${app.jwtSecret}")
     private String jwtSecret;
 
-    @Value("${jwt.access-token-expiration-ms}")
+    @Value("${app.jwtExpirationInMs}")
     private long jwtExpirationInMs;
 
-    // Now using a dedicated refresh secret property
-    @Value("${jwt.refresh-secret}")
-    private String refreshTokenSecret;
+    @Value("${app.jwtRefreshExpirationInMs}")
+    private long jwtRefreshExpirationInMs;
 
-    @Value("${jwt.refresh-token-expiration-ms}")
-    private long refreshTokenExpiryInMs;
+    public static final String TOKEN_TYPE_ACCESS = "ACCESS";
+    public static final String TOKEN_TYPE_REFRESH = "REFRESH";
 
-    private final Map<String, Long> usedRefreshTokens = new ConcurrentHashMap<>();
+    private SecretKey key;
+    private final Set<String> usedRefreshTokens = ConcurrentHashMap.newKeySet();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     @PostConstruct
     public void init() {
-        // Schedule cleanup of expired blacklisted tokens every hour
+        this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         scheduler.scheduleAtFixedRate(this::cleanupUsedTokens, 1, 1, TimeUnit.HOURS);
     }
 
@@ -60,241 +65,268 @@ public class JWTTokenProvider {
         scheduler.shutdown();
     }
 
-    /**
-     * Generates a JWT token for the provided user details including roles and credits.
-     *
-     * @param userId   the user identifier
-     * @param username the username
-     * @param email    the email
-     * @param avatar   the avatar URL
-     * @param roles    the user's roles
-     * @param credits  the user's credits
-     * @return the generated JWT token
-     */
+    public String generateToken(Authentication authentication) {
+        String username = authentication.getName();
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
+        Set<String> roles = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toSet());
+
+        return Jwts.builder()
+                .subject(username)
+                .claim("roles", roles)
+                .claim("type", TOKEN_TYPE_ACCESS)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .id(UUID.randomUUID().toString())
+                .signWith(key, Jwts.SIG.HS512)
+                .compact();
+    }
+
     public String generateToken(String userId, String username, String email, String avatar, Set<Role> roles, Integer credits) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
-        
-        logger.debug("Generating JWT token for user ID: {} with expiry: {}", userId, expiryDate);
-        
-        // Convert roles to string list for JWT claims
-        List<String> roleStrings = roles != null ? 
-                roles.stream().map(Enum::name).collect(Collectors.toList()) : 
-                Collections.singletonList(Role.USER.name());
-        
-        // Build token with subject and claims
+        String jti = UUID.randomUUID().toString();
+
+        Set<String> roleNames = roles.stream().map(Role::name).collect(Collectors.toSet());
+
         return Jwts.builder()
-                .setSubject(userId)
+                .subject(userId)
                 .claim("username", username)
                 .claim("email", email)
                 .claim("avatar", avatar)
-                .claim("roles", roleStrings)
+                .claim("roles", roleNames)
                 .claim("credits", credits != null ? credits : 0)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .setId(UUID.randomUUID().toString())
-                .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                .claim("type", TOKEN_TYPE_ACCESS)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .id(jti)
+                .signWith(key, Jwts.SIG.HS512)
                 .compact();
     }
-    
-    /**
-     * Maintains backward compatibility with older code that doesn't pass credits
-     */
-    public String generateToken(String userId, String username, String email, String avatar, Set<Role> roles) {
-        return generateToken(userId, username, email, avatar, roles, 0);
+
+    public String generateToken(String userId, Set<Role> roles) {
+        return generateTokenWithDetails(userId, null, null, null, roles, null, TOKEN_TYPE_ACCESS, jwtExpirationInMs);
     }
 
-    /**
-     * Generates a refresh token for the provided user id.
-     *
-     * @param userId the user identifier
-     * @param roles  the user's roles
-     * @return the generated refresh token
-     */
     public String generateRefreshToken(String userId, Set<Role> roles) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + refreshTokenExpiryInMs);
-        
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
-        
-        // Include roles in refresh token
-        List<String> roleStrings = roles != null ? 
-                roles.stream().map(Enum::name).collect(Collectors.toList()) : 
-                Collections.singletonList(Role.USER.name());
-        claims.put("roles", roleStrings);
-        
-        // Add a unique token ID and creation timestamp for better tracking
-        claims.put("jti", UUID.randomUUID().toString());
-        claims.put("created", now.getTime());
-        
-        return Jwts.builder()
-                .setClaims(claims)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(SignatureAlgorithm.HS512, refreshTokenSecret)
-                .compact();
+        return generateTokenWithDetails(userId, null, null, null, roles, null, TOKEN_TYPE_REFRESH, jwtRefreshExpirationInMs);
     }
     
-    /**
-     * Overloaded method for backward compatibility.
-     */
-    public String generateRefreshToken(String userId) {
-        return generateRefreshToken(userId, Collections.singleton(Role.USER));
+    private String generateTokenWithDetails(String userId, String username, String email, String avatar, Set<Role> roles, Integer credits, String tokenType, long expirationMs) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + expirationMs);
+        String jti = UUID.randomUUID().toString();
+
+        Set<String> roleNames = roles != null ? roles.stream().map(Role::name).collect(Collectors.toSet()) : Collections.emptySet();
+
+        return Jwts.builder()
+                .subject(userId)
+                .claim("roles", roleNames)
+                .claim("type", tokenType)
+                .claim("username", username)
+                .claim("email", email)
+                .claim("avatar", avatar)
+                .claim("credits", credits)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .id(jti)
+                .signWith(key, Jwts.SIG.HS512)
+                .compact();
     }
 
-    /**
-     * Extracts the user id from the JWT token.
-     */
     public String getUserIdFromJWT(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(jwtSecret)
-                .parseClaimsJws(token)
-                .getBody();
-        
-        String userId = claims.getSubject();
-        logger.debug("Extracted user id from JWT token: {}", userId);
-        return userId;
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        return claims.getSubject();
     }
-    
-    /**
-     * Extracts the roles from the JWT token.
-     *
-     * @param token the JWT token
-     * @return the set of roles
-     */
+
     @SuppressWarnings("unchecked")
     public Set<Role> getRolesFromJWT(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(jwtSecret)
-                .parseClaimsJws(token)
-                .getBody();
-        
-        List<String> roleStrings = claims.get("roles", List.class);
-        
-        if (roleStrings == null || roleStrings.isEmpty()) {
-            return Collections.singleton(Role.USER);
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        List<String> roleNames = claims.get("roles", List.class);
+        if (roleNames == null) {
+            logger.warn("No roles claim found in JWT for token: {}", token);
+            return Collections.emptySet();
         }
-        
-        return roleStrings.stream()
-                .map(role -> Role.valueOf(role))
+        return roleNames.stream()
+                .map(roleName -> {
+                    try {
+                        if (roleName.startsWith("ROLE_")) {
+                            return Role.valueOf(roleName.substring(5).toUpperCase());
+                        }
+                        return Role.valueOf(roleName.toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        logger.warn("Invalid role name '{}' in JWT token.", roleName);
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
     }
-
-    /**
-     * Extracts the userId (subject) from the refresh token.
-     *
-     * @param token the refresh token
-     * @return the userId stored in the token
-     */
-    public String getUserIdFromRefreshToken(String token) {
-        Claims claims = Jwts.parser()
-                .setSigningKey(refreshTokenSecret)
-                .parseClaimsJws(token)
-                .getBody();
-        logger.debug("Extracted user id from refresh token: {}", claims.get("userId"));
-        return claims.get("userId", String.class);
+    
+    public String getTokenTypeFromJWT(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return claims.get("type", String.class);
+        } catch (JwtException | IllegalArgumentException e) {
+            logger.error("Could not get token type from JWT: {}", e.getMessage());
+            return null;
+        }
     }
 
-    /**
-     * Validates the JWT token.
-     *
-     * @param token the JWT token
-     * @return true if valid
-     * @throws InvalidTokenException if token is invalid
-     */
-    public boolean validateToken(String token) {
+    public boolean validateToken(String authToken) {
         try {
-            Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token);
-            logger.debug("JWT token validated successfully.");
+            Jwts.parser().verifyWith(key).build().parseSignedClaims(authToken);
             return true;
         } catch (SignatureException ex) {
             logger.error("Invalid JWT signature: {}", ex.getMessage());
-            throw new InvalidTokenException("Invalid token signature");
+            throw new InvalidTokenException("Invalid JWT signature", ex);
         } catch (MalformedJwtException ex) {
             logger.error("Invalid JWT token: {}", ex.getMessage());
-            throw new InvalidTokenException("Malformed token");
+            throw new InvalidTokenException("Invalid JWT token", ex);
         } catch (ExpiredJwtException ex) {
             logger.error("Expired JWT token: {}", ex.getMessage());
-            throw new InvalidTokenException("Token has expired");
+            throw new InvalidTokenException("Expired JWT token", ex);
         } catch (UnsupportedJwtException ex) {
             logger.error("Unsupported JWT token: {}", ex.getMessage());
-            throw new InvalidTokenException("Unsupported token format");
+            throw new InvalidTokenException("Unsupported JWT token", ex);
         } catch (IllegalArgumentException ex) {
-            logger.error("JWT token compact of handler are invalid: {}", ex.getMessage());
-            throw new InvalidTokenException("Token is invalid");
+            logger.error("JWT claims string is empty: {}", ex.getMessage());
+            throw new InvalidTokenException("JWT claims string is empty", ex);
+        } catch (JwtException ex) {
+            logger.error("JWT processing error: {}", ex.getMessage());
+            throw new InvalidTokenException("Error processing JWT", ex);
         }
+    }
+
+    public Claims getAllClaimsFromToken(String token) {
+        return Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+
+    public boolean isTokenExpired(String token) {
+        try {
+            final Date expiration = getExpirationDateFromToken(token);
+            return expiration.before(new Date());
+        } catch (ExpiredJwtException e) {
+            return true;
+        } catch (Exception e) {
+            logger.warn("Could not determine token expiration due to parsing error: {}", e.getMessage());
+            return true;
+        }
+    }
+
+    public Date getExpirationDateFromToken(String token) {
+        return getAllClaimsFromToken(token).getExpiration();
+    }
+
+    public String getJtiFromToken(String token) {
+        try {
+            Claims claims = getAllClaimsFromToken(token);
+            return claims.getId();
+        } catch (JwtException e) {
+            logger.error("Could not get JTI from token: {}", e.getMessage());
+            throw new InvalidTokenException("Invalid token, cannot extract JTI.", e);
+        }
+    }
+
+    public void markRefreshTokenAsUsed(String jti) {
+        if (jti != null) {
+            usedRefreshTokens.add(jti);
+            logger.debug("Refresh token JTI marked as used: {}", jti);
+        }
+    }
+
+    public boolean isRefreshTokenUsed(String jti) {
+        if (jti == null) return true;
+        boolean isUsed = usedRefreshTokens.contains(jti);
+        if (isUsed) {
+            logger.warn("Attempt to reuse refresh token with JTI: {}", jti);
+        }
+        return isUsed;
+    }
+    
+    public String generateCustomToken(String subject, Map<String, Object> customClaims, long expirationMs) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + expirationMs);
+
+        return Jwts.builder()
+                .subject(subject)
+                .claims(customClaims)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .id(UUID.randomUUID().toString())
+                .signWith(key, Jwts.SIG.HS512)
+                .compact();
     }
 
     public long getTokenExpiryInMs() {
         return jwtExpirationInMs;
     }
 
-    /**
-     * Extracts the credits from the JWT token.
-     *
-     * @param token the JWT token
-     * @return the credits value
-     */
     public Integer getCreditsFromJWT(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(jwtSecret)
-                .parseClaimsJws(token)
-                .getBody();
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
         
         Integer credits = claims.get("credits", Integer.class);
         return credits != null ? credits : 0;
     }
 
-    /**
-     * Adds a refresh token to the used tokens list to prevent reuse
-     * 
-     * @param token the refresh token to invalidate
-     */
+    public String getUserIdFromRefreshToken(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        String tokenType = claims.get("type", String.class);
+        if (!TOKEN_TYPE_REFRESH.equals(tokenType)) {
+            logger.warn("Attempted to get UserID from a non-refresh token. Actual type: {}", tokenType);
+            throw new InvalidTokenException("Expected refresh token but found type: " + tokenType);
+        }
+        return claims.getSubject();
+    }
+
     public void invalidateRefreshToken(String token) {
-        String tokenId = getTokenIdFromRefreshToken(token);
-        if (tokenId != null) {
-            // Store with expiration time to allow cleanup
-            usedRefreshTokens.put(tokenId, System.currentTimeMillis() + refreshTokenExpiryInMs);
-            logger.debug("Refresh token invalidated: {}", tokenId);
+        String jti = getJtiFromToken(token);
+        if (jti != null) {
+            markRefreshTokenAsUsed(jti);
+            logger.info("Refresh token with JTI {} has been invalidated.", jti);
+        } else {
+            logger.warn("Could not invalidate refresh token: JTI was null or token was invalid.");
         }
     }
 
-    /**
-     * Checks if a refresh token has been used before
-     * 
-     * @param token the refresh token to check
-     * @return true if the token has been used, false otherwise
-     */
-    public boolean isRefreshTokenUsed(String token) {
-        String tokenId = getTokenIdFromRefreshToken(token);
-        return tokenId != null && usedRefreshTokens.containsKey(tokenId);
-    }
-
-    /**
-     * Gets the token ID from a refresh token
-     * 
-     * @param token the refresh token
-     * @return the token ID or null if not present/invalid
-     */
-    private String getTokenIdFromRefreshToken(String token) {
-        try {
-            Claims claims = Jwts.parser()
-                    .setSigningKey(refreshTokenSecret)
-                    .parseClaimsJws(token)
-                    .getBody();
-            return claims.getId(); // jti claim
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    /**
-     * Cleans up expired tokens from the used tokens list
-     */
     private void cleanupUsedTokens() {
         long now = System.currentTimeMillis();
-        usedRefreshTokens.entrySet().removeIf(entry -> entry.getValue() < now);
+        usedRefreshTokens.removeIf(jti -> {
+            boolean isExpired = jti.split(":").length > 1 && Long.parseLong(jti.split(":")[1]) < now;
+            if (isExpired) {
+                logger.debug("Cleaned up expired token: {}", jti);
+            }
+            return isExpired;
+        });
         logger.debug("Cleaned up expired tokens. Remaining: {}", usedRefreshTokens.size());
     }
 }
