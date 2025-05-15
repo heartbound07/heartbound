@@ -38,13 +38,13 @@ public class JWTTokenProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(JWTTokenProvider.class);
 
-    @Value("${app.jwtSecret}")
+    @Value("${jwt.secret}")
     private String jwtSecret;
 
-    @Value("${app.jwtExpirationInMs}")
+    @Value("${jwt.access-token-expiration-ms}")
     private long jwtExpirationInMs;
 
-    @Value("${app.jwtRefreshExpirationInMs}")
+    @Value("${jwt.refresh-token-expiration-ms}")
     private long jwtRefreshExpirationInMs;
 
     public static final String TOKEN_TYPE_ACCESS = "ACCESS";
@@ -56,7 +56,14 @@ public class JWTTokenProvider {
 
     @PostConstruct
     public void init() {
+        if (jwtSecret == null || jwtSecret.trim().isEmpty()) {
+            logger.error("JWT secret is not configured. Please set 'jwt.secret' in application properties.");
+            throw new IllegalStateException("JWT secret is not configured.");
+        }
         this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        logger.info("JWT Secret Key initialized.");
+        logger.debug("JWT Access Token Expiration (ms): {}", jwtExpirationInMs);
+        logger.debug("JWT Refresh Token Expiration (ms): {}", jwtRefreshExpirationInMs);
         scheduler.scheduleAtFixedRate(this::cleanupUsedTokens, 1, 1, TimeUnit.HOURS);
     }
 
