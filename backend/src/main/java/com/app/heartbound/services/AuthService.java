@@ -27,31 +27,48 @@ public class AuthService {
     }
 
     /**
-     * Generates a JWT token for the authenticated user, including their roles and credits.
+     * Generates a JWT access token for a user based on the provided UserDTO.
+     * User roles and credits are sourced first from the UserDTO. If not present,
+     * they are fetched from the database via UserService. If still unavailable after
+     * checking the database, roles default to USER and credits default to 0.
      *
-     * @param userDTO - Data transfer object containing user details.
-     * @return A JWT token string.
+     * @param userDTO - Data transfer object containing user details. Must contain at least user ID.
+     *                  Username, email, and avatar are taken from this DTO for the token.
+     * @return A JWT access token string.
      */
     public String generateTokenForUser(UserDTO userDTO) {
         logger.info("Generating JWT token for user with id: {}", userDTO.getId());
         
-        // Get user's roles from the database if available
+        User userEntity = null;
+        boolean needsRolesFromDb = (userDTO.getRoles() == null || userDTO.getRoles().isEmpty());
+        boolean needsCreditsFromDb = (userDTO.getCredits() == null);
+
+        if (needsRolesFromDb || needsCreditsFromDb) {
+            // Fetch user from DB only once if either roles or credits (or both) are missing from DTO
+            userEntity = userService.getUserById(userDTO.getId());
+        }
+
         Set<Role> roles = userDTO.getRoles();
-        if (roles == null || roles.isEmpty()) {
-            User user = userService.getUserById(userDTO.getId());
-            if (user != null && user.getRoles() != null && !user.getRoles().isEmpty()) {
-                roles = user.getRoles();
+        if (needsRolesFromDb) {
+            if (userEntity != null && userEntity.getRoles() != null && !userEntity.getRoles().isEmpty()) {
+                roles = userEntity.getRoles();
             } else {
-                // Default to USER role if no roles found
+                // Default to USER role if not in DTO and not found in DB user or user has no roles
                 roles = Collections.singleton(Role.USER);
             }
         }
+        // Ensure roles are at least USER if it was an empty set from DTO and DB check didn't override
+        if (roles == null || roles.isEmpty()) {
+            roles = Collections.singleton(Role.USER);
+        }
         
-        // Get user's credits (use from DTO if available, otherwise get from database)
         Integer credits = userDTO.getCredits();
+        if (needsCreditsFromDb) {
+            credits = (userEntity != null && userEntity.getCredits() != null) ? userEntity.getCredits() : 0;
+        }
+        // Ensure credits are at least 0 if it was null from DTO and DB check didn't provide a value
         if (credits == null) {
-            User user = userService.getUserById(userDTO.getId());
-            credits = user != null ? user.getCredits() : 0;
+            credits = 0;
         }
         
         String token = jwtTokenProvider.generateToken(
