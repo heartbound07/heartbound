@@ -6,9 +6,8 @@ import {
   TokenPair,
   UserInfo,
   AuthProviderProps,
-  ProfileStatus,
 } from './types';
-import { AUTH_STORAGE_KEY, AUTH_ENDPOINTS, DISCORD_OAUTH_STATE_KEY } from './constants';
+import { AUTH_ENDPOINTS, DISCORD_OAUTH_STATE_KEY } from './constants';
 import * as partyService from '../valorant/partyService';
 import axios from 'axios';
 import webSocketService from '../../config/WebSocketService';
@@ -32,7 +31,6 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   // Use our new custom hooks
   const {
     state,
-    isUserInfo,
     setAuthState,
     clearAuthState,
     setAuthError,
@@ -45,17 +43,15 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     tokens,
     parseJwt,
     updateTokens,
-    scheduleTokenRefresh,
     refreshTokenRef,
   } = useTokenManagement();
 
   const [initialized, setInitialized] = useState(false);
   const initRan = useRef(false); // Track if init logic ran for this instance
 
-  const persistAuthState = useCallback((user: UserInfo, tokenPair: TokenPair, profile: UserProfileDTO | null = null) => {
+  const persistAuthState = useCallback((tokenPair: TokenPair) => {
     // Use the tokenStorage directly instead of a state-updating function
     tokenStorage.setTokens(tokenPair);
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user, profile }));
   }, []);
 
   const handleAuthResponse = useCallback(async (response: Response) => {
@@ -66,36 +62,28 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     const tokenPair: TokenPair = await response.json();
     updateTokens(tokenPair);
 
-    const decodedToken = parseJwt(tokenPair.accessToken);
-    if (decodedToken && decodedToken.sub) {
-      // Fetch the full user profile which is UserProfileDTO
-      const userProfileData = await userService.getCurrentUserProfile(); 
-      if (userProfileData) {
-        const userInfo: UserInfo = {
-          id: userProfileData.id,
-          username: userProfileData.username,
-          email: '', // Set email to empty string since it doesn't exist on UserProfileDTO
-          avatar: userProfileData.avatar,
-          roles: userProfileData.roles,
-          credits: userProfileData.credits,
-          level: userProfileData.level,
-          experience: userProfileData.experience,
-        };
-        // Pass userProfileData directly as it's UserProfileDTO
-        setAuthState(userInfo, userProfileData); 
-        persistAuthState(userInfo, tokenPair, userProfileData);
-        
-        // Fix: Pass a callback function instead of just the token
-        // or check the WebSocketService implementation to see what it expects
-        webSocketService.connect(() => tokenPair.accessToken);
-        
-        // Alternative if the service is meant to accept a token directly:
-        // webSocketService.connect(tokenPair.accessToken as any);
-      } else {
-        throw new Error('Failed to fetch user profile after login.');
-      }
+    const userProfileData = await userService.getCurrentUserProfile();
+    if (userProfileData) {
+      const userInfo: UserInfo = {
+        id: userProfileData.id,
+        username: userProfileData.username,
+        email: '', // Set email to empty string since it doesn't exist on UserProfileDTO
+        avatar: userProfileData.avatar,
+        roles: userProfileData.roles || [],
+        credits: userProfileData.credits || 0,
+        level: userProfileData.level || 0,
+        experience: userProfileData.experience || 0,
+      };
+      setAuthState(userInfo, userProfileData);
+      persistAuthState(tokenPair);
+      
+      webSocketService.connect(() => tokenPair.accessToken);
+    } else {
+      clearAuthState();
+      updateTokens(null);
+      throw new Error('Failed to fetch user profile after login.');
     }
-  }, [updateTokens, parseJwt, setAuthState, persistAuthState]);
+  }, [updateTokens, parseJwt, setAuthState, persistAuthState, clearAuthState]);
 
   const login = useCallback(async (credentials: LoginRequest) => {
     setAuthLoading(true);
@@ -108,10 +96,11 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       await handleAuthResponse(response);
     } catch (error) {
       clearAuthState();
+      updateTokens(null);
       setAuthError(error instanceof Error ? error.message : 'Session initialization failed');
       throw error;
     }
-  }, [clearAuthState, handleAuthResponse, setAuthError, setAuthLoading]);
+  }, [clearAuthState, handleAuthResponse, setAuthError, setAuthLoading, updateTokens]);
 
   const logout = useCallback(async () => {
     try {
@@ -147,6 +136,8 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         const refreshTokenValue = tokenStorage.getRefreshToken();
         if (!refreshTokenValue) {
           console.log('No refresh token available - user needs to re-authenticate');
+          clearAuthState();
+          updateTokens(null);
           return undefined;
         }
 
@@ -154,29 +145,23 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           refreshToken: refreshTokenValue
         });
 
-        // Handle both camelCase and snake_case property names to ensure compatibility
         const accessToken = response.data.access_token || response.data.accessToken;
-        const refreshToken = response.data.refresh_token || response.data.refreshToken;
+        const newRefreshToken = response.data.refresh_token || response.data.refreshToken;
         
         if (accessToken) {
-          // Create a properly formed token object with fallbacks for all properties
-          const tokenPair = {
+          const tokenPair: TokenPair = {
             accessToken: accessToken,
-            refreshToken: refreshToken || refreshTokenValue, // Keep existing refresh token if not provided
+            refreshToken: newRefreshToken || refreshTokenValue,
             tokenType: response.data.token_type || response.data.tokenType || 'bearer',
             expiresIn: response.data.expires_in || response.data.expiresIn || 3600,
             scope: response.data.scope || 'identify email'
           };
           
-          // Store the new tokens with all required TokenPair properties
-          tokenStorage.setTokens(tokenPair);
-          
-          // Also update the tokens state
           updateTokens(tokenPair);
           
           return accessToken;
         } else {
-          console.log('Invalid token response received');
+          console.log('Invalid token response received during refresh');
           console.log('Response data:', response.data);
           return undefined;
         }
@@ -184,16 +169,13 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         console.log('Failed to refresh token:', error);
         console.log('Error details:', error.response?.data || error.message);
         
-        // Handle specific error cases
         if (error.response?.status === 401) {
-          // Clear invalid tokens on 401 to prevent refresh loops
-          tokenStorage.setTokens(null);
+          console.log('Clearing tokens and auth state due to 401 during refresh.');
           clearAuthState();
-          throw new Error('Session expired. Please login again.');
+          updateTokens(null);
         }
-        throw error;
+        return undefined;
       } finally {
-        // Release the mutex regardless of success or failure
         refreshInProgress = false;
         refreshPromise = null;
       }
@@ -209,103 +191,71 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
   const initializeAuth = useCallback(async () => {
     try {
-      // Prevent multiple initializations
-      if (initialized) {
-        console.log('Auth already initialized, skipping...');
-        return;
-      }
-      
-      setAuthLoading(true);
-      
-      // Get tokens from storage
-      const storedTokens = tokenStorage.getTokens();
-      
-      if (storedTokens?.refreshToken) {
-        // We have a refresh token, try to use it
-        try {
-          // If we have a partial token object (just refresh token), do a token refresh
-          if (!storedTokens.accessToken || storedTokens.accessToken === '') {
-            console.log('Found refresh token but no access token - attempting to refresh');
-            
-            // Important: ONLY do this once and await the result
-            const newAccessToken = await refreshToken();
-            
-            // If refresh was successful, we're authenticated
-            if (newAccessToken) {
-              // Load user data from localStorage
-              const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
-              if (storedAuth) {
-                const parsed = JSON.parse(storedAuth);
-                if (isUserInfo(parsed.user)) {
-                  // Update auth state with the user info
-                  setAuthState(parsed.user, parsed.profile || null);
-                  console.log('Successfully restored authentication state after token refresh');
-                }
-              }
-            } else {
-              // If refresh failed but didn't throw an error, clean up
-              console.log('Token refresh completed but no new access token was received');
-              updateTokens(null);
-              clearAuthState();
-              tokenStorage.setTokens(null);
+      const initialTokens = tokenStorage.getTokens();
+
+      if (initialTokens?.refreshToken) {
+        let currentTokenPair = initialTokens;
+        let currentAccessToken = initialTokens.accessToken;
+
+        const decodedToken = currentAccessToken ? parseJwt(currentAccessToken) : null;
+        const currentTime = Math.floor(Date.now() / 1000);
+
+        if (!decodedToken || !decodedToken.exp || decodedToken.exp <= currentTime) {
+          if (decodedToken) console.log('[AuthInit] Access token expired or invalid, attempting refresh...');
+          else console.log('[AuthInit] No access token, attempting refresh with refresh token...');
+
+          const newAccessTokenValue = await refreshToken();
+          
+          if (!newAccessTokenValue) {
+            console.log('[AuthInit] Token refresh failed during initialization.');
+            if (!tokenStorage.getRefreshToken()) {
+                clearAuthState();
+                updateTokens(null);
             }
-          } else {
-            // We have both tokens, verify the access token
-            const decodedToken = parseJwt(storedTokens.accessToken);
-            
-            // Add null check for decodedToken
-            if (decodedToken && decodedToken.exp) {
-              const currentTime = Math.floor(Date.now() / 1000);
-              
-              if (decodedToken.exp > currentTime) {
-                // Token is still valid, restore auth state
-                const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
-                if (storedAuth) {
-                  const parsed = JSON.parse(storedAuth);
-                  if (isUserInfo(parsed.user)) {
-                    setAuthState(parsed.user, parsed.profile || null);
-                    
-                    // Update tokens state to ensure it's synchronized
-                    updateTokens(storedTokens);
-                    
-                    // Schedule token refresh
-                    const timeUntilExpiry = decodedToken.exp - currentTime;
-                    scheduleTokenRefresh(timeUntilExpiry);
-                    console.log('Access token valid, authentication restored');
-                  }
-                }
-              } else {
-                // Token expired, try to refresh
-                console.log('Access token expired, attempting refresh');
-                await refreshToken();
-              }
-            } else {
-              // Invalid token, try to refresh
-              console.log('Invalid access token, attempting refresh');
-              await refreshToken();
-            }
+            return;
           }
-        } catch (error) {
-          console.warn('Failed to refresh token on initialization', error);
-          // Clear invalid tokens and wipe storage completely
-          updateTokens(null);
-          clearAuthState();
-          tokenStorage.setTokens(null);
+          
+          const refreshedTokenPair = tokenStorage.getTokens();
+          if (!refreshedTokenPair?.accessToken) {
+              console.error("[AuthInit] Access token not available even after successful refresh call indicated.");
+              clearAuthState();
+              updateTokens(null);
+              return;
+          }
+          currentTokenPair = refreshedTokenPair;
+        } else {
+          console.log('[AuthInit] Existing access token is valid.');
+          updateTokens(currentTokenPair);
         }
+
+        console.log('[AuthInit] Fetching user profile...');
+        const userProfileData = await userService.getCurrentUserProfile();
+
+        const userInfo: UserInfo = {
+          id: userProfileData.id,
+          username: userProfileData.username,
+          email: '', 
+          avatar: userProfileData.avatar,
+          roles: userProfileData.roles || [],
+          credits: userProfileData.credits || 0,
+          level: userProfileData.level || 0,
+          experience: userProfileData.experience || 0,
+        };
+        setAuthState(userInfo, userProfileData);
+        console.log('[AuthInit] Authentication state restored, user profile fetched.');
+
       } else {
-        // No tokens found, user is not authenticated
-        console.log('No refresh token available - user needs to re-authenticate');
-        updateTokens(null);
+        console.log('[AuthInit] No refresh token found. User is not authenticated.');
         clearAuthState();
+        updateTokens(null); 
       }
     } catch (error) {
-      console.error('Error initializing auth:', error);
-    } finally {
-      // Always mark initialization as complete to prevent re-runs
-      setInitialized(true);
-      setAuthLoading(false);
+      console.error('[AuthInit] Initialization process failed:', error);
+      clearAuthState();
+      updateTokens(null); 
+      setAuthError(error instanceof Error ? error.message : 'Failed to initialize session.');
     }
-  }, [clearAuthState, parseJwt, refreshToken, scheduleTokenRefresh, setAuthLoading, setAuthState, updateTokens]);
+  }, [refreshToken, parseJwt, clearAuthState, updateTokens, setAuthState, setAuthError]);
 
   const startDiscordOAuth = useCallback(async () => {
     console.log('[AuthProvider] Starting Discord OAuth flow...');
@@ -313,53 +263,42 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     setAuthError(null);
     try {
       // 1. Generate secure random state
-      const state = crypto.randomUUID();
-      console.log(`[AuthProvider] Generated state for Discord OAuth: [${state}]`);
+      const stateVal = crypto.randomUUID();
+      console.log(`[AuthProvider] Generated state for Discord OAuth: [${stateVal}]`);
 
       // 2. Store state in localStorage
-      localStorage.setItem(DISCORD_OAUTH_STATE_KEY, state);
+      localStorage.setItem(DISCORD_OAUTH_STATE_KEY, stateVal);
       console.log(`[AuthProvider] Stored state in localStorage under key: ${DISCORD_OAUTH_STATE_KEY}`);
 
       // 3. Construct the backend authorization URL with the state
       const authorizeUrl = new URL(AUTH_ENDPOINTS.DISCORD_AUTHORIZE);
-      authorizeUrl.searchParams.append('state', state);
+      authorizeUrl.searchParams.append('state', stateVal);
       console.log(`[AuthProvider] Constructed backend authorize URL: ${authorizeUrl.toString()}`);
 
       // 4. Navigate the browser directly to the backend endpoint
       // The backend will handle the redirect to Discord.
       window.location.href = authorizeUrl.toString();
 
-      // Note: Code execution effectively stops here due to navigation.
-      // setLoading(false) is not strictly necessary as the page context changes.
-
     } catch (error) {
-      // This catch block might only catch errors during state generation/storage
-      // or URL construction, not navigation issues themselves.
       console.error('[AuthProvider] Error preparing for Discord OAuth flow:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred before redirecting to Discord.';
       setAuthError(`Discord OAuth Error: ${errorMessage}`);
       setAuthLoading(false);
-      // Clear potentially invalid state if initiation failed before navigation
       localStorage.removeItem(DISCORD_OAUTH_STATE_KEY);
       console.log(`[AuthProvider] Cleared potentially invalid state from localStorage due to error.`);
     }
   }, [setAuthLoading, setAuthError]);
 
-  // New function to exchange the code received on the frontend callback
   const exchangeDiscordCode = useCallback(async (code: string): Promise<void> => {
+    setAuthLoading(true);
+    console.log('[Auth] Exchanging Discord code for tokens...');
     try {
-      setAuthLoading(true);
-      console.log('[Auth] Exchanging Discord code for tokens...');
-      
       const response = await fetch(AUTH_ENDPOINTS.DISCORD_EXCHANGE_CODE, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
       });
 
-      // Extract user data from response first
       const responseData = await response.json();
       
       if (!response.ok) {
@@ -368,98 +307,54 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       
       console.log('[Auth] Discord token exchange successful, processing response data');
       
-      // Extract user info directly from the response
-      const { accessToken, refreshToken, expiry, user } = responseData;
+      const { accessToken, refreshToken: newRefreshTokenVal, expiry, user: discordUserData } = responseData;
       
-      if (!user || !user.id) {
-        throw new Error('Invalid user data received from server');
+      if (!discordUserData || !discordUserData.id) {
+        throw new Error('Invalid user data received from server after Discord auth');
       }
       
-      console.log('[Auth] User data received from server:', user);
-      
-      // Update tokens first
-      updateTokens({
+      const tokenPair: TokenPair = {
         accessToken,
-        refreshToken,
+        refreshToken: newRefreshTokenVal,
         expiresIn: typeof expiry === 'number' ? expiry : parseInt(expiry, 10),
         tokenType: responseData.tokenType || 'bearer',
         scope: responseData.scope || 'identify email'
-      });
+      };
+      updateTokens(tokenPair);
       
-      // Update auth state with user info
-      setAuthState(user);
-      
-      // Now fetch profile directly using the user ID from the response
-      try {
-        console.log('[Auth] Fetching profile for user ID:', user.id);
-        const profileData = await userService.getUserProfile(user.id);
-        console.log('[Auth] Profile data received:', profileData);
-        
-        if (profileData) {
-          // Create profile with required fields and fallbacks
-          const profileStatus: ProfileStatus = {
-            isComplete: true,
-            displayName: profileData.displayName || user.username || '',
-            pronouns: profileData.pronouns || '',
-            about: profileData.about || '',
-            bannerColor: profileData.bannerColor || 'bg-white/10',
-            bannerUrl: profileData.bannerUrl || '',
-            avatar: profileData.avatar || user.avatar || ''
-          };
-          
-          console.log('[Auth] Created profileStatus:', profileStatus);
-          // Convert ProfileStatus to UserProfileDTO or modify updateAuthProfile to accept both
-          updateAuthProfile(profileData); // Use the full profileData instead
-          
-          // Also ensure the profile is persisted to localStorage
-          const authStorage = localStorage.getItem(AUTH_STORAGE_KEY);
-          if (authStorage) {
-            try {
-              const authData = JSON.parse(authStorage);
-              authData.profile = profileStatus;
-              localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
-              console.log('[Auth] Updated profile in localStorage');
-            } catch (e) {
-              console.error('[Auth] Error updating localStorage:', e);
-            }
-          }
-        }
-      } catch (profileError) {
-        console.error('[Auth] Error fetching user profile after login:', profileError);
-        // Create fallback profile from user data
-        const fallbackProfile = {
-          id: user.id,
-          username: user.username || '',
-          avatar: user.avatar || '',
-          displayName: user.username || '',
-          pronouns: '',
-          about: '',
-          bannerColor: 'bg-white/10',
-          bannerUrl: ''
-        };
-        console.log('[Auth] Using fallback profile:', fallbackProfile);
-        updateAuthProfile(fallbackProfile);
+      const userProfileData = await userService.getCurrentUserProfile(); 
+
+      if (!userProfileData) {
+        throw new Error('Failed to fetch user profile after Discord login.');
       }
       
-      // Trigger websocket reconnect with new token
+      const userInfo: UserInfo = {
+        id: userProfileData.id,
+        username: userProfileData.username,
+        email: '', 
+        avatar: userProfileData.avatar,
+        roles: userProfileData.roles || [],
+        credits: userProfileData.credits || 0,
+        level: userProfileData.level || 0,
+        experience: userProfileData.experience || 0,
+      };
+
+      setAuthState(userInfo, userProfileData);
+      
       webSocketService.reconnectWithFreshToken();
       
     } catch (error) {
       console.error('[Auth] Error exchanging Discord code:', error);
       clearAuthState();
       updateTokens(null);
-      tokenStorage.setTokens(null);
-      localStorage.removeItem(AUTH_STORAGE_KEY);
       setAuthError(error instanceof Error ? error.message : 'Failed to authenticate with Discord');
     } finally {
       setAuthLoading(false);
     }
-  }, [updateTokens, setAuthState, updateAuthProfile, setAuthLoading, setAuthError, clearAuthState]);
+  }, [updateTokens, setAuthState, setAuthLoading, setAuthError, clearAuthState]);
 
   // Fix for updateProfile to handle both ProfileStatus and UserProfileDTO
   const updateProfile = useCallback((newProfileData: UserProfileDTO) => {
-    // Convert UserProfileDTO to ProfileStatus if needed
-    // or directly update the auth profile with the UserProfileDTO
     updateAuthProfile(newProfileData);
   }, [updateAuthProfile]);
 
@@ -468,8 +363,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     setAuthLoading(true);
     try {
       const updatedProfile = await userService.updateUserProfile(state.user.id, profileData);
-      // updatedProfile is UserProfileDTO from the backend
-      updateAuthProfile(updatedProfile); // Pass directly, no cast needed
+      updateAuthProfile(updatedProfile);
       setAuthLoading(false);
     } catch (error: any) {
       setAuthError(error.message || 'Failed to update profile');
@@ -478,10 +372,9 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Fix for the Discord auth function where ProfileStatus is used
-  // Look for code like this around line 395:
   const fetchCurrentUserProfile = useCallback(async () => {
     if (!tokens?.accessToken) {
+      console.warn("[FetchUserProfile] No access token available.");
       return;
     }
     setAuthLoading(true);
@@ -491,22 +384,30 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         const userInfo: UserInfo = {
           id: userProfileData.id,
           username: userProfileData.username,
-          email: '', // Set email to empty string since it doesn't exist on UserProfileDTO
+          email: '',
           avatar: userProfileData.avatar,
-          roles: userProfileData.roles,
-          credits: userProfileData.credits,
-          level: userProfileData.level,
-          experience: userProfileData.experience,
+          roles: userProfileData.roles || [],
+          credits: userProfileData.credits || 0,
+          level: userProfileData.level || 0,
+          experience: userProfileData.experience || 0,
         };
-        // Pass userProfileData directly
         setAuthState(userInfo, userProfileData);
+      } else {
+        setAuthError("Failed to fetch current user profile: No data returned.");
+        clearAuthState();
+        updateTokens(null);
       }
     } catch (error: any) {
       console.error('Failed to fetch current user profile:', error);
+      setAuthError(error.message || "Failed to fetch profile.");
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        clearAuthState();
+        updateTokens(null);
+      }
     } finally {
       setAuthLoading(false);
     }
-  }, [tokens?.accessToken, setAuthState, setAuthLoading]);
+  }, [tokens?.accessToken, setAuthState, setAuthLoading, setAuthError, clearAuthState, updateTokens]);
 
   // Add a debug mount/unmount effect
   useEffect(() => {
@@ -516,7 +417,6 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
   // Replace the useEffect that calls initializeAuth with this version
   useEffect(() => {
-    // Prevent running twice due to StrictMode or re-renders
     if (initRan.current || initialized) {
       return;
     }
@@ -524,57 +424,34 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
     const performInit = async () => {
       console.log('Starting auth initialization...');
-      setAuthLoading(true); // Ensure loading state is set early
+      setAuthLoading(true); 
       try {
-        await initializeAuth(); // Existing initialization logic
+        await initializeAuth(); 
         console.log('Auth initialization completed.');
       } catch (error) {
-        console.error('Auth initialization failed:', error);
-        // Handle error state appropriately, maybe setAuthError
+        console.error('Auth initialization failed in performInit:', error);
+        setAuthError(error instanceof Error ? error.message : 'Critical initialization failure');
+        clearAuthState();
+        updateTokens(null);
       } finally {
         setInitialized(true);
-        setAuthLoading(false); // Ensure loading state is cleared
+        setAuthLoading(false); 
       }
     };
 
     performInit();
 
-    // Cleanup function (optional, if needed)
     return () => {
       console.log('AuthProvider initialization effect cleanup');
     };
-    // Keep dependencies that initializeAuth relies on
-  }, [initialized, initializeAuth, setAuthLoading]); // Add setAuthLoading
-
-  // Add this useEffect to the AuthProvider component
-  useEffect(() => {
-    // Skip persistence during initial loading
-    if (state.isLoading) {
-      return;
-    }
-
-    // When authenticated and user exists, persist to localStorage
-    if (state.isAuthenticated && state.user) {
-      const dataToStore = { 
-        user: state.user, 
-        profile: state.profile 
-      };
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(dataToStore));
-      console.log('[Auth Persistence] User and profile state persisted');
-    } 
-    // When not authenticated (and not in loading state), clear localStorage
-    else if (!state.isAuthenticated && !state.isLoading) {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-      console.log('[Auth Persistence] User state cleared from localStorage');
-    }
-  }, [state.user, state.profile, state.isAuthenticated, state.isLoading]);
+  }, [initialized, initializeAuth, setAuthLoading, setAuthError, clearAuthState, updateTokens]);
 
   const contextValue = useMemo<AuthContextValue>(() => ({
     ...state,
     login,
     logout,
     register: login,
-    refreshToken,
+    refreshToken: refreshTokenRef.current || (async () => undefined),
     tokens,
     clearError: () => setAuthError(null),
     startDiscordOAuth,
@@ -589,7 +466,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     joinParty: partyService.joinParty,
     updateUserProfile,
     fetchCurrentUserProfile
-  }), [state, login, logout, tokens, startDiscordOAuth, exchangeDiscordCode, updateProfile, refreshToken, hasRole, updateUserProfile, setAuthError, fetchCurrentUserProfile]);
+  }), [state, login, logout, tokens, startDiscordOAuth, exchangeDiscordCode, updateProfile, refreshTokenRef, hasRole, updateUserProfile, setAuthError, fetchCurrentUserProfile]);
 
   return (
     <AuthContext.Provider value={contextValue}>
