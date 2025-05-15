@@ -22,6 +22,10 @@ export default defineConfig(({ mode, command }) => {
           // Optionally strip the "/api" prefix when forwarding:
           // rewrite: (path) => path.replace(/^\/api/, '')
         }
+      },
+      watch: {
+        usePolling: true,
+        interval: 100,
       }
     },
     resolve: {
