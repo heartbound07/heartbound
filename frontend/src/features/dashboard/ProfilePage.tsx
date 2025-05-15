@@ -142,8 +142,10 @@ export function ProfilePage() {
   
   // Initialize form with profile data if available
   useEffect(() => {
-    console.log('[ProfilePage useEffect] Running. User from context:', JSON.stringify(user));
-    console.log('[ProfilePage useEffect] Running. Profile from context:', JSON.stringify(profile));
+    if (import.meta.env.DEV) {
+      console.log('[ProfilePage useEffect] Running. User from context:', JSON.stringify(user));
+      console.log('[ProfilePage useEffect] Running. Profile from context:', JSON.stringify(profile));
+    }
     if (profile) {
       setName(profile.displayName || "")
       setPronouns(profile.pronouns || "")
@@ -153,7 +155,9 @@ export function ProfilePage() {
     }
     if (user) {
       setAvatarUrl(user.avatar || "")
-      console.log('[ProfilePage useEffect] Setting local avatarUrl based on context to:', user.avatar || "");
+      if (import.meta.env.DEV) {
+        console.log('[ProfilePage useEffect] Setting local avatarUrl based on context to:', user.avatar || "");
+      }
       // Store the original Discord avatar URL if it contains discordapp.com
       if (user.avatar && user.avatar.includes('cdn.discordapp.com')) {
         setIsUsingCustomAvatar(false)

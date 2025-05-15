@@ -407,17 +407,23 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     try {
       // This call returns the full updated UserProfileDTO from the backend
       const updatedProfileResponse: UserProfileDTO = await userService.updateUserProfile(state.user.id, profileUpdateData);
-      console.log('[AuthProvider] updateUserProfile - Received from backend:', JSON.stringify(updatedProfileResponse));
+      if (import.meta.env.DEV) {
+        console.log('[AuthProvider] updateUserProfile - Received from backend:', JSON.stringify(updatedProfileResponse));
+      }
 
       const updatedUserInfo: UserInfo = {
         ...state.user, 
         avatar: updatedProfileResponse.avatar, 
         username: updatedProfileResponse.username, 
       };
-      console.log('[AuthProvider] updateUserProfile - updatedUserInfo to be set:', JSON.stringify(updatedUserInfo));
+      if (import.meta.env.DEV) {
+        console.log('[AuthProvider] updateUserProfile - updatedUserInfo to be set:', JSON.stringify(updatedUserInfo));
+      }
 
       setAuthState(updatedUserInfo, updatedProfileResponse);
-      console.log('[AuthProvider] updateUserProfile - Called setAuthState.');
+      if (import.meta.env.DEV) {
+        console.log('[AuthProvider] updateUserProfile - Called setAuthState.');
+      }
       
       setAuthLoading(false);
     } catch (error) {
@@ -468,8 +474,14 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
   // Add a debug mount/unmount effect
   useEffect(() => {
-    console.log('[DEBUG] AuthProvider mounted');
-    return () => console.log('[DEBUG] AuthProvider unmounted');
+    if (import.meta.env.DEV) {
+      console.log('[DEBUG] AuthProvider mounted');
+    }
+    return () => {
+      if (import.meta.env.DEV) {
+        console.log('[DEBUG] AuthProvider unmounted');
+      }
+    };
   }, []);
 
   // Replace the useEffect that calls initializeAuth with this version
@@ -480,11 +492,15 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     initRan.current = true;
 
     const performInit = async () => {
-      console.log('Starting auth initialization...');
+      if (import.meta.env.DEV) {
+        console.log('Starting auth initialization...');
+      }
       setAuthLoading(true); 
       try {
         await initializeAuth(); 
-        console.log('Auth initialization completed.');
+        if (import.meta.env.DEV) {
+          console.log('Auth initialization completed.');
+        }
       } catch (error) {
         console.error('Auth initialization failed in performInit:', error);
         setAuthError(error instanceof Error ? error.message : 'Critical initialization failure');
@@ -499,7 +515,9 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     performInit();
 
     return () => {
-      console.log('AuthProvider initialization effect cleanup');
+      if (import.meta.env.DEV) {
+        console.log('AuthProvider initialization effect cleanup');
+      }
     };
   }, [initialized, initializeAuth, setAuthLoading, setAuthError, clearAuthState, updateTokens]);
 
