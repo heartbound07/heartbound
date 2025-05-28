@@ -124,4 +124,17 @@ export const performMatchmaking = async (): Promise<PairingDTO[]> => {
     console.error('Error performing matchmaking:', error);
     throw error;
   }
+};
+
+/**
+ * Delete all active pairings (admin function)
+ */
+export const deleteAllPairings = async (): Promise<{ message: string; deletedCount: number }> => {
+  try {
+    const response = await httpClient.delete('/pairings/admin/all');
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting all pairings:', error);
+    throw error;
+  }
 }; 

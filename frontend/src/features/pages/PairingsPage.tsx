@@ -12,7 +12,7 @@ import { Loader2, Heart, Users, Clock, Trophy, MessageCircle, Settings } from 'l
 import { motion } from 'framer-motion';
 import type { JoinQueueRequestDTO } from '@/config/pairingService';
 import { useQueueUpdates } from '@/contexts/QueueUpdates';
-import { performMatchmaking } from '@/config/pairingService';
+import { performMatchmaking, deleteAllPairings } from '@/config/pairingService';
 import { usePairingUpdates } from '@/contexts/PairingUpdates';
 import { MatchFoundModal } from '@/components/modals/MatchFoundModal';
 
@@ -98,6 +98,30 @@ export function PairingsPage() {
     }
   };
 
+  const handleDeleteAllPairings = async () => {
+    if (!confirm('Are you sure you want to delete ALL active pairings? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setAdminActionLoading(true);
+      setAdminMessage(null);
+      
+      const result = await deleteAllPairings();
+      setAdminMessage(`Successfully deleted ${result.deletedCount} active pairing(s)!`);
+      
+      // Refresh pairings data
+      window.location.reload(); // Quick refresh - you could also update state
+      
+      setTimeout(() => setAdminMessage(null), 5000);
+    } catch (error: any) {
+      setAdminMessage(`Failed to delete pairings: ${error.message}`);
+      setTimeout(() => setAdminMessage(null), 5000);
+    } finally {
+      setAdminActionLoading(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -145,6 +169,19 @@ export function PairingsPage() {
                       <Heart className="h-4 w-4 mr-2" />
                     )}
                     Run Matchmaking
+                  </Button>
+                  <Button
+                    onClick={handleDeleteAllPairings}
+                    disabled={adminActionLoading}
+                    variant="destructive"
+                    size="sm"
+                  >
+                    {adminActionLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Users className="h-4 w-4 mr-2" />
+                    )}
+                    Delete All Pairings
                   </Button>
                   {adminMessage && (
                     <p className={`text-sm ${adminMessage.includes('failed') ? 'text-red-300' : 'text-green-300'}`}>

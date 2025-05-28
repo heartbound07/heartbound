@@ -13,11 +13,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * PairingController
@@ -186,5 +189,23 @@ public class PairingController {
         log.info("Matchmaking completed. Created {} new pairings", newPairings.size());
         
         return ResponseEntity.ok(newPairings);
+    }
+
+    @Operation(summary = "Delete all active pairings", description = "Admin function to delete all active pairings")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "All pairings deleted successfully")
+    })
+    @DeleteMapping("/admin/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> deleteAllPairings() {
+        log.info("Admin requesting to delete all active pairings");
+        
+        int deletedCount = pairingService.deleteAllPairings();
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Successfully deleted all active pairings");
+        response.put("deletedCount", deletedCount);
+        
+        return ResponseEntity.ok(response);
     }
 } 

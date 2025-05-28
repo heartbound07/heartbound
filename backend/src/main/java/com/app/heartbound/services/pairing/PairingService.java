@@ -189,6 +189,30 @@ public class PairingService {
                 .build();
     }
 
+    /**
+     * Delete all active pairings (admin function)
+     */
+    @Transactional
+    public int deleteAllPairings() {
+        log.info("Admin deleting all active pairings");
+        
+        List<Pairing> activePairings = pairingRepository.findByActiveTrue();
+        int deletedCount = activePairings.size();
+        
+        for (Pairing pairing : activePairings) {
+            pairing.setActive(false);
+            pairing.setBreakupReason("Admin deletion");
+            pairing.setBreakupTimestamp(LocalDateTime.now());
+            pairingRepository.save(pairing);
+            
+            log.info("Deactivated pairing {} between users {} and {}", 
+                    pairing.getId(), pairing.getUser1Id(), pairing.getUser2Id());
+        }
+        
+        log.info("Admin deleted {} active pairings", deletedCount);
+        return deletedCount;
+    }
+
     // Private helper methods
 
     private void validateUsersExist(String user1Id, String user2Id) {
