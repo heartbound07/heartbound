@@ -141,7 +141,7 @@ public class QueueService {
         return queueRepository.findByInQueueTrue().size();
     }
 
-    private void broadcastQueueUpdate() {
+    public void broadcastQueueUpdate() {
         try {
             int queueSize = getActiveQueueSize();
             messagingTemplate.convertAndSend("/topic/queue", 

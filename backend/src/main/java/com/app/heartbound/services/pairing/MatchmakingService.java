@@ -9,6 +9,8 @@ import com.app.heartbound.repositories.pairing.BlacklistEntryRepository;
 import com.app.heartbound.repositories.pairing.MatchQueueUserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,11 +26,14 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@EnableScheduling
 public class MatchmakingService {
 
     private final MatchQueueUserRepository matchQueueUserRepository;
     private final BlacklistEntryRepository blacklistEntryRepository;
     private final PairingService pairingService;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final QueueService queueService;
 
     /**
      * Potential pairing with compatibility score
@@ -146,6 +151,9 @@ public class MatchmakingService {
                 PairingDTO createdPairing = pairingService.createPairing(request);
                 createdPairings.add(createdPairing);
 
+                // Remove users from queue
+                removeUsersFromQueue(user1Id, user2Id);
+
                 // Mark users as paired
                 pairedUsers.add(user1Id);
                 pairedUsers.add(user2Id);
@@ -159,7 +167,27 @@ public class MatchmakingService {
             }
         }
 
+        // Update queue after removing users
+        if (!pairedUsers.isEmpty()) {
+            queueService.broadcastQueueUpdate();
+        }
+
         return createdPairings;
+    }
+
+    private void removeUsersFromQueue(String user1Id, String user2Id) {
+        // Remove both users from queue
+        matchQueueUserRepository.findByUserId(user1Id).ifPresent(queueUser -> {
+            queueUser.setInQueue(false);
+            matchQueueUserRepository.save(queueUser);
+            log.info("Removed user {} from queue after pairing", user1Id);
+        });
+        
+        matchQueueUserRepository.findByUserId(user2Id).ifPresent(queueUser -> {
+            queueUser.setInQueue(false);
+            matchQueueUserRepository.save(queueUser);
+            log.info("Removed user {} from queue after pairing", user2Id);
+        });
     }
 
     private Long generateTemporaryChannelId() {

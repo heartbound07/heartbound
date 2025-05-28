@@ -23,6 +23,7 @@ import { ShopAdminPage } from '@/features/shop/ShopAdminPage';
 import { InventoryPage } from '@/features/shop/InventoryPage';
 import { PairingsPage } from '@/features/pages/PairingsPage';
 import QueueUpdatesProvider from '@/contexts/QueueUpdates';
+import PairingUpdatesProvider from '@/contexts/PairingUpdates';
 
 // Admin route guard component
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -134,7 +135,11 @@ export function AppRoutes() {
           <Route index element={<ValorantPage />} />
           <Route path=":partyId" element={<ValorantPartyDetails />} />
         </Route>
-        <Route path="/pairings" element={<PairingsPage />} />
+        <Route path="/pairings" element={
+          <PairingUpdatesProvider>
+            <PairingsPage />
+          </PairingUpdatesProvider>
+        } />
       </Route>
 
       {/* Default redirect - now routes to /login */}

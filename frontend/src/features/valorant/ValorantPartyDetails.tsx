@@ -12,7 +12,7 @@ import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 import { PlayerSlotsContainer } from "@/components/valorant/PlayerSlotsContainer"
 import { formatDisplayText } from "@/utils/formatters"
 import { CountdownTimer } from "@/components/valorant/CountdownTimer"
-import { UserProfileModal } from "@/components/UserProfileModal"
+import { UserProfileModal } from "@/components/modals/UserProfileModal"
 import { SkeletonPartyDetails } from '@/components/ui/SkeletonUI'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
 import { usePartyParticipants } from '@/hooks/usePartyParticipants'
