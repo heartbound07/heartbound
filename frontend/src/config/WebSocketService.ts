@@ -144,8 +144,15 @@ class WebSocketService {
    * @returns The subscription object.
    */
   subscribe(topic: string, callback: (message: any) => void): StompSubscription | null {
+    // Wait for connection if not active
     if (!this.client.active) {
-      console.error(`[STOMP] Cannot subscribe to ${topic}: Client not connected`);
+      console.log(`[STOMP] Client not connected for ${topic}, waiting...`);
+      
+      // Retry subscription after a short delay
+      setTimeout(() => {
+        this.subscribe(topic, callback);
+      }, 500);
+      
       return null;
     }
     

@@ -22,6 +22,7 @@ import { useEffect } from 'react';
 import { ShopAdminPage } from '@/features/shop/ShopAdminPage';
 import { InventoryPage } from '@/features/shop/InventoryPage';
 import { PairingsPage } from '@/features/pages/PairingsPage';
+import QueueUpdatesProvider from '@/contexts/QueueUpdates';
 
 // Admin route guard component
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -56,7 +57,9 @@ function ProtectedRoutes() {
   return (
     <AuthGuard>
       <PartyUpdatesProvider>
-        <Outlet />
+        <QueueUpdatesProvider>
+          <Outlet />
+        </QueueUpdatesProvider>
       </PartyUpdatesProvider>
     </AuthGuard>
   );
