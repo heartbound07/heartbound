@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/valorant/av
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/valorant/badge';
 import { Input } from '@/components/ui/profile/input';
-import { Label } from '@/components/ui/profile/label';
+import { Label } from '@/components/ui/valorant/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/valorant/select';
 import { Loader2, Heart, Users, Clock, Trophy, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';

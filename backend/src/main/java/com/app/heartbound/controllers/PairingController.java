@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Collections;
 
 /**
  * PairingController
@@ -24,7 +25,7 @@ import java.util.Optional;
  * REST controller for managing user pairings in the "Don't Catch Feelings Challenge".
  */
 @RestController
-@RequestMapping("/api/pairings")
+@RequestMapping("/pairings")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Pairings", description = "Endpoints for managing user pairings")
@@ -136,7 +137,7 @@ public class PairingController {
         return ResponseEntity.ok(activePairings);
     }
 
-    @Operation(summary = "Get pairing history for a user", description = "Retrieve all past pairings for a specific user")
+    @Operation(summary = "Get pairing history for a user", description = "Retrieve the pairing history for a specific user")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Pairing history retrieved successfully")
     })
@@ -147,8 +148,13 @@ public class PairingController {
         
         log.info("Getting pairing history for user: {}", userId);
         
-        List<PairingDTO> history = pairingService.getPairingHistory(userId);
-        return ResponseEntity.ok(history);
+        try {
+            List<PairingDTO> history = pairingService.getPairingHistory(userId);
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            log.error("Error getting pairing history for user {}: {}", userId, e.getMessage());
+            return ResponseEntity.ok(Collections.emptyList());
+        }
     }
 
     @Operation(summary = "Check if users are blacklisted", description = "Check if a pair of users is blacklisted from being matched")
