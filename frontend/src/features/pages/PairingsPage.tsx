@@ -46,7 +46,7 @@ export function PairingsPage() {
     leaveQueue 
   } = usePairings();
 
-  const [queueForm, setQueueForm] = useState<JoinQueueRequestDTO>({
+  const [queueForm, setQueueForm] = useState<Omit<JoinQueueRequestDTO, 'userId'>>({
     age: 18,
     region: 'NA_EAST',
     rank: 'SILVER'
@@ -54,8 +54,18 @@ export function PairingsPage() {
 
   const handleJoinQueue = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user?.id) {
+      console.error('User ID is required to join queue');
+      return;
+    }
+    
     try {
-      await joinQueue(queueForm);
+      const queueRequest: JoinQueueRequestDTO = {
+        ...queueForm,
+        userId: user.id
+      };
+      await joinQueue(queueRequest);
     } catch (error) {
       // Error is handled by the hook
     }

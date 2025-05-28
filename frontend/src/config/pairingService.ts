@@ -29,6 +29,7 @@ export interface MatchQueueUserDTO {
 }
 
 export interface JoinQueueRequestDTO {
+  userId: string;
   age: number;
   region: string;
   rank: string;

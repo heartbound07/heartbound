@@ -53,7 +53,12 @@ public class MatchmakingController {
     public ResponseEntity<Map<String, Object>> joinQueue(@RequestBody Map<String, Object> request) {
         
         String userId = (String) request.get("userId");
-        log.info("User {} joining matchmaking queue", userId);
+        Integer age = (Integer) request.get("age");
+        String region = (String) request.get("region");
+        String rank = (String) request.get("rank");
+        
+        log.info("User {} joining matchmaking queue with preferences - Age: {}, Region: {}, Rank: {}", 
+                 userId, age, region, rank);
         
         // TODO: Implement actual queue joining logic
         Map<String, Object> response = new HashMap<>();
