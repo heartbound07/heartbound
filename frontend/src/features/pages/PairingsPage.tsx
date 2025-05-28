@@ -162,11 +162,25 @@ export function PairingsPage() {
                   <p className="text-slate-400 mb-4">
                     We're looking for your perfect match...
                   </p>
-                  {queueStatus.queuedAt && (
-                    <p className="text-sm text-slate-500 mb-4">
-                      Queued since {formatDate(queueStatus.queuedAt)}
-                    </p>
-                  )}
+                  
+                  <div className="space-y-2 mb-4">
+                    {queueStatus.queuePosition && queueStatus.totalQueueSize && (
+                      <p className="text-sm text-slate-300">
+                        Position: <span className="font-semibold text-primary">{queueStatus.queuePosition}</span> of {queueStatus.totalQueueSize}
+                      </p>
+                    )}
+                    {queueStatus.estimatedWaitTime && (
+                      <p className="text-sm text-slate-300">
+                        Estimated wait: <span className="font-semibold text-primary">{queueStatus.estimatedWaitTime}</span> minutes
+                      </p>
+                    )}
+                    {queueStatus.queuedAt && (
+                      <p className="text-xs text-slate-500">
+                        Queued since {formatDate(queueStatus.queuedAt)}
+                      </p>
+                    )}
+                  </div>
+                  
                   <Button 
                     variant="outline" 
                     onClick={leaveQueue}
@@ -215,7 +229,10 @@ export function PairingsPage() {
                     <Label htmlFor="region" className="text-white">Region</Label>
                     <Select
                       value={queueForm.region}
-                      onValueChange={(value) => setQueueForm(prev => ({ ...prev, region: value }))}
+                      onValueChange={(value) => setQueueForm(prev => ({ 
+                        ...prev, 
+                        region: value as 'NA_EAST' | 'NA_WEST' | 'EU' | 'ASIA' | 'OCE'
+                      }))}
                     >
                       <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                         <SelectValue placeholder="Select region" />
@@ -234,7 +251,10 @@ export function PairingsPage() {
                     <Label htmlFor="rank" className="text-white">Rank</Label>
                     <Select
                       value={queueForm.rank}
-                      onValueChange={(value) => setQueueForm(prev => ({ ...prev, rank: value }))}
+                      onValueChange={(value) => setQueueForm(prev => ({ 
+                        ...prev, 
+                        rank: value as 'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'ASCENDANT' | 'IMMORTAL' | 'RADIANT'
+                      }))}
                     >
                       <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                         <SelectValue placeholder="Select rank" />

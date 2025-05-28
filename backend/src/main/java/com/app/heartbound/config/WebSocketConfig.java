@@ -23,6 +23,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public static final String PARTY_APP_DESTINATION = "/app/party";
     // Additional mapping for party updates to ensure consistency across controllers
     public static final String PARTY_UPDATE = "/party/update";
+    // Add queue-specific topics
+    public static final String QUEUE_TOPIC = "/topic/queue";
+    public static final String MATCH_TOPIC = "/topic/matches";
 
     private final JWTChannelInterceptor jwtChannelInterceptor;
 

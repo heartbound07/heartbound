@@ -28,17 +28,19 @@ export interface MatchQueueUserDTO {
   inQueue: boolean;
 }
 
-export interface JoinQueueRequestDTO {
-  userId: string;
-  age: number;
-  region: string;
-  rank: string;
-}
-
 export interface QueueStatusDTO {
   inQueue: boolean;
   queuedAt?: string;
   estimatedWaitTime?: number;
+  queuePosition?: number;
+  totalQueueSize?: number;
+}
+
+export interface JoinQueueRequestDTO {
+  userId: string;
+  age: number;
+  region: 'NA_EAST' | 'NA_WEST' | 'EU' | 'ASIA' | 'OCE';
+  rank: 'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'ASCENDANT' | 'IMMORTAL' | 'RADIANT';
 }
 
 /**
@@ -74,9 +76,10 @@ export const getPairingHistory = async (userId: string): Promise<PairingDTO[]> =
  * Join the matchmaking queue
  * Note: This assumes a backend endpoint exists. If not, this would need to be created.
  */
-export const joinMatchmakingQueue = async (preferences: JoinQueueRequestDTO): Promise<void> => {
+export const joinMatchmakingQueue = async (preferences: JoinQueueRequestDTO): Promise<QueueStatusDTO> => {
   try {
-    await httpClient.post('/matchmaking/join', preferences);
+    const response = await httpClient.post('/matchmaking/join', preferences);
+    return response.data;
   } catch (error) {
     console.error('Error joining matchmaking queue:', error);
     throw error;
