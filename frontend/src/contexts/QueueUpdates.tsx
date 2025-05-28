@@ -9,7 +9,6 @@ import {
 } from 'react';
 import webSocketService from '../config/WebSocketService';
 import { useAuth } from '@/contexts/auth/useAuth';
-import type { QueueStatusDTO } from '@/config/pairingService';
 
 export interface QueueUpdateEvent {
   totalQueueSize: number;

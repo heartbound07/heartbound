@@ -46,7 +46,7 @@ export function PairingsPage() {
     joinQueue, 
     leaveQueue 
   } = usePairings();
-  const { queueUpdate, isConnected } = useQueueUpdates();
+  const { isConnected } = useQueueUpdates();
 
   const [queueForm, setQueueForm] = useState<Omit<JoinQueueRequestDTO, 'userId'>>({
     age: 18,
