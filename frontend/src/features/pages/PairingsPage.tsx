@@ -47,7 +47,8 @@ export function PairingsPage() {
     error, 
     actionLoading, 
     joinQueue, 
-    leaveQueue 
+    leaveQueue,
+    refreshData 
   } = usePairings();
   const { isConnected } = useQueueUpdates();
   const { pairingUpdate, clearUpdate } = usePairingUpdates();
@@ -87,6 +88,11 @@ export function PairingsPage() {
       
       const newPairings = await performMatchmaking();
       setAdminMessage(`Successfully created ${newPairings.length} new pairing(s)!`);
+      
+      // Refresh pairing data to ensure WebSocket updates are processed
+      setTimeout(() => {
+        refreshData();
+      }, 500); // Small delay to ensure WebSocket messages have time to arrive
       
       // Clear message after 5 seconds
       setTimeout(() => setAdminMessage(null), 5000);

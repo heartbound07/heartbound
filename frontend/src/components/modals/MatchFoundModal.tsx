@@ -14,12 +14,20 @@ interface MatchFoundModalProps {
 export function MatchFoundModal({ pairing, onClose }: MatchFoundModalProps) {
   const [isVisible, setIsVisible] = useState(true);
 
+  console.log('[MatchFoundModal] Rendering with pairing:', pairing);
+
   const handleClose = () => {
+    console.log('[MatchFoundModal] Closing modal');
     setIsVisible(false);
     setTimeout(onClose, 300); // Wait for animation to complete
   };
 
-  if (!pairing) return null;
+  if (!pairing) {
+    console.log('[MatchFoundModal] No pairing data, returning null');
+    return null;
+  }
+
+  console.log('[MatchFoundModal] Displaying modal for pairing ID:', pairing.id);
 
   return (
     <AnimatePresence>

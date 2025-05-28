@@ -2,9 +2,8 @@ package com.app.heartbound.services.pairing;
 
 import com.app.heartbound.dto.pairing.CreatePairingRequestDTO;
 import com.app.heartbound.dto.pairing.PairingDTO;
+import com.app.heartbound.dto.pairing.PairingUpdateEvent;
 import com.app.heartbound.entities.MatchQueueUser;
-import com.app.heartbound.enums.Rank;
-import com.app.heartbound.enums.Region;
 import com.app.heartbound.repositories.pairing.BlacklistEntryRepository;
 import com.app.heartbound.repositories.pairing.MatchQueueUserRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +13,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -139,27 +139,25 @@ public class MatchmakingService {
             }
 
             try {
-                // Create pairing request
-                CreatePairingRequestDTO request = CreatePairingRequestDTO.builder()
+                CreatePairingRequestDTO pairingRequest = CreatePairingRequestDTO.builder()
                         .user1Id(user1Id)
                         .user2Id(user2Id)
-                        .discordChannelId(generateTemporaryChannelId()) // TODO: Integrate with Discord service
+                        .discordChannelId(generateTemporaryChannelId())
                         .compatibilityScore(potentialPairing.compatibilityScore())
                         .build();
 
-                // Create the pairing
-                PairingDTO createdPairing = pairingService.createPairing(request);
+                PairingDTO createdPairing = pairingService.createPairing(pairingRequest);
                 createdPairings.add(createdPairing);
 
-                // Remove users from queue
-                removeUsersFromQueue(user1Id, user2Id);
+                // Send WebSocket notifications to both users
+                sendMatchFoundNotification(user1Id, createdPairing);
+                sendMatchFoundNotification(user2Id, createdPairing);
 
-                // Mark users as paired
                 pairedUsers.add(user1Id);
                 pairedUsers.add(user2Id);
 
-                log.info("Created pairing between users {} and {} with compatibility score: {}", 
-                        user1Id, user2Id, potentialPairing.compatibilityScore());
+                log.info("Created pairing between users {} and {} with compatibility score {}%", 
+                         user1Id, user2Id, potentialPairing.compatibilityScore());
 
             } catch (Exception e) {
                 log.error("Failed to create pairing between users {} and {}: {}", 
@@ -194,5 +192,29 @@ public class MatchmakingService {
         // TODO: Replace with actual Discord channel creation
         // For now, generate a random ID - this should be replaced with Discord API integration
         return System.currentTimeMillis();
+    }
+
+    private void sendMatchFoundNotification(String userId, PairingDTO pairing) {
+        try {
+            PairingUpdateEvent updateEvent = PairingUpdateEvent.builder()
+                    .eventType("MATCH_FOUND")
+                    .pairing(pairing)
+                    .message("Match found! You've been paired with someone special!")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+
+            // Log to verify who we're sending notifications to
+            log.info("Sending MATCH_FOUND notification to user: {} for pairing: {}", userId, pairing.getId());
+
+            messagingTemplate.convertAndSendToUser(
+                    userId, 
+                    "/topic/pairings", 
+                    updateEvent
+            );
+            
+            log.info("Successfully sent MATCH_FOUND notification to user: {}", userId);
+        } catch (Exception e) {
+            log.error("Failed to send match notification to user {}: {}", userId, e.getMessage());
+        }
     }
 } 
