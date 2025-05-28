@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Heart, Users, Clock, Trophy, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { JoinQueueRequestDTO } from '@/config/pairingService';
+import { useQueueUpdates } from '@/contexts/QueueUpdates';
 
 const REGIONS = [
   { value: 'NA_EAST', label: 'NA East' },
@@ -45,6 +46,7 @@ export function PairingsPage() {
     joinQueue, 
     leaveQueue 
   } = usePairings();
+  const { queueUpdate, isConnected } = useQueueUpdates();
 
   const [queueForm, setQueueForm] = useState<Omit<JoinQueueRequestDTO, 'userId'>>({
     age: 18,
@@ -159,9 +161,13 @@ export function PairingsPage() {
                 <div className="text-center py-6">
                   <Users className="h-12 w-12 text-primary mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-white mb-2">In Matchmaking Queue</h3>
-                  <p className="text-slate-400 mb-4">
-                    We're looking for your perfect match...
-                  </p>
+                  
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                    <span className="text-xs text-slate-400">
+                      {isConnected ? 'Live updates' : 'Reconnecting...'}
+                    </span>
+                  </div>
                   
                   <div className="space-y-2 mb-4">
                     {queueStatus.queuePosition && queueStatus.totalQueueSize && (

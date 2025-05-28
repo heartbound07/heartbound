@@ -11,9 +11,11 @@ import {
   type QueueStatusDTO 
 } from '@/config/pairingService';
 import { getUserProfile, type UserProfileDTO } from '@/config/userService';
+import { useQueueUpdates } from '@/contexts/QueueUpdates';
 
 export const usePairings = () => {
   const { user } = useAuth();
+  const { queueUpdate } = useQueueUpdates();
   const [currentPairing, setCurrentPairing] = useState<PairingDTO | null>(null);
   const [pairingHistory, setPairingHistory] = useState<PairingDTO[]>([]);
   const [queueStatus, setQueueStatus] = useState<QueueStatusDTO>({ inQueue: false });
@@ -92,6 +94,19 @@ export const usePairings = () => {
       setActionLoading(false);
     }
   }, [user?.id, fetchPairingData]);
+
+  // Listen for queue updates and refresh status when queue size changes
+  useEffect(() => {
+    if (queueUpdate && user?.id) {
+      console.log('Queue update received, refreshing status...');
+      // Only fetch queue status to avoid unnecessary full data fetch
+      getQueueStatus(user.id).then(status => {
+        setQueueStatus(status);
+      }).catch(err => {
+        console.error('Error updating queue status:', err);
+      });
+    }
+  }, [queueUpdate, user?.id]);
 
   // Initial data fetch
   useEffect(() => {

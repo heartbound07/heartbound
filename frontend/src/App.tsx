@@ -3,6 +3,7 @@ import { RootProvider } from '@/contexts/RootProvider'
 import { AppRoutes } from '@/routes'
 import '@/assets/App.css'
 import '@/assets/theme.css'
+import QueueUpdatesProvider from '@/contexts/QueueUpdates'
 
 function App() {
   return (
@@ -13,7 +14,9 @@ function App() {
       }}
     >
       <RootProvider>
-        <AppRoutes />
+        <QueueUpdatesProvider>
+          <AppRoutes />
+        </QueueUpdatesProvider>
       </RootProvider>
     </BrowserRouter>
   )

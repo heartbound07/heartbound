@@ -148,6 +148,13 @@ class WebSocketService {
       console.error(`[STOMP] Cannot subscribe to ${topic}: Client not connected`);
       return null;
     }
+    
+    // Check if already subscribed to this topic
+    if (this.subscriptions.has(topic)) {
+      console.info(`[STOMP] Already subscribed to ${topic}`);
+      return this.subscriptions.get(topic) || null;
+    }
+    
     const subscription = this.client.subscribe(topic, (message: IMessage) => {
       try {
         const body = JSON.parse(message.body);
@@ -156,7 +163,9 @@ class WebSocketService {
         console.error(`[STOMP] Error parsing message from topic ${topic}:`, error);
       }
     });
+    
     this.subscriptions.set(topic, subscription);
+    console.info(`[STOMP] Subscribed to ${topic}`);
     return subscription;
   }
 
