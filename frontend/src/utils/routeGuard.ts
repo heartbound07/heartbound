@@ -1,6 +1,6 @@
 const PUBLIC_PATHS = ['/', '/login', '/riot.txt'];
 const AUTH_PATHS = ['/auth', '/api/auth'];
-const PROTECTED_PATHS = ['/dashboard', '/profile', '/lfg', '/find-a-duo', '/shop', '/inventory'];
+const PROTECTED_PATHS = ['/dashboard', '/profile', '/lfg', '/find-a-duo', '/shop', '/inventory', '/pairings'];
 
 export const isPublicPath = (pathname: string): boolean => {
   return PUBLIC_PATHS.some(path => pathname.startsWith(path));

@@ -21,6 +21,7 @@ import { ShopPage } from '@/features/shop/ShopPage';
 import { useEffect } from 'react';
 import { ShopAdminPage } from '@/features/shop/ShopAdminPage';
 import { InventoryPage } from '@/features/shop/InventoryPage';
+import { PairingsPage } from '@/features/pages/PairingsPage';
 
 // Admin route guard component
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -130,6 +131,7 @@ export function AppRoutes() {
           <Route index element={<ValorantPage />} />
           <Route path=":partyId" element={<ValorantPartyDetails />} />
         </Route>
+        <Route path="/pairings" element={<PairingsPage />} />
       </Route>
 
       {/* Default redirect - now routes to /login */}

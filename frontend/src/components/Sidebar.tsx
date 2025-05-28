@@ -7,7 +7,7 @@ import { MdDashboard, MdAdminPanelSettings } from "react-icons/md"
 import { IoSettingsSharp } from "react-icons/io5"
 import { FaCoins, FaTrophy, FaShoppingCart, FaBoxOpen } from "react-icons/fa"
 import { useState, useRef, useEffect } from "react"
-import { ChevronRight, Menu, LogOut } from "lucide-react"
+import { ChevronRight, Menu, LogOut, Users } from "lucide-react"
 import { ProfilePreview } from "@/components/ui/profile/ProfilePreview"
 import ReactDOM from "react-dom"
 import valorantLogo from '@/assets/images/valorant-logo.png'
@@ -119,7 +119,12 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
       icon: <MdDashboard size={20} />,
       hasSubmenu: true
     },
-    // Leaderboard moved to position between Discover and Shop
+    {
+      label: "Pairings",
+      path: "/pairings",
+      icon: <Users size={20} />,
+      exact: true
+    },
     {
       path: "/dashboard/leaderboard",
       label: "Leaderboard",
