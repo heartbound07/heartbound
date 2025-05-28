@@ -74,10 +74,15 @@ export const usePairings = () => {
 
   // Leave matchmaking queue
   const leaveQueue = useCallback(async () => {
+    if (!user?.id) {
+      setError('User ID is required to leave queue');
+      return;
+    }
+
     try {
       setActionLoading(true);
       setError(null);
-      await leaveMatchmakingQueue();
+      await leaveMatchmakingQueue(user.id);
       // Refresh data after leaving
       await fetchPairingData();
     } catch (err: any) {
@@ -86,7 +91,7 @@ export const usePairings = () => {
     } finally {
       setActionLoading(false);
     }
-  }, [fetchPairingData]);
+  }, [user?.id, fetchPairingData]);
 
   // Initial data fetch
   useEffect(() => {

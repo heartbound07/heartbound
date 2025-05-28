@@ -89,9 +89,11 @@ export const joinMatchmakingQueue = async (preferences: JoinQueueRequestDTO): Pr
 /**
  * Leave the matchmaking queue
  */
-export const leaveMatchmakingQueue = async (): Promise<void> => {
+export const leaveMatchmakingQueue = async (userId: string): Promise<void> => {
   try {
-    await httpClient.post('/matchmaking/leave');
+    await httpClient.post('/matchmaking/leave', null, {
+      params: { userId }
+    });
   } catch (error) {
     console.error('Error leaving matchmaking queue:', error);
     throw error;
