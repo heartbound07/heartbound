@@ -39,25 +39,29 @@ public class PairingService {
      */
     @Transactional
     public PairingDTO createPairing(CreatePairingRequestDTO request) {
-        log.info("Creating pairing between users {} and {}", request.getUser1Id(), request.getUser2Id());
+        // Input sanitization and validation
+        String sanitizedUser1Id = sanitizeUserId(request.getUser1Id());
+        String sanitizedUser2Id = sanitizeUserId(request.getUser2Id());
+        
+        log.info("Creating pairing between users {} and {}", sanitizedUser1Id, sanitizedUser2Id);
 
         // Validate users exist
-        validateUsersExist(request.getUser1Id(), request.getUser2Id());
+        validateUsersExist(sanitizedUser1Id, sanitizedUser2Id);
 
         // Check if either user is already in an active pairing
-        validateUsersNotInActivePairing(request.getUser1Id(), request.getUser2Id());
+        validateUsersNotInActivePairing(sanitizedUser1Id, sanitizedUser2Id);
 
         // Check if users are blacklisted
-        if (areUsersBlacklisted(request.getUser1Id(), request.getUser2Id())) {
+        if (areUsersBlacklisted(sanitizedUser1Id, sanitizedUser2Id)) {
             throw new IllegalArgumentException("Users are blacklisted and cannot be paired");
         }
 
-        // Create pairing entity
+        // Create pairing entity with sanitized data
         Pairing pairing = Pairing.builder()
-                .user1Id(request.getUser1Id())
-                .user2Id(request.getUser2Id())
+                .user1Id(sanitizedUser1Id)
+                .user2Id(sanitizedUser2Id)
                 .discordChannelId(request.getDiscordChannelId())
-                .compatibilityScore(request.getCompatibilityScore())
+                .compatibilityScore(Math.max(0, Math.min(100, request.getCompatibilityScore()))) // Clamp score
                 .matchedAt(LocalDateTime.now())
                 .build();
 
@@ -65,7 +69,7 @@ public class PairingService {
         Pairing savedPairing = pairingRepository.save(pairing);
 
         // Remove users from queue if they are queued
-        removeUsersFromQueue(request.getUser1Id(), request.getUser2Id());
+        removeUsersFromQueue(sanitizedUser1Id, sanitizedUser2Id);
 
         log.info("Successfully created pairing with ID: {}", savedPairing.getId());
         return mapToPairingDTO(savedPairing);
@@ -115,24 +119,27 @@ public class PairingService {
      */
     @Transactional
     public PairingDTO breakupPairing(Long pairingId, BreakupRequestDTO request) {
-        log.info("Processing breakup for pairing ID: {} by user: {}", pairingId, request.getInitiatorId());
+        String sanitizedInitiatorId = sanitizeUserId(request.getInitiatorId());
+        String sanitizedReason = sanitizeInput(request.getReason());
+        
+        log.info("Processing breakup for pairing {} initiated by {}", pairingId, sanitizedInitiatorId);
 
         Pairing pairing = pairingRepository.findById(pairingId)
-                .orElseThrow(() -> new IllegalArgumentException("Pairing not found with ID: " + pairingId));
+                .orElseThrow(() -> new IllegalArgumentException("Pairing not found"));
 
         if (!pairing.isActive()) {
             throw new IllegalStateException("Pairing is already inactive");
         }
 
         // Validate initiator is part of the pairing
-        if (!pairing.involvesUser(request.getInitiatorId())) {
+        if (!pairing.involvesUser(sanitizedInitiatorId)) {
             throw new IllegalArgumentException("Initiator is not part of this pairing");
         }
 
         // Update pairing with breakup information
         pairing.setActive(false);
-        pairing.setBreakupInitiatorId(request.getInitiatorId());
-        pairing.setBreakupReason(request.getReason());
+        pairing.setBreakupInitiatorId(sanitizedInitiatorId);
+        pairing.setBreakupReason(sanitizedReason);
         pairing.setBreakupTimestamp(LocalDateTime.now());
         pairing.setMutualBreakup(request.isMutualBreakup());
 
@@ -142,7 +149,7 @@ public class PairingService {
         // Create blacklist entry to prevent re-pairing
         createBlacklistEntry(pairing.getUser1Id(), pairing.getUser2Id(), 
                            "Breakup on " + LocalDateTime.now() + " - " + 
-                           (request.getReason() != null ? request.getReason() : "No reason provided"));
+                           (sanitizedReason != null ? sanitizedReason : "No reason provided"));
 
         log.info("Successfully processed breakup for pairing ID: {}", pairingId);
         return mapToPairingDTO(updatedPairing);
@@ -217,10 +224,15 @@ public class PairingService {
 
     private void validateUsersExist(String user1Id, String user2Id) {
         if (!userRepository.existsById(user1Id)) {
-            throw new IllegalArgumentException("User not found: " + user1Id);
+            throw new IllegalArgumentException("User with ID " + user1Id + " does not exist");
         }
         if (!userRepository.existsById(user2Id)) {
-            throw new IllegalArgumentException("User not found: " + user2Id);
+            throw new IllegalArgumentException("User with ID " + user2Id + " does not exist");
+        }
+        
+        // Prevent self-pairing
+        if (user1Id.equals(user2Id)) {
+            throw new IllegalArgumentException("Cannot pair user with themselves");
         }
     }
 
@@ -274,5 +286,23 @@ public class PairingService {
                 .active(pairing.isActive())
                 .blacklisted(pairing.isBlacklisted())
                 .build();
+    }
+
+    // Add input sanitization methods
+    private String sanitizeUserId(String userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID cannot be null");
+        }
+        // Remove potentially dangerous characters, keep alphanumeric and common safe chars
+        return userId.replaceAll("[^a-zA-Z0-9_-]", "").trim();
+    }
+
+    private String sanitizeInput(String input) {
+        if (input == null) return null;
+        // Basic HTML/script tag removal and length limiting
+        return input.replaceAll("<[^>]*>", "")
+                   .replaceAll("javascript:", "")
+                   .trim()
+                   .substring(0, Math.min(input.length(), 500)); // Limit length
     }
 } 

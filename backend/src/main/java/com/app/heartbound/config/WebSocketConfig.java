@@ -40,26 +40,44 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // Enable a simple in-memory broker for demonstration purposes.
-        // All topics under "/topic" are handled by the broker.
+        // Enable a simple in-memory broker without heartbeat initially
         config.enableSimpleBroker("/topic");
-        // All messages starting with /app are routed to message-handling methods.
+        
         config.setApplicationDestinationPrefixes("/app");
-        logger.info("Message Broker configured with application destination prefix '/app' and simple broker '/topic'");
+        
+        // Set user destination prefix for personal messages
+        config.setUserDestinationPrefix("/user");
+        
+        logger.info("Message Broker configured with security enhancements");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // Register the WebSocket endpoint and allow SockJS fallback.
         registry.addEndpoint("/ws")
-                .setAllowedOrigins(allowedOrigins)
-                .withSockJS();
-        logger.info("STOMP endpoint '/ws' registered with SockJS fallback and allowed origins: {}", allowedOrigins);
+                .setAllowedOriginPatterns("http://localhost:*", "https://localhost:*", "http://127.0.0.1:*")
+                .withSockJS()
+                .setSessionCookieNeeded(false); // Disable session cookies for stateless operation
+        
+        logger.info("STOMP endpoint '/ws' registered with enhanced security");
     }
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(jwtChannelInterceptor);
-        logger.debug("JWTChannelInterceptor attached to client inbound channel");
+        registration.interceptors(jwtChannelInterceptor)
+                   .taskExecutor()
+                   .corePoolSize(4)
+                   .maxPoolSize(8)
+                   .queueCapacity(100);
+        
+        logger.debug("JWTChannelInterceptor attached with resource limits");
+    }
+
+    @Override
+    public void configureClientOutboundChannel(ChannelRegistration registration) {
+        // Configure outbound channel with limits
+        registration.taskExecutor()
+                   .corePoolSize(4)
+                   .maxPoolSize(8)
+                   .queueCapacity(100);
     }
 }

@@ -14,13 +14,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 
 /**
  * PairingController
@@ -32,6 +37,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Pairings", description = "Endpoints for managing user pairings")
+@Validated
 public class PairingController {
 
     private final PairingService pairingService;
@@ -44,18 +50,22 @@ public class PairingController {
             @ApiResponse(responseCode = "409", description = "Users already paired or blacklisted")
     })
     @PostMapping
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<PairingDTO> createPairing(@Valid @RequestBody CreatePairingRequestDTO request) {
-        log.info("Creating pairing between users {} and {}", request.getUser1Id(), request.getUser2Id());
+        log.info("Creating pairing request received");
         
         try {
             PairingDTO createdPairing = pairingService.createPairing(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdPairing);
         } catch (IllegalArgumentException e) {
-            log.error("Bad request for pairing creation: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            log.warn("Invalid pairing request: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (IllegalStateException e) {
-            log.error("Conflict in pairing creation: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+            log.warn("Pairing conflict: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error creating pairing", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create pairing");
         }
     }
 
@@ -65,15 +75,22 @@ public class PairingController {
             @ApiResponse(responseCode = "404", description = "No active pairing found")
     })
     @GetMapping("/current")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<PairingDTO> getCurrentPairing(
-            @Parameter(description = "User ID to search for", required = true)
-            @RequestParam String userId) {
+            @Parameter(description = "User ID", required = true)
+            @RequestParam @NotBlank String userId) {
         
-        log.info("Getting current pairing for user: {}", userId);
-        
-        Optional<PairingDTO> pairing = pairingService.getCurrentPairing(userId);
-        return pairing.map(ResponseEntity::ok)
-                     .orElse(ResponseEntity.notFound().build());
+        try {
+            Optional<PairingDTO> pairing = pairingService.getCurrentPairing(userId);
+            return pairing.map(ResponseEntity::ok)
+                         .orElse(ResponseEntity.notFound().build());
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid user ID for current pairing: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (Exception e) {
+            log.error("Error fetching current pairing for user: {}", userId, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to fetch current pairing");
+        }
     }
 
     @Operation(summary = "Update pairing activity", description = "Update activity metrics for a pairing")
@@ -108,23 +125,21 @@ public class PairingController {
             @ApiResponse(responseCode = "404", description = "Pairing not found"),
             @ApiResponse(responseCode = "400", description = "Invalid request data")
     })
-    @PostMapping("/{id}/breakup")
+    @PostMapping("/{pairingId}/breakup")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<PairingDTO> breakupPairing(
-            @Parameter(description = "Pairing ID", required = true)
-            @PathVariable Long id,
+            @PathVariable @Positive Long pairingId,
             @Valid @RequestBody BreakupRequestDTO request) {
         
-        log.info("Processing breakup for pairing ID: {} by user: {}", id, request.getInitiatorId());
-        
         try {
-            PairingDTO brokenUpPairing = pairingService.breakupPairing(id, request);
-            return ResponseEntity.ok(brokenUpPairing);
+            PairingDTO updatedPairing = pairingService.breakupPairing(pairingId, request);
+            return ResponseEntity.ok(updatedPairing);
         } catch (IllegalArgumentException e) {
-            log.error("Invalid breakup request: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
-        } catch (IllegalStateException e) {
-            log.error("Invalid state for breakup: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
+            log.warn("Invalid breakup request for pairing {}: {}", pairingId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (Exception e) {
+            log.error("Error processing breakup for pairing: {}", pairingId, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to process breakup");
         }
     }
 
@@ -182,13 +197,16 @@ public class PairingController {
             @ApiResponse(responseCode = "200", description = "Matchmaking completed successfully")
     })
     @PostMapping("/matchmake")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<PairingDTO>> performMatchmaking() {
-        log.info("Starting automatic matchmaking process");
-        
-        List<PairingDTO> newPairings = matchmakingService.performMatchmaking();
-        log.info("Matchmaking completed. Created {} new pairings", newPairings.size());
-        
-        return ResponseEntity.ok(newPairings);
+        try {
+            List<PairingDTO> newPairings = matchmakingService.performMatchmaking();
+            log.info("Matchmaking completed. Created {} new pairings", newPairings.size());
+            return ResponseEntity.ok(newPairings);
+        } catch (Exception e) {
+            log.error("Error during matchmaking process", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Matchmaking failed");
+        }
     }
 
     @Operation(summary = "Delete all active pairings", description = "Admin function to delete all active pairings")

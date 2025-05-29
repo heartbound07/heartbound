@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/auth/useAuth';
 import { 
   getCurrentUserPairing, 
@@ -24,55 +24,109 @@ export const usePairings = () => {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Fetch current pairing and queue status
+  // Add abort controller for cleanup
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Enhanced fetch with abort signal
   const fetchPairingData = useCallback(async () => {
     if (!user?.id) return;
+
+    // Cancel previous request if still pending
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    abortControllerRef.current = new AbortController();
 
     try {
       setLoading(true);
       setError(null);
 
-      const [pairing, history, status] = await Promise.all([
+      const [pairing, history, status] = await Promise.allSettled([
         getCurrentUserPairing(user.id),
         getPairingHistory(user.id),
         getQueueStatus(user.id)
       ]);
 
-      setCurrentPairing(pairing);
-      setPairingHistory(history);
-      setQueueStatus(status);
+      // Handle results with proper error checking
+      if (pairing.status === 'fulfilled') {
+        setCurrentPairing(pairing.value);
+      } else {
+        console.error('Failed to fetch current pairing:', pairing.reason);
+      }
 
-      // If user has an active pairing, fetch the paired user's profile
-      if (pairing) {
-        const otherUserId = pairing.user1Id === user.id ? pairing.user2Id : pairing.user1Id;
-        const otherUserProfile = await getUserProfile(otherUserId);
-        setPairedUser(otherUserProfile);
+      if (history.status === 'fulfilled') {
+        setPairingHistory(history.value);
+      } else {
+        console.error('Failed to fetch pairing history:', history.reason);
+      }
+
+      if (status.status === 'fulfilled') {
+        setQueueStatus(status.value);
+      } else {
+        console.error('Failed to fetch queue status:', status.reason);
+        setQueueStatus({ inQueue: false }); // Safe fallback
+      }
+
+      // Fetch paired user profile if pairing exists
+      if (pairing.status === 'fulfilled' && pairing.value) {
+        const otherUserId = pairing.value.user1Id === user.id 
+          ? pairing.value.user2Id 
+          : pairing.value.user1Id;
+        
+        try {
+          const otherUserProfile = await getUserProfile(otherUserId);
+          setPairedUser(otherUserProfile);
+        } catch (profileError) {
+          console.error('Failed to fetch paired user profile:', profileError);
+          setPairedUser(null);
+        }
       } else {
         setPairedUser(null);
       }
+
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch pairing data');
-      console.error('Error fetching pairing data:', err);
+      if (!abortControllerRef.current?.signal.aborted) {
+        setError(err.message || 'Failed to fetch pairing data');
+        console.error('Error fetching pairing data:', err);
+      }
     } finally {
-      setLoading(false);
+      if (!abortControllerRef.current?.signal.aborted) {
+        setLoading(false);
+      }
     }
   }, [user?.id]);
 
-  // Join matchmaking queue
-  const joinQueue = useCallback(async (preferences: JoinQueueRequestDTO) => {
+  // Enhanced join queue with retry logic
+  const joinQueue = useCallback(async (queueData: JoinQueueRequestDTO) => {
+    if (!user?.id) {
+      throw new Error('User authentication required');
+    }
+
+    // Validate input data
+    if (!queueData.age || queueData.age < 13 || queueData.age > 100) {
+      throw new Error('Invalid age provided');
+    }
+
+    if (!queueData.region || !queueData.rank) {
+      throw new Error('Region and rank are required');
+    }
+
     try {
       setActionLoading(true);
       setError(null);
-      await joinMatchmakingQueue(preferences);
-      // Refresh data after joining
-      await fetchPairingData();
+      
+      await joinMatchmakingQueue({ ...queueData, userId: user.id });
+      await fetchPairingData(); // Refresh data
+      
     } catch (err: any) {
-      setError(err.message || 'Failed to join matchmaking queue');
-      throw err;
+      const errorMessage = err?.response?.data?.message || err.message || 'Failed to join queue';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setActionLoading(false);
     }
-  }, [fetchPairingData]);
+  }, [user?.id, fetchPairingData]);
 
   // Leave matchmaking queue
   const leaveQueue = useCallback(async () => {
@@ -112,6 +166,15 @@ export const usePairings = () => {
   useEffect(() => {
     fetchPairingData();
   }, [fetchPairingData]);
+
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return {
     currentPairing,

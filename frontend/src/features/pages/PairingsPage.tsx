@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/auth/useAuth';
 import { usePairings } from '@/hooks/usePairings';
 import { Button } from '@/components/ui/button';
@@ -19,9 +19,12 @@ import { MatchFoundModal } from '@/components/modals/MatchFoundModal';
 const REGIONS = [
   { value: 'NA_EAST', label: 'NA East' },
   { value: 'NA_WEST', label: 'NA West' },
+  { value: 'NA_CENTRAL', label: 'NA Central' },
   { value: 'EU', label: 'Europe' },
-  { value: 'ASIA', label: 'Asia' },
-  { value: 'OCE', label: 'Oceania' }
+  { value: 'AP', label: 'Asia Pacific' },
+  { value: 'KR', label: 'Korea' },
+  { value: 'LATAM', label: 'Latin America' },
+  { value: 'BR', label: 'Brazil' }
 ];
 
 const RANKS = [
@@ -35,6 +38,117 @@ const RANKS = [
   { value: 'IMMORTAL', label: 'Immortal' },
   { value: 'RADIANT', label: 'Radiant' }
 ];
+
+// Extract form component for better organization
+const QueueJoinForm = ({ onJoinQueue, loading }: { 
+  onJoinQueue: (data: JoinQueueRequestDTO) => Promise<void>; 
+  loading: boolean;
+}) => {
+  const [age, setAge] = useState<string>('');
+  const [region, setRegion] = useState<string>('');
+  const [rank, setRank] = useState<string>('');
+  
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Input validation
+    const ageNum = parseInt(age);
+    if (!ageNum || ageNum < 13 || ageNum > 100) {
+      throw new Error('Please enter a valid age between 13 and 100');
+    }
+    
+    if (!region || !rank) {
+      throw new Error('Please select both region and rank');
+    }
+    
+    await onJoinQueue({
+      userId: '', // Will be set by parent
+      age: ageNum,
+      region: region as any,
+      rank: rank as any
+    });
+  }, [age, region, rank, onJoinQueue]);
+
+  return (
+    <Card className="bg-slate-800/50 border-slate-700">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-white">
+          <Heart className="h-5 w-5 text-primary" />
+          Join Matchmaking Queue
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="age" className="text-white">Age</Label>
+            <Input
+              id="age"
+              type="number"
+              placeholder="Enter your age"
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              min="13"
+              max="100"
+              required
+              className="bg-slate-700 border-slate-600 text-white"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="region" className="text-white">Region</Label>
+            <Select value={region} onValueChange={setRegion} required>
+              <SelectTrigger id="region" className="bg-slate-700 border-slate-600 text-white">
+                <SelectValue placeholder="Select your region" />
+              </SelectTrigger>
+              <SelectContent>
+                {REGIONS.map((reg) => (
+                  <SelectItem key={reg.value} value={reg.value}>
+                    {reg.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label htmlFor="rank" className="text-white">Rank</Label>
+            <Select value={rank} onValueChange={setRank} required>
+              <SelectTrigger id="rank" className="bg-slate-700 border-slate-600 text-white">
+                <SelectValue placeholder="Select your rank" />
+              </SelectTrigger>
+              <SelectContent>
+                {RANKS.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={loading}
+            aria-label="Join matchmaking queue"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Joining Queue...
+              </>
+            ) : (
+              <>
+                <Heart className="mr-2 h-4 w-4" />
+                Join Queue
+              </>
+            )}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+};
 
 export function PairingsPage() {
   const { user, hasRole } = useAuth();
@@ -58,30 +172,38 @@ export function PairingsPage() {
   const [showMatchModal, setShowMatchModal] = useState(false);
   const [matchedPairing, setMatchedPairing] = useState<PairingDTO | null>(null);
 
-  const [queueForm, setQueueForm] = useState<Omit<JoinQueueRequestDTO, 'userId'>>({
-    age: 18,
-    region: 'NA_EAST',
-    rank: 'SILVER'
-  });
+  // Memoize expensive calculations
+  const formatDate = useMemo(() => (dateString: string) => {
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(new Date(dateString));
+  }, []);
 
-  const handleJoinQueue = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  // Enhanced queue join with better error handling
+  const handleJoinQueue = useCallback(async (queueData: Omit<JoinQueueRequestDTO, 'userId'>) => {
     if (!user?.id) {
-      console.error('User ID is required to join queue');
-      return;
+      // Error handling is managed by usePairings hook
+      throw new Error('User authentication required');
     }
-    
+
     try {
-      const queueRequest: JoinQueueRequestDTO = {
-        ...queueForm,
+      await joinQueue({
+        ...queueData,
         userId: user.id
-      };
-      await joinQueue(queueRequest);
-    } catch (error) {
-      // Error is handled by the hook
+      });
+      
+      // Clear form state on success (if needed)
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Failed to join matchmaking queue';
+      // Error state is managed by usePairings hook, just rethrow
+      console.error('Queue join error:', err);
+      throw new Error(errorMessage);
     }
-  };
+  }, [user?.id, joinQueue]);
 
   const handleAdminMatchmaking = async () => {
     try {
@@ -90,27 +212,12 @@ export function PairingsPage() {
       
       const newPairings = await performMatchmaking();
       
-      if (newPairings.length > 0) {
-        setAdminMessage(`Successfully created ${newPairings.length} new pairing(s)! Users will be notified in 5 seconds...`);
-        
-        // Update the message after 5 seconds to indicate notifications were sent
-        setTimeout(() => {
-          setAdminMessage(`${newPairings.length} pairing(s) created and users notified!`);
-        }, 5000);
-      } else {
-        setAdminMessage('No valid pairings could be created at this time.');
-      }
-      
-      // Refresh data to show updated queue status
-      setTimeout(() => {
-        refreshData();
-      }, 6000); // Refresh after notifications are sent
-      
-      // Clear message after 10 seconds total
-      setTimeout(() => setAdminMessage(null), 10000);
-    } catch (error: any) {
-      setAdminMessage(`Matchmaking failed: ${error.message}`);
-      setTimeout(() => setAdminMessage(null), 5000);
+      setAdminMessage(`Successfully created ${newPairings.length} new pairings!`);
+      refreshData();
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || err?.message || 'Matchmaking failed';
+      setAdminMessage(`Error: ${errorMessage}`);
+      console.error('Admin matchmaking error:', err);
     } finally {
       setAdminActionLoading(false);
     }
@@ -138,14 +245,6 @@ export function PairingsPage() {
     } finally {
       setAdminActionLoading(false);
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
   };
 
   // Handle pairing updates to show modal
@@ -344,84 +443,7 @@ export function PairingsPage() {
 
             {/* Join Queue Section */}
             {!currentPairing && !queueStatus.inQueue && (
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-white">
-                    <Users className="h-5 w-5 text-primary" />
-                    Enter the Challenge
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleJoinQueue} className="space-y-4">
-                    <div>
-                      <Label htmlFor="age" className="text-white">Age</Label>
-                      <Input
-                        id="age"
-                        type="number"
-                        min="18"
-                        max="100"
-                        value={queueForm.age}
-                        onChange={(e) => setQueueForm(prev => ({ ...prev, age: parseInt(e.target.value) }))}
-                        className="bg-slate-700 border-slate-600 text-white"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="region" className="text-white">Region</Label>
-                      <Select
-                        value={queueForm.region}
-                        onValueChange={(value) => setQueueForm(prev => ({ 
-                          ...prev, 
-                          region: value as 'NA_EAST' | 'NA_WEST' | 'EU' | 'ASIA' | 'OCE'
-                        }))}
-                      >
-                        <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                          <SelectValue placeholder="Select region" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {REGIONS.map((region) => (
-                            <SelectItem key={region.value} value={region.value}>
-                              {region.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="rank" className="text-white">Rank</Label>
-                      <Select
-                        value={queueForm.rank}
-                        onValueChange={(value) => setQueueForm(prev => ({ 
-                          ...prev, 
-                          rank: value as 'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'ASCENDANT' | 'IMMORTAL' | 'RADIANT'
-                        }))}
-                      >
-                        <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                          <SelectValue placeholder="Select rank" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {RANKS.map((rank) => (
-                            <SelectItem key={rank.value} value={rank.value}>
-                              {rank.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <Button 
-                      type="submit" 
-                      className="w-full" 
-                      disabled={actionLoading}
-                    >
-                      {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                      Join Matchmaking Queue
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
+              <QueueJoinForm onJoinQueue={handleJoinQueue} loading={actionLoading} />
             )}
 
             {/* Pairing History */}
