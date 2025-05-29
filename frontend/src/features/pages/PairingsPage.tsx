@@ -15,6 +15,8 @@ import { useQueueUpdates } from '@/contexts/QueueUpdates';
 import { performMatchmaking, deleteAllPairings } from '@/config/pairingService';
 import { usePairingUpdates } from '@/contexts/PairingUpdates';
 import { MatchFoundModal } from '@/components/modals/MatchFoundModal';
+import { UserProfileModal } from '@/components/modals/UserProfileModal';
+import { getUserProfiles, type UserProfileDTO } from '@/config/userService';
 
 const REGIONS = [
   { value: 'NA_EAST', label: 'NA East' },
@@ -171,6 +173,10 @@ export function PairingsPage() {
   const [adminMessage, setAdminMessage] = useState<string | null>(null);
   const [showMatchModal, setShowMatchModal] = useState(false);
   const [matchedPairing, setMatchedPairing] = useState<PairingDTO | null>(null);
+  const [userProfiles, setUserProfiles] = useState<Record<string, UserProfileDTO>>({});
+  const [selectedUserProfile, setSelectedUserProfile] = useState<UserProfileDTO | null>(null);
+  const [showUserProfileModal, setShowUserProfileModal] = useState(false);
+  const [userProfileModalPosition, setUserProfileModalPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Memoize expensive calculations
   const formatDate = useMemo(() => (dateString: string) => {
@@ -258,6 +264,48 @@ export function PairingsPage() {
       clearUpdate();
     }
   }, [pairingUpdate, refreshData, clearUpdate]);
+
+  // Fetch user profiles for pairing history
+  useEffect(() => {
+    const fetchUserProfiles = async () => {
+      const userIds = new Set<string>();
+      
+      // Collect all user IDs from pairing history
+      pairingHistory.forEach(pairing => {
+        userIds.add(pairing.user1Id);
+        userIds.add(pairing.user2Id);
+      });
+      
+      if (userIds.size > 0) {
+        try {
+          const profiles = await getUserProfiles(Array.from(userIds));
+          setUserProfiles(profiles);
+        } catch (error) {
+          console.error('Failed to fetch user profiles:', error);
+        }
+      }
+    };
+
+    if (pairingHistory.length > 0) {
+      fetchUserProfiles();
+    }
+  }, [pairingHistory]);
+
+  // Handle user profile click
+  const handleUserClick = useCallback((userId: string, event: React.MouseEvent) => {
+    const profile = userProfiles[userId];
+    if (profile) {
+      setSelectedUserProfile(profile);
+      setUserProfileModalPosition({ x: event.clientX, y: event.clientY });
+      setShowUserProfileModal(true);
+    }
+  }, [userProfiles]);
+
+  const handleCloseUserProfileModal = useCallback(() => {
+    setShowUserProfileModal(false);
+    setSelectedUserProfile(null);
+    setUserProfileModalPosition(null);
+  }, []);
 
   const handleCloseMatchModal = () => {
     console.log('[PairingsPage] Closing match modal');
@@ -456,26 +504,65 @@ export function PairingsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {pairingHistory.slice(0, 5).map((pairing) => (
-                      <div key={pairing.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
-                        <div>
-                          <p className="text-white font-medium">
-                            Pairing #{pairing.id}
-                          </p>
-                          <p className="text-sm text-slate-400">
-                            {formatDate(pairing.matchedAt)} - {pairing.activeDays} days
-                          </p>
+                    {pairingHistory.slice(0, 5).map((pairing) => {
+                      const user1Profile = userProfiles[pairing.user1Id];
+                      const user2Profile = userProfiles[pairing.user2Id];
+                      
+                      return (
+                        <div key={pairing.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            {/* User 1 */}
+                            <div 
+                              className="flex items-center gap-2 cursor-pointer hover:bg-slate-600/30 p-1 rounded transition-colors"
+                              onClick={(e) => handleUserClick(pairing.user1Id, e)}
+                            >
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={user1Profile?.avatar} />
+                                <AvatarFallback>
+                                  {user1Profile?.displayName?.[0] || user1Profile?.username?.[0] || '?'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-white font-medium text-sm">
+                                {user1Profile?.displayName || user1Profile?.username || 'Unknown User'}
+                              </span>
+                            </div>
+                            
+                            {/* Plus separator */}
+                            <span className="text-slate-400 font-bold">+</span>
+                            
+                            {/* User 2 */}
+                            <div 
+                              className="flex items-center gap-2 cursor-pointer hover:bg-slate-600/30 p-1 rounded transition-colors"
+                              onClick={(e) => handleUserClick(pairing.user2Id, e)}
+                            >
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={user2Profile?.avatar} />
+                                <AvatarFallback>
+                                  {user2Profile?.displayName?.[0] || user2Profile?.username?.[0] || '?'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-white font-medium text-sm">
+                                {user2Profile?.displayName || user2Profile?.username || 'Unknown User'}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col items-end gap-1">
+                            <p className="text-sm text-slate-400">
+                              {formatDate(pairing.matchedAt)} - {pairing.activeDays} days
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={pairing.active ? "default" : "secondary"}>
+                                {pairing.active ? "Active" : "Ended"}
+                              </Badge>
+                              <Badge variant="outline">
+                                {pairing.compatibilityScore}% Match
+                              </Badge>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={pairing.active ? "default" : "secondary"}>
-                            {pairing.active ? "Active" : "Ended"}
-                          </Badge>
-                          <Badge variant="outline">
-                            {pairing.compatibilityScore}% Match
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -483,7 +570,15 @@ export function PairingsPage() {
           </div>
         </motion.div>
       </div>
-
+      {/* User Profile Modal */}
+      {showUserProfileModal && selectedUserProfile && (
+        <UserProfileModal 
+          isOpen={showUserProfileModal}
+          onClose={handleCloseUserProfileModal}
+          userProfile={selectedUserProfile}
+          position={userProfileModalPosition}
+        />
+      )}
       {/* Match Found Modal */}
       {showMatchModal && matchedPairing && (
         <MatchFoundModal 

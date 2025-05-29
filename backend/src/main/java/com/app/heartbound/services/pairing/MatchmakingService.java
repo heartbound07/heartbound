@@ -192,35 +192,31 @@ public class MatchmakingService {
     }
 
     private void scheduleNotificationBroadcast(List<PairingNotification> notifications) {
-        log.info("Scheduling broadcast of {} match notifications in 5 seconds", notifications.size());
+        log.info("Broadcasting {} match notifications immediately", notifications.size());
         
-        scheduledExecutor.schedule(() -> {
-            log.info("Broadcasting {} match notifications now", notifications.size());
-            
-            for (PairingNotification notification : notifications) {
-                try {
-                    PairingUpdateEvent updateEvent = PairingUpdateEvent.builder()
-                            .eventType("MATCH_FOUND")
-                            .pairing(notification.pairing())
-                            .message("Match found! You've been paired with someone special!")
-                            .timestamp(LocalDateTime.now())
-                            .build();
+        for (PairingNotification notification : notifications) {
+            try {
+                PairingUpdateEvent updateEvent = PairingUpdateEvent.builder()
+                        .eventType("MATCH_FOUND")
+                        .pairing(notification.pairing())
+                        .message("Match found! You've been paired with someone special!")
+                        .timestamp(LocalDateTime.now())
+                        .build();
 
-                    // Use direct destination send (this should work since frontend subscribes to exact path)
-                    String userDestination = "/user/" + notification.userId() + "/topic/pairings";
-                    messagingTemplate.convertAndSend(userDestination, updateEvent);
-                    
-                    log.info("Successfully sent MATCH_FOUND notification to user: {} via direct method", notification.userId());
-                    log.info("User destination: {}", userDestination);
-                    log.info("Update event: {}", updateEvent);
-                    
-                } catch (Exception e) {
-                    log.error("Failed to send match notification to user {}: {}", notification.userId(), e.getMessage(), e);
-                }
+                // Use direct destination send (this should work since frontend subscribes to exact path)
+                String userDestination = "/user/" + notification.userId() + "/topic/pairings";
+                messagingTemplate.convertAndSend(userDestination, updateEvent);
+                
+                log.info("Successfully sent MATCH_FOUND notification to user: {} via direct method", notification.userId());
+                log.info("User destination: {}", userDestination);
+                log.info("Update event: {}", updateEvent);
+                
+            } catch (Exception e) {
+                log.error("Failed to send match notification to user {}: {}", notification.userId(), e.getMessage(), e);
             }
-            
-            log.info("Completed broadcasting all match notifications");
-        }, 5, TimeUnit.SECONDS);
+        }
+        
+        log.info("Completed broadcasting all match notifications");
     }
 
     private Long generateTemporaryChannelId() {
