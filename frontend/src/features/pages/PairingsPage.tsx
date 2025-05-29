@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth/useAuth';
 import { usePairings } from '@/hooks/usePairings';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/valorant/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/valorant/select';
 import { Loader2, Heart, Users, Clock, Trophy, MessageCircle, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
-import type { JoinQueueRequestDTO } from '@/config/pairingService';
+import type { JoinQueueRequestDTO, PairingDTO } from '@/config/pairingService';
 import { useQueueUpdates } from '@/contexts/QueueUpdates';
 import { performMatchmaking, deleteAllPairings } from '@/config/pairingService';
 import { usePairingUpdates } from '@/contexts/PairingUpdates';
@@ -55,6 +55,8 @@ export function PairingsPage() {
   
   const [adminActionLoading, setAdminActionLoading] = useState(false);
   const [adminMessage, setAdminMessage] = useState<string | null>(null);
+  const [showMatchModal, setShowMatchModal] = useState(false);
+  const [matchedPairing, setMatchedPairing] = useState<PairingDTO | null>(null);
 
   const [queueForm, setQueueForm] = useState<Omit<JoinQueueRequestDTO, 'userId'>>({
     age: 18,
@@ -87,15 +89,25 @@ export function PairingsPage() {
       setAdminMessage(null);
       
       const newPairings = await performMatchmaking();
-      setAdminMessage(`Successfully created ${newPairings.length} new pairing(s)!`);
       
-      // Refresh pairing data to ensure WebSocket updates are processed
+      if (newPairings.length > 0) {
+        setAdminMessage(`Successfully created ${newPairings.length} new pairing(s)! Users will be notified in 5 seconds...`);
+        
+        // Update the message after 5 seconds to indicate notifications were sent
+        setTimeout(() => {
+          setAdminMessage(`${newPairings.length} pairing(s) created and users notified!`);
+        }, 5000);
+      } else {
+        setAdminMessage('No valid pairings could be created at this time.');
+      }
+      
+      // Refresh data to show updated queue status
       setTimeout(() => {
         refreshData();
-      }, 500); // Small delay to ensure WebSocket messages have time to arrive
+      }, 6000); // Refresh after notifications are sent
       
-      // Clear message after 5 seconds
-      setTimeout(() => setAdminMessage(null), 5000);
+      // Clear message after 10 seconds total
+      setTimeout(() => setAdminMessage(null), 10000);
     } catch (error: any) {
       setAdminMessage(`Matchmaking failed: ${error.message}`);
       setTimeout(() => setAdminMessage(null), 5000);
@@ -134,6 +146,25 @@ export function PairingsPage() {
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  // Handle pairing updates to show modal
+  useEffect(() => {
+    if (pairingUpdate && pairingUpdate.eventType === 'MATCH_FOUND' && pairingUpdate.pairing) {
+      console.log('[PairingsPage] Match found, showing modal:', pairingUpdate);
+      setMatchedPairing(pairingUpdate.pairing);
+      setShowMatchModal(true);
+      // Refresh data to update UI
+      refreshData();
+      // Clear the update after handling it
+      clearUpdate();
+    }
+  }, [pairingUpdate, refreshData, clearUpdate]);
+
+  const handleCloseMatchModal = () => {
+    console.log('[PairingsPage] Closing match modal');
+    setShowMatchModal(false);
+    setMatchedPairing(null);
   };
 
   if (loading) {
@@ -432,10 +463,11 @@ export function PairingsPage() {
         </motion.div>
       </div>
 
-      {pairingUpdate?.eventType === 'MATCH_FOUND' && (
+      {/* Match Found Modal */}
+      {showMatchModal && matchedPairing && (
         <MatchFoundModal 
-          pairing={pairingUpdate.pairing}
-          onClose={() => clearUpdate()}
+          pairing={matchedPairing} 
+          onClose={handleCloseMatchModal} 
         />
       )}
     </div>

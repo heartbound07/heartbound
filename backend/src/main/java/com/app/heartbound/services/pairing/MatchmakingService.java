@@ -10,11 +10,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -34,11 +39,18 @@ public class MatchmakingService {
     private final PairingService pairingService;
     private final SimpMessagingTemplate messagingTemplate;
     private final QueueService queueService;
+    private final ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(2);
 
     /**
      * Potential pairing with compatibility score
      */
     private record PotentialPairing(MatchQueueUser user1, MatchQueueUser user2, int compatibilityScore) {
+    }
+
+    /**
+     * Pairing notification data
+     */
+    private record PairingNotification(String userId, PairingDTO pairing) {
     }
 
     /**
@@ -127,6 +139,7 @@ public class MatchmakingService {
 
     private List<PairingDTO> createOptimalPairings(List<PotentialPairing> validPairings) {
         List<PairingDTO> createdPairings = new ArrayList<>();
+        List<PairingNotification> pendingNotifications = new ArrayList<>();
         Set<String> pairedUsers = new HashSet<>();
 
         for (PotentialPairing potentialPairing : validPairings) {
@@ -149,9 +162,9 @@ public class MatchmakingService {
                 PairingDTO createdPairing = pairingService.createPairing(pairingRequest);
                 createdPairings.add(createdPairing);
 
-                // Send WebSocket notifications to both users
-                sendMatchFoundNotification(user1Id, createdPairing);
-                sendMatchFoundNotification(user2Id, createdPairing);
+                // Store notifications for later broadcast instead of sending immediately
+                pendingNotifications.add(new PairingNotification(user1Id, createdPairing));
+                pendingNotifications.add(new PairingNotification(user2Id, createdPairing));
 
                 pairedUsers.add(user1Id);
                 pairedUsers.add(user2Id);
@@ -165,6 +178,11 @@ public class MatchmakingService {
             }
         }
 
+        // Schedule notifications to be sent after 5 seconds
+        if (!pendingNotifications.isEmpty()) {
+            scheduleNotificationBroadcast(pendingNotifications);
+        }
+
         // Update queue after removing users
         if (!pairedUsers.isEmpty()) {
             queueService.broadcastQueueUpdate();
@@ -173,48 +191,41 @@ public class MatchmakingService {
         return createdPairings;
     }
 
-    private void removeUsersFromQueue(String user1Id, String user2Id) {
-        // Remove both users from queue
-        matchQueueUserRepository.findByUserId(user1Id).ifPresent(queueUser -> {
-            queueUser.setInQueue(false);
-            matchQueueUserRepository.save(queueUser);
-            log.info("Removed user {} from queue after pairing", user1Id);
-        });
+    private void scheduleNotificationBroadcast(List<PairingNotification> notifications) {
+        log.info("Scheduling broadcast of {} match notifications in 5 seconds", notifications.size());
         
-        matchQueueUserRepository.findByUserId(user2Id).ifPresent(queueUser -> {
-            queueUser.setInQueue(false);
-            matchQueueUserRepository.save(queueUser);
-            log.info("Removed user {} from queue after pairing", user2Id);
-        });
+        scheduledExecutor.schedule(() -> {
+            log.info("Broadcasting {} match notifications now", notifications.size());
+            
+            for (PairingNotification notification : notifications) {
+                try {
+                    PairingUpdateEvent updateEvent = PairingUpdateEvent.builder()
+                            .eventType("MATCH_FOUND")
+                            .pairing(notification.pairing())
+                            .message("Match found! You've been paired with someone special!")
+                            .timestamp(LocalDateTime.now())
+                            .build();
+
+                    messagingTemplate.convertAndSendToUser(
+                            notification.userId(), 
+                            "/topic/pairings", 
+                            updateEvent
+                    );
+                    
+                    log.info("Successfully sent MATCH_FOUND notification to user: {}", notification.userId());
+                    
+                } catch (Exception e) {
+                    log.error("Failed to send match notification to user {}: {}", notification.userId(), e.getMessage());
+                }
+            }
+            
+            log.info("Completed broadcasting all match notifications");
+        }, 5, TimeUnit.SECONDS);
     }
 
     private Long generateTemporaryChannelId() {
         // TODO: Replace with actual Discord channel creation
         // For now, generate a random ID - this should be replaced with Discord API integration
         return System.currentTimeMillis();
-    }
-
-    private void sendMatchFoundNotification(String userId, PairingDTO pairing) {
-        try {
-            PairingUpdateEvent updateEvent = PairingUpdateEvent.builder()
-                    .eventType("MATCH_FOUND")
-                    .pairing(pairing)
-                    .message("Match found! You've been paired with someone special!")
-                    .timestamp(LocalDateTime.now())
-                    .build();
-
-            // Log to verify who we're sending notifications to
-            log.info("Sending MATCH_FOUND notification to user: {} for pairing: {}", userId, pairing.getId());
-
-            messagingTemplate.convertAndSendToUser(
-                    userId, 
-                    "/topic/pairings", 
-                    updateEvent
-            );
-            
-            log.info("Successfully sent MATCH_FOUND notification to user: {}", userId);
-        } catch (Exception e) {
-            log.error("Failed to send match notification to user {}: {}", userId, e.getMessage());
-        }
     }
 } 
