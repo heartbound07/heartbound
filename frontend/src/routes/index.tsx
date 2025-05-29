@@ -24,6 +24,7 @@ import { InventoryPage } from '@/features/shop/InventoryPage';
 import { PairingsPage } from '@/features/pages/PairingsPage';
 import QueueUpdatesProvider from '@/contexts/QueueUpdates';
 import PairingUpdatesProvider from '@/contexts/PairingUpdates';
+import { QueueConfigProvider } from '@/contexts/QueueConfigUpdates';
 
 // Admin route guard component
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -136,9 +137,11 @@ export function AppRoutes() {
           <Route path=":partyId" element={<ValorantPartyDetails />} />
         </Route>
         <Route path="/pairings" element={
-          <PairingUpdatesProvider>
-            <PairingsPage />
-          </PairingUpdatesProvider>
+          <QueueConfigProvider>
+            <PairingUpdatesProvider>
+              <PairingsPage />
+            </PairingUpdatesProvider>
+          </QueueConfigProvider>
         } />
       </Route>
 

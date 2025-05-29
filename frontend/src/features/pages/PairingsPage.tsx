@@ -12,13 +12,14 @@ import { Loader2, Heart, Users, Clock, Trophy, MessageCircle, Settings } from 'l
 import { motion } from 'framer-motion';
 import type { JoinQueueRequestDTO, PairingDTO } from '@/config/pairingService';
 import { useQueueUpdates } from '@/contexts/QueueUpdates';
-import { performMatchmaking, deleteAllPairings } from '@/config/pairingService';
+import { performMatchmaking, deleteAllPairings, enableQueue, disableQueue } from '@/config/pairingService';
 import { usePairingUpdates } from '@/contexts/PairingUpdates';
 import { MatchFoundModal } from '@/components/modals/MatchFoundModal';
 import { UserProfileModal } from '@/components/modals/UserProfileModal';
 import { getUserProfiles, type UserProfileDTO } from '@/config/userService';
 import { DashboardNavigation } from '@/components/Sidebar';
 import '@/assets/PairingsPage.css';
+import { useQueueConfig } from '@/contexts/QueueConfigUpdates';
 
 const REGIONS = [
   { value: 'NA_EAST', label: 'NA East' },
@@ -208,6 +209,11 @@ export function PairingsPage() {
     }).format(new Date(dateString));
   }, []);
 
+  // Add queue config state and context
+  const { queueConfig, isQueueEnabled } = useQueueConfig();
+  const [queueConfigLoading, setQueueConfigLoading] = useState(false);
+  const [queueConfigMessage, setQueueConfigMessage] = useState<string | null>(null);
+
   // Enhanced queue join with better error handling
   const handleJoinQueue = useCallback(async (queueData: Omit<JoinQueueRequestDTO, 'userId'>) => {
     if (!user?.id) {
@@ -332,6 +338,47 @@ export function PairingsPage() {
     setMatchedPairing(null);
   };
 
+  // Add queue control handlers
+  const handleEnableQueue = async () => {
+    try {
+      setQueueConfigLoading(true);
+      setQueueConfigMessage(null);
+      
+      const result = await enableQueue();
+      setQueueConfigMessage(`Queue enabled successfully: ${result.message}`);
+      
+      setTimeout(() => setQueueConfigMessage(null), 5000);
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to enable queue';
+      setQueueConfigMessage(`Error: ${errorMessage}`);
+      setTimeout(() => setQueueConfigMessage(null), 5000);
+    } finally {
+      setQueueConfigLoading(false);
+    }
+  };
+
+  const handleDisableQueue = async () => {
+    if (!confirm('Are you sure you want to disable the matchmaking queue? Users will not be able to join until re-enabled.')) {
+      return;
+    }
+
+    try {
+      setQueueConfigLoading(true);
+      setQueueConfigMessage(null);
+      
+      const result = await disableQueue();
+      setQueueConfigMessage(`Queue disabled successfully: ${result.message}`);
+      
+      setTimeout(() => setQueueConfigMessage(null), 5000);
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to disable queue';
+      setQueueConfigMessage(`Error: ${errorMessage}`);
+      setTimeout(() => setQueueConfigMessage(null), 5000);
+    } finally {
+      setQueueConfigLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -357,36 +404,95 @@ export function PairingsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-wrap gap-3 items-center">
-                    <Button
-                      onClick={handleAdminMatchmaking}
-                      disabled={adminActionLoading}
-                      className="flex items-center gap-2"
-                    >
-                      {adminActionLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Heart className="h-4 w-4" />
+                  <div className="space-y-4">
+                    {/* Queue Status Display */}
+                    <div className="p-3 rounded-lg border border-slate-600 bg-slate-700/30">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${isQueueEnabled ? 'bg-green-500' : 'bg-red-500'}`} />
+                          <span className="text-white font-medium">
+                            Queue Status: {isQueueEnabled ? 'Enabled' : 'Disabled'}
+                          </span>
+                        </div>
+                        {queueConfig && (
+                          <Badge variant="outline" className="text-xs">
+                            Updated by {queueConfig.updatedBy}
+                          </Badge>
+                        )}
+                      </div>
+                      {queueConfig && (
+                        <p className="text-sm text-slate-400 mt-1">{queueConfig.message}</p>
                       )}
-                      Run Matchmaking
-                    </Button>
-                    <Button
-                      onClick={handleDeleteAllPairings}
-                      disabled={adminActionLoading}
-                      variant="destructive"
-                      size="sm"
-                    >
-                      {adminActionLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : (
-                        <Users className="h-4 w-4 mr-2" />
-                      )}
-                      Delete All Pairings
-                    </Button>
-                    {adminMessage && (
-                      <p className={`text-sm ${adminMessage.includes('failed') ? 'text-red-300' : 'text-green-300'}`}>
-                        {adminMessage}
-                      </p>
+                    </div>
+
+                    {/* Queue Control Buttons */}
+                    <div className="flex flex-wrap gap-3 items-center">
+                      <Button
+                        onClick={handleEnableQueue}
+                        disabled={queueConfigLoading || isQueueEnabled}
+                        variant={isQueueEnabled ? "outline" : "default"}
+                        className="flex items-center gap-2"
+                      >
+                        {queueConfigLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Users className="h-4 w-4" />
+                        )}
+                        Enable Queue
+                      </Button>
+                      
+                      <Button
+                        onClick={handleDisableQueue}
+                        disabled={queueConfigLoading || !isQueueEnabled}
+                        variant={!isQueueEnabled ? "outline" : "destructive"}
+                        className="flex items-center gap-2"
+                      >
+                        {queueConfigLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Users className="h-4 w-4" />
+                        )}
+                        Disable Queue
+                      </Button>
+
+                      {/* Existing admin buttons */}
+                      <Button
+                        onClick={handleAdminMatchmaking}
+                        disabled={adminActionLoading}
+                        className="flex items-center gap-2"
+                      >
+                        {adminActionLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Heart className="h-4 w-4" />
+                        )}
+                        Run Matchmaking
+                      </Button>
+                      
+                      <Button
+                        onClick={handleDeleteAllPairings}
+                        disabled={adminActionLoading}
+                        variant="destructive"
+                        size="sm"
+                      >
+                        {adminActionLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <Users className="h-4 w-4 mr-2" />
+                        )}
+                        Delete All Pairings
+                      </Button>
+                    </div>
+
+                    {/* Admin Messages */}
+                    {(adminMessage || queueConfigMessage) && (
+                      <div className={`p-3 rounded-lg text-sm ${
+                        (adminMessage || queueConfigMessage)?.includes('Error') 
+                          ? 'bg-red-500/10 border border-red-500/20 text-red-400' 
+                          : 'bg-green-500/10 border border-green-500/20 text-green-400'
+                      }`}>
+                        {queueConfigMessage || adminMessage}
+                      </div>
                     )}
                   </div>
                 </CardContent>
@@ -505,8 +611,8 @@ export function PairingsPage() {
                 </CardContent>
               </Card>
 
-              {/* Join Queue Section */}
-              {!currentPairing && !queueStatus.inQueue && (
+              {/* Join Queue Section - Hide if queue disabled */}
+              {!currentPairing && !queueStatus.inQueue && isQueueEnabled && (
                 <QueueJoinForm onJoinQueue={handleJoinQueue} loading={actionLoading} />
               )}
 

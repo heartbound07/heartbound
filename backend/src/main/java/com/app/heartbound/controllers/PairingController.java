@@ -3,6 +3,7 @@ package com.app.heartbound.controllers;
 import com.app.heartbound.dto.pairing.*;
 import com.app.heartbound.services.pairing.MatchmakingService;
 import com.app.heartbound.services.pairing.PairingService;
+import com.app.heartbound.services.pairing.QueueService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,6 +18,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 import java.util.Optional;
@@ -42,6 +44,7 @@ public class PairingController {
 
     private final PairingService pairingService;
     private final MatchmakingService matchmakingService;
+    private final QueueService queueService;
 
     @Operation(summary = "Create a new pairing", description = "Create a pairing between two users")
     @ApiResponses(value = {
@@ -225,5 +228,51 @@ public class PairingController {
         response.put("deletedCount", deletedCount);
         
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/admin/queue/enable")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<QueueConfigDTO> enableQueue(Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            queueService.setQueueEnabled(true, username);
+            QueueConfigDTO config = queueService.getQueueConfig();
+            
+            log.info("Queue enabled by admin: {}", username);
+            return ResponseEntity.ok(config);
+        } catch (Exception e) {
+            log.error("Error enabling queue", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new QueueConfigDTO(false, "Failed to enable queue: " + e.getMessage(), authentication.getName()));
+        }
+    }
+
+    @PostMapping("/admin/queue/disable")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<QueueConfigDTO> disableQueue(Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            queueService.setQueueEnabled(false, username);
+            QueueConfigDTO config = queueService.getQueueConfig();
+            
+            log.info("Queue disabled by admin: {}", username);
+            return ResponseEntity.ok(config);
+        } catch (Exception e) {
+            log.error("Error disabling queue", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new QueueConfigDTO(true, "Failed to disable queue: " + e.getMessage(), authentication.getName()));
+        }
+    }
+
+    @GetMapping("/admin/queue/config")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<QueueConfigDTO> getQueueConfig() {
+        try {
+            QueueConfigDTO config = queueService.getQueueConfig();
+            return ResponseEntity.ok(config);
+        } catch (Exception e) {
+            log.error("Error fetching queue config", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 } 

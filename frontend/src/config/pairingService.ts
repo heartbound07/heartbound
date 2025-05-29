@@ -43,6 +43,13 @@ export interface JoinQueueRequestDTO {
   rank: 'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'ASCENDANT' | 'IMMORTAL' | 'RADIANT';
 }
 
+export interface QueueConfigDTO {
+  queueEnabled: boolean;
+  message: string;
+  updatedBy: string;
+  timestamp: string;
+}
+
 /**
  * Get the current user's active pairing
  */
@@ -137,4 +144,20 @@ export const deleteAllPairings = async (): Promise<{ message: string; deletedCou
     console.error('Error deleting all pairings:', error);
     throw error;
   }
+};
+
+// Add admin queue control functions
+export const enableQueue = async (): Promise<QueueConfigDTO> => {
+  const response = await httpClient.post('/pairings/admin/queue/enable');
+  return response.data;
+};
+
+export const disableQueue = async (): Promise<QueueConfigDTO> => {
+  const response = await httpClient.post('/pairings/admin/queue/disable');
+  return response.data;
+};
+
+export const getQueueConfig = async (): Promise<QueueConfigDTO> => {
+  const response = await httpClient.get('/pairings/admin/queue/config');
+  return response.data;
 }; 

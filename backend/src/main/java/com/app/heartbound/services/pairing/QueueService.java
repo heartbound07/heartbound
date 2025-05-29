@@ -1,12 +1,15 @@
 package com.app.heartbound.services.pairing;
 
-import com.app.heartbound.dto.pairing.JoinQueueRequestDTO;
+import com.app.heartbound.dto.pairing.JoinQueueRequestDTO; 
 import com.app.heartbound.dto.pairing.QueueStatusDTO;
+import com.app.heartbound.dto.pairing.QueueConfigDTO;
 import com.app.heartbound.entities.MatchQueueUser;
 import com.app.heartbound.repositories.pairing.MatchQueueUserRepository;
 import com.app.heartbound.repositories.pairing.PairingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,12 +24,23 @@ import java.util.Optional;
 @Slf4j
 public class QueueService {
 
+    private static final Logger logger = LoggerFactory.getLogger(QueueService.class);
+
     private final MatchQueueUserRepository queueRepository;
     private final PairingRepository pairingRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
+    // Add queue enabled state - default to true
+    private volatile boolean queueEnabled = true;
+    private String lastUpdatedBy = "SYSTEM";
+
     @Transactional
     public QueueStatusDTO joinQueue(JoinQueueRequestDTO request) {
+        // Check if queue is enabled before allowing joins
+        if (!queueEnabled) {
+            throw new IllegalStateException("Matchmaking queue is currently disabled. Please try again later.");
+        }
+
         String userId = request.getUserId();
         log.info("User {} attempting to join queue", userId);
 
@@ -152,5 +166,33 @@ public class QueueService {
         } catch (Exception e) {
             log.error("Failed to broadcast queue update: {}", e.getMessage());
         }
+    }
+
+    // Add methods to manage queue state
+    public void setQueueEnabled(boolean enabled, String updatedBy) {
+        this.queueEnabled = enabled;
+        this.lastUpdatedBy = updatedBy;
+        
+        // Broadcast queue status change to all connected clients
+        QueueConfigDTO configUpdate = new QueueConfigDTO(
+            enabled, 
+            enabled ? "Matchmaking queue has been enabled" : "Matchmaking queue has been disabled",
+            updatedBy
+        );
+        
+        messagingTemplate.convertAndSend("/topic/queue/config", configUpdate);
+        logger.info("Queue status changed to {} by {}", enabled ? "ENABLED" : "DISABLED", updatedBy);
+    }
+
+    public boolean isQueueEnabled() {
+        return queueEnabled;
+    }
+
+    public QueueConfigDTO getQueueConfig() {
+        return new QueueConfigDTO(
+            queueEnabled,
+            queueEnabled ? "Matchmaking queue is currently enabled" : "Matchmaking queue is currently disabled",
+            lastUpdatedBy
+        );
     }
 } 
