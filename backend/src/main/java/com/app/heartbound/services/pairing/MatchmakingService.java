@@ -206,16 +206,16 @@ public class MatchmakingService {
                             .timestamp(LocalDateTime.now())
                             .build();
 
-                    messagingTemplate.convertAndSendToUser(
-                            notification.userId(), 
-                            "/topic/pairings", 
-                            updateEvent
-                    );
+                    // Use direct destination send (this should work since frontend subscribes to exact path)
+                    String userDestination = "/user/" + notification.userId() + "/topic/pairings";
+                    messagingTemplate.convertAndSend(userDestination, updateEvent);
                     
-                    log.info("Successfully sent MATCH_FOUND notification to user: {}", notification.userId());
+                    log.info("Successfully sent MATCH_FOUND notification to user: {} via direct method", notification.userId());
+                    log.info("User destination: {}", userDestination);
+                    log.info("Update event: {}", updateEvent);
                     
                 } catch (Exception e) {
-                    log.error("Failed to send match notification to user {}: {}", notification.userId(), e.getMessage());
+                    log.error("Failed to send match notification to user {}: {}", notification.userId(), e.getMessage(), e);
                 }
             }
             

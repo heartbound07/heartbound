@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, X, Trophy } from 'lucide-react';
+import { Heart, MessageCircle, X, Trophy, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/valorant/badge';
@@ -13,8 +13,22 @@ interface MatchFoundModalProps {
 
 export function MatchFoundModal({ pairing, onClose }: MatchFoundModalProps) {
   const [isVisible, setIsVisible] = useState(true);
+  const [countdown, setCountdown] = useState(5);
+  const [showFullMatch, setShowFullMatch] = useState(false);
 
   console.log('[MatchFoundModal] Rendering with pairing:', pairing);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowFullMatch(true);
+    }
+  }, [countdown]);
 
   const handleClose = () => {
     console.log('[MatchFoundModal] Closing modal');
@@ -66,49 +80,85 @@ export function MatchFoundModal({ pairing, onClose }: MatchFoundModalProps) {
                   <Heart className="h-16 w-16 text-pink-400 fill-current" />
                 </motion.div>
                 
-                <CardTitle className="text-2xl font-bold text-white mb-2">
-                  Match Found! 💕
-                </CardTitle>
-                <p className="text-pink-200">
-                  You've been paired with someone special!
-                </p>
+                {!showFullMatch ? (
+                  <>
+                    <CardTitle className="text-2xl font-bold text-white mb-2">
+                      You have been matched! 💕
+                    </CardTitle>
+                    <div className="flex items-center justify-center gap-2 text-pink-200">
+                      <Clock className="h-5 w-5" />
+                      <span>Please wait {countdown} seconds...</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <CardTitle className="text-2xl font-bold text-white mb-2">
+                      Match Found! 💕
+                    </CardTitle>
+                    <p className="text-pink-200">
+                      You've been paired with someone special!
+                    </p>
+                  </>
+                )}
               </CardHeader>
               
               <CardContent className="space-y-4">
-                <div className="text-center space-y-3">
-                  <div className="flex items-center justify-center gap-2">
-                    <Trophy className="h-5 w-5 text-yellow-400" />
-                    <Badge variant="secondary" className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-200 border-yellow-500/30">
-                      {pairing.compatibilityScore}% Compatibility
-                    </Badge>
-                  </div>
-                  
-                  <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-600">
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                      <MessageCircle className="h-5 w-5 text-blue-400" />
-                      <span className="text-white font-medium">Discord Channel</span>
-                    </div>
-                    <p className="text-slate-300 text-sm">
-                      A private Discord channel has been created for you two!
+                {!showFullMatch ? (
+                  <div className="text-center">
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                      className="mx-auto w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center mb-4"
+                    >
+                      <span className="text-2xl font-bold text-white">{countdown}</span>
+                    </motion.div>
+                    <p className="text-slate-300">
+                      Preparing your match details...
                     </p>
-                    <Badge variant="outline" className="mt-2">
-                      Channel ID: {pairing.discordChannelId}
-                    </Badge>
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Button 
-                    onClick={handleClose}
-                    className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white"
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="space-y-4"
                   >
-                    Start Chatting! 💬
-                  </Button>
-                  
-                  <p className="text-xs text-center text-slate-400">
-                    Check your Discord server for the new channel
-                  </p>
-                </div>
+                    <div className="text-center space-y-3">
+                      <div className="flex items-center justify-center gap-2">
+                        <Trophy className="h-5 w-5 text-yellow-400" />
+                        <Badge variant="secondary" className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-200 border-yellow-500/30">
+                          {pairing.compatibilityScore}% Compatibility
+                        </Badge>
+                      </div>
+                      
+                      <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-600">
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                          <MessageCircle className="h-5 w-5 text-blue-400" />
+                          <span className="text-white font-medium">Discord Channel</span>
+                        </div>
+                        <p className="text-slate-300 text-sm">
+                          A private Discord channel has been created for you two!
+                        </p>
+                        <Badge variant="outline" className="mt-2">
+                          Channel ID: {pairing.discordChannelId}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Button 
+                        onClick={handleClose}
+                        className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white"
+                      >
+                        Start Chatting! 💬
+                      </Button>
+                      
+                      <p className="text-xs text-center text-slate-400">
+                        Check your Discord server for the new channel
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
               </CardContent>
             </Card>
           </motion.div>

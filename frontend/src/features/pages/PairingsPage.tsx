@@ -212,8 +212,7 @@ export function PairingsPage() {
       
       const newPairings = await performMatchmaking();
       
-      setAdminMessage(`Successfully created ${newPairings.length} new pairings!`);
-      refreshData();
+      setAdminMessage(`Successfully created ${newPairings.length} new pairings! Notifications will be sent shortly...`);
     } catch (err: any) {
       const errorMessage = err?.response?.data?.message || err?.message || 'Matchmaking failed';
       setAdminMessage(`Error: ${errorMessage}`);

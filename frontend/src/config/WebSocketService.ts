@@ -28,9 +28,9 @@ class WebSocketService {
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
-      debug: (_msg: string) => {
-        // Uncomment the next line to enable detailed logging:
-        // console.log('[STOMP DEBUG]', _msg);
+      debug: (msg: string) => {
+        // Enable detailed logging to see all WebSocket traffic
+        console.log('[STOMP DEBUG]', msg);
       },
       // We'll set connectHeaders dynamically before connecting
       connectHeaders: {},
