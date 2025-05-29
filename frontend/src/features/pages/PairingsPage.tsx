@@ -18,6 +18,7 @@ import { MatchFoundModal } from '@/components/modals/MatchFoundModal';
 import { UserProfileModal } from '@/components/modals/UserProfileModal';
 import { getUserProfiles, type UserProfileDTO } from '@/config/userService';
 import { DashboardNavigation } from '@/components/Sidebar';
+import '@/assets/PairingsPage.css';
 
 const REGIONS = [
   { value: 'NA_EAST', label: 'NA East' },
@@ -178,6 +179,24 @@ export function PairingsPage() {
   const [showUserProfileModal, setShowUserProfileModal] = useState(false);
   const [userProfileModalPosition, setUserProfileModalPosition] = useState<{ x: number; y: number } | null>(null);
 
+  // Add sidebar collapse state tracking
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const savedState = localStorage.getItem('sidebar-collapsed');
+    return savedState ? JSON.parse(savedState) : false;
+  });
+
+  // Listen for sidebar state changes
+  useEffect(() => {
+    const handleSidebarStateChange = (event: CustomEvent) => {
+      setIsCollapsed(event.detail.collapsed);
+    };
+
+    window.addEventListener('sidebarStateChange', handleSidebarStateChange as EventListener);
+    return () => {
+      window.removeEventListener('sidebarStateChange', handleSidebarStateChange as EventListener);
+    };
+  }, []);
+
   // Memoize expensive calculations
   const formatDate = useMemo(() => (dateString: string) => {
     return new Intl.DateTimeFormat('en-US', {
@@ -322,10 +341,10 @@ export function PairingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="pairings-container">
       <DashboardNavigation />
       
-      <div className="pl-64 transition-all duration-300">
+      <main className={`pairings-content ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
         <div className="p-6">
           {/* Admin Controls */}
           {hasRole('ADMIN') && (
@@ -586,7 +605,7 @@ export function PairingsPage() {
             />
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

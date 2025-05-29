@@ -1,0 +1,179 @@
+/* PairingsPage specific styles */
+
+/* Root variables for consistency */
+:root {
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 80px;
+  --transition-speed: 0.3s;
+}
+
+.pairings-container {
+  /* Set background specific to Pairings page */
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  /* Ensure it fills the viewport height */
+  min-height: 100vh;
+  /* Use a flex layout to organize its children */
+  display: flex;
+  flex-direction: column; /* Stack vertically on small screens */
+  /* Remove any default margins */
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  width: 100%;
+  position: relative;
+}
+
+@media (min-width: 768px) {
+  .pairings-container {
+    flex-direction: row; /* Sidebar + content side-by-side on larger screens */
+  }
+  
+  .pairings-content {
+    /* Offset content so it doesn't go behind the fixed sidebar */
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    transition: margin-left var(--transition-speed), width var(--transition-speed);
+  }
+  
+  /* Adjust content when sidebar is collapsed */
+  .pairings-content.sidebar-collapsed {
+    margin-left: var(--sidebar-collapsed-width);
+    width: calc(100% - var(--sidebar-collapsed-width));
+  }
+}
+
+.pairings-content {
+  /* Allow the content area to fill the remaining space */
+  flex: 1;
+  /* Add proper padding to ensure content doesn't overflow */
+  padding: 0;
+  /* Allow scrolling within the content area only */
+  overflow-y: auto;
+  width: 100%;
+  height: 100vh; /* Limit to viewport height */
+  position: relative;
+}
+
+/* Custom scrollbar for webkit browsers */
+.pairings-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.pairings-content::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 4px;
+}
+
+.pairings-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.pairings-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* For Firefox */
+.pairings-content {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(15, 23, 42, 0.3);
+}
+
+/* Responsive adjustments for small screens */
+@media (max-width: 768px) {
+  .pairings-content,
+  .pairings-content.sidebar-collapsed {
+    margin-left: 0;
+    width: 100%;
+    /* Adjust top padding to account for mobile header */
+    padding-top: 60px; /* Fixed value for mobile header */
+    transition: none; /* Remove transition on mobile */
+    height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+  }
+  
+  .pairings-container {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    overflow: hidden;
+  }
+}
+
+/* Pairings specific card styling */
+.pairings-content .card {
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Queue status styling */
+.queue-status-card {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Active pairing styling */
+.active-pairing-card {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+/* Pairing history user avatars hover effect */
+.pairings-content .user-avatar-container {
+  transition: all 0.2s ease;
+}
+
+.pairings-content .user-avatar-container:hover {
+  transform: scale(1.05);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Admin controls styling */
+.admin-controls {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Smooth transitions for all interactive elements */
+.pairings-content button,
+.pairings-content .card,
+.pairings-content .user-avatar-container {
+  transition: all 0.2s ease;
+}
+
+/* Loading states */
+.pairings-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+/* Error states */
+.pairings-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  text-align: center;
+}
+
+/* Success states */
+.pairings-success {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  color: #86efac;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  text-align: center;
+}
