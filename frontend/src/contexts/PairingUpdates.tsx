@@ -149,29 +149,6 @@ export const PairingUpdatesProvider = ({ children }: PairingUpdatesProviderProps
     };
   }, []);
 
-  // Add more detailed logging in the message handler
-  useEffect(() => {
-    if (user?.id && isConnected) {
-      console.log('[PairingUpdates] Establishing connection for user:', user.id);
-      
-      const handlePairingUpdate = (message: any) => {
-        console.log('[PairingUpdates] Raw message received:', message);
-        console.log('[PairingUpdates] Message body:', message.body);
-        
-        try {
-          const data = JSON.parse(message.body);
-          console.log('[PairingUpdates] Parsed pairing update:', data);
-          setPairingUpdate(data);
-        } catch (error) {
-          console.error('[PairingUpdates] Error parsing pairing update:', error);
-          console.error('[PairingUpdates] Raw message body:', message.body);
-        }
-      };
-
-      // ... existing code ...
-    }
-  }, [user?.id, isConnected]);
-
   const contextValue = useMemo(() => ({ 
     pairingUpdate, 
     error, 
