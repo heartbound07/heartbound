@@ -277,4 +277,20 @@ public class PairingController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    @GetMapping("/queue/status")
+    @Operation(summary = "Get public queue status", description = "Get the current queue enabled/disabled status (accessible to all users)")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Queue status retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public ResponseEntity<QueueConfigDTO> getPublicQueueStatus() {
+        try {
+            QueueConfigDTO config = queueService.getQueueConfig();
+            return ResponseEntity.ok(config);
+        } catch (Exception e) {
+            log.error("Error fetching public queue status", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 } 

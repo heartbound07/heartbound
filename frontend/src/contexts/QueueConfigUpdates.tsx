@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback, useRef } from 'react';
 import webSocketService from '../config/WebSocketService';
 import { useAuth } from '@/contexts/auth/useAuth';
 import type { QueueConfigDTO } from '@/config/pairingService';
+import { getPublicQueueStatus } from '@/config/pairingService';
 
 interface QueueConfigContextProps {
   queueConfig: QueueConfigDTO | null;
@@ -17,11 +18,12 @@ interface QueueConfigProviderProps {
   children: ReactNode;
 }
 
-export const QueueConfigProvider: React.FC<QueueConfigProviderProps> = ({ children }) => {
+export const QueueConfigProvider = ({ children }: QueueConfigProviderProps) => {
   const { user } = useAuth();
   const [queueConfig, setQueueConfig] = useState<QueueConfigDTO | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  
   const subscriptionRef = useRef<boolean>(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -29,36 +31,50 @@ export const QueueConfigProvider: React.FC<QueueConfigProviderProps> = ({ childr
     setError(null);
   }, []);
 
-  const handleQueueConfigUpdate = useCallback((message: any) => {
+  // Add function to fetch initial queue config
+  const fetchInitialQueueConfig = useCallback(async () => {
+    if (!user?.id) return;
+    
     try {
-      console.log('[QueueConfig] Received queue config update:', message);
-      
-      if (message && typeof message === 'object') {
-        setQueueConfig(message);
-        setError(null);
-      }
-    } catch (err) {
-      console.error('[QueueConfig] Error processing queue config update:', err);
-      setError('Failed to process queue configuration update');
+      console.log('[QueueConfig] Fetching initial queue config...');
+      const config = await getPublicQueueStatus();
+      setQueueConfig(config);
+      console.log('[QueueConfig] Initial queue config loaded:', config);
+    } catch (err: any) {
+      console.error('[QueueConfig] Error fetching initial queue config:', err);
+      setError('Failed to fetch queue configuration');
     }
+  }, [user?.id]);
+
+  const handleQueueConfigUpdate = useCallback((message: QueueConfigDTO) => {
+    console.info('[QueueConfig] Received queue config update:', message);
+    setQueueConfig(message);
+    setError(null);
   }, []);
 
-  // Subscribe to queue config updates with proper connection handling
   const subscribeToQueueConfig = useCallback(() => {
     if (subscriptionRef.current) {
-      console.log('[QueueConfig] Already subscribed, skipping...');
+      console.log('[QueueConfig] Already subscribed to queue config updates');
       return;
     }
 
     try {
       console.log('[QueueConfig] Subscribing to queue config updates...');
-      webSocketService.subscribe('/topic/queue/config', handleQueueConfigUpdate);
-      subscriptionRef.current = true;
-      setIsConnected(true);
-      setError(null);
-    } catch (err) {
-      console.error('[QueueConfig] Failed to subscribe:', err);
-      setError('Failed to connect to queue configuration updates');
+      
+      const subscription = webSocketService.subscribe('/topic/queue/config', handleQueueConfigUpdate);
+      
+      if (subscription) {
+        subscriptionRef.current = true;
+        setIsConnected(true);
+        console.log('[QueueConfig] Successfully subscribed to queue config updates');
+      } else {
+        console.warn('[QueueConfig] Failed to subscribe to queue config updates');
+        setError('Failed to connect to queue config updates');
+        setIsConnected(false);
+      }
+    } catch (err: any) {
+      console.error('[QueueConfig] Error subscribing to queue config updates:', err);
+      setError('Queue config subscription error');
       setIsConnected(false);
     }
   }, [handleQueueConfigUpdate]);
@@ -72,13 +88,12 @@ export const QueueConfigProvider: React.FC<QueueConfigProviderProps> = ({ childr
     
     if (subscriptionRef.current) {
       console.log('[QueueConfig] Cleaning up subscription...');
-      // Note: webSocketService handles unsubscription internally
       subscriptionRef.current = false;
       setIsConnected(false);
     }
   }, []);
 
-  // Initialize WebSocket connection when user is authenticated
+  // Initialize when user is authenticated
   useEffect(() => {
     if (!user?.id) {
       console.log('[QueueConfig] User not authenticated, cleaning up...');
@@ -87,9 +102,12 @@ export const QueueConfigProvider: React.FC<QueueConfigProviderProps> = ({ childr
       return;
     }
 
-    console.log('[QueueConfig] Connecting to queue config updates for user:', user.username);
+    console.log('[QueueConfig] User authenticated, initializing queue config for:', user.username);
 
-    // Check if WebSocket is ready, if not wait a bit
+    // First, fetch the initial queue config
+    fetchInitialQueueConfig();
+
+    // Then set up WebSocket subscription
     const attemptSubscription = () => {
       if (webSocketService.isConnected()) {
         subscribeToQueueConfig();
@@ -104,7 +122,7 @@ export const QueueConfigProvider: React.FC<QueueConfigProviderProps> = ({ childr
 
     // Cleanup on unmount or user change
     return cleanup;
-  }, [user?.id, subscribeToQueueConfig, cleanup]);
+  }, [user?.id, fetchInitialQueueConfig, subscribeToQueueConfig, cleanup]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -113,7 +131,7 @@ export const QueueConfigProvider: React.FC<QueueConfigProviderProps> = ({ childr
 
   const contextValue = useMemo(() => ({
     queueConfig,
-    isQueueEnabled: queueConfig?.queueEnabled ?? true, // Default to enabled
+    isQueueEnabled: queueConfig?.queueEnabled ?? true, // Default to enabled until we get initial config
     isConnected,
     error,
     clearError

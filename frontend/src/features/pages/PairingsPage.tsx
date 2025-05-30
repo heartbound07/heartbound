@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/valorant/badge';
 import { Input } from '@/components/ui/profile/input';
 import { Label } from '@/components/ui/valorant/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/valorant/select';
-import { Loader2, Heart, Users, Trophy, MessageCircle, Settings, Info, User, MapPin, Calendar } from 'lucide-react';
+import { Loader2, Heart, Users, Trophy, MessageCircle, Settings, Info, User, MapPin, Calendar, AlertCircle, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { JoinQueueRequestDTO, PairingDTO } from '@/config/pairingService';
 import { useQueueUpdates } from '@/contexts/QueueUpdates';
@@ -566,32 +566,6 @@ export function PairingsPage() {
                 <CardContent>
                   {currentPairing && pairedUser ? (
                     <div className="space-y-4">
-                      {/* 🔍 DEBUG: Add logging to see what data we have */}
-                      {(() => {
-                        console.log('=== PAIRING DEBUG DATA ===');
-                        console.log('currentPairing:', currentPairing);
-                        console.log('user?.id:', user?.id);
-                        console.log('currentPairing.user1Id:', currentPairing.user1Id);
-                        console.log('currentPairing.user2Id:', currentPairing.user2Id);
-                        console.log('Available pairing properties:', Object.keys(currentPairing));
-                        
-                        // Check for user preference data
-                        console.log('User1 data check:');
-                        console.log('- user1Age:', currentPairing?.user1Age);
-                        console.log('- user1Gender:', currentPairing?.user1Gender);
-                        console.log('- user1Region:', currentPairing?.user1Region);
-                        console.log('- user1Rank:', currentPairing?.user1Rank);
-                        
-                        console.log('User2 data check:');
-                        console.log('- user2Age:', currentPairing?.user2Age);
-                        console.log('- user2Gender:', currentPairing?.user2Gender);
-                        console.log('- user2Region:', currentPairing?.user2Region);
-                        console.log('- user2Rank:', currentPairing?.user2Rank);
-                        
-                        console.log('========================');
-                        return null;
-                      })()}
-                      
                       <TooltipProvider>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
@@ -604,25 +578,6 @@ export function PairingsPage() {
                             
                             <div className="flex-1">
                               <p className="font-medium text-white">{pairedUser?.displayName || 'Unknown User'}</p>
-                              
-                              {/* Add debugging for the other user's data */}
-                              {(() => {
-                                const isUser1 = currentPairing?.user1Id === user?.id;
-                                const otherUserAge = isUser1 ? currentPairing?.user2Age : currentPairing?.user1Age;
-                                const otherUserGender = isUser1 ? currentPairing?.user2Gender : currentPairing?.user1Gender;
-                                const otherUserRegion = isUser1 ? currentPairing?.user2Region : currentPairing?.user1Region;
-                                const otherUserRank = isUser1 ? currentPairing?.user2Rank : currentPairing?.user1Rank;
-                                
-                                console.log('=== OTHER USER DATA ===');
-                                console.log('Am I user1?', isUser1);
-                                console.log('Other user age:', otherUserAge);
-                                console.log('Other user gender:', otherUserGender);
-                                console.log('Other user region:', otherUserRegion);
-                                console.log('Other user rank:', otherUserRank);
-                                console.log('======================');
-                                
-                                return null;
-                              })()}
                               
                               {/* User Preferences Row */}
                               <TooltipProvider>
@@ -777,9 +732,88 @@ export function PairingsPage() {
                 </CardContent>
               </Card>
 
-              {/* Join Queue Section - Hide if queue disabled */}
-              {!currentPairing && !queueStatus.inQueue && isQueueEnabled && (
-                <QueueJoinForm onJoinQueue={handleJoinQueue} loading={actionLoading} />
+              {/* Queue Join Section - Conditionally render based on queue enabled state */}
+              {isQueueEnabled ? (
+                // Show normal queue flow when enabled
+                currentPairing ? (
+                  <Card className="bg-slate-800/50 border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-white">
+                        <Heart className="h-5 w-5 text-primary" />
+                        Current Match
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-slate-300">
+                        You're currently matched! Check your Discord for the private channel.
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : queueStatus.inQueue ? (
+                  <Card className="bg-slate-800/50 border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-white">
+                        <Clock className="h-5 w-5 text-primary" />
+                        In Queue
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-slate-300">
+                          <span>Queue Position:</span>
+                          <span className="font-medium text-white">#{queueStatus.queuePosition}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-slate-300">
+                          <span>Total in Queue:</span>
+                          <span className="font-medium text-white">{queueStatus.totalQueueSize}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-slate-300">
+                          <span>Estimated Wait:</span>
+                          <span className="font-medium text-white">{queueStatus.estimatedWaitTime} min</span>
+                        </div>
+                        <Button 
+                          onClick={leaveQueue} 
+                          variant="outline" 
+                          className="w-full mt-4"
+                          disabled={actionLoading}
+                        >
+                          {actionLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Leaving...
+                            </>
+                          ) : (
+                            'Leave Queue'
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <QueueJoinForm onJoinQueue={handleJoinQueue} loading={actionLoading} />
+                )
+              ) : (
+                // Show disabled message when queue is disabled
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-white">
+                      <AlertCircle className="h-5 w-5 text-yellow-500" />
+                      Queue Unavailable
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <p className="text-slate-300">
+                        {queueConfig?.message || 'Matchmaking queue is currently disabled. Please try again later.'}
+                      </p>
+                      {queueConfig?.updatedBy && (
+                        <p className="text-sm text-slate-400">
+                          Updated by: {queueConfig.updatedBy}
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {/* Pairing History */}

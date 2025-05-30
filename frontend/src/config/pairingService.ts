@@ -176,4 +176,9 @@ export const disableQueue = async (): Promise<QueueConfigDTO> => {
 export const getQueueConfig = async (): Promise<QueueConfigDTO> => {
   const response = await httpClient.get('/pairings/admin/queue/config');
   return response.data;
+};
+
+export const getPublicQueueStatus = async (): Promise<QueueConfigDTO> => {
+  const response = await httpClient.get('/pairings/queue/status');
+  return response.data;
 }; 
