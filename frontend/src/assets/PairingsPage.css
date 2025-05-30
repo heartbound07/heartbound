@@ -1,15 +1,20 @@
 /* PairingsPage specific styles */
 
-/* Root variables for consistency */
+/* Root variables for consistency - Updated to match ValorantPage */
 :root {
   --sidebar-width: 280px;
   --sidebar-collapsed-width: 80px;
   --transition-speed: 0.3s;
+  /* Updated color scheme to match ValorantPage */
+  --valorant-bg-primary: #0F1923;
+  --valorant-bg-secondary: #1F2731;
+  --valorant-border: rgba(255, 255, 255, 0.05); /* Matches border-white/5 */
+  --valorant-accent: #FF4655;
 }
 
 .pairings-container {
-  /* Set background specific to Pairings page */
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  /* Updated background to match ValorantPage aesthetic */
+  background: var(--valorant-bg-primary);
   /* Ensure it fills the viewport height */
   min-height: 100vh;
   /* Use a flex layout to organize its children */
@@ -108,22 +113,69 @@
   }
 }
 
-/* Pairings specific card styling */
+/* Updated general card styling to match ValorantPage */
 .pairings-content .card {
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(31, 39, 49, 0.3) !important; /* Matches bg-[#1F2731]/30 */
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05) !important; /* Matches border-white/5 */
+  border-radius: 0.5rem; /* rounded-lg equivalent */
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  transition: all 0.3s ease;
 }
 
-/* Queue status styling */
+/* Specific styling for valorant-card class */
+.pairings-content .valorant-card {
+  background: rgba(31, 39, 49, 0.3) !important; /* Matches bg-[#1F2731]/30 */
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05) !important; /* Matches border-white/5 */
+  border-radius: 0.5rem; /* rounded-lg equivalent */
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  transition: all 0.3s ease;
+}
+
+.pairings-content .card:hover,
+.pairings-content .valorant-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 32px 64px -12px rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.08); /* Slightly more visible on hover */
+}
+
+/* Queue status styling - Updated */
 .queue-status-card {
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: rgba(31, 39, 49, 0.4) !important;
+  border: 1px solid rgba(59, 130, 246, 0.1) !important; /* More subtle blue border */
+  position: relative;
+  overflow: hidden;
 }
 
-/* Active pairing styling */
+.queue-status-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(59, 130, 246, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Active pairing styling - Updated */
 .active-pairing-card {
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  background: rgba(31, 39, 49, 0.4) !important;
+  border: 1px solid rgba(34, 197, 94, 0.1) !important; /* More subtle green border */
+  position: relative;
+  overflow: hidden;
+}
+
+.active-pairing-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(34, 197, 94, 0.03) 0%, transparent 50%);
+  pointer-events: none;
 }
 
 /* Pairing history user avatars hover effect */
@@ -136,11 +188,12 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
-/* Admin controls styling */
+/* Admin controls styling - Updated */
 .admin-controls {
-  background: rgba(15, 23, 42, 0.8);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(31, 39, 49, 0.6) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05) !important; /* Matches border-white/5 */
+  border-radius: 0.5rem;
 }
 
 /* Smooth transitions for all interactive elements */
@@ -158,22 +211,52 @@
   min-height: 200px;
 }
 
-/* Error states */
+/* Error states - Updated */
 .pairings-error {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(31, 39, 49, 0.3) !important;
+  border: 1px solid rgba(239, 68, 68, 0.2) !important;
   color: #fca5a5;
   padding: 1rem;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   text-align: center;
+  backdrop-filter: blur(8px);
 }
 
-/* Success states */
+/* Success states - Updated */
 .pairings-success {
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  background: rgba(31, 39, 49, 0.3) !important;
+  border: 1px solid rgba(34, 197, 94, 0.2) !important;
   color: #86efac;
   padding: 1rem;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   text-align: center;
+  backdrop-filter: blur(8px);
+}
+
+/* Enhanced container backgrounds */
+.pairings-content .bg-\[var\(--color-container-bg\)\] {
+  background: rgba(31, 39, 49, 0.4) !important;
+  border: 1px solid var(--valorant-border);
+  border-radius: 0.75rem;
+}
+
+/* Updated main content background */
+.pairings-content .bg-\[var\(--color-bg-gradient-from\)\] {
+  background: var(--valorant-bg-primary) !important;
+}
+
+/* Override any remaining white borders */
+.pairings-content .border-white\/10,
+.pairings-content [class*="border-white/10"] {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.pairings-content .border-white\/5,
+.pairings-content [class*="border-white/5"] {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Match history item styling */
+.pairings-content .border {
+  border-color: rgba(255, 255, 255, 0.05) !important;
 }
