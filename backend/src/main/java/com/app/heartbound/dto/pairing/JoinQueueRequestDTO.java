@@ -21,8 +21,8 @@ public class JoinQueueRequestDTO {
     @NotBlank(message = "User ID is required")
     private String userId;
 
-    @Min(value = 18, message = "Age must be at least 18")
-    @Max(value = 99, message = "Age must not exceed 99")
+    @Min(value = 15, message = "Age must be at least 15")
+    @Max(value = 40, message = "Age must not exceed 40")
     private int age;
 
     @NotNull(message = "Region is required")

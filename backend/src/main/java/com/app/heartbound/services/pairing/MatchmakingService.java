@@ -18,6 +18,10 @@ import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
+import java.util.Set;
+import com.app.heartbound.enums.Gender;
+import com.app.heartbound.enums.Region;
+import com.app.heartbound.enums.Rank;
 
 /**
  * MatchmakingService
@@ -84,47 +88,153 @@ public class MatchmakingService {
     }
 
     /**
-     * Calculate compatibility score between two users
+     * Calculate compatibility score between two users with enhanced gender, age, and region rules
      */
     public int calculateCompatibilityScore(MatchQueueUser user1, MatchQueueUser user2) {
+        // First check hard constraints - if violated, return 0 (incompatible)
+        
+        // Gender compatibility check (hard constraint)
+        if (!areGendersCompatible(user1.getGender(), user2.getGender())) {
+            return 0; // Incompatible - violates gender matching rules
+        }
+        
+        // Age compatibility check (hard constraint)
+        if (!areAgesCompatible(user1.getAge(), user2.getAge())) {
+            return 0; // Incompatible - violates age restriction rules
+        }
+        
         int score = 0;
         
-        // Region compatibility (40 points)
-        if (user1.getRegion() == user2.getRegion()) {
-            score += 40;
+        // Region compatibility (up to 40 points) - enhanced with super-region logic
+        score += calculateRegionScore(user1.getRegion(), user2.getRegion());
+        
+        // Rank compatibility (up to 30 points) - keeping existing logic
+        score += calculateRankScore(user1.getRank(), user2.getRank());
+        
+        // Age proximity scoring (up to 30 points) - enhanced scoring for compatible ages
+        score += calculateAgeProximityScore(user1.getAge(), user2.getAge());
+        
+        return Math.min(score, 100); // Cap at 100 points
+    }
+
+    /**
+     * Check if two genders are compatible for matching based on the new rules
+     */
+    private boolean areGendersCompatible(Gender gender1, Gender gender2) {
+        if (gender1 == null || gender2 == null) {
+            return false; // Cannot match users without gender information
         }
         
-        // Rank compatibility (30 points)
-        int rankDifference = Math.abs(user1.getRank().ordinal() - user2.getRank().ordinal());
+        // MALE can only match with FEMALE
+        if (gender1 == Gender.MALE) {
+            return gender2 == Gender.FEMALE;
+        }
+        
+        // FEMALE can only match with MALE  
+        if (gender1 == Gender.FEMALE) {
+            return gender2 == Gender.MALE;
+        }
+        
+        // NON_BINARY can match with NON_BINARY or PREFER_NOT_TO_SAY
+        if (gender1 == Gender.NON_BINARY) {
+            return gender2 == Gender.NON_BINARY || gender2 == Gender.PREFER_NOT_TO_SAY;
+        }
+        
+        // PREFER_NOT_TO_SAY can match with PREFER_NOT_TO_SAY or NON_BINARY
+        if (gender1 == Gender.PREFER_NOT_TO_SAY) {
+            return gender2 == Gender.PREFER_NOT_TO_SAY || gender2 == Gender.NON_BINARY;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if two ages are compatible based on the 18+/17- rule
+     */
+    private boolean areAgesCompatible(int age1, int age2) {
+        // Hard constraint: Users 18+ cannot pair with users under 17
+        if (age1 >= 18 && age2 < 17) {
+            return false;
+        }
+        if (age2 >= 18 && age1 < 17) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Calculate region-based compatibility score with super-region logic
+     */
+    private int calculateRegionScore(Region region1, Region region2) {
+        if (region1 == region2) {
+            return 40; // Same region - highest priority
+        }
+        
+        // Check if regions are in the same super-region
+        if (areInSameSuperRegion(region1, region2)) {
+            return 25; // Same super-region, different specific region - high priority
+        }
+        
+        // Cross-super-region matching - lower priority but still possible
+        return 10;
+    }
+
+    /**
+     * Determine if two regions belong to the same super-region
+     */
+    private boolean areInSameSuperRegion(Region region1, Region region2) {
+        // North America super-region: NA_EAST, NA_WEST, NA_CENTRAL
+        Set<Region> northAmerica = Set.of(Region.NA_EAST, Region.NA_WEST, Region.NA_CENTRAL);
+        if (northAmerica.contains(region1) && northAmerica.contains(region2)) {
+            return true;
+        }
+        
+        // Latin America super-region: LATAM, BR
+        Set<Region> latinAmerica = Set.of(Region.LATAM, Region.BR);
+        if (latinAmerica.contains(region1) && latinAmerica.contains(region2)) {
+            return true;
+        }
+        
+        // Asia-Pacific super-region: KR, AP  
+        Set<Region> asiaPacific = Set.of(Region.KR, Region.AP);
+        if (asiaPacific.contains(region1) && asiaPacific.contains(region2)) {
+            return true;
+        }
+        
+        // EU is its own super-region (single region)
+        // Same region matches are handled above, so EU-EU would not reach here
+        
+        return false;
+    }
+
+    /**
+     * Calculate rank-based compatibility score (keeping existing logic)
+     */
+    private int calculateRankScore(Rank rank1, Rank rank2) {
+        int rankDifference = Math.abs(rank1.ordinal() - rank2.ordinal());
         if (rankDifference <= 1) {
-            score += 30;
+            return 30;
         } else if (rankDifference <= 2) {
-            score += 20;
+            return 20;
         } else if (rankDifference <= 3) {
-            score += 10;
+            return 10;
         }
-        
-        // Age compatibility (20 points)
-        int ageDifference = Math.abs(user1.getAge() - user2.getAge());
+        return 0;
+    }
+
+    /**
+     * Calculate age proximity score for users who passed the hard age constraint
+     */
+    private int calculateAgeProximityScore(int age1, int age2) {
+        int ageDifference = Math.abs(age1 - age2);
         if (ageDifference <= 2) {
-            score += 20;
+            return 30; // Very close ages - highest score
         } else if (ageDifference <= 5) {
-            score += 15;
+            return 20; // Close ages - good score
         } else if (ageDifference <= 10) {
-            score += 10;
+            return 10; // Moderate age difference - lower score
         }
-        
-        // Gender compatibility (10 points) - NEW
-        // For now, we'll give points for any gender combination
-        // This can be enhanced later for specific preferences
-        if (user1.getGender() != null && user2.getGender() != null) {
-            score += 10; // Basic points for having gender information
-            
-            // Optional: Add preference logic here if needed
-            // For example, you might want to handle specific gender preferences
-        }
-        
-        return Math.min(score, 100); // Cap at 100
+        return 0; // Large age difference - no points
     }
 
     // Private helper methods

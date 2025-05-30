@@ -277,6 +277,14 @@ class WebSocketService {
       this.client.activate();
     }
   }
+
+  /**
+   * Check if the WebSocket is currently connected
+   * @returns boolean indicating connection status
+   */
+  isConnected(): boolean {
+    return this.connected && this.client.active;
+  }
 }
 
 const webSocketService = new WebSocketService();

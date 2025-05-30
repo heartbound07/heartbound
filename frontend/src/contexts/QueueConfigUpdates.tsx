@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback, useRef } from 'react';
 import webSocketService from '../config/WebSocketService';
 import { useAuth } from '@/contexts/auth/useAuth';
 import type { QueueConfigDTO } from '@/config/pairingService';
@@ -22,6 +22,8 @@ export const QueueConfigProvider: React.FC<QueueConfigProviderProps> = ({ childr
   const [queueConfig, setQueueConfig] = useState<QueueConfigDTO | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const subscriptionRef = useRef<boolean>(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -41,28 +43,73 @@ export const QueueConfigProvider: React.FC<QueueConfigProviderProps> = ({ childr
     }
   }, []);
 
-  // Initialize WebSocket connection when user is authenticated
-  useEffect(() => {
-    if (user && user.id) {
-      console.log('[QueueConfig] Connecting to queue config updates for user:', user.username);
-
-      // Subscribe to queue config updates
-      webSocketService.subscribe('/topic/queue/config', handleQueueConfigUpdate);
-      
-      setIsConnected(true);
-    } else {
-      console.log('[QueueConfig] User not authenticated, disconnecting...');
-      webSocketService.disconnect();
-      setIsConnected(false);
-      setQueueConfig(null);
+  // Subscribe to queue config updates with proper connection handling
+  const subscribeToQueueConfig = useCallback(() => {
+    if (subscriptionRef.current) {
+      console.log('[QueueConfig] Already subscribed, skipping...');
+      return;
     }
 
-    return () => {
-      if (!user) {
-        webSocketService.disconnect();
+    try {
+      console.log('[QueueConfig] Subscribing to queue config updates...');
+      webSocketService.subscribe('/topic/queue/config', handleQueueConfigUpdate);
+      subscriptionRef.current = true;
+      setIsConnected(true);
+      setError(null);
+    } catch (err) {
+      console.error('[QueueConfig] Failed to subscribe:', err);
+      setError('Failed to connect to queue configuration updates');
+      setIsConnected(false);
+    }
+  }, [handleQueueConfigUpdate]);
+
+  // Cleanup function
+  const cleanup = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    
+    if (subscriptionRef.current) {
+      console.log('[QueueConfig] Cleaning up subscription...');
+      // Note: webSocketService handles unsubscription internally
+      subscriptionRef.current = false;
+      setIsConnected(false);
+    }
+  }, []);
+
+  // Initialize WebSocket connection when user is authenticated
+  useEffect(() => {
+    if (!user?.id) {
+      console.log('[QueueConfig] User not authenticated, cleaning up...');
+      cleanup();
+      setQueueConfig(null);
+      return;
+    }
+
+    console.log('[QueueConfig] Connecting to queue config updates for user:', user.username);
+
+    // Check if WebSocket is ready, if not wait a bit
+    const attemptSubscription = () => {
+      if (webSocketService.isConnected()) {
+        subscribeToQueueConfig();
+      } else {
+        console.log('[QueueConfig] WebSocket not ready, retrying in 1 second...');
+        timeoutRef.current = setTimeout(attemptSubscription, 1000);
       }
     };
-  }, [user, handleQueueConfigUpdate]);
+
+    // Small delay to ensure WebSocket is ready
+    timeoutRef.current = setTimeout(attemptSubscription, 100);
+
+    // Cleanup on unmount or user change
+    return cleanup;
+  }, [user?.id, subscribeToQueueConfig, cleanup]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return cleanup;
+  }, [cleanup]);
 
   const contextValue = useMemo(() => ({
     queueConfig,
