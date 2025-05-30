@@ -24,7 +24,6 @@ import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 import { DashboardNavigation } from "@/components/Sidebar"
 import "@/assets/PairingsPage.css"
 import { useQueueConfig } from "@/contexts/QueueConfigUpdates"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/valorant/tooltip"
 
 const REGIONS = [
   { value: "NA_EAST", label: "NA East" },
@@ -747,121 +746,53 @@ export function PairingsPage() {
 
                                 {/* Match Stats */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger>
-                                        <div className="flex items-center gap-2 p-2 bg-[var(--color-info)]/10 rounded-lg border border-[var(--color-info)]/20 hover:bg-[var(--color-info)]/20 transition-colors">
-                                          <User className="h-4 w-4 text-[var(--color-info)]" />
-                                          <span className="text-sm font-medium text-[var(--color-text-secondary)]">
-                                            {currentPairing?.user1Id === user?.id
-                                              ? currentPairing?.user2Age
-                                              : currentPairing?.user1Age}
-                                          </span>
-                                        </div>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>
-                                          Age:{" "}
-                                          {currentPairing?.user1Id === user?.id
-                                            ? currentPairing?.user2Age
-                                            : currentPairing?.user1Age}
-                                        </p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
+                                  <div className="flex items-center gap-2 p-2 bg-[var(--color-info)]/10 rounded-lg border border-[var(--color-info)]/20 hover:bg-[var(--color-info)]/20 transition-colors">
+                                    <User className="h-4 w-4 text-[var(--color-info)]" />
+                                    <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+                                      {currentPairing?.user1Id === user?.id
+                                        ? currentPairing?.user2Age
+                                        : currentPairing?.user1Age}
+                                    </span>
+                                  </div>
 
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger>
-                                        <div className="flex items-center gap-2 p-2 bg-primary/10 rounded-lg border border-primary/20 hover:bg-primary/20 transition-colors">
-                                          <div className="h-4 w-4 bg-primary rounded-full" />
-                                          <span className="text-sm font-medium text-[var(--color-text-secondary)]">
-                                            {GENDERS.find(
-                                              (g) =>
-                                                g.value ===
-                                                (currentPairing?.user1Id === user?.id
-                                                  ? currentPairing?.user2Gender
-                                                  : currentPairing?.user1Gender),
-                                            )?.label?.slice(0, 1) || "N"}
-                                          </span>
-                                        </div>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>
-                                          Gender:{" "}
-                                          {GENDERS.find(
-                                            (g) =>
-                                              g.value ===
-                                              (currentPairing?.user1Id === user?.id
-                                                ? currentPairing?.user2Gender
-                                                : currentPairing?.user1Gender),
-                                          )?.label || "Not specified"}
-                                        </p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
+                                  <div className="flex items-center gap-2 p-2 bg-primary/10 rounded-lg border border-primary/20 hover:bg-primary/20 transition-colors">
+                                    <Users className="h-4 w-4 text-primary" />
+                                    <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+                                      {GENDERS.find(
+                                        (g) =>
+                                          g.value ===
+                                          (currentPairing?.user1Id === user?.id
+                                            ? currentPairing?.user2Gender
+                                            : currentPairing?.user1Gender),
+                                      )?.label || "Not specified"}
+                                    </span>
+                                  </div>
 
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger>
-                                        <div className="flex items-center gap-2 p-2 bg-[var(--color-success)]/10 rounded-lg border border-[var(--color-success)]/20 hover:bg-[var(--color-success)]/20 transition-colors">
-                                          <MapPin className="h-4 w-4 text-[var(--color-success)]" />
-                                          <span className="text-sm font-medium text-[var(--color-text-secondary)]">
-                                            {REGIONS.find(
-                                              (r) =>
-                                                r.value ===
-                                                (currentPairing?.user1Id === user?.id
-                                                  ? currentPairing?.user2Region
-                                                  : currentPairing?.user1Region),
-                                            )?.label?.slice(0, 2) || "N/A"}
-                                          </span>
-                                        </div>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>
-                                          Region:{" "}
-                                          {REGIONS.find(
-                                            (r) =>
-                                              r.value ===
-                                              (currentPairing?.user1Id === user?.id
-                                                ? currentPairing?.user2Region
-                                                : currentPairing?.user1Region),
-                                          )?.label || "Not specified"}
-                                        </p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
+                                  <div className="flex items-center gap-2 p-2 bg-[var(--color-success)]/10 rounded-lg border border-[var(--color-success)]/20 hover:bg-[var(--color-success)]/20 transition-colors">
+                                    <MapPin className="h-4 w-4 text-[var(--color-success)]" />
+                                    <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+                                      {REGIONS.find(
+                                        (r) =>
+                                          r.value ===
+                                          (currentPairing?.user1Id === user?.id
+                                            ? currentPairing?.user2Region
+                                            : currentPairing?.user1Region),
+                                      )?.label || "Not specified"}
+                                    </span>
+                                  </div>
 
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger>
-                                        <div className="flex items-center gap-2 p-2 bg-[var(--color-warning)]/10 rounded-lg border border-[var(--color-warning)]/20 hover:bg-[var(--color-warning)]/20 transition-colors">
-                                          <Trophy className="h-4 w-4 text-[var(--color-warning)]" />
-                                          <span className="text-sm font-medium text-[var(--color-text-secondary)]">
-                                            {RANKS.find(
-                                              (r) =>
-                                                r.value ===
-                                                (currentPairing?.user1Id === user?.id
-                                                  ? currentPairing?.user2Rank
-                                                  : currentPairing?.user1Rank),
-                                            )?.label?.slice(0, 3) || "N/A"}
-                                          </span>
-                                        </div>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>
-                                          Rank:{" "}
-                                          {RANKS.find(
-                                            (r) =>
-                                              r.value ===
-                                              (currentPairing?.user1Id === user?.id
-                                                ? currentPairing?.user2Rank
-                                                : currentPairing?.user1Rank),
-                                          )?.label || "Not specified"}
-                                        </p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
+                                  <div className="flex items-center gap-2 p-2 bg-[var(--color-warning)]/10 rounded-lg border border-[var(--color-warning)]/20 hover:bg-[var(--color-warning)]/20 transition-colors">
+                                    <Trophy className="h-4 w-4 text-[var(--color-warning)]" />
+                                    <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+                                      {RANKS.find(
+                                        (r) =>
+                                          r.value ===
+                                          (currentPairing?.user1Id === user?.id
+                                            ? currentPairing?.user2Rank
+                                            : currentPairing?.user1Rank),
+                                      )?.label || "Not specified"}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
