@@ -615,12 +615,12 @@ export function PairingsPage() {
             >
               <div className="relative">
                 <motion.h1
-                  className="text-5xl md:text-7xl font-bold text-primary mb-4"
+                  className="pairings-hero-title text-4xl md:text-5xl text-primary mb-4"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                 >
-                  Don't Catch Feelings
+                  Don't Catch Feelings!
                 </motion.h1>
                 <motion.div
                   className="absolute -top-4 -right-4 text-4xl"
