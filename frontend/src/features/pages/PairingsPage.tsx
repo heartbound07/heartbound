@@ -44,6 +44,13 @@ const RANKS = [
   { value: 'RADIANT', label: 'Radiant' }
 ];
 
+const GENDERS = [
+  { value: 'MALE', label: 'Male' },
+  { value: 'FEMALE', label: 'Female' },
+  { value: 'NON_BINARY', label: 'Non-Binary' },
+  { value: 'PREFER_NOT_TO_SAY', label: 'Prefer not to say' }
+];
+
 // Extract form component for better organization
 const QueueJoinForm = ({ onJoinQueue, loading }: { 
   onJoinQueue: (data: JoinQueueRequestDTO) => Promise<void>; 
@@ -52,6 +59,7 @@ const QueueJoinForm = ({ onJoinQueue, loading }: {
   const [age, setAge] = useState<string>('');
   const [region, setRegion] = useState<string>('');
   const [rank, setRank] = useState<string>('');
+  const [gender, setGender] = useState<string>('');
   
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,17 +70,32 @@ const QueueJoinForm = ({ onJoinQueue, loading }: {
       throw new Error('Please enter a valid age between 13 and 100');
     }
     
-    if (!region || !rank) {
-      throw new Error('Please select both region and rank');
+    if (!region) {
+      throw new Error('Please select your region');
+    }
+    
+    if (!rank) {
+      throw new Error('Please select your rank');
+    }
+
+    if (!gender) {
+      throw new Error('Please select your gender');
     }
     
     await onJoinQueue({
-      userId: '', // Will be set by parent
+      userId: '', // This gets filled by the parent component
       age: ageNum,
       region: region as any,
-      rank: rank as any
+      rank: rank as any,
+      gender: gender as any
     });
-  }, [age, region, rank, onJoinQueue]);
+    
+    // Clear form on success
+    setAge('');
+    setRegion('');
+    setRank('');
+    setGender('');
+  }, [age, region, rank, gender, onJoinQueue]);
 
   return (
     <Card className="bg-slate-800/50 border-slate-700">
@@ -125,6 +148,24 @@ const QueueJoinForm = ({ onJoinQueue, loading }: {
                 {RANKS.map((r) => (
                   <SelectItem key={r.value} value={r.value}>
                     {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="gender" className="text-slate-200 font-medium">
+              Gender
+            </Label>
+            <Select value={gender} onValueChange={setGender}>
+              <SelectTrigger className="valorant-select-trigger">
+                <SelectValue placeholder="Select your gender" />
+              </SelectTrigger>
+              <SelectContent className="valorant-select-content">
+                {GENDERS.map((g) => (
+                  <SelectItem key={g.value} value={g.value} className="valorant-select-item">
+                    {g.label}
                   </SelectItem>
                 ))}
               </SelectContent>

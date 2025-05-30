@@ -2,6 +2,7 @@ package com.app.heartbound.dto.pairing;
 
 import com.app.heartbound.enums.Rank;
 import com.app.heartbound.enums.Region;
+import com.app.heartbound.enums.Gender;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -29,4 +30,7 @@ public class JoinQueueRequestDTO {
 
     @NotNull(message = "Rank is required")
     private Rank rank;
+
+    @NotNull(message = "Gender is required")
+    private Gender gender;
 } 

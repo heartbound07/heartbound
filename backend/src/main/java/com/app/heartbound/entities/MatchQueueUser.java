@@ -2,6 +2,7 @@ package com.app.heartbound.entities;
 
 import com.app.heartbound.enums.Rank;
 import com.app.heartbound.enums.Region;
+import com.app.heartbound.enums.Gender;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -49,6 +50,10 @@ public class MatchQueueUser {
     @Enumerated(EnumType.STRING)
     @Column(name = "rank", nullable = false)
     private Rank rank;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender", nullable = false)
+    private Gender gender;
 
     @Column(name = "queued_at", nullable = false)
     private LocalDateTime queuedAt;

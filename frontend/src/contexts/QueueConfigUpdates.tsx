@@ -45,10 +45,6 @@ export const QueueConfigProvider: React.FC<QueueConfigProviderProps> = ({ childr
   useEffect(() => {
     if (user && user.id) {
       console.log('[QueueConfig] Connecting to queue config updates for user:', user.username);
-      
-      webSocketService.connect((message) => {
-        // This is the general callback, we'll subscribe to specific topics
-      });
 
       // Subscribe to queue config updates
       webSocketService.subscribe('/topic/queue/config', handleQueueConfigUpdate);

@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -62,6 +61,7 @@ public class QueueService {
                 queueUser.setAge(request.getAge());
                 queueUser.setRegion(request.getRegion());
                 queueUser.setRank(request.getRank());
+                queueUser.setGender(request.getGender());
                 queueUser.setQueuedAt(LocalDateTime.now());
                 queueUser.setInQueue(true);
                 log.info("User {} rejoined queue with updated preferences", userId);
@@ -73,6 +73,7 @@ public class QueueService {
                     .age(request.getAge())
                     .region(request.getRegion())
                     .rank(request.getRank())
+                    .gender(request.getGender())
                     .queuedAt(LocalDateTime.now())
                     .inQueue(true)
                     .build();

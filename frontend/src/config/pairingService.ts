@@ -24,6 +24,7 @@ export interface MatchQueueUserDTO {
   age: number;
   region: 'NA_EAST' | 'NA_WEST' | 'EU' | 'ASIA' | 'OCE';
   rank: 'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'ASCENDANT' | 'IMMORTAL' | 'RADIANT';
+  gender: 'MALE' | 'FEMALE' | 'NON_BINARY' | 'PREFER_NOT_TO_SAY';
   queuedAt: string;
   inQueue: boolean;
 }
@@ -41,6 +42,7 @@ export interface JoinQueueRequestDTO {
   age: number;
   region: 'NA_EAST' | 'NA_WEST' | 'EU' | 'ASIA' | 'OCE';
   rank: 'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'ASCENDANT' | 'IMMORTAL' | 'RADIANT';
+  gender: 'MALE' | 'FEMALE' | 'NON_BINARY' | 'PREFER_NOT_TO_SAY';
 }
 
 export interface QueueConfigDTO {

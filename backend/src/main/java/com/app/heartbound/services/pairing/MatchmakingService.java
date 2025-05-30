@@ -10,16 +10,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -91,24 +88,43 @@ public class MatchmakingService {
      */
     public int calculateCompatibilityScore(MatchQueueUser user1, MatchQueueUser user2) {
         int score = 0;
-
-        // Same region: +50 points
+        
+        // Region compatibility (40 points)
         if (user1.getRegion() == user2.getRegion()) {
-            score += 50;
+            score += 40;
         }
-
-        // Same rank: +30 points
-        if (user1.getRank() == user2.getRank()) {
+        
+        // Rank compatibility (30 points)
+        int rankDifference = Math.abs(user1.getRank().ordinal() - user2.getRank().ordinal());
+        if (rankDifference <= 1) {
             score += 30;
+        } else if (rankDifference <= 2) {
+            score += 20;
+        } else if (rankDifference <= 3) {
+            score += 10;
         }
-
-        // Age difference ≤ 2 years: +20 points
+        
+        // Age compatibility (20 points)
         int ageDifference = Math.abs(user1.getAge() - user2.getAge());
         if (ageDifference <= 2) {
             score += 20;
+        } else if (ageDifference <= 5) {
+            score += 15;
+        } else if (ageDifference <= 10) {
+            score += 10;
         }
-
-        return score;
+        
+        // Gender compatibility (10 points) - NEW
+        // For now, we'll give points for any gender combination
+        // This can be enhanced later for specific preferences
+        if (user1.getGender() != null && user2.getGender() != null) {
+            score += 10; // Basic points for having gender information
+            
+            // Optional: Add preference logic here if needed
+            // For example, you might want to handle specific gender preferences
+        }
+        
+        return Math.min(score, 100); // Cap at 100
     }
 
     // Private helper methods
