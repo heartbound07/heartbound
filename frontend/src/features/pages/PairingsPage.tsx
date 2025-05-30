@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/valorant/badge';
 import { Input } from '@/components/ui/profile/input';
 import { Label } from '@/components/ui/valorant/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/valorant/select';
-import { Loader2, Heart, Users, Trophy, MessageCircle, Settings, Info, User, MapPin, Calendar, AlertCircle, Clock } from 'lucide-react';
+import { Loader2, Heart, Users, Trophy, MessageCircle, Settings, Info, User, MapPin, Calendar, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { JoinQueueRequestDTO, PairingDTO } from '@/config/pairingService';
 import { useQueueUpdates } from '@/contexts/QueueUpdates';
@@ -555,182 +555,178 @@ export function PairingsPage() {
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Current Status Section */}
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-white">
-                    <Heart className="h-5 w-5 text-primary" />
-                    Current Status
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {currentPairing && pairedUser ? (
-                    <div className="space-y-4">
-                      <TooltipProvider>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-12 w-12">
-                              <AvatarImage src={pairedUser?.avatar} alt={pairedUser?.displayName} />
-                              <AvatarFallback className="bg-primary/20 text-primary">
-                                {pairedUser?.displayName?.charAt(0) || '?'}
-                              </AvatarFallback>
-                            </Avatar>
-                            
-                            <div className="flex-1">
-                              <p className="font-medium text-white">{pairedUser?.displayName || 'Unknown User'}</p>
+              {/* Current Status - Only show when user has a pairing or is in queue */}
+              {(currentPairing || queueStatus.inQueue) && (
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-white">
+                      <Users className="h-5 w-5 text-primary" />
+                      Current Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {currentPairing ? (
+                      <div className="space-y-4">
+                        <TooltipProvider>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-12 w-12">
+                                <AvatarImage src={pairedUser?.avatar} alt={pairedUser?.displayName} />
+                                <AvatarFallback className="bg-primary/20 text-primary">
+                                  {pairedUser?.displayName?.charAt(0) || '?'}
+                                </AvatarFallback>
+                              </Avatar>
                               
-                              {/* User Preferences Row */}
-                              <TooltipProvider>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      <div className="flex items-center gap-1 p-1 bg-slate-700/50 rounded cursor-pointer">
-                                        <User className="h-3 w-3 text-blue-400" />
-                                        <span className="text-xs text-slate-300">{currentPairing?.user1Id === user?.id ? currentPairing?.user2Age : currentPairing?.user1Age}</span>
-                                      </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="bg-slate-900 border-slate-700">
-                                      <p className="text-sm text-slate-200">
-                                        Age: <span className="font-semibold text-blue-400">{currentPairing?.user1Id === user?.id ? currentPairing?.user2Age : currentPairing?.user1Age}</span>
-                                      </p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                  
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      <div className="flex items-center gap-1 p-1 bg-slate-700/50 rounded cursor-pointer">
-                                        <div className="h-3 w-3 bg-pink-500 rounded-full" />
-                                        <span className="text-xs text-slate-300">
-                                          {GENDERS.find(g => g.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Gender : currentPairing?.user1Gender))?.label || 'N/A'}
-                                        </span>
-                                      </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="bg-slate-900 border-slate-700">
-                                      <p className="text-sm text-slate-200">
-                                        Gender: <span className="font-semibold text-pink-400">
-                                          {GENDERS.find(g => g.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Gender : currentPairing?.user1Gender))?.label || 'Not specified'}
-                                        </span>
-                                      </p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                  
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      <div className="flex items-center gap-1 p-1 bg-slate-700/50 rounded cursor-pointer">
-                                        <MapPin className="h-3 w-3 text-green-400" />
-                                        <span className="text-xs text-slate-300">
-                                          {REGIONS.find(r => r.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Region : currentPairing?.user1Region))?.label || 'N/A'}
-                                        </span>
-                                      </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="bg-slate-900 border-slate-700">
-                                      <p className="text-sm text-slate-200">
-                                        Region: <span className="font-semibold text-green-400">
-                                          {REGIONS.find(r => r.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Region : currentPairing?.user1Region))?.label || 'Not specified'}
-                                        </span>
-                                      </p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                  
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      <div className="flex items-center gap-1 p-1 bg-slate-700/50 rounded cursor-pointer">
-                                        <Trophy className="h-3 w-3 text-yellow-400" />
-                                        <span className="text-xs text-slate-300">
-                                          {RANKS.find(r => r.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Rank : currentPairing?.user1Rank))?.label || 'N/A'}
-                                        </span>
-                                      </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="bg-slate-900 border-slate-700">
-                                      <p className="text-sm text-slate-200">
-                                        VALORANT Rank: <span className="font-semibold text-yellow-400">
-                                          {RANKS.find(r => r.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Rank : currentPairing?.user1Rank))?.label || 'Not specified'}
-                                        </span>
-                                      </p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </div>
-                              </TooltipProvider>
+                              <div className="flex-1">
+                                <p className="font-medium text-white">{pairedUser?.displayName || 'Unknown User'}</p>
+                                
+                                {/* User Preferences Row */}
+                                <TooltipProvider>
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <Tooltip>
+                                      <TooltipTrigger>
+                                        <div className="flex items-center gap-1 p-1 bg-slate-700/50 rounded cursor-pointer">
+                                          <User className="h-3 w-3 text-blue-400" />
+                                          <span className="text-xs text-slate-300">{currentPairing?.user1Id === user?.id ? currentPairing?.user2Age : currentPairing?.user1Age}</span>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="bg-slate-900 border-slate-700">
+                                        <p className="text-sm text-slate-200">
+                                          Age: <span className="font-semibold text-blue-400">{currentPairing?.user1Id === user?.id ? currentPairing?.user2Age : currentPairing?.user1Age}</span>
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                    
+                                    <Tooltip>
+                                      <TooltipTrigger>
+                                        <div className="flex items-center gap-1 p-1 bg-slate-700/50 rounded cursor-pointer">
+                                          <div className="h-3 w-3 bg-pink-500 rounded-full" />
+                                          <span className="text-xs text-slate-300">
+                                            {GENDERS.find(g => g.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Gender : currentPairing?.user1Gender))?.label || 'N/A'}
+                                          </span>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="bg-slate-900 border-slate-700">
+                                        <p className="text-sm text-slate-200">
+                                          Gender: <span className="font-semibold text-pink-400">
+                                            {GENDERS.find(g => g.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Gender : currentPairing?.user1Gender))?.label || 'Not specified'}
+                                          </span>
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                    
+                                    <Tooltip>
+                                      <TooltipTrigger>
+                                        <div className="flex items-center gap-1 p-1 bg-slate-700/50 rounded cursor-pointer">
+                                          <MapPin className="h-3 w-3 text-green-400" />
+                                          <span className="text-xs text-slate-300">
+                                            {REGIONS.find(r => r.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Region : currentPairing?.user1Region))?.label || 'N/A'}
+                                          </span>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="bg-slate-900 border-slate-700">
+                                        <p className="text-sm text-slate-200">
+                                          Region: <span className="font-semibold text-green-400">
+                                            {REGIONS.find(r => r.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Region : currentPairing?.user1Region))?.label || 'Not specified'}
+                                          </span>
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                    
+                                    <Tooltip>
+                                      <TooltipTrigger>
+                                        <div className="flex items-center gap-1 p-1 bg-slate-700/50 rounded cursor-pointer">
+                                          <Trophy className="h-3 w-3 text-yellow-400" />
+                                          <span className="text-xs text-slate-300">
+                                            {RANKS.find(r => r.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Rank : currentPairing?.user1Rank))?.label || 'N/A'}
+                                          </span>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="bg-slate-900 border-slate-700">
+                                        <p className="text-sm text-slate-200">
+                                          VALORANT Rank: <span className="font-semibold text-yellow-400">
+                                            {RANKS.find(r => r.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Rank : currentPairing?.user1Rank))?.label || 'Not specified'}
+                                          </span>
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </div>
+                                </TooltipProvider>
+                              </div>
                             </div>
-                          </div>
-                          
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <div className="flex items-center gap-1 text-slate-400 cursor-pointer">
-                                <Info className="h-4 w-4" />
-                                <span className="text-sm">Match Info</span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-slate-900 border-slate-700 max-w-xs">
-                              <div className="space-y-2">
-                                <p className="text-sm font-medium text-white">Match Details</p>
-                                <div className="grid grid-cols-2 gap-2 text-xs">
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3 text-blue-400" />
-                                    <span className="text-slate-300">Matched:</span>
-                                  </div>
-                                  <span className="text-slate-200">{formatDate(currentPairing.matchedAt)}</span>
-                                  
-                                  <div className="flex items-center gap-1">
-                                    <MessageCircle className="h-3 w-3 text-green-400" />
-                                    <span className="text-slate-300">Channel:</span>
-                                  </div>
-                                  <span className="text-slate-200">#{currentPairing.discordChannelId}</span>
+                            
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <div className="flex items-center gap-1 text-slate-400 cursor-pointer">
+                                  <Info className="h-4 w-4" />
+                                  <span className="text-sm">Match Info</span>
                                 </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
+                              </TooltipTrigger>
+                              <TooltipContent className="bg-slate-900 border-slate-700 max-w-xs">
+                                <div className="space-y-2">
+                                  <p className="text-sm font-medium text-white">Match Details</p>
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div className="flex items-center gap-1">
+                                      <Calendar className="h-3 w-3 text-blue-400" />
+                                      <span className="text-slate-300">Matched:</span>
+                                    </div>
+                                    <span className="text-slate-200">{formatDate(currentPairing.matchedAt)}</span>
+                                    
+                                    <div className="flex items-center gap-1">
+                                      <MessageCircle className="h-3 w-3 text-green-400" />
+                                      <span className="text-slate-300">Channel:</span>
+                                    </div>
+                                    <span className="text-slate-200">#{currentPairing.discordChannelId}</span>
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TooltipProvider>
+                      </div>
+                    ) : queueStatus.inQueue ? (
+                      <div className="text-center py-6">
+                        <Users className="h-12 w-12 text-primary mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-white mb-2">In Matchmaking Queue</h3>
+                        
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                          <span className="text-xs text-slate-400">
+                            {isConnected ? 'Live updates' : 'Reconnecting...'}
+                          </span>
                         </div>
-                      </TooltipProvider>
-                    </div>
-                  ) : queueStatus.inQueue ? (
-                    <div className="text-center py-6">
-                      <Users className="h-12 w-12 text-primary mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-white mb-2">In Matchmaking Queue</h3>
-                      
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-                        <span className="text-xs text-slate-400">
-                          {isConnected ? 'Live updates' : 'Reconnecting...'}
-                        </span>
+                        
+                        <div className="space-y-2 mb-4">
+                          {queueStatus.queuePosition && queueStatus.totalQueueSize && (
+                            <p className="text-sm text-slate-300">
+                              Position: <span className="font-semibold text-primary">{queueStatus.queuePosition}</span> of {queueStatus.totalQueueSize}
+                            </p>
+                          )}
+                          {queueStatus.estimatedWaitTime && (
+                            <p className="text-sm text-slate-300">
+                              Estimated wait: <span className="font-semibold text-primary">{queueStatus.estimatedWaitTime}</span> minutes
+                            </p>
+                          )}
+                          {queueStatus.queuedAt && (
+                            <p className="text-xs text-slate-500">
+                              Queued since {formatDate(queueStatus.queuedAt)}
+                            </p>
+                          )}
+                        </div>
+                        
+                        <Button 
+                          variant="outline" 
+                          onClick={leaveQueue}
+                          disabled={actionLoading}
+                        >
+                          {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                          Leave Queue
+                        </Button>
                       </div>
-                      
-                      <div className="space-y-2 mb-4">
-                        {queueStatus.queuePosition && queueStatus.totalQueueSize && (
-                          <p className="text-sm text-slate-300">
-                            Position: <span className="font-semibold text-primary">{queueStatus.queuePosition}</span> of {queueStatus.totalQueueSize}
-                          </p>
-                        )}
-                        {queueStatus.estimatedWaitTime && (
-                          <p className="text-sm text-slate-300">
-                            Estimated wait: <span className="font-semibold text-primary">{queueStatus.estimatedWaitTime}</span> minutes
-                          </p>
-                        )}
-                        {queueStatus.queuedAt && (
-                          <p className="text-xs text-slate-500">
-                            Queued since {formatDate(queueStatus.queuedAt)}
-                          </p>
-                        )}
-                      </div>
-                      
-                      <Button 
-                        variant="outline" 
-                        onClick={leaveQueue}
-                        disabled={actionLoading}
-                      >
-                        {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                        Leave Queue
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="text-center py-6">
-                      <Heart className="h-12 w-12 text-slate-500 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-white mb-2">No Active Pairing</h3>
-                      <p className="text-slate-400">Join the matchmaking queue to find your match!</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Queue Join Section - Conditionally render based on queue enabled state */}
               {isQueueEnabled ? (
@@ -749,23 +745,9 @@ export function PairingsPage() {
                       </p>
                     </CardContent>
                   </Card>
-                ) : queueStatus.inQueue ? (
-                  <Card className="bg-slate-800/50 border-slate-700">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-white">
-                        <Clock className="h-5 w-5 text-primary" />
-                        Queue Status
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-slate-300 text-center">
-                        You're currently in the matchmaking queue. Check the Current Status section for details and queue controls.
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : (
+                ) : !queueStatus.inQueue ? (
                   <QueueJoinForm onJoinQueue={handleJoinQueue} loading={actionLoading} />
-                )
+                ) : null
               ) : (
                 // Show disabled message when queue is disabled
                 <Card className="bg-slate-800/50 border-slate-700">
