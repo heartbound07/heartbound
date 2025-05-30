@@ -126,11 +126,13 @@ export const getQueueStatus = async (userId: string): Promise<QueueStatusDTO> =>
  * Trigger manual matchmaking (admin function)
  */
 export const performMatchmaking = async (): Promise<PairingDTO[]> => {
+  console.log('Frontend: Calling performMatchmaking endpoint');
   try {
     const response = await httpClient.post('/pairings/matchmake');
+    console.log('Frontend: Matchmaking response received', response.data);
     return response.data;
   } catch (error) {
-    console.error('Error performing matchmaking:', error);
+    console.error('Frontend: Matchmaking call failed', error);
     throw error;
   }
 };

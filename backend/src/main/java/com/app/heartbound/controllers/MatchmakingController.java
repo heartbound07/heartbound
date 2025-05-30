@@ -58,8 +58,8 @@ public class MatchmakingController {
     })
     @PostMapping("/join")
     public ResponseEntity<QueueStatusDTO> joinQueue(@Valid @RequestBody JoinQueueRequestDTO request) {
-        log.info("User {} joining matchmaking queue with preferences - Age: {}, Region: {}, Rank: {}", 
-                 request.getUserId(), request.getAge(), request.getRegion(), request.getRank());
+        log.info("User {} joining matchmaking queue with preferences - Age: {}, Gender: {}, Region: {}, Rank: {}", 
+                 request.getUserId(), request.getAge(), request.getGender(), request.getRegion(), request.getRank());
         
         try {
             QueueStatusDTO status = queueService.joinQueue(request);

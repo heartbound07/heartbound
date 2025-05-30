@@ -56,6 +56,12 @@ public class PairingService {
             throw new IllegalArgumentException("Users are blacklisted and cannot be paired");
         }
 
+        // SAFETY CHECK: Prevent pairing creation if compatibility score is 0
+        if (request.getCompatibilityScore() <= 0) {
+            log.error("CRITICAL ERROR: Attempted to create pairing with invalid compatibility score: {}", request.getCompatibilityScore());
+            throw new IllegalArgumentException("Cannot create pairing with compatibility score of " + request.getCompatibilityScore());
+        }
+
         // Create pairing entity with sanitized data
         Pairing pairing = Pairing.builder()
                 .user1Id(sanitizedUser1Id)

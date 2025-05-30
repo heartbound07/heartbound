@@ -202,9 +202,11 @@ public class PairingController {
     @PostMapping("/matchmake")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<PairingDTO>> performMatchmaking() {
+        log.info("=== ADMIN MATCHMAKING TRIGGERED ===");
         try {
             List<PairingDTO> newPairings = matchmakingService.performMatchmaking();
             log.info("Matchmaking completed. Created {} new pairings", newPairings.size());
+            log.info("=== ADMIN MATCHMAKING COMPLETE ===");
             return ResponseEntity.ok(newPairings);
         } catch (Exception e) {
             log.error("Error during matchmaking process", e);

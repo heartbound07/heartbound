@@ -85,6 +85,10 @@ public class QueueService {
         // Broadcast queue update via WebSocket
         broadcastQueueUpdate();
 
+        log.info("Saved queue user: ID={}, Age={}, Gender={}, Region={}, Rank={}, InQueue={}", 
+                 queueUser.getUserId(), queueUser.getAge(), queueUser.getGender(), 
+                 queueUser.getRegion(), queueUser.getRank(), queueUser.isInQueue());
+
         return buildQueueStatus(queueUser);
     }
 
@@ -195,5 +199,16 @@ public class QueueService {
             queueEnabled ? "Matchmaking queue is currently enabled" : "Matchmaking queue is currently disabled",
             lastUpdatedBy
         );
+    }
+
+    public List<MatchQueueUser> getEligibleUsersForMatching() {
+        if (!queueEnabled) {
+            log.info("Queue is disabled, returning empty list for matching");
+            return List.of();
+        }
+        
+        List<MatchQueueUser> eligibleUsers = queueRepository.findByInQueueTrue();
+        log.info("Found {} eligible users for matching", eligibleUsers.size());
+        return eligibleUsers;
     }
 } 
