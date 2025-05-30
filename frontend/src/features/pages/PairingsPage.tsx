@@ -655,13 +655,6 @@ export function PairingsPage() {
                 >
                   Don't Catch Feelings!
                 </motion.h1>
-                <motion.div
-                  className="absolute -top-4 -right-4 text-4xl"
-                  animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-                >
-                  💕
-                </motion.div>
               </div>
               <motion.p
                 className="text-xl text-[var(--color-text-secondary)] max-w-2xl mx-auto leading-relaxed"
@@ -715,12 +708,6 @@ export function PairingsPage() {
                               <UserCheck className="h-6 w-6" />
                             </div>
                             You're Matched!
-                            <motion.div
-                              animate={{ scale: [1, 1.2, 1] }}
-                              transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
-                            >
-                              💚
-                            </motion.div>
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
