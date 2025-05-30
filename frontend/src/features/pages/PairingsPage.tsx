@@ -876,14 +876,6 @@ export function PairingsPage() {
                         </CardHeader>
                         <CardContent>
                           <div className="text-center py-8">
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                              className="mx-auto mb-6"
-                            >
-                              <Users className="h-16 w-16 text-[var(--color-info)]" />
-                            </motion.div>
-
                             <h3 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4">
                               You're in the queue!
                             </h3>
