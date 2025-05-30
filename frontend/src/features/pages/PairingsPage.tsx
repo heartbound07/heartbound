@@ -714,7 +714,19 @@ export function PairingsPage() {
                           <div className="space-y-6">
                             {/* Partner Profile */}
                             <div className="flex items-center gap-4 p-4 bg-[var(--color-container-bg)] rounded-xl border border-[var(--color-border)]">
-                              <motion.div whileHover={{ scale: 1.1 }} transition={{ type: "spring", stiffness: 300 }}>
+                              <motion.div 
+                                whileHover={{ scale: 1.1 }} 
+                                transition={{ type: "spring", stiffness: 300 }}
+                                className="cursor-pointer"
+                                onClick={(e) => {
+                                  const partnerId = currentPairing?.user1Id === user?.id 
+                                    ? currentPairing?.user2Id 
+                                    : currentPairing?.user1Id;
+                                  if (partnerId) {
+                                    handleUserClick(partnerId, e);
+                                  }
+                                }}
+                              >
                                 <Avatar className="h-16 w-16 ring-2 ring-[var(--color-success)]/50">
                                   <AvatarImage
                                     src={pairedUser?.avatar || "/placeholder.svg"}
