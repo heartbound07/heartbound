@@ -111,30 +111,30 @@ const QueueJoinForm = ({
         </CardHeader>
         <CardContent className="space-y-6">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
-                <Label htmlFor="age" className="text-slate-200 font-medium mb-2 block">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="age" className="text-sm font-medium text-[var(--color-text-primary)]">
                   Age
                 </Label>
                 <Input
                   id="age"
                   type="number"
-                  placeholder="Your age"
+                  placeholder="Enter your age"
                   value={age}
                   onChange={(e) => setAge(e.target.value)}
+                  className="bg-[var(--color-container-bg)] border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-primary focus:ring-1 focus:ring-primary/20"
                   min="13"
                   max="100"
                   required
-                  className="valorant-input"
                 />
-              </motion.div>
+              </div>
 
-              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
-                <Label htmlFor="gender" className="text-slate-200 font-medium mb-2 block">
+              <div className="space-y-2">
+                <Label htmlFor="gender" className="text-sm font-medium text-[var(--color-text-primary)]">
                   Gender
                 </Label>
                 <Select value={gender} onValueChange={setGender} required>
-                  <SelectTrigger className="valorant-select">
+                  <SelectTrigger className="bg-[var(--color-container-bg)] border-[var(--color-border)] text-[var(--color-text-primary)]">
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
                   <SelectContent>
@@ -145,7 +145,7 @@ const QueueJoinForm = ({
                     ))}
                   </SelectContent>
                 </Select>
-              </motion.div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
