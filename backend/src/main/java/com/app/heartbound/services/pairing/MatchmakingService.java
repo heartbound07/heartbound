@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.*;
 import java.util.Set;
@@ -29,6 +30,7 @@ public class MatchmakingService {
 
     private final PairingService pairingService;
     private final QueueService queueService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     /**
      * Perform automatic matchmaking for users in queue
@@ -104,6 +106,10 @@ public class MatchmakingService {
                     matchedUserIds.add(bestMatch.getUserId());
                     
                     log.info("Successfully created pairing with ID: {}", pairing.getId());
+                    
+                    // 🚀 BROADCAST MATCH FOUND NOTIFICATIONS
+                    broadcastMatchFound(pairing, currentUser.getUserId(), bestMatch.getUserId());
+                    
                 } catch (Exception e) {
                     log.error("Failed to create pairing between {} and {}: {}", 
                              currentUser.getUserId(), bestMatch.getUserId(), e.getMessage());
@@ -333,5 +339,38 @@ public class MatchmakingService {
     private Long generateTemporaryChannelId() {
         // Generate a temporary channel ID (this should be replaced with actual Discord channel creation)
         return System.currentTimeMillis();
+    }
+
+    /**
+     * Broadcast match found notifications to both users
+     */
+    private void broadcastMatchFound(PairingDTO pairing, String user1Id, String user2Id) {
+        log.info("Broadcasting match found notifications for pairing ID: {}", pairing.getId());
+        
+        // Create the notification message
+        Map<String, Object> matchNotification = Map.of(
+            "eventType", "MATCH_FOUND",
+            "pairing", pairing,
+            "message", "Match found! You've been paired with someone special!",
+            "timestamp", java.time.LocalDateTime.now().toString()
+        );
+        
+        try {
+            // Send to both users individually
+            messagingTemplate.convertAndSend(
+                "/user/" + user1Id + "/topic/pairings", 
+                matchNotification
+            );
+            
+            messagingTemplate.convertAndSend(
+                "/user/" + user2Id + "/topic/pairings", 
+                matchNotification
+            );
+            
+            log.info("Successfully broadcasted match notifications to users {} and {}", user1Id, user2Id);
+            
+        } catch (Exception e) {
+            log.error("Failed to broadcast match notifications: {}", e.getMessage());
+        }
     }
 } 
