@@ -947,9 +947,9 @@ export function PairingsPage() {
                           >
                             <AlertCircle className="h-16 w-16 text-[var(--color-warning)] mx-auto mb-6" />
                           </motion.div>
-                          <h3 className="text-2xl font-bold text-[var(--color-warning)] mb-4">Queue Temporarily Closed</h3>
+                          <h3 className="text-2xl font-bold text-[var(--color-warning)] mb-4">Queue Closed</h3>
                           <p className="text-[var(--color-text-secondary)] text-lg">
-                            The matchmaking queue is currently disabled. Check back next week for new matches!
+                            The matchmaking queue is finished. Check back next week to start matching!
                           </p>
                         </CardContent>
                       </Card>
