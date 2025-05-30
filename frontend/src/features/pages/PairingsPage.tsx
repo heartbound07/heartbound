@@ -796,21 +796,16 @@ export function PairingsPage() {
                 // Show disabled message when queue is disabled
                 <Card className="bg-slate-800/50 border-slate-700">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-white">
+                    <CardTitle className="flex items-center justify-center gap-2 text-white">
                       <AlertCircle className="h-5 w-5 text-yellow-500" />
                       Queue Unavailable
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-3">
+                    <div className="text-center">
                       <p className="text-slate-300">
-                        {queueConfig?.message || 'Matchmaking queue is currently disabled. Please try again later.'}
+                        You must wait until next week to be paired up!
                       </p>
-                      {queueConfig?.updatedBy && (
-                        <p className="text-sm text-slate-400">
-                          Updated by: {queueConfig.updatedBy}
-                        </p>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
