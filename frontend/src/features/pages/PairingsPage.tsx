@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/valorant/badge';
 import { Input } from '@/components/ui/profile/input';
 import { Label } from '@/components/ui/valorant/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/valorant/select';
-import { Loader2, Heart, Users, Clock, Trophy, MessageCircle, Settings } from 'lucide-react';
+import { Loader2, Heart, Users, Trophy, MessageCircle, Settings, Info, User, MapPin, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { JoinQueueRequestDTO, PairingDTO } from '@/config/pairingService';
 import { useQueueUpdates } from '@/contexts/QueueUpdates';
@@ -20,6 +20,7 @@ import { getUserProfiles, type UserProfileDTO } from '@/config/userService';
 import { DashboardNavigation } from '@/components/Sidebar';
 import '@/assets/PairingsPage.css';
 import { useQueueConfig } from '@/contexts/QueueConfigUpdates';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/valorant/tooltip';
 
 const REGIONS = [
   { value: 'NA_EAST', label: 'NA East' },
@@ -565,43 +566,167 @@ export function PairingsPage() {
                 <CardContent>
                   {currentPairing && pairedUser ? (
                     <div className="space-y-4">
-                      <div className="flex items-center gap-4 p-4 bg-primary/10 rounded-lg border border-primary/20">
-                        <Avatar className="h-16 w-16">
-                          <AvatarImage src={pairedUser.avatar} alt={pairedUser.username} />
-                          <AvatarFallback>{pairedUser.username.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-white">
-                            {pairedUser.displayName || pairedUser.username}
-                          </h3>
-                          <p className="text-slate-400">@{pairedUser.username}</p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <Badge variant="secondary">
-                              <Trophy className="h-3 w-3 mr-1" />
-                              {currentPairing.compatibilityScore}% Match
-                            </Badge>
-                            <Badge variant="outline">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {currentPairing.activeDays} days
-                            </Badge>
+                      {/* 🔍 DEBUG: Add logging to see what data we have */}
+                      {(() => {
+                        console.log('=== PAIRING DEBUG DATA ===');
+                        console.log('currentPairing:', currentPairing);
+                        console.log('user?.id:', user?.id);
+                        console.log('currentPairing.user1Id:', currentPairing.user1Id);
+                        console.log('currentPairing.user2Id:', currentPairing.user2Id);
+                        console.log('Available pairing properties:', Object.keys(currentPairing));
+                        
+                        // Check for user preference data
+                        console.log('User1 data check:');
+                        console.log('- user1Age:', currentPairing?.user1Age);
+                        console.log('- user1Gender:', currentPairing?.user1Gender);
+                        console.log('- user1Region:', currentPairing?.user1Region);
+                        console.log('- user1Rank:', currentPairing?.user1Rank);
+                        
+                        console.log('User2 data check:');
+                        console.log('- user2Age:', currentPairing?.user2Age);
+                        console.log('- user2Gender:', currentPairing?.user2Gender);
+                        console.log('- user2Region:', currentPairing?.user2Region);
+                        console.log('- user2Rank:', currentPairing?.user2Rank);
+                        
+                        console.log('========================');
+                        return null;
+                      })()}
+                      
+                      <TooltipProvider>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-12 w-12">
+                              <AvatarImage src={pairedUser?.avatar} alt={pairedUser?.displayName} />
+                              <AvatarFallback className="bg-primary/20 text-primary">
+                                {pairedUser?.displayName?.charAt(0) || '?'}
+                              </AvatarFallback>
+                            </Avatar>
+                            
+                            <div className="flex-1">
+                              <p className="font-medium text-white">{pairedUser?.displayName || 'Unknown User'}</p>
+                              
+                              {/* Add debugging for the other user's data */}
+                              {(() => {
+                                const isUser1 = currentPairing?.user1Id === user?.id;
+                                const otherUserAge = isUser1 ? currentPairing?.user2Age : currentPairing?.user1Age;
+                                const otherUserGender = isUser1 ? currentPairing?.user2Gender : currentPairing?.user1Gender;
+                                const otherUserRegion = isUser1 ? currentPairing?.user2Region : currentPairing?.user1Region;
+                                const otherUserRank = isUser1 ? currentPairing?.user2Rank : currentPairing?.user1Rank;
+                                
+                                console.log('=== OTHER USER DATA ===');
+                                console.log('Am I user1?', isUser1);
+                                console.log('Other user age:', otherUserAge);
+                                console.log('Other user gender:', otherUserGender);
+                                console.log('Other user region:', otherUserRegion);
+                                console.log('Other user rank:', otherUserRank);
+                                console.log('======================');
+                                
+                                return null;
+                              })()}
+                              
+                              {/* User Preferences Row */}
+                              <TooltipProvider>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <div className="flex items-center gap-1 p-1 bg-slate-700/50 rounded cursor-pointer">
+                                        <User className="h-3 w-3 text-blue-400" />
+                                        <span className="text-xs text-slate-300">{currentPairing?.user1Id === user?.id ? currentPairing?.user2Age : currentPairing?.user1Age}</span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-slate-900 border-slate-700">
+                                      <p className="text-sm text-slate-200">
+                                        Age: <span className="font-semibold text-blue-400">{currentPairing?.user1Id === user?.id ? currentPairing?.user2Age : currentPairing?.user1Age}</span>
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <div className="flex items-center gap-1 p-1 bg-slate-700/50 rounded cursor-pointer">
+                                        <div className="h-3 w-3 bg-pink-500 rounded-full" />
+                                        <span className="text-xs text-slate-300">
+                                          {GENDERS.find(g => g.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Gender : currentPairing?.user1Gender))?.label || 'N/A'}
+                                        </span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-slate-900 border-slate-700">
+                                      <p className="text-sm text-slate-200">
+                                        Gender: <span className="font-semibold text-pink-400">
+                                          {GENDERS.find(g => g.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Gender : currentPairing?.user1Gender))?.label || 'Not specified'}
+                                        </span>
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <div className="flex items-center gap-1 p-1 bg-slate-700/50 rounded cursor-pointer">
+                                        <MapPin className="h-3 w-3 text-green-400" />
+                                        <span className="text-xs text-slate-300">
+                                          {REGIONS.find(r => r.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Region : currentPairing?.user1Region))?.label || 'N/A'}
+                                        </span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-slate-900 border-slate-700">
+                                      <p className="text-sm text-slate-200">
+                                        Region: <span className="font-semibold text-green-400">
+                                          {REGIONS.find(r => r.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Region : currentPairing?.user1Region))?.label || 'Not specified'}
+                                        </span>
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <div className="flex items-center gap-1 p-1 bg-slate-700/50 rounded cursor-pointer">
+                                        <Trophy className="h-3 w-3 text-yellow-400" />
+                                        <span className="text-xs text-slate-300">
+                                          {RANKS.find(r => r.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Rank : currentPairing?.user1Rank))?.label || 'N/A'}
+                                        </span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-slate-900 border-slate-700">
+                                      <p className="text-sm text-slate-200">
+                                        VALORANT Rank: <span className="font-semibold text-yellow-400">
+                                          {RANKS.find(r => r.value === (currentPairing?.user1Id === user?.id ? currentPairing?.user2Rank : currentPairing?.user1Rank))?.label || 'Not specified'}
+                                        </span>
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                              </TooltipProvider>
+                            </div>
                           </div>
+                          
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <div className="flex items-center gap-1 text-slate-400 cursor-pointer">
+                                <Info className="h-4 w-4" />
+                                <span className="text-sm">Match Info</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-slate-900 border-slate-700 max-w-xs">
+                              <div className="space-y-2">
+                                <p className="text-sm font-medium text-white">Match Details</p>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3 text-blue-400" />
+                                    <span className="text-slate-300">Matched:</span>
+                                  </div>
+                                  <span className="text-slate-200">{formatDate(currentPairing.matchedAt)}</span>
+                                  
+                                  <div className="flex items-center gap-1">
+                                    <MessageCircle className="h-3 w-3 text-green-400" />
+                                    <span className="text-slate-300">Channel:</span>
+                                  </div>
+                                  <span className="text-slate-200">#{currentPairing.discordChannelId}</span>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 text-center">
-                        <div className="p-3 bg-slate-700/50 rounded-lg">
-                          <div className="text-2xl font-bold text-primary">{currentPairing.messageCount}</div>
-                          <div className="text-sm text-slate-400">Messages</div>
-                        </div>
-                        <div className="p-3 bg-slate-700/50 rounded-lg">
-                          <div className="text-2xl font-bold text-primary">{currentPairing.wordCount}</div>
-                          <div className="text-sm text-slate-400">Words</div>
-                        </div>
-                      </div>
-                      
-                      <p className="text-sm text-slate-400">
-                        Matched on {formatDate(currentPairing.matchedAt)}
-                      </p>
+                      </TooltipProvider>
                     </div>
                   ) : queueStatus.inQueue ? (
                     <div className="text-center py-6">

@@ -33,4 +33,12 @@ public class PairingDTO {
     private boolean mutualBreakup;
     private boolean active;
     private boolean blacklisted;
+    private Integer user1Age;
+    private String user1Gender;
+    private String user1Region;
+    private String user1Rank;
+    private Integer user2Age;
+    private String user2Gender;
+    private String user2Region;
+    private String user2Rank;
 } 

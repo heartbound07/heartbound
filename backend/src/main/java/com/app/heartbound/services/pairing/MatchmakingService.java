@@ -98,6 +98,14 @@ public class MatchmakingService {
                             .user2Id(bestMatch.getUserId())
                             .discordChannelId(generateTemporaryChannelId())
                             .compatibilityScore(highestScore)
+                            .user1Age(currentUser.getAge())
+                            .user1Gender(currentUser.getGender().toString())
+                            .user1Region(currentUser.getRegion().toString())
+                            .user1Rank(currentUser.getRank().toString())
+                            .user2Age(bestMatch.getAge())
+                            .user2Gender(bestMatch.getGender().toString())
+                            .user2Region(bestMatch.getRegion().toString())
+                            .user2Rank(bestMatch.getRank().toString())
                             .build();
                             
                     PairingDTO pairing = pairingService.createPairing(pairingRequest);
@@ -373,4 +381,4 @@ public class MatchmakingService {
             log.error("Failed to broadcast match notifications: {}", e.getMessage());
         }
     }
-} 
+}

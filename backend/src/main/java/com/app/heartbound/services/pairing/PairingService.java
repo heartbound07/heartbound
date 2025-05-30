@@ -69,6 +69,14 @@ public class PairingService {
                 .discordChannelId(request.getDiscordChannelId())
                 .compatibilityScore(Math.max(0, Math.min(100, request.getCompatibilityScore()))) // Clamp score
                 .matchedAt(LocalDateTime.now())
+                .user1Age(request.getUser1Age())
+                .user1Gender(request.getUser1Gender())
+                .user1Region(request.getUser1Region())
+                .user1Rank(request.getUser1Rank())
+                .user2Age(request.getUser2Age())
+                .user2Gender(request.getUser2Gender())
+                .user2Region(request.getUser2Region())
+                .user2Rank(request.getUser2Rank())
                 .build();
 
         // Save pairing
@@ -274,7 +282,7 @@ public class PairingService {
     }
 
     private PairingDTO mapToPairingDTO(Pairing pairing) {
-        return PairingDTO.builder()
+        PairingDTO dto = PairingDTO.builder()
                 .id(pairing.getId())
                 .user1Id(pairing.getUser1Id())
                 .user2Id(pairing.getUser2Id())
@@ -292,6 +300,18 @@ public class PairingService {
                 .active(pairing.isActive())
                 .blacklisted(pairing.isBlacklisted())
                 .build();
+
+        dto.setUser1Age(pairing.getUser1Age());
+        dto.setUser1Gender(pairing.getUser1Gender());
+        dto.setUser1Region(pairing.getUser1Region());
+        dto.setUser1Rank(pairing.getUser1Rank());
+        
+        dto.setUser2Age(pairing.getUser2Age());
+        dto.setUser2Gender(pairing.getUser2Gender());
+        dto.setUser2Region(pairing.getUser2Region());
+        dto.setUser2Rank(pairing.getUser2Rank());
+
+        return dto;
     }
 
     // Add input sanitization methods

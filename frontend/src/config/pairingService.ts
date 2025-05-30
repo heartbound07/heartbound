@@ -17,6 +17,14 @@ export interface PairingDTO {
   mutualBreakup: boolean;
   active: boolean;
   blacklisted: boolean;
+  user1Age?: number;
+  user1Gender?: string;
+  user1Region?: string;
+  user1Rank?: string;
+  user2Age?: number;
+  user2Gender?: string;
+  user2Region?: string;
+  user2Rank?: string;
 }
 
 export interface MatchQueueUserDTO {
@@ -35,6 +43,10 @@ export interface QueueStatusDTO {
   estimatedWaitTime?: number;
   queuePosition?: number;
   totalQueueSize?: number;
+  age?: number;
+  region?: 'NA_EAST' | 'NA_WEST' | 'EU' | 'ASIA' | 'OCE';
+  rank?: 'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'ASCENDANT' | 'IMMORTAL' | 'RADIANT';
+  gender?: 'MALE' | 'FEMALE' | 'NON_BINARY' | 'PREFER_NOT_TO_SAY';
 }
 
 export interface JoinQueueRequestDTO {
