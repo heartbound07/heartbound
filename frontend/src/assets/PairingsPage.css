@@ -131,10 +131,12 @@
   transition: all 0.3s ease;
 }
 
-/* Queue status styling - Updated */
+/* Enhanced queue status card styling */
 .queue-status-card {
-  background: rgba(31, 39, 49, 0.4) !important;
-  border: 1px solid rgba(59, 130, 246, 0.1) !important; /* More subtle blue border */
+  background: rgba(31, 39, 49, 0.6) !important;
+  border: 1px solid rgba(59, 130, 246, 0.15) !important;
+  backdrop-filter: blur(12px);
+  border-radius: 1rem;
   position: relative;
   overflow: hidden;
 }
@@ -146,8 +148,13 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(45deg, rgba(59, 130, 246, 0.03) 0%, transparent 50%);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, transparent 70%);
   pointer-events: none;
+}
+
+/* Remove pulsing animation from connection indicator */
+.queue-status-card .w-2.h-2.rounded-full {
+  transition: background-color 0.3s ease;
 }
 
 /* Active pairing styling - Updated */

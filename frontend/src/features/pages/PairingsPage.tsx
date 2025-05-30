@@ -866,74 +866,78 @@ export function PairingsPage() {
                       transition={{ duration: 0.5 }}
                     >
                       <Card className="queue-status-card">
-                        <CardHeader className="pb-4">
-                          <CardTitle className="flex items-center gap-3 text-[var(--color-info)]">
-                            <div className="p-2 bg-[var(--color-info)]/20 rounded-lg">
-                              <Clock className="h-6 w-6" />
+                        <CardContent className="p-8">
+                          {/* Header Section */}
+                          <div className="text-center mb-8">
+                            <div className="inline-flex items-center gap-3 px-4 py-2 bg-[var(--color-info)]/10 rounded-full border border-[var(--color-info)]/20 mb-4">
+                              <Clock className="h-5 w-5 text-[var(--color-info)]" />
+                              <span className="text-[var(--color-info)] font-medium">Finding Your Match</span>
                             </div>
-                            Finding Your Match...
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-center py-8">
-                            <h3 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4">
-                              You're in the queue!
-                            </h3>
-
-                            <div className="flex items-center justify-center gap-2 mb-6">
-                              <motion.div
-                                className={`w-3 h-3 rounded-full ${
-                                  isConnected ? "bg-[var(--color-success)]" : "bg-[var(--color-error)]"
-                                }`}
-                                animate={{ scale: [1, 1.2, 1] }}
-                                transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
-                              />
+                            
+                            <h2 className="text-3xl font-bold text-[var(--color-text-primary)] mb-2">
+                              You're in Queue!
+                            </h2>
+                            
+                            {/* Connection Status */}
+                            <div className="flex items-center justify-center gap-2">
+                              <div className={`w-2 h-2 rounded-full ${
+                                isConnected ? "bg-[var(--color-success)]" : "bg-[var(--color-error)]"
+                              }`} />
                               <span className="text-sm text-[var(--color-text-secondary)]">
-                                {isConnected ? "Connected - Live updates active" : "Reconnecting..."}
+                                {isConnected ? "Connected" : "Reconnecting..."}
                               </span>
                             </div>
+                          </div>
 
-                            <div className="space-y-4 mb-8">
-                              {queueStatus.queuePosition && queueStatus.totalQueueSize && (
-                                <div className="p-4 bg-[var(--color-container-bg)] rounded-xl">
-                                  <p className="text-lg text-[var(--color-text-secondary)]">
-                                    Position:{" "}
-                                    <span className="font-bold text-[var(--color-info)] text-2xl">
-                                      {queueStatus.queuePosition}
-                                    </span>{" "}
-                                    of {queueStatus.totalQueueSize}
-                                  </p>
+                          {/* Queue Information Grid */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            {queueStatus.queuePosition && queueStatus.totalQueueSize && (
+                              <div className="text-center">
+                                <div className="text-3xl font-bold text-[var(--color-info)] mb-1">
+                                  {queueStatus.queuePosition}
                                 </div>
-                              )}
-                              {queueStatus.estimatedWaitTime && (
-                                <div className="p-4 bg-[var(--color-container-bg)] rounded-xl">
-                                  <p className="text-lg text-[var(--color-text-secondary)]">
-                                    Estimated wait:{" "}
-                                    <span className="font-bold text-primary text-2xl">
-                                      {queueStatus.estimatedWaitTime}
-                                    </span>{" "}
-                                    minutes
-                                  </p>
+                                <div className="text-sm text-[var(--color-text-secondary)]">
+                                  of {queueStatus.totalQueueSize} in queue
                                 </div>
-                              )}
-                              {queueStatus.queuedAt && (
-                                <p className="text-sm text-[var(--color-text-tertiary)]">
-                                  Queued since {formatDate(queueStatus.queuedAt)}
-                                </p>
-                              )}
-                            </div>
+                              </div>
+                            )}
+                            
+                            {queueStatus.estimatedWaitTime && (
+                              <div className="text-center">
+                                <div className="text-3xl font-bold text-primary mb-1">
+                                  {queueStatus.estimatedWaitTime}m
+                                </div>
+                                <div className="text-sm text-[var(--color-text-secondary)]">
+                                  estimated wait
+                                </div>
+                              </div>
+                            )}
+                            
+                            {queueStatus.queuedAt && (
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">
+                                  {formatDate(queueStatus.queuedAt).split(' ')[1]}
+                                </div>
+                                <div className="text-sm text-[var(--color-text-secondary)]">
+                                  queued since
+                                </div>
+                              </div>
+                            )}
+                          </div>
 
-                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              <Button
-                                variant="outline"
-                                onClick={leaveQueue}
-                                disabled={actionLoading}
-                                className="valorant-button-secondary"
-                              >
-                                {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                                Leave Queue
-                              </Button>
-                            </motion.div>
+                          {/* Action Button */}
+                          <div className="text-center">
+                            <Button
+                              variant="outline"
+                              onClick={leaveQueue}
+                              disabled={actionLoading}
+                              className="px-8 py-3 border-[var(--color-text-tertiary)]/30 text-[var(--color-text-secondary)] hover:border-[var(--color-error)]/50 hover:text-[var(--color-error)] transition-all duration-200"
+                            >
+                              {actionLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              ) : null}
+                              Leave Queue
+                            </Button>
                           </div>
                         </CardContent>
                       </Card>
