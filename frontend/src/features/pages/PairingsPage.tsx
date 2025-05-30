@@ -244,6 +244,40 @@ export function PairingsPage() {
     return savedState ? JSON.parse(savedState) : false
   })
 
+  const [queueTimer, setQueueTimer] = useState<string>('0s')
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    let startTime: number
+
+    if (queueStatus.inQueue) {
+      startTime = Date.now()
+      setQueueTimer('0s') // Reset to 0 when entering queue
+      
+      interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000)
+        
+        const hours = Math.floor(elapsed / 3600)
+        const minutes = Math.floor((elapsed % 3600) / 60)
+        const seconds = elapsed % 60
+
+        if (hours > 0) {
+          setQueueTimer(`${hours}h ${minutes}m`)
+        } else if (minutes > 0) {
+          setQueueTimer(`${minutes}m ${seconds}s`)
+        } else {
+          setQueueTimer(`${seconds}s`)
+        }
+      }, 1000)
+    } else {
+      setQueueTimer('0s')
+    }
+
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [queueStatus.inQueue])
+
   useEffect(() => {
     const handleSidebarStateChange = (event: CustomEvent) => {
       setIsCollapsed(event.detail.collapsed)
@@ -915,11 +949,11 @@ export function PairingsPage() {
                             
                             {queueStatus.queuedAt && (
                               <div className="text-center">
-                                <div className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">
-                                  {formatDate(queueStatus.queuedAt).split(' ')[1]}
+                                <div className="text-3xl font-bold text-[var(--color-success)] mb-1">
+                                  {queueTimer}
                                 </div>
                                 <div className="text-sm text-[var(--color-text-secondary)]">
-                                  queued since
+                                  in queue
                                 </div>
                               </div>
                             )}
