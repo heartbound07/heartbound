@@ -108,9 +108,7 @@ const QueueJoinForm = ({
             <div className="p-2 bg-primary/20 rounded-lg">
               <Heart className="h-5 w-5 text-primary" />
             </div>
-            Join the Queue
           </CardTitle>
-          <p className="text-slate-400 text-sm">Find your perfect match and start your journey</p>
         </CardHeader>
         <CardContent className="space-y-6">
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -203,7 +201,7 @@ const QueueJoinForm = ({
                 ) : (
                   <>
                     <Heart className="mr-2 h-5 w-5" />
-                    Find My Match
+                    Join the Queue
                   </>
                 )}
               </Button>
@@ -638,8 +636,6 @@ export function PairingsPage() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
               >
-                Find your perfect gaming partner and see if you can keep it casual.
-                <span className="text-primary font-semibold"> Challenge accepted?</span>
               </motion.p>
             </motion.div>
 
