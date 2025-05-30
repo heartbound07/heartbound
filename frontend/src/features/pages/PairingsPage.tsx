@@ -754,39 +754,13 @@ export function PairingsPage() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-white">
                         <Clock className="h-5 w-5 text-primary" />
-                        In Queue
+                        Queue Status
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between text-slate-300">
-                          <span>Queue Position:</span>
-                          <span className="font-medium text-white">#{queueStatus.queuePosition}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-slate-300">
-                          <span>Total in Queue:</span>
-                          <span className="font-medium text-white">{queueStatus.totalQueueSize}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-slate-300">
-                          <span>Estimated Wait:</span>
-                          <span className="font-medium text-white">{queueStatus.estimatedWaitTime} min</span>
-                        </div>
-                        <Button 
-                          onClick={leaveQueue} 
-                          variant="outline" 
-                          className="w-full mt-4"
-                          disabled={actionLoading}
-                        >
-                          {actionLoading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Leaving...
-                            </>
-                          ) : (
-                            'Leave Queue'
-                          )}
-                        </Button>
-                      </div>
+                      <p className="text-slate-300 text-center">
+                        You're currently in the matchmaking queue. Check the Current Status section for details and queue controls.
+                      </p>
                     </CardContent>
                   </Card>
                 ) : (
