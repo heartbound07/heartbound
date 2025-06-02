@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/valorant/badge"
 import { Input } from "@/components/ui/profile/input"
 import { Label } from "@/components/ui/valorant/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
-import { Loader2, Heart, Users, Trophy, MessageCircle, Settings, User, MapPin, Calendar, AlertCircle, Clock, Zap, Star, UserCheck, Activity, ChevronRight } from 'lucide-react'
+import { Heart, Users, Trophy, MessageCircle, Settings, User, MapPin, Calendar, AlertCircle, Clock, Zap, Star, UserCheck, Activity, ChevronRight } from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
 import type { JoinQueueRequestDTO, PairingDTO } from "@/config/pairingService"
 import { useQueueUpdates } from "@/contexts/QueueUpdates"
@@ -24,6 +24,7 @@ import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 import { DashboardNavigation } from "@/components/Sidebar"
 import "@/assets/PairingsPage.css"
 import { useQueueConfig } from "@/contexts/QueueConfigUpdates"
+import { Skeleton } from "@/components/ui/SkeletonUI"
 
 const REGIONS = [
   { value: "NA_EAST", label: "NA East" },
@@ -193,10 +194,7 @@ const QueueJoinForm = ({
                 disabled={loading || !isFormValid}
               >
                 {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Joining Queue...
-                  </>
+                  <Skeleton width="120px" height="20px" theme="valorant" className="mx-auto" />
                 ) : (
                   <>
                     <Heart className="mr-2 h-5 w-5" />
@@ -469,19 +467,114 @@ export function PairingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg-gradient-from)]">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="text-center"
-        >
-          <div className="relative">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-            <div className="absolute inset-0 h-12 w-12 bg-primary/20 rounded-full animate-pulse mx-auto"></div>
+      <div className="pairings-container">
+        <DashboardNavigation />
+        
+        <main className={`pairings-content ${isCollapsed ? "sidebar-collapsed" : ""}`}>
+          <div className="min-h-screen" style={{ background: '#0F1923' }}>
+            <div className="container mx-auto px-4 py-8 max-w-7xl">
+              {/* Admin Controls Skeleton */}
+              {hasRole("ADMIN") && (
+                <div className="mb-8">
+                  <div className="admin-controls rounded-xl border border-[var(--color-border)] bg-[var(--color-container-bg)] backdrop-blur-sm">
+                    <div className="p-6 border-b border-[var(--color-border)]">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Skeleton variant="circular" width="32px" height="32px" theme="valorant" />
+                        <Skeleton width="150px" height="24px" theme="valorant" />
+                      </div>
+                    </div>
+                    <div className="p-6 space-y-6">
+                      {/* Queue Status Skeleton */}
+                      <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-container-bg)] backdrop-blur-sm">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <Skeleton variant="circular" width="16px" height="16px" theme="valorant" />
+                            <Skeleton width="200px" height="20px" theme="valorant" />
+                          </div>
+                          <Skeleton width="80px" height="20px" borderRadius="9999px" theme="valorant" />
+                        </div>
+                        <Skeleton width="60%" height="16px" theme="valorant" />
+                      </div>
+                      
+                      {/* Admin Buttons Skeleton */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {[1, 2, 3, 4].map((i) => (
+                          <Skeleton key={i} width="100%" height="48px" borderRadius="6px" theme="valorant" />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Main Content Skeleton */}
+              <div className="space-y-8">
+                {/* Queue/Pairing Status Skeleton */}
+                <div className="valorant-card rounded-xl border border-[var(--color-border)] bg-[var(--color-container-bg)] backdrop-blur-sm">
+                  <div className="p-8">
+                    <div className="text-center mb-8">
+                      <Skeleton width="200px" height="40px" borderRadius="9999px" className="mx-auto mb-4" theme="valorant" />
+                      <Skeleton width="300px" height="32px" className="mx-auto mb-2" theme="valorant" />
+                      <Skeleton width="150px" height="16px" className="mx-auto" theme="valorant" />
+                    </div>
+                    
+                    {/* Form or Status Content Skeleton */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                      <div className="space-y-2">
+                        <Skeleton width="60px" height="16px" theme="valorant" />
+                        <Skeleton width="100%" height="40px" borderRadius="6px" theme="valorant" />
+                      </div>
+                      <div className="space-y-2">
+                        <Skeleton width="80px" height="16px" theme="valorant" />
+                        <Skeleton width="100%" height="40px" borderRadius="6px" theme="valorant" />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div className="space-y-2">
+                        <Skeleton width="60px" height="16px" theme="valorant" />
+                        <Skeleton width="100%" height="40px" borderRadius="6px" theme="valorant" />
+                      </div>
+                      <div className="space-y-2">
+                        <Skeleton width="100px" height="16px" theme="valorant" />
+                        <Skeleton width="100%" height="40px" borderRadius="6px" theme="valorant" />
+                      </div>
+                    </div>
+                    
+                    <Skeleton width="100%" height="48px" borderRadius="6px" theme="valorant" />
+                  </div>
+                </div>
+                
+                {/* Pairing History Skeleton */}
+                <div className="valorant-card rounded-xl border border-[var(--color-border)] bg-[var(--color-container-bg)] backdrop-blur-sm">
+                  <div className="p-6 border-b border-[var(--color-border)]">
+                    <div className="flex items-center gap-3">
+                      <Skeleton variant="circular" width="24px" height="24px" theme="valorant" />
+                      <Skeleton width="150px" height="24px" theme="valorant" />
+                    </div>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center justify-between p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-container-bg)]">
+                        <div className="flex items-center gap-4">
+                          <Skeleton variant="circular" width="40px" height="40px" theme="valorant" />
+                          <div className="space-y-2">
+                            <Skeleton width="120px" height="16px" theme="valorant" />
+                            <Skeleton width="80px" height="14px" theme="valorant" />
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Skeleton width="60px" height="20px" borderRadius="9999px" theme="valorant" />
+                          <Skeleton width="80px" height="20px" borderRadius="9999px" theme="valorant" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <p className="text-[var(--color-text-primary)] text-lg">Loading your matches...</p>
-        </motion.div>
+        </main>
       </div>
     )
   }
@@ -552,7 +645,7 @@ export function PairingsPage() {
                             className="w-full h-12 valorant-button-success"
                           >
                             {queueConfigLoading ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <Skeleton width="80px" height="16px" theme="valorant" className="mx-auto" />
                             ) : (
                               <>
                                 <Activity className="h-4 w-4 mr-2" />
@@ -570,7 +663,7 @@ export function PairingsPage() {
                             className="w-full h-12"
                           >
                             {queueConfigLoading ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <Skeleton width="80px" height="16px" theme="valorant" className="mx-auto" />
                             ) : (
                               <>
                                 <AlertCircle className="h-4 w-4 mr-2" />
@@ -587,7 +680,7 @@ export function PairingsPage() {
                             className="w-full h-12 valorant-button-primary"
                           >
                             {adminActionLoading ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <Skeleton width="100px" height="16px" theme="valorant" className="mx-auto" />
                             ) : (
                               <>
                                 <Zap className="h-4 w-4 mr-2" />
@@ -605,7 +698,7 @@ export function PairingsPage() {
                             className="w-full h-12"
                           >
                             {adminActionLoading ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <Skeleton width="100px" height="16px" theme="valorant" className="mx-auto" />
                             ) : (
                               <>
                                 <Users className="h-4 w-4 mr-2" />
@@ -653,7 +746,7 @@ export function PairingsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                 >
-                  Don't Catch Feelings!
+                  Pairings
                 </motion.h1>
               </div>
               <motion.p
@@ -898,7 +991,7 @@ export function PairingsPage() {
                               className="px-8 py-3 border-[var(--color-text-tertiary)]/30 text-[var(--color-text-secondary)] hover:border-[var(--color-error)]/50 hover:text-[var(--color-error)] transition-all duration-200"
                             >
                               {actionLoading ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                <Skeleton width="80px" height="16px" theme="valorant" className="mx-auto" />
                               ) : null}
                               Leave Queue
                             </Button>
