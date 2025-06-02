@@ -1003,52 +1003,54 @@ export function PairingsPage() {
                 </AnimatePresence>
 
                 {/* Queue Join Section */}
-                <AnimatePresence mode="wait">
-                  {isQueueEnabled ? (
-                    currentPairing ? (
+                {!currentPairing && (
+                  <AnimatePresence mode="wait">
+                    {isQueueEnabled ? (
+                      currentPairing ? (
+                        <motion.div
+                          key="already-matched"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                        >
+                          <Card className="valorant-card">
+                            <CardContent className="text-center py-8">
+                              <Heart className="h-12 w-12 text-primary mx-auto mb-4" />
+                              <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">You're All Set!</h3>
+                              <p className="text-[var(--color-text-secondary)]">
+                                Check your Discord for your private channel and start chatting!
+                              </p>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      ) : !queueStatus.inQueue ? (
+                        <QueueJoinForm onJoinQueue={handleJoinQueue} loading={actionLoading} />
+                      ) : null
+                    ) : (
                       <motion.div
-                        key="already-matched"
+                        key="queue-disabled"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
                       >
                         <Card className="valorant-card">
-                          <CardContent className="text-center py-8">
-                            <Heart className="h-12 w-12 text-primary mx-auto mb-4" />
-                            <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">You're All Set!</h3>
-                            <p className="text-[var(--color-text-secondary)]">
-                              Check your Discord for your private channel and start chatting!
+                          <CardContent className="text-center py-12">
+                            <motion.div
+                              animate={{ rotate: [0, 10, -10, 0] }}
+                              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
+                            >
+                              <AlertCircle className="h-16 w-16 text-[var(--color-warning)] mx-auto mb-6" />
+                            </motion.div>
+                            <h3 className="text-2xl font-bold text-[var(--color-warning)] mb-4">Queue Closed</h3>
+                            <p className="text-[var(--color-text-secondary)] text-lg">
+                              The matchmaking queue is finished. Check back next week to start matching!
                             </p>
                           </CardContent>
                         </Card>
                       </motion.div>
-                    ) : !queueStatus.inQueue ? (
-                      <QueueJoinForm onJoinQueue={handleJoinQueue} loading={actionLoading} />
-                    ) : null
-                  ) : (
-                    <motion.div
-                      key="queue-disabled"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                    >
-                      <Card className="valorant-card">
-                        <CardContent className="text-center py-12">
-                          <motion.div
-                            animate={{ rotate: [0, 10, -10, 0] }}
-                            transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-                          >
-                            <AlertCircle className="h-16 w-16 text-[var(--color-warning)] mx-auto mb-6" />
-                          </motion.div>
-                          <h3 className="text-2xl font-bold text-[var(--color-warning)] mb-4">Queue Closed</h3>
-                          <p className="text-[var(--color-text-secondary)] text-lg">
-                            The matchmaking queue is finished. Check back next week to start matching!
-                          </p>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                    )}
+                  </AnimatePresence>
+                )}
               </div>
 
               {/* Right Column - Pairing History */}
