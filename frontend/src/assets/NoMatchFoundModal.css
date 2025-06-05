@@ -1,4 +1,4 @@
-/* NoMatchFoundModal specific styles - Following MatchFoundModal design patterns exactly */
+/* NoMatchFoundModal specific styles - Optimized and simplified */
 
 /* Modal backdrop - z-index fix only */
 .no-match-modal-backdrop {
@@ -29,20 +29,12 @@
   position: relative;
 }
 
-/* Animated background gradient - softer colors for "no match" */
+/* Static background gradient - no animation */
 .no-match-modal-bg-gradient {
   position: absolute;
   inset: 0;
   opacity: 0.3;
   background: linear-gradient(135deg, rgba(255, 193, 7, 0.2) 0%, rgba(168, 85, 247, 0.1) 50%, rgba(255, 152, 0, 0.2) 100%);
-  background-size: 200% 200%;
-  animation: gradientShift 8s ease-in-out infinite;
-}
-
-@keyframes gradientShift {
-  0% { background-position: 0% 0%; }
-  50% { background-position: 100% 100%; }
-  100% { background-position: 0% 0%; }
 }
 
 /* Close button */
@@ -69,7 +61,6 @@
 .no-match-modal-header {
   position: relative;
   text-align: center;
-  padding-bottom: 1rem;
   padding: 1.5rem 1.5rem 1rem 1.5rem;
 }
 
@@ -115,15 +106,11 @@
   flex-direction: column;
 }
 
+/* Static status icon - no animation */
 .no-match-modal-status-icon {
-  animation: statusWiggle 2s infinite;
-  animation-delay: 3s;
-}
-
-@keyframes statusWiggle {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(10deg); }
-  75% { transform: rotate(-10deg); }
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Queue info */
@@ -148,6 +135,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  transition: all 0.2s ease;
 }
 
 .no-match-modal-action-description {

@@ -48,14 +48,14 @@ export function NoMatchFoundModal({
       {isVisible && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm no-match-modal-backdrop flex items-center justify-center p-4">
           <motion.div
-            initial={{ scale: 0.8, opacity: 0, y: 30 }}
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.8, opacity: 0, y: 30 }}
-            transition={{ type: "spring", duration: 0.6, bounce: 0.1 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
             className="no-match-modal-container"
           >
             <Card className="no-match-modal-card">
-              {/* Animated Background Gradient */}
+              {/* Static Background Gradient */}
               <div className="no-match-modal-bg-gradient" />
 
               <CardHeader className="no-match-modal-header">
@@ -68,39 +68,19 @@ export function NoMatchFoundModal({
                   <X className="h-4 w-4" />
                 </Button>
                 
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <CardTitle className="no-match-modal-title-large">
-                    No Match This Round
-                  </CardTitle>
-                </motion.div>
+                <CardTitle className="no-match-modal-title-large">
+                  No Match This Round
+                </CardTitle>
               </CardHeader>
               
               <CardContent className="no-match-modal-content">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.2 }}
-                  className="no-match-modal-full-section"
-                >
+                <div className="no-match-modal-full-section">
                   {/* Status Icon and Message */}
-                  <motion.div 
-                    className="no-match-modal-compatibility"
-                    initial={{ scale: 0.8 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", delay: 0.4 }}
-                  >
+                  <div className="no-match-modal-compatibility">
                     <div className="no-match-modal-compatibility-row">
-                      <motion.div
-                        className="no-match-modal-status-icon"
-                        animate={{ rotate: [0, 10, -10, 0] }}
-                        transition={{ duration: 3, repeat: Infinity, delay: 1 }}
-                      >
+                      <div className="no-match-modal-status-icon">
                         <AlertCircle className="h-6 w-6 text-[var(--color-warning)]" />
-                      </motion.div>
+                      </div>
                       <p className="no-match-modal-subtitle">
                         {message}
                       </p>
@@ -116,15 +96,10 @@ export function NoMatchFoundModal({
                         </div>
                       </div>
                     )}
-                  </motion.div>
+                  </div>
                   
                   {/* Action Buttons */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                    className="no-match-modal-action-section"
-                  >
+                  <div className="no-match-modal-action-section">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Button 
                         onClick={handleStayInQueue}
@@ -147,12 +122,8 @@ export function NoMatchFoundModal({
                         </div>
                       </Button>
                     </div>
-                    
-                    <p className="no-match-modal-action-description">
-                      You can change your mind anytime by joining or leaving the queue
-                    </p>
-                  </motion.div>
-                </motion.div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
