@@ -232,6 +232,65 @@ public class PairingController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Permanently delete a pairing record", description = "Admin function to permanently delete a pairing and its blacklist entry")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pairing permanently deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Pairing not found"),
+            @ApiResponse(responseCode = "403", description = "Admin access required")
+    })
+    @DeleteMapping("/admin/history/{pairingId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> deletePairingPermanently(
+            @Parameter(description = "Pairing ID to delete", required = true)
+            @PathVariable Long pairingId,
+            Authentication authentication) {
+        
+        log.info("Admin {} requesting permanent deletion of pairing ID: {}", authentication.getName(), pairingId);
+        
+        try {
+            pairingService.deletePairingPermanently(pairingId);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Pairing permanently deleted successfully");
+            
+            log.info("Pairing {} permanently deleted by admin {}", pairingId, authentication.getName());
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Pairing not found for deletion: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (Exception e) {
+            log.error("Error permanently deleting pairing {}", pairingId, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to delete pairing permanently");
+        }
+    }
+
+    @Operation(summary = "Delete all inactive pairings", description = "Admin function to permanently delete all inactive pairings and their blacklist entries")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "All inactive pairings deleted successfully"),
+            @ApiResponse(responseCode = "403", description = "Admin access required")
+    })
+    @DeleteMapping("/admin/history/all-inactive")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> deleteAllInactivePairings(Authentication authentication) {
+        log.info("Admin {} requesting deletion of all inactive pairings", authentication.getName());
+        
+        try {
+            long deletedCount = pairingService.deleteAllInactivePairings();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "All inactive pairings permanently deleted successfully");
+            response.put("deletedCount", deletedCount);
+            
+            log.info("Admin {} deleted {} inactive pairings", authentication.getName(), deletedCount);
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("Error deleting all inactive pairings", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to delete inactive pairings");
+        }
+    }
+
     @PostMapping("/admin/queue/enable")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<QueueConfigDTO> enableQueue(Authentication authentication) {

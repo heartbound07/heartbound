@@ -234,6 +234,63 @@ public class PairingService {
         return deletedCount;
     }
 
+    /**
+     * Permanently delete a pairing record and its associated blacklist entry (admin function)
+     */
+    @Transactional
+    public void deletePairingPermanently(Long pairingId) {
+        log.info("Permanently deleting pairing with ID: {}", pairingId);
+
+        // Retrieve the pairing
+        Pairing pairing = pairingRepository.findById(pairingId)
+                .orElseThrow(() -> new IllegalArgumentException("Pairing not found with ID: " + pairingId));
+
+        String user1Id = pairing.getUser1Id();
+        String user2Id = pairing.getUser2Id();
+
+        // Remove associated blacklist entry to allow future matching
+        blacklistEntryRepository.findByUserPair(user1Id, user2Id).ifPresent(blacklistEntry -> {
+            blacklistEntryRepository.delete(blacklistEntry);
+            log.info("Removed blacklist entry for users {} and {}", user1Id, user2Id);
+        });
+
+        // Permanently delete the pairing record
+        pairingRepository.deleteById(pairingId);
+        
+        log.info("Successfully permanently deleted pairing {} between users {} and {}", 
+                pairingId, user1Id, user2Id);
+    }
+
+    /**
+     * Permanently delete all inactive pairings and their blacklist entries (admin function)
+     */
+    @Transactional
+    public long deleteAllInactivePairings() {
+        log.info("Admin permanently deleting all inactive pairings");
+        
+        List<Pairing> inactivePairings = pairingRepository.findByActiveFalse();
+        long deletedCount = inactivePairings.size();
+        
+        for (Pairing pairing : inactivePairings) {
+            // Remove associated blacklist entry
+            blacklistEntryRepository.findByUserPair(pairing.getUser1Id(), pairing.getUser2Id())
+                    .ifPresent(blacklistEntry -> {
+                        blacklistEntryRepository.delete(blacklistEntry);
+                        log.info("Removed blacklist entry for users {} and {}", 
+                                pairing.getUser1Id(), pairing.getUser2Id());
+                    });
+            
+            // Delete the pairing record
+            pairingRepository.deleteById(pairing.getId());
+            
+            log.info("Permanently deleted inactive pairing {} between users {} and {}", 
+                    pairing.getId(), pairing.getUser1Id(), pairing.getUser2Id());
+        }
+        
+        log.info("Admin permanently deleted {} inactive pairings", deletedCount);
+        return deletedCount;
+    }
+
     // Private helper methods
 
     private void validateUsersExist(String user1Id, String user2Id) {

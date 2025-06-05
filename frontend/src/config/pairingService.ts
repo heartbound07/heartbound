@@ -162,6 +162,31 @@ export const deleteAllPairings = async (): Promise<{ message: string; deletedCou
   }
 };
 
+/**
+ * Permanently delete a specific pairing record (admin function)
+ */
+export const deletePairingById = async (pairingId: number): Promise<void> => {
+  try {
+    await httpClient.delete(`/pairings/admin/history/${pairingId}`);
+  } catch (error) {
+    console.error('Error deleting pairing:', error);
+    throw error;
+  }
+};
+
+/**
+ * Permanently delete all inactive pairings (admin function)
+ */
+export const clearInactivePairingHistory = async (): Promise<{ message: string; deletedCount: number }> => {
+  try {
+    const response = await httpClient.delete('/pairings/admin/history/all-inactive');
+    return response.data;
+  } catch (error) {
+    console.error('Error clearing inactive pairing history:', error);
+    throw error;
+  }
+};
+
 // Add admin queue control functions
 export const enableQueue = async (): Promise<QueueConfigDTO> => {
   const response = await httpClient.post('/pairings/admin/queue/enable');

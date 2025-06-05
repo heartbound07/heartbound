@@ -6,6 +6,8 @@ import {
   joinMatchmakingQueue, 
   leaveMatchmakingQueue, 
   getQueueStatus,
+  deletePairingById,
+  clearInactivePairingHistory,
   type PairingDTO, 
   type JoinQueueRequestDTO, 
   type QueueStatusDTO 
@@ -176,6 +178,43 @@ export const usePairings = () => {
     };
   }, []);
 
+  // Delete specific pairing permanently
+  const deletePairing = useCallback(async (pairingId: number) => {
+    try {
+      setActionLoading(true);
+      setError(null);
+      
+      await deletePairingById(pairingId);
+      await fetchPairingData(); // Refresh data after deletion
+      
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || err.message || 'Failed to delete pairing';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setActionLoading(false);
+    }
+  }, [fetchPairingData]);
+
+  // Clear all inactive pairings
+  const clearInactiveHistory = useCallback(async () => {
+    try {
+      setActionLoading(true);
+      setError(null);
+      
+      const result = await clearInactivePairingHistory();
+      await fetchPairingData(); // Refresh data after deletion
+      
+      return result;
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || err.message || 'Failed to clear inactive history';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setActionLoading(false);
+    }
+  }, [fetchPairingData]);
+
   return {
     currentPairing,
     pairingHistory,
@@ -186,6 +225,8 @@ export const usePairings = () => {
     actionLoading,
     joinQueue,
     leaveQueue,
-    refreshData: fetchPairingData
+    refreshData: fetchPairingData,
+    deletePairing,
+    clearInactiveHistory
   };
 }; 

@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/valorant/badge"
 import { Input } from "@/components/ui/profile/input"
 import { Label } from "@/components/ui/valorant/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
-import { Heart, Users, Trophy, MessageCircle, Settings, User, MapPin, Calendar, AlertCircle, Clock, Zap, Star, UserCheck, Activity, ChevronRight } from 'lucide-react'
+import { Heart, Users, Trophy, MessageCircle, Settings, User, MapPin, Calendar, AlertCircle, Clock, Zap, Star, UserCheck, Activity, ChevronRight, Trash2, X } from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
 import type { JoinQueueRequestDTO, PairingDTO } from "@/config/pairingService"
 import { useQueueUpdates } from "@/contexts/QueueUpdates"
@@ -224,6 +224,8 @@ export function PairingsPage() {
     joinQueue,
     leaveQueue,
     refreshData,
+    deletePairing,
+    clearInactiveHistory
   } = usePairings()
   const { isConnected } = useQueueUpdates()
   const { pairingUpdate, clearUpdate } = usePairingUpdates()
@@ -501,6 +503,38 @@ export function PairingsPage() {
       handleCloseNoMatchModal()
     }
   }
+
+  const handleDeletePairing = async (pairingId: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    
+    if (!confirm("Are you sure you want to permanently delete this pairing record? This will also remove the blacklist entry, allowing these users to match again. This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      await deletePairing(pairingId);
+      setAdminMessage("Pairing record permanently deleted successfully!");
+      setTimeout(() => setAdminMessage(null), 5000);
+    } catch (error: any) {
+      setAdminMessage(`Failed to delete pairing: ${error.message}`);
+      setTimeout(() => setAdminMessage(null), 5000);
+    }
+  };
+
+  const handleClearInactiveHistory = async () => {
+    if (!confirm("Are you sure you want to permanently delete ALL inactive pairing records? This will also remove all associated blacklist entries, allowing users to match again. This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const result = await clearInactiveHistory();
+      setAdminMessage(`Successfully deleted ${result.deletedCount} inactive pairing record(s)!`);
+      setTimeout(() => setAdminMessage(null), 5000);
+    } catch (error: any) {
+      setAdminMessage(`Failed to clear inactive history: ${error.message}`);
+      setTimeout(() => setAdminMessage(null), 5000);
+    }
+  };
 
   if (loading) {
     return (
@@ -1099,15 +1133,39 @@ export function PairingsPage() {
               >
                 <Card className="valorant-card h-fit">
                   <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-3 text-white">
-                      <div className="p-2 bg-primary/20 rounded-lg">
-                        <MessageCircle className="h-5 w-5 text-primary" />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/20 rounded-lg">
+                          <MessageCircle className="h-5 w-5 text-primary" />
+                        </div>
+                        <CardTitle className="text-white">Match History</CardTitle>
+                        <Badge variant="outline" className="">
+                          {pairingHistory.length}
+                        </Badge>
                       </div>
-                      Match History
-                      <Badge variant="outline" className="ml-auto">
-                        {pairingHistory.length}
-                      </Badge>
-                    </CardTitle>
+                      
+                      {/* Admin Clear History Button */}
+                      {hasRole("ADMIN") && pairingHistory.some(p => !p.active) && (
+                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          <Button
+                            onClick={handleClearInactiveHistory}
+                            disabled={actionLoading}
+                            variant="outline"
+                            size="sm"
+                            className="border-[var(--color-error)]/30 text-[var(--color-error)] hover:border-[var(--color-error)]/50 hover:bg-[var(--color-error)]/10"
+                          >
+                            {actionLoading ? (
+                              <Skeleton width="80px" height="16px" theme="valorant" className="mx-auto" />
+                            ) : (
+                              <>
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Clear History
+                              </>
+                            )}
+                          </Button>
+                        </motion.div>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {pairingHistory.length > 0 ? (
@@ -1121,12 +1179,25 @@ export function PairingsPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
-                            className="group p-4 rounded-xl border transition-all duration-300 hover:border-primary/30"
+                            className="group p-4 rounded-xl border transition-all duration-300 hover:border-primary/30 relative"
                             style={{ 
                               background: 'rgba(31, 39, 49, 0.4)', 
                               borderColor: 'rgba(255, 255, 255, 0.05)' 
                             }}
                           >
+                            {/* Admin Delete Button */}
+                            {hasRole("ADMIN") && (
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={(e) => handleDeletePairing(pairing.id, e)}
+                                className="absolute top-2 right-2 p-1 rounded-full bg-[var(--color-error)]/20 border border-[var(--color-error)]/30 text-[var(--color-error)] hover:bg-[var(--color-error)]/30 transition-colors opacity-0 group-hover:opacity-100 z-10"
+                                title="Permanently delete this pairing record"
+                              >
+                                <X className="h-3 w-3" />
+                              </motion.button>
+                            )}
+                            
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-3">
                                 {/* User 1 */}
