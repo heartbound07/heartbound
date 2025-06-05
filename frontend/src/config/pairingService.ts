@@ -163,6 +163,18 @@ export const deleteAllPairings = async (): Promise<{ message: string; deletedCou
 };
 
 /**
+ * Admin unpair users - ends active pairing but keeps blacklist (admin function)
+ */
+export const unpairUsers = async (pairingId: number): Promise<void> => {
+  try {
+    await httpClient.post(`/pairings/admin/${pairingId}/unpair`);
+  } catch (error) {
+    console.error('Error unpairing users:', error);
+    throw error;
+  }
+};
+
+/**
  * Permanently delete a specific pairing record (admin function)
  */
 export const deletePairingById = async (pairingId: number): Promise<void> => {

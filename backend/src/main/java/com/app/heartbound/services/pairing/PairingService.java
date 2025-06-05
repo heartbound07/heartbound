@@ -235,6 +235,35 @@ public class PairingService {
     }
 
     /**
+     * Admin unpair users - ends the pairing but keeps blacklist entry (admin function)
+     */
+    @Transactional
+    public void unpairUsers(Long pairingId, String adminUsername) {
+        log.info("Admin {} unpairing pairing with ID: {}", adminUsername, pairingId);
+
+        // Retrieve the pairing
+        Pairing pairing = pairingRepository.findById(pairingId)
+                .orElseThrow(() -> new IllegalArgumentException("Pairing not found with ID: " + pairingId));
+
+        if (!pairing.isActive()) {
+            throw new IllegalStateException("Pairing is already inactive");
+        }
+
+        // Update pairing to inactive but keep blacklist entry
+        pairing.setActive(false);
+        pairing.setBreakupInitiatorId("ADMIN_" + adminUsername);
+        pairing.setBreakupReason("Admin unpair - users remain blacklisted");
+        pairing.setBreakupTimestamp(LocalDateTime.now());
+        pairing.setMutualBreakup(false);
+
+        // Save updated pairing
+        pairingRepository.save(pairing);
+        
+        log.info("Successfully unpaired pairing {} between users {} and {} (blacklist maintained)", 
+                pairingId, pairing.getUser1Id(), pairing.getUser2Id());
+    }
+
+    /**
      * Permanently delete a pairing record and its associated blacklist entry (admin function)
      */
     @Transactional

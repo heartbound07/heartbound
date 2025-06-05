@@ -224,6 +224,7 @@ export function PairingsPage() {
     joinQueue,
     leaveQueue,
     refreshData,
+    unpairPairing,
     deletePairing,
     clearInactiveHistory
   } = usePairings()
@@ -503,6 +504,23 @@ export function PairingsPage() {
       handleCloseNoMatchModal()
     }
   }
+
+  const handleUnpairUsers = async (pairingId: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    
+    if (!confirm("Are you sure you want to unpair these users? This will end their active match but they will remain blacklisted from matching again. This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      await unpairPairing(pairingId);
+      setAdminMessage("Users unpaired successfully! They remain blacklisted from future matches.");
+      setTimeout(() => setAdminMessage(null), 5000);
+    } catch (error: any) {
+      setAdminMessage(`Failed to unpair users: ${error.message}`);
+      setTimeout(() => setAdminMessage(null), 5000);
+    }
+  };
 
   const handleDeletePairing = async (pairingId: number, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -1165,12 +1183,25 @@ export function PairingsPage() {
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: index * 0.1 }}
-                              className="group p-4 rounded-xl border transition-all duration-300 hover:border-[var(--color-success)]/30"
+                              className="group p-4 rounded-xl border transition-all duration-300 hover:border-[var(--color-success)]/30 relative"
                               style={{ 
                                 background: 'rgba(31, 39, 49, 0.4)', 
                                 borderColor: 'rgba(34, 197, 94, 0.1)' 
                               }}
                             >
+                              {/* Admin Unpair Button */}
+                              {hasRole("ADMIN") && (
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  onClick={(e) => handleUnpairUsers(pairing.id, e)}
+                                  className="absolute top-2 right-2 p-1 rounded-full bg-[var(--color-warning)]/20 border border-[var(--color-warning)]/30 text-[var(--color-warning)] hover:bg-[var(--color-warning)]/30 transition-colors opacity-0 group-hover:opacity-100 z-10"
+                                  title="Unpair these users (keeps blacklist)"
+                                >
+                                  <X className="h-3 w-3" />
+                                </motion.button>
+                              )}
+                              
                               <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-3">
                                   {/* User 1 */}

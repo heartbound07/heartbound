@@ -232,6 +232,42 @@ public class PairingController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Admin unpair users", description = "Admin function to end an active pairing without removing blacklist entry")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pairing ended successfully"),
+            @ApiResponse(responseCode = "404", description = "Pairing not found"),
+            @ApiResponse(responseCode = "403", description = "Admin access required")
+    })
+    @PostMapping("/admin/{pairingId}/unpair")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> unpairUsers(
+            @Parameter(description = "Pairing ID to unpair", required = true)
+            @PathVariable Long pairingId,
+            Authentication authentication) {
+        
+        log.info("Admin {} requesting to unpair pairing ID: {}", authentication.getName(), pairingId);
+        
+        try {
+            pairingService.unpairUsers(pairingId, authentication.getName());
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Users unpaired successfully");
+            
+            log.info("Pairing {} unpaired by admin {}", pairingId, authentication.getName());
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Pairing not found for unpair: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (IllegalStateException e) {
+            log.warn("Invalid state for unpair: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (Exception e) {
+            log.error("Error unpairing pairing {}", pairingId, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to unpair users");
+        }
+    }
+
     @Operation(summary = "Permanently delete a pairing record", description = "Admin function to permanently delete a pairing and its blacklist entry")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Pairing permanently deleted successfully"),

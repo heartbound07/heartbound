@@ -8,6 +8,7 @@ import {
   getQueueStatus,
   deletePairingById,
   clearInactivePairingHistory,
+  unpairUsers,
   type PairingDTO, 
   type JoinQueueRequestDTO, 
   type QueueStatusDTO 
@@ -178,7 +179,25 @@ export const usePairings = () => {
     };
   }, []);
 
-  // Delete specific pairing permanently
+  // Unpair users (admin function - keeps blacklist)
+  const unpairPairing = useCallback(async (pairingId: number) => {
+    try {
+      setActionLoading(true);
+      setError(null);
+      
+      await unpairUsers(pairingId);
+      await fetchPairingData(); // Refresh data after unpairing
+      
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || err.message || 'Failed to unpair users';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setActionLoading(false);
+    }
+  }, [fetchPairingData]);
+
+  // Delete specific pairing permanently (admin function - removes blacklist)
   const deletePairing = useCallback(async (pairingId: number) => {
     try {
       setActionLoading(true);
@@ -226,6 +245,7 @@ export const usePairings = () => {
     joinQueue,
     leaveQueue,
     refreshData: fetchPairingData,
+    unpairPairing,
     deletePairing,
     clearInactiveHistory
   };
