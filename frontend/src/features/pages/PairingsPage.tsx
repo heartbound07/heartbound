@@ -136,12 +136,16 @@ const QueueJoinForm = ({
                   Gender
                 </Label>
                 <Select value={gender} onValueChange={setGender} required>
-                  <SelectTrigger className="bg-[var(--color-container-bg)] border-[var(--color-border)] text-[var(--color-text-primary)]">
+                  <SelectTrigger className="bg-[#1F2731] border-[#374151] text-white">
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-[#1F2731] border-[#374151]">
                     {GENDERS.map((g) => (
-                      <SelectItem key={g.value} value={g.value}>
+                      <SelectItem 
+                        key={g.value} 
+                        value={g.value}
+                        className="text-white hover:bg-[#2D3748] focus:bg-[#2D3748]"
+                      >
                         {g.label}
                       </SelectItem>
                     ))}
@@ -156,12 +160,16 @@ const QueueJoinForm = ({
                   Region
                 </Label>
                 <Select value={region} onValueChange={setRegion} required>
-                  <SelectTrigger className="valorant-select">
+                  <SelectTrigger className="bg-[#1F2731] border-[#374151] text-white">
                     <SelectValue placeholder="Select region" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-[#1F2731] border-[#374151]">
                     {REGIONS.map((reg) => (
-                      <SelectItem key={reg.value} value={reg.value}>
+                      <SelectItem 
+                        key={reg.value} 
+                        value={reg.value}
+                        className="text-white hover:bg-[#2D3748] focus:bg-[#2D3748]"
+                      >
                         {reg.label}
                       </SelectItem>
                     ))}
@@ -174,12 +182,16 @@ const QueueJoinForm = ({
                   VALORANT Rank
                 </Label>
                 <Select value={rank} onValueChange={setRank} required>
-                  <SelectTrigger className="valorant-select">
+                  <SelectTrigger className="bg-[#1F2731] border-[#374151] text-white">
                     <SelectValue placeholder="Select rank" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-[#1F2731] border-[#374151]">
                     {RANKS.map((r) => (
-                      <SelectItem key={r.value} value={r.value}>
+                      <SelectItem 
+                        key={r.value} 
+                        value={r.value}
+                        className="text-white hover:bg-[#2D3748] focus:bg-[#2D3748]"
+                      >
                         {r.label}
                       </SelectItem>
                     ))}
