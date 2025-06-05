@@ -22,7 +22,7 @@ export function NoMatchFoundModal({
   message = "No match found this round. Stay in queue for the next matchmaking cycle!"
 }: NoMatchFoundModalProps) {
   const [isVisible, setIsVisible] = useState(true);
-  const [countdown, setCountdown] = useState(3);
+  const [countdown, setCountdown] = useState(5);
   const [showFullContent, setShowFullContent] = useState(false);
 
   console.log('[NoMatchFoundModal] Rendering with totalInQueue:', totalInQueue);
@@ -117,24 +117,9 @@ export function NoMatchFoundModal({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                   >
-                    {/* Countdown Circle */}
-                    <div className="no-match-modal-countdown-circle">
-                      <div className="no-match-modal-countdown-timer">
-                        <div className="no-match-modal-countdown-bg">
-                          <span className="no-match-modal-countdown-number">{countdown}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Loading Animation */}
-                    <div className="no-match-modal-loading-dots">
-                      {[0, 1, 2].map((i) => (
-                        <motion.div
-                          key={i}
-                          className="no-match-modal-loading-dot"
-                          style={{ animationDelay: `${i * 0.2}s` }}
-                        />
-                      ))}
+                    {/* Simple Countdown Number */}
+                    <div className="no-match-modal-countdown-display">
+                      <span className="no-match-modal-countdown-number">{countdown}</span>
                     </div>
                   </motion.div>
                 ) : (
@@ -146,22 +131,23 @@ export function NoMatchFoundModal({
                   >
                     {/* Status Icon and Message */}
                     <motion.div 
-                      className="text-center space-y-4"
+                      className="no-match-modal-compatibility"
                       initial={{ scale: 0.8 }}
                       animate={{ scale: 1 }}
                       transition={{ type: "spring", delay: 0.4 }}
                     >
-                      <motion.div
-                        className="no-match-modal-status-icon-container"
-                        animate={{ rotate: [0, 10, -10, 0] }}
-                        transition={{ duration: 3, repeat: Infinity, delay: 1 }}
-                      >
-                        <AlertCircle className="h-16 w-16 text-[var(--color-warning)]" />
-                      </motion.div>
-                      
-                      <p className="no-match-modal-message">
-                        {message}
-                      </p>
+                      <div className="no-match-modal-compatibility-row">
+                        <motion.div
+                          className="no-match-modal-status-icon"
+                          animate={{ rotate: [0, 10, -10, 0] }}
+                          transition={{ duration: 3, repeat: Infinity, delay: 1 }}
+                        >
+                          <AlertCircle className="h-6 w-6 text-[var(--color-warning)]" />
+                        </motion.div>
+                        <p className="no-match-modal-subtitle">
+                          {message}
+                        </p>
+                      </div>
                       
                       {totalInQueue && totalInQueue > 1 && (
                         <div className="no-match-modal-queue-info">
@@ -175,38 +161,11 @@ export function NoMatchFoundModal({
                       )}
                     </motion.div>
                     
-                    {/* Encouragement Info */}
-                    <motion.div 
-                      className="no-match-modal-encouragement-info"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.6 }}
-                    >
-                      <div className="no-match-modal-encouragement-content">
-                        <div className="no-match-modal-encouragement-header">
-                          <motion.div
-                            className="no-match-modal-encouragement-icon-container"
-                            animate={{ scale: [1, 1.1, 1] }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                          >
-                            <Heart className="h-6 w-6 text-primary" />
-                          </motion.div>
-                          <span className="no-match-modal-encouragement-title">
-                            Keep Looking for Love!
-                          </span>
-                        </div>
-                        
-                        <p className="no-match-modal-encouragement-description">
-                          More users are joining the queue regularly. Your perfect match might be just around the corner!
-                        </p>
-                      </div>
-                    </motion.div>
-                    
                     {/* Action Buttons */}
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.8 }}
+                      transition={{ delay: 0.6 }}
                       className="no-match-modal-action-section"
                     >
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
