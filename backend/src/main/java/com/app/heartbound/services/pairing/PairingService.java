@@ -67,7 +67,7 @@ public class PairingService {
                 .user1Id(sanitizedUser1Id)
                 .user2Id(sanitizedUser2Id)
                 .discordChannelId(request.getDiscordChannelId())
-                .compatibilityScore(Math.max(0, Math.min(100, request.getCompatibilityScore()))) // Clamp score
+                .compatibilityScore(Math.max(0, Math.min(100, request.getCompatibilityScore())))
                 .matchedAt(LocalDateTime.now())
                 .user1Age(request.getUser1Age())
                 .user1Gender(request.getUser1Gender())
@@ -82,10 +82,14 @@ public class PairingService {
         // Save pairing
         Pairing savedPairing = pairingRepository.save(pairing);
 
+        // CREATE BLACKLIST ENTRY IMMEDIATELY - prevents future re-matching
+        createBlacklistEntry(sanitizedUser1Id, sanitizedUser2Id, 
+                           "Matched on " + LocalDateTime.now() + " - permanent blacklist");
+
         // Remove users from queue if they are queued
         removeUsersFromQueue(sanitizedUser1Id, sanitizedUser2Id);
 
-        log.info("Successfully created pairing with ID: {}", savedPairing.getId());
+        log.info("Successfully created pairing with ID: {} and blacklisted users", savedPairing.getId());
         return mapToPairingDTO(savedPairing);
     }
 
@@ -160,10 +164,15 @@ public class PairingService {
         // Save updated pairing
         Pairing updatedPairing = pairingRepository.save(pairing);
 
-        // Create blacklist entry to prevent re-pairing
-        createBlacklistEntry(pairing.getUser1Id(), pairing.getUser2Id(), 
-                           "Breakup on " + LocalDateTime.now() + " - " + 
-                           (sanitizedReason != null ? sanitizedReason : "No reason provided"));
+        // DON'T create blacklist entry here - it already exists from pairing creation
+        // Just update the reason if needed
+        blacklistEntryRepository.findByUserPair(pairing.getUser1Id(), pairing.getUser2Id())
+                .ifPresent(blacklistEntry -> {
+                    blacklistEntry.setReason("Originally matched on " + pairing.getMatchedAt() + 
+                                           ", broke up on " + LocalDateTime.now() + 
+                                           " - " + (sanitizedReason != null ? sanitizedReason : "No reason provided"));
+                    blacklistEntryRepository.save(blacklistEntry);
+                });
 
         log.info("Successfully processed breakup for pairing ID: {}", pairingId);
         return mapToPairingDTO(updatedPairing);
@@ -241,7 +250,6 @@ public class PairingService {
     public void unpairUsers(Long pairingId, String adminUsername) {
         log.info("Admin {} unpairing pairing with ID: {}", adminUsername, pairingId);
 
-        // Retrieve the pairing
         Pairing pairing = pairingRepository.findById(pairingId)
                 .orElseThrow(() -> new IllegalArgumentException("Pairing not found with ID: " + pairingId));
 
@@ -249,49 +257,59 @@ public class PairingService {
             throw new IllegalStateException("Pairing is already inactive");
         }
 
-        // Update pairing to inactive but keep blacklist entry
+        // Update pairing to inactive
         pairing.setActive(false);
         pairing.setBreakupInitiatorId("ADMIN_" + adminUsername);
         pairing.setBreakupReason("Admin unpair - users remain blacklisted");
         pairing.setBreakupTimestamp(LocalDateTime.now());
         pairing.setMutualBreakup(false);
 
-        // Save updated pairing
         pairingRepository.save(pairing);
+        
+        // Update blacklist entry reason (blacklist already exists from pairing creation)
+        blacklistEntryRepository.findByUserPair(pairing.getUser1Id(), pairing.getUser2Id())
+                .ifPresent(blacklistEntry -> {
+                    blacklistEntry.setReason("Originally matched on " + pairing.getMatchedAt() + 
+                                           ", admin unpaired on " + LocalDateTime.now());
+                    blacklistEntryRepository.save(blacklistEntry);
+                });
         
         log.info("Successfully unpaired pairing {} between users {} and {} (blacklist maintained)", 
                 pairingId, pairing.getUser1Id(), pairing.getUser2Id());
     }
 
     /**
-     * Permanently delete a pairing record and its associated blacklist entry (admin function)
+     * Permanently delete a pairing record but KEEP blacklist entry (admin function)
      */
     @Transactional
     public void deletePairingPermanently(Long pairingId) {
         log.info("Permanently deleting pairing with ID: {}", pairingId);
 
-        // Retrieve the pairing
         Pairing pairing = pairingRepository.findById(pairingId)
                 .orElseThrow(() -> new IllegalArgumentException("Pairing not found with ID: " + pairingId));
 
         String user1Id = pairing.getUser1Id();
         String user2Id = pairing.getUser2Id();
 
-        // Remove associated blacklist entry to allow future matching
-        blacklistEntryRepository.findByUserPair(user1Id, user2Id).ifPresent(blacklistEntry -> {
-            blacklistEntryRepository.delete(blacklistEntry);
-            log.info("Removed blacklist entry for users {} and {}", user1Id, user2Id);
-        });
+        // KEEP the blacklist entry - just update the reason
+        blacklistEntryRepository.findByUserPair(user1Id, user2Id)
+                .ifPresent(blacklistEntry -> {
+                    blacklistEntry.setReason("Originally matched on " + pairing.getMatchedAt() + 
+                                           ", admin deleted pairing record on " + LocalDateTime.now() + 
+                                           " - users remain permanently blacklisted");
+                    blacklistEntryRepository.save(blacklistEntry);
+                    log.info("Updated blacklist entry for users {} and {} (kept blacklist)", user1Id, user2Id);
+                });
 
         // Permanently delete the pairing record
         pairingRepository.deleteById(pairingId);
         
-        log.info("Successfully permanently deleted pairing {} between users {} and {}", 
+        log.info("Successfully permanently deleted pairing {} between users {} and {} (blacklist PRESERVED)", 
                 pairingId, user1Id, user2Id);
     }
 
     /**
-     * Permanently delete all inactive pairings and their blacklist entries (admin function)
+     * Permanently delete all inactive pairings but KEEP blacklist entries (admin function)
      */
     @Transactional
     public long deleteAllInactivePairings() {
@@ -301,22 +319,23 @@ public class PairingService {
         long deletedCount = inactivePairings.size();
         
         for (Pairing pairing : inactivePairings) {
-            // Remove associated blacklist entry
+            // KEEP blacklist entry - just update reason
             blacklistEntryRepository.findByUserPair(pairing.getUser1Id(), pairing.getUser2Id())
                     .ifPresent(blacklistEntry -> {
-                        blacklistEntryRepository.delete(blacklistEntry);
-                        log.info("Removed blacklist entry for users {} and {}", 
-                                pairing.getUser1Id(), pairing.getUser2Id());
+                        blacklistEntry.setReason("Originally matched on " + pairing.getMatchedAt() + 
+                                               ", admin bulk deleted on " + LocalDateTime.now() + 
+                                               " - users remain permanently blacklisted");
+                        blacklistEntryRepository.save(blacklistEntry);
                     });
             
             // Delete the pairing record
             pairingRepository.deleteById(pairing.getId());
             
-            log.info("Permanently deleted inactive pairing {} between users {} and {}", 
+            log.info("Permanently deleted inactive pairing {} between users {} and {} (blacklist PRESERVED)", 
                     pairing.getId(), pairing.getUser1Id(), pairing.getUser2Id());
         }
         
-        log.info("Admin permanently deleted {} inactive pairings", deletedCount);
+        log.info("Admin permanently deleted {} inactive pairings (all blacklists preserved)", deletedCount);
         return deletedCount;
     }
 

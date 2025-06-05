@@ -525,13 +525,13 @@ export function PairingsPage() {
   const handleDeletePairing = async (pairingId: number, event: React.MouseEvent) => {
     event.stopPropagation();
     
-    if (!confirm("Are you sure you want to permanently delete this pairing record? This will also remove the blacklist entry, allowing these users to match again. This action cannot be undone.")) {
+    if (!confirm("Are you sure you want to permanently delete this pairing record? The users will remain blacklisted and cannot match again. This action cannot be undone.")) {
       return;
     }
 
     try {
       await deletePairing(pairingId);
-      setAdminMessage("Pairing record permanently deleted successfully!");
+      setAdminMessage("Pairing record permanently deleted! Users remain blacklisted from future matches.");
       setTimeout(() => setAdminMessage(null), 5000);
     } catch (error: any) {
       setAdminMessage(`Failed to delete pairing: ${error.message}`);
@@ -540,13 +540,13 @@ export function PairingsPage() {
   };
 
   const handleClearInactiveHistory = async () => {
-    if (!confirm("Are you sure you want to permanently delete ALL inactive pairing records? This will also remove all associated blacklist entries, allowing users to match again. This action cannot be undone.")) {
+    if (!confirm("Are you sure you want to permanently delete ALL inactive pairing records? Users will remain blacklisted and cannot match again. This action cannot be undone.")) {
       return;
     }
 
     try {
       const result = await clearInactiveHistory();
-      setAdminMessage(`Successfully deleted ${result.deletedCount} inactive pairing record(s)!`);
+      setAdminMessage(`Successfully deleted ${result.deletedCount} inactive pairing record(s)! All users remain blacklisted.`);
       setTimeout(() => setAdminMessage(null), 5000);
     } catch (error: any) {
       setAdminMessage(`Failed to clear inactive history: ${error.message}`);

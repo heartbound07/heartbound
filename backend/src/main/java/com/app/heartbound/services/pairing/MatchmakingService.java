@@ -3,6 +3,7 @@ package com.app.heartbound.services.pairing;
 import com.app.heartbound.dto.pairing.CreatePairingRequestDTO;
 import com.app.heartbound.dto.pairing.PairingDTO;
 import com.app.heartbound.entities.MatchQueueUser;
+import com.app.heartbound.repositories.pairing.BlacklistEntryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -31,6 +32,7 @@ public class MatchmakingService {
     private final PairingService pairingService;
     private final QueueService queueService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final BlacklistEntryRepository blacklistEntryRepository;
 
     /**
      * Perform automatic matchmaking for users in queue
@@ -57,6 +59,13 @@ public class MatchmakingService {
             for (MatchQueueUser potentialMatch : eligibleUsers) {
                 if (!currentUser.getUserId().equals(potentialMatch.getUserId()) 
                     && !matchedUserIds.contains(potentialMatch.getUserId())) {
+                    
+                    // **CRITICAL FIX: Check blacklist BEFORE calculating compatibility**
+                    if (areUsersBlacklisted(currentUser.getUserId(), potentialMatch.getUserId())) {
+                        log.info("BLACKLISTED: Users {} and {} are blacklisted, skipping", 
+                                currentUser.getUserId(), potentialMatch.getUserId());
+                        continue; // Skip blacklisted pairs
+                    }
                     
                     // Calculate compatibility score
                     int compatibilityScore = calculateCompatibilityScore(currentUser, potentialMatch);
@@ -424,5 +433,12 @@ public class MatchmakingService {
         } catch (Exception e) {
             log.error("Failed to send no-match notifications: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Check if two users are blacklisted from being matched
+     */
+    private boolean areUsersBlacklisted(String user1Id, String user2Id) {
+        return blacklistEntryRepository.existsByUserPair(user1Id, user2Id);
     }
 }
