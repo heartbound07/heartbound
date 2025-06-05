@@ -1054,27 +1054,27 @@ export function PairingsPage() {
               </div>
 
               {/* Right Column - Pairing History */}
-              {pairingHistory.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="xl:col-span-1"
-                >
-                  <Card className="valorant-card h-fit">
-                    <CardHeader className="pb-4">
-                      <CardTitle className="flex items-center gap-3 text-white">
-                        <div className="p-2 bg-primary/20 rounded-lg">
-                          <MessageCircle className="h-5 w-5 text-primary" />
-                        </div>
-                        Match History
-                        <Badge variant="outline" className="ml-auto">
-                          {pairingHistory.length}
-                        </Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {pairingHistory.slice(0, 5).map((pairing, index) => {
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+                className="xl:col-span-1"
+              >
+                <Card className="valorant-card h-fit">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-3 text-white">
+                      <div className="p-2 bg-primary/20 rounded-lg">
+                        <MessageCircle className="h-5 w-5 text-primary" />
+                      </div>
+                      Match History
+                      <Badge variant="outline" className="ml-auto">
+                        {pairingHistory.length}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {pairingHistory.length > 0 ? (
+                      pairingHistory.slice(0, 5).map((pairing, index) => {
                         const user1Profile = userProfiles[pairing.user1Id]
                         const user2Profile = userProfiles[pairing.user2Id]
 
@@ -1152,11 +1152,32 @@ export function PairingsPage() {
                             </div>
                           </motion.div>
                         )
-                      })}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
+                      })
+                    ) : (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-center py-12"
+                      >
+                        <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary/20 to-purple-500/20 rounded-full flex items-center justify-center mb-4">
+                          <MessageCircle className="h-8 w-8 text-primary" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
+                          No Matches Yet
+                        </h3>
+                        <p className="text-[var(--color-text-secondary)] text-sm">
+                          Your match history will appear here once you've been paired with someone.
+                        </p>
+                        {!currentPairing && !queueStatus.inQueue && isQueueEnabled && (
+                          <p className="text-[var(--color-text-tertiary)] text-xs mt-2">
+                            Join the queue to find your first match!
+                          </p>
+                        )}
+                      </motion.div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
             </div>
           </div>
         </div>

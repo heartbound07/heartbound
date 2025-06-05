@@ -1,0 +1,320 @@
+/* MatchFoundModal specific styles - Essential only */
+
+/* Modal backdrop - z-index fix only */
+.match-found-modal-backdrop {
+  z-index: 1100; /* Higher than sidebar's z-index: 1000 */
+}
+
+/* Responsive z-index adjustment */
+@media (max-width: 768px) {
+  .match-found-modal-backdrop {
+    z-index: 1200; /* Even higher on mobile to ensure it's above mobile sidebar */
+  }
+}
+
+/* Modal container */
+.match-found-modal-container {
+  position: relative;
+  width: 100%;
+  max-width: 32rem; /* max-w-lg equivalent */
+}
+
+/* Modal card */
+.match-found-modal-card {
+  background: rgba(31, 39, 49, 0.3) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Animated background gradient */
+.match-found-modal-bg-gradient {
+  position: absolute;
+  inset: 0;
+  opacity: 0.3;
+  background: linear-gradient(135deg, rgba(255, 70, 85, 0.2) 0%, rgba(168, 85, 247, 0.1) 50%, rgba(236, 72, 153, 0.2) 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 8s ease-in-out infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+/* Close button */
+.match-found-modal-close-btn {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.match-found-modal-close-btn:hover {
+  color: var(--color-text-primary);
+  background: rgba(31, 39, 49, 0.5);
+}
+
+/* Header styles */
+.match-found-modal-header {
+  position: relative;
+  text-align: center;
+  padding-bottom: 1rem;
+  padding: 1.5rem 1.5rem 1rem 1.5rem;
+}
+
+.match-found-modal-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--color-text-primary);
+  margin-bottom: 1.5rem;
+  margin-top: 1rem;
+}
+
+.match-found-modal-title-large {
+  font-size: 1.875rem;
+  font-weight: bold;
+  color: var(--color-text-primary);
+  margin-bottom: 1.5rem;
+  margin-top: 1rem;
+}
+
+.match-found-modal-subtitle {
+  color: var(--color-text-secondary);
+  font-size: 1.125rem;
+}
+
+/* Content area */
+.match-found-modal-content {
+  padding: 0 1.5rem 1.5rem 1.5rem;
+  position: relative;
+}
+
+/* Countdown section */
+.match-found-modal-countdown-section {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.match-found-modal-countdown-circle {
+  display: flex;
+  justify-content: center;
+}
+
+.match-found-modal-countdown-timer {
+  position: relative;
+  width: 6rem;
+  height: 6rem;
+}
+
+.match-found-modal-countdown-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, #FF4655, #A855F7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.match-found-modal-countdown-number {
+  font-size: 1.875rem;
+  font-weight: bold;
+  color: white;
+}
+
+/* Loading dots */
+.match-found-modal-loading-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.match-found-modal-loading-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: #FF4655;
+  border-radius: 50%;
+  animation: loadingDot 1s infinite;
+}
+
+.match-found-modal-loading-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.match-found-modal-loading-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes loadingDot {
+  0%, 100% { 
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  50% { 
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+/* Full match section */
+.match-found-modal-full-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Compatibility score */
+.match-found-modal-compatibility {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.match-found-modal-compatibility-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.match-found-modal-trophy-icon {
+  animation: trophyWiggle 2s infinite;
+  animation-delay: 3s;
+}
+
+@keyframes trophyWiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(15deg); }
+  75% { transform: rotate(-15deg); }
+}
+
+/* Discord channel info */
+.match-found-modal-discord-info {
+  padding: 1.5rem;
+  background: rgba(31, 39, 49, 0.8);
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  backdrop-filter: blur(4px);
+  transition: transform 0.2s ease;
+}
+
+.match-found-modal-discord-info:hover {
+  transform: scale(1.02);
+}
+
+.match-found-modal-discord-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.match-found-modal-discord-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.match-found-modal-discord-icon-container {
+  padding: 0.5rem;
+  background: rgba(255, 70, 85, 0.2);
+  border-radius: 0.5rem;
+  animation: messageIconPulse 2s infinite;
+}
+
+@keyframes messageIconPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.match-found-modal-discord-title {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
+.match-found-modal-discord-description {
+  color: var(--color-text-secondary);
+}
+
+.match-found-modal-discord-channel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Action button */
+.match-found-modal-action-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.match-found-modal-action-button {
+  width: 100%;
+  height: 3rem;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.match-found-modal-action-description {
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--color-text-tertiary);
+}
+
+/* Preparing message */
+.match-found-modal-preparing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .match-found-modal-container {
+    max-width: calc(100vw - 2rem);
+  }
+  
+  .match-found-modal-header {
+    padding: 1rem 1rem 0.5rem 1rem;
+  }
+  
+  .match-found-modal-content {
+    padding: 0 1rem 1rem 1rem;
+  }
+  
+  .match-found-modal-title {
+    font-size: 1.25rem;
+  }
+  
+  .match-found-modal-title-large {
+    font-size: 1.5rem;
+  }
+}
