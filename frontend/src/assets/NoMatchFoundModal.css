@@ -73,14 +73,6 @@
   padding: 1.5rem 1.5rem 1rem 1.5rem;
 }
 
-.no-match-modal-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: var(--color-text-primary);
-  margin-bottom: 1.5rem;
-  margin-top: 1rem;
-}
-
 .no-match-modal-title-large {
   font-size: 1.875rem;
   font-weight: bold;
@@ -98,28 +90,6 @@
 .no-match-modal-content {
   padding: 0 1.5rem 1.5rem 1.5rem;
   position: relative;
-}
-
-/* Countdown section */
-.no-match-modal-countdown-section {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-/* Simple countdown display - no circle */
-.no-match-modal-countdown-display {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.no-match-modal-countdown-number {
-  font-size: 3rem;
-  font-weight: bold;
-  color: var(--color-text-primary);
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Full content section */
@@ -186,15 +156,6 @@
   color: var(--color-text-tertiary);
 }
 
-/* Preparing message */
-.no-match-modal-preparing {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  color: var(--color-text-secondary);
-}
-
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .no-match-modal-container {
@@ -209,15 +170,7 @@
     padding: 0 1rem 1rem 1rem;
   }
   
-  .no-match-modal-title {
-    font-size: 1.25rem;
-  }
-  
   .no-match-modal-title-large {
     font-size: 1.5rem;
-  }
-  
-  .no-match-modal-countdown-number {
-    font-size: 2.5rem;
   }
 } 
