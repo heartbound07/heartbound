@@ -54,11 +54,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("http://localhost:*", "https://localhost:*", "http://127.0.0.1:*")
+                .setAllowedOrigins(allowedOrigins.split(","))
                 .withSockJS()
-                .setSessionCookieNeeded(false); // Disable session cookies for stateless operation
+                .setSessionCookieNeeded(false);
         
-        logger.info("STOMP endpoint '/ws' registered with enhanced security");
+        logger.info("STOMP endpoint '/ws' registered with origins: {}", allowedOrigins);
     }
 
     @Override
