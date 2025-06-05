@@ -128,6 +128,9 @@ public class MatchmakingService {
             }
         }
         
+        // 🚀 NEW: NOTIFY UNMATCHED USERS
+        notifyUnmatchedUsers(eligibleUsers, matchedUserIds);
+        
         log.info("Matchmaking completed. Created {} new pairings", newPairings.size());
         return newPairings;
     }
@@ -379,6 +382,47 @@ public class MatchmakingService {
             
         } catch (Exception e) {
             log.error("Failed to broadcast match notifications: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Notify users who remained unmatched after the matchmaking cycle
+     */
+    private void notifyUnmatchedUsers(List<MatchQueueUser> eligibleUsers, Set<String> matchedUserIds) {
+        List<String> unmatchedUserIds = eligibleUsers.stream()
+                .map(MatchQueueUser::getUserId)
+                .filter(userId -> !matchedUserIds.contains(userId))
+                .toList();
+        
+        if (unmatchedUserIds.isEmpty()) {
+            log.info("All eligible users were matched - no notifications needed");
+            return;
+        }
+        
+        log.info("Notifying {} unmatched users: {}", unmatchedUserIds.size(), unmatchedUserIds);
+        
+        // Create the notification message
+        Map<String, Object> noMatchNotification = Map.of(
+            "eventType", "NO_MATCH_FOUND",
+            "message", "No match found this round. Stay in queue for the next matchmaking cycle!",
+            "timestamp", java.time.LocalDateTime.now().toString(),
+            "totalInQueue", unmatchedUserIds.size()
+        );
+        
+        try {
+            // Send notification to each unmatched user individually
+            for (String userId : unmatchedUserIds) {
+                messagingTemplate.convertAndSend(
+                    "/user/" + userId + "/topic/pairings", 
+                    noMatchNotification
+                );
+                log.info("Sent no-match notification to user: {}", userId);
+            }
+            
+            log.info("Successfully sent no-match notifications to {} users", unmatchedUserIds.size());
+            
+        } catch (Exception e) {
+            log.error("Failed to send no-match notifications: {}", e.getMessage());
         }
     }
 }

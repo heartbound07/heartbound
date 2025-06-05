@@ -13,10 +13,11 @@ import { useAuth } from '@/contexts/auth/useAuth';
 import type { PairingDTO } from '@/config/pairingService';
 
 export interface PairingUpdateEvent {
-  eventType: 'MATCH_FOUND' | 'PAIRING_ENDED';
+  eventType: 'MATCH_FOUND' | 'PAIRING_ENDED' | 'NO_MATCH_FOUND';
   pairing?: PairingDTO;
   message: string;
   timestamp: string;
+  totalInQueue?: number; // For NO_MATCH_FOUND events
 }
 
 interface PairingUpdatesContextProps {

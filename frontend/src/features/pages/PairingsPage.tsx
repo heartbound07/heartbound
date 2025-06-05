@@ -25,6 +25,7 @@ import { DashboardNavigation } from "@/components/Sidebar"
 import "@/assets/PairingsPage.css"
 import { useQueueConfig } from "@/contexts/QueueConfigUpdates"
 import { Skeleton } from "@/components/ui/SkeletonUI"
+import { NoMatchFoundModal } from "@/components/modals/NoMatchFoundModal"
 
 const REGIONS = [
   { value: "NA_EAST", label: "NA East" },
@@ -235,6 +236,8 @@ export function PairingsPage() {
   const [selectedUserProfile, setSelectedUserProfile] = useState<UserProfileDTO | null>(null)
   const [showUserProfileModal, setShowUserProfileModal] = useState(false)
   const [userProfileModalPosition, setUserProfileModalPosition] = useState<{ x: number; y: number } | null>(null)
+  const [showNoMatchModal, setShowNoMatchModal] = useState(false)
+  const [noMatchData, setNoMatchData] = useState<{ totalInQueue?: number; message?: string } | null>(null)
 
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const savedState = localStorage.getItem("sidebar-collapsed")
@@ -364,12 +367,22 @@ export function PairingsPage() {
   }
 
   useEffect(() => {
-    if (pairingUpdate && pairingUpdate.eventType === "MATCH_FOUND" && pairingUpdate.pairing) {
-      console.log("[PairingsPage] Match found, showing modal:", pairingUpdate)
-      setMatchedPairing(pairingUpdate.pairing)
-      setShowMatchModal(true)
-      refreshData()
-      clearUpdate()
+    if (pairingUpdate) {
+      if (pairingUpdate.eventType === "MATCH_FOUND" && pairingUpdate.pairing) {
+        console.log("[PairingsPage] Match found, showing modal:", pairingUpdate)
+        setMatchedPairing(pairingUpdate.pairing)
+        setShowMatchModal(true)
+        refreshData()
+        clearUpdate()
+      } else if (pairingUpdate.eventType === "NO_MATCH_FOUND") {
+        console.log("[PairingsPage] No match found, showing modal:", pairingUpdate)
+        setNoMatchData({
+          totalInQueue: pairingUpdate.totalInQueue,
+          message: pairingUpdate.message
+        })
+        setShowNoMatchModal(true)
+        clearUpdate()
+      }
     }
   }, [pairingUpdate, refreshData, clearUpdate])
 
@@ -462,6 +475,30 @@ export function PairingsPage() {
       setTimeout(() => setQueueConfigMessage(null), 5000)
     } finally {
       setQueueConfigLoading(false)
+    }
+  }
+
+  const handleCloseNoMatchModal = () => {
+    console.log("[PairingsPage] Closing no match modal")
+    setShowNoMatchModal(false)
+    setNoMatchData(null)
+  }
+
+  const handleStayInQueue = () => {
+    console.log("[PairingsPage] User chose to stay in queue")
+    // User is already in queue, just close modal
+    handleCloseNoMatchModal()
+  }
+
+  const handleLeaveQueueFromModal = async () => {
+    console.log("[PairingsPage] User chose to leave queue from modal")
+    try {
+      await leaveQueue()
+      handleCloseNoMatchModal()
+    } catch (error) {
+      console.error("Failed to leave queue:", error)
+      // Still close modal even if leave queue fails
+      handleCloseNoMatchModal()
     }
   }
 
@@ -1195,6 +1232,16 @@ export function PairingsPage() {
 
           {showMatchModal && matchedPairing && (
             <MatchFoundModal pairing={matchedPairing} onClose={handleCloseMatchModal} />
+          )}
+
+          {showNoMatchModal && noMatchData && (
+            <NoMatchFoundModal
+              onClose={handleCloseNoMatchModal}
+              onStayInQueue={handleStayInQueue}
+              onLeaveQueue={handleLeaveQueueFromModal}
+              totalInQueue={noMatchData.totalInQueue}
+              message={noMatchData.message}
+            />
           )}
         </AnimatePresence>
       </main>
