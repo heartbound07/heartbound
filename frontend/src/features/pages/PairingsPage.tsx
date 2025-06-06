@@ -1397,6 +1397,15 @@ export function PairingsPage() {
                               const user1Profile = userProfiles[pairing.user1Id]
                               const user2Profile = userProfiles[pairing.user2Id]
 
+                              // Determine who initiated the breakup
+                              const breakupInitiatorProfile = pairing.breakupInitiatorId 
+                                ? userProfiles[pairing.breakupInitiatorId] 
+                                : null
+                              const isAdminBreakup = pairing.breakupInitiatorId?.startsWith('ADMIN_')
+                              const adminName = isAdminBreakup 
+                                ? pairing.breakupInitiatorId?.replace('ADMIN_', '') 
+                                : null
+
                               return (
                                 <motion.div
                                   key={pairing.id}
@@ -1420,64 +1429,118 @@ export function PairingsPage() {
                                     <X className="h-3 w-3" />
                                   </motion.button>
                                   
-                                  <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-3">
-                                      {/* User 1 */}
-                                      <motion.div
-                                        className="flex items-center gap-2 cursor-pointer hover:bg-[var(--color-container-bg)]/80 p-2 rounded-lg transition-colors"
-                                        onClick={(e) => handleUserClick(pairing.user1Id, e)}
-                                        whileHover={{ scale: 1.05 }}
-                                      >
-                                        <Avatar className="h-8 w-8 ring-2 ring-primary/30">
-                                          <AvatarImage src={user1Profile?.avatar || "/placeholder.svg"} />
-                                          <AvatarFallback className="bg-primary/20 text-primary">
-                                            {user1Profile?.displayName?.[0] || user1Profile?.username?.[0] || "?"}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                        <span className="text-[var(--color-text-primary)] font-medium text-sm">
-                                          {user1Profile?.displayName || user1Profile?.username || "Unknown"}
-                                        </span>
-                                      </motion.div>
+                                  <div className="space-y-4">
+                                    {/* Users Section */}
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-3">
+                                        {/* User 1 */}
+                                        <motion.div
+                                          className="flex items-center gap-2 cursor-pointer hover:bg-[var(--color-container-bg)]/80 p-2 rounded-lg transition-colors"
+                                          onClick={(e) => handleUserClick(pairing.user1Id, e)}
+                                          whileHover={{ scale: 1.05 }}
+                                        >
+                                          <Avatar className="h-8 w-8 ring-2 ring-primary/30">
+                                            <AvatarImage src={user1Profile?.avatar || "/placeholder.svg"} />
+                                            <AvatarFallback className="bg-primary/20 text-primary">
+                                              {user1Profile?.displayName?.[0] || user1Profile?.username?.[0] || "?"}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                          <span className="text-[var(--color-text-primary)] font-medium text-sm">
+                                            {user1Profile?.displayName || user1Profile?.username || "Unknown"}
+                                          </span>
+                                        </motion.div>
 
-                                      <Heart className="h-4 w-4 text-primary" />
+                                        <Heart className="h-4 w-4 text-primary" />
 
-                                      {/* User 2 */}
-                                      <motion.div
-                                        className="flex items-center gap-2 cursor-pointer hover:bg-[var(--color-container-bg)]/80 p-2 rounded-lg transition-colors"
-                                        onClick={(e) => handleUserClick(pairing.user2Id, e)}
-                                        whileHover={{ scale: 1.05 }}
-                                      >
-                                        <Avatar className="h-8 w-8 ring-2 ring-primary/30">
-                                          <AvatarImage src={user2Profile?.avatar || "/placeholder.svg"} />
-                                          <AvatarFallback className="bg-primary/20 text-primary">
-                                            {user2Profile?.displayName?.[0] || user2Profile?.username?.[0] || "?"}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                        <span className="text-[var(--color-text-primary)] font-medium text-sm">
-                                          {user2Profile?.displayName || user2Profile?.username || "Unknown"}
-                                        </span>
-                                      </motion.div>
+                                        {/* User 2 */}
+                                        <motion.div
+                                          className="flex items-center gap-2 cursor-pointer hover:bg-[var(--color-container-bg)]/80 p-2 rounded-lg transition-colors"
+                                          onClick={(e) => handleUserClick(pairing.user2Id, e)}
+                                          whileHover={{ scale: 1.05 }}
+                                        >
+                                          <Avatar className="h-8 w-8 ring-2 ring-primary/30">
+                                            <AvatarImage src={user2Profile?.avatar || "/placeholder.svg"} />
+                                            <AvatarFallback className="bg-primary/20 text-primary">
+                                              {user2Profile?.displayName?.[0] || user2Profile?.username?.[0] || "?"}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                          <span className="text-[var(--color-text-primary)] font-medium text-sm">
+                                            {user2Profile?.displayName || user2Profile?.username || "Unknown"}
+                                          </span>
+                                        </motion.div>
+                                      </div>
+
+                                      <ChevronRight className="h-4 w-4 text-[var(--color-text-tertiary)] group-hover:text-primary transition-colors" />
                                     </div>
 
-                                    <ChevronRight className="h-4 w-4 text-[var(--color-text-tertiary)] group-hover:text-primary transition-colors" />
-                                  </div>
+                                    {/* Breakup Information */}
+                                    {pairing.breakupReason && (
+                                      <div className="p-3 bg-[var(--color-error)]/5 border border-[var(--color-error)]/10 rounded-lg">
+                                        <div className="space-y-2">
+                                          {/* Who initiated the breakup */}
+                                          <div className="flex items-center gap-2 text-xs">
+                                            <AlertCircle className="h-3 w-3 text-[var(--color-error)]" />
+                                            <span className="text-[var(--color-text-secondary)]">
+                                              {isAdminBreakup ? (
+                                                <span className="text-[var(--color-warning)]">
+                                                  Ended by Admin: {adminName}
+                                                </span>
+                                              ) : breakupInitiatorProfile ? (
+                                                <span>
+                                                  Ended by: <span className="text-[var(--color-text-primary)] font-medium">
+                                                    {breakupInitiatorProfile.displayName || breakupInitiatorProfile.username}
+                                                  </span>
+                                                </span>
+                                              ) : (
+                                                <span className="text-[var(--color-text-tertiary)]">
+                                                  Initiator unknown
+                                                </span>
+                                              )}
+                                            </span>
+                                            {pairing.breakupTimestamp && (
+                                              <span className="text-[var(--color-text-tertiary)]">
+                                                • {formatDate(pairing.breakupTimestamp)}
+                                              </span>
+                                            )}
+                                          </div>
+                                          
+                                          {/* Breakup reason */}
+                                          <div className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                                            <span className="font-medium text-[var(--color-text-primary)]">Reason:</span>{" "}
+                                            <span className="italic">
+                                              {pairing.breakupReason.length > 100 
+                                                ? `${pairing.breakupReason.substring(0, 100)}...` 
+                                                : pairing.breakupReason
+                                              }
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
 
-                                  <div className="flex items-center justify-between text-xs">
-                                    <div className="flex items-center gap-2">
-                                      <Badge
-                                        variant="secondary"
-                                        className="text-xs"
-                                      >
-                                        Ended
-                                      </Badge>
-                                      <Badge variant="outline" className="text-xs border-primary/30 text-primary">
-                                        <Star className="h-3 w-3 mr-1" />
-                                        {pairing.compatibilityScore}%
-                                      </Badge>
-                                    </div>
-                                    <div className="text-[var(--color-text-tertiary)]">
-                                      <p>{formatDate(pairing.matchedAt)}</p>
-                                      <p className="text-right">{pairing.activeDays} days</p>
+                                    {/* Stats and Badges */}
+                                    <div className="flex items-center justify-between text-xs">
+                                      <div className="flex items-center gap-2">
+                                        <Badge
+                                          variant="secondary"
+                                          className="text-xs"
+                                        >
+                                          Ended
+                                        </Badge>
+                                        <Badge variant="outline" className="text-xs border-primary/30 text-primary">
+                                          <Star className="h-3 w-3 mr-1" />
+                                          {pairing.compatibilityScore}%
+                                        </Badge>
+                                        {pairing.mutualBreakup && (
+                                          <Badge variant="outline" className="text-xs border-[var(--color-info)]/30 text-[var(--color-info)]">
+                                            Mutual
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <div className="text-[var(--color-text-tertiary)]">
+                                        <p>Matched: {formatDate(pairing.matchedAt)}</p>
+                                        <p className="text-right">{pairing.activeDays} days active</p>
+                                      </div>
                                     </div>
                                   </div>
                                 </motion.div>
