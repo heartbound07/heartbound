@@ -40,21 +40,27 @@ class WebSocketService {
 
     const finalConfig = { ...defaultConfig, ...config };
 
-    // Initialize the STOMP client with simplified configuration
+        // Initialize the STOMP client with simplified configuration
     const wsUrl = `${finalConfig.baseUrl}/ws`;
     console.info(`[WebSocket] Initializing STOMP client with URL: ${wsUrl}`);
     
-    this.client = new Client({
+    const clientConfig: any = {
       webSocketFactory: () => {
         console.info(`[WebSocket] Creating SockJS connection to: ${wsUrl}`);
-        return new SockJS(wsUrl); 
+        return new SockJS(wsUrl);
       },
       heartbeatIncoming: finalConfig.heartbeatIncoming,
       heartbeatOutgoing: finalConfig.heartbeatOutgoing,
-      debug: finalConfig.debug ? (msg: string) => console.log('[STOMP]', msg) : undefined,
       // Note: No reconnectDelay - reconnection is handled by WebSocketProvider
       connectHeaders: {},
-    });
+    };
+    
+    // Only add debug function if debugging is enabled
+    if (finalConfig.debug) {
+      clientConfig.debug = (msg: string) => console.log('[STOMP]', msg);
+    }
+    
+    this.client = new Client(clientConfig);
     
     console.info('[WebSocket] STOMP client initialized successfully');
   }
