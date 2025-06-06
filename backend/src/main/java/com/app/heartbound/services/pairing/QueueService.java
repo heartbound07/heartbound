@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -175,6 +177,40 @@ public class QueueService {
 
     // Add methods to manage queue state
     public void setQueueEnabled(boolean enabled, String updatedBy) {
+        // If disabling the queue, remove all users currently in queue
+        if (!enabled) {
+            List<MatchQueueUser> usersInQueue = queueRepository.findByInQueueTrue();
+            
+            if (!usersInQueue.isEmpty()) {
+                log.info("Removing {} users from queue due to queue being disabled by {}", usersInQueue.size(), updatedBy);
+                
+                // Create notification payload for queue removal
+                Map<String, Object> removalNotification = new HashMap<>();
+                removalNotification.put("eventType", "QUEUE_REMOVED");
+                removalNotification.put("message", "The matchmaking queue has been disabled by an administrator. You have been removed from the queue.");
+                removalNotification.put("timestamp", LocalDateTime.now().toString());
+                
+                // Remove each user from queue and notify them
+                for (MatchQueueUser user : usersInQueue) {
+                    try {
+                        // Send notification to user's personal WebSocket topic
+                        messagingTemplate.convertAndSend("/user/" + user.getUserId() + "/topic/pairings", removalNotification);
+                        
+                        // Remove user from queue
+                        user.setInQueue(false);
+                        queueRepository.save(user);
+                        
+                        log.info("Removed user {} from queue and sent notification", user.getUserId());
+                    } catch (Exception e) {
+                        log.error("Failed to notify user {} of queue removal: {}", user.getUserId(), e.getMessage());
+                        // Still remove them from queue even if notification fails
+                        user.setInQueue(false);
+                        queueRepository.save(user);
+                    }
+                }
+            }
+        }
+        
         this.queueEnabled = enabled;
         this.lastUpdatedBy = updatedBy;
         

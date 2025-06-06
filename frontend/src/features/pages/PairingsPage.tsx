@@ -253,6 +253,8 @@ export function PairingsPage() {
   const [userProfileModalPosition, setUserProfileModalPosition] = useState<{ x: number; y: number } | null>(null)
   const [showNoMatchModal, setShowNoMatchModal] = useState(false)
   const [noMatchData, setNoMatchData] = useState<{ totalInQueue?: number; message?: string } | null>(null)
+  const [showQueueRemovedModal, setShowQueueRemovedModal] = useState(false)
+  const [queueRemovedMessage, setQueueRemovedMessage] = useState<string | null>(null)
 
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const savedState = localStorage.getItem("sidebar-collapsed")
@@ -396,6 +398,12 @@ export function PairingsPage() {
           message: pairingUpdate.message
         })
         setShowNoMatchModal(true)
+        clearUpdate()
+      } else if (pairingUpdate.eventType === "QUEUE_REMOVED") {
+        console.log("[PairingsPage] Removed from queue by admin:", pairingUpdate)
+        setQueueRemovedMessage(pairingUpdate.message)
+        setShowQueueRemovedModal(true)
+        refreshData() // This is crucial to update the UI state
         clearUpdate()
       }
     }
@@ -574,6 +582,11 @@ export function PairingsPage() {
   const inactiveHistory = useMemo(() => {
     return pairingHistory.filter(pairing => !pairing.active)
   }, [pairingHistory])
+
+  const handleCloseQueueRemovedModal = useCallback(() => {
+    setShowQueueRemovedModal(false)
+    setQueueRemovedMessage(null)
+  }, [])
 
   if (loading) {
     return (
@@ -1491,8 +1504,43 @@ export function PairingsPage() {
               message={noMatchData.message}
             />
           )}
+
+          {showQueueRemovedModal && queueRemovedMessage && (
+            <QueueRemovedModal
+              message={queueRemovedMessage}
+              onClose={handleCloseQueueRemovedModal}
+            />
+          )}
         </AnimatePresence>
       </main>
     </div>
   )
 }
+
+// Queue Removed Modal Component
+const QueueRemovedModal = ({ message, onClose }: { message: string | null; onClose: () => void }) => (
+  <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <motion.div
+      initial={{ scale: 0.8, opacity: 0, y: 30 }}
+      animate={{ scale: 1, opacity: 1, y: 0 }}
+      exit={{ scale: 0.8, opacity: 0, y: 30 }}
+      className="relative w-full max-w-md"
+    >
+      <Card className="valorant-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-[var(--color-warning)]">
+            <AlertCircle className="h-6 w-6" />
+            Queue Disabled
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-[var(--color-text-secondary)]">{message}</p>
+          <Button onClick={onClose} className="w-full valorant-button-primary">
+            <Heart className="mr-2 h-5 w-5" />
+            Understood
+          </Button>
+        </CardContent>
+      </Card>
+    </motion.div>
+  </div>
+)
