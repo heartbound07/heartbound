@@ -62,7 +62,11 @@ function ProtectedRoutes() {
       <WebSocketProvider>
         <PartyUpdatesProvider>
           <QueueUpdatesProvider>
-            <Outlet />
+            <QueueConfigProvider>
+              <PairingUpdatesProvider>
+                <Outlet />
+              </PairingUpdatesProvider>
+            </QueueConfigProvider>
           </QueueUpdatesProvider>
         </PartyUpdatesProvider>
       </WebSocketProvider>
@@ -139,13 +143,7 @@ export function AppRoutes() {
           <Route index element={<ValorantPage />} />
           <Route path=":partyId" element={<ValorantPartyDetails />} />
         </Route>
-        <Route path="/pairings" element={
-          <QueueConfigProvider>
-            <PairingUpdatesProvider>
-              <PairingsPage />
-            </PairingUpdatesProvider>
-          </QueueConfigProvider>
-        } />
+        <Route path="/pairings" element={<PairingsPage />} />
       </Route>
 
       {/* Default redirect - now routes to /login */}

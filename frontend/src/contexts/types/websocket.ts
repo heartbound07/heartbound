@@ -32,6 +32,7 @@ export interface SubscriptionInfo {
   callback: (message: any) => void;
   unsubscribe: () => void;
   refCount: number;
+  isActive: boolean;
 }
 
 // Message types from existing providers

@@ -78,9 +78,11 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     const subscriptions = subscriptionsRef.current;
     const pendingTopics = Array.from(pendingSubscriptionsRef.current);
     
+    console.log(`[WebSocket] Processing ${pendingTopics.length} pending subscriptions:`, pendingTopics);
+    
     pendingTopics.forEach(topic => {
       const subInfo = subscriptions.get(topic);
-      if (subInfo && !subInfo.unsubscribe) {
+      if (subInfo && !subInfo.isActive) {
         try {
           console.log(`[WebSocket] Processing pending subscription: ${topic}`);
           const subscription = webSocketService.subscribe(topic, subInfo.callback);
@@ -92,7 +94,8 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
               unsubscribe: () => {
                 subscription.unsubscribe();
                 console.log(`[WebSocket] Unsubscribed from: ${topic}`);
-              }
+              },
+              isActive: true
             });
             pendingSubscriptionsRef.current.delete(topic);
             console.log(`[WebSocket] Successfully subscribed to: ${topic}`);
@@ -235,6 +238,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
       callback: callback as (message: any) => void,
       unsubscribe: () => {}, // Will be set when actual subscription is created
       refCount: 1,
+      isActive: false, // Will be set to true when actual subscription is created
     };
     
     subscriptions.set(topic, subscriptionInfo);
@@ -248,6 +252,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
             subscription.unsubscribe();
             console.log(`[WebSocket] Unsubscribed from: ${topic}`);
           };
+          subscriptionInfo.isActive = true;
           console.log(`[WebSocket] Immediately subscribed to: ${topic}`);
         }
       } catch (error) {
