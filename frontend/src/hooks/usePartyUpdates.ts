@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useWebSocket } from './useWebSocket';
 import { useAuth } from '@/contexts/auth/useAuth';
-import type { LFGPartyEvent } from '../types/websocket';
+import type { LFGPartyEvent } from '../contexts/types/websocket';
 
 interface PartyUpdatesHookReturn {
   update: LFGPartyEvent | null;

@@ -41,6 +41,11 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
   
   // Derived state
   const isConnected = connectionStatus === 'connected';
+  
+  // Debug logging for connection status changes
+  useEffect(() => {
+    console.log(`[WebSocket] Connection status changed to: ${connectionStatus}, isConnected: ${isConnected}`);
+  }, [connectionStatus, isConnected]);
 
   // Exponential backoff with jitter calculation
   const calculateRetryDelay = useCallback((attempt: number): number => {
@@ -121,7 +126,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
       
       // Connect with a callback that handles initial subscription
       webSocketService.connect(() => {
-        console.log('[WebSocket] Connection established');
+        console.log('[WebSocket] Connection established, updating status to connected');
         setConnectionStatus('connected');
         setRetryAttempt(0);
         isConnectingRef.current = false;

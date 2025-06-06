@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode, useMemo } from 'react';
-import { useQueueConfig as useQueueConfigHook } from './hooks/useQueueConfig';
+import { useQueueConfig as useQueueConfigHook } from '../hooks/useQueueConfig';
 import type { QueueConfigDTO } from '@/config/pairingService';
 
 interface QueueConfigContextProps {

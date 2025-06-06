@@ -13,7 +13,7 @@ console.log(`[WebSocket] Configured URL: ${webSocketUrl}`); // Log the URL for d
 class WebSocketService {
   private client: Client;
   private subscriptions: Map<string, StompSubscription> = new Map();
-  private callback: ((message: any) => void) | null = null;
+  private callback: (() => void) | null = null;
   private connected: boolean = false;
   private connecting: boolean = false;
   private retryCount: number = 0;
@@ -39,9 +39,9 @@ class WebSocketService {
         this.connected = true;
         this.connecting = false;
         this.retryCount = 0;
-        // If we have a callback stored, subscribe to the party topic
+        // Call the connection callback to notify WebSocketProvider
         if (this.callback) {
-          this.subscribe('/topic/party', this.callback);
+          this.callback();
         }
       },
       onWebSocketError: (evt: Event) => {
@@ -76,18 +76,18 @@ class WebSocketService {
   }
 
   /**
-   * Connect to the WebSocket server and subscribe to the party topic.
+   * Connect to the WebSocket server.
    * This method ensures we have a token before attempting connection.
-   * @param callback Function to call when a message is received.
+   * @param callback Function to call when connection is established.
    */
-  connect(callback: (message: any) => void): void {
+  connect(callback: () => void): void {
     // Store the callback for later use if we need to reconnect
     this.callback = callback;
 
-    // If already connected, just subscribe again if needed
+    // If already connected, call the callback immediately
     if (this.connected) {
       console.info('[WebSocket] Already connected');
-      this.subscribe('/topic/party', callback);
+      callback();
       return;
     }
     

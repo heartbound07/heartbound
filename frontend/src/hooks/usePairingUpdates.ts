@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useWebSocket } from './useWebSocket';
 import { useAuth } from '@/contexts/auth/useAuth';
-import type { PairingUpdateEvent } from '../types/websocket';
+import type { PairingUpdateEvent } from '../contexts/types/websocket';
 
 interface PairingUpdatesHookReturn {
   pairingUpdate: PairingUpdateEvent | null;

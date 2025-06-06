@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useWebSocket } from './useWebSocket';
-import type { QueueUpdateEvent } from '../types/websocket';
+import type { QueueUpdateEvent } from '../contexts/types/websocket';
 
 interface QueueUpdatesHookReturn {
   queueUpdate: QueueUpdateEvent | null;

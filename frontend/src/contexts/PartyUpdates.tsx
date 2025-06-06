@@ -4,7 +4,7 @@ import {
   useContext,
   useMemo,
 } from 'react';
-import { usePartyUpdates as usePartyUpdatesHook } from './hooks/usePartyUpdates';
+import { usePartyUpdates as usePartyUpdatesHook } from '../hooks/usePartyUpdates';
 
 // Define the TypeScript interface that mirrors our backend's LFGPartyEventDTO
 export interface LFGPartyEvent {

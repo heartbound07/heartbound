@@ -4,7 +4,7 @@ import {
   useContext,
   useMemo,
 } from 'react';
-import { useQueueUpdates as useQueueUpdatesHook } from './hooks/useQueueUpdates';
+import { useQueueUpdates as useQueueUpdatesHook } from '../hooks/useQueueUpdates';
 
 export interface QueueUpdateEvent {
   totalQueueSize: number;

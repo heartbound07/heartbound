@@ -4,7 +4,7 @@ import {
   useContext,
   useMemo,
 } from 'react';
-import { usePairingUpdates as usePairingUpdatesHook } from './hooks/usePairingUpdates';
+import { usePairingUpdates as usePairingUpdatesHook } from '../hooks/usePairingUpdates';
 import type { PairingDTO } from '@/config/pairingService';
 
 export interface PairingUpdateEvent {
