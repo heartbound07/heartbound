@@ -1,14 +1,10 @@
 import {
   createContext,
-  useState,
-  useEffect,
   ReactNode,
   useContext,
   useMemo,
-  useCallback,
 } from 'react';
-import webSocketService from '../config/WebSocketService';
-import { useAuth } from '@/contexts/auth/useAuth';
+import { useQueueUpdates as useQueueUpdatesHook } from './hooks/useQueueUpdates';
 
 export interface QueueUpdateEvent {
   totalQueueSize: number;
@@ -29,59 +25,15 @@ interface QueueUpdatesProviderProps {
 }
 
 export const QueueUpdatesProvider = ({ children }: QueueUpdatesProviderProps) => {
-  const { isAuthenticated, tokens } = useAuth();
-  const [queueUpdate, setQueueUpdate] = useState<QueueUpdateEvent | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-
-  const clearUpdate = useCallback(() => {
-    setQueueUpdate(null);
-  }, []);
-
-  useEffect(() => {
-    if (!isAuthenticated || !tokens?.accessToken) {
-      setIsConnected(false);
-      return;
-    }
-
-    if (isConnecting) return;
-    
-    setIsConnecting(true);
-    
-    const connectionTimer = setTimeout(() => {
-      try {
-        // Subscribe to queue updates
-        const subscription = webSocketService.subscribe('/topic/queue', (message: QueueUpdateEvent) => {
-          console.info('[QueueUpdates] Received queue update:', message);
-          setQueueUpdate(message);
-          setIsConnected(true);
-        });
-
-        if (subscription) {
-          setIsConnected(true);
-        }
-      } catch (err: any) {
-        console.error('[QueueUpdates] Error connecting to queue WebSocket:', err);
-        setError('Queue WebSocket connection error');
-        setIsConnected(false);
-      } finally {
-        setIsConnecting(false);
-      }
-    }, 500);
-
-    return () => {
-      clearTimeout(connectionTimer);
-      setIsConnecting(false);
-    };
-  }, [isAuthenticated, tokens]);
+  // Use the new unified hook for all functionality
+  const hookResult = useQueueUpdatesHook();
 
   const contextValue = useMemo(() => ({ 
-    queueUpdate, 
-    error, 
-    clearUpdate,
-    isConnected
-  }), [queueUpdate, error, clearUpdate, isConnected]);
+    queueUpdate: hookResult.queueUpdate, 
+    error: hookResult.error, 
+    clearUpdate: hookResult.clearUpdate,
+    isConnected: hookResult.isConnected
+  }), [hookResult]);
 
   return (
     <QueueUpdatesContext.Provider value={contextValue}>

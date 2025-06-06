@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthGuard } from '@/components/AuthGuard';
+import { WebSocketProvider } from '@/contexts/WebSocketProvider';
 import PartyUpdatesProvider from '@/contexts/PartyUpdates';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ValorantPageLayout } from '@/components/valorant/ValorantPageLayout';
@@ -58,11 +59,13 @@ function AdminShopRoute({ children }: { children: React.ReactNode }) {
 function ProtectedRoutes() {
   return (
     <AuthGuard>
-      <PartyUpdatesProvider>
-        <QueueUpdatesProvider>
-          <Outlet />
-        </QueueUpdatesProvider>
-      </PartyUpdatesProvider>
+      <WebSocketProvider>
+        <PartyUpdatesProvider>
+          <QueueUpdatesProvider>
+            <Outlet />
+          </QueueUpdatesProvider>
+        </PartyUpdatesProvider>
+      </WebSocketProvider>
     </AuthGuard>
   );
 }
