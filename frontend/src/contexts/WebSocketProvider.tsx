@@ -23,7 +23,7 @@ interface WebSocketProviderProps {
 export const WebSocketContext = createContext<WebSocketContextValue | undefined>(undefined);
 
 export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
-  const { isAuthenticated, tokens, user } = useAuth();
+  const { isAuthenticated, tokens } = useAuth();
   
   // Connection state
   const [connectionStatus, setConnectionStatus] = useState<WebSocketConnectionStatus>('disconnected');
