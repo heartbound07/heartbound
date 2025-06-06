@@ -187,7 +187,7 @@ public class QueueService {
                 // Create notification payload for queue removal
                 Map<String, Object> removalNotification = new HashMap<>();
                 removalNotification.put("eventType", "QUEUE_REMOVED");
-                removalNotification.put("message", "The matchmaking queue has been disabled by an administrator. You have been removed from the queue.");
+                removalNotification.put("message", "This matchmaking season has ended. You have been removed from the queue.");
                 removalNotification.put("timestamp", LocalDateTime.now().toString());
                 
                 // Remove each user from queue and notify them
