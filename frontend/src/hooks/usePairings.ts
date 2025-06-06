@@ -9,6 +9,7 @@ import {
   deletePairingById,
   clearInactivePairingHistory,
   unpairUsers,
+  breakupPairing as breakupPairingAPI,
   type PairingDTO, 
   type JoinQueueRequestDTO, 
   type QueueStatusDTO 
@@ -234,6 +235,32 @@ export const usePairings = () => {
     }
   }, [fetchPairingData]);
 
+  // Initiate breakup (user function)
+  const breakupPairing = useCallback(async (pairingId: number, reason: string) => {
+    if (!user?.id) {
+      throw new Error('User authentication required');
+    }
+
+    if (!reason.trim()) {
+      throw new Error('Breakup reason is required');
+    }
+
+    try {
+      setActionLoading(true);
+      setError(null);
+      
+      await breakupPairingAPI(pairingId, user.id, reason.trim());
+      await fetchPairingData(); // Refresh data after breakup
+      
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || err.message || 'Failed to end match';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setActionLoading(false);
+    }
+  }, [user?.id, fetchPairingData]);
+
   return {
     currentPairing,
     pairingHistory,
@@ -247,6 +274,7 @@ export const usePairings = () => {
     refreshData: fetchPairingData,
     unpairPairing,
     deletePairing,
-    clearInactiveHistory
+    clearInactiveHistory,
+    breakupPairing
   };
 }; 

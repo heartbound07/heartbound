@@ -218,4 +218,25 @@ export const getQueueConfig = async (): Promise<QueueConfigDTO> => {
 export const getPublicQueueStatus = async (): Promise<QueueConfigDTO> => {
   const response = await httpClient.get('/pairings/queue/status');
   return response.data;
+};
+
+/**
+ * Initiate a breakup for a pairing
+ */
+export const breakupPairing = async (
+  pairingId: number, 
+  initiatorId: string, 
+  reason: string
+): Promise<PairingDTO> => {
+  try {
+    const response = await httpClient.post(`/pairings/${pairingId}/breakup`, {
+      initiatorId,
+      reason,
+      mutualBreakup: false
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error initiating breakup:', error);
+    throw error;
+  }
 }; 

@@ -26,6 +26,7 @@ import "@/assets/PairingsPage.css"
 import { useQueueConfig } from "@/contexts/QueueConfigUpdates"
 import { Skeleton } from "@/components/ui/SkeletonUI"
 import { NoMatchFoundModal } from "@/components/modals/NoMatchFoundModal"
+import { BreakupModal } from "@/components/modals/BreakupModal"
 
 const REGIONS = [
   { value: "NA_EAST", label: "NA East" },
@@ -238,7 +239,8 @@ export function PairingsPage() {
     refreshData,
     unpairPairing,
     deletePairing,
-    clearInactiveHistory
+    clearInactiveHistory,
+    breakupPairing
   } = usePairings()
   const { isConnected } = useQueueUpdates()
   const { pairingUpdate, clearUpdate } = usePairingUpdates()
@@ -255,6 +257,7 @@ export function PairingsPage() {
   const [noMatchData, setNoMatchData] = useState<{ totalInQueue?: number; message?: string } | null>(null)
   const [showQueueRemovedModal, setShowQueueRemovedModal] = useState(false)
   const [queueRemovedMessage, setQueueRemovedMessage] = useState<string | null>(null)
+  const [showBreakupModal, setShowBreakupModal] = useState(false)
 
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const savedState = localStorage.getItem("sidebar-collapsed")
@@ -587,6 +590,18 @@ export function PairingsPage() {
     setShowQueueRemovedModal(false)
     setQueueRemovedMessage(null)
   }, [])
+
+  const handleBreakup = async (reason: string) => {
+    if (!currentPairing) return
+    
+    try {
+      await breakupPairing(currentPairing.id, reason)
+      setShowBreakupModal(false)
+    } catch (error) {
+      console.error("Error processing breakup:", error)
+      // Error is already handled by the hook and displayed in the UI
+    }
+  }
 
   if (loading) {
     return (
@@ -1032,6 +1047,21 @@ export function PairingsPage() {
                                   </p>
                                 </div>
                               </div>
+                            </div>
+
+                            {/* Breakup Button */}
+                            <div className="pt-4 border-t border-[var(--color-border)]">
+                              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                <Button
+                                  onClick={() => setShowBreakupModal(true)}
+                                  disabled={actionLoading}
+                                  variant="outline"
+                                  className="w-full border-[var(--color-error)]/30 text-[var(--color-error)] hover:border-[var(--color-error)]/50 hover:bg-[var(--color-error)]/10 transition-all duration-200"
+                                >
+                                  <AlertCircle className="h-4 w-4 mr-2" />
+                                  End This Match
+                                </Button>
+                              </motion.div>
                             </div>
                           </div>
                         </CardContent>
@@ -1509,6 +1539,15 @@ export function PairingsPage() {
             <QueueRemovedModal
               message={queueRemovedMessage}
               onClose={handleCloseQueueRemovedModal}
+            />
+          )}
+
+          {showBreakupModal && currentPairing && (
+            <BreakupModal
+              isOpen={showBreakupModal}
+              onClose={() => setShowBreakupModal(false)}
+              onConfirm={handleBreakup}
+              partnerName={pairedUser?.displayName || "your match"}
             />
           )}
         </AnimatePresence>
