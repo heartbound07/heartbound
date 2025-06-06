@@ -7,7 +7,7 @@ import {
   useMemo,
   useRef,
 } from 'react';
-import webSocketService from '../config/WebSocketService';
+import webSocketService, { ConnectionState, SubscriptionResult } from '../config/WebSocketService';
 import { useAuth } from '@/contexts/auth/useAuth';
 import {
   WebSocketContextValue,
@@ -23,7 +23,7 @@ interface WebSocketProviderProps {
 export const WebSocketContext = createContext<WebSocketContextValue | undefined>(undefined);
 
 export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
-  const { isAuthenticated, tokens } = useAuth();
+  const { isAuthenticated, tokens, refreshToken } = useAuth();
   
   // Connection state
   const [connectionStatus, setConnectionStatus] = useState<WebSocketConnectionStatus>('disconnected');
@@ -83,26 +83,24 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     pendingTopics.forEach(topic => {
       const subInfo = subscriptions.get(topic);
       if (subInfo && !subInfo.isActive) {
-        try {
-          console.log(`[WebSocket] Processing pending subscription: ${topic}`);
-          const subscription = webSocketService.subscribe(topic, subInfo.callback);
-          
-          if (subscription) {
-            // Update the subscription info with the unsubscribe function
-            subscriptions.set(topic, {
-              ...subInfo,
-              unsubscribe: () => {
-                subscription.unsubscribe();
-                console.log(`[WebSocket] Unsubscribed from: ${topic}`);
-              },
-              isActive: true
-            });
-            pendingSubscriptionsRef.current.delete(topic);
-            console.log(`[WebSocket] Successfully subscribed to: ${topic}`);
-          }
-        } catch (error) {
-          console.error(`[WebSocket] Error subscribing to ${topic}:`, error);
-          setLastError(createError('server', `Failed to subscribe to ${topic}`, true));
+        console.log(`[WebSocket] Processing pending subscription: ${topic}`);
+        const result = webSocketService.subscribe(topic, subInfo.callback);
+        
+        if (result.success && result.subscription) {
+          // Update the subscription info with the unsubscribe function
+          subscriptions.set(topic, {
+            ...subInfo,
+            unsubscribe: () => {
+              result.subscription!.unsubscribe();
+              console.log(`[WebSocket] Unsubscribed from: ${topic}`);
+            },
+            isActive: true
+          });
+          pendingSubscriptionsRef.current.delete(topic);
+          console.log(`[WebSocket] Successfully subscribed to: ${topic}`);
+        } else {
+          console.error(`[WebSocket] Failed to subscribe to ${topic}: ${result.error}`);
+          setLastError(createError('server', result.error || `Failed to subscribe to ${topic}`, true));
         }
       }
     });
@@ -127,39 +125,57 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     try {
       console.log(`[WebSocket] Establishing connection (attempt ${retryAttempt + 1}/${maxRetries})`);
       
-      // Connect with a callback that handles initial subscription
-      webSocketService.connect(() => {
-        console.log('[WebSocket] Connection established, updating status to connected');
-        setConnectionStatus('connected');
-        setRetryAttempt(0);
-        isConnectingRef.current = false;
-        
-        // Process any pending subscriptions with a small delay to ensure connection is fully ready
-        setTimeout(() => {
-          processSubscriptions();
-        }, 100);
-      });
-
-      // Check connection status after a reasonable timeout
-      connectionCheckTimeoutRef.current = setTimeout(() => {
-        if (!webSocketService.isConnected()) {
-          throw new Error('Connection timeout');
-        }
-      }, 10000); // 10 second timeout
+      // Use new Promise-based connect API
+      await webSocketService.connect(tokens.accessToken);
+      
+      console.log('[WebSocket] Connection established, updating status to connected');
+      setConnectionStatus('connected');
+      setRetryAttempt(0);
+      isConnectingRef.current = false;
+      
+      // Process any pending subscriptions with a small delay to ensure connection is fully ready
+      setTimeout(() => {
+        processSubscriptions();
+      }, 100);
 
     } catch (error: any) {
       console.error('[WebSocket] Connection error:', error);
       isConnectingRef.current = false;
+      
+      const isAuthError = error.message?.includes('token') || error.message?.includes('auth') || error.message?.includes('Invalid JWT');
+      
+      if (isAuthError) {
+        console.log('[WebSocket] Authentication error detected, attempting token refresh...');
+        try {
+          const newToken = await refreshToken();
+          if (newToken) {
+            console.log('[WebSocket] Token refresh successful, retrying connection...');
+            // Reset retry count for fresh token attempt
+            setRetryAttempt(0);
+            isConnectingRef.current = false;
+            // Retry immediately with new token
+            setTimeout(() => establishConnection(), 100);
+            return;
+          } else {
+            console.error('[WebSocket] Token refresh failed, marking as auth error');
+            setConnectionStatus('error');
+            setLastError(createError('auth', 'Authentication failed and token refresh unsuccessful', false));
+            return;
+          }
+        } catch (refreshError) {
+          console.error('[WebSocket] Token refresh failed:', refreshError);
+          setConnectionStatus('error');
+          setLastError(createError('auth', 'Authentication failed and token refresh unsuccessful', false));
+          return;
+        }
+      }
+      
+      // Handle non-auth errors
       setConnectionStatus('error');
+      setLastError(createError('network', error.message || 'Connection failed', true));
       
-      const errorType = error.message?.includes('token') || error.message?.includes('auth') 
-        ? 'auth' 
-        : 'network';
-      
-      setLastError(createError(errorType, error.message || 'Connection failed', errorType !== 'auth'));
-      
-      // Schedule retry if within limits and error is recoverable
-      if (retryAttempt < maxRetries && errorType !== 'auth') {
+      // Schedule retry if within limits
+      if (retryAttempt < maxRetries) {
         const delay = calculateRetryDelay(retryAttempt);
         console.log(`[WebSocket] Retrying connection in ${Math.round(delay / 1000)}s (attempt ${retryAttempt + 1}/${maxRetries})`);
         
@@ -171,7 +187,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         }, delay);
       }
     }
-  }, [isAuthenticated, tokens?.accessToken, retryAttempt, maxRetries, calculateRetryDelay, createError, clearError, processSubscriptions]);
+  }, [isAuthenticated, tokens?.accessToken, retryAttempt, maxRetries, calculateRetryDelay, createError, clearError, processSubscriptions, refreshToken]);
 
   // Manual reconnect function
   const reconnect = useCallback(() => {
@@ -245,19 +261,17 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
 
     if (isConnected && webSocketService.isConnected()) {
       // Subscribe immediately if connected
-      try {
-        const subscription = webSocketService.subscribe(topic, subscriptionInfo.callback);
-        if (subscription) {
-          subscriptionInfo.unsubscribe = () => {
-            subscription.unsubscribe();
-            console.log(`[WebSocket] Unsubscribed from: ${topic}`);
-          };
-          subscriptionInfo.isActive = true;
-          console.log(`[WebSocket] Immediately subscribed to: ${topic}`);
-        }
-      } catch (error) {
-        console.error(`[WebSocket] Error subscribing to ${topic}:`, error);
-        setLastError(createError('server', `Failed to subscribe to ${topic}`, true));
+      const result = webSocketService.subscribe(topic, subscriptionInfo.callback);
+      if (result.success && result.subscription) {
+        subscriptionInfo.unsubscribe = () => {
+          result.subscription!.unsubscribe();
+          console.log(`[WebSocket] Unsubscribed from: ${topic}`);
+        };
+        subscriptionInfo.isActive = true;
+        console.log(`[WebSocket] Immediately subscribed to: ${topic}`);
+      } else {
+        console.error(`[WebSocket] Failed to subscribe to ${topic}: ${result.error}`);
+        setLastError(createError('server', result.error || `Failed to subscribe to ${topic}`, true));
       }
     } else {
       // Queue for later subscription when connected
@@ -404,6 +418,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
       subscriptions.clear();
       pendingSubscriptionsRef.current.clear();
       
+      // Note: disconnect() is now async, but we can't await in cleanup
       webSocketService.disconnect();
     };
   }, []);
