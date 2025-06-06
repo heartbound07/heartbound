@@ -47,104 +47,100 @@ export function LeaderboardPage() {
   }, [leaderboardType, user?.id, isAuthenticated]);
 
   return (
-    <div className="leaderboard-page-wrapper">
-      <main className="leaderboard-main-content">
-        <div className="container mx-auto px-4 py-8 max-w-6xl">
-          {/* Hero Section */}
-          <motion.div
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      {/* Hero Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        className="text-center mb-12"
+      >
+        <motion.h1 
+          className="leaderboard-page-title"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.3, type: "spring" }}
+        >
+          Leaderboard
+        </motion.h1>
+        
+        {/* Toggle Controls */}
+        <motion.div 
+          className="flex justify-center mt-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          <div className="leaderboard-toggle-container">
+            <motion.button
+              type="button"
+              className={`leaderboard-toggle-button ${
+                leaderboardType === 'level' 
+                  ? 'leaderboard-toggle-active' 
+                  : 'leaderboard-toggle-inactive'
+              }`}
+              onClick={() => setLeaderboardType('level')}
+              whileHover={{ scale: leaderboardType === 'level' ? 1 : 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Levels
+            </motion.button>
+            
+            <motion.button
+              type="button"
+              className={`leaderboard-toggle-button ${
+                leaderboardType === 'credits' 
+                  ? 'leaderboard-toggle-active' 
+                  : 'leaderboard-toggle-inactive'
+              }`}
+              onClick={() => setLeaderboardType('credits')}
+              whileHover={{ scale: leaderboardType === 'credits' ? 1 : 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Credits
+            </motion.button>
+          </div>
+        </motion.div>
+      </motion.div>
+
+      {/* Main Leaderboard */}
+      <motion.div 
+        className="mb-8"
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, type: "spring" }}
+      >
+        <Leaderboard 
+          users={users}
+          isLoading={isLoading}
+          error={error}
+          showHeader={false}
+          className="leaderboard-main-card"
+          limit={100}
+          leaderboardType={leaderboardType}
+          itemsPerPage={9}
+        />
+      </motion.div>
+
+      {/* User Rank Card */}
+      <AnimatePresence>
+        {isAuthenticated && currentUserProfile && (
+          <motion.div 
+            key="user-card"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-12"
+            exit={{ opacity: 0, y: -30 }}
+            transition={{ type: "spring", delay: 0.6 }}
+            className="flex justify-center w-full"
           >
-            <motion.h1 
-              className="leaderboard-page-title"
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.3, type: "spring" }}
-            >
-              Leaderboard
-            </motion.h1>
-            
-            {/* Toggle Controls */}
-            <motion.div 
-              className="flex justify-center mt-6"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              <div className="leaderboard-toggle-container">
-                <motion.button
-                  type="button"
-                  className={`leaderboard-toggle-button ${
-                    leaderboardType === 'level' 
-                      ? 'leaderboard-toggle-active' 
-                      : 'leaderboard-toggle-inactive'
-                  }`}
-                  onClick={() => setLeaderboardType('level')}
-                  whileHover={{ scale: leaderboardType === 'level' ? 1 : 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Levels
-                </motion.button>
-                
-                <motion.button
-                  type="button"
-                  className={`leaderboard-toggle-button ${
-                    leaderboardType === 'credits' 
-                      ? 'leaderboard-toggle-active' 
-                      : 'leaderboard-toggle-inactive'
-                  }`}
-                  onClick={() => setLeaderboardType('credits')}
-                  whileHover={{ scale: leaderboardType === 'credits' ? 1 : 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Credits
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
-
-          {/* Main Leaderboard */}
-          <motion.div 
-            className="mb-8"
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, type: "spring" }}
-          >
-            <Leaderboard 
-              users={users}
-              isLoading={isLoading}
-              error={error}
-              showHeader={false}
-              className="leaderboard-main-card"
-              limit={100}
+            <UserRankCard 
+              currentUser={currentUserProfile}
+              leaderboardUsers={users}
               leaderboardType={leaderboardType}
-              itemsPerPage={9}
             />
           </motion.div>
-
-          {/* User Rank Card */}
-          <AnimatePresence>
-            {isAuthenticated && currentUserProfile && (
-              <motion.div 
-                key="user-card"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -30 }}
-                transition={{ type: "spring", delay: 0.6 }}
-                className="flex justify-center w-full"
-              >
-                <UserRankCard 
-                  currentUser={currentUserProfile}
-                  leaderboardUsers={users}
-                  leaderboardType={leaderboardType}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </main>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

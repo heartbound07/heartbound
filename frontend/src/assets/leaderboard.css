@@ -37,9 +37,8 @@
 
 /* Toggle Controls Styling */
 .leaderboard-toggle-container {
-  background: rgba(31, 39, 49, 0.3);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 0.75rem;
   padding: 0.5rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -78,20 +77,20 @@
 
 /* Main Leaderboard Card Styling */
 .leaderboard-main-card {
-  background: rgba(31, 39, 49, 0.3) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  background: rgba(30, 41, 59, 0.3) !important;
+  border: 1px solid rgba(148, 163, 184, 0.1) !important;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-/* Leaderboard Container - Updated */
+/* Leaderboard Container */
 .leaderboard-container {
-  background: rgba(31, 39, 49, 0.3);
-  border-radius: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background-color: rgba(30, 41, 59, 0.3);
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.1);
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
   width: 100%;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -103,8 +102,8 @@
 /* Leaderboard Header */
 .leaderboard-header {
   padding: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  background-color: rgba(255, 255, 255, 0.04);
 }
 
 .leaderboard-title {
@@ -129,8 +128,7 @@
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
 }
 
 .leaderboard-row {
@@ -139,20 +137,20 @@
   align-items: center;
   padding: 0.875rem 1.5rem;
   transition: all 0.15s ease;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
   position: relative;
   cursor: pointer;
 }
 
 .leaderboard-row:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background-color: rgba(255, 255, 255, 0.05);
   transform: translateY(-1px);
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.1);
 }
 
 .leaderboard-row:active {
   transform: translateY(0);
-  background: rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .leaderboard-row:last-child {
@@ -297,7 +295,7 @@
   color: #f87171;
   text-align: center;
   font-weight: 500;
-  background: rgba(31, 39, 49, 0.3);
+  background-color: rgba(239, 68, 68, 0.05);
   border-radius: 0.5rem;
   margin: 1.5rem;
   border: 1px solid rgba(239, 68, 68, 0.2);
@@ -310,14 +308,12 @@
   color: rgba(255, 255, 255, 0.6);
   font-weight: 500;
   font-size: 1.05rem;
-  background: rgba(255, 255, 255, 0.02);
+  background-color: rgba(255, 255, 255, 0.02);
 }
 
 /* Override scrollbar styling for leaderboard components */
 .leaderboard-container,
-.leaderboard-container *,
-.leaderboard-page-wrapper,
-.leaderboard-page-wrapper * {
+.leaderboard-container * {
   /* Reset Firefox scrollbar */
   scrollbar-color: transparent transparent;
   scrollbar-width: none;
@@ -325,37 +321,30 @@
 
 /* Reset Webkit scrollbar for leaderboard components */
 .leaderboard-container::-webkit-scrollbar,
-.leaderboard-container *::-webkit-scrollbar,
-.leaderboard-page-wrapper::-webkit-scrollbar,
-.leaderboard-page-wrapper *::-webkit-scrollbar {
+.leaderboard-container *::-webkit-scrollbar {
   width: 0;
   background-color: transparent;
 }
 
 .leaderboard-container::-webkit-scrollbar-thumb,
-.leaderboard-container *::-webkit-scrollbar-thumb,
-.leaderboard-page-wrapper::-webkit-scrollbar-thumb,
-.leaderboard-page-wrapper *::-webkit-scrollbar-thumb {
+.leaderboard-container *::-webkit-scrollbar-thumb {
   background: transparent;
   border: none;
 }
 
 .leaderboard-container::-webkit-scrollbar-track,
-.leaderboard-container *::-webkit-scrollbar-track,
-.leaderboard-page-wrapper::-webkit-scrollbar-track,
-.leaderboard-page-wrapper *::-webkit-scrollbar-track {
+.leaderboard-container *::-webkit-scrollbar-track {
   background-color: transparent;
 }
 
 /* Pagination styles */
 .leaderboard-pagination {
   padding: 1rem 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.02);
 }
 
 .leaderboard-pagination-controls {
@@ -371,14 +360,14 @@
   width: 36px;
   height: 36px;
   border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.05);
+  background-color: rgba(255, 255, 255, 0.05);
   color: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(148, 163, 184, 0.1);
   transition: all 0.2s ease;
 }
 
 .leaderboard-pagination-button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.1);
   transform: translateY(-1px);
 }
 
@@ -412,7 +401,7 @@
 }
 
 .leaderboard-pagination-number:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.08);
   color: white;
 }
 
@@ -437,6 +426,10 @@
 }
 
 /* Responsive Adjustments */
+@media (max-width: 1024px) {
+  /* ... existing responsive styles ... */
+}
+
 @media (max-width: 768px) {
   .leaderboard-headers {
     grid-template-columns: 60px 1fr 90px;
