@@ -327,8 +327,35 @@
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
   
-  /* Override scrollbar styling for leaderboard page only */
-  .leaderboard-page-container {
+  /* Override scrollbar styling for leaderboard components */
+  .leaderboard-container,
+  .leaderboard-container * {
+    /* Reset Firefox scrollbar */
+    scrollbar-color: transparent transparent;
+    scrollbar-width: none;
+  }
+  
+  /* Reset Webkit scrollbar for leaderboard components */
+  .leaderboard-container::-webkit-scrollbar,
+  .leaderboard-container *::-webkit-scrollbar {
+    width: 0;
+    background-color: transparent;
+  }
+  
+  .leaderboard-container::-webkit-scrollbar-thumb,
+  .leaderboard-container *::-webkit-scrollbar-thumb {
+    background: transparent;
+    border: none;
+  }
+  
+  .leaderboard-container::-webkit-scrollbar-track,
+  .leaderboard-container *::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+  
+  /* Also apply to leaderboard page container if it exists */
+  .leaderboard-page-container,
+  .leaderboard-page-container * {
     /* Reset Firefox scrollbar */
     scrollbar-color: transparent transparent;
     scrollbar-width: none;
