@@ -10,7 +10,6 @@ import {
 import { AUTH_ENDPOINTS, DISCORD_OAUTH_STATE_KEY } from './constants';
 import * as partyService from '../valorant/partyService';
 import axios from 'axios';
-import webSocketService from '../../config/WebSocketService';
 import * as userService from '../../config/userService';
 import { UpdateProfileDTO, UserProfileDTO } from '@/config/userService';
 import { tokenStorage } from './tokenStorage';
@@ -77,7 +76,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       setAuthState(userInfo, userProfileData);
       persistAuthState(tokenPair);
       
-      webSocketService.connect(() => tokenPair.accessToken);
+      // Note: WebSocket connection is now managed by WebSocketProvider
     } else {
       clearAuthState();
       updateTokens(null);
@@ -175,7 +174,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
                 experience: userProfileData.experience || 0,
               };
               setAuthState(userInfo, userProfileData);
-              webSocketService.reconnectWithFreshToken(); // Ensure WebSocket uses the new token
+              // Note: WebSocket reconnection with fresh token is now handled by WebSocketProvider
               console.log('[RefreshToken] User profile fetched and auth state updated after token refresh.');
               return accessToken; // SUCCESS: token refreshed, profile fetched
             } else {
@@ -272,8 +271,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
             };
             setAuthState(userInfo, userProfileData);
             console.log('[AuthInit] Authentication state restored, user profile fetched using existing token.');
-            // Connect WebSocket with the current valid access token
-            webSocketService.connect(() => currentTokenPair.accessToken);
+            // Note: WebSocket connection is now managed by WebSocketProvider
           } else {
             console.error('[AuthInit] Failed to fetch user profile with existing valid token. Clearing auth state.');
             clearAuthState();
@@ -379,7 +377,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
       setAuthState(userInfo, userProfileData);
       
-      webSocketService.reconnectWithFreshToken();
+      // Note: WebSocket reconnection is now managed by WebSocketProvider
       
     } catch (error) {
       console.error('[Auth] Error exchanging Discord code:', error);

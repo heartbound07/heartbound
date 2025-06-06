@@ -4,6 +4,7 @@ import com.app.heartbound.dto.pairing.*;
 import com.app.heartbound.services.pairing.MatchmakingService;
 import com.app.heartbound.services.pairing.PairingService;
 import com.app.heartbound.services.pairing.QueueService;
+import com.app.heartbound.services.security.PairingSecurityService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -45,6 +46,7 @@ public class PairingController {
     private final PairingService pairingService;
     private final MatchmakingService matchmakingService;
     private final QueueService queueService;
+    private final PairingSecurityService pairingSecurityService;
 
     @Operation(summary = "Create a new pairing", description = "Create a pairing between two users")
     @ApiResponses(value = {
@@ -126,19 +128,34 @@ public class PairingController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Breakup processed successfully"),
             @ApiResponse(responseCode = "404", description = "Pairing not found"),
-            @ApiResponse(responseCode = "400", description = "Invalid request data")
+            @ApiResponse(responseCode = "400", description = "Invalid request data"),
+            @ApiResponse(responseCode = "403", description = "User not authorized to break up this pairing")
     })
     @PostMapping("/{pairingId}/breakup")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('USER') and @pairingSecurityService.isUserInPairing(authentication, #pairingId)")
     public ResponseEntity<PairingDTO> breakupPairing(
             @PathVariable @Positive Long pairingId,
-            @Valid @RequestBody BreakupRequestDTO request) {
+            @Valid @RequestBody BreakupRequestDTO request,
+            Authentication authentication) {
+        
+        // Additional security check - ensure the initiator matches the authenticated user
+        String authenticatedUserId = authentication.getName();
+        if (!authenticatedUserId.equals(request.getInitiatorId())) {
+            log.warn("Authenticated user {} does not match initiator ID {} for pairing breakup", 
+                    authenticatedUserId, request.getInitiatorId());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Initiator ID must match authenticated user");
+        }
         
         try {
+            log.info("Processing breakup for pairing {} initiated by user {}", pairingId, authenticatedUserId);
             PairingDTO updatedPairing = pairingService.breakupPairing(pairingId, request);
+            log.info("Successfully processed breakup for pairing {}", pairingId);
             return ResponseEntity.ok(updatedPairing);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid breakup request for pairing {}: {}", pairingId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (IllegalStateException e) {
+            log.warn("Invalid state for breakup on pairing {}: {}", pairingId, e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (Exception e) {
             log.error("Error processing breakup for pairing: {}", pairingId, e);

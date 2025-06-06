@@ -26,6 +26,7 @@ import "@/assets/PairingsPage.css"
 import { useQueueConfig } from "@/contexts/QueueConfigUpdates"
 import { Skeleton } from "@/components/ui/SkeletonUI"
 import { NoMatchFoundModal } from "@/components/modals/NoMatchFoundModal"
+import { BreakupModal } from "@/components/modals/BreakupModal"
 
 const REGIONS = [
   { value: "NA_EAST", label: "NA East" },
@@ -238,7 +239,8 @@ export function PairingsPage() {
     refreshData,
     unpairPairing,
     deletePairing,
-    clearInactiveHistory
+    clearInactiveHistory,
+    breakupPairing
   } = usePairings()
   const { isConnected } = useQueueUpdates()
   const { pairingUpdate, clearUpdate } = usePairingUpdates()
@@ -253,6 +255,9 @@ export function PairingsPage() {
   const [userProfileModalPosition, setUserProfileModalPosition] = useState<{ x: number; y: number } | null>(null)
   const [showNoMatchModal, setShowNoMatchModal] = useState(false)
   const [noMatchData, setNoMatchData] = useState<{ totalInQueue?: number; message?: string } | null>(null)
+  const [showQueueRemovedModal, setShowQueueRemovedModal] = useState(false)
+  const [queueRemovedMessage, setQueueRemovedMessage] = useState<string | null>(null)
+  const [showBreakupModal, setShowBreakupModal] = useState(false)
 
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const savedState = localStorage.getItem("sidebar-collapsed")
@@ -310,8 +315,6 @@ export function PairingsPage() {
         year: "numeric",
         month: "short",
         day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
       }).format(new Date(dateString))
     },
     [],
@@ -396,6 +399,12 @@ export function PairingsPage() {
           message: pairingUpdate.message
         })
         setShowNoMatchModal(true)
+        clearUpdate()
+      } else if (pairingUpdate.eventType === "QUEUE_REMOVED") {
+        console.log("[PairingsPage] Removed from queue by admin:", pairingUpdate)
+        setQueueRemovedMessage(pairingUpdate.message)
+        setShowQueueRemovedModal(true)
+        refreshData() // This is crucial to update the UI state
         clearUpdate()
       }
     }
@@ -574,6 +583,23 @@ export function PairingsPage() {
   const inactiveHistory = useMemo(() => {
     return pairingHistory.filter(pairing => !pairing.active)
   }, [pairingHistory])
+
+  const handleCloseQueueRemovedModal = useCallback(() => {
+    setShowQueueRemovedModal(false)
+    setQueueRemovedMessage(null)
+  }, [])
+
+  const handleBreakup = async (reason: string) => {
+    if (!currentPairing) return
+    
+    try {
+      await breakupPairing(currentPairing.id, reason)
+      setShowBreakupModal(false)
+    } catch (error) {
+      console.error("Error processing breakup:", error)
+      // Error is already handled by the hook and displayed in the UI
+    }
+  }
 
   if (loading) {
     return (
@@ -1020,6 +1046,21 @@ export function PairingsPage() {
                                 </div>
                               </div>
                             </div>
+
+                            {/* Breakup Button */}
+                            <div className="pt-4 border-t border-[var(--color-border)]">
+                              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                <Button
+                                  onClick={() => setShowBreakupModal(true)}
+                                  disabled={actionLoading}
+                                  variant="outline"
+                                  className="w-full border-[var(--color-error)]/30 text-[var(--color-error)] hover:border-[var(--color-error)]/50 hover:bg-[var(--color-error)]/10 transition-all duration-200"
+                                >
+                                  <AlertCircle className="h-4 w-4 mr-2" />
+                                  End This Match
+                                </Button>
+                              </motion.div>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -1354,6 +1395,15 @@ export function PairingsPage() {
                               const user1Profile = userProfiles[pairing.user1Id]
                               const user2Profile = userProfiles[pairing.user2Id]
 
+                              // Determine who initiated the breakup
+                              const breakupInitiatorProfile = pairing.breakupInitiatorId 
+                                ? userProfiles[pairing.breakupInitiatorId] 
+                                : null
+                              const isAdminBreakup = pairing.breakupInitiatorId?.startsWith('ADMIN_')
+                              const adminName = isAdminBreakup 
+                                ? pairing.breakupInitiatorId?.replace('ADMIN_', '') 
+                                : null
+
                               return (
                                 <motion.div
                                   key={pairing.id}
@@ -1377,64 +1427,118 @@ export function PairingsPage() {
                                     <X className="h-3 w-3" />
                                   </motion.button>
                                   
-                                  <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-3">
-                                      {/* User 1 */}
-                                      <motion.div
-                                        className="flex items-center gap-2 cursor-pointer hover:bg-[var(--color-container-bg)]/80 p-2 rounded-lg transition-colors"
-                                        onClick={(e) => handleUserClick(pairing.user1Id, e)}
-                                        whileHover={{ scale: 1.05 }}
-                                      >
-                                        <Avatar className="h-8 w-8 ring-2 ring-primary/30">
-                                          <AvatarImage src={user1Profile?.avatar || "/placeholder.svg"} />
-                                          <AvatarFallback className="bg-primary/20 text-primary">
-                                            {user1Profile?.displayName?.[0] || user1Profile?.username?.[0] || "?"}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                        <span className="text-[var(--color-text-primary)] font-medium text-sm">
-                                          {user1Profile?.displayName || user1Profile?.username || "Unknown"}
-                                        </span>
-                                      </motion.div>
+                                  <div className="space-y-4">
+                                    {/* Users Section */}
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-3">
+                                        {/* User 1 */}
+                                        <motion.div
+                                          className="flex items-center gap-2 cursor-pointer hover:bg-[var(--color-container-bg)]/80 p-2 rounded-lg transition-colors"
+                                          onClick={(e) => handleUserClick(pairing.user1Id, e)}
+                                          whileHover={{ scale: 1.05 }}
+                                        >
+                                          <Avatar className="h-8 w-8 ring-2 ring-primary/30">
+                                            <AvatarImage src={user1Profile?.avatar || "/placeholder.svg"} />
+                                            <AvatarFallback className="bg-primary/20 text-primary">
+                                              {user1Profile?.displayName?.[0] || user1Profile?.username?.[0] || "?"}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                          <span className="text-[var(--color-text-primary)] font-medium text-sm">
+                                            {user1Profile?.displayName || user1Profile?.username || "Unknown"}
+                                          </span>
+                                        </motion.div>
 
-                                      <Heart className="h-4 w-4 text-primary" />
+                                        <Heart className="h-4 w-4 text-primary" />
 
-                                      {/* User 2 */}
-                                      <motion.div
-                                        className="flex items-center gap-2 cursor-pointer hover:bg-[var(--color-container-bg)]/80 p-2 rounded-lg transition-colors"
-                                        onClick={(e) => handleUserClick(pairing.user2Id, e)}
-                                        whileHover={{ scale: 1.05 }}
-                                      >
-                                        <Avatar className="h-8 w-8 ring-2 ring-primary/30">
-                                          <AvatarImage src={user2Profile?.avatar || "/placeholder.svg"} />
-                                          <AvatarFallback className="bg-primary/20 text-primary">
-                                            {user2Profile?.displayName?.[0] || user2Profile?.username?.[0] || "?"}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                        <span className="text-[var(--color-text-primary)] font-medium text-sm">
-                                          {user2Profile?.displayName || user2Profile?.username || "Unknown"}
-                                        </span>
-                                      </motion.div>
+                                        {/* User 2 */}
+                                        <motion.div
+                                          className="flex items-center gap-2 cursor-pointer hover:bg-[var(--color-container-bg)]/80 p-2 rounded-lg transition-colors"
+                                          onClick={(e) => handleUserClick(pairing.user2Id, e)}
+                                          whileHover={{ scale: 1.05 }}
+                                        >
+                                          <Avatar className="h-8 w-8 ring-2 ring-primary/30">
+                                            <AvatarImage src={user2Profile?.avatar || "/placeholder.svg"} />
+                                            <AvatarFallback className="bg-primary/20 text-primary">
+                                              {user2Profile?.displayName?.[0] || user2Profile?.username?.[0] || "?"}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                          <span className="text-[var(--color-text-primary)] font-medium text-sm">
+                                            {user2Profile?.displayName || user2Profile?.username || "Unknown"}
+                                          </span>
+                                        </motion.div>
+                                      </div>
+
+                                      <ChevronRight className="h-4 w-4 text-[var(--color-text-tertiary)] group-hover:text-primary transition-colors" />
                                     </div>
 
-                                    <ChevronRight className="h-4 w-4 text-[var(--color-text-tertiary)] group-hover:text-primary transition-colors" />
-                                  </div>
+                                    {/* Breakup Information */}
+                                    {pairing.breakupReason && (
+                                      <div className="p-3 bg-[var(--color-error)]/5 border border-[var(--color-error)]/10 rounded-lg">
+                                        <div className="space-y-2">
+                                          {/* Who initiated the breakup */}
+                                          <div className="flex items-center gap-2 text-xs">
+                                            <AlertCircle className="h-3 w-3 text-[var(--color-error)]" />
+                                            <span className="text-[var(--color-text-secondary)]">
+                                              {isAdminBreakup ? (
+                                                <span className="text-[var(--color-warning)]">
+                                                  Ended by Admin: {adminName}
+                                                </span>
+                                              ) : breakupInitiatorProfile ? (
+                                                <span>
+                                                  Ended by: <span className="text-[var(--color-text-primary)] font-medium">
+                                                    {breakupInitiatorProfile.displayName || breakupInitiatorProfile.username}
+                                                  </span>
+                                                </span>
+                                              ) : (
+                                                <span className="text-[var(--color-text-tertiary)]">
+                                                  Initiator unknown
+                                                </span>
+                                              )}
+                                            </span>
+                                            {pairing.breakupTimestamp && (
+                                              <span className="text-[var(--color-text-tertiary)]">
+                                                • {formatDate(pairing.breakupTimestamp)}
+                                              </span>
+                                            )}
+                                          </div>
+                                          
+                                          {/* Breakup reason */}
+                                          <div className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                                            <span className="font-medium text-[var(--color-text-primary)]">Reason:</span>{" "}
+                                            <span className="italic">
+                                              {pairing.breakupReason.length > 100 
+                                                ? `${pairing.breakupReason.substring(0, 100)}...` 
+                                                : pairing.breakupReason
+                                              }
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
 
-                                  <div className="flex items-center justify-between text-xs">
-                                    <div className="flex items-center gap-2">
-                                      <Badge
-                                        variant="secondary"
-                                        className="text-xs"
-                                      >
-                                        Ended
-                                      </Badge>
-                                      <Badge variant="outline" className="text-xs border-primary/30 text-primary">
-                                        <Star className="h-3 w-3 mr-1" />
-                                        {pairing.compatibilityScore}%
-                                      </Badge>
-                                    </div>
-                                    <div className="text-[var(--color-text-tertiary)]">
-                                      <p>{formatDate(pairing.matchedAt)}</p>
-                                      <p className="text-right">{pairing.activeDays} days</p>
+                                    {/* Stats and Badges */}
+                                    <div className="flex items-center justify-between text-xs">
+                                      <div className="flex items-center gap-2">
+                                        <Badge
+                                          variant="secondary"
+                                          className="text-xs"
+                                        >
+                                          Ended
+                                        </Badge>
+                                        <Badge variant="outline" className="text-xs border-primary/30 text-primary">
+                                          <Star className="h-3 w-3 mr-1" />
+                                          {pairing.compatibilityScore}%
+                                        </Badge>
+                                        {pairing.mutualBreakup && (
+                                          <Badge variant="outline" className="text-xs border-[var(--color-info)]/30 text-[var(--color-info)]">
+                                            Mutual
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <div className="text-[var(--color-text-tertiary)]">
+                                        <p>Matched: {formatDate(pairing.matchedAt)}</p>
+                                        <p className="text-right">{pairing.activeDays} days active</p>
+                                      </div>
                                     </div>
                                   </div>
                                 </motion.div>
@@ -1491,8 +1595,52 @@ export function PairingsPage() {
               message={noMatchData.message}
             />
           )}
+
+          {showQueueRemovedModal && queueRemovedMessage && (
+            <QueueRemovedModal
+              message={queueRemovedMessage}
+              onClose={handleCloseQueueRemovedModal}
+            />
+          )}
+
+          {showBreakupModal && currentPairing && (
+            <BreakupModal
+              isOpen={showBreakupModal}
+              onClose={() => setShowBreakupModal(false)}
+              onConfirm={handleBreakup}
+              partnerName={pairedUser?.displayName || "your match"}
+            />
+          )}
         </AnimatePresence>
       </main>
     </div>
   )
 }
+
+// Queue Removed Modal Component
+const QueueRemovedModal = ({ message, onClose }: { message: string | null; onClose: () => void }) => (
+  <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <motion.div
+      initial={{ scale: 0.8, opacity: 0, y: 30 }}
+      animate={{ scale: 1, opacity: 1, y: 0 }}
+      exit={{ scale: 0.8, opacity: 0, y: 30 }}
+      className="relative w-full max-w-md"
+    >
+      <Card className="valorant-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-[var(--color-warning)]">
+            <AlertCircle className="h-6 w-6" />
+            Queue Disabled
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-[var(--color-text-secondary)]">{message}</p>
+          <Button onClick={onClose} className="w-full valorant-button-primary">
+            <Heart className="mr-2 h-5 w-5" />
+            Understood
+          </Button>
+        </CardContent>
+      </Card>
+    </motion.div>
+  </div>
+)

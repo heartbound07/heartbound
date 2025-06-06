@@ -20,6 +20,11 @@ export default function Home() {
   const [groupErrorMessage, setGroupErrorMessage] = useState<string | null>(null);
   const { user } = useAuth();
   const { update, clearUpdate, userActiveParty, setUserActiveParty } = usePartyUpdates();
+  
+  // Debug WebSocket connection status
+  useEffect(() => {
+    console.log('[ValorantPage] WebSocket update received:', update);
+  }, [update]);
   const [isLoading, setIsLoading] = useState(true);
   const [seenParties, setSeenParties] = useState<Set<string>>(new Set());
 

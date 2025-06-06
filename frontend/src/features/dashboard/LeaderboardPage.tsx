@@ -3,9 +3,9 @@ import { UserProfileDTO, getLeaderboardUsers } from '@/config/userService';
 import { Leaderboard } from '@/components/ui/leaderboard/Leaderboard';
 import { UserRankCard } from '@/components/ui/leaderboard/UserRankCard';
 import { useAuth } from '@/contexts/auth/useAuth';
-import { useTheme } from '@/contexts/ThemeContext';
 import '@/assets/dashboard.css';
 import '@/assets/styles/fonts.css';
+import '@/assets/leaderboard.css';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function LeaderboardPage() {
@@ -17,8 +17,6 @@ export function LeaderboardPage() {
   
   // Get authenticated user from auth context
   const { user, isAuthenticated } = useAuth();
-  // Get current theme
-  const { theme } = useTheme();
 
   useEffect(() => {
     const fetchLeaderboardData = async () => {
@@ -46,118 +44,103 @@ export function LeaderboardPage() {
     };
 
     fetchLeaderboardData();
-  }, [leaderboardType, user?.id, isAuthenticated]); // Re-fetch when these change
+  }, [leaderboardType, user?.id, isAuthenticated]);
 
   return (
-    <motion.div 
-      className={`leaderboard-page-container theme-transition ${theme === 'default' ? 'theme-default' : 'theme-dark'}`}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
-      <motion.section 
-        className="dashboard-section mb-6"
-        initial={{ y: -20 }}
-        animate={{ y: 0 }}
-        transition={{ delay: 0.2, type: "spring" }}
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      {/* Hero Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        className="text-center mb-12"
       >
-        <div className="section-header mb-6 text-center">
-          <motion.h1 
-            className="text-2xl md:text-3xl lg:text-4xl font-bold text-white font-grandstander"
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.3, type: "spring" }}
-          >
-            Leaderboard
-          </motion.h1>
-          
-          <motion.div 
-            className="flex justify-center mt-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
-            <div className="bg-theme-container backdrop-blur-sm rounded-xl p-2 shadow-lg border border-theme">
-              <div className="bg-[var(--color-sidebar-bg)] p-1 rounded-lg inline-flex">
-                <motion.button
-                  type="button"
-                  className={`px-4 py-2 text-sm font-medium rounded-md relative z-10 inline-flex items-center ${
-                    leaderboardType === 'level' 
-                      ? 'bg-theme-primary text-[var(--color-primary-contrast)]' 
-                      : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-transparent hover:bg-white/5'
-                  } theme-transition`}
-                  onClick={() => setLeaderboardType('level')}
-                  aria-pressed={leaderboardType === 'level'}
-                  whileHover={{ scale: leaderboardType === 'level' ? 1 : 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <motion.span>
-                    Levels
-                  </motion.span>
-                </motion.button>
-                
-                <motion.button
-                  type="button"
-                  className={`px-4 py-2 text-sm font-medium rounded-md relative z-10 inline-flex items-center ${
-                    leaderboardType === 'credits' 
-                      ? 'bg-theme-primary text-[var(--color-primary-contrast)]' 
-                      : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-transparent hover:bg-white/5'
-                  } theme-transition`}
-                  onClick={() => setLeaderboardType('credits')}
-                  aria-pressed={leaderboardType === 'credits'}
-                  whileHover={{ scale: leaderboardType === 'credits' ? 1 : 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <motion.span>
-                    Credits
-                  </motion.span>
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </motion.section>
+        <motion.h1 
+          className="leaderboard-page-title"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.3, type: "spring" }}
+        >
+          Leaderboard
+        </motion.h1>
+        
+        {/* Toggle Controls */}
+        <motion.div 
+          className="flex justify-center mt-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          <div className="leaderboard-toggle-container">
+            <motion.button
+              type="button"
+              className={`leaderboard-toggle-button ${
+                leaderboardType === 'level' 
+                  ? 'leaderboard-toggle-active' 
+                  : 'leaderboard-toggle-inactive'
+              }`}
+              onClick={() => setLeaderboardType('level')}
+              whileHover={{ scale: leaderboardType === 'level' ? 1 : 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Levels
+            </motion.button>
+            
+            <motion.button
+              type="button"
+              className={`leaderboard-toggle-button ${
+                leaderboardType === 'credits' 
+                  ? 'leaderboard-toggle-active' 
+                  : 'leaderboard-toggle-inactive'
+              }`}
+              onClick={() => setLeaderboardType('credits')}
+              whileHover={{ scale: leaderboardType === 'credits' ? 1 : 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Credits
+            </motion.button>
+          </div>
+        </motion.div>
+      </motion.div>
 
-      <motion.section 
-        className="dashboard-section mb-6"
+      {/* Main Leaderboard */}
+      <motion.div 
+        className="mb-8"
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4, type: "spring" }}
       >
-        <div className="leaderboard-content">
-          <Leaderboard 
-            users={users}
-            isLoading={isLoading}
-            error={error}
-            showHeader={false}
-            className="shadow-xl"
-            limit={100}
-            leaderboardType={leaderboardType}
-            itemsPerPage={9}
-          />
-        </div>
-      </motion.section>
+        <Leaderboard 
+          users={users}
+          isLoading={isLoading}
+          error={error}
+          showHeader={false}
+          className="leaderboard-main-card"
+          limit={100}
+          leaderboardType={leaderboardType}
+          itemsPerPage={9}
+        />
+      </motion.div>
 
+      {/* User Rank Card */}
       <AnimatePresence>
         {isAuthenticated && currentUserProfile && (
-          <motion.section 
-            className="dashboard-section"
+          <motion.div 
             key="user-card"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -30 }}
             transition={{ type: "spring", delay: 0.6 }}
+            className="flex justify-center w-full"
           >
-            <div className="flex justify-center w-full">
-              <UserRankCard 
-                currentUser={currentUserProfile}
-                leaderboardUsers={users}
-                leaderboardType={leaderboardType}
-              />
-            </div>
-          </motion.section>
+            <UserRankCard 
+              currentUser={currentUserProfile}
+              leaderboardUsers={users}
+              leaderboardType={leaderboardType}
+            />
+          </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }

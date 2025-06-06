@@ -1,483 +1,523 @@
+/* Leaderboard Page Layout - Updated to match other pages */
+.leaderboard-page-wrapper {
+  background: #0F1923;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.leaderboard-main-content {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Page Title Styling - Consistent with other pages */
+.leaderboard-page-title {
+  font-family: 'Grandstander', sans-serif;
+  font-size: 2.25rem;
+  font-weight: bold;
+  color: white;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* Responsive font sizing */
+@media (min-width: 768px) {
+  .leaderboard-page-title {
+    font-size: 2.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .leaderboard-page-title {
+    font-size: 3rem;
+  }
+}
+
+/* Toggle Controls Styling */
+.leaderboard-toggle-container {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.leaderboard-toggle-button {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+}
+
+.leaderboard-toggle-active {
+  background: var(--color-primary, #0284c7);
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.leaderboard-toggle-inactive {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border: none;
+}
+
+.leaderboard-toggle-inactive:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+/* Main Leaderboard Card Styling */
+.leaderboard-main-card {
+  background: rgba(30, 41, 59, 0.3) !important;
+  border: 1px solid rgba(148, 163, 184, 0.1) !important;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
 /* Leaderboard Container */
 .leaderboard-container {
-    background-color: var(--secondary-bg);
-    border-radius: 1rem;
-    border: 1px solid var(--border-color);
-    overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-    backdrop-filter: blur(12px);
-    width: 100%;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background-color: rgba(30, 41, 59, 0.3);
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(12px);
+  width: 100%;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.leaderboard-container:hover {
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* Leaderboard Header */
+.leaderboard-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.leaderboard-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+/* Leaderboard Table */
+.leaderboard-table {
+  width: 100%;
+}
+
+.leaderboard-headers {
+  display: grid;
+  grid-template-columns: 80px 1fr 100px;
+  padding: 1rem 1.5rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.leaderboard-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 100px;
+  align-items: center;
+  padding: 0.875rem 1.5rem;
+  transition: all 0.15s ease;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  position: relative;
+  cursor: pointer;
+}
+
+.leaderboard-row:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.1);
+}
+
+.leaderboard-row:active {
+  transform: translateY(0);
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.leaderboard-row:last-child {
+  border-bottom: none;
+}
+
+.leaderboard-rank {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.leaderboard-rank-number {
+  font-size: 0.875rem;
+  margin-right: 0.25rem;
+}
+
+.leaderboard-rank-icon {
+  display: flex;
+  align-items: center;
+}
+
+.leaderboard-user {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.leaderboard-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.leaderboard-row:hover .leaderboard-avatar {
+  transform: scale(1.05);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.leaderboard-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.leaderboard-username {
+  font-weight: 600;
+  color: white;
+  font-size: 0.95rem;
+  transition: color 0.15s ease;
+}
+
+.leaderboard-row:hover .leaderboard-username {
+  color: rgba(255, 255, 255, 1);
+}
+
+.leaderboard-handle {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  transition: color 0.15s ease;
+}
+
+.leaderboard-row:hover .leaderboard-handle {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.leaderboard-credits {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  justify-content: flex-end;
+  transition: color 0.15s ease;
+}
+
+.leaderboard-row:hover .leaderboard-credits {
+  color: rgba(255, 255, 255, 1);
+}
+
+/* Loading state */
+.leaderboard-loading {
+  padding: 1.5rem 1rem;
+}
+
+.leaderboard-skeleton-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 100px;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.leaderboard-skeleton-rank,
+.leaderboard-skeleton-user,
+.leaderboard-skeleton-credits {
+  height: 24px;
+  background: linear-gradient(90deg, 
+    rgba(255, 255, 255, 0.03) 0%, 
+    rgba(255, 255, 255, 0.08) 50%, 
+    rgba(255, 255, 255, 0.03) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite ease-in-out;
+  border-radius: 6px;
+}
+
+.leaderboard-skeleton-rank {
+  width: 40px;
+  margin: 0 auto;
+}
+
+.leaderboard-skeleton-user {
+  height: 40px;
+}
+
+.leaderboard-skeleton-credits {
+  width: 70px;
+  margin-left: auto;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
   }
-  
-  .leaderboard-container:hover {
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  100% {
+    background-position: -200% 0;
   }
-  
-  /* Leaderboard Header */
-  .leaderboard-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    background-color: rgba(255, 255, 255, 0.04);
-  }
-  
-  .leaderboard-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: white;
-    margin: 0;
-    letter-spacing: 0.02em;
-  }
-  
-  /* Leaderboard Table */
-  .leaderboard-table {
-    width: 100%;
-  }
-  
+}
+
+/* Error state */
+.leaderboard-error {
+  padding: 3rem 2rem;
+  color: #f87171;
+  text-align: center;
+  font-weight: 500;
+  background-color: rgba(239, 68, 68, 0.05);
+  border-radius: 0.5rem;
+  margin: 1.5rem;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* Empty state */
+.leaderboard-empty {
+  padding: 4rem 1.5rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+  font-size: 1.05rem;
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Override scrollbar styling for leaderboard components */
+.leaderboard-container,
+.leaderboard-container * {
+  /* Reset Firefox scrollbar */
+  scrollbar-color: transparent transparent;
+  scrollbar-width: none;
+}
+
+/* Reset Webkit scrollbar for leaderboard components */
+.leaderboard-container::-webkit-scrollbar,
+.leaderboard-container *::-webkit-scrollbar {
+  width: 0;
+  background-color: transparent;
+}
+
+.leaderboard-container::-webkit-scrollbar-thumb,
+.leaderboard-container *::-webkit-scrollbar-thumb {
+  background: transparent;
+  border: none;
+}
+
+.leaderboard-container::-webkit-scrollbar-track,
+.leaderboard-container *::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+/* Pagination styles */
+.leaderboard-pagination {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.leaderboard-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.leaderboard-pagination-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  transition: all 0.2s ease;
+}
+
+.leaderboard-pagination-button:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.leaderboard-pagination-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.leaderboard-pagination-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.leaderboard-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.leaderboard-pagination-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  border-radius: 0.5rem;
+  padding: 0 0.5rem;
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+  transition: all 0.15s ease;
+}
+
+.leaderboard-pagination-number:hover:not(.active) {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.leaderboard-pagination-number.active {
+  background-color: var(--color-primary, #0284c7);
+  color: white;
+  font-weight: 600;
+}
+
+.leaderboard-pagination-ellipsis {
+  color: rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  font-weight: bold;
+}
+
+.leaderboard-pagination-info {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 1024px) {
+  /* ... existing responsive styles ... */
+}
+
+@media (max-width: 768px) {
   .leaderboard-headers {
-    display: grid;
-    grid-template-columns: 80px 1fr 100px;
-    padding: 1rem 1.5rem;
-    font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.7);
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    border-bottom: 1px solid var(--border-color);
+    grid-template-columns: 60px 1fr 90px;
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
   }
   
   .leaderboard-row {
-    display: grid;
-    grid-template-columns: 80px 1fr 100px;
-    align-items: center;
-    padding: 0.875rem 1.5rem;
-    transition: all 0.15s ease;
-    border-bottom: 1px solid var(--border-color);
-    position: relative;
-    cursor: pointer;
-  }
-  
-  .leaderboard-row:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    transform: translateY(-1px);
-    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  .leaderboard-row:active {
-    transform: translateY(0);
-    background-color: rgba(255, 255, 255, 0.08);
-  }
-  
-  .leaderboard-row:last-child {
-    border-bottom: none;
-  }
-  
-  .leaderboard-rank {
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.9);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-  }
-  
-  .leaderboard-rank-number {
-    font-size: 0.875rem;
-    margin-right: 0.25rem;
-  }
-  
-  .leaderboard-rank-icon {
-    display: flex;
-    align-items: center;
-  }
-  
-  .leaderboard-user {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+    grid-template-columns: 60px 1fr 90px;
+    padding: 0.75rem 1rem;
   }
   
   .leaderboard-avatar {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s ease, border-color 0.2s ease;
+    width: 2.25rem;
+    height: 2.25rem;
   }
   
-  .leaderboard-row:hover .leaderboard-avatar {
-    transform: scale(1.05);
-    border-color: rgba(255, 255, 255, 0.3);
+  .leaderboard-user {
+    gap: 0.75rem;
   }
   
-  .leaderboard-user-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+  .leaderboard-pagination {
+    padding: 0.875rem 1rem;
   }
   
-  .leaderboard-username {
-    font-weight: 600;
-    color: white;
-    font-size: 0.95rem;
-    transition: color 0.15s ease;
+  .leaderboard-pagination-button {
+    width: 32px;
+    height: 32px;
   }
   
-  .leaderboard-row:hover .leaderboard-username {
-    color: rgba(255, 255, 255, 1);
-  }
-  
-  .leaderboard-handle {
-    color: rgba(255, 255, 255, 0.5);
+  .leaderboard-pagination-number {
+    min-width: 28px;
+    height: 28px;
     font-size: 0.8rem;
-    transition: color 0.15s ease;
+  }
+}
+
+@media (max-width: 480px) {
+  .leaderboard-headers {
+    grid-template-columns: 50px 1fr 70px;
+    padding: 0.625rem 0.75rem;
   }
   
-  .leaderboard-row:hover .leaderboard-handle {
-    color: rgba(255, 255, 255, 0.7);
+  .leaderboard-row {
+    grid-template-columns: 50px 1fr 70px;
+    padding: 0.625rem 0.75rem;
   }
   
-  .leaderboard-credits {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.9);
-    justify-content: flex-end;
-    transition: color 0.15s ease;
-  }
-  
-  .leaderboard-row:hover .leaderboard-credits {
-    color: rgba(255, 255, 255, 1);
-  }
-  
-  /* Loading state */
-  .leaderboard-loading {
-    padding: 1.5rem 1rem;
-  }
-  
-  .leaderboard-skeleton-row {
-    display: grid;
-    grid-template-columns: 80px 1fr 100px;
-    gap: 1rem;
-    padding: 0.75rem 1.5rem;
-    align-items: center;
-    margin-bottom: 0.5rem;
-  }
-  
-  .leaderboard-skeleton-rank,
-  .leaderboard-skeleton-user,
-  .leaderboard-skeleton-credits {
-    height: 24px;
-    background: linear-gradient(90deg, 
-      rgba(255, 255, 255, 0.03) 0%, 
-      rgba(255, 255, 255, 0.08) 50%, 
-      rgba(255, 255, 255, 0.03) 100%);
-    background-size: 200% 100%;
-    animation: shimmer 1.8s infinite ease-in-out;
-    border-radius: 6px;
-  }
-  
-  .leaderboard-skeleton-rank {
-    width: 40px;
-    margin: 0 auto;
-  }
-  
-  .leaderboard-skeleton-user {
-    height: 40px;
-  }
-  
-  .leaderboard-skeleton-credits {
-    width: 70px;
-    margin-left: auto;
-  }
-  
-  @keyframes shimmer {
-    0% {
-      background-position: 200% 0;
-    }
-    100% {
-      background-position: -200% 0;
-    }
-  }
-  
-  /* Error state */
-  .leaderboard-error {
-    padding: 3rem 2rem;
-    color: #f87171;
-    text-align: center;
-    font-weight: 500;
-    background-color: rgba(239, 68, 68, 0.05);
-    border-radius: 0.5rem;
-    margin: 1.5rem;
-    border: 1px solid rgba(239, 68, 68, 0.2);
-  }
-  
-  /* Empty state */
-  .leaderboard-empty {
-    padding: 4rem 1.5rem;
-    text-align: center;
-    color: rgba(255, 255, 255, 0.6);
-    font-weight: 500;
-    font-size: 1.05rem;
-    background-color: rgba(255, 255, 255, 0.02);
-  }
-  
-  /* Compact mode */
-  .leaderboard-table.compact .leaderboard-headers {
-    padding: 0.625rem 1.25rem;
-  }
-  
-  .leaderboard-table.compact .leaderboard-row {
-    padding: 0.625rem 1.25rem;
-  }
-  
-  .leaderboard-table.compact .leaderboard-avatar {
+  .leaderboard-avatar {
     width: 2rem;
     height: 2rem;
   }
   
-  /* Leaderboard Page Layout */
-  .leaderboard-page-container {
-    max-width: 100%;
-    margin: 0 auto;
-    padding: 1.5rem 0;
+  .leaderboard-username {
+    font-size: 0.875rem;
   }
   
-  .leaderboard-content {
-    max-width: 900px;
-    margin: 0 auto;
-    width: 100%;
-  }
-  
-  /* Responsive Adjustments */
-  @media (max-width: 1024px) {
-    .leaderboard-content {
-      max-width: 800px;
-    }
-  }
-  
-  @media (max-width: 768px) {
-    .leaderboard-headers {
-      grid-template-columns: 60px 1fr 90px;
-      padding: 0.75rem 1rem;
-      font-size: 0.75rem;
-    }
-    
-    .leaderboard-row {
-      grid-template-columns: 60px 1fr 90px;
-      padding: 0.75rem 1rem;
-    }
-    
-    .leaderboard-content {
-      max-width: 100%;
-      padding: 0 1rem;
-    }
-    
-    .leaderboard-avatar {
-      width: 2.25rem;
-      height: 2.25rem;
-    }
-    
-    .leaderboard-user {
-      gap: 0.75rem;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .leaderboard-headers {
-      grid-template-columns: 50px 1fr 70px;
-      padding: 0.625rem 0.75rem;
-    }
-    
-    .leaderboard-row {
-      grid-template-columns: 50px 1fr 70px;
-      padding: 0.625rem 0.75rem;
-    }
-    
-    .leaderboard-avatar {
-      width: 2rem;
-      height: 2rem;
-    }
-    
-    .leaderboard-username {
-      font-size: 0.875rem;
-    }
-    
-    .leaderboard-handle {
-      font-size: 0.7rem;
-    }
-  }
-  
-  /* Add these styles to support the font */
-  .font-grandstander {
-    font-family: 'Grandstander', sans-serif;
-  }
-  
-  /* Adjust the title positioning */
-  .leaderboard-page-container .section-header {
-    margin-bottom: 2.5rem;
-  }
-  
-  .leaderboard-page-container .section-header h1 {
-    letter-spacing: 0.5px;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-  
-  /* Override scrollbar styling for leaderboard page only */
-  .leaderboard-page-container {
-    /* Reset Firefox scrollbar */
-    scrollbar-color: transparent transparent;
-    scrollbar-width: none;
-  }
-  
-  /* Reset Webkit scrollbar for leaderboard page */
-  .leaderboard-page-container::-webkit-scrollbar,
-  .leaderboard-page-container *::-webkit-scrollbar {
-    width: 0;
-    background-color: transparent;
-  }
-  
-  .leaderboard-page-container::-webkit-scrollbar-thumb,
-  .leaderboard-page-container *::-webkit-scrollbar-thumb {
-    background: transparent;
-    border: none;
-  }
-  
-  .leaderboard-page-container::-webkit-scrollbar-track,
-  .leaderboard-page-container *::-webkit-scrollbar-track {
-    background-color: transparent;
-  }
-  
-  /* Pagination styles */
-  .leaderboard-pagination {
-    padding: 1rem 1.5rem;
-    border-top: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  
-  .leaderboard-pagination-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  
-  .leaderboard-pagination-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 0.5rem;
-    background-color: rgba(255, 255, 255, 0.05);
-    color: rgba(255, 255, 255, 0.8);
-    border: 1px solid var(--border-color);
-    transition: all 0.2s ease;
-  }
-  
-  .leaderboard-pagination-button:hover:not(:disabled) {
-    background-color: rgba(255, 255, 255, 0.1);
-    transform: translateY(-1px);
-  }
-  
-  .leaderboard-pagination-button:active:not(:disabled) {
-    transform: translateY(0);
-  }
-  
-  .leaderboard-pagination-button:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+  .leaderboard-handle {
+    font-size: 0.7rem;
   }
   
   .leaderboard-pagination-pages {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
+    gap: 0.125rem;
+  }
+  
+  .leaderboard-pagination-button {
+    width: 28px;
+    height: 28px;
   }
   
   .leaderboard-pagination-number {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 32px;
-    height: 32px;
-    border-radius: 0.5rem;
-    padding: 0 0.5rem;
-    background-color: transparent;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.875rem;
-    transition: all 0.15s ease;
-  }
-  
-  .leaderboard-pagination-number:hover:not(.active) {
-    background-color: rgba(255, 255, 255, 0.08);
-    color: white;
-  }
-  
-  .leaderboard-pagination-number.active {
-    background-color: var(--color-primary, #0284c7);
-    color: white;
-    font-weight: 600;
-  }
-  
-  .leaderboard-pagination-ellipsis {
-    color: rgba(255, 255, 255, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    font-weight: bold;
-  }
-  
-  .leaderboard-pagination-info {
+    min-width: 24px;
+    height: 24px;
+    padding: 0 0.25rem;
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.5);
   }
-  
-  /* Responsive pagination styles */
-  @media (max-width: 768px) {
-    .leaderboard-pagination {
-      padding: 0.875rem 1rem;
-    }
-    
-    .leaderboard-pagination-button {
-      width: 32px;
-      height: 32px;
-    }
-    
-    .leaderboard-pagination-number {
-      min-width: 28px;
-      height: 28px;
-      font-size: 0.8rem;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .leaderboard-pagination-pages {
-      gap: 0.125rem;
-    }
-    
-    .leaderboard-pagination-button {
-      width: 28px;
-      height: 28px;
-    }
-    
-    .leaderboard-pagination-number {
-      min-width: 24px;
-      height: 24px;
-      padding: 0 0.25rem;
-      font-size: 0.75rem;
-    }
-    
-    /* On very small screens, hide some page numbers */
-    .leaderboard-pagination-pages button:not(.active):nth-child(4),
-    .leaderboard-pagination-pages button:not(.active):nth-child(5) {
-      display: none;
-    }
-  }
+}
+
+/* Compact mode */
+.leaderboard-table.compact .leaderboard-headers {
+  padding: 0.625rem 1.25rem;
+}
+
+.leaderboard-table.compact .leaderboard-row {
+  padding: 0.625rem 1.25rem;
+}
+
+.leaderboard-table.compact .leaderboard-avatar {
+  width: 2rem;
+  height: 2rem;
+}
