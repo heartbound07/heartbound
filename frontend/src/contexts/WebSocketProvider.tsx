@@ -7,7 +7,7 @@ import {
   useMemo,
   useRef,
 } from 'react';
-import webSocketService, { ConnectionState, SubscriptionResult } from '../config/WebSocketService';
+import webSocketService from '../config/WebSocketService';
 import { useAuth } from '@/contexts/auth/useAuth';
 import {
   WebSocketContextValue,
