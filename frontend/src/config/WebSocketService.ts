@@ -260,22 +260,30 @@ class WebSocketService {
    * Send a message to the specified destination
    * @param destination - The endpoint destination (e.g. "/app/party/update")
    * @param body - The message payload
+   * @returns Promise that resolves when message is sent
    * @throws Error if not connected or send fails
    */
-  send(destination: string, body: any): void {
+  async send(destination: string, body: any): Promise<void> {
     if (this.connectionState !== 'connected') {
       throw new Error(`Cannot send message: not connected (state: ${this.connectionState})`);
     }
 
-    try {
-      this.client.publish({
-        destination,
-        body: JSON.stringify(body)
-      });
-      console.debug(`[WebSocket] Message sent to ${destination}`);
-    } catch (error) {
-      throw new Error(`Failed to send message to ${destination}: ${error instanceof Error ? error.message : String(error)}`);
-    }
+    return new Promise((resolve, reject) => {
+      try {
+        this.client.publish({
+          destination,
+          body: JSON.stringify(body)
+        });
+        
+        console.debug(`[WebSocket] Message sent to ${destination}`);
+        resolve();
+        
+      } catch (error) {
+        const errorMessage = `Failed to send message to ${destination}: ${error instanceof Error ? error.message : String(error)}`;
+        console.error('[WebSocket]', errorMessage);
+        reject(new Error(errorMessage));
+      }
+    });
   }
 
   /**

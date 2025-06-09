@@ -26,6 +26,7 @@ import { PairingsPage } from '@/features/pages/PairingsPage';
 import QueueUpdatesProvider from '@/contexts/QueueUpdates';
 import PairingUpdatesProvider from '@/contexts/PairingUpdates';
 import { QueueConfigProvider } from '@/contexts/QueueConfigUpdates';
+import { MessageQueueDemo } from '@/examples/MessageQueueDemo';
 
 // Admin route guard component
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -122,6 +123,9 @@ export function AppRoutes() {
           </Route>
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          
+          {/* Message Queue Demo for testing */}
+          <Route path="message-queue-demo" element={<MessageQueueDemo />} />
           
           {/* Shop routes with proper protection */}
           <Route path="shop">

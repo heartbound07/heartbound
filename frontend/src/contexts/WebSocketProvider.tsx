@@ -16,7 +16,12 @@ import {
   SubscriptionInfo,
   RetryConfig,
   RetryState,
+  QueuedMessage,
+  MessagePriority,
+  DeliveryMode,
+  QueueStatistics,
 } from './types/websocket';
+import { MessageQueue, defaultQueueConfig } from '../utils/MessageQueue';
 
 interface WebSocketProviderProps {
   children: ReactNode;
@@ -80,11 +85,39 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
   // Derived state
   const isConnected = connectionStatus === 'connected';
   
+  // Message queue state and management
+  const messageQueueRef = useRef<MessageQueue>(new MessageQueue(defaultQueueConfig));
+  const [queueStats, setQueueStats] = useState<QueueStatistics>({
+    totalMessages: 0,
+    pendingMessages: 0,
+    failedMessages: 0,
+    deliveredMessages: 0,
+  });
+  
+  const isProcessingQueueRef = useRef(false);
+  const queueProcessingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Debug logging for connection status changes
   useEffect(() => {
     console.log(`[WebSocket] Connection status changed to: ${connectionStatus}, isConnected: ${isConnected}`);
     console.log(`[WebSocket] Retry state:`, retryState);
   }, [connectionStatus, isConnected, retryState]);
+
+  // Initialize message queue and restore persistence on mount
+  useEffect(() => {
+    console.log('[WebSocket] Initializing message queue...');
+    
+    // Restore persistent messages from localStorage
+    const restoredCount = messageQueueRef.current.restoreFromPersistence();
+    if (restoredCount > 0) {
+      setQueueStats(prev => ({
+        ...prev,
+        totalMessages: prev.totalMessages + restoredCount,
+        pendingMessages: prev.pendingMessages + restoredCount,
+      }));
+      console.log(`[WebSocket] Restored ${restoredCount} messages from persistence`);
+    }
+  }, []);
 
   // Error classification system
   const classifyError = useCallback((error: any): WebSocketError['type'] => {
@@ -328,6 +361,8 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
       // Process any pending subscriptions with a small delay to ensure connection is fully ready
       setTimeout(() => {
         processSubscriptions();
+        // Process any queued messages after subscriptions are ready
+        processMessageQueue();
       }, 100);
 
     } catch (error: any) {
@@ -376,6 +411,146 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     isConnectingRef.current = false;
     establishConnection();
   }, [establishConnection, clearError]);
+
+  // Message sending with queuing
+  const sendMessage = useCallback((
+    destination: string,
+    body: any,
+    options: Partial<Pick<QueuedMessage, 'priority' | 'ttl' | 'persistent' | 'deliveryMode' | 'maxRetries'>> = {}
+  ): Promise<string> => {
+    const messageOptions = {
+      priority: MessagePriority.NORMAL,
+      ttl: defaultQueueConfig.defaultTTL,
+      persistent: false,
+      deliveryMode: DeliveryMode.AT_LEAST_ONCE,
+      maxRetries: defaultQueueConfig.maxRetries,
+      ...options,
+    };
+    
+    const messageId = messageQueueRef.current.enqueue({
+      destination,
+      body,
+      ...messageOptions,
+    });
+    
+    // Update queue stats
+    setQueueStats(prev => ({
+      ...prev,
+      totalMessages: prev.totalMessages + 1,
+      pendingMessages: prev.pendingMessages + 1,
+    }));
+    
+    console.log(`[WebSocket] Message ${messageId} enqueued for ${destination}`);
+    
+    // Process queue if connected
+    if (isConnected) {
+      processMessageQueue();
+    }
+    
+    return Promise.resolve(messageId);
+  }, [isConnected]);
+
+  // Process message queue when connection is available
+  const processMessageQueue = useCallback(async () => {
+    if (isProcessingQueueRef.current || !isConnected || !webSocketService.isConnected()) {
+      return;
+    }
+    
+    isProcessingQueueRef.current = true;
+    console.log('[WebSocket] Processing message queue...');
+    
+    const batchSize = defaultQueueConfig.batchSize;
+    let processedCount = 0;
+    
+    while (processedCount < batchSize) {
+      const message = messageQueueRef.current.dequeue();
+      if (!message) break;
+      
+      // Check if message has expired
+      const now = Date.now();
+      if (now - message.timestamp > message.ttl) {
+        console.log(`[WebSocket] Message ${message.id} expired, discarding`);
+        setQueueStats(prev => ({
+          ...prev,
+          pendingMessages: prev.pendingMessages - 1,
+          failedMessages: prev.failedMessages + 1,
+        }));
+        processedCount++;
+        continue;
+      }
+      
+      try {
+        // Attempt to send message
+        await webSocketService.send(message.destination, message.body);
+        
+        console.log(`[WebSocket] Message ${message.id} sent successfully`);
+        setQueueStats(prev => ({
+          ...prev,
+          pendingMessages: prev.pendingMessages - 1,
+          deliveredMessages: prev.deliveredMessages + 1,
+        }));
+        
+        processedCount++;
+        
+      } catch (error) {
+        console.error(`[WebSocket] Failed to send message ${message.id}:`, error);
+        
+        // Retry logic
+        const requeued = messageQueueRef.current.requeueForRetry(message);
+        
+        if (requeued) {
+          console.log(`[WebSocket] Message ${message.id} re-queued for retry (${message.retryCount}/${message.maxRetries})`);
+        } else {
+          console.error(`[WebSocket] Message ${message.id} failed after ${message.maxRetries} retries`);
+          setQueueStats(prev => ({
+            ...prev,
+            pendingMessages: prev.pendingMessages - 1,
+            failedMessages: prev.failedMessages + 1,
+          }));
+        }
+        
+        break; // Stop processing on error to avoid overwhelming the connection
+      }
+    }
+    
+    isProcessingQueueRef.current = false;
+    
+    // Schedule next batch if there are more messages
+    if (messageQueueRef.current.getTotalSize() > 0) {
+      queueProcessingTimeoutRef.current = setTimeout(() => {
+        processMessageQueue();
+      }, defaultQueueConfig.batchDelay);
+    }
+  }, [isConnected]);
+
+  // Queue management functions
+  const clearQueue = useCallback(() => {
+    messageQueueRef.current.clear();
+    setQueueStats({
+      totalMessages: 0,
+      pendingMessages: 0,
+      failedMessages: 0,
+      deliveredMessages: 0,
+    });
+    console.log('[WebSocket] Message queue cleared');
+  }, []);
+
+  const pauseQueue = useCallback(() => {
+    messageQueueRef.current.pause();
+    console.log('[WebSocket] Message queue paused');
+  }, []);
+
+  const resumeQueue = useCallback(() => {
+    messageQueueRef.current.resume();
+    if (isConnected && messageQueueRef.current.getTotalSize() > 0) {
+      processMessageQueue();
+    }
+    console.log('[WebSocket] Message queue resumed');
+  }, [isConnected, processMessageQueue]);
+
+  const getQueueSize = useCallback(() => {
+    return messageQueueRef.current.getTotalSize();
+  }, []);
 
   // Subscription function with reference counting
   const subscribe = useCallback(function <T>(topic: string, callback: (message: T) => void): (() => void) {
@@ -568,6 +743,9 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
       if (connectionCheckTimeoutRef.current) {
         clearTimeout(connectionCheckTimeoutRef.current);
       }
+      if (queueProcessingTimeoutRef.current) {
+        clearTimeout(queueProcessingTimeoutRef.current);
+      }
       
       // Clear all subscription timeouts
       subscriptionTimeoutsRef.current.forEach((timeout) => {
@@ -600,6 +778,12 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     retryState,
     retryConfig: defaultRetryConfig,
     subscribe,
+    sendMessage,
+    queueStats,
+    clearQueue,
+    pauseQueue,
+    resumeQueue,
+    getQueueSize,
     reconnect,
     clearError,
   }), [
@@ -610,6 +794,12 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     maxRetries,
     retryState,
     subscribe,
+    sendMessage,
+    queueStats,
+    clearQueue,
+    pauseQueue,
+    resumeQueue,
+    getQueueSize,
     reconnect,
     clearError,
   ]);

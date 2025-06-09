@@ -44,6 +44,57 @@ export interface RetryState {
   consecutiveNetworkFailures: number;
 }
 
+// Message Queue Types
+export enum MessagePriority {
+  CRITICAL = 0,    // User actions (join party, send message)
+  HIGH = 1,        // Real-time updates (status changes)
+  NORMAL = 2,      // General messages
+  LOW = 3,         // Analytics, non-essential data
+}
+
+export enum DeliveryMode {
+  AT_LEAST_ONCE = 'at-least-once',  // Guaranteed delivery, possible duplicates
+  AT_MOST_ONCE = 'at-most-once',    // No duplicates, possible message loss
+  EXACTLY_ONCE = 'exactly-once',    // Guaranteed single delivery (requires server support)
+}
+
+export interface QueuedMessage {
+  id: string;                    // Unique message identifier
+  destination: string;           // WebSocket destination
+  body: any;                     // Message payload
+  timestamp: number;             // Creation timestamp
+  ttl: number;                   // Time to live (milliseconds)
+  priority: MessagePriority;     // Message priority level
+  retryCount: number;            // Number of retry attempts
+  maxRetries: number;            // Maximum retry attempts
+  lastAttempt?: number;          // Timestamp of last send attempt
+  persistent: boolean;           // Should survive page refresh
+  deliveryMode: DeliveryMode;    // At-least-once, at-most-once, exactly-once
+}
+
+export interface MessageQueueConfig {
+  maxQueueSize: number;          // Maximum messages in queue
+  defaultTTL: number;            // Default message TTL (30 seconds)
+  maxRetries: number;            // Default max retries (3)
+  persistenceEnabled: boolean;   // Enable localStorage persistence
+  batchSize: number;             // Messages to send per batch
+  batchDelay: number;            // Delay between batches (ms)
+  
+  priorityConfig: {
+    [MessagePriority.CRITICAL]: { ttl: number; maxRetries: number; };
+    [MessagePriority.HIGH]: { ttl: number; maxRetries: number; };
+    [MessagePriority.NORMAL]: { ttl: number; maxRetries: number; };
+    [MessagePriority.LOW]: { ttl: number; maxRetries: number; };
+  };
+}
+
+export interface QueueStatistics {
+  totalMessages: number;
+  pendingMessages: number;
+  failedMessages: number;
+  deliveredMessages: number;
+}
+
 export interface WebSocketContextValue {
   // Connection state
   isConnected: boolean;
@@ -58,6 +109,22 @@ export interface WebSocketContextValue {
   
   // Subscription management  
   subscribe: <T>(topic: string, callback: (message: T) => void) => () => void;
+  
+  // Message queuing
+  sendMessage: (
+    destination: string,
+    body: any,
+    options?: Partial<Pick<QueuedMessage, 'priority' | 'ttl' | 'persistent' | 'deliveryMode' | 'maxRetries'>>
+  ) => Promise<string>;
+  
+  // Queue statistics
+  queueStats: QueueStatistics;
+  
+  // Queue management
+  clearQueue: () => void;
+  pauseQueue: () => void;
+  resumeQueue: () => void;
+  getQueueSize: () => number;
   
   // Manual controls
   reconnect: () => void;
