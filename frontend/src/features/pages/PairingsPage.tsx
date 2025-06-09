@@ -262,11 +262,16 @@ export function PairingsPage() {
   const [showBreakupModal, setShowBreakupModal] = useState(false)
   const [showBreakupSuccessModal, setShowBreakupSuccessModal] = useState(false)
   const [showPartnerUnmatchedModal, setShowPartnerUnmatchedModal] = useState(false)
+  const [offlineBreakupPartnerName, setOfflineBreakupPartnerName] = useState<string | null>(null)
+  const [userInitiatedBreakup, setUserInitiatedBreakup] = useState(false)
 
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const savedState = localStorage.getItem("sidebar-collapsed")
     return savedState ? JSON.parse(savedState) : false
   })
+
+  // Track the last known pairing to detect offline breakups
+  const LAST_PAIRING_KEY = `last-pairing-${user?.id}`
 
   const [queueTimer, setQueueTimer] = useState<string>('0s')
 
@@ -388,6 +393,7 @@ export function PairingsPage() {
     }
   }
 
+  // Effect to handle real-time WebSocket updates
   useEffect(() => {
     if (pairingUpdate) {
       if (pairingUpdate.eventType === "MATCH_FOUND" && pairingUpdate.pairing) {
@@ -414,6 +420,7 @@ export function PairingsPage() {
         console.log("[PairingsPage] Pairing ended:", pairingUpdate)
         if (pairingUpdate.isInitiator) {
           // User initiated the breakup - show success modal
+          setUserInitiatedBreakup(true) // Mark that user initiated this breakup
           setShowBreakupSuccessModal(true)
         } else {
           // Partner initiated the breakup - show partner unmatched modal
@@ -424,6 +431,38 @@ export function PairingsPage() {
       }
     }
   }, [pairingUpdate, refreshData, clearUpdate])
+
+  // Effect to track current pairing in localStorage for offline breakup detection
+  useEffect(() => {
+    if (!user?.id) return
+
+    const lastPairingData = localStorage.getItem(LAST_PAIRING_KEY)
+    const lastPairing = lastPairingData ? JSON.parse(lastPairingData) : null
+
+    if (currentPairing) {
+      // User has an active pairing - store it
+      localStorage.setItem(LAST_PAIRING_KEY, JSON.stringify({
+        id: currentPairing.id,
+        partnerId: currentPairing.user1Id === user.id ? currentPairing.user2Id : currentPairing.user1Id,
+        partnerName: pairedUser?.displayName || "your match",
+        timestamp: Date.now()
+      }))
+    } else if (lastPairing && !loading && !userInitiatedBreakup) {
+      // User had a pairing but now doesn't AND they didn't initiate the breakup themselves
+      // This means they were unmatched while offline
+      console.log("[PairingsPage] Detected offline breakup, showing partner unmatched modal")
+      setOfflineBreakupPartnerName(lastPairing.partnerName || "your match")
+      setShowPartnerUnmatchedModal(true)
+      
+      // Clear the stored pairing since we've shown the notification
+      localStorage.removeItem(LAST_PAIRING_KEY)
+    } else if (!currentPairing && userInitiatedBreakup) {
+      // User initiated breakup and pairing is now gone - clean up the flag and localStorage
+      console.log("[PairingsPage] User-initiated breakup completed, cleaning up")
+      setUserInitiatedBreakup(false)
+      localStorage.removeItem(LAST_PAIRING_KEY)
+    }
+  }, [currentPairing, user?.id, pairedUser?.displayName, loading, LAST_PAIRING_KEY, userInitiatedBreakup])
 
   useEffect(() => {
     const fetchUserProfiles = async () => {
@@ -619,11 +658,18 @@ export function PairingsPage() {
 
   const handleCloseBreakupSuccessModal = useCallback(() => {
     setShowBreakupSuccessModal(false)
+    // Don't clear userInitiatedBreakup flag here - let the effect handle cleanup
   }, [])
 
   const handleClosePartnerUnmatchedModal = useCallback(() => {
     setShowPartnerUnmatchedModal(false)
-  }, [])
+    setOfflineBreakupPartnerName(null)
+    
+    // Also clear any remaining stored pairing data when closing the modal
+    if (user?.id) {
+      localStorage.removeItem(LAST_PAIRING_KEY)
+    }
+  }, [user?.id, LAST_PAIRING_KEY])
 
   const handleJoinQueueFromPartnerModal = useCallback(() => {
     // This could trigger the queue join form or just close and let user use main form
@@ -1655,7 +1701,7 @@ export function PairingsPage() {
               isOpen={showPartnerUnmatchedModal}
               onClose={handleClosePartnerUnmatchedModal}
               onJoinQueue={handleJoinQueueFromPartnerModal}
-              partnerName={pairedUser?.displayName || "your match"}
+              partnerName={offlineBreakupPartnerName || pairedUser?.displayName || "your match"}
             />
           )}
         </AnimatePresence>
