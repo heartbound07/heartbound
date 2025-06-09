@@ -160,6 +160,7 @@ export interface PairingUpdateEvent {
   message: string;
   timestamp: string;
   totalInQueue?: number;
+  isInitiator?: boolean; // For PAIRING_ENDED events - true if user initiated breakup
 }
 
 export interface QueueUpdateEvent {

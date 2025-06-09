@@ -13,6 +13,7 @@ export interface PairingUpdateEvent {
   message: string;
   timestamp: string;
   totalInQueue?: number; // For NO_MATCH_FOUND events
+  isInitiator?: boolean; // For PAIRING_ENDED events - true if user initiated breakup
 }
 
 interface PairingUpdatesContextProps {

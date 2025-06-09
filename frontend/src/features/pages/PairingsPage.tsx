@@ -27,6 +27,8 @@ import { useQueueConfig } from "@/contexts/QueueConfigUpdates"
 import { Skeleton } from "@/components/ui/SkeletonUI"
 import { NoMatchFoundModal } from "@/components/modals/NoMatchFoundModal"
 import { BreakupModal } from "@/components/modals/BreakupModal"
+import { BreakupSuccessModal } from "@/components/modals/BreakupSuccessModal"
+import { PartnerUnmatchedModal } from "@/components/modals/PartnerUnmatchedModal"
 
 const REGIONS = [
   { value: "NA_EAST", label: "NA East" },
@@ -258,6 +260,8 @@ export function PairingsPage() {
   const [showQueueRemovedModal, setShowQueueRemovedModal] = useState(false)
   const [queueRemovedMessage, setQueueRemovedMessage] = useState<string | null>(null)
   const [showBreakupModal, setShowBreakupModal] = useState(false)
+  const [showBreakupSuccessModal, setShowBreakupSuccessModal] = useState(false)
+  const [showPartnerUnmatchedModal, setShowPartnerUnmatchedModal] = useState(false)
 
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const savedState = localStorage.getItem("sidebar-collapsed")
@@ -405,6 +409,17 @@ export function PairingsPage() {
         setQueueRemovedMessage(pairingUpdate.message)
         setShowQueueRemovedModal(true)
         refreshData() // This is crucial to update the UI state
+        clearUpdate()
+      } else if (pairingUpdate.eventType === "PAIRING_ENDED") {
+        console.log("[PairingsPage] Pairing ended:", pairingUpdate)
+        if (pairingUpdate.isInitiator) {
+          // User initiated the breakup - show success modal
+          setShowBreakupSuccessModal(true)
+        } else {
+          // Partner initiated the breakup - show partner unmatched modal
+          setShowPartnerUnmatchedModal(true)
+        }
+        refreshData() // Update pairing data
         clearUpdate()
       }
     }
@@ -590,16 +605,31 @@ export function PairingsPage() {
   }, [])
 
   const handleBreakup = async (reason: string) => {
-    if (!currentPairing) return
+    if (!currentPairing || !user?.id) return
     
     try {
       await breakupPairing(currentPairing.id, reason)
       setShowBreakupModal(false)
+      // Success modal will be shown via WebSocket event
     } catch (error) {
       console.error("Error processing breakup:", error)
       // Error is already handled by the hook and displayed in the UI
     }
   }
+
+  const handleCloseBreakupSuccessModal = useCallback(() => {
+    setShowBreakupSuccessModal(false)
+  }, [])
+
+  const handleClosePartnerUnmatchedModal = useCallback(() => {
+    setShowPartnerUnmatchedModal(false)
+  }, [])
+
+  const handleJoinQueueFromPartnerModal = useCallback(() => {
+    // This could trigger the queue join form or just close and let user use main form
+    setShowPartnerUnmatchedModal(false)
+    // Could add logic here to auto-open queue join form if needed
+  }, [])
 
   if (loading) {
     return (
@@ -1608,6 +1638,23 @@ export function PairingsPage() {
               isOpen={showBreakupModal}
               onClose={() => setShowBreakupModal(false)}
               onConfirm={handleBreakup}
+              partnerName={pairedUser?.displayName || "your match"}
+            />
+          )}
+
+          {showBreakupSuccessModal && (
+            <BreakupSuccessModal
+              isOpen={showBreakupSuccessModal}
+              onClose={handleCloseBreakupSuccessModal}
+              partnerName={pairedUser?.displayName || "your match"}
+            />
+          )}
+
+          {showPartnerUnmatchedModal && (
+            <PartnerUnmatchedModal
+              isOpen={showPartnerUnmatchedModal}
+              onClose={handleClosePartnerUnmatchedModal}
+              onJoinQueue={handleJoinQueueFromPartnerModal}
               partnerName={pairedUser?.displayName || "your match"}
             />
           )}

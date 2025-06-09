@@ -11,11 +11,13 @@ import com.app.heartbound.repositories.pairing.MatchQueueUserRepository;
 import com.app.heartbound.repositories.pairing.PairingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -33,6 +35,7 @@ public class PairingService {
     private final BlacklistEntryRepository blacklistEntryRepository;
     private final MatchQueueUserRepository matchQueueUserRepository;
     private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     /**
      * Create a new pairing between two users
@@ -154,6 +157,11 @@ public class PairingService {
             throw new IllegalArgumentException("Initiator is not part of this pairing");
         }
 
+        // Identify partner
+        String partnerId = pairing.getUser1Id().equals(sanitizedInitiatorId) 
+                          ? pairing.getUser2Id() 
+                          : pairing.getUser1Id();
+
         // Update pairing with breakup information
         pairing.setActive(false);
         pairing.setBreakupInitiatorId(sanitizedInitiatorId);
@@ -173,6 +181,9 @@ public class PairingService {
                                            " - " + (sanitizedReason != null ? sanitizedReason : "No reason provided"));
                     blacklistEntryRepository.save(blacklistEntry);
                 });
+
+        // 🚀 NEW: Broadcast PAIRING_ENDED events to both users
+        broadcastPairingEnded(mapToPairingDTO(updatedPairing), sanitizedInitiatorId, partnerId);
 
         log.info("Successfully processed breakup for pairing ID: {}", pairingId);
         return mapToPairingDTO(updatedPairing);
@@ -431,5 +442,50 @@ public class PairingService {
                    .replaceAll("javascript:", "")
                    .trim()
                    .substring(0, Math.min(input.length(), 500)); // Limit length
+    }
+
+    /**
+     * Broadcast PAIRING_ENDED events to both users via WebSocket
+     */
+    private void broadcastPairingEnded(PairingDTO pairing, String initiatorId, String partnerId) {
+        log.info("Broadcasting pairing ended notifications for pairing ID: {}", pairing.getId());
+        
+        try {
+            // Create notification for initiator (success confirmation)
+            Map<String, Object> initiatorNotification = Map.of(
+                "eventType", "PAIRING_ENDED",
+                "pairing", pairing,
+                "message", "You have successfully unmatched!",
+                "timestamp", LocalDateTime.now().toString(),
+                "isInitiator", true
+            );
+            
+            // Create notification for partner (partner unmatched notification)
+            Map<String, Object> partnerNotification = Map.of(
+                "eventType", "PAIRING_ENDED",
+                "pairing", pairing,
+                "message", "Your partner has unmatched with you :(",
+                "timestamp", LocalDateTime.now().toString(),
+                "isInitiator", false
+            );
+            
+            // Send to initiator
+            messagingTemplate.convertAndSend(
+                "/user/" + initiatorId + "/topic/pairings", 
+                initiatorNotification
+            );
+            
+            // Send to partner
+            messagingTemplate.convertAndSend(
+                "/user/" + partnerId + "/topic/pairings", 
+                partnerNotification
+            );
+            
+            log.info("Successfully broadcasted pairing ended notifications to users {} and {}", 
+                     initiatorId, partnerId);
+            
+        } catch (Exception e) {
+            log.error("Failed to broadcast pairing ended notifications: {}", e.getMessage());
+        }
     }
 } 
