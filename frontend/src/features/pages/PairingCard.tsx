@@ -238,13 +238,16 @@ export const PairingCard = memo(({
 
         {/* Message Count Metrics for Active Pairings */}
         {isActive && (
-          <div className="flex items-center gap-3 p-3 bg-[var(--color-container-bg)] rounded-lg">
-            <MessageSquare className="h-5 w-5 text-[var(--color-info)]" />
-            <div>
-              <p className="text-sm text-[var(--color-text-secondary)]">Messages Exchanged</p>
-              <p className="text-lg font-medium text-[var(--color-text-primary)]">{pairing.messageCount}</p>
-            </div>
-          </div>
+          <motion.div 
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-[var(--color-info)]/10 hover:bg-[var(--color-info)]/15 border border-[var(--color-info)]/20 rounded-full transition-colors duration-200 cursor-default"
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+          >
+            <MessageSquare className="h-3.5 w-3.5 text-[var(--color-info)]" />
+            <span className="text-xs font-medium text-[var(--color-text-primary)]">
+              {pairing.messageCount} {pairing.messageCount === 1 ? 'message' : 'messages'}
+            </span>
+          </motion.div>
         )}
 
         {/* Stats and Badges */}
