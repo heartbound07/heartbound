@@ -1212,7 +1212,7 @@ export function PairingsPage() {
                                 <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">Chat Activity</h3>
                               </div>
                               
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                 {/* Your Messages */}
                                 <div className="text-center p-3 bg-[var(--color-success)]/10 rounded-lg border border-[var(--color-success)]/20">
                                   <div className="text-2xl font-bold text-[var(--color-success)] mb-1">
@@ -1237,6 +1237,14 @@ export function PairingsPage() {
                                     {currentPairing?.messageCount || 0}
                                   </div>
                                   <div className="text-sm text-[var(--color-text-secondary)]">Total Messages</div>
+                                </div>
+                                
+                                {/* Voice Time */}
+                                <div className="text-center p-3 bg-[var(--color-warning)]/10 rounded-lg border border-[var(--color-warning)]/20">
+                                  <div className="text-2xl font-bold text-[var(--color-warning)] mb-1">
+                                    {Math.floor((currentPairing?.voiceTimeMinutes || 0) / 60)}h {(currentPairing?.voiceTimeMinutes || 0) % 60}m
+                                  </div>
+                                  <div className="text-sm text-[var(--color-text-secondary)]">Voice Time</div>
                                 </div>
                               </div>
                               

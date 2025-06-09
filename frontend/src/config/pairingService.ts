@@ -10,6 +10,7 @@ export interface PairingDTO {
   messageCount: number;
   user1MessageCount: number;
   user2MessageCount: number;
+  voiceTimeMinutes: number;
   wordCount: number;
   emojiCount: number;
   activeDays: number;

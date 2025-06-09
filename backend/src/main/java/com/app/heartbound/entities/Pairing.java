@@ -63,6 +63,13 @@ public class Pairing {
     private int user2MessageCount = 0;
 
     @Builder.Default
+    @Column(name = "voice_time_minutes", nullable = false)
+    private int voiceTimeMinutes = 0;
+
+    @Column(name = "current_voice_session_start")
+    private LocalDateTime currentVoiceSessionStart;
+
+    @Builder.Default
     @Column(name = "word_count", nullable = false)
     private int wordCount = 0;
 

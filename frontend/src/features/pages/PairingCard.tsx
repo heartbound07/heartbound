@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Heart, Star, ChevronRight, X, AlertCircle, UserCheck, MessageSquare } from 'lucide-react'
+import { Heart, Star, ChevronRight, X, AlertCircle, UserCheck, MessageSquare, Mic } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/valorant/avatar'
 import { Badge } from '@/components/ui/valorant/badge'
 import type { PairingDTO } from '@/config/pairingService'
@@ -246,6 +246,20 @@ export const PairingCard = memo(({
             <MessageSquare className="h-3.5 w-3.5 text-[var(--color-info)]" />
             <span className="text-xs font-medium text-[var(--color-text-primary)]">
               {pairing.messageCount} {pairing.messageCount === 1 ? 'message' : 'messages'}
+            </span>
+          </motion.div>
+        )}
+
+        {/* Voice Time Metrics for Active Pairings */}
+        {isActive && pairing.voiceTimeMinutes > 0 && (
+          <motion.div 
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-[var(--color-warning)]/10 hover:bg-[var(--color-warning)]/15 border border-[var(--color-warning)]/20 rounded-full transition-colors duration-200 cursor-default"
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+          >
+            <Mic className="h-3.5 w-3.5 text-[var(--color-warning)]" />
+            <span className="text-xs font-medium text-[var(--color-text-primary)]">
+              {Math.floor(pairing.voiceTimeMinutes / 60)}h {pairing.voiceTimeMinutes % 60}m voice
             </span>
           </motion.div>
         )}

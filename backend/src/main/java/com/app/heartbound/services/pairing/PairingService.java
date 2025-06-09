@@ -10,6 +10,7 @@ import com.app.heartbound.repositories.pairing.BlacklistEntryRepository;
 import com.app.heartbound.repositories.pairing.MatchQueueUserRepository;
 import com.app.heartbound.repositories.pairing.PairingRepository;
 import com.app.heartbound.services.discord.DiscordPairingChannelService;
+import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -38,6 +39,7 @@ public class PairingService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final DiscordPairingChannelService discordPairingChannelService;
+    private final DiscordVoiceTimeTrackerService discordVoiceTimeTrackerService;
 
     /**
      * Create a new pairing between two users
@@ -176,6 +178,9 @@ public class PairingService {
         // Save updated pairing
         Pairing updatedPairing = pairingRepository.save(pairing);
 
+        // 🚀 NEW: End any active voice sessions for this pairing
+        discordVoiceTimeTrackerService.endVoiceSessionForPairing(pairingId);
+
         // 🚀 NEW: Delete Discord channel for the pairing
         deleteDiscordChannelForPairing(updatedPairing, "Pairing ended: " + (sanitizedReason != null ? sanitizedReason : "No reason provided"));
 
@@ -253,6 +258,9 @@ public class PairingService {
             pairing.setBreakupTimestamp(LocalDateTime.now());
             pairingRepository.save(pairing);
 
+            // 🚀 NEW: End any active voice sessions for this pairing
+            discordVoiceTimeTrackerService.endVoiceSessionForPairing(pairing.getId());
+
             // 🚀 NEW: Delete Discord channel when admin deletes pairing
             deleteDiscordChannelForPairing(pairing, "Admin bulk deletion of all active pairings");
             
@@ -286,6 +294,9 @@ public class PairingService {
         pairing.setMutualBreakup(false);
 
         pairingRepository.save(pairing);
+
+        // 🚀 NEW: End any active voice sessions for this pairing
+        discordVoiceTimeTrackerService.endVoiceSessionForPairing(pairingId);
 
         // 🚀 NEW: Delete Discord channel for the admin unpaired pairing
         deleteDiscordChannelForPairing(pairing, "Admin unpair by " + adminUsername);
@@ -423,6 +434,7 @@ public class PairingService {
                 .messageCount(pairing.getMessageCount())
                 .user1MessageCount(pairing.getUser1MessageCount())
                 .user2MessageCount(pairing.getUser2MessageCount())
+                .voiceTimeMinutes(pairing.getVoiceTimeMinutes())
                 .wordCount(pairing.getWordCount())
                 .emojiCount(pairing.getEmojiCount())
                 .activeDays(pairing.getActiveDays())

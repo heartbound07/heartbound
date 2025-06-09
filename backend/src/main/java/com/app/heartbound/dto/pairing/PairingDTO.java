@@ -26,6 +26,7 @@ public class PairingDTO {
     private int messageCount;
     private int user1MessageCount;
     private int user2MessageCount;
+    private int voiceTimeMinutes;
     private int wordCount;
     private int emojiCount;
     private int activeDays;
