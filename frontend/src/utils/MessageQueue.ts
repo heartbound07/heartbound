@@ -2,7 +2,6 @@ import {
   QueuedMessage,
   MessagePriority,
   MessageQueueConfig,
-  DeliveryMode,
 } from '@/contexts/types/websocket';
 
 const QUEUE_STORAGE_KEY = 'websocket_message_queue';
@@ -25,7 +24,6 @@ export const defaultQueueConfig: MessageQueueConfig = {
 
 export class MessageQueue {
   private queues: Map<MessagePriority, QueuedMessage[]> = new Map();
-  private processing: boolean = false;
   private config: MessageQueueConfig;
   private paused: boolean = false;
   
@@ -166,7 +164,6 @@ export class MessageQueue {
     let evictedCount = 0;
     
     this.queues.forEach((queue, priority) => {
-      const initialSize = queue.length;
       // Remove expired messages
       const filteredQueue = queue.filter(msg => {
         const isExpired = now - msg.timestamp > msg.ttl;
