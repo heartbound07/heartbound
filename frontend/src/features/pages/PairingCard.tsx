@@ -268,20 +268,6 @@ export const PairingCard = memo(({
         {/* Stats and Badges */}
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
-            <Badge
-              variant={isActive ? "default" : "secondary"}
-              className={`text-xs ${
-                isActive 
-                  ? "bg-[var(--color-success)]/20 text-[var(--color-success)] border-[var(--color-success)]/30"
-                  : ""
-              }`}
-            >
-              {isActive ? "Active" : "Ended"}
-            </Badge>
-            <Badge variant="outline" className={`text-xs border-${isActive ? '[var(--color-success)]' : 'primary'}/30 text-${isActive ? '[var(--color-success)]' : 'primary'}`}>
-              <Star className="h-3 w-3 mr-1" />
-              {pairing.compatibilityScore}%
-            </Badge>
             {pairing.mutualBreakup && (
               <Badge variant="outline" className="text-xs border-[var(--color-info)]/30 text-[var(--color-info)]">
                 Mutual
@@ -289,7 +275,6 @@ export const PairingCard = memo(({
             )}
           </div>
           <div className="text-[var(--color-text-tertiary)]">
-            <p>{isActive ? "Matched" : "Matched"}: {formatDate(pairing.matchedAt)}</p>
             <p className="text-right">{pairing.activeDays} days{isActive ? " active" : ""}</p>
           </div>
         </div>

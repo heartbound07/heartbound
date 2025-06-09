@@ -8,6 +8,7 @@ import com.app.heartbound.services.discord.WelcomeCommandListener;
 import com.app.heartbound.services.discord.ShopCommandListener;
 import com.app.heartbound.services.discord.InventoryCommandListener;
 import com.app.heartbound.services.discord.FishCommandListener;
+import com.app.heartbound.services.discord.StatsCommandListener;
 import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
 import jakarta.annotation.PreDestroy;
@@ -65,6 +66,10 @@ public class DiscordConfig {
     @Autowired
     private FishCommandListener fishCommandListener;
 
+    @Lazy
+    @Autowired
+    private StatsCommandListener statsCommandListener;
+
     @Autowired
     private DiscordMessageListenerService discordMessageListenerService;
 
@@ -104,11 +109,11 @@ public class DiscordConfig {
                             CacheFlag.ONLINE_STATUS,
                             CacheFlag.SCHEDULED_EVENTS
                     )
-                    // Register all listeners EXCEPT shopCommandListener (we'll register it manually)
+                    // Register all listeners EXCEPT shopCommandListener and statsCommandListener (we'll register them manually)
                     .addEventListeners(leaderboardCommandListener, chatActivityListener, 
                                       creditsCommandListener, welcomeListener, welcomeCommandListener,
-                                      inventoryCommandListener, fishCommandListener, discordMessageListenerService,
-                                      discordVoiceTimeTrackerService)
+                                      inventoryCommandListener, fishCommandListener,
+                                      discordMessageListenerService, discordVoiceTimeTrackerService)
                     .build();
 
             // Waits until JDA is fully connected and ready
@@ -117,6 +122,9 @@ public class DiscordConfig {
             
             // Register shop command listener manually
             shopCommandListener.registerWithJDA(jdaInstance);
+            
+            // Register stats command listener manually
+            statsCommandListener.registerWithJDA(jdaInstance);
             
             // Register slash commands
             registerSlashCommands();
@@ -153,7 +161,8 @@ public class DiscordConfig {
                         .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR)),
                     Commands.slash("shop", "Displays items currently available in the shop"),
                     Commands.slash("inventory", "Displays the items you currently own"),
-                    Commands.slash("fish", "Go fishing for a chance to win or lose credits")
+                    Commands.slash("fish", "Go fishing for a chance to win or lose credits"),
+                    Commands.slash("stats", "View your current pairing statistics")
                 )
                 .queue(
                     cmds -> {
