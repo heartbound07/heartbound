@@ -26,8 +26,13 @@ public class CreatePairingRequestDTO {
     @NotBlank(message = "User2 ID is required")
     private String user2Id;
 
-    @NotNull(message = "Discord channel ID is required")
+    // Discord user IDs for channel creation (optional - can be null if users don't have Discord linked)
+    private String user1DiscordId;
+    private String user2DiscordId;
+
+    // Discord channel info (set after channel creation)
     private Long discordChannelId;
+    private String discordChannelName;
 
     @Min(value = 0, message = "Compatibility score must be non-negative")
     @Max(value = 100, message = "Compatibility score must not exceed 100")

@@ -204,7 +204,7 @@ export function MatchFoundModal({ pairing, onClose }: MatchFoundModalProps) {
                         <div className="flex items-center justify-center gap-2 p-3 bg-[var(--color-info)]/10 rounded-lg border border-[var(--color-info)]/20">
                           <Users className="h-4 w-4 text-[var(--color-info)]" />
                           <Badge variant="outline" className="border-[var(--color-info)]/30 text-[var(--color-info)]">
-                            Channel #{pairing.discordChannelId}
+                            #{pairing.discordChannelName || `Channel ${pairing.discordChannelId}`}
                           </Badge>
                         </div>
                       </div>

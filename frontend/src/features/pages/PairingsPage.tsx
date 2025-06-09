@@ -1181,7 +1181,7 @@ export function PairingsPage() {
                                 <div>
                                   <p className="text-sm text-[var(--color-text-secondary)]">Discord Channel</p>
                                   <p className="text-[var(--color-text-primary)] font-medium">
-                                    #{currentPairing.discordChannelId}
+                                    #{currentPairing.discordChannelName || `Channel ${currentPairing.discordChannelId}`}
                                   </p>
                                 </div>
                               </div>

@@ -5,6 +5,7 @@ export interface PairingDTO {
   user1Id: string;
   user2Id: string;
   discordChannelId: number;
+  discordChannelName?: string;
   matchedAt: string;
   messageCount: number;
   wordCount: number;

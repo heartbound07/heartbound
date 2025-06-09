@@ -41,8 +41,11 @@ public class Pairing {
 
     // Note: Discord snowflake IDs are typically 64-bit, but using Long as specified
     // Consider String if integration issues arise with Discord API
-    @Column(name = "discord_channel_id", nullable = false)
+    @Column(name = "discord_channel_id")
     private Long discordChannelId;
+
+    @Column(name = "discord_channel_name")
+    private String discordChannelName;
 
     @Column(name = "matched_at", nullable = false)
     private LocalDateTime matchedAt;

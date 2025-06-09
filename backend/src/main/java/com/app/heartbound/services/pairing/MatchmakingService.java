@@ -101,11 +101,12 @@ public class MatchmakingService {
                 log.info("Final Compatibility Score: {}", highestScore);
                 
                 try {
-                    // Create proper DTO for pairing creation
+                    // Create proper DTO for pairing creation (Discord channel will be created by PairingService)
                     CreatePairingRequestDTO pairingRequest = CreatePairingRequestDTO.builder()
                             .user1Id(currentUser.getUserId())
                             .user2Id(bestMatch.getUserId())
-                            .discordChannelId(generateTemporaryChannelId())
+                            .user1DiscordId(currentUser.getUserId()) // Assuming user ID is Discord ID
+                            .user2DiscordId(bestMatch.getUserId())   // Assuming user ID is Discord ID
                             .compatibilityScore(highestScore)
                             .user1Age(currentUser.getAge())
                             .user1Gender(currentUser.getGender().toString())
@@ -355,11 +356,6 @@ public class MatchmakingService {
     }
 
     // Private helper methods
-
-    private Long generateTemporaryChannelId() {
-        // Generate a temporary channel ID (this should be replaced with actual Discord channel creation)
-        return System.currentTimeMillis();
-    }
 
     /**
      * Broadcast match found notifications to both users

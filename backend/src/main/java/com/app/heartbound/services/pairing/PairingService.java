@@ -9,6 +9,7 @@ import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.pairing.BlacklistEntryRepository;
 import com.app.heartbound.repositories.pairing.MatchQueueUserRepository;
 import com.app.heartbound.repositories.pairing.PairingRepository;
+import com.app.heartbound.services.discord.DiscordPairingChannelService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -36,6 +37,7 @@ public class PairingService {
     private final MatchQueueUserRepository matchQueueUserRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final DiscordPairingChannelService discordPairingChannelService;
 
     /**
      * Create a new pairing between two users
@@ -65,11 +67,10 @@ public class PairingService {
             throw new IllegalArgumentException("Cannot create pairing with compatibility score of " + request.getCompatibilityScore());
         }
 
-        // Create pairing entity with sanitized data
+        // Create pairing entity with sanitized data (initially without Discord channel info)
         Pairing pairing = Pairing.builder()
                 .user1Id(sanitizedUser1Id)
                 .user2Id(sanitizedUser2Id)
-                .discordChannelId(request.getDiscordChannelId())
                 .compatibilityScore(Math.max(0, Math.min(100, request.getCompatibilityScore())))
                 .matchedAt(LocalDateTime.now())
                 .user1Age(request.getUser1Age())
@@ -82,8 +83,11 @@ public class PairingService {
                 .user2Rank(request.getUser2Rank())
                 .build();
 
-        // Save pairing
+        // Save pairing first to get the ID
         Pairing savedPairing = pairingRepository.save(pairing);
+
+        // 🚀 NEW: Create Discord channel for the pairing
+        createDiscordChannelForPairing(savedPairing, request.getUser1DiscordId(), request.getUser2DiscordId());
 
         // CREATE BLACKLIST ENTRY IMMEDIATELY - prevents future re-matching
         createBlacklistEntry(sanitizedUser1Id, sanitizedUser2Id, 
@@ -172,6 +176,9 @@ public class PairingService {
         // Save updated pairing
         Pairing updatedPairing = pairingRepository.save(pairing);
 
+        // 🚀 NEW: Delete Discord channel for the pairing
+        deleteDiscordChannelForPairing(updatedPairing, "Pairing ended: " + (sanitizedReason != null ? sanitizedReason : "No reason provided"));
+
         // DON'T create blacklist entry here - it already exists from pairing creation
         // Just update the reason if needed
         blacklistEntryRepository.findByUserPair(pairing.getUser1Id(), pairing.getUser2Id())
@@ -245,6 +252,9 @@ public class PairingService {
             pairing.setBreakupReason("Admin deletion");
             pairing.setBreakupTimestamp(LocalDateTime.now());
             pairingRepository.save(pairing);
+
+            // 🚀 NEW: Delete Discord channel when admin deletes pairing
+            deleteDiscordChannelForPairing(pairing, "Admin bulk deletion of all active pairings");
             
             log.info("Deactivated pairing {} between users {} and {}", 
                     pairing.getId(), pairing.getUser1Id(), pairing.getUser2Id());
@@ -276,6 +286,9 @@ public class PairingService {
         pairing.setMutualBreakup(false);
 
         pairingRepository.save(pairing);
+
+        // 🚀 NEW: Delete Discord channel for the admin unpaired pairing
+        deleteDiscordChannelForPairing(pairing, "Admin unpair by " + adminUsername);
         
         // Update blacklist entry reason (blacklist STAYS - users cannot match again)
         blacklistEntryRepository.findByUserPair(pairing.getUser1Id(), pairing.getUser2Id())
@@ -303,6 +316,9 @@ public class PairingService {
         String user1Id = pairing.getUser1Id();
         String user2Id = pairing.getUser2Id();
 
+        // 🚀 NEW: Delete Discord channel before deleting pairing record
+        deleteDiscordChannelForPairing(pairing, "Pairing permanently deleted by admin");
+
         // REMOVE the blacklist entry - allow future matching
         blacklistEntryRepository.findByUserPair(user1Id, user2Id).ifPresent(blacklistEntry -> {
             blacklistEntryRepository.delete(blacklistEntry);
@@ -327,6 +343,9 @@ public class PairingService {
         long deletedCount = inactivePairings.size();
         
         for (Pairing pairing : inactivePairings) {
+            // 🚀 NEW: Delete Discord channel before deleting pairing
+            deleteDiscordChannelForPairing(pairing, "Inactive pairing bulk deletion by admin");
+
             // REMOVE blacklist entry - allow future matching
             blacklistEntryRepository.findByUserPair(pairing.getUser1Id(), pairing.getUser2Id())
                     .ifPresent(blacklistEntry -> {
@@ -399,6 +418,7 @@ public class PairingService {
                 .user1Id(pairing.getUser1Id())
                 .user2Id(pairing.getUser2Id())
                 .discordChannelId(pairing.getDiscordChannelId())
+                .discordChannelName(pairing.getDiscordChannelName())
                 .matchedAt(pairing.getMatchedAt())
                 .messageCount(pairing.getMessageCount())
                 .wordCount(pairing.getWordCount())
@@ -442,6 +462,91 @@ public class PairingService {
                    .replaceAll("javascript:", "")
                    .trim()
                    .substring(0, Math.min(input.length(), 500)); // Limit length
+    }
+
+    /**
+     * Create Discord channel for a pairing with proper error handling
+     */
+    private void createDiscordChannelForPairing(Pairing pairing, String user1DiscordId, String user2DiscordId) {
+        try {
+            // Use user IDs as Discord IDs if not provided (assuming users have Discord linked)
+            String discordId1 = user1DiscordId != null ? user1DiscordId : pairing.getUser1Id();
+            String discordId2 = user2DiscordId != null ? user2DiscordId : pairing.getUser2Id();
+            
+            log.info("Attempting to create Discord channel for pairing {} with Discord IDs {} and {}", 
+                     pairing.getId(), discordId1, discordId2);
+            
+            // Create Discord channel asynchronously
+            discordPairingChannelService.createPairingChannel(discordId1, discordId2, pairing.getId())
+                    .thenAccept(result -> {
+                        if (result.isSuccess()) {
+                            // Update pairing with Discord channel info
+                            try {
+                                pairing.setDiscordChannelId(Long.parseLong(result.getChannelId()));
+                                pairing.setDiscordChannelName(result.getChannelName());
+                                pairingRepository.save(pairing);
+                                
+                                log.info("Successfully created and linked Discord channel '{}' (ID: {}) to pairing {}", 
+                                         result.getChannelName(), result.getChannelId(), pairing.getId());
+                            } catch (Exception e) {
+                                log.error("Failed to update pairing {} with Discord channel info: {}", 
+                                         pairing.getId(), e.getMessage());
+                            }
+                        } else {
+                            log.warn("Discord channel creation failed for pairing {}: {}", 
+                                    pairing.getId(), result.getErrorMessage());
+                            // Pairing continues without Discord channel - not a critical failure
+                        }
+                    })
+                    .exceptionally(throwable -> {
+                        log.error("Exception during Discord channel creation for pairing {}: {}", 
+                                 pairing.getId(), throwable.getMessage());
+                        return null;
+                    });
+                    
+        } catch (Exception e) {
+            log.error("Failed to initiate Discord channel creation for pairing {}: {}", 
+                     pairing.getId(), e.getMessage());
+            // Don't throw - pairing should succeed even if Discord channel creation fails
+        }
+    }
+
+    /**
+     * Delete Discord channel for a pairing with proper error handling
+     */
+    private void deleteDiscordChannelForPairing(Pairing pairing, String reason) {
+        try {
+            if (pairing.getDiscordChannelId() != null) {
+                String channelId = pairing.getDiscordChannelId().toString();
+                String channelName = pairing.getDiscordChannelName();
+                
+                log.info("Attempting to delete Discord channel '{}' (ID: {}) for pairing {}", 
+                         channelName, channelId, pairing.getId());
+                
+                // Delete Discord channel asynchronously
+                discordPairingChannelService.deletePairingChannel(channelId, reason)
+                        .thenAccept(success -> {
+                            if (success) {
+                                log.info("Successfully deleted Discord channel '{}' for pairing {}", 
+                                         channelName, pairing.getId());
+                            } else {
+                                log.warn("Failed to delete Discord channel '{}' for pairing {} - channel may not exist or bot lacks permissions", 
+                                        channelName, pairing.getId());
+                            }
+                        })
+                        .exceptionally(throwable -> {
+                            log.error("Exception during Discord channel deletion for pairing {}: {}", 
+                                     pairing.getId(), throwable.getMessage());
+                            return null;
+                        });
+            } else {
+                log.debug("No Discord channel to delete for pairing {}", pairing.getId());
+            }
+        } catch (Exception e) {
+            log.error("Failed to initiate Discord channel deletion for pairing {}: {}", 
+                     pairing.getId(), e.getMessage());
+            // Don't throw - breakup should succeed even if Discord channel deletion fails
+        }
     }
 
     /**
