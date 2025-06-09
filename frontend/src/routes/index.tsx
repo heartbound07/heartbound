@@ -120,12 +120,18 @@ export function AppRoutes() {
                 </AdminRoute>
               } 
             />
+            {/* Message Queue Demo - Admin only */}
+            <Route 
+              path="message-queue-demo"
+              element={
+                <AdminRoute>
+                  <MessageQueueDemo />
+                </AdminRoute>
+              } 
+            />
           </Route>
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="settings" element={<SettingsPage />} />
-          
-          {/* Message Queue Demo for testing */}
-          <Route path="message-queue-demo" element={<MessageQueueDemo />} />
           
           {/* Shop routes with proper protection */}
           <Route path="shop">
