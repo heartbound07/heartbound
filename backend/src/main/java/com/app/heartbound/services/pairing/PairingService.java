@@ -421,6 +421,8 @@ public class PairingService {
                 .discordChannelName(pairing.getDiscordChannelName())
                 .matchedAt(pairing.getMatchedAt())
                 .messageCount(pairing.getMessageCount())
+                .user1MessageCount(pairing.getUser1MessageCount())
+                .user2MessageCount(pairing.getUser2MessageCount())
                 .wordCount(pairing.getWordCount())
                 .emojiCount(pairing.getEmojiCount())
                 .activeDays(pairing.getActiveDays())

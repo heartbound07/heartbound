@@ -8,6 +8,8 @@ export interface PairingDTO {
   discordChannelName?: string;
   matchedAt: string;
   messageCount: number;
+  user1MessageCount: number;
+  user2MessageCount: number;
   wordCount: number;
   emojiCount: number;
   activeDays: number;

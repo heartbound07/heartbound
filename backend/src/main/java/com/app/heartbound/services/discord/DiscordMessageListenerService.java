@@ -1,0 +1,97 @@
+package com.app.heartbound.services.discord;
+
+import com.app.heartbound.entities.Pairing;
+import com.app.heartbound.repositories.pairing.PairingRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
+
+/**
+ * DiscordMessageListenerService
+ * 
+ * Service that listens to Discord messages in pairing channels and updates
+ * message counts for each user in their respective pairings.
+ */
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class DiscordMessageListenerService extends ListenerAdapter {
+
+    private final PairingRepository pairingRepository;
+
+    @Override
+    @Transactional
+    public void onMessageReceived(MessageReceivedEvent event) {
+        // Ignore bot messages to prevent infinite loops
+        if (event.getAuthor().isBot()) {
+            return;
+        }
+
+        // Only process text channel messages
+        if (!event.isFromGuild() || !event.getChannelType().isMessage()) {
+            return;
+        }
+
+        try {
+            // Get channel ID and convert to Long for database lookup
+            long channelId = event.getChannel().getIdLong();
+            String authorId = event.getAuthor().getId();
+
+            // Find pairing by Discord channel ID
+            Optional<Pairing> pairingOpt = pairingRepository.findByDiscordChannelId(channelId);
+            
+            if (pairingOpt.isEmpty()) {
+                // This is not a pairing channel, ignore
+                return;
+            }
+
+            Pairing pairing = pairingOpt.get();
+            
+            // Only track messages for active pairings
+            if (!pairing.isActive()) {
+                log.debug("Ignoring message in inactive pairing channel: {}", channelId);
+                return;
+            }
+
+            // Determine which user sent the message and increment their count
+            boolean messageCountUpdated = false;
+            
+            if (authorId.equals(pairing.getUser1Id())) {
+                pairing.setUser1MessageCount(pairing.getUser1MessageCount() + 1);
+                messageCountUpdated = true;
+                log.debug("Incremented user1 message count for pairing {} (channel: {})", pairing.getId(), channelId);
+            } else if (authorId.equals(pairing.getUser2Id())) {
+                pairing.setUser2MessageCount(pairing.getUser2MessageCount() + 1);
+                messageCountUpdated = true;
+                log.debug("Incremented user2 message count for pairing {} (channel: {})", pairing.getId(), channelId);
+            } else {
+                // Message from someone not in the pairing (shouldn't happen in private channels)
+                log.warn("Message in pairing channel {} from unknown user: {}", channelId, authorId);
+                return;
+            }
+
+            if (messageCountUpdated) {
+                // Update total message count
+                pairing.setMessageCount(pairing.getUser1MessageCount() + pairing.getUser2MessageCount());
+                
+                // Save the updated pairing
+                pairingRepository.save(pairing);
+                
+                log.info("Updated message counts for pairing {}: user1={}, user2={}, total={}", 
+                    pairing.getId(), 
+                    pairing.getUser1MessageCount(), 
+                    pairing.getUser2MessageCount(), 
+                    pairing.getMessageCount());
+            }
+
+        } catch (Exception e) {
+            log.error("Error processing Discord message for channel {}: {}", 
+                event.getChannel().getId(), e.getMessage(), e);
+        }
+    }
+} 

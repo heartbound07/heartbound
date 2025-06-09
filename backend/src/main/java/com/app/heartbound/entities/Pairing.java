@@ -55,6 +55,14 @@ public class Pairing {
     private int messageCount = 0;
 
     @Builder.Default
+    @Column(name = "user1_message_count", nullable = false)
+    private int user1MessageCount = 0;
+
+    @Builder.Default
+    @Column(name = "user2_message_count", nullable = false)
+    private int user2MessageCount = 0;
+
+    @Builder.Default
     @Column(name = "word_count", nullable = false)
     private int wordCount = 0;
 

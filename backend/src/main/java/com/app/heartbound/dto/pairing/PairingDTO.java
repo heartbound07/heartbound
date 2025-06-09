@@ -24,6 +24,8 @@ public class PairingDTO {
     private String discordChannelName;
     private LocalDateTime matchedAt;
     private int messageCount;
+    private int user1MessageCount;
+    private int user2MessageCount;
     private int wordCount;
     private int emojiCount;
     private int activeDays;

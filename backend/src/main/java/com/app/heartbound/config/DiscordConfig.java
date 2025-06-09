@@ -8,6 +8,7 @@ import com.app.heartbound.services.discord.WelcomeCommandListener;
 import com.app.heartbound.services.discord.ShopCommandListener;
 import com.app.heartbound.services.discord.InventoryCommandListener;
 import com.app.heartbound.services.discord.FishCommandListener;
+import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -63,6 +64,9 @@ public class DiscordConfig {
     @Autowired
     private FishCommandListener fishCommandListener;
 
+    @Autowired
+    private DiscordMessageListenerService discordMessageListenerService;
+
     @Bean
     public JDA jda() {
         if (discordToken == null || discordToken.isBlank() || discordToken.equals("${DISCORD_BOT_TOKEN}")) {
@@ -99,7 +103,7 @@ public class DiscordConfig {
                     // Register all listeners EXCEPT shopCommandListener (we'll register it manually)
                     .addEventListeners(leaderboardCommandListener, chatActivityListener, 
                                       creditsCommandListener, welcomeListener, welcomeCommandListener,
-                                      inventoryCommandListener, fishCommandListener)
+                                      inventoryCommandListener, fishCommandListener, discordMessageListenerService)
                     .build();
 
             // Waits until JDA is fully connected and ready

@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Heart, Star, ChevronRight, X, AlertCircle, UserCheck } from 'lucide-react'
+import { Heart, Star, ChevronRight, X, AlertCircle, UserCheck, MessageSquare } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/valorant/avatar'
 import { Badge } from '@/components/ui/valorant/badge'
 import type { PairingDTO } from '@/config/pairingService'
@@ -232,6 +232,17 @@ export const PairingCard = memo(({
                 <span className="font-medium text-[var(--color-text-primary)]">Reason:</span>{" "}
                 <span className="italic">{breakupInfo.reason}</span>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Message Count Metrics for Active Pairings */}
+        {isActive && (
+          <div className="flex items-center gap-3 p-3 bg-[var(--color-container-bg)] rounded-lg">
+            <MessageSquare className="h-5 w-5 text-[var(--color-info)]" />
+            <div>
+              <p className="text-sm text-[var(--color-text-secondary)]">Messages Exchanged</p>
+              <p className="text-lg font-medium text-[var(--color-text-primary)]">{pairing.messageCount}</p>
             </div>
           </div>
         )}

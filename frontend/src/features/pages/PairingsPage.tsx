@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/valorant/badge"
 import { Input } from "@/components/ui/profile/input"
 import { Label } from "@/components/ui/valorant/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
-import { Heart, Users, Trophy, MessageCircle, Settings, User, MapPin, Calendar, AlertCircle, Clock, Zap, UserCheck, Activity, Trash2} from 'lucide-react'
+import { Heart, Users, Trophy, MessageCircle, MessageSquare, Settings, User, MapPin, Calendar, AlertCircle, Clock, Zap, UserCheck, Activity, Trash2} from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
 import type { JoinQueueRequestDTO } from "@/config/pairingService"
 import { useQueueUpdates } from "@/contexts/QueueUpdates"
@@ -1203,6 +1203,50 @@ export function PairingsPage() {
                                   </a>
                                 </div>
                               </div>
+                            </div>
+
+                            {/* Detailed Message Metrics (Private View for Paired Users) */}
+                            <div className="p-4 bg-[var(--color-container-bg)] rounded-xl border border-[var(--color-border)]">
+                              <div className="flex items-center gap-3 mb-4">
+                                <MessageSquare className="h-5 w-5 text-[var(--color-info)]" />
+                                <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">Chat Activity</h3>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Your Messages */}
+                                <div className="text-center p-3 bg-[var(--color-success)]/10 rounded-lg border border-[var(--color-success)]/20">
+                                  <div className="text-2xl font-bold text-[var(--color-success)] mb-1">
+                                    {currentPairing?.user1Id === user?.id ? currentPairing?.user1MessageCount : currentPairing?.user2MessageCount}
+                                  </div>
+                                  <div className="text-sm text-[var(--color-text-secondary)]">Your Messages</div>
+                                </div>
+                                
+                                {/* Partner's Messages */}
+                                <div className="text-center p-3 bg-primary/10 rounded-lg border border-primary/20">
+                                  <div className="text-2xl font-bold text-primary mb-1">
+                                    {currentPairing?.user1Id === user?.id ? currentPairing?.user2MessageCount : currentPairing?.user1MessageCount}
+                                  </div>
+                                  <div className="text-sm text-[var(--color-text-secondary)]">
+                                    {pairedUser?.displayName || "Partner"}'s Messages
+                                  </div>
+                                </div>
+                                
+                                {/* Total Messages */}
+                                <div className="text-center p-3 bg-[var(--color-info)]/10 rounded-lg border border-[var(--color-info)]/20">
+                                  <div className="text-2xl font-bold text-[var(--color-info)] mb-1">
+                                    {currentPairing?.messageCount || 0}
+                                  </div>
+                                  <div className="text-sm text-[var(--color-text-secondary)]">Total Messages</div>
+                                </div>
+                              </div>
+                              
+                              {currentPairing?.messageCount === 0 && (
+                                <div className="text-center mt-4 p-3 bg-[var(--color-warning)]/10 rounded-lg border border-[var(--color-warning)]/20">
+                                  <p className="text-sm text-[var(--color-text-secondary)]">
+                                    Start chatting in Discord to see your message activity here!
+                                  </p>
+                                </div>
+                              )}
                             </div>
 
                             {/* Breakup Button */}
