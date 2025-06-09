@@ -247,7 +247,7 @@ export const PairingCard = memo(({
             >
               <MessageSquare className="h-3.5 w-3.5 text-[var(--color-info)]" />
               <span className="text-xs font-medium text-[var(--color-text-primary)]">
-                {pairing.messageCount} {pairing.messageCount === 1 ? 'message' : 'messages'}
+                {pairing.messageCount}
               </span>
             </motion.div>
 
@@ -259,10 +259,7 @@ export const PairingCard = memo(({
             >
               <Mic className="h-3.5 w-3.5 text-[var(--color-warning)]" />
               <span className="text-xs font-medium text-[var(--color-text-primary)]">
-                {pairing.voiceTimeMinutes > 0 
-                  ? `${Math.floor(pairing.voiceTimeMinutes / 60)}h ${pairing.voiceTimeMinutes % 60}m voice`
-                  : '0m voice'
-                }
+                {Math.floor(pairing.voiceTimeMinutes / 60)}h {pairing.voiceTimeMinutes % 60}m
               </span>
             </motion.div>
           </div>
