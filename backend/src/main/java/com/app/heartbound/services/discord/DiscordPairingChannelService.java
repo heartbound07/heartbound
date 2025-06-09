@@ -224,19 +224,13 @@ public class DiscordPairingChannelService {
             channelName = sanitizedUser2 + "-" + sanitizedUser1;
         }
         
-        // Add pairing ID suffix for uniqueness if needed
-        String suffix = "-" + pairingId;
-        
         // Ensure the channel name doesn't exceed Discord's limit
-        if (channelName.length() + suffix.length() > MAX_CHANNEL_NAME_LENGTH) {
-            int maxBaseLength = MAX_CHANNEL_NAME_LENGTH - suffix.length();
-            channelName = channelName.substring(0, Math.max(0, maxBaseLength));
+        if (channelName.length() > MAX_CHANNEL_NAME_LENGTH) {
+            channelName = channelName.substring(0, MAX_CHANNEL_NAME_LENGTH);
         }
         
-        channelName += suffix;
-        
-        // Final validation
-        if (channelName.length() > MAX_CHANNEL_NAME_LENGTH) {
+        // Final validation - fallback to pairing ID if name is too short or invalid
+        if (channelName.length() < 2) {
             channelName = "pairing-" + pairingId;
         }
         
