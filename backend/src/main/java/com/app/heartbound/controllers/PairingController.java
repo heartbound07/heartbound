@@ -5,6 +5,7 @@ import com.app.heartbound.services.pairing.MatchmakingService;
 import com.app.heartbound.services.pairing.PairingService;
 import com.app.heartbound.services.pairing.QueueService;
 import com.app.heartbound.services.security.PairingSecurityService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -405,4 +406,6 @@ public class PairingController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+
 } 

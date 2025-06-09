@@ -1180,33 +1180,27 @@ export function PairingsPage() {
                                 <MessageCircle className="h-5 w-5 text-[var(--color-success)]" />
                                 <div className="flex-1">
                                   <p className="text-sm text-[var(--color-text-secondary)]">Discord Channel</p>
-                                  {currentPairing.discordChannelId ? (
-                                    <a
-                                      href={`https://discord.com/channels/1381698469624606720/${currentPairing.discordChannelId}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-[var(--color-text-primary)] font-medium hover:text-[var(--color-success)] transition-colors duration-200 flex items-center gap-2 group"
+                                  <a
+                                    href="https://discord.com/channels/1161658340418523166/1381698742721187930"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[var(--color-text-primary)] font-medium hover:text-[var(--color-success)] transition-colors duration-200 flex items-center gap-2 group"
+                                  >
+                                    <span>#pairing-chat</span>
+                                    <svg
+                                      className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
                                     >
-                                      <span>#{currentPairing.discordChannelName || `pairing-${currentPairing.id}`}</span>
-                                      <svg
-                                        className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                                        />
-                                      </svg>
-                                    </a>
-                                  ) : (
-                                    <p className="text-[var(--color-text-primary)] font-medium">
-                                      <span className="text-[var(--color-warning)]">Channel creation in progress...</span>
-                                    </p>
-                                  )}
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                      />
+                                    </svg>
+                                  </a>
                                 </div>
                               </div>
                             </div>
