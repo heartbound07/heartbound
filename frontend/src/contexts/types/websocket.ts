@@ -12,6 +12,38 @@ export interface WebSocketError {
   isRecoverable: boolean;
 }
 
+// Enhanced retry configuration interfaces
+export interface RetryConfig {
+  maxRetries: number;
+  baseDelay: number;
+  maxDelay: number;
+  jitterPercent: number;
+  backoffMultiplier: number;
+  
+  // Specific configs for different error types
+  authRetryConfig: {
+    maxRetries: number;
+    baseDelay: number;
+  };
+  
+  networkRetryConfig: {
+    maxRetries: number;
+    baseDelay: number;
+  };
+}
+
+// Enhanced retry state management
+export interface RetryState {
+  attempt: number;
+  maxRetries: number;
+  lastError: WebSocketError | null;
+  errorType: 'network' | 'auth' | 'server' | 'unknown';
+  nextRetryAt: number | null;
+  isRetryable: boolean;
+  consecutiveAuthFailures: number;
+  consecutiveNetworkFailures: number;
+}
+
 export interface WebSocketContextValue {
   // Connection state
   isConnected: boolean;
@@ -19,6 +51,10 @@ export interface WebSocketContextValue {
   lastError: WebSocketError | null;
   retryAttempt: number;
   maxRetries: number;
+  
+  // Enhanced retry state
+  retryState: RetryState;
+  retryConfig: RetryConfig;
   
   // Subscription management  
   subscribe: <T>(topic: string, callback: (message: T) => void) => () => void;

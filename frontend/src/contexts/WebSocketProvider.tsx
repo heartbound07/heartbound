@@ -14,11 +14,44 @@ import {
   WebSocketConnectionStatus,
   WebSocketError,
   SubscriptionInfo,
+  RetryConfig,
+  RetryState,
 } from './types/websocket';
 
 interface WebSocketProviderProps {
   children: ReactNode;
 }
+
+// Default retry configuration
+const defaultRetryConfig: RetryConfig = {
+  maxRetries: 5,
+  baseDelay: 1000,
+  maxDelay: 30000,
+  jitterPercent: 25,
+  backoffMultiplier: 2,
+  
+  authRetryConfig: {
+    maxRetries: 3, // Fewer retries for auth failures
+    baseDelay: 2000, // Longer delay for auth issues
+  },
+  
+  networkRetryConfig: {
+    maxRetries: 8, // More retries for network issues
+    baseDelay: 500, // Shorter initial delay for network
+  },
+};
+
+// Initial retry state
+const initialRetryState: RetryState = {
+  attempt: 0,
+  maxRetries: defaultRetryConfig.maxRetries,
+  lastError: null,
+  errorType: 'unknown',
+  nextRetryAt: null,
+  isRetryable: true,
+  consecutiveAuthFailures: 0,
+  consecutiveNetworkFailures: 0,
+};
 
 export const WebSocketContext = createContext<WebSocketContextValue | undefined>(undefined);
 
@@ -28,8 +61,13 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
   // Connection state
   const [connectionStatus, setConnectionStatus] = useState<WebSocketConnectionStatus>('disconnected');
   const [lastError, setLastError] = useState<WebSocketError | null>(null);
-  const [retryAttempt, setRetryAttempt] = useState(0);
-  const maxRetries = 5;
+  
+  // Enhanced retry state management
+  const [retryState, setRetryState] = useState<RetryState>(initialRetryState);
+  
+  // Legacy retry attempt for backward compatibility
+  const retryAttempt = retryState.attempt;
+  const maxRetries = retryState.maxRetries;
   
   // Subscription management
   const subscriptionsRef = useRef<Map<string, SubscriptionInfo>>(new Map());
@@ -45,14 +83,86 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
   // Debug logging for connection status changes
   useEffect(() => {
     console.log(`[WebSocket] Connection status changed to: ${connectionStatus}, isConnected: ${isConnected}`);
-  }, [connectionStatus, isConnected]);
+    console.log(`[WebSocket] Retry state:`, retryState);
+  }, [connectionStatus, isConnected, retryState]);
 
-  // Exponential backoff with jitter calculation
-  const calculateRetryDelay = useCallback((attempt: number): number => {
-    const baseDelay = 1000; // 1 second
-    const maxDelay = 30000; // 30 seconds
-    const exponentialDelay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
-    const jitter = exponentialDelay * 0.25 * Math.random(); // ±25% jitter
+  // Error classification system
+  const classifyError = useCallback((error: any): WebSocketError['type'] => {
+    const message = error.message?.toLowerCase() || '';
+    
+    // Auth errors
+    if (message.includes('token') || 
+        message.includes('auth') || 
+        message.includes('unauthorized') ||
+        message.includes('invalid jwt') ||
+        message.includes('authentication')) {
+      return 'auth';
+    }
+    
+    // Network errors
+    if (message.includes('network') ||
+        message.includes('connection') ||
+        message.includes('timeout') ||
+        message.includes('refused') ||
+        message.includes('websocket') ||
+        error.code === 'NETWORK_ERROR') {
+      return 'network';
+    }
+    
+    // Server errors (HTTP 4xx, 5xx)
+    if (error.status >= 400) {
+      return 'server';
+    }
+    
+    return 'unknown';
+  }, []);
+
+  // Enhanced retry decision logic with circuit breaker
+  const shouldRetry = useCallback((error: WebSocketError, currentRetryState: RetryState): boolean => {
+    // Circuit breaker: stop retrying after too many consecutive failures
+    if (currentRetryState.consecutiveAuthFailures >= defaultRetryConfig.authRetryConfig.maxRetries) {
+      console.log('[WebSocket] Circuit breaker: too many consecutive auth failures');
+      return false;
+    }
+    
+    if (currentRetryState.consecutiveNetworkFailures >= 10) {
+      console.log('[WebSocket] Circuit breaker: too many consecutive network failures');
+      return false;
+    }
+    
+    // Error-specific retry logic
+    switch (error.type) {
+      case 'auth':
+        return currentRetryState.attempt < defaultRetryConfig.authRetryConfig.maxRetries;
+      case 'network':
+        return currentRetryState.attempt < defaultRetryConfig.networkRetryConfig.maxRetries;
+      case 'server':
+        // Don't retry server errors (4xx, 5xx)
+        console.log('[WebSocket] Not retrying server error');
+        return false;
+      default:
+        return currentRetryState.attempt < defaultRetryConfig.maxRetries;
+    }
+  }, []);
+
+  // Enhanced retry delay calculation with error-type-specific configuration
+  const calculateRetryDelay = useCallback((
+    attempt: number, 
+    errorType: WebSocketError['type']
+  ): number => {
+    const config = errorType === 'auth' 
+      ? defaultRetryConfig.authRetryConfig
+      : errorType === 'network'
+      ? defaultRetryConfig.networkRetryConfig
+      : defaultRetryConfig;
+      
+    const baseDelay = config.baseDelay;
+    const exponentialDelay = Math.min(
+      baseDelay * Math.pow(defaultRetryConfig.backoffMultiplier, attempt), 
+      defaultRetryConfig.maxDelay
+    );
+    
+    const jitter = exponentialDelay * (defaultRetryConfig.jitterPercent / 100) * Math.random();
     return exponentialDelay + (Math.random() > 0.5 ? jitter : -jitter);
   }, []);
 
@@ -68,10 +178,27 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     isRecoverable,
   }), []);
 
-  // Clear error state
+  // Clear error state and reset retry state
   const clearError = useCallback(() => {
     setLastError(null);
+    setRetryState(initialRetryState);
   }, []);
+
+  // Reset retry state on successful connection
+  const resetRetryState = useCallback(() => {
+    setRetryState({
+      attempt: 0,
+      maxRetries: defaultRetryConfig.maxRetries,
+      lastError: null,
+      errorType: 'unknown',
+      nextRetryAt: null,
+      isRetryable: true,
+      consecutiveAuthFailures: 0,
+      consecutiveNetworkFailures: 0,
+    });
+  }, []);
+
+
 
   // Handle subscription when connection is established
   const processSubscriptions = useCallback(() => {
@@ -106,15 +233,78 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     });
   }, [createError]);
 
-  // Main connection establishment function
+  // Centralized retry orchestration
+  const scheduleRetry = useCallback((error: WebSocketError) => {
+    setRetryState(prevState => {
+      const newState = {
+        ...prevState,
+        attempt: prevState.attempt + 1,
+        lastError: error,
+        errorType: error.type,
+        consecutiveAuthFailures: error.type === 'auth' ? prevState.consecutiveAuthFailures + 1 : prevState.consecutiveAuthFailures,
+        consecutiveNetworkFailures: error.type === 'network' ? prevState.consecutiveNetworkFailures + 1 : prevState.consecutiveNetworkFailures,
+      };
+      
+      if (!shouldRetry(error, newState)) {
+        newState.isRetryable = false;
+        newState.nextRetryAt = null;
+        setConnectionStatus('error');
+        console.log(`[WebSocket] Retry exhausted for ${error.type} error after ${newState.attempt} attempts`);
+        return newState;
+      }
+      
+      const delay = calculateRetryDelay(newState.attempt, error.type);
+      newState.nextRetryAt = Date.now() + delay;
+      
+      console.log(`[WebSocket] Scheduling retry ${newState.attempt}/${newState.maxRetries} in ${Math.round(delay / 1000)}s for ${error.type} error`);
+      
+      setConnectionStatus('reconnecting');
+      
+      // Clear any existing retry timeout
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+      
+      retryTimeoutRef.current = setTimeout(() => {
+        if (error.type === 'auth') {
+          // Handle auth retry inline to avoid circular dependency
+          console.log('[WebSocket] Attempting auth retry...');
+          refreshToken().then(newToken => {
+            if (newToken) {
+              console.log('[WebSocket] Token refresh successful, attempting connection...');
+              setRetryState(prev => ({
+                ...prev,
+                consecutiveAuthFailures: 0,
+                attempt: 0,
+              }));
+              establishConnection();
+            } else {
+              const authError = createError('auth', 'Token refresh returned null', false);
+              scheduleRetry(authError);
+            }
+          }).catch(refreshError => {
+            console.error('[WebSocket] Token refresh failed:', refreshError);
+            const authError = createError('auth', 'Token refresh failed', false);
+            scheduleRetry(authError);
+          });
+        } else {
+          establishConnection();
+        }
+      }, delay);
+      
+      return newState;
+    });
+  }, [shouldRetry, calculateRetryDelay, refreshToken, createError]);
+
+  // Main connection establishment function with centralized error handling
   const establishConnection = useCallback(async () => {
     if (isConnectingRef.current || !isAuthenticated || !tokens?.accessToken) {
       return;
     }
 
-    // Don't attempt connection if we're at max retries
-    if (retryAttempt >= maxRetries) {
-      console.log('[WebSocket] Max retries reached, not attempting connection');
+    // Check if retries are exhausted
+    if (!retryState.isRetryable) {
+      console.log('[WebSocket] Retries exhausted, not attempting connection');
       return;
     }
 
@@ -123,14 +313,16 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     clearError();
 
     try {
-      console.log(`[WebSocket] Establishing connection (attempt ${retryAttempt + 1}/${maxRetries})`);
+      console.log(`[WebSocket] Establishing connection (attempt ${retryState.attempt + 1})`);
       
-      // Use new Promise-based connect API
+      // Use Promise-based connect API
       await webSocketService.connect(tokens.accessToken);
       
-      console.log('[WebSocket] Connection established, updating status to connected');
+      console.log('[WebSocket] Connection established successfully');
       setConnectionStatus('connected');
-      setRetryAttempt(0);
+      
+      // Reset retry state on successful connection
+      resetRetryState();
       isConnectingRef.current = false;
       
       // Process any pending subscriptions with a small delay to ensure connection is fully ready
@@ -142,57 +334,32 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
       console.error('[WebSocket] Connection error:', error);
       isConnectingRef.current = false;
       
-      const isAuthError = error.message?.includes('token') || error.message?.includes('auth') || error.message?.includes('Invalid JWT');
+      // Classify error type
+      const errorType = classifyError(error);
+      const wsError = createError(errorType, error.message || 'Connection failed', errorType !== 'server');
       
-      if (isAuthError) {
-        console.log('[WebSocket] Authentication error detected, attempting token refresh...');
-        try {
-          const newToken = await refreshToken();
-          if (newToken) {
-            console.log('[WebSocket] Token refresh successful, retrying connection...');
-            // Reset retry count for fresh token attempt
-            setRetryAttempt(0);
-            isConnectingRef.current = false;
-            // Retry immediately with new token
-            setTimeout(() => establishConnection(), 100);
-            return;
-          } else {
-            console.error('[WebSocket] Token refresh failed, marking as auth error');
-            setConnectionStatus('error');
-            setLastError(createError('auth', 'Authentication failed and token refresh unsuccessful', false));
-            return;
-          }
-        } catch (refreshError) {
-          console.error('[WebSocket] Token refresh failed:', refreshError);
-          setConnectionStatus('error');
-          setLastError(createError('auth', 'Authentication failed and token refresh unsuccessful', false));
-          return;
-        }
-      }
+      setLastError(wsError);
       
-      // Handle non-auth errors
-      setConnectionStatus('error');
-      setLastError(createError('network', error.message || 'Connection failed', true));
-      
-      // Schedule retry if within limits
-      if (retryAttempt < maxRetries) {
-        const delay = calculateRetryDelay(retryAttempt);
-        console.log(`[WebSocket] Retrying connection in ${Math.round(delay / 1000)}s (attempt ${retryAttempt + 1}/${maxRetries})`);
-        
-        setConnectionStatus('reconnecting');
-        setRetryAttempt(prev => prev + 1);
-        
-        retryTimeoutRef.current = setTimeout(() => {
-          establishConnection();
-        }, delay);
-      }
+      // Use centralized retry logic
+      scheduleRetry(wsError);
     }
-  }, [isAuthenticated, tokens?.accessToken, retryAttempt, maxRetries, calculateRetryDelay, createError, clearError, processSubscriptions, refreshToken]);
+  }, [
+    isAuthenticated, 
+    tokens?.accessToken, 
+    retryState.isRetryable, 
+    retryState.attempt,
+    scheduleRetry,
+    createError,
+    clearError,
+    processSubscriptions,
+    resetRetryState,
+    classifyError
+  ]);
 
   // Manual reconnect function
   const reconnect = useCallback(() => {
     console.log('[WebSocket] Manual reconnect requested');
-    setRetryAttempt(0);
+    setRetryState(initialRetryState);
     setConnectionStatus('disconnected');
     clearError();
     
@@ -318,7 +485,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     if (!isAuthenticated || !tokens?.accessToken) {
       console.log('[WebSocket] Auth state changed - disconnecting');
       setConnectionStatus('disconnected');
-      setRetryAttempt(0);
+      setRetryState(initialRetryState);
       clearError();
       
       // Clear timeouts
@@ -430,6 +597,8 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     lastError,
     retryAttempt,
     maxRetries,
+    retryState,
+    retryConfig: defaultRetryConfig,
     subscribe,
     reconnect,
     clearError,
@@ -439,6 +608,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     lastError,
     retryAttempt,
     maxRetries,
+    retryState,
     subscribe,
     reconnect,
     clearError,
