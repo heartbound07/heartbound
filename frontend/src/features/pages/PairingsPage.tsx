@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef, memo } from "react"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { usePairings } from "@/hooks/usePairings"
 import { Button } from "@/components/ui/button"
@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/valorant/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
 import { Heart, Users, Trophy, MessageCircle, Settings, User, MapPin, Calendar, AlertCircle, Clock, Zap, Star, UserCheck, Activity, ChevronRight, Trash2, X } from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
-import type { JoinQueueRequestDTO, PairingDTO } from "@/config/pairingService"
+import type { JoinQueueRequestDTO } from "@/config/pairingService"
 import { useQueueUpdates } from "@/contexts/QueueUpdates"
 import { performMatchmaking, deleteAllPairings, enableQueue, disableQueue } from "@/config/pairingService"
 import { usePairingUpdates } from "@/contexts/PairingUpdates"
@@ -29,7 +29,9 @@ import { NoMatchFoundModal } from "@/components/modals/NoMatchFoundModal"
 import { BreakupModal } from "@/components/modals/BreakupModal"
 import { BreakupSuccessModal } from "@/components/modals/BreakupSuccessModal"
 import { PartnerUnmatchedModal } from "@/components/modals/PartnerUnmatchedModal"
+import { useModalManager } from "@/hooks/useModalManager"
 
+// Constants moved to top level for better performance
 const REGIONS = [
   { value: "NA_EAST", label: "NA East" },
   { value: "NA_WEST", label: "NA West" },
@@ -39,7 +41,7 @@ const REGIONS = [
   { value: "KR", label: "Korea" },
   { value: "LATAM", label: "Latin America" },
   { value: "BR", label: "Brazil" },
-]
+] as const
 
 const RANKS = [
   { value: "IRON", label: "Iron" },
@@ -51,58 +53,95 @@ const RANKS = [
   { value: "ASCENDANT", label: "Ascendant" },
   { value: "IMMORTAL", label: "Immortal" },
   { value: "RADIANT", label: "Radiant" },
-]
+] as const
 
 const GENDERS = [
   { value: "MALE", label: "Male" },
   { value: "FEMALE", label: "Female" },
   { value: "NON_BINARY", label: "Non-Binary" },
   { value: "PREFER_NOT_TO_SAY", label: "Prefer not to say" },
-]
+] as const
 
-// Enhanced Queue Join Form with better UX
-const QueueJoinForm = ({
+// Admin state interface
+interface AdminState {
+  actionLoading: boolean
+  message: string | null
+  queueConfigLoading: boolean
+  queueConfigMessage: string | null
+}
+
+// Initial admin state
+const initialAdminState: AdminState = {
+  actionLoading: false,
+  message: null,
+  queueConfigLoading: false,
+  queueConfigMessage: null,
+}
+
+// Enhanced Queue Join Form with better UX - Memoized for performance
+const QueueJoinForm = memo(({
   onJoinQueue,
   loading,
 }: {
   onJoinQueue: (data: JoinQueueRequestDTO) => Promise<void>
   loading: boolean
 }) => {
-  const [age, setAge] = useState<string>("")
-  const [region, setRegion] = useState<string>("")
-  const [rank, setRank] = useState<string>("")
-  const [gender, setGender] = useState<string>("")
+  const [formData, setFormData] = useState({
+    age: "",
+    region: "",
+    rank: "",
+    gender: ""
+  })
+
+  // Secure input validation
+  const validateAge = useCallback((age: string): boolean => {
+    const ageNum = Number.parseInt(age)
+    return !Number.isNaN(ageNum) && ageNum >= 13 && ageNum <= 100
+  }, [])
+
+  // Sanitize input to prevent XSS
+  const sanitizeInput = useCallback((input: string): string => {
+    return input.trim().replace(/[<>'"]/g, '')
+  }, [])
+
+  const updateFormField = useCallback((field: keyof typeof formData, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: field === 'age' ? value : sanitizeInput(value)
+    }))
+  }, [sanitizeInput])
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
 
-      const ageNum = Number.parseInt(age)
-      if (!ageNum || ageNum < 13 || ageNum > 100) {
+      const ageNum = Number.parseInt(formData.age)
+      if (!validateAge(formData.age)) {
         throw new Error("Please enter a valid age between 13 and 100")
       }
 
-      if (!region || !rank || !gender) {
+      if (!formData.region || !formData.rank || !formData.gender) {
         throw new Error("Please fill in all fields")
       }
 
       await onJoinQueue({
         userId: "",
         age: ageNum,
-        region: region as any,
-        rank: rank as any,
-        gender: gender as any,
+        region: formData.region as any,
+        rank: formData.rank as any,
+        gender: formData.gender as any,
       })
 
-      setAge("")
-      setRegion("")
-      setRank("")
-      setGender("")
+      // Reset form on successful submission
+      setFormData({ age: "", region: "", rank: "", gender: "" })
     },
-    [age, region, rank, gender, onJoinQueue],
+    [formData, onJoinQueue, validateAge],
   )
 
-  const isFormValid = age && region && rank && gender
+  const isFormValid = useMemo(() => 
+    validateAge(formData.age) && formData.region && formData.rank && formData.gender,
+    [formData, validateAge]
+  )
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
@@ -125,12 +164,13 @@ const QueueJoinForm = ({
                   id="age"
                   type="number"
                   placeholder="Enter your age"
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
+                  value={formData.age}
+                  onChange={(e) => updateFormField('age', e.target.value)}
                   className="bg-[var(--color-container-bg)] border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-primary focus:ring-1 focus:ring-primary/20"
                   min="13"
                   max="100"
                   required
+                  aria-describedby="age-error"
                 />
               </div>
 
@@ -138,7 +178,7 @@ const QueueJoinForm = ({
                 <Label htmlFor="gender" className="text-sm font-medium text-[var(--color-text-primary)]">
                   Gender
                 </Label>
-                <Select value={gender} onValueChange={setGender} required>
+                <Select value={formData.gender} onValueChange={(value) => updateFormField('gender', value)} required>
                   <SelectTrigger className="bg-[#1F2731] border-[#374151] text-white">
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
@@ -162,7 +202,7 @@ const QueueJoinForm = ({
                 <Label htmlFor="region" className="text-slate-200 font-medium mb-2 block">
                   Region
                 </Label>
-                <Select value={region} onValueChange={setRegion} required>
+                <Select value={formData.region} onValueChange={(value) => updateFormField('region', value)} required>
                   <SelectTrigger className="bg-[#1F2731] border-[#374151] text-white">
                     <SelectValue placeholder="Select region" />
                   </SelectTrigger>
@@ -184,7 +224,7 @@ const QueueJoinForm = ({
                 <Label htmlFor="rank" className="text-slate-200 font-medium mb-2 block">
                   VALORANT Rank
                 </Label>
-                <Select value={rank} onValueChange={setRank} required>
+                <Select value={formData.rank} onValueChange={(value) => updateFormField('rank', value)} required>
                   <SelectTrigger className="bg-[#1F2731] border-[#374151] text-white">
                     <SelectValue placeholder="Select rank" />
                   </SelectTrigger>
@@ -224,7 +264,9 @@ const QueueJoinForm = ({
       </Card>
     </motion.div>
   )
-}
+})
+
+QueueJoinForm.displayName = 'QueueJoinForm'
 
 export function PairingsPage() {
   const { user, hasRole } = useAuth()
@@ -247,66 +289,67 @@ export function PairingsPage() {
   const { isConnected } = useQueueUpdates()
   const { pairingUpdate, clearUpdate } = usePairingUpdates()
 
-  const [adminActionLoading, setAdminActionLoading] = useState(false)
-  const [adminMessage, setAdminMessage] = useState<string | null>(null)
-  const [showMatchModal, setShowMatchModal] = useState(false)
-  const [matchedPairing, setMatchedPairing] = useState<PairingDTO | null>(null)
+  // Use optimized modal manager
+  const modalManager = useModalManager()
+  const [adminState, setAdminState] = useState<AdminState>(initialAdminState)
   const [userProfiles, setUserProfiles] = useState<Record<string, UserProfileDTO>>({})
-  const [selectedUserProfile, setSelectedUserProfile] = useState<UserProfileDTO | null>(null)
-  const [showUserProfileModal, setShowUserProfileModal] = useState(false)
-  const [userProfileModalPosition, setUserProfileModalPosition] = useState<{ x: number; y: number } | null>(null)
-  const [showNoMatchModal, setShowNoMatchModal] = useState(false)
-  const [noMatchData, setNoMatchData] = useState<{ totalInQueue?: number; message?: string } | null>(null)
-  const [showQueueRemovedModal, setShowQueueRemovedModal] = useState(false)
-  const [queueRemovedMessage, setQueueRemovedMessage] = useState<string | null>(null)
-  const [showBreakupModal, setShowBreakupModal] = useState(false)
-  const [showBreakupSuccessModal, setShowBreakupSuccessModal] = useState(false)
-  const [showPartnerUnmatchedModal, setShowPartnerUnmatchedModal] = useState(false)
-  const [offlineBreakupPartnerName, setOfflineBreakupPartnerName] = useState<string | null>(null)
   const [userInitiatedBreakup, setUserInitiatedBreakup] = useState(false)
 
+  // Sidebar state
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const savedState = localStorage.getItem("sidebar-collapsed")
     return savedState ? JSON.parse(savedState) : false
   })
 
-  // Track the last known pairing to detect offline breakups
-  const LAST_PAIRING_KEY = `last-pairing-${user?.id}`
-
+  // Queue timer state with ref for performance
   const [queueTimer, setQueueTimer] = useState<string>('0s')
+  const queueStartTimeRef = useRef<number | null>(null)
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Track the last known pairing to detect offline breakups
+  const LAST_PAIRING_KEY = useMemo(() => `last-pairing-${user?.id}`, [user?.id])
+
+  // Optimized queue timer effect with cleanup
   useEffect(() => {
-    let interval: NodeJS.Timeout
-    let startTime: number
-
     if (queueStatus.inQueue) {
-      startTime = Date.now()
-      setQueueTimer('0s') // Reset to 0 when entering queue
+      queueStartTimeRef.current = Date.now()
+      setQueueTimer('0s')
       
-      interval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000)
-        
-        const hours = Math.floor(elapsed / 3600)
-        const minutes = Math.floor((elapsed % 3600) / 60)
-        const seconds = elapsed % 60
+      timerIntervalRef.current = setInterval(() => {
+        if (queueStartTimeRef.current) {
+          const elapsed = Math.floor((Date.now() - queueStartTimeRef.current) / 1000)
+          
+          const hours = Math.floor(elapsed / 3600)
+          const minutes = Math.floor((elapsed % 3600) / 60)
+          const seconds = elapsed % 60
 
-        if (hours > 0) {
-          setQueueTimer(`${hours}h ${minutes}m`)
-        } else if (minutes > 0) {
-          setQueueTimer(`${minutes}m ${seconds}s`)
-        } else {
-          setQueueTimer(`${seconds}s`)
+          if (hours > 0) {
+            setQueueTimer(`${hours}h ${minutes}m`)
+          } else if (minutes > 0) {
+            setQueueTimer(`${minutes}m ${seconds}s`)
+          } else {
+            setQueueTimer(`${seconds}s`)
+          }
         }
       }, 1000)
     } else {
       setQueueTimer('0s')
+      queueStartTimeRef.current = null
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current)
+        timerIntervalRef.current = null
+      }
     }
 
     return () => {
-      if (interval) clearInterval(interval)
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current)
+        timerIntervalRef.current = null
+      }
     }
   }, [queueStatus.inQueue])
 
+  // Optimized sidebar state listener
   useEffect(() => {
     const handleSidebarStateChange = (event: CustomEvent) => {
       setIsCollapsed(event.detail.collapsed)
@@ -318,6 +361,7 @@ export function PairingsPage() {
     }
   }, [])
 
+  // Memoized date formatter for performance
   const formatDate = useMemo(
     () => (dateString: string) => {
       return new Intl.DateTimeFormat("en-US", {
@@ -330,20 +374,46 @@ export function PairingsPage() {
   )
 
   const { queueConfig, isQueueEnabled } = useQueueConfig()
-  const [queueConfigLoading, setQueueConfigLoading] = useState(false)
-  const [queueConfigMessage, setQueueConfigMessage] = useState<string | null>(null)
 
+  // Get modal functions from manager
+  const {
+    modalState,
+    showMatchFound,
+    hideMatchFound,
+    showUserProfile,
+    hideUserProfile,
+    showNoMatch,
+    hideNoMatch,
+    showQueueRemoved,
+    hideQueueRemoved,
+    showBreakup,
+    hideBreakup,
+    showBreakupSuccess,
+    hideBreakupSuccess,
+    showPartnerUnmatched,
+    hidePartnerUnmatched,
+  } = modalManager
+
+  const updateAdminState = useCallback((updates: Partial<AdminState>) => {
+    setAdminState(prev => ({ ...prev, ...updates }))
+  }, [])
+
+  // Secure form validation with sanitization
   const handleJoinQueue = useCallback(
     async (queueData: Omit<JoinQueueRequestDTO, "userId">) => {
       if (!user?.id) {
         throw new Error("User authentication required")
       }
 
+      // Additional security validation
+      const sanitizedData = {
+        ...queueData,
+        userId: user.id,
+        age: Math.max(13, Math.min(100, queueData.age)), // Clamp age values
+      }
+
       try {
-        await joinQueue({
-          ...queueData,
-          userId: user.id,
-        })
+        await joinQueue(sanitizedData)
       } catch (err: any) {
         const errorMessage = err?.message || "Failed to join matchmaking queue"
         console.error("Queue join error:", err)
@@ -353,67 +423,65 @@ export function PairingsPage() {
     [user?.id, joinQueue],
   )
 
-  const handleAdminMatchmaking = async () => {
+  // Admin functions with enhanced error handling
+  const handleAdminMatchmaking = useCallback(async () => {
     try {
-      setAdminActionLoading(true)
-      setAdminMessage(null)
+      updateAdminState({ actionLoading: true, message: null })
 
       const newPairings = await performMatchmaking()
-
-      setAdminMessage(`Successfully created ${newPairings.length} new pairings! Notifications will be sent shortly...`)
+      updateAdminState({ 
+        message: `Successfully created ${newPairings.length} new pairings! Notifications will be sent shortly...` 
+      })
     } catch (err: any) {
       const errorMessage = err?.response?.data?.message || err?.message || "Matchmaking failed"
-      setAdminMessage(`Error: ${errorMessage}`)
+      updateAdminState({ message: `Error: ${errorMessage}` })
       console.error("Admin matchmaking error:", err)
     } finally {
-      setAdminActionLoading(false)
+      updateAdminState({ actionLoading: false })
     }
-  }
+  }, [updateAdminState])
 
-  const handleDeleteAllPairings = async () => {
+  const handleDeleteAllPairings = useCallback(async () => {
     if (!confirm("Are you sure you want to delete ALL active pairings? This action cannot be undone.")) {
       return
     }
 
     try {
-      setAdminActionLoading(true)
-      setAdminMessage(null)
+      updateAdminState({ actionLoading: true, message: null })
 
       const result = await deleteAllPairings()
-      setAdminMessage(`Successfully deleted ${result.deletedCount} active pairing(s)!`)
+      updateAdminState({ 
+        message: `Successfully deleted ${result.deletedCount} active pairing(s)!` 
+      })
 
       window.location.reload()
-
-      setTimeout(() => setAdminMessage(null), 5000)
+      setTimeout(() => updateAdminState({ message: null }), 5000)
     } catch (error: any) {
-      setAdminMessage(`Failed to delete pairings: ${error.message}`)
-      setTimeout(() => setAdminMessage(null), 5000)
+      updateAdminState({ message: `Failed to delete pairings: ${error.message}` })
+      setTimeout(() => updateAdminState({ message: null }), 5000)
     } finally {
-      setAdminActionLoading(false)
+      updateAdminState({ actionLoading: false })
     }
-  }
+  }, [updateAdminState])
 
   // Effect to handle real-time WebSocket updates
   useEffect(() => {
     if (pairingUpdate) {
       if (pairingUpdate.eventType === "MATCH_FOUND" && pairingUpdate.pairing) {
         console.log("[PairingsPage] Match found, showing modal:", pairingUpdate)
-        setMatchedPairing(pairingUpdate.pairing)
-        setShowMatchModal(true)
+        showMatchFound(pairingUpdate.pairing)
         refreshData()
         clearUpdate()
       } else if (pairingUpdate.eventType === "NO_MATCH_FOUND") {
         console.log("[PairingsPage] No match found, showing modal:", pairingUpdate)
-        setNoMatchData({
+        showNoMatch({
           totalInQueue: pairingUpdate.totalInQueue,
           message: pairingUpdate.message
         })
-        setShowNoMatchModal(true)
         clearUpdate()
       } else if (pairingUpdate.eventType === "QUEUE_REMOVED") {
         console.log("[PairingsPage] Removed from queue by admin:", pairingUpdate)
-        setQueueRemovedMessage(pairingUpdate.message)
-        setShowQueueRemovedModal(true)
+        showQueueRemoved(pairingUpdate.message)
         refreshData() // This is crucial to update the UI state
         clearUpdate()
       } else if (pairingUpdate.eventType === "PAIRING_ENDED") {
@@ -421,16 +489,16 @@ export function PairingsPage() {
         if (pairingUpdate.isInitiator) {
           // User initiated the breakup - show success modal
           setUserInitiatedBreakup(true) // Mark that user initiated this breakup
-          setShowBreakupSuccessModal(true)
+          showBreakupSuccess()
         } else {
           // Partner initiated the breakup - show partner unmatched modal
-          setShowPartnerUnmatchedModal(true)
+          showPartnerUnmatched()
         }
         refreshData() // Update pairing data
         clearUpdate()
       }
     }
-  }, [pairingUpdate, refreshData, clearUpdate])
+  }, [pairingUpdate, refreshData, clearUpdate, showMatchFound, showNoMatch, showQueueRemoved, showBreakupSuccess, showPartnerUnmatched])
 
   // Effect to track current pairing in localStorage for offline breakup detection
   useEffect(() => {
@@ -451,8 +519,7 @@ export function PairingsPage() {
       // User had a pairing but now doesn't AND they didn't initiate the breakup themselves
       // This means they were unmatched while offline
       console.log("[PairingsPage] Detected offline breakup, showing partner unmatched modal")
-      setOfflineBreakupPartnerName(lastPairing.partnerName || "your match")
-      setShowPartnerUnmatchedModal(true)
+      showPartnerUnmatched(lastPairing.partnerName || "your match")
       
       // Clear the stored pairing since we've shown the notification
       localStorage.removeItem(LAST_PAIRING_KEY)
@@ -462,7 +529,7 @@ export function PairingsPage() {
       setUserInitiatedBreakup(false)
       localStorage.removeItem(LAST_PAIRING_KEY)
     }
-  }, [currentPairing, user?.id, pairedUser?.displayName, loading, LAST_PAIRING_KEY, userInitiatedBreakup])
+  }, [currentPairing, user?.id, pairedUser?.displayName, loading, LAST_PAIRING_KEY, userInitiatedBreakup, showPartnerUnmatched])
 
   useEffect(() => {
     const fetchUserProfiles = async () => {
@@ -492,41 +559,37 @@ export function PairingsPage() {
     (userId: string, event: React.MouseEvent) => {
       const profile = userProfiles[userId]
       if (profile) {
-        setSelectedUserProfile(profile)
-        setUserProfileModalPosition({ x: event.clientX, y: event.clientY })
-        setShowUserProfileModal(true)
+        showUserProfile(profile, { x: event.clientX, y: event.clientY })
       }
     },
-    [userProfiles],
+    [userProfiles, showUserProfile],
   )
 
   const handleCloseUserProfileModal = useCallback(() => {
-    setShowUserProfileModal(false)
-    setSelectedUserProfile(null)
-    setUserProfileModalPosition(null)
-  }, [])
+    hideUserProfile()
+  }, [hideUserProfile])
 
-  const handleCloseMatchModal = () => {
+  const handleCloseMatchModal = useCallback(() => {
     console.log("[PairingsPage] Closing match modal")
-    setShowMatchModal(false)
-    setMatchedPairing(null)
-  }
+    hideMatchFound()
+  }, [hideMatchFound])
 
   const handleEnableQueue = async () => {
     try {
-      setQueueConfigLoading(true)
-      setQueueConfigMessage(null)
+      updateAdminState({ queueConfigLoading: true, queueConfigMessage: null })
 
       const result = await enableQueue()
-      setQueueConfigMessage(`Queue enabled successfully: ${result.message}`)
+      updateAdminState({ 
+        queueConfigMessage: `Queue enabled successfully: ${result.message}` 
+      })
 
-      setTimeout(() => setQueueConfigMessage(null), 5000)
+      setTimeout(() => updateAdminState({ queueConfigMessage: null }), 5000)
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message || error?.message || "Failed to enable queue"
-      setQueueConfigMessage(`Error: ${errorMessage}`)
-      setTimeout(() => setQueueConfigMessage(null), 5000)
+      updateAdminState({ queueConfigMessage: `Error: ${errorMessage}` })
+      setTimeout(() => updateAdminState({ queueConfigMessage: null }), 5000)
     } finally {
-      setQueueConfigLoading(false)
+      updateAdminState({ queueConfigLoading: false })
     }
   }
 
@@ -540,27 +603,27 @@ export function PairingsPage() {
     }
 
     try {
-      setQueueConfigLoading(true)
-      setQueueConfigMessage(null)
+      updateAdminState({ queueConfigLoading: true, queueConfigMessage: null })
 
       const result = await disableQueue()
-      setQueueConfigMessage(`Queue disabled successfully: ${result.message}`)
+      updateAdminState({ 
+        queueConfigMessage: `Queue disabled successfully: ${result.message}` 
+      })
 
-      setTimeout(() => setQueueConfigMessage(null), 5000)
+      setTimeout(() => updateAdminState({ queueConfigMessage: null }), 5000)
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message || error?.message || "Failed to disable queue"
-      setQueueConfigMessage(`Error: ${errorMessage}`)
-      setTimeout(() => setQueueConfigMessage(null), 5000)
+      updateAdminState({ queueConfigMessage: `Error: ${errorMessage}` })
+      setTimeout(() => updateAdminState({ queueConfigMessage: null }), 5000)
     } finally {
-      setQueueConfigLoading(false)
+      updateAdminState({ queueConfigLoading: false })
     }
   }
 
-  const handleCloseNoMatchModal = () => {
+  const handleCloseNoMatchModal = useCallback(() => {
     console.log("[PairingsPage] Closing no match modal")
-    setShowNoMatchModal(false)
-    setNoMatchData(null)
-  }
+    hideNoMatch()
+  }, [hideNoMatch])
 
   const handleStayInQueue = () => {
     console.log("[PairingsPage] User chose to stay in queue")
@@ -589,11 +652,11 @@ export function PairingsPage() {
 
     try {
       await unpairPairing(pairingId);
-      setAdminMessage("Users unpaired successfully! They remain blacklisted from future matches.");
-      setTimeout(() => setAdminMessage(null), 5000);
+      updateAdminState({ message: "Users unpaired successfully! They remain blacklisted from future matches." })
+      setTimeout(() => updateAdminState({ message: null }), 5000)
     } catch (error: any) {
-      setAdminMessage(`Failed to unpair users: ${error.message}`);
-      setTimeout(() => setAdminMessage(null), 5000);
+      updateAdminState({ message: `Failed to unpair users: ${error.message}` })
+      setTimeout(() => updateAdminState({ message: null }), 5000)
     }
   };
 
@@ -606,11 +669,11 @@ export function PairingsPage() {
 
     try {
       await deletePairing(pairingId);
-      setAdminMessage("Pairing record permanently deleted! Users can now match again.");
-      setTimeout(() => setAdminMessage(null), 5000);
+      updateAdminState({ message: "Pairing record permanently deleted! Users can now match again." })
+      setTimeout(() => updateAdminState({ message: null }), 5000)
     } catch (error: any) {
-      setAdminMessage(`Failed to delete pairing: ${error.message}`);
-      setTimeout(() => setAdminMessage(null), 5000);
+      updateAdminState({ message: `Failed to delete pairing: ${error.message}` })
+      setTimeout(() => updateAdminState({ message: null }), 5000)
     }
   };
 
@@ -621,11 +684,11 @@ export function PairingsPage() {
 
     try {
       const result = await clearInactiveHistory();
-      setAdminMessage(`Successfully deleted ${result.deletedCount} inactive pairing record(s)! All users can now match again.`);
-      setTimeout(() => setAdminMessage(null), 5000);
+      updateAdminState({ message: `Successfully deleted ${result.deletedCount} inactive pairing record(s)! All users can now match again.` })
+      setTimeout(() => updateAdminState({ message: null }), 5000)
     } catch (error: any) {
-      setAdminMessage(`Failed to clear inactive history: ${error.message}`);
-      setTimeout(() => setAdminMessage(null), 5000);
+      updateAdminState({ message: `Failed to clear inactive history: ${error.message}` })
+      setTimeout(() => updateAdminState({ message: null }), 5000)
     }
   };
 
@@ -639,43 +702,41 @@ export function PairingsPage() {
   }, [pairingHistory])
 
   const handleCloseQueueRemovedModal = useCallback(() => {
-    setShowQueueRemovedModal(false)
-    setQueueRemovedMessage(null)
-  }, [])
+    hideQueueRemoved()
+  }, [hideQueueRemoved])
 
-  const handleBreakup = async (reason: string) => {
+  const handleBreakup = useCallback(async (reason: string) => {
     if (!currentPairing || !user?.id) return
     
     try {
       await breakupPairing(currentPairing.id, reason)
-      setShowBreakupModal(false)
+      hideBreakup()
       // Success modal will be shown via WebSocket event
     } catch (error) {
       console.error("Error processing breakup:", error)
       // Error is already handled by the hook and displayed in the UI
     }
-  }
+  }, [currentPairing, user?.id, breakupPairing, hideBreakup])
 
   const handleCloseBreakupSuccessModal = useCallback(() => {
-    setShowBreakupSuccessModal(false)
+    hideBreakupSuccess()
     // Don't clear userInitiatedBreakup flag here - let the effect handle cleanup
-  }, [])
+  }, [hideBreakupSuccess])
 
   const handleClosePartnerUnmatchedModal = useCallback(() => {
-    setShowPartnerUnmatchedModal(false)
-    setOfflineBreakupPartnerName(null)
+    hidePartnerUnmatched()
     
     // Also clear any remaining stored pairing data when closing the modal
     if (user?.id) {
       localStorage.removeItem(LAST_PAIRING_KEY)
     }
-  }, [user?.id, LAST_PAIRING_KEY])
-
+  }, [user?.id, LAST_PAIRING_KEY, hidePartnerUnmatched])
+  
   const handleJoinQueueFromPartnerModal = useCallback(() => {
     // This could trigger the queue join form or just close and let user use main form
-    setShowPartnerUnmatchedModal(false)
+    hidePartnerUnmatched()
     // Could add logic here to auto-open queue join form if needed
-  }, [])
+  }, [hidePartnerUnmatched])
 
   if (loading) {
     return (
@@ -852,11 +913,11 @@ export function PairingsPage() {
                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                           <Button
                             onClick={handleEnableQueue}
-                            disabled={queueConfigLoading || isQueueEnabled}
+                            disabled={adminState.queueConfigLoading || isQueueEnabled}
                             variant={isQueueEnabled ? "outline" : "default"}
                             className="w-full h-12 valorant-button-success"
                           >
-                            {queueConfigLoading ? (
+                            {adminState.queueConfigLoading ? (
                               <Skeleton width="80px" height="16px" theme="valorant" className="mx-auto" />
                             ) : (
                               <>
@@ -870,11 +931,11 @@ export function PairingsPage() {
                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                           <Button
                             onClick={handleDisableQueue}
-                            disabled={queueConfigLoading || !isQueueEnabled}
+                            disabled={adminState.queueConfigLoading || !isQueueEnabled}
                             variant="destructive"
                             className="w-full h-12"
                           >
-                            {queueConfigLoading ? (
+                            {adminState.queueConfigLoading ? (
                               <Skeleton width="80px" height="16px" theme="valorant" className="mx-auto" />
                             ) : (
                               <>
@@ -888,10 +949,10 @@ export function PairingsPage() {
                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                           <Button
                             onClick={handleAdminMatchmaking}
-                            disabled={adminActionLoading}
+                            disabled={adminState.actionLoading}
                             className="w-full h-12 valorant-button-primary"
                           >
-                            {adminActionLoading ? (
+                            {adminState.actionLoading ? (
                               <Skeleton width="100px" height="16px" theme="valorant" className="mx-auto" />
                             ) : (
                               <>
@@ -905,11 +966,11 @@ export function PairingsPage() {
                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                           <Button
                             onClick={handleDeleteAllPairings}
-                            disabled={adminActionLoading}
+                            disabled={adminState.actionLoading}
                             variant="destructive"
                             className="w-full h-12"
                           >
-                            {adminActionLoading ? (
+                            {adminState.actionLoading ? (
                               <Skeleton width="100px" height="16px" theme="valorant" className="mx-auto" />
                             ) : (
                               <>
@@ -923,18 +984,18 @@ export function PairingsPage() {
 
                       {/* Admin Messages */}
                       <AnimatePresence>
-                        {(adminMessage || queueConfigMessage) && (
+                        {(adminState.message || adminState.queueConfigMessage) && (
                           <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             className={`p-4 rounded-xl text-sm font-medium ${
-                              (adminMessage || queueConfigMessage)?.includes("Error")
+                              (adminState.message || adminState.queueConfigMessage)?.includes("Error")
                                 ? "bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 text-[var(--color-error)]"
                                 : "bg-[var(--color-success)]/10 border border-[var(--color-success)]/20 text-[var(--color-success)]"
                             }`}
                           >
-                            {queueConfigMessage || adminMessage}
+                            {adminState.queueConfigMessage || adminState.message}
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -1127,7 +1188,7 @@ export function PairingsPage() {
                             <div className="pt-4 border-t border-[var(--color-border)]">
                               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                                 <Button
-                                  onClick={() => setShowBreakupModal(true)}
+                                  onClick={() => showBreakup()}
                                   disabled={actionLoading}
                                   variant="outline"
                                   className="w-full border-[var(--color-error)]/30 text-[var(--color-error)] hover:border-[var(--color-error)]/50 hover:bg-[var(--color-error)]/10 transition-all duration-200"
@@ -1649,59 +1710,59 @@ export function PairingsPage() {
 
         {/* Modals */}
         <AnimatePresence>
-          {showUserProfileModal && selectedUserProfile && (
+          {modalState.showUserProfileModal && modalState.selectedUserProfile && (
             <UserProfileModal
-              isOpen={showUserProfileModal}
+              isOpen={modalState.showUserProfileModal}
               onClose={handleCloseUserProfileModal}
-              userProfile={selectedUserProfile}
-              position={userProfileModalPosition}
+              userProfile={modalState.selectedUserProfile}
+              position={modalState.userProfileModalPosition}
             />
           )}
 
-          {showMatchModal && matchedPairing && (
-            <MatchFoundModal pairing={matchedPairing} onClose={handleCloseMatchModal} />
+          {modalState.showMatchModal && modalState.matchedPairing && (
+            <MatchFoundModal pairing={modalState.matchedPairing} onClose={handleCloseMatchModal} />
           )}
 
-          {showNoMatchModal && noMatchData && (
+          {modalState.showNoMatchModal && modalState.noMatchData && (
             <NoMatchFoundModal
               onClose={handleCloseNoMatchModal}
               onStayInQueue={handleStayInQueue}
               onLeaveQueue={handleLeaveQueueFromModal}
-              totalInQueue={noMatchData.totalInQueue}
-              message={noMatchData.message}
+              totalInQueue={modalState.noMatchData.totalInQueue}
+              message={modalState.noMatchData.message}
             />
           )}
 
-          {showQueueRemovedModal && queueRemovedMessage && (
+          {modalState.showQueueRemovedModal && modalState.queueRemovedMessage && (
             <QueueRemovedModal
-              message={queueRemovedMessage}
+              message={modalState.queueRemovedMessage}
               onClose={handleCloseQueueRemovedModal}
             />
           )}
 
-          {showBreakupModal && currentPairing && (
+          {modalState.showBreakupModal && currentPairing && (
             <BreakupModal
-              isOpen={showBreakupModal}
-              onClose={() => setShowBreakupModal(false)}
+              isOpen={modalState.showBreakupModal}
+              onClose={() => hideBreakup()}
               onConfirm={handleBreakup}
               partnerName={pairedUser?.displayName || "your match"}
             />
           )}
 
-          {showBreakupSuccessModal && (
+          {modalState.showBreakupSuccessModal && (
             <BreakupSuccessModal
-              isOpen={showBreakupSuccessModal}
+              isOpen={modalState.showBreakupSuccessModal}
               onClose={handleCloseBreakupSuccessModal}
               partnerName={pairedUser?.displayName || "your match"}
             />
           )}
 
-          {showPartnerUnmatchedModal && (
+          {modalState.showPartnerUnmatchedModal && (
             <PartnerUnmatchedModal
-              isOpen={showPartnerUnmatchedModal}
+              isOpen={modalState.showPartnerUnmatchedModal}
               onClose={handleClosePartnerUnmatchedModal}
               onJoinQueue={handleJoinQueueFromPartnerModal}
-              partnerName={offlineBreakupPartnerName || pairedUser?.displayName || "your match"}
+              partnerName={modalState.offlineBreakupPartnerName || pairedUser?.displayName || "your match"}
             />
           )}
         </AnimatePresence>
