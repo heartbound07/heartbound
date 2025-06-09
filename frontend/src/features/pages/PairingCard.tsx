@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Heart, Star, ChevronRight, X, AlertCircle } from 'lucide-react'
+import { Heart, Star, ChevronRight, X, AlertCircle, UserCheck } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/valorant/avatar'
 import { Badge } from '@/components/ui/valorant/badge'
 import type { PairingDTO } from '@/config/pairingService'
@@ -11,6 +11,7 @@ interface PairingCardProps {
   index: number
   user1Profile?: UserProfileDTO
   user2Profile?: UserProfileDTO
+  breakupInitiatorProfile?: UserProfileDTO
   isActive: boolean
   onUserClick: (userId: string, event: React.MouseEvent) => void
   onUnpair?: (pairingId: number, event: React.MouseEvent) => void
@@ -19,11 +20,26 @@ interface PairingCardProps {
   hasAdminActions?: boolean
 }
 
+interface PairingCardListProps {
+  pairings: PairingDTO[]
+  userProfiles: Record<string, UserProfileDTO>
+  isActive: boolean
+  onUserClick: (userId: string, event: React.MouseEvent) => void
+  onUnpair?: (pairingId: number, event: React.MouseEvent) => void
+  onDelete?: (pairingId: number, event: React.MouseEvent) => void
+  formatDate: (dateString: string) => string
+  hasAdminActions?: boolean
+  maxItems?: number
+  emptyMessage?: string
+  emptyIcon?: React.ReactNode
+}
+
 export const PairingCard = memo(({
   pairing,
   index,
   user1Profile,
   user2Profile,
+  breakupInitiatorProfile,
   isActive,
   onUserClick,
   onUnpair,
@@ -52,7 +68,7 @@ export const PairingCard = memo(({
     [onDelete, pairing.id]
   )
 
-  // Memoize breakup information to avoid recalculation
+  // Memoize breakup information to avoid recalculation - match current implementation exactly
   const breakupInfo = useMemo(() => {
     if (!pairing.breakupReason) return null
 
@@ -62,19 +78,20 @@ export const PairingCard = memo(({
     return {
       isAdminBreakup,
       adminName,
+      breakupInitiatorProfile,
       reason: pairing.breakupReason.length > 100 
         ? `${pairing.breakupReason.substring(0, 100)}...` 
         : pairing.breakupReason
     }
-  }, [pairing.breakupReason, pairing.breakupInitiatorId])
+  }, [pairing.breakupReason, pairing.breakupInitiatorId, breakupInitiatorProfile])
 
   // Memoize card style based on active state
   const cardStyle = useMemo(() => ({
-    background: isActive ? 'rgba(31, 39, 49, 0.4)' : 'rgba(31, 39, 49, 0.4)',
+    background: 'rgba(31, 39, 49, 0.4)',
     borderColor: isActive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(255, 255, 255, 0.05)'
   }), [isActive])
 
-  // Memoize ring colors for avatars
+  // Memoize colors for performance
   const avatarRingColor = useMemo(() => 
     isActive ? 'ring-[var(--color-success)]/30' : 'ring-primary/30',
     [isActive]
@@ -86,7 +103,7 @@ export const PairingCard = memo(({
   )
 
   const chevronColor = useMemo(() => 
-    isActive ? 'text-[var(--color-success)]' : 'text-primary',
+    isActive ? '[var(--color-success)]' : 'primary',
     [isActive]
   )
 
@@ -106,7 +123,7 @@ export const PairingCard = memo(({
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={handleUnpair}
-              className="absolute top-2 right-10 p-1 rounded-full bg-[var(--color-warning)]/20 border border-[var(--color-warning)]/30 text-[var(--color-warning)] hover:bg-[var(--color-warning)]/30 transition-colors opacity-0 group-hover:opacity-100 z-10"
+              className="absolute top-2 right-2 p-1 rounded-full bg-[var(--color-warning)]/20 border border-[var(--color-warning)]/30 text-[var(--color-warning)] hover:bg-[var(--color-warning)]/30 transition-colors opacity-0 group-hover:opacity-100 z-10"
               title="Unpair these users (keeps blacklist)"
               aria-label="Unpair users"
             >
@@ -114,7 +131,7 @@ export const PairingCard = memo(({
             </motion.button>
           )}
           
-          {onDelete && (
+          {!isActive && onDelete && (
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -176,10 +193,10 @@ export const PairingCard = memo(({
             </motion.div>
           </div>
 
-          <ChevronRight className={`h-4 w-4 text-[var(--color-text-tertiary)] group-hover:${chevronColor} transition-colors`} />
+          <ChevronRight className={`h-4 w-4 text-[var(--color-text-tertiary)] group-hover:text-${chevronColor} transition-colors`} />
         </div>
 
-        {/* Breakup Information for Inactive Pairings */}
+        {/* Breakup Information for Inactive Pairings - Match current implementation exactly */}
         {breakupInfo && (
           <div className="p-3 bg-[var(--color-error)]/5 border border-[var(--color-error)]/10 rounded-lg">
             <div className="space-y-2">
@@ -191,9 +208,15 @@ export const PairingCard = memo(({
                     <span className="text-[var(--color-warning)]">
                       Ended by Admin: {breakupInfo.adminName}
                     </span>
+                  ) : breakupInfo.breakupInitiatorProfile ? (
+                    <span>
+                      Ended by: <span className="text-[var(--color-text-primary)] font-medium">
+                        {breakupInfo.breakupInitiatorProfile.displayName || breakupInfo.breakupInitiatorProfile.username}
+                      </span>
+                    </span>
                   ) : (
                     <span className="text-[var(--color-text-tertiary)]">
-                      Ended by user
+                      Initiator unknown
                     </span>
                   )}
                 </span>
@@ -237,7 +260,7 @@ export const PairingCard = memo(({
             )}
           </div>
           <div className="text-[var(--color-text-tertiary)]">
-            <p>Matched: {formatDate(pairing.matchedAt)}</p>
+            <p>{isActive ? "Matched" : "Matched"}: {formatDate(pairing.matchedAt)}</p>
             <p className="text-right">{pairing.activeDays} days{isActive ? " active" : ""}</p>
           </div>
         </div>
@@ -246,4 +269,74 @@ export const PairingCard = memo(({
   )
 })
 
-PairingCard.displayName = 'PairingCard' 
+PairingCard.displayName = 'PairingCard'
+
+// List component that handles pagination internally
+export const PairingCardList = memo(({
+  pairings,
+  userProfiles,
+  isActive,
+  onUserClick,
+  onUnpair,
+  onDelete,
+  formatDate,
+  hasAdminActions = false,
+  maxItems = 5,
+  emptyMessage = "No matches found",
+  emptyIcon
+}: PairingCardListProps) => {
+  const displayedPairings = useMemo(() => 
+    pairings.slice(0, maxItems), 
+    [pairings, maxItems]
+  )
+
+  if (displayedPairings.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center py-12"
+      >
+        {emptyIcon || (
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-[var(--color-success)]/20 to-primary/20 rounded-full flex items-center justify-center mb-4">
+            <UserCheck className="h-8 w-8 text-[var(--color-success)]" />
+          </div>
+        )}
+        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
+          {emptyMessage}
+        </h3>
+      </motion.div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {displayedPairings.map((pairing, index) => {
+        const user1Profile = userProfiles[pairing.user1Id]
+        const user2Profile = userProfiles[pairing.user2Id]
+        const breakupInitiatorProfile = pairing.breakupInitiatorId 
+          ? userProfiles[pairing.breakupInitiatorId] 
+          : undefined
+
+        return (
+          <PairingCard
+            key={pairing.id}
+            pairing={pairing}
+            index={index}
+            user1Profile={user1Profile}
+            user2Profile={user2Profile}
+            breakupInitiatorProfile={breakupInitiatorProfile}
+            isActive={isActive}
+            onUserClick={onUserClick}
+            onUnpair={onUnpair}
+            onDelete={onDelete}
+            formatDate={formatDate}
+            hasAdminActions={hasAdminActions}
+          />
+        )
+      })}
+    </div>
+  )
+})
+
+PairingCardList.displayName = 'PairingCardList' 

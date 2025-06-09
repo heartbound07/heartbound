@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/valorant/badge"
 import { Input } from "@/components/ui/profile/input"
 import { Label } from "@/components/ui/valorant/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
-import { Heart, Users, Trophy, MessageCircle, Settings, User, MapPin, Calendar, AlertCircle, Clock, Zap, Star, UserCheck, Activity, ChevronRight, Trash2, X } from 'lucide-react'
+import { Heart, Users, Trophy, MessageCircle, Settings, User, MapPin, Calendar, AlertCircle, Clock, Zap, UserCheck, Activity, Trash2} from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
 import type { JoinQueueRequestDTO } from "@/config/pairingService"
 import { useQueueUpdates } from "@/contexts/QueueUpdates"
@@ -30,6 +30,8 @@ import { BreakupModal } from "@/components/modals/BreakupModal"
 import { BreakupSuccessModal } from "@/components/modals/BreakupSuccessModal"
 import { PartnerUnmatchedModal } from "@/components/modals/PartnerUnmatchedModal"
 import { useModalManager } from "@/hooks/useModalManager"
+import { PairingCardList } from "./PairingCard"
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary"
 
 // Constants moved to top level for better performance
 const REGIONS = [
@@ -857,6 +859,7 @@ export function PairingsPage() {
       <DashboardNavigation />
 
       <main className={`pairings-content ${isCollapsed ? "sidebar-collapsed" : ""}`}>
+        <ErrorBoundary>
         <div className="min-h-screen" style={{ background: '#0F1923' }}>
           <div className="container mx-auto px-4 py-8 max-w-7xl">
             {/* Admin Controls */}
@@ -1292,52 +1295,54 @@ export function PairingsPage() {
 
                 {/* Queue Join Section */}
                 {!currentPairing && (
-                  <AnimatePresence mode="wait">
-                    {isQueueEnabled ? (
-                      currentPairing ? (
+                  <ErrorBoundary>
+                    <AnimatePresence mode="wait">
+                      {isQueueEnabled ? (
+                        currentPairing ? (
+                          <motion.div
+                            key="already-matched"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                          >
+                            <Card className="valorant-card">
+                              <CardContent className="text-center py-8">
+                                <Heart className="h-12 w-12 text-primary mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">You're All Set!</h3>
+                                <p className="text-[var(--color-text-secondary)]">
+                                  Check your Discord for your private channel and start chatting!
+                                </p>
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        ) : !queueStatus.inQueue ? (
+                          <QueueJoinForm onJoinQueue={handleJoinQueue} loading={actionLoading} />
+                        ) : null
+                      ) : (
                         <motion.div
-                          key="already-matched"
+                          key="queue-disabled"
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -20 }}
                         >
                           <Card className="valorant-card">
-                            <CardContent className="text-center py-8">
-                              <Heart className="h-12 w-12 text-primary mx-auto mb-4" />
-                              <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">You're All Set!</h3>
-                              <p className="text-[var(--color-text-secondary)]">
-                                Check your Discord for your private channel and start chatting!
+                            <CardContent className="text-center py-12">
+                              <motion.div
+                                animate={{ rotate: [0, 10, -10, 0] }}
+                                transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
+                              >
+                                <AlertCircle className="h-16 w-16 text-[var(--color-warning)] mx-auto mb-6" />
+                              </motion.div>
+                              <h3 className="text-2xl font-bold text-[var(--color-warning)] mb-4">Queue Closed</h3>
+                              <p className="text-[var(--color-text-secondary)] text-lg">
+                                The matchmaking queue is finished. Check back next week to start matching!
                               </p>
                             </CardContent>
                           </Card>
                         </motion.div>
-                      ) : !queueStatus.inQueue ? (
-                        <QueueJoinForm onJoinQueue={handleJoinQueue} loading={actionLoading} />
-                      ) : null
-                    ) : (
-                      <motion.div
-                        key="queue-disabled"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                      >
-                        <Card className="valorant-card">
-                          <CardContent className="text-center py-12">
-                            <motion.div
-                              animate={{ rotate: [0, 10, -10, 0] }}
-                              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-                            >
-                              <AlertCircle className="h-16 w-16 text-[var(--color-warning)] mx-auto mb-6" />
-                            </motion.div>
-                            <h3 className="text-2xl font-bold text-[var(--color-warning)] mb-4">Queue Closed</h3>
-                            <p className="text-[var(--color-text-secondary)] text-lg">
-                              The matchmaking queue is finished. Check back next week to start matching!
-                            </p>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                      )}
+                    </AnimatePresence>
+                  </ErrorBoundary>
                 )}
               </div>
 
@@ -1362,119 +1367,34 @@ export function PairingsPage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {currentMatches.length > 0 ? (
-                        currentMatches.slice(0, 5).map((pairing, index) => {
-                          const user1Profile = userProfiles[pairing.user1Id]
-                          const user2Profile = userProfiles[pairing.user2Id]
-
-                          return (
-                            <motion.div
-                              key={pairing.id}
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: index * 0.1 }}
-                              className="group p-4 rounded-xl border transition-all duration-300 hover:border-[var(--color-success)]/30 relative"
-                              style={{ 
-                                background: 'rgba(31, 39, 49, 0.4)', 
-                                borderColor: 'rgba(34, 197, 94, 0.1)' 
-                              }}
-                            >
-                              {/* Admin Unpair Button */}
-                              {hasRole("ADMIN") && (
-                                <motion.button
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.9 }}
-                                  onClick={(e) => handleUnpairUsers(pairing.id, e)}
-                                  className="absolute top-2 right-2 p-1 rounded-full bg-[var(--color-warning)]/20 border border-[var(--color-warning)]/30 text-[var(--color-warning)] hover:bg-[var(--color-warning)]/30 transition-colors opacity-0 group-hover:opacity-100 z-10"
-                                  title="Unpair these users (keeps blacklist)"
-                                >
-                                  <X className="h-3 w-3" />
-                                </motion.button>
-                              )}
-                              
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-3">
-                                  {/* User 1 */}
-                                  <motion.div
-                                    className="flex items-center gap-2 cursor-pointer hover:bg-[var(--color-container-bg)]/80 p-2 rounded-lg transition-colors"
-                                    onClick={(e) => handleUserClick(pairing.user1Id, e)}
-                                    whileHover={{ scale: 1.05 }}
-                                  >
-                                    <Avatar className="h-8 w-8 ring-2 ring-[var(--color-success)]/30">
-                                      <AvatarImage src={user1Profile?.avatar || "/placeholder.svg"} />
-                                      <AvatarFallback className="bg-[var(--color-success)]/20 text-[var(--color-success)]">
-                                        {user1Profile?.displayName?.[0] || user1Profile?.username?.[0] || "?"}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <span className="text-[var(--color-text-primary)] font-medium text-sm">
-                                      {user1Profile?.displayName || user1Profile?.username || "Unknown"}
-                                    </span>
-                                  </motion.div>
-
-                                  <Heart className="h-4 w-4 text-[var(--color-success)]" />
-
-                                  {/* User 2 */}
-                                  <motion.div
-                                    className="flex items-center gap-2 cursor-pointer hover:bg-[var(--color-container-bg)]/80 p-2 rounded-lg transition-colors"
-                                    onClick={(e) => handleUserClick(pairing.user2Id, e)}
-                                    whileHover={{ scale: 1.05 }}
-                                  >
-                                    <Avatar className="h-8 w-8 ring-2 ring-[var(--color-success)]/30">
-                                      <AvatarImage src={user2Profile?.avatar || "/placeholder.svg"} />
-                                      <AvatarFallback className="bg-[var(--color-success)]/20 text-[var(--color-success)]">
-                                        {user2Profile?.displayName?.[0] || user2Profile?.username?.[0] || "?"}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <span className="text-[var(--color-text-primary)] font-medium text-sm">
-                                      {user2Profile?.displayName || user2Profile?.username || "Unknown"}
-                                    </span>
-                                  </motion.div>
-                                </div>
-
-                                <ChevronRight className="h-4 w-4 text-[var(--color-text-tertiary)] group-hover:text-[var(--color-success)] transition-colors" />
-                              </div>
-
-                              <div className="flex items-center justify-between text-xs">
-                                <div className="flex items-center gap-2">
-                                  <Badge
-                                    variant="default"
-                                    className="text-xs bg-[var(--color-success)]/20 text-[var(--color-success)] border-[var(--color-success)]/30"
-                                  >
-                                    Active
-                                  </Badge>
-                                  <Badge variant="outline" className="text-xs border-[var(--color-success)]/30 text-[var(--color-success)]">
-                                    <Star className="h-3 w-3 mr-1" />
-                                    {pairing.compatibilityScore}%
-                                  </Badge>
-                                </div>
-                                <div className="text-[var(--color-text-tertiary)]">
-                                  <p>{formatDate(pairing.matchedAt)}</p>
-                                  <p className="text-right">{pairing.activeDays} days</p>
-                                </div>
-                              </div>
-                            </motion.div>
-                          )
-                        })
-                      ) : (
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="text-center py-12"
-                        >
+                      <PairingCardList
+                        pairings={currentMatches}
+                        userProfiles={userProfiles}
+                        isActive={true}
+                        onUserClick={handleUserClick}
+                        onUnpair={hasRole("ADMIN") ? handleUnpairUsers : undefined}
+                        formatDate={formatDate}
+                        hasAdminActions={hasRole("ADMIN")}
+                        maxItems={5}
+                        emptyMessage="No Active Matches"
+                        emptyIcon={
                           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-[var(--color-success)]/20 to-primary/20 rounded-full flex items-center justify-center mb-4">
                             <UserCheck className="h-8 w-8 text-[var(--color-success)]" />
                           </div>
-                          <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
-                            No Active Matches
-                          </h3>
-                          <p className="text-[var(--color-text-secondary)] text-sm">
+                        }
+                      />
+                      {currentMatches.length === 0 && !currentPairing && !queueStatus.inQueue && isQueueEnabled && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-center"
+                        >
+                          <p className="text-[var(--color-text-secondary)] text-sm mb-2">
                             There are currently no active matches in the system.
                           </p>
-                          {!currentPairing && !queueStatus.inQueue && isQueueEnabled && (
-                            <p className="text-[var(--color-text-tertiary)] text-xs mt-2">
-                              Join the queue to find your match!
-                            </p>
-                          )}
+                          <p className="text-[var(--color-text-tertiary)] text-xs">
+                            Join the queue to find your match!
+                          </p>
                         </motion.div>
                       )}
                     </CardContent>
@@ -1527,172 +1447,28 @@ export function PairingsPage() {
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                          {inactiveHistory.length > 0 ? (
-                            inactiveHistory.slice(0, 5).map((pairing, index) => {
-                              const user1Profile = userProfiles[pairing.user1Id]
-                              const user2Profile = userProfiles[pairing.user2Id]
-
-                              // Determine who initiated the breakup
-                              const breakupInitiatorProfile = pairing.breakupInitiatorId 
-                                ? userProfiles[pairing.breakupInitiatorId] 
-                                : null
-                              const isAdminBreakup = pairing.breakupInitiatorId?.startsWith('ADMIN_')
-                              const adminName = isAdminBreakup 
-                                ? pairing.breakupInitiatorId?.replace('ADMIN_', '') 
-                                : null
-
-                              return (
-                                <motion.div
-                                  key={pairing.id}
-                                  initial={{ opacity: 0, y: 20 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  transition={{ delay: index * 0.1 }}
-                                  className="group p-4 rounded-xl border transition-all duration-300 hover:border-primary/30 relative"
-                                  style={{ 
-                                    background: 'rgba(31, 39, 49, 0.4)', 
-                                    borderColor: 'rgba(255, 255, 255, 0.05)' 
-                                  }}
-                                >
-                                  {/* Admin Delete Button */}
-                                  <motion.button
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    onClick={(e) => handleDeletePairing(pairing.id, e)}
-                                    className="absolute top-2 right-2 p-1 rounded-full bg-[var(--color-error)]/20 border border-[var(--color-error)]/30 text-[var(--color-error)] hover:bg-[var(--color-error)]/30 transition-colors opacity-0 group-hover:opacity-100 z-10"
-                                    title="Permanently delete this pairing record"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </motion.button>
-                                  
-                                  <div className="space-y-4">
-                                    {/* Users Section */}
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-3">
-                                        {/* User 1 */}
-                                        <motion.div
-                                          className="flex items-center gap-2 cursor-pointer hover:bg-[var(--color-container-bg)]/80 p-2 rounded-lg transition-colors"
-                                          onClick={(e) => handleUserClick(pairing.user1Id, e)}
-                                          whileHover={{ scale: 1.05 }}
-                                        >
-                                          <Avatar className="h-8 w-8 ring-2 ring-primary/30">
-                                            <AvatarImage src={user1Profile?.avatar || "/placeholder.svg"} />
-                                            <AvatarFallback className="bg-primary/20 text-primary">
-                                              {user1Profile?.displayName?.[0] || user1Profile?.username?.[0] || "?"}
-                                            </AvatarFallback>
-                                          </Avatar>
-                                          <span className="text-[var(--color-text-primary)] font-medium text-sm">
-                                            {user1Profile?.displayName || user1Profile?.username || "Unknown"}
-                                          </span>
-                                        </motion.div>
-
-                                        <Heart className="h-4 w-4 text-primary" />
-
-                                        {/* User 2 */}
-                                        <motion.div
-                                          className="flex items-center gap-2 cursor-pointer hover:bg-[var(--color-container-bg)]/80 p-2 rounded-lg transition-colors"
-                                          onClick={(e) => handleUserClick(pairing.user2Id, e)}
-                                          whileHover={{ scale: 1.05 }}
-                                        >
-                                          <Avatar className="h-8 w-8 ring-2 ring-primary/30">
-                                            <AvatarImage src={user2Profile?.avatar || "/placeholder.svg"} />
-                                            <AvatarFallback className="bg-primary/20 text-primary">
-                                              {user2Profile?.displayName?.[0] || user2Profile?.username?.[0] || "?"}
-                                            </AvatarFallback>
-                                          </Avatar>
-                                          <span className="text-[var(--color-text-primary)] font-medium text-sm">
-                                            {user2Profile?.displayName || user2Profile?.username || "Unknown"}
-                                          </span>
-                                        </motion.div>
-                                      </div>
-
-                                      <ChevronRight className="h-4 w-4 text-[var(--color-text-tertiary)] group-hover:text-primary transition-colors" />
-                                    </div>
-
-                                    {/* Breakup Information */}
-                                    {pairing.breakupReason && (
-                                      <div className="p-3 bg-[var(--color-error)]/5 border border-[var(--color-error)]/10 rounded-lg">
-                                        <div className="space-y-2">
-                                          {/* Who initiated the breakup */}
-                                          <div className="flex items-center gap-2 text-xs">
-                                            <AlertCircle className="h-3 w-3 text-[var(--color-error)]" />
-                                            <span className="text-[var(--color-text-secondary)]">
-                                              {isAdminBreakup ? (
-                                                <span className="text-[var(--color-warning)]">
-                                                  Ended by Admin: {adminName}
-                                                </span>
-                                              ) : breakupInitiatorProfile ? (
-                                                <span>
-                                                  Ended by: <span className="text-[var(--color-text-primary)] font-medium">
-                                                    {breakupInitiatorProfile.displayName || breakupInitiatorProfile.username}
-                                                  </span>
-                                                </span>
-                                              ) : (
-                                                <span className="text-[var(--color-text-tertiary)]">
-                                                  Initiator unknown
-                                                </span>
-                                              )}
-                                            </span>
-                                            {pairing.breakupTimestamp && (
-                                              <span className="text-[var(--color-text-tertiary)]">
-                                                • {formatDate(pairing.breakupTimestamp)}
-                                              </span>
-                                            )}
-                                          </div>
-                                          
-                                          {/* Breakup reason */}
-                                          <div className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                                            <span className="font-medium text-[var(--color-text-primary)]">Reason:</span>{" "}
-                                            <span className="italic">
-                                              {pairing.breakupReason.length > 100 
-                                                ? `${pairing.breakupReason.substring(0, 100)}...` 
-                                                : pairing.breakupReason
-                                              }
-                                            </span>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* Stats and Badges */}
-                                    <div className="flex items-center justify-between text-xs">
-                                      <div className="flex items-center gap-2">
-                                        <Badge
-                                          variant="secondary"
-                                          className="text-xs"
-                                        >
-                                          Ended
-                                        </Badge>
-                                        <Badge variant="outline" className="text-xs border-primary/30 text-primary">
-                                          <Star className="h-3 w-3 mr-1" />
-                                          {pairing.compatibilityScore}%
-                                        </Badge>
-                                        {pairing.mutualBreakup && (
-                                          <Badge variant="outline" className="text-xs border-[var(--color-info)]/30 text-[var(--color-info)]">
-                                            Mutual
-                                          </Badge>
-                                        )}
-                                      </div>
-                                      <div className="text-[var(--color-text-tertiary)]">
-                                        <p>Matched: {formatDate(pairing.matchedAt)}</p>
-                                        <p className="text-right">{pairing.activeDays} days active</p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              )
-                            })
-                          ) : (
-                            <motion.div
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              className="text-center py-12"
-                            >
+                          <PairingCardList
+                            pairings={inactiveHistory}
+                            userProfiles={userProfiles}
+                            isActive={false}
+                            onUserClick={handleUserClick}
+                            onDelete={handleDeletePairing}
+                            formatDate={formatDate}
+                            hasAdminActions={true}
+                            maxItems={5}
+                            emptyMessage="No Match History"
+                            emptyIcon={
                               <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary/20 to-purple-500/20 rounded-full flex items-center justify-center mb-4">
                                 <MessageCircle className="h-8 w-8 text-primary" />
                               </div>
-                              <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
-                                No Match History
-                              </h3>
+                            }
+                          />
+                          {inactiveHistory.length === 0 && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="text-center"
+                            >
                               <p className="text-[var(--color-text-secondary)] text-sm">
                                 No ended matches to display in the history.
                               </p>
@@ -1766,6 +1542,7 @@ export function PairingsPage() {
             />
           )}
         </AnimatePresence>
+        </ErrorBoundary>
       </main>
     </div>
   )
