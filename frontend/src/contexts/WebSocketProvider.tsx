@@ -60,6 +60,16 @@ const initialRetryState: RetryState = {
 
 export const WebSocketContext = createContext<WebSocketContextValue | undefined>(undefined);
 
+// Singleton MessageQueue instance to persist across React re-renders
+let globalMessageQueue: MessageQueue | null = null;
+
+const getOrCreateMessageQueue = (): MessageQueue => {
+  if (!globalMessageQueue) {
+    globalMessageQueue = new MessageQueue(defaultQueueConfig);
+  }
+  return globalMessageQueue;
+};
+
 export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
   const { isAuthenticated, tokens, refreshToken } = useAuth();
   
@@ -85,8 +95,9 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
   // Derived state
   const isConnected = connectionStatus === 'connected';
   
-  // Message queue state and management
-  const messageQueueRef = useRef<MessageQueue>(new MessageQueue(defaultQueueConfig));
+  // Use singleton MessageQueue instance
+  const messageQueueRef = useRef<MessageQueue>(getOrCreateMessageQueue());
+  const hasRestoredPersistenceRef = useRef(false);
   const [queueStats, setQueueStats] = useState<QueueStatistics>({
     totalMessages: 0,
     pendingMessages: 0,
@@ -107,15 +118,18 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
   useEffect(() => {
     console.log('[WebSocket] Initializing message queue...');
     
-    // Restore persistent messages from localStorage
-    const restoredCount = messageQueueRef.current.restoreFromPersistence();
-    if (restoredCount > 0) {
-      setQueueStats(prev => ({
-        ...prev,
-        totalMessages: prev.totalMessages + restoredCount,
-        pendingMessages: prev.pendingMessages + restoredCount,
-      }));
-      console.log(`[WebSocket] Restored ${restoredCount} messages from persistence`);
+    // Only restore persistence once to prevent multiple restores during React re-renders
+    if (!hasRestoredPersistenceRef.current) {
+      const restoredCount = messageQueueRef.current.restoreFromPersistence();
+      if (restoredCount > 0) {
+        setQueueStats(prev => ({
+          ...prev,
+          totalMessages: prev.totalMessages + restoredCount,
+          pendingMessages: prev.pendingMessages + restoredCount,
+        }));
+        console.log(`[WebSocket] Restored ${restoredCount} messages from persistence`);
+      }
+      hasRestoredPersistenceRef.current = true;
     }
   }, []);
 
@@ -362,7 +376,16 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
       setTimeout(() => {
         processSubscriptions();
         // Process any queued messages after subscriptions are ready
-        processMessageQueue();
+        setTimeout(() => {
+          console.log('[WebSocket] Checking for queued messages to process...');
+          const queueSize = messageQueueRef.current.getTotalSize();
+          if (queueSize > 0) {
+            console.log(`[WebSocket] Found ${queueSize} queued messages, processing...`);
+            processMessageQueue();
+          } else {
+            console.log('[WebSocket] No queued messages to process');
+          }
+        }, 50);
       }, 100);
 
     } catch (error: any) {
@@ -442,17 +465,22 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     
     console.log(`[WebSocket] Message ${messageId} enqueued for ${destination}`);
     
-    // Process queue if connected
-    if (isConnected) {
+    // Process queue if connected and online
+    const wsConnected = webSocketService.isConnected();
+    if (wsConnected && navigator.onLine) {
       processMessageQueue();
     }
     
     return Promise.resolve(messageId);
-  }, [isConnected]);
+  }, []);
 
   // Process message queue when connection is available
   const processMessageQueue = useCallback(async () => {
-    if (isProcessingQueueRef.current || !isConnected || !webSocketService.isConnected()) {
+    const wsConnected = webSocketService.isConnected();
+    const isOnline = navigator.onLine;
+    
+    if (isProcessingQueueRef.current || !wsConnected || !isOnline) {
+      console.log(`[WebSocket] Skipping queue processing - wsConnected: ${wsConnected}, online: ${isOnline}, processing: ${isProcessingQueueRef.current}`);
       return;
     }
     
@@ -480,6 +508,13 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
       }
       
       try {
+        // Double-check connection before sending
+        if (!webSocketService.isConnected() || !navigator.onLine) {
+          console.log(`[WebSocket] Connection lost during processing, re-queuing message ${message.id}`);
+          messageQueueRef.current.requeueForRetry(message);
+          break;
+        }
+        
         // Attempt to send message
         await webSocketService.send(message.destination, message.body);
         
@@ -521,7 +556,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         processMessageQueue();
       }, defaultQueueConfig.batchDelay);
     }
-  }, [isConnected]);
+  }, []);
 
   // Queue management functions
   const clearQueue = useCallback(() => {
@@ -542,11 +577,12 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
 
   const resumeQueue = useCallback(() => {
     messageQueueRef.current.resume();
-    if (isConnected && messageQueueRef.current.getTotalSize() > 0) {
+    const wsConnected = webSocketService.isConnected();
+    if (wsConnected && navigator.onLine && messageQueueRef.current.getTotalSize() > 0) {
       processMessageQueue();
     }
     console.log('[WebSocket] Message queue resumed');
-  }, [isConnected, processMessageQueue]);
+  }, [processMessageQueue]);
 
   const getQueueSize = useCallback(() => {
     return messageQueueRef.current.getTotalSize();
@@ -713,9 +749,16 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
   // Handle online/offline events
   useEffect(() => {
     const handleOnline = () => {
+      console.log('[WebSocket] Network came online');
       if (isAuthenticated && (connectionStatus === 'error' || connectionStatus === 'disconnected')) {
-        console.log('[WebSocket] Network came online, attempting reconnection');
+        console.log('[WebSocket] Attempting reconnection');
         reconnect();
+      } else if (connectionStatus === 'connected' && webSocketService.isConnected()) {
+        // If already connected, just process any queued messages
+        console.log('[WebSocket] Already connected, processing queued messages');
+        if (messageQueueRef.current.getTotalSize() > 0) {
+          processMessageQueue();
+        }
       }
     };
 
@@ -723,6 +766,9 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
       console.log('[WebSocket] Network went offline');
       setConnectionStatus('disconnected');
       setLastError(createError('network', 'Network connection lost', true));
+      
+      // Force disconnect WebSocket when network goes offline
+      webSocketService.disconnect();
     };
 
     window.addEventListener('online', handleOnline);

@@ -238,6 +238,13 @@ export const MessageQueueDemo: React.FC = () => {
           >
             Clear Queue
           </button>
+          
+          <button
+            onClick={() => window.dispatchEvent(new Event('online'))}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            Force Reconnect
+          </button>
         </div>
 
         {/* Usage Instructions */}

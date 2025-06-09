@@ -9,17 +9,17 @@ const QUEUE_STORAGE_KEY = 'websocket_message_queue';
 
 export const defaultQueueConfig: MessageQueueConfig = {
   maxQueueSize: 1000,
-  defaultTTL: 30000,  // 30 seconds
+  defaultTTL: 300000,  // 5 minutes (for testing)
   maxRetries: 3,
   persistenceEnabled: true,
   batchSize: 10,
   batchDelay: 100,
   
   priorityConfig: {
-    [MessagePriority.CRITICAL]: { ttl: 60000, maxRetries: 5 },
-    [MessagePriority.HIGH]: { ttl: 45000, maxRetries: 4 },
-    [MessagePriority.NORMAL]: { ttl: 30000, maxRetries: 3 },
-    [MessagePriority.LOW]: { ttl: 15000, maxRetries: 2 },
+    [MessagePriority.CRITICAL]: { ttl: 600000, maxRetries: 5 }, // 10 minutes
+    [MessagePriority.HIGH]: { ttl: 450000, maxRetries: 4 },     // 7.5 minutes
+    [MessagePriority.NORMAL]: { ttl: 300000, maxRetries: 3 },   // 5 minutes
+    [MessagePriority.LOW]: { ttl: 150000, maxRetries: 2 },      // 2.5 minutes
   },
 };
 
@@ -70,7 +70,10 @@ export class MessageQueue {
     
     // Persist if enabled and message is marked as persistent
     if (message.persistent && this.config.persistenceEnabled) {
+      console.log(`[MessageQueue] Message ${queuedMessage.id} is persistent, calling persistQueue()`);
       this.persistQueue();
+    } else {
+      console.log(`[MessageQueue] Message ${queuedMessage.id} persistence: enabled=${this.config.persistenceEnabled}, persistent=${message.persistent}`);
     }
     
     console.log(`[MessageQueue] Message ${queuedMessage.id} enqueued successfully`);
@@ -108,6 +111,12 @@ export class MessageQueue {
         const dequeuedMessage = queue.shift();
         if (dequeuedMessage) {
           console.log(`[MessageQueue] Dequeued message ${dequeuedMessage.id} with priority ${priority}`);
+          
+          // Update persistence after successful dequeue of persistent message
+          if (dequeuedMessage.persistent && this.config.persistenceEnabled) {
+            this.persistQueue();
+          }
+          
           return dequeuedMessage;
         }
       }
@@ -259,17 +268,26 @@ export class MessageQueue {
    * Persist queue to localStorage
    */
   private persistQueue(): void {
-    if (!this.config.persistenceEnabled) return;
+    if (!this.config.persistenceEnabled) {
+      console.log('[MessageQueue] Persistence disabled, skipping persist');
+      return;
+    }
     
     try {
       const persistentMessages: Array<[MessagePriority, QueuedMessage[]]> = [];
+      let totalPersistentCount = 0;
       
       this.queues.forEach((queue, priority) => {
         const persistentQueueMessages = queue.filter(msg => msg.persistent);
+        totalPersistentCount += persistentQueueMessages.length;
+        console.log(`[MessageQueue] Priority ${priority}: ${queue.length} total, ${persistentQueueMessages.length} persistent`);
+        
         if (persistentQueueMessages.length > 0) {
           persistentMessages.push([priority, persistentQueueMessages]);
         }
       });
+      
+      console.log(`[MessageQueue] Found ${totalPersistentCount} persistent messages across ${persistentMessages.length} priority queues`);
       
       if (persistentMessages.length > 0) {
         const queueData = {
@@ -278,7 +296,9 @@ export class MessageQueue {
         };
         
         localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueData));
-        console.log(`[MessageQueue] Persisted ${persistentMessages.length} priority queues`);
+        console.log(`[MessageQueue] Persisted ${persistentMessages.length} priority queues to localStorage`);
+      } else {
+        console.log('[MessageQueue] No persistent messages to persist');
       }
     } catch (error) {
       console.error('[MessageQueue] Failed to persist queue:', error);
@@ -313,8 +333,8 @@ export class MessageQueue {
         this.sortQueue(priority);
       });
       
-      // Clear stored queue after restoration
-      this.clearPersistedQueue();
+      // Only clear non-persistent messages from storage, keep persistent ones
+      // We'll clear them when they're successfully sent
       console.log(`[MessageQueue] Restored ${restoredCount} messages from persistence`);
       
       return restoredCount;
