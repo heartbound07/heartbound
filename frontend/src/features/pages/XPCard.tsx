@@ -323,13 +323,15 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                           {Math.round(levelData.levelProgressPercentage)}%
                         </span>
                       </div>
-                      <div className="h-3 bg-theme-container rounded-full overflow-hidden">
-                        <motion.div
-                          className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${levelData.levelProgressPercentage}%` }}
-                          transition={{ duration: 1, ease: "easeOut" }}
-                        />
+                      <div className="xp-progress-container">
+                        <div className="xp-progress-bar">
+                          <motion.div
+                            className="xp-progress-fill"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${levelData.levelProgressPercentage}%` }}
+                            transition={{ duration: 1, ease: "easeOut" }}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -549,7 +551,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                 {voiceStreakStats ? (
                   <>
                     {/* Current Streak */}
-                    <div className="p-4 bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-lg border border-orange-500/20">
+                    <div className="p-4 bg-theme-container border-theme theme-transition rounded-lg">
                       <div className="flex items-center gap-3 mb-3">
                         <Flame className={`h-6 w-6 ${voiceStreakStats.currentStreak > 0 ? 'text-orange-400' : 'text-gray-400'}`} />
                         <h4 className="text-lg font-bold text-white">Current Streak</h4>

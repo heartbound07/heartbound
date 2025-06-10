@@ -573,3 +573,64 @@
   /* Smooth transitions for tab content spacing */
   transition: padding 0.3s ease-in-out;
 }
+
+/* Custom scrollbar styling for achievements sections */
+.pairings-content .valorant-card .max-h-48.overflow-y-auto {
+  /* Custom scrollbar for achievements list */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(31, 39, 49, 0.3);
+}
+
+.pairings-content .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pairings-content .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar-track {
+  background: rgba(31, 39, 49, 0.3);
+  border-radius: 3px;
+}
+
+.pairings-content .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.pairings-content .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Enhanced progress bar styling with thin outline */
+.xp-progress-container {
+  padding: 1px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
+}
+
+.xp-progress-bar {
+  height: 12px !important;
+  background: rgba(31, 39, 49, 0.8);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  border: 0.5px solid rgba(255, 255, 255, 0.05);
+}
+
+.xp-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FF4655 0%, #FF4655 50%, rgba(255, 70, 85, 0.8) 100%) !important;
+  border-radius: 5px;
+  position: relative;
+}
+
+.xp-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+  border-radius: 5px;
+}
