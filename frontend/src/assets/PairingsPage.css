@@ -265,3 +265,68 @@
 .pairings-hero-title {
   font-feature-settings: "kern" 1, "liga" 1;
 }
+
+/* XPCard Tab Navigation Styling */
+.pairings-content .valorant-card button[class*="theme-transition"] {
+  transition: all 0.2s ease !important;
+  position: relative;
+  z-index: 1;
+}
+
+/* Inactive tab styling */
+.pairings-content .valorant-card button:not([class*="bg-primary"]) {
+  background: rgba(31, 39, 49, 0.6) !important;
+  color: rgba(148, 163, 184, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Inactive tab hover effect */
+.pairings-content .valorant-card button:not([class*="bg-primary"]):hover {
+  background: rgba(31, 39, 49, 0.8) !important;
+  color: rgba(148, 163, 184, 1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Active tab styling */
+.pairings-content .valorant-card button[class*="bg-primary"] {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Active tab hover effect */
+.pairings-content .valorant-card button[class*="bg-primary"]:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Tab button focus styling for accessibility */
+.pairings-content .valorant-card button:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* Icon styling within tabs */
+.pairings-content .valorant-card button svg {
+  transition: all 0.2s ease;
+}
+
+/* Icon color for active tabs */
+.pairings-content .valorant-card button[class*="bg-primary"] svg {
+  color: white !important;
+}
+
+/* Icon color for inactive tabs */
+.pairings-content .valorant-card button:not([class*="bg-primary"]) svg {
+  color: rgba(148, 163, 184, 0.8) !important;
+}
+
+/* Icon hover effects */
+.pairings-content .valorant-card button:hover svg {
+  transform: scale(1.1);
+}

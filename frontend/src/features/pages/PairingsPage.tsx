@@ -798,11 +798,7 @@ export function PairingsPage() {
                   </div>
                 )}
                 
-                {/* Hero Title Skeleton */}
-                <div className="text-center mb-12">
-                  <Skeleton width="200px" height="48px" className="mx-auto mb-4" theme="valorant" />
-                  <Skeleton width="400px" height="24px" className="mx-auto" theme="valorant" />
-                </div>
+
 
                 {/* Main Content Grid Skeleton */}
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -1146,16 +1142,25 @@ export function PairingsPage() {
               )}
             </AnimatePresence>
 
-            {/* Hero Section */}
-            <div className="text-center mb-12">
-              <div className="relative">
-                <h1 className="pairings-hero-title text-4xl md:text-5xl text-primary mb-4">
-                  Pairings
-                </h1>
-              </div>
-              <p className="text-xl text-theme-secondary max-w-2xl mx-auto leading-relaxed">
-              </p>
-            </div>
+            {/* Hero Section with ShopPage-style animations */}
+            <motion.div className="section-header mb-12 text-center">
+              <motion.h1 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.3, type: "spring" }}
+                className="pairings-hero-title text-4xl md:text-5xl text-primary mb-4"
+              >
+                Pairings
+              </motion.h1>
+              
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="text-xl text-theme-secondary max-w-2xl mx-auto leading-relaxed"
+              >
+              </motion.p>
+            </motion.div>
 
             {/* Error Display */}
             <AnimatePresence>
