@@ -543,11 +543,11 @@ export function SkeletonLeaderboard({
   return (
     <div
       className={cn(
-        "leaderboard-container",
-        // Updated to match PairingsPage styling
+        // Updated to exactly match PairingsPage valorant-card styling
         "bg-[rgba(31,39,49,0.3)] border border-[rgba(255,255,255,0.05)]",
-        "rounded-2xl overflow-hidden backdrop-blur-sm",
+        "rounded-lg overflow-hidden backdrop-blur-sm", // Changed from rounded-2xl to rounded-lg to match valorant-card
         "shadow-[0_8px_32px_rgba(0,0,0,0.15)]",
+        "transition-all duration-300 ease", // Added transition to match valorant-card
         className
       )}
     >
