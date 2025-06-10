@@ -275,4 +275,17 @@ public class PairLevelService {
         
         return savedLevel;
     }
+
+    /**
+     * Delete pair level data for a pairing
+     */
+    @Transactional
+    public void deletePairLevel(Long pairingId) {
+        log.info("Deleting pair level data for pairing ID: {}", pairingId);
+        
+        pairLevelRepository.findByPairingId(pairingId).ifPresent(pairLevel -> {
+            pairLevelRepository.delete(pairLevel);
+            log.info("Successfully deleted pair level data for pairing {}", pairingId);
+        });
+    }
 } 

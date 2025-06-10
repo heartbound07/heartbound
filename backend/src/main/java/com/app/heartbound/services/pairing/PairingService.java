@@ -356,6 +356,25 @@ public class PairingService {
         // 🚀 NEW: Delete Discord channel before deleting pairing record
         deleteDiscordChannelForPairing(pairing, "Pairing permanently deleted by admin");
 
+        // 🎯 NEW: Delete all XP system data first to avoid foreign key constraints
+        try {
+            // Delete PairLevel record
+            pairLevelService.deletePairLevel(pairingId);
+            log.info("Deleted XP level data for pairing {}", pairingId);
+            
+            // Delete all achievements for this pairing
+            achievementService.deleteAllPairAchievements(pairingId);
+            log.info("Deleted all achievements for pairing {}", pairingId);
+            
+            // Delete all voice streak records for this pairing
+            voiceStreakService.deleteAllVoiceStreaks(pairingId);
+            log.info("Deleted all voice streak data for pairing {}", pairingId);
+            
+        } catch (Exception e) {
+            log.warn("Error cleaning up XP system data for pairing {}: {}", pairingId, e.getMessage());
+            // Continue with pairing deletion even if XP cleanup fails
+        }
+
         // REMOVE the blacklist entry - allow future matching
         blacklistEntryRepository.findByUserPair(user1Id, user2Id).ifPresent(blacklistEntry -> {
             blacklistEntryRepository.delete(blacklistEntry);
@@ -382,6 +401,25 @@ public class PairingService {
         for (Pairing pairing : inactivePairings) {
             // 🚀 NEW: Delete Discord channel before deleting pairing
             deleteDiscordChannelForPairing(pairing, "Inactive pairing bulk deletion by admin");
+
+            // 🎯 NEW: Delete all XP system data first to avoid foreign key constraints
+            try {
+                // Delete PairLevel record
+                pairLevelService.deletePairLevel(pairing.getId());
+                log.info("Deleted XP level data for pairing {}", pairing.getId());
+                
+                // Delete all achievements for this pairing
+                achievementService.deleteAllPairAchievements(pairing.getId());
+                log.info("Deleted all achievements for pairing {}", pairing.getId());
+                
+                // Delete all voice streak records for this pairing
+                voiceStreakService.deleteAllVoiceStreaks(pairing.getId());
+                log.info("Deleted all voice streak data for pairing {}", pairing.getId());
+                
+            } catch (Exception e) {
+                log.warn("Error cleaning up XP system data for pairing {}: {}", pairing.getId(), e.getMessage());
+                // Continue with pairing deletion even if XP cleanup fails
+            }
 
             // REMOVE blacklist entry - allow future matching
             blacklistEntryRepository.findByUserPair(pairing.getUser1Id(), pairing.getUser2Id())

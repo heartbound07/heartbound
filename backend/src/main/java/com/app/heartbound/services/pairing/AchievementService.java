@@ -339,4 +339,20 @@ public class AchievementService {
         achievementRepository.save(achievement);
         log.debug("Created achievement: {}", key);
     }
+
+    /**
+     * Delete all achievements for a pairing
+     */
+    @Transactional
+    public void deleteAllPairAchievements(Long pairingId) {
+        log.info("Deleting all achievements for pairing ID: {}", pairingId);
+        
+        List<PairAchievement> achievements = pairAchievementRepository.findByPairingId(pairingId);
+        if (!achievements.isEmpty()) {
+            pairAchievementRepository.deleteAll(achievements);
+            log.info("Successfully deleted {} achievements for pairing {}", achievements.size(), pairingId);
+        } else {
+            log.info("No achievements found to delete for pairing {}", pairingId);
+        }
+    }
 } 

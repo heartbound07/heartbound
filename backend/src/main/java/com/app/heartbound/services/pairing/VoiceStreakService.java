@@ -292,4 +292,20 @@ public class VoiceStreakService {
         
         log.info("Completed daily voice streak maintenance task");
     }
+
+    /**
+     * Delete all voice streaks for a pairing
+     */
+    @Transactional
+    public void deleteAllVoiceStreaks(Long pairingId) {
+        log.info("Deleting all voice streaks for pairing ID: {}", pairingId);
+        
+        List<VoiceStreak> streaks = voiceStreakRepository.findByPairingId(pairingId);
+        if (!streaks.isEmpty()) {
+            voiceStreakRepository.deleteAll(streaks);
+            log.info("Successfully deleted {} voice streak records for pairing {}", streaks.size(), pairingId);
+        } else {
+            log.info("No voice streak records found to delete for pairing {}", pairingId);
+        }
+    }
 } 
