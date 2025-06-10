@@ -450,7 +450,6 @@ export function SkeletonAuthentication({
 export function SkeletonLeaderboardRow({
   className,
   theme = "dashboard",
-  rank = 1
 }: { 
   className?: string;
   theme?: "valorant" | "dashboard";
