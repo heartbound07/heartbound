@@ -7,7 +7,8 @@
  * HIERARCHY (from bottom to top):
  * 
  * 0-99: Base content layers
- * 100-899: Content overlays and elevated components
+ * 100-849: Content overlays and elevated components
+ * 850-899: Mobile backdrop overlays (behind navigation)
  * 900-949: Navigation (sidebar, mobile menu)
  * 950-999: Navigation overlays (mobile toggle button)
  * 1000-1399: Tooltips, dropdowns, and component-level overlays
@@ -22,6 +23,7 @@
   --z-elevated: 100;
   
   /* Navigation layers */
+  --z-mobile-backdrop: 850;
   --z-sidebar: 900;
   --z-mobile-toggle: 950;
   
@@ -40,6 +42,10 @@
 /* Apply standardized z-index values */
 
 /* Sidebar and navigation */
+.mobile-backdrop {
+  z-index: var(--z-mobile-backdrop) !important;
+}
+
 .dashboard-nav {
   z-index: var(--z-sidebar) !important;
 }

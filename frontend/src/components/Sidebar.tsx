@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/auth"
 import "@/assets/sidebar.css"
 import "@/assets/styles/fonts.css"
 import "@/assets/animations.css"
+import "@/assets/z-index-system.css"
 import { MdDashboard, MdAdminPanelSettings } from "react-icons/md"
 import { IoSettingsSharp } from "react-icons/io5"
 import { FaCoins, FaTrophy, FaShoppingCart, FaBoxOpen } from "react-icons/fa"
@@ -296,7 +297,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
     
     return (
       <div 
-        className="fixed inset-0 bg-black/50 z-[999]" 
+        className="mobile-backdrop fixed inset-0 bg-black/50" 
         onClick={() => setIsMobileOpen(false)}
       />
     );
