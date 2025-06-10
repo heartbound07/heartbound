@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { UserProfileDTO, getLeaderboardUsers } from '@/config/userService';
 import { Leaderboard } from '@/components/ui/leaderboard/Leaderboard';
 import { UserRankCard } from '@/components/ui/leaderboard/UserRankCard';
@@ -7,6 +7,36 @@ import '@/assets/dashboard.css';
 import '@/assets/styles/fonts.css';
 import '@/assets/leaderboard.css';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Optimized animation variants defined outside component to prevent recreation
+const ANIMATION_VARIANTS = {
+  hero: {
+    initial: { opacity: 0, y: 30 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.6, ease: "easeOut" }
+  },
+  title: {
+    initial: { scale: 0.95, opacity: 0 },
+    animate: { scale: 1, opacity: 1 },
+    transition: { delay: 0.2, duration: 0.5, ease: "easeOut" }
+  },
+  toggleContainer: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    transition: { delay: 0.3, duration: 0.4 }
+  },
+  leaderboard: {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    transition: { delay: 0.4, duration: 0.5, ease: "easeOut" }
+  },
+  userCard: {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -20 },
+    transition: { duration: 0.4, ease: "easeOut" }
+  }
+};
 
 export function LeaderboardPage() {
   const [users, setUsers] = useState<UserProfileDTO[]>([]);
@@ -18,6 +48,21 @@ export function LeaderboardPage() {
   // Get authenticated user from auth context
   const { user, isAuthenticated } = useAuth();
 
+  // Memoized toggle handlers to prevent unnecessary re-renders
+  const handleLevelToggle = useCallback(() => {
+    setLeaderboardType('level');
+  }, []);
+
+  const handleCreditsToggle = useCallback(() => {
+    setLeaderboardType('credits');
+  }, []);
+
+  // Memoized current user profile calculation
+  const memoizedCurrentUserProfile = useMemo(() => {
+    if (!isAuthenticated || !user?.id || !users.length) return null;
+    return users.find(profile => profile.id === user.id) || null;
+  }, [isAuthenticated, user?.id, users]);
+
   useEffect(() => {
     const fetchLeaderboardData = async () => {
       // Record start time for minimum loading duration
@@ -28,20 +73,10 @@ export function LeaderboardPage() {
         setIsLoading(true);
         const leaderboardData = await getLeaderboardUsers(leaderboardType);
         setUsers(leaderboardData);
-        
-        // Find current user in leaderboard data if authenticated
-        if (isAuthenticated && user?.id) {
-          const userProfile = leaderboardData.find(profile => profile.id === user.id);
-          setCurrentUserProfile(userProfile || null);
-        } else {
-          setCurrentUserProfile(null);
-        }
-        
         setError(null);
       } catch (err) {
         console.error('Error fetching leaderboard data:', err);
         setError('Failed to load leaderboard data. Please try again later.');
-        setCurrentUserProfile(null);
       } finally {
         // Calculate elapsed time and ensure minimum loading time
         const elapsedTime = Date.now() - startTime;
@@ -58,71 +93,64 @@ export function LeaderboardPage() {
     };
 
     fetchLeaderboardData();
-  }, [leaderboardType, user?.id, isAuthenticated]);
+  }, [leaderboardType]);
+
+  // Update current user profile when users change
+  useEffect(() => {
+    setCurrentUserProfile(memoizedCurrentUserProfile);
+  }, [memoizedCurrentUserProfile]);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
-      {/* Hero Section */}
+      {/* Hero Section - Reduced motion complexity */}
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
+        {...ANIMATION_VARIANTS.hero}
         className="text-center mb-12"
       >
         <motion.h1 
           className="leaderboard-page-title"
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.3, type: "spring" }}
+          {...ANIMATION_VARIANTS.title}
         >
           Leaderboard
         </motion.h1>
         
-        {/* Toggle Controls */}
+        {/* Toggle Controls - Simplified animations */}
         <motion.div 
           className="flex justify-center mt-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
+          {...ANIMATION_VARIANTS.toggleContainer}
         >
           <div className="leaderboard-toggle-container">
-            <motion.button
+            <button
               type="button"
               className={`leaderboard-toggle-button ${
                 leaderboardType === 'level' 
                   ? 'leaderboard-toggle-active' 
                   : 'leaderboard-toggle-inactive'
               }`}
-              onClick={() => setLeaderboardType('level')}
-              whileHover={{ scale: leaderboardType === 'level' ? 1 : 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              onClick={handleLevelToggle}
             >
               Levels
-            </motion.button>
+            </button>
             
-            <motion.button
+            <button
               type="button"
               className={`leaderboard-toggle-button ${
                 leaderboardType === 'credits' 
                   ? 'leaderboard-toggle-active' 
                   : 'leaderboard-toggle-inactive'
               }`}
-              onClick={() => setLeaderboardType('credits')}
-              whileHover={{ scale: leaderboardType === 'credits' ? 1 : 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              onClick={handleCreditsToggle}
             >
               Credits
-            </motion.button>
+            </button>
           </div>
         </motion.div>
       </motion.div>
 
-      {/* Main Leaderboard */}
+      {/* Main Leaderboard - Single animation without complex transitions */}
       <motion.div 
         className="mb-8"
-        initial={{ opacity: isLoading ? 1 : 0, y: isLoading ? 0 : 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: isLoading ? 0 : 0.4, type: "spring" }}
+        {...ANIMATION_VARIANTS.leaderboard}
       >
         <Leaderboard 
           users={users}
@@ -136,15 +164,12 @@ export function LeaderboardPage() {
         />
       </motion.div>
 
-      {/* User Rank Card */}
-      <AnimatePresence>
+      {/* User Rank Card - Optimized AnimatePresence */}
+      <AnimatePresence mode="wait">
         {isAuthenticated && currentUserProfile && (
           <motion.div 
-            key="user-card"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -30 }}
-            transition={{ type: "spring", delay: 0.6 }}
+            key={`user-card-${currentUserProfile.id}`}
+            {...ANIMATION_VARIANTS.userCard}
             className="flex justify-center w-full"
           >
             <UserRankCard 

@@ -49,13 +49,14 @@
   font-size: 0.875rem;
   font-weight: 500;
   border-radius: 0.5rem;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease-out;
   position: relative;
   z-index: 10;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 80px;
+  will-change: background-color, color;
 }
 
 .leaderboard-toggle-active {
@@ -79,7 +80,7 @@
 .leaderboard-main-card {
   background: rgba(30, 41, 59, 0.3) !important;
   border: 1px solid rgba(148, 163, 184, 0.1) !important;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(8px);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
@@ -90,12 +91,14 @@
   border: 1px solid rgba(148, 163, 184, 0.1);
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(8px);
   width: 100%;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+  will-change: transform;
 }
 
 .leaderboard-container:hover {
+  transform: translateY(-1px);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
@@ -136,16 +139,16 @@
   grid-template-columns: 80px 1fr 100px;
   align-items: center;
   padding: 0.875rem 1.5rem;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease-out, transform 0.15s ease-out;
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
   position: relative;
   cursor: pointer;
+  will-change: transform, background-color;
 }
 
 .leaderboard-row:hover {
   background-color: rgba(255, 255, 255, 0.05);
   transform: translateY(-1px);
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.1);
 }
 
 .leaderboard-row:active {
@@ -190,7 +193,8 @@
   object-fit: cover;
   border: 2px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.15s ease-out, border-color 0.15s ease-out;
+  will-change: transform;
 }
 
 .leaderboard-row:hover .leaderboard-avatar {
@@ -208,7 +212,7 @@
   font-weight: 600;
   color: white;
   font-size: 0.95rem;
-  transition: color 0.15s ease;
+  transition: color 0.15s ease-out;
 }
 
 .leaderboard-row:hover .leaderboard-username {
@@ -218,7 +222,7 @@
 .leaderboard-handle {
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.8rem;
-  transition: color 0.15s ease;
+  transition: color 0.15s ease-out;
 }
 
 .leaderboard-row:hover .leaderboard-handle {
@@ -232,7 +236,7 @@
   font-weight: 700;
   color: rgba(255, 255, 255, 0.9);
   justify-content: flex-end;
-  transition: color 0.15s ease;
+  transition: color 0.15s ease-out;
 }
 
 .leaderboard-row:hover .leaderboard-credits {
@@ -262,8 +266,9 @@
     rgba(255, 255, 255, 0.08) 50%, 
     rgba(255, 255, 255, 0.03) 100%);
   background-size: 200% 100%;
-  animation: shimmer 1.8s infinite ease-in-out;
+  animation: shimmer 1.5s infinite ease-in-out;
   border-radius: 6px;
+  will-change: background-position;
 }
 
 .leaderboard-skeleton-rank {
@@ -311,7 +316,7 @@
   background-color: rgba(255, 255, 255, 0.02);
 }
 
-/* Page-level scrollbar styling for LeaderboardPage */
+/* Optimized scrollbar styling for better performance */
 .container.mx-auto ::-webkit-scrollbar {
   width: 8px;
   background-color: rgba(15, 25, 35, 0.3);
@@ -325,7 +330,7 @@
 .container.mx-auto ::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 0.2);
   border-radius: 4px;
-  transition: background 0.2s ease;
+  transition: background 0.15s ease-out;
 }
 
 .container.mx-auto ::-webkit-scrollbar-thumb:hover {
@@ -390,7 +395,8 @@
   background-color: rgba(255, 255, 255, 0.05);
   color: rgba(255, 255, 255, 0.8);
   border: 1px solid rgba(148, 163, 184, 0.1);
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease-out, transform 0.15s ease-out;
+  will-change: transform, background-color;
 }
 
 .leaderboard-pagination-button:hover:not(:disabled) {
@@ -424,7 +430,8 @@
   background-color: transparent;
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.875rem;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease-out, color 0.15s ease-out;
+  will-change: background-color, color;
 }
 
 .leaderboard-pagination-number:hover:not(.active) {
@@ -450,6 +457,20 @@
 .leaderboard-pagination-info {
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.5);
+}
+
+/* Hardware acceleration for frequently animated elements */
+.leaderboard-row,
+.leaderboard-avatar,
+.leaderboard-pagination-button,
+.leaderboard-toggle-button {
+  transform: translateZ(0);
+}
+
+/* Content visibility optimization for off-screen elements */
+.leaderboard-row {
+  content-visibility: auto;
+  contain-intrinsic-size: 72px;
 }
 
 /* Responsive Adjustments */

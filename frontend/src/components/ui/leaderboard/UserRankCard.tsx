@@ -1,3 +1,4 @@
+import React, { useMemo } from 'react';
 import { UserProfileDTO } from '@/config/userService';
 import { FaCoins, FaStar, FaTrophy, FaCrown, FaMedal } from 'react-icons/fa';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -9,67 +10,93 @@ interface UserRankCardProps {
   leaderboardType: 'credits' | 'level';
 }
 
-export function UserRankCard({ 
+// Optimized animation variants
+const CARD_ANIMATION = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.4, ease: "easeOut" }
+};
+
+const AVATAR_ANIMATION = {
+  initial: { scale: 0.9 },
+  animate: { scale: 1 },
+  transition: { delay: 0.1, duration: 0.3, ease: "easeOut" }
+};
+
+const ICON_ANIMATION = {
+  initial: { scale: 0, rotate: -45 },
+  animate: { scale: 1, rotate: 0 },
+  transition: { delay: 0.2, duration: 0.3, ease: "easeOut" }
+};
+
+export const UserRankCard = React.memo(function UserRankCard({ 
   currentUser, 
   leaderboardUsers, 
   leaderboardType 
 }: UserRankCardProps) {
   const { theme } = useTheme();
   
-  if (!currentUser) return null;
+  // Memoized calculations
+  const userData = useMemo(() => {
+    if (!currentUser) return null;
 
-  // Find user's position in leaderboard
-  const userRank = leaderboardUsers.findIndex(user => user.id === currentUser.id) + 1;
+    const userRank = leaderboardUsers.findIndex(user => user.id === currentUser.id) + 1;
+    if (userRank === 0) return null;
+
+    // Get trophy icon based on rank
+    const getRankIcon = (rank: number) => {
+      switch (rank) {
+        case 1:
+          return <FaCrown size={20} className="text-yellow-400" />;
+        case 2:
+          return <FaTrophy size={18} className="text-gray-300" />;
+        case 3:
+          return <FaMedal size={18} className="text-amber-700" />;
+        default:
+          return null;
+      }
+    };
+
+    return {
+      rank: userRank,
+      rankIcon: getRankIcon(userRank)
+    };
+  }, [currentUser, leaderboardUsers]);
+
+  // Memoized theme-specific styles
+  const themeStyles = useMemo(() => ({
+    levelIconColor: theme === 'default' ? "text-blue-400" : "text-[var(--color-primary)]",
+    containerClass: `leaderboard-container theme-transition ${theme === 'default' ? 'theme-default' : 'theme-dark'} max-content rounded-xl shadow-md`
+  }), [theme]);
   
-  if (userRank === 0) return null; // User not found in leaderboard
+  if (!userData) return null;
 
-  // Get trophy icon based on rank
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return <FaCrown size={20} className="text-yellow-400" />;
-      case 2:
-        return <FaTrophy size={18} className="text-gray-300" />;
-      case 3:
-        return <FaMedal size={18} className="text-amber-700" />;
-      default:
-        return null;
-    }
-  };
-
-  const rankIcon = getRankIcon(userRank);
-  
-  // Apply theme-specific color for level icon
-  const levelIconColor = theme === 'default' ? "text-blue-400" : "text-[var(--color-primary)]";
+  const { rank, rankIcon } = userData;
   
   return (
     <motion.div 
-      className={`leaderboard-container theme-transition ${theme === 'default' ? 'theme-default' : 'theme-dark'} max-content rounded-xl shadow-md`}
+      className={themeStyles.containerClass}
       style={{ width: 'max-content' }}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      {...CARD_ANIMATION}
     >
       <div className="p-2 px-3">
         <div className="flex items-center">
           <div className="flex items-center">
             <motion.div 
               className="relative mr-3"
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+              {...AVATAR_ANIMATION}
             >
               <img 
-                src={currentUser.avatar || "/default-avatar.png"} 
-                alt={currentUser.displayName || currentUser.username || "User"}
+                src={currentUser!.avatar || "/default-avatar.png"} 
+                alt={currentUser!.displayName || currentUser!.username || "User"}
                 className="w-14 h-14 rounded-full object-cover border border-[var(--color-primary)]"
+                loading="lazy"
+                decoding="async"
               />
               {rankIcon && (
                 <motion.div 
                   className="absolute -bottom-1 -right-1"
-                  initial={{ scale: 0, rotate: -45 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ delay: 0.4, type: "spring" }}
+                  {...ICON_ANIMATION}
                 >
                   {rankIcon}
                 </motion.div>
@@ -78,7 +105,7 @@ export function UserRankCard({
             
             <div className="flex flex-col">
               <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
-                {currentUser.displayName || currentUser.username}
+                {currentUser!.displayName || currentUser!.username}
               </h3>
               
               <div className="flex items-center gap-2 mt-0.5">
@@ -86,15 +113,15 @@ export function UserRankCard({
                   {leaderboardType === 'credits' ? (
                     <>
                       <FaCoins className="text-yellow-400 mr-1 text-xs" />
-                      <span className="font-bold text-[var(--color-text-primary)]">{currentUser.credits || 0}</span>
+                      <span className="font-bold text-[var(--color-text-primary)]">{currentUser!.credits || 0}</span>
                     </>
                   ) : (
                     <>
-                      <FaStar className={levelIconColor + " mr-1 text-xs"} />
+                      <FaStar className={themeStyles.levelIconColor + " mr-1 text-xs"} />
                       <span className="font-bold text-[var(--color-text-primary)]">
-                        Lvl {currentUser.level || 1}
+                        Lvl {currentUser!.level || 1}
                         <span className="text-[10px] text-[var(--color-text-secondary)] ml-1">
-                          ({currentUser.experience || 0} XP)
+                          ({currentUser!.experience || 0} XP)
                         </span>
                       </span>
                     </>
@@ -103,7 +130,7 @@ export function UserRankCard({
                 
                 <div className="flex items-center bg-[var(--color-button-bg)] rounded-full px-2 py-0.5 text-xs">
                   <span className="text-[var(--color-text-secondary)] mr-1">Rank:</span>
-                  <span className="font-bold text-[var(--color-text-primary)]">#{userRank}</span>
+                  <span className="font-bold text-[var(--color-text-primary)]">#{rank}</span>
                 </div>
               </div>
             </div>
@@ -112,4 +139,4 @@ export function UserRankCard({
       </div>
     </motion.div>
   );
-} 
+}); 

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { UserProfileDTO } from '@/config/userService';
 import { FaCoins, FaCrown, FaTrophy, FaMedal, FaStar } from 'react-icons/fa';
 import '@/assets/leaderboard.css';
@@ -21,7 +21,184 @@ interface LeaderboardProps {
   itemsPerPage?: number;
 }
 
-export function Leaderboard({
+// Optimized animation variants defined outside component
+const CONTAINER_VARIANTS = {
+  visible: { 
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.03, // Reduced stagger for better performance
+      delayChildren: 0.1
+    }
+  }
+};
+
+const ROW_VARIANTS = {
+  hidden: { opacity: 0, y: 10 }, // Reduced y movement
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.3,
+      ease: "easeOut"
+    }
+  }
+};
+
+// Memoized components for better performance
+const LeaderboardRow = React.memo(({ 
+  user, 
+  index, 
+  actualIndex, 
+  leaderboardType, 
+  compact, 
+  onClick,
+  positionDetails 
+}: {
+  user: UserProfileDTO;
+  index: number;
+  actualIndex: number;
+  leaderboardType: 'credits' | 'level';
+  compact: boolean;
+  onClick: (user: UserProfileDTO, event: React.MouseEvent) => void;
+  positionDetails: { icon: React.ReactNode; className: string };
+}) => {
+  const handleClick = useCallback((event: React.MouseEvent) => {
+    onClick(user, event);
+  }, [user, onClick]);
+
+  return (
+    <motion.div
+      key={user.id || index}
+      className={`leaderboard-row ${positionDetails.className} cursor-pointer`}
+      onClick={handleClick}
+      variants={ROW_VARIANTS}
+      style={{ willChange: 'transform, opacity' }} // Optimize for animations
+    >
+      <div className="leaderboard-rank">
+        {positionDetails.icon ? (
+          <>
+            <span className="leaderboard-rank-number">{actualIndex + 1}</span>
+            <span className="leaderboard-rank-icon">{positionDetails.icon}</span>
+          </>
+        ) : (
+          <span>{actualIndex + 1}</span>
+        )}
+      </div>
+      <div className="leaderboard-user">
+        <img 
+          src={user.avatar || "/default-avatar.png"} 
+          alt={user.displayName || user.username || 'User'} 
+          className="leaderboard-avatar" 
+          loading="lazy"
+          decoding="async"
+        />
+        <div className="leaderboard-user-info">
+          <span className="leaderboard-username">
+            {user.displayName || user.username}
+          </span>
+          {!compact && user.displayName && user.username && (
+            <span className="leaderboard-handle">@{user.username}</span>
+          )}
+        </div>
+      </div>
+      <div className="leaderboard-credits">
+        {leaderboardType === 'credits' ? (
+          <>
+            <FaCoins className="text-yellow-400" />
+            <span>{user.credits || 0}</span>
+          </>
+        ) : (
+          <>
+            <FaStar className="text-blue-400" />
+            <span>
+              {user.level || 1}
+              {!compact && (
+                <span className="text-xs text-gray-400 ml-1">
+                  ({user.experience || 0} XP)
+                </span>
+              )}
+            </span>
+          </>
+        )}
+      </div>
+    </motion.div>
+  );
+});
+
+LeaderboardRow.displayName = 'LeaderboardRow';
+
+const PaginationControls = React.memo(({ 
+  currentPage, 
+  totalPages, 
+  onPrevPage, 
+  onNextPage, 
+  onGoToPage 
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPrevPage: () => void;
+  onNextPage: () => void;
+  onGoToPage: (page: number) => void;
+}) => {
+  const paginationNumbers = useMemo(() => 
+    generatePaginationNumbers(currentPage, totalPages), 
+    [currentPage, totalPages]
+  );
+
+  return (
+    <motion.div 
+      className="leaderboard-pagination"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2, duration: 0.3 }}
+    >
+      <div className="leaderboard-pagination-controls">
+        <button 
+          onClick={onPrevPage}
+          disabled={currentPage === 1}
+          className="leaderboard-pagination-button"
+          aria-label="Previous page"
+        >
+          <ChevronLeft size={18} />
+        </button>
+        
+        <div className="leaderboard-pagination-pages">
+          {paginationNumbers.map((page, index) => (
+            <React.Fragment key={index}>
+              {page === "..." ? (
+                <span className="leaderboard-pagination-ellipsis">...</span>
+              ) : (
+                <button
+                  onClick={() => onGoToPage(page as number)}
+                  className={`leaderboard-pagination-number ${currentPage === page ? 'active' : ''}`}
+                  aria-current={currentPage === page ? 'page' : undefined}
+                >
+                  {page}
+                </button>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+        
+        <button 
+          onClick={onNextPage}
+          disabled={currentPage === totalPages}
+          className="leaderboard-pagination-button"
+          aria-label="Next page"
+        >
+          <ChevronRight size={18} />
+        </button>
+      </div>
+      <div className="leaderboard-pagination-info">
+        Page {currentPage} of {totalPages}
+      </div>
+    </motion.div>
+  );
+});
+
+PaginationControls.displayName = 'PaginationControls';
+
+export const Leaderboard = React.memo(function Leaderboard({
   users = [],
   isLoading = false,
   error = null,
@@ -43,34 +220,43 @@ export function Leaderboard({
   // Apply limit if specified, with a hard maximum of 500 entries
   const MAX_ENTRIES = 500;
   const effectiveLimit = limit ? Math.min(limit, MAX_ENTRIES) : MAX_ENTRIES;
-  const limitedUsers = users.slice(0, effectiveLimit);
   
-  // Pagination calculations
-  const totalPages = Math.ceil(limitedUsers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const displayUsers = limitedUsers.slice(startIndex, startIndex + itemsPerPage);
+  // Memoized calculations for better performance
+  const limitedUsers = useMemo(() => 
+    users.slice(0, effectiveLimit), 
+    [users, effectiveLimit]
+  );
   
-  // Pagination controls
-  const handlePrevPage = () => {
+  const paginationData = useMemo(() => {
+    const totalPages = Math.ceil(limitedUsers.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const displayUsers = limitedUsers.slice(startIndex, startIndex + itemsPerPage);
+    return { totalPages, startIndex, displayUsers };
+  }, [limitedUsers, currentPage, itemsPerPage]);
+
+  const { totalPages, startIndex, displayUsers } = paginationData;
+  
+  // Memoized pagination handlers
+  const handlePrevPage = useCallback(() => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
-  };
+  }, [currentPage]);
   
-  const handleNextPage = () => {
+  const handleNextPage = useCallback(() => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
     }
-  };
+  }, [currentPage, totalPages]);
   
-  const goToPage = (page: number) => {
+  const goToPage = useCallback((page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
-  };
+  }, [totalPages]);
 
-  // Get position-based styling and icon
-  const getPositionDetails = (index: number) => {
+  // Memoized position details calculation
+  const getPositionDetails = useCallback((index: number) => {
     switch (index) {
       case 0:
         return {
@@ -93,31 +279,18 @@ export function Leaderboard({
           className: "bg-slate-800/50 border-white/5 hover:bg-slate-700/50"
         };
     }
-  };
+  }, []);
 
-  // Handler for user row clicks
-  const handleUserClick = (user: UserProfileDTO, event: React.MouseEvent) => {
+  // Optimized user click handler
+  const handleUserClick = useCallback((user: UserProfileDTO, event: React.MouseEvent) => {
     setSelectedUser(user);
     setClickPosition({ x: event.clientX, y: event.clientY });
     setModalOpen(true);
-  };
+  }, []);
 
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1,
-      transition: {
-        when: "beforeChildren",
-        staggerChildren: 0.08
-      }
-    }
-  };
-  
-  const rowVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
-  };
+  const closeModal = useCallback(() => {
+    setModalOpen(false);
+  }, []);
 
   // Reset to first page when leaderboard type or users change
   useEffect(() => {
@@ -137,7 +310,7 @@ export function Leaderboard({
             className="leaderboard-header"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.4 }}
           >
             <h2 className="leaderboard-title">{title}</h2>
           </motion.div>
@@ -164,138 +337,53 @@ export function Leaderboard({
           <motion.div
             initial="hidden"
             animate="visible"
-            variants={containerVariants}
+            variants={CONTAINER_VARIANTS}
           >
-          <div className={`leaderboard-table ${compact ? 'compact' : ''}`}>
-            <div className="leaderboard-headers">
-              <div className="leaderboard-header-rank">Rank</div>
-              <div className="leaderboard-header-user">User</div>
-              <div className="leaderboard-header-credits">
-                {leaderboardType === 'credits' ? 'Credits' : 'Level'}
-              </div>
-            </div>
-            <div className="leaderboard-body">
-              {displayUsers.length === 0 ? (
-                <div className="leaderboard-empty">
-                  <p>No users to display</p>
+            <div className={`leaderboard-table ${compact ? 'compact' : ''}`}>
+              <div className="leaderboard-headers">
+                <div className="leaderboard-header-rank">Rank</div>
+                <div className="leaderboard-header-user">User</div>
+                <div className="leaderboard-header-credits">
+                  {leaderboardType === 'credits' ? 'Credits' : 'Level'}
                 </div>
-              ) : (
-                displayUsers.map((user, index) => {
-                  const actualIndex = startIndex + index; // Calculate real position for proper styling
-                  const { icon, className: rowClass } = getPositionDetails(actualIndex);
-                  
-                  return (
-                    <motion.div
-                      key={user.id || index}
-                      className={`leaderboard-row ${rowClass} cursor-pointer`}
-                      onClick={(e) => handleUserClick(user, e)}
-                      variants={rowVariants}
-                      whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <div className="leaderboard-rank">
-                        {icon ? (
-                          <>
-                            <span className="leaderboard-rank-number">{actualIndex + 1}</span>
-                            <span className="leaderboard-rank-icon">{icon}</span>
-                          </>
-                        ) : (
-                          <span>{actualIndex + 1}</span>
-                        )}
-                      </div>
-                      <div className="leaderboard-user">
-                        <img 
-                          src={user.avatar || "/default-avatar.png"} 
-                          alt={user.displayName || user.username || 'User'} 
-                          className="leaderboard-avatar" 
-                          loading="lazy"
-                        />
-                        <div className="leaderboard-user-info">
-                          <span className="leaderboard-username">
-                            {user.displayName || user.username}
-                          </span>
-                          {!compact && user.displayName && user.username && (
-                            <span className="leaderboard-handle">@{user.username}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="leaderboard-credits">
-                        {leaderboardType === 'credits' ? (
-                          <>
-                            <FaCoins className="text-yellow-400" />
-                            <span>{user.credits || 0}</span>
-                          </>
-                        ) : (
-                          <>
-                            <FaStar className="text-blue-400" />
-                            <span>
-                              {user.level || 1}
-                              {!compact && (
-                                <span className="text-xs text-gray-400 ml-1">
-                                  ({user.experience || 0} XP)
-                                </span>
-                              )}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </motion.div>
-                  );
-                })
+              </div>
+              <div className="leaderboard-body">
+                {displayUsers.length === 0 ? (
+                  <div className="leaderboard-empty">
+                    <p>No users to display</p>
+                  </div>
+                ) : (
+                  displayUsers.map((user, index) => {
+                    const actualIndex = startIndex + index;
+                    const positionDetails = getPositionDetails(actualIndex);
+                    
+                    return (
+                      <LeaderboardRow
+                        key={user.id || index}
+                        user={user}
+                        index={index}
+                        actualIndex={actualIndex}
+                        leaderboardType={leaderboardType}
+                        compact={compact}
+                        onClick={handleUserClick}
+                        positionDetails={positionDetails}
+                      />
+                    );
+                  })
+                )}
+              </div>
+              
+              {/* Pagination Controls */}
+              {!isLoading && limitedUsers.length > 0 && totalPages > 1 && (
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPrevPage={handlePrevPage}
+                  onNextPage={handleNextPage}
+                  onGoToPage={goToPage}
+                />
               )}
             </div>
-            
-            {/* Pagination Controls */}
-            {!isLoading && limitedUsers.length > 0 && totalPages > 1 && (
-              <motion.div 
-                className="leaderboard-pagination"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <div className="leaderboard-pagination-controls">
-                  <button 
-                    onClick={handlePrevPage}
-                    disabled={currentPage === 1}
-                    className="leaderboard-pagination-button"
-                    aria-label="Previous page"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                  
-                  <div className="leaderboard-pagination-pages">
-                    {generatePaginationNumbers(currentPage, totalPages).map((page, index) => (
-                      <React.Fragment key={index}>
-                        {page === "..." ? (
-                          <span className="leaderboard-pagination-ellipsis">...</span>
-                        ) : (
-                          <button
-                            onClick={() => goToPage(page as number)}
-                            className={`leaderboard-pagination-number ${currentPage === page ? 'active' : ''}`}
-                            aria-current={currentPage === page ? 'page' : undefined}
-                          >
-                            {page}
-                          </button>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </div>
-                  
-                  <button 
-                    onClick={handleNextPage}
-                    disabled={currentPage === totalPages}
-                    className="leaderboard-pagination-button"
-                    aria-label="Next page"
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                </div>
-                <div className="leaderboard-pagination-info">
-                  Page {currentPage} of {totalPages}
-                </div>
-              </motion.div>
-            )}
-          </div>
           </motion.div>
         )}
       </motion.div>
@@ -304,7 +392,7 @@ export function Leaderboard({
       {createPortal(
         <UserProfileModal
           isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
+          onClose={closeModal}
           userProfile={selectedUser}
           position={clickPosition}
           containerRef={containerRef}
@@ -313,7 +401,7 @@ export function Leaderboard({
       )}
     </>
   );
-}
+});
 
 // Helper function to generate pagination numbers with ellipsis for large page counts
 function generatePaginationNumbers(currentPage: number, totalPages: number) {
