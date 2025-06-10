@@ -1,6 +1,34 @@
 import React from "react";
 import { cn } from "@/utils/cn";
 
+// Add shimmer animation styles to match ShopPage
+const shimmerStyles = `
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  
+  .animate-shimmer {
+    animation: shimmer 1.5s infinite;
+  }
+`;
+
+// Add styles only once
+let stylesInjected = false;
+
+const injectStyles = () => {
+  if (!stylesInjected && typeof document !== 'undefined') {
+    const style = document.createElement('style');
+    style.textContent = shimmerStyles;
+    document.head.appendChild(style);
+    stylesInjected = true;
+  }
+};
+
 interface SkeletonProps {
   className?: string;
   /**
@@ -45,11 +73,11 @@ export function Skeleton({
   borderRadius,
   theme = "neutral",
 }: SkeletonProps) {
-  // Theme-specific colors
+  // Theme-specific colors - Updated to match ShopPage styling
   const themeClasses = {
     neutral: "from-gray-200 via-gray-300 to-gray-200 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700",
-    valorant: "from-[#1F2731]/40 via-[#1F2731]/70 to-[#1F2731]/40",
-    dashboard: "from-[#111827]/40 via-[#111827]/70 to-[#111827]/40",
+    valorant: "from-[#1E293B]/30 via-[#1E293B]/50 to-[#1E293B]/30",
+    dashboard: "from-[#1E293B]/30 via-[#1E293B]/50 to-[#1E293B]/30",
   };
 
   // Variant-specific styling
@@ -61,7 +89,7 @@ export function Skeleton({
   };
 
   const animationClass = animate
-    ? "animate-pulse bg-gradient-to-r bg-300% bg-clip-content"
+    ? "bg-gradient-to-r animate-shimmer bg-[length:200%_100%]"
     : "bg-gray-200 dark:bg-gray-700";
 
   const style: React.CSSProperties = {
@@ -69,6 +97,11 @@ export function Skeleton({
     height,
     ...(borderRadius && { borderRadius }),
   };
+
+  // Inject styles once
+  React.useEffect(() => {
+    injectStyles();
+  }, []);
 
   return (
     <div
@@ -97,9 +130,11 @@ export function SkeletonGameCard({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl bg-black/5 backdrop-blur-sm",
+        "relative overflow-hidden rounded-xl backdrop-blur-sm",
         "border border-white/10 shadow-lg",
+        "bg-[rgba(30,41,59,0.3)]", // Match shop-item-card background
         "w-64",
+        "transition-all duration-300 ease-in-out",
         className
       )}
     >
@@ -137,8 +172,9 @@ export function SkeletonPartyListing({
   return (
     <div
       className={cn(
-        "rounded-xl border border-white/10 bg-[#1F2731]/30 p-4 shadow-md",
-        "hover:bg-[#1F2731]/50 transition-all duration-200",
+        "rounded-xl border p-4 shadow-md backdrop-blur-sm",
+        "border-[rgba(148,163,184,0.1)] bg-[rgba(30,41,59,0.3)]", // Match shop-item-card styling
+        "hover:bg-[rgba(30,41,59,0.5)] transition-all duration-300",
         className
       )}
     >
@@ -212,7 +248,7 @@ export function SkeletonPartyDetails({
   return (
     <div className={cn("space-y-8", className)}>
       {/* Party Header */}
-      <div className="bg-[#1F2731]/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
+      <div className="bg-[rgba(30,41,59,0.3)] backdrop-blur-sm rounded-xl border border-[rgba(148,163,184,0.1)] shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="p-6 border-b border-white/10">
           <div className="flex justify-between items-start gap-4">
@@ -271,7 +307,7 @@ export function SkeletonPartyDetails({
         </div>
         
         {/* Game Settings */}
-        <div className="p-6 bg-[#1F2731]/40">
+        <div className="p-6 bg-[rgba(30,41,59,0.5)]">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[1, 2, 3].map((i) => (
               <Skeleton 
@@ -287,7 +323,7 @@ export function SkeletonPartyDetails({
       </div>
       
       {/* Player Slots */}
-      <div className="bg-[#1F2731]/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl p-6">
+      <div className="bg-[rgba(30,41,59,0.3)] backdrop-blur-sm rounded-xl border border-[rgba(148,163,184,0.1)] shadow-2xl p-6">
         <Skeleton 
           width="30%" 
           height="24px" 
@@ -378,8 +414,9 @@ export function SkeletonAuthentication({
       className
     )}>
       <div className={cn(
-        "p-8 rounded-xl backdrop-blur-sm border border-white/5 shadow-lg flex flex-col items-center",
-        theme === "valorant" ? "bg-zinc-900/50" : "bg-[#1a1b1e]/60",
+        "p-8 rounded-xl backdrop-blur-sm border shadow-lg flex flex-col items-center",
+        "border-[rgba(148,163,184,0.1)] bg-[rgba(30,41,59,0.3)]", // Match shop styling
+        className
       )}>
         <Skeleton 
           variant="circular" 
