@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Heart, Star, ChevronRight, X, AlertCircle, UserCheck, MessageSquare, Mic, Flame, Trophy } from 'lucide-react'
+import { Heart, Star, ChevronRight, X, AlertCircle, UserCheck, MessageSquare, Mic, Flame } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/valorant/avatar'
 import { Badge } from '@/components/ui/valorant/badge'
 import type { PairingDTO } from '@/config/pairingService'
