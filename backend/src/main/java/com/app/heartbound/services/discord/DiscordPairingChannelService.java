@@ -208,7 +208,7 @@ public class DiscordPairingChannelService {
     private String generateChannelName(String username1, String username2, Long pairingId) {
         // Sanitize usernames for Discord channel naming
         String sanitizedUser1 = sanitizeForChannelName(username1);
-        String sanitizedUser2 = sanitizeForChannelName(username2);
+        String sanitizedUser2 = sanitizeForChannelName(username2); 
         
         // Sort usernames to ensure consistent naming regardless of order
         String channelName;
