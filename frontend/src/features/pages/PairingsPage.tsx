@@ -1314,19 +1314,6 @@ export function PairingsPage() {
                         </CardContent>
                       </Card>
                     </motion.div>
-
-                    {/* XP Card - Show XP, Achievements, and Voice Streaks for Active Pairing */}
-                    <motion.div
-                      key="xp-card"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.2 }}
-                    >
-                      <XPCard 
-                        pairingId={currentPairing.id}
-                        className="mt-8"
-                      />
-                    </motion.div>
                     </>
                   ) : queueStatus.inQueue ? (
                     <motion.div
@@ -1469,8 +1456,26 @@ export function PairingsPage() {
                 )}
               </div>
 
-              {/* Right Column - Current Matches & Match History */}
+              {/* Right Column - XP Card, Current Matches & Match History */}
               <div className="xl:col-span-1 space-y-8">
+                {/* XP Card - Show XP, Achievements, and Voice Streaks for Active Pairing */}
+                <AnimatePresence>
+                  {currentPairing && (
+                    <motion.div
+                      key="xp-card-right"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ duration: 0.5, delay: 0.2 }}
+                    >
+                      <XPCard 
+                        pairingId={currentPairing.id}
+                        className=""
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Current Matches - Visible to All Users */}
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
