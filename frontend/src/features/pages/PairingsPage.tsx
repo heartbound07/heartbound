@@ -1250,13 +1250,6 @@ export function PairingsPage() {
                                 </div>
                               </div>
                               
-                              {currentPairing?.messageCount === 0 && (
-                                <div className="text-center mt-4 p-3 bg-[var(--color-warning)]/10 rounded-lg border border-[var(--color-warning)]/20">
-                                  <p className="text-sm text-[var(--color-text-secondary)]">
-                                    Start chatting in Discord to see your message activity here!
-                                  </p>
-                                </div>
-                              )}
                             </div>
 
                             {/* Breakup Button */}
