@@ -168,17 +168,6 @@
   overflow: hidden;
 }
 
-.active-pairing-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(45deg, rgba(34, 197, 94, 0.03) 0%, transparent 50%);
-  pointer-events: none;
-}
-
 /* Pairing history user avatars hover effect */
 .pairings-content .user-avatar-container {
   transition: all 0.2s ease;
@@ -633,4 +622,130 @@
   bottom: 0;
   background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
   border-radius: 5px;
+}
+
+/* === Comprehensive Focus Outline Removal === */
+
+/* Remove all default focus outlines for mouse interactions while preserving keyboard navigation */
+.pairings-content *:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Form elements focus outline removal */
+.pairings-content input:focus,
+.pairings-content select:focus,
+.pairings-content textarea:focus,
+.pairings-content button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Specific form control focus removal */
+.pairings-content .valorant-card input:focus,
+.pairings-content .valorant-card select:focus,
+.pairings-content .valorant-card textarea:focus,
+.pairings-content .valorant-card button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Queue join form specific focus removal */
+.pairings-content form input:focus,
+.pairings-content form select:focus,
+.pairings-content form button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Select trigger and content focus removal */
+.pairings-content [data-radix-select-trigger]:focus,
+.pairings-content [data-radix-select-content]:focus,
+.pairings-content [data-radix-select-item]:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove focus from clickable containers and cards */
+.pairings-content .valorant-card:focus,
+.pairings-content .card:focus,
+.pairings-content [role="button"]:focus,
+.pairings-content div[onClick]:focus,
+.pairings-content div[tabindex]:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Avatar and profile preview focus removal */
+.pairings-content .user-avatar-container:focus,
+.pairings-content .w-\[300px\]:focus,
+.pairings-content [class*="w-[300px]"]:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Admin controls focus removal */
+.pairings-content .admin-controls button:focus,
+.pairings-content .admin-controls input:focus,
+.pairings-content .admin-controls select:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Tab navigation focus removal */
+.pairings-content .valorant-card button[class*="theme-transition"]:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Join queue button specific focus removal */
+.join-queue-button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* General button focus removal */
+.pairings-content button:focus,
+.pairings-content [type="button"]:focus,
+.pairings-content [type="submit"]:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Modal and overlay focus removal */
+.pairings-content .modal:focus,
+.pairings-content .overlay:focus,
+.pairings-content [data-state="open"]:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* === Maintain Accessibility for Keyboard Users === */
+
+/* Only show focus indicators for keyboard navigation (focus-visible) */
+.pairings-content *:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.3) !important;
+  outline-offset: 2px !important;
+  border-radius: 4px;
+}
+
+/* Form elements focus-visible styling for accessibility */
+.pairings-content input:focus-visible,
+.pairings-content select:focus-visible,
+.pairings-content textarea:focus-visible {
+  outline: 2px solid rgba(255, 70, 85, 0.5) !important;
+  outline-offset: 1px !important;
+}
+
+/* Button focus-visible styling */
+.pairings-content button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.4) !important;
+  outline-offset: 2px !important;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .pairings-content *:focus-visible {
+    transition: none !important;
+  }
 }
