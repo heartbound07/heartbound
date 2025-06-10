@@ -160,7 +160,7 @@ const QueueJoinForm = memo(({
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="age" className="text-sm font-medium text-[var(--color-text-primary)]">
+                <Label htmlFor="age" className="text-sm font-medium text-theme-primary">
                   Age
                 </Label>
                 <Input
@@ -169,7 +169,7 @@ const QueueJoinForm = memo(({
                   placeholder="Enter your age"
                   value={formData.age}
                   onChange={(e) => updateFormField('age', e.target.value)}
-                  className="bg-[var(--color-container-bg)] border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-primary focus:ring-1 focus:ring-primary/20"
+                  className="bg-theme-container border-theme text-theme-primary placeholder:text-theme-tertiary focus:border-primary focus:ring-1 focus:ring-primary/20 theme-transition"
                   min="13"
                   max="100"
                   required
@@ -178,19 +178,19 @@ const QueueJoinForm = memo(({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="gender" className="text-sm font-medium text-[var(--color-text-primary)]">
+                <Label htmlFor="gender" className="text-sm font-medium text-theme-primary">
                   Gender
                 </Label>
                 <Select value={formData.gender} onValueChange={(value) => updateFormField('gender', value)} required>
-                  <SelectTrigger className="bg-[#1F2731] border-[#374151] text-white">
+                  <SelectTrigger className="bg-theme-container border-theme text-theme-primary theme-transition">
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1F2731] border-[#374151]">
+                  <SelectContent className="bg-theme-container border-theme theme-transition">
                     {GENDERS.map((g) => (
                       <SelectItem 
                         key={g.value} 
                         value={g.value}
-                        className="text-white hover:bg-[#2D3748] focus:bg-[#2D3748]"
+                        className="text-theme-primary hover:bg-theme-card focus:bg-theme-card theme-transition"
                       >
                         {g.label}
                       </SelectItem>
@@ -202,19 +202,19 @@ const QueueJoinForm = memo(({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
-                <Label htmlFor="region" className="text-slate-200 font-medium mb-2 block">
+                <Label htmlFor="region" className="text-theme-secondary font-medium mb-2 block">
                   Region
                 </Label>
                 <Select value={formData.region} onValueChange={(value) => updateFormField('region', value)} required>
-                  <SelectTrigger className="bg-[#1F2731] border-[#374151] text-white">
+                  <SelectTrigger className="bg-theme-container border-theme text-theme-primary theme-transition">
                     <SelectValue placeholder="Select region" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1F2731] border-[#374151]">
+                  <SelectContent className="bg-theme-container border-theme theme-transition">
                     {REGIONS.map((reg) => (
                       <SelectItem 
                         key={reg.value} 
                         value={reg.value}
-                        className="text-white hover:bg-[#2D3748] focus:bg-[#2D3748]"
+                        className="text-theme-primary hover:bg-theme-card focus:bg-theme-card theme-transition"
                       >
                         {reg.label}
                       </SelectItem>
@@ -224,19 +224,19 @@ const QueueJoinForm = memo(({
               </motion.div>
 
               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}>
-                <Label htmlFor="rank" className="text-slate-200 font-medium mb-2 block">
+                <Label htmlFor="rank" className="text-theme-secondary font-medium mb-2 block">
                   VALORANT Rank
                 </Label>
                 <Select value={formData.rank} onValueChange={(value) => updateFormField('rank', value)} required>
-                  <SelectTrigger className="bg-[#1F2731] border-[#374151] text-white">
+                  <SelectTrigger className="bg-theme-container border-theme text-theme-primary theme-transition">
                     <SelectValue placeholder="Select rank" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1F2731] border-[#374151]">
+                  <SelectContent className="bg-theme-container border-theme theme-transition">
                     {RANKS.map((r) => (
                       <SelectItem 
                         key={r.value} 
                         value={r.value}
-                        className="text-white hover:bg-[#2D3748] focus:bg-[#2D3748]"
+                        className="text-theme-primary hover:bg-theme-card focus:bg-theme-card theme-transition"
                       >
                         {r.label}
                       </SelectItem>
@@ -747,13 +747,13 @@ export function PairingsPage() {
         <DashboardNavigation />
         
         <main className={`pairings-content ${isCollapsed ? "sidebar-collapsed" : ""}`}>
-          <div className="min-h-screen" style={{ background: '#0F1923' }}>
+          <div className="min-h-screen bg-theme-gradient">
             <div className="container mx-auto px-4 py-8 max-w-7xl">
               {/* Admin Controls Skeleton */}
               {hasRole("ADMIN") && (
                 <div className="mb-8">
-                  <div className="admin-controls rounded-xl border border-[var(--color-border)] bg-[var(--color-container-bg)] backdrop-blur-sm">
-                    <div className="p-6 border-b border-[var(--color-border)]">
+                  <div className="admin-controls rounded-xl border-theme bg-theme-container backdrop-blur-sm theme-transition">
+                    <div className="p-6 border-b border-theme">
                       <div className="flex items-center gap-3 mb-4">
                         <Skeleton variant="circular" width="32px" height="32px" theme="valorant" />
                         <Skeleton width="150px" height="24px" theme="valorant" />
@@ -761,7 +761,7 @@ export function PairingsPage() {
                     </div>
                     <div className="p-6 space-y-6">
                       {/* Queue Status Skeleton */}
-                      <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-container-bg)] backdrop-blur-sm">
+                      <div className="p-4 rounded-xl border-theme bg-theme-container backdrop-blur-sm theme-transition">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
                             <Skeleton variant="circular" width="16px" height="16px" theme="valorant" />
@@ -786,7 +786,7 @@ export function PairingsPage() {
               {/* Main Content Skeleton */}
               <div className="space-y-8">
                 {/* Queue/Pairing Status Skeleton */}
-                <div className="valorant-card rounded-xl border border-[var(--color-border)] bg-[var(--color-container-bg)] backdrop-blur-sm">
+                <div className="valorant-card rounded-xl border-theme bg-theme-container backdrop-blur-sm theme-transition">
                   <div className="p-8">
                     <div className="text-center mb-8">
                       <Skeleton width="200px" height="40px" borderRadius="9999px" className="mx-auto mb-4" theme="valorant" />
@@ -822,8 +822,8 @@ export function PairingsPage() {
                 </div>
                 
                 {/* Pairing History Skeleton */}
-                <div className="valorant-card rounded-xl border border-[var(--color-border)] bg-[var(--color-container-bg)] backdrop-blur-sm">
-                  <div className="p-6 border-b border-[var(--color-border)]">
+                <div className="valorant-card rounded-xl border-theme bg-theme-container backdrop-blur-sm theme-transition">
+                                      <div className="p-6 border-b border-theme">
                     <div className="flex items-center gap-3">
                       <Skeleton variant="circular" width="24px" height="24px" theme="valorant" />
                       <Skeleton width="150px" height="24px" theme="valorant" />
@@ -831,7 +831,7 @@ export function PairingsPage() {
                   </div>
                   <div className="p-6 space-y-4">
                     {[1, 2, 3].map((i) => (
-                      <div key={i} className="flex items-center justify-between p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-container-bg)]">
+                      <div key={i} className="flex items-center justify-between p-4 rounded-lg border-theme bg-theme-container theme-transition">
                         <div className="flex items-center gap-4">
                           <Skeleton variant="circular" width="40px" height="40px" theme="valorant" />
                           <div className="space-y-2">
@@ -861,7 +861,7 @@ export function PairingsPage() {
 
       <main className={`pairings-content ${isCollapsed ? "sidebar-collapsed" : ""}`}>
         <ErrorBoundary>
-        <div className="min-h-screen" style={{ background: '#0F1923' }}>
+        <div className="min-h-screen bg-theme-gradient">
           <div className="container mx-auto px-4 py-8 max-w-7xl">
             {/* Admin Controls */}
             <AnimatePresence>
@@ -874,7 +874,7 @@ export function PairingsPage() {
                 >
                   <Card className="admin-controls">
                     <CardHeader className="pb-4">
-                      <CardTitle className="flex items-center gap-3 text-[var(--color-text-primary)]">
+                      <CardTitle className="flex items-center gap-3 text-white">
                         <div className="p-2 bg-primary/20 rounded-lg">
                           <Settings className="h-5 w-5 text-primary" />
                         </div>
@@ -884,7 +884,7 @@ export function PairingsPage() {
                     <CardContent className="space-y-6">
                       {/* Queue Status Display */}
                       <motion.div
-                        className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-container-bg)] backdrop-blur-sm"
+                        className="p-4 rounded-xl border-theme bg-theme-container backdrop-blur-sm theme-transition"
                         whileHover={{ scale: 1.02 }}
                         transition={{ type: "spring", stiffness: 300 }}
                       >
@@ -892,23 +892,23 @@ export function PairingsPage() {
                           <div className="flex items-center gap-3">
                             <motion.div
                               className={`w-4 h-4 rounded-full ${
-                                isQueueEnabled ? "bg-[var(--color-success)]" : "bg-[var(--color-error)]"
+                                isQueueEnabled ? "bg-status-success" : "bg-status-error"
                               }`}
                               animate={{ scale: [1, 1.2, 1] }}
                               transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
                             />
-                            <span className="text-[var(--color-text-primary)] font-semibold text-lg">
+                            <span className="text-white font-semibold text-lg">
                               Queue Status: {isQueueEnabled ? "Active" : "Disabled"}
                             </span>
                           </div>
                           {queueConfig && (
-                            <Badge variant="outline" className="text-xs border-[var(--color-border)]">
+                            <Badge variant="outline" className="text-xs border-theme">
                               Updated by {queueConfig.updatedBy}
                             </Badge>
                           )}
                         </div>
                         {queueConfig && (
-                          <p className="text-[var(--color-text-secondary)] text-sm">{queueConfig.message}</p>
+                          <p className="text-theme-secondary text-sm">{queueConfig.message}</p>
                         )}
                       </motion.div>
 
@@ -995,8 +995,8 @@ export function PairingsPage() {
                             exit={{ opacity: 0, y: -10 }}
                             className={`p-4 rounded-xl text-sm font-medium ${
                               (adminState.message || adminState.queueConfigMessage)?.includes("Error")
-                                ? "bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 text-[var(--color-error)]"
-                                : "bg-[var(--color-success)]/10 border border-[var(--color-success)]/20 text-[var(--color-success)]"
+                                ? "bg-status-error/10 border border-status-error/20 text-status-error"
+                                : "bg-status-success/10 border border-status-success/20 text-status-success"
                             }`}
                           >
                             {adminState.queueConfigMessage || adminState.message}
@@ -1027,7 +1027,7 @@ export function PairingsPage() {
                 </motion.h1>
               </div>
               <motion.p
-                className="text-xl text-[var(--color-text-secondary)] max-w-2xl mx-auto leading-relaxed"
+                className="text-xl text-theme-secondary max-w-2xl mx-auto leading-relaxed"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
@@ -1044,13 +1044,10 @@ export function PairingsPage() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   className="mb-8"
                 >
-                  <div className="rounded-xl p-6 backdrop-blur-sm" style={{ 
-                    background: 'rgba(31, 39, 49, 0.3)', 
-                    border: '1px solid rgba(239, 68, 68, 0.2)' 
-                  }}>
+                  <div className="rounded-xl p-6 backdrop-blur-sm bg-theme-container/30 border border-status-error/20 theme-transition">
                     <div className="flex items-center gap-3">
-                      <AlertCircle className="h-6 w-6 text-red-400" />
-                      <p className="text-red-400 font-medium">{error}</p>
+                      <AlertCircle className="h-6 w-6 text-status-error" />
+                      <p className="text-status-error font-medium">{error}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -1074,8 +1071,8 @@ export function PairingsPage() {
                     >
                       <Card className="active-pairing-card">
                         <CardHeader className="pb-4">
-                          <CardTitle className="flex items-center gap-3 text-[var(--color-success)]">
-                            <div className="p-2 bg-[var(--color-success)]/20 rounded-lg">
+                                                <CardTitle className="flex items-center gap-3 text-status-success">
+                        <div className="p-2 bg-status-success/20 rounded-lg">
                               <UserCheck className="h-6 w-6" />
                             </div>
                             You're Matched!
@@ -1084,7 +1081,7 @@ export function PairingsPage() {
                         <CardContent>
                           <div className="space-y-6">
                             {/* Partner Profile */}
-                            <div className="flex items-center gap-4 p-4 bg-[var(--color-container-bg)] rounded-xl border border-[var(--color-border)]">
+                            <div className="flex items-center gap-4 p-4 bg-theme-container rounded-xl border-theme theme-transition">
                               <motion.div 
                                 whileHover={{ scale: 1.1 }} 
                                 transition={{ type: "spring", stiffness: 300 }}
@@ -1098,27 +1095,27 @@ export function PairingsPage() {
                                   }
                                 }}
                               >
-                                <Avatar className="h-16 w-16 ring-2 ring-[var(--color-success)]/50">
+                                <Avatar className="h-16 w-16 ring-2 ring-status-success/50">
                                   <AvatarImage
                                     src={pairedUser?.avatar || "/placeholder.svg"}
                                     alt={pairedUser?.displayName}
                                   />
-                                  <AvatarFallback className="bg-[var(--color-success)]/20 text-[var(--color-success)] text-xl font-bold">
+                                  <AvatarFallback className="bg-status-success/20 text-status-success text-xl font-bold">
                                     {pairedUser?.displayName?.charAt(0) || "?"}
                                   </AvatarFallback>
                                 </Avatar>
                               </motion.div>
 
                               <div className="flex-1">
-                                <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">
+                                <h3 className="text-xl font-bold text-white mb-2">
                                   {pairedUser?.displayName || "Your Match"}
                                 </h3>
 
                                 {/* Match Stats */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                  <div className="flex items-center gap-2 p-2 bg-[var(--color-info)]/10 rounded-lg border border-[var(--color-info)]/20 hover:bg-[var(--color-info)]/20 transition-colors">
-                                    <User className="h-4 w-4 text-[var(--color-info)]" />
-                                    <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+                                  <div className="flex items-center gap-2 p-2 bg-status-info/10 rounded-lg border border-status-info/20 hover:bg-status-info/20 transition-colors">
+                                    <User className="h-4 w-4 text-status-info" />
+                                    <span className="text-sm font-medium text-theme-secondary">
                                       {currentPairing?.user1Id === user?.id
                                         ? currentPairing?.user2Age
                                         : currentPairing?.user1Age}
@@ -1127,7 +1124,7 @@ export function PairingsPage() {
 
                                   <div className="flex items-center gap-2 p-2 bg-primary/10 rounded-lg border border-primary/20 hover:bg-primary/20 transition-colors">
                                     <Users className="h-4 w-4 text-primary" />
-                                    <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+                                    <span className="text-sm font-medium text-theme-secondary">
                                       {GENDERS.find(
                                         (g) =>
                                           g.value ===
@@ -1138,9 +1135,9 @@ export function PairingsPage() {
                                     </span>
                                   </div>
 
-                                  <div className="flex items-center gap-2 p-2 bg-[var(--color-success)]/10 rounded-lg border border-[var(--color-success)]/20 hover:bg-[var(--color-success)]/20 transition-colors">
-                                    <MapPin className="h-4 w-4 text-[var(--color-success)]" />
-                                    <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+                                  <div className="flex items-center gap-2 p-2 bg-status-success/10 rounded-lg border border-status-success/20 hover:bg-status-success/20 transition-colors">
+                                    <MapPin className="h-4 w-4 text-status-success" />
+                                    <span className="text-sm font-medium text-theme-secondary">
                                       {REGIONS.find(
                                         (r) =>
                                           r.value ===
@@ -1151,9 +1148,9 @@ export function PairingsPage() {
                                     </span>
                                   </div>
 
-                                  <div className="flex items-center gap-2 p-2 bg-[var(--color-warning)]/10 rounded-lg border border-[var(--color-warning)]/20 hover:bg-[var(--color-warning)]/20 transition-colors">
-                                    <Trophy className="h-4 w-4 text-[var(--color-warning)]" />
-                                    <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+                                  <div className="flex items-center gap-2 p-2 bg-status-warning/10 rounded-lg border border-status-warning/20 hover:bg-status-warning/20 transition-colors">
+                                    <Trophy className="h-4 w-4 text-status-warning" />
+                                    <span className="text-sm font-medium text-theme-secondary">
                                       {RANKS.find(
                                         (r) =>
                                           r.value ===
@@ -1169,24 +1166,24 @@ export function PairingsPage() {
 
                             {/* Match Details */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="flex items-center gap-3 p-3 bg-[var(--color-container-bg)] rounded-lg">
+                              <div className="flex items-center gap-3 p-3 bg-theme-container rounded-lg">
                                 <Calendar className="h-5 w-5 text-primary" />
                                 <div>
-                                  <p className="text-sm text-[var(--color-text-secondary)]">Matched</p>
-                                  <p className="text-[var(--color-text-primary)] font-medium">
+                                  <p className="text-sm text-theme-secondary">Matched</p>
+                                  <p className="text-white font-medium">
                                     {formatDate(currentPairing.matchedAt)}
                                   </p>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-3 p-3 bg-[var(--color-container-bg)] rounded-lg">
-                                <MessageCircle className="h-5 w-5 text-[var(--color-success)]" />
+                              <div className="flex items-center gap-3 p-3 bg-theme-container rounded-lg">
+                                <MessageCircle className="h-5 w-5 text-status-success" />
                                 <div className="flex-1">
-                                  <p className="text-sm text-[var(--color-text-secondary)]">Discord Channel</p>
+                                  <p className="text-sm text-theme-secondary">Discord Channel</p>
                                   <a
                                     href="https://discord.com/channels/1161658340418523166/1381698742721187930"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-[var(--color-text-primary)] font-medium hover:text-[var(--color-success)] transition-colors duration-200 flex items-center gap-2 group"
+                                    className="text-white font-medium hover:text-status-success transition-colors duration-200 flex items-center gap-2 group"
                                   >
                                     <span>#pairing-chat</span>
                                     <svg
@@ -1198,7 +1195,7 @@ export function PairingsPage() {
                                       <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
-                                        strokeWidth={2}
+                                        strokeWidth={2} 
                                         d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                                       />
                                     </svg>
@@ -1208,19 +1205,19 @@ export function PairingsPage() {
                             </div>
 
                             {/* Detailed Message Metrics (Private View for Paired Users) */}
-                            <div className="p-4 bg-[var(--color-container-bg)] rounded-xl border border-[var(--color-border)]">
+                            <div className="p-4 bg-theme-container rounded-xl border-theme theme-transition">
                               <div className="flex items-center gap-3 mb-4">
-                                <MessageSquare className="h-5 w-5 text-[var(--color-info)]" />
-                                <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">Activity</h3>
+                                <MessageSquare className="h-5 w-5 text-status-info" />
+                                <h3 className="text-lg font-semibold text-white">Activity</h3>
                               </div>
                               
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                 {/* Your Messages */}
-                                <div className="text-center p-3 bg-[var(--color-success)]/10 rounded-lg border border-[var(--color-success)]/20">
-                                  <div className="text-2xl font-bold text-[var(--color-success)] mb-1">
+                                <div className="text-center p-3 bg-status-success/10 rounded-lg border border-status-success/20">
+                                  <div className="text-2xl font-bold text-status-success mb-1">
                                     {currentPairing?.user1Id === user?.id ? currentPairing?.user1MessageCount : currentPairing?.user2MessageCount}
                                   </div>
-                                  <div className="text-sm text-[var(--color-text-secondary)]">Your Messages</div>
+                                  <div className="text-sm text-theme-secondary">Your Messages</div>
                                 </div>
                                 
                                 {/* Partner's Messages */}
@@ -1228,38 +1225,38 @@ export function PairingsPage() {
                                   <div className="text-2xl font-bold text-primary mb-1">
                                     {currentPairing?.user1Id === user?.id ? currentPairing?.user2MessageCount : currentPairing?.user1MessageCount}
                                   </div>
-                                  <div className="text-sm text-[var(--color-text-secondary)]">
+                                  <div className="text-sm text-theme-secondary">
                                     {pairedUser?.displayName || "Partner"}'s Messages
                                   </div>
                                 </div>
                                 
                                 {/* Total Messages */}
-                                <div className="text-center p-3 bg-[var(--color-info)]/10 rounded-lg border border-[var(--color-info)]/20">
-                                  <div className="text-2xl font-bold text-[var(--color-info)] mb-1">
+                                <div className="text-center p-3 bg-status-info/10 rounded-lg border border-status-info/20">
+                                  <div className="text-2xl font-bold text-status-info mb-1">
                                     {currentPairing?.messageCount || 0}
                                   </div>
-                                  <div className="text-sm text-[var(--color-text-secondary)]">Total Messages</div>
+                                  <div className="text-sm text-theme-secondary">Total Messages</div>
                                 </div>
                                 
                                 {/* Voice Time */}
-                                <div className="text-center p-3 bg-[var(--color-warning)]/10 rounded-lg border border-[var(--color-warning)]/20">
-                                  <div className="text-2xl font-bold text-[var(--color-warning)] mb-1">
+                                <div className="text-center p-3 bg-status-warning/10 rounded-lg border border-status-warning/20">
+                                  <div className="text-2xl font-bold text-status-warning mb-1">
                                     {Math.floor((currentPairing?.voiceTimeMinutes || 0) / 60)}h {(currentPairing?.voiceTimeMinutes || 0) % 60}m
                                   </div>
-                                  <div className="text-sm text-[var(--color-text-secondary)]">Voice Time</div>
+                                  <div className="text-sm text-theme-secondary">Voice Time</div>
                                 </div>
                               </div>
                               
                             </div>
 
                             {/* Breakup Button */}
-                            <div className="pt-4 border-t border-[var(--color-border)]">
+                            <div className="pt-4 border-t border-theme">
                               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                                 <Button
                                   onClick={() => showBreakup()}
                                   disabled={actionLoading}
                                   variant="outline"
-                                  className="w-full border-[var(--color-error)]/30 text-[var(--color-error)] hover:border-[var(--color-error)]/50 hover:bg-[var(--color-error)]/10 transition-all duration-200"
+                                  className="w-full border-status-error/30 text-status-error hover:border-status-error/50 hover:bg-status-error/10 transition-all duration-200"
                                 >
                                   <AlertCircle className="h-4 w-4 mr-2" />
                                   End This Match
@@ -1296,21 +1293,21 @@ export function PairingsPage() {
                         <CardContent className="p-8">
                           {/* Header Section */}
                           <div className="text-center mb-8">
-                            <div className="inline-flex items-center gap-3 px-4 py-2 bg-[var(--color-info)]/10 rounded-full border border-[var(--color-info)]/20 mb-4">
-                              <Clock className="h-5 w-5 text-[var(--color-info)]" />
-                              <span className="text-[var(--color-info)] font-medium">Finding Your Match</span>
+                            <div className="inline-flex items-center gap-3 px-4 py-2 bg-status-info/10 rounded-full border border-status-info/20 mb-4">
+                              <Clock className="h-5 w-5 text-status-info" />
+                              <span className="text-status-info font-medium">Finding Your Match</span>
                             </div>
                             
-                            <h2 className="text-3xl font-bold text-[var(--color-text-primary)] mb-2">
+                            <h2 className="text-3xl font-bold text-white mb-2">
                               You're in Queue!
                             </h2>
                             
                             {/* Connection Status */}
                             <div className="flex items-center justify-center gap-2">
                               <div className={`w-2 h-2 rounded-full ${
-                                isConnected ? "bg-[var(--color-success)]" : "bg-[var(--color-error)]"
+                                isConnected ? "bg-status-success" : "bg-status-error"
                               }`} />
-                              <span className="text-sm text-[var(--color-text-secondary)]">
+                              <span className="text-sm text-theme-secondary">
                                 {isConnected ? "Connected" : "Reconnecting..."}
                               </span>
                             </div>
@@ -1320,10 +1317,10 @@ export function PairingsPage() {
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                             {queueStatus.queuePosition && queueStatus.totalQueueSize && (
                               <div className="text-center">
-                                <div className="text-3xl font-bold text-[var(--color-info)] mb-1">
+                                <div className="text-3xl font-bold text-status-info mb-1">
                                   {queueStatus.queuePosition}
                                 </div>
-                                <div className="text-sm text-[var(--color-text-secondary)]">
+                                <div className="text-sm text-theme-secondary">
                                   of {queueStatus.totalQueueSize} in queue
                                 </div>
                               </div>
@@ -1334,7 +1331,7 @@ export function PairingsPage() {
                                 <div className="text-3xl font-bold text-primary mb-1">
                                   {queueStatus.estimatedWaitTime}m
                                 </div>
-                                <div className="text-sm text-[var(--color-text-secondary)]">
+                                <div className="text-sm text-theme-secondary">
                                   estimated wait
                                 </div>
                               </div>
@@ -1342,10 +1339,10 @@ export function PairingsPage() {
                             
                             {queueStatus.queuedAt && (
                               <div className="text-center">
-                                <div className="text-3xl font-bold text-[var(--color-success)] mb-1">
+                                <div className="text-3xl font-bold text-status-success mb-1">
                                   {queueTimer}
                                 </div>
-                                <div className="text-sm text-[var(--color-text-secondary)]">
+                                <div className="text-sm text-theme-secondary">
                                   in queue
                                 </div>
                               </div>
@@ -1358,7 +1355,7 @@ export function PairingsPage() {
                               variant="outline"
                               onClick={leaveQueue}
                               disabled={actionLoading}
-                              className="px-8 py-3 border-[var(--color-text-tertiary)]/30 text-[var(--color-text-secondary)] hover:border-[var(--color-error)]/50 hover:text-[var(--color-error)] transition-all duration-200"
+                              className="px-8 py-3 border-theme-tertiary/30 text-theme-secondary hover:border-status-error/50 hover:text-status-error transition-all duration-200"
                             >
                               {actionLoading ? (
                                 <Skeleton width="80px" height="16px" theme="valorant" className="mx-auto" />
@@ -1387,8 +1384,8 @@ export function PairingsPage() {
                             <Card className="valorant-card">
                               <CardContent className="text-center py-8">
                                 <Heart className="h-12 w-12 text-primary mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">You're All Set!</h3>
-                                <p className="text-[var(--color-text-secondary)]">
+                                <h3 className="text-xl font-bold text-white mb-2">You're All Set!</h3>
+                                <p className="text-theme-secondary">
                                   Check your Discord for your private channel and start chatting!
                                 </p>
                               </CardContent>
@@ -1410,10 +1407,10 @@ export function PairingsPage() {
                                 animate={{ rotate: [0, 10, -10, 0] }}
                                 transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
                               >
-                                <AlertCircle className="h-16 w-16 text-[var(--color-warning)] mx-auto mb-6" />
+                                <AlertCircle className="h-16 w-16 text-status-warning mx-auto mb-6" />
                               </motion.div>
-                              <h3 className="text-2xl font-bold text-[var(--color-warning)] mb-4">Queue Closed</h3>
-                              <p className="text-[var(--color-text-secondary)] text-lg">
+                              <h3 className="text-2xl font-bold text-status-warning mb-4">Queue Closed</h3>
+                              <p className="text-theme-secondary text-lg">
                                 The matchmaking queue is finished. Check back next week to start matching!
                               </p>
                             </CardContent>
@@ -1436,8 +1433,8 @@ export function PairingsPage() {
                   <Card className="valorant-card h-fit">
                     <CardHeader className="pb-4">
                       <CardTitle className="flex items-center gap-3 text-white">
-                        <div className="p-2 bg-[var(--color-success)]/20 rounded-lg">
-                          <UserCheck className="h-5 w-5 text-[var(--color-success)]" />
+                        <div className="p-2 bg-status-success/20 rounded-lg">
+                          <UserCheck className="h-5 w-5 text-status-success" />
                         </div>
                         Current Matches
                         <Badge variant="outline" className="">
@@ -1457,8 +1454,8 @@ export function PairingsPage() {
                         maxItems={10}
                         emptyMessage="No Active Matches"
                         emptyIcon={
-                          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-[var(--color-success)]/20 to-primary/20 rounded-full flex items-center justify-center mb-4">
-                            <UserCheck className="h-8 w-8 text-[var(--color-success)]" />
+                          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-status-success/20 to-primary/20 rounded-full flex items-center justify-center mb-4">
+                            <UserCheck className="h-8 w-8 text-status-success" />
                           </div>
                         }
                         streakData={{}}
@@ -1470,10 +1467,10 @@ export function PairingsPage() {
                           animate={{ opacity: 1, y: 0 }}
                           className="text-center"
                         >
-                          <p className="text-[var(--color-text-secondary)] text-sm mb-2">
+                          <p className="text-theme-secondary text-sm mb-2">
                             There are currently no active matches in the system.
                           </p>
-                          <p className="text-[var(--color-text-tertiary)] text-xs">
+                          <p className="text-theme-tertiary text-xs">
                             Join the queue to find your match!
                           </p>
                         </motion.div>
@@ -1512,7 +1509,7 @@ export function PairingsPage() {
                                   disabled={actionLoading}
                                   variant="outline"
                                   size="sm"
-                                  className="border-[var(--color-error)]/30 text-[var(--color-error)] hover:border-[var(--color-error)]/50 hover:bg-[var(--color-error)]/10"
+                                  className="border-status-error/30 text-status-error hover:border-status-error/50 hover:bg-status-error/10"
                                 >
                                   {actionLoading ? (
                                     <Skeleton width="80px" height="16px" theme="valorant" className="mx-auto" />
@@ -1552,7 +1549,7 @@ export function PairingsPage() {
                               animate={{ opacity: 1, y: 0 }}
                               className="text-center"
                             >
-                              <p className="text-[var(--color-text-secondary)] text-sm">
+                              <p className="text-theme-secondary text-sm">
                                 No ended matches to display in the history.
                               </p>
                             </motion.div>
@@ -1642,13 +1639,13 @@ const QueueRemovedModal = ({ message, onClose }: { message: string | null; onClo
     >
       <Card className="valorant-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-[var(--color-warning)]">
+          <CardTitle className="flex items-center gap-3 text-status-warning">
             <AlertCircle className="h-6 w-6" />
             Queue Disabled
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-[var(--color-text-secondary)]">{message}</p>
+          <p className="text-theme-secondary">{message}</p>
           <Button onClick={onClose} className="w-full valorant-button-primary">
             <Heart className="mr-2 h-5 w-5" />
             Understood
