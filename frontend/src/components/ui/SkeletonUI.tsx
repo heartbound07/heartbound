@@ -443,3 +443,176 @@ export function SkeletonAuthentication({
     </div>
   );
 }
+
+/**
+ * Individual Leaderboard Row Skeleton for granular control
+ */
+export function SkeletonLeaderboardRow({
+  className,
+  theme = "dashboard",
+  rank = 1
+}: { 
+  className?: string;
+  theme?: "valorant" | "dashboard";
+  rank?: number;
+}) {
+  return (
+    <div
+      className={cn(
+        "grid gap-4 items-center border-b border-white/5 transition-all duration-150",
+        // Responsive grid matching leaderboard.css breakpoints
+        "grid-cols-[80px_1fr_100px]", // Default desktop
+        "md:grid-cols-[80px_1fr_100px]", // Medium screens
+        "sm:grid-cols-[60px_1fr_90px]", // Tablet/small desktop
+        "max-[480px]:grid-cols-[50px_1fr_70px]", // Mobile
+        "py-3.5 px-6", // Default padding
+        "sm:py-3 sm:px-4", // Smaller padding on mobile
+        className
+      )}
+    >
+      {/* Rank skeleton */}
+      <div className="flex items-center justify-center">
+        <Skeleton
+          width="40px"
+          height="24px"
+          borderRadius="6px"
+          theme={theme}
+        />
+      </div>
+      
+      {/* User info skeleton */}
+      <div className="flex items-center gap-4 sm:gap-3">
+        {/* Avatar - responsive sizing matching leaderboard.css */}
+        <Skeleton
+          variant="circular"
+          className="w-10 h-10 sm:w-9 sm:h-9 max-[480px]:w-8 max-[480px]:h-8"
+          theme={theme}
+        />
+        
+        {/* User info */}
+        <div className="flex-1 space-y-1">
+          <Skeleton
+            width="65%"
+            height="20px"
+            borderRadius="4px"
+            theme={theme}
+            className="max-[480px]:h-4"
+          />
+          <Skeleton
+            width="45%"
+            height="16px"
+            borderRadius="4px"
+            theme={theme}
+            className="max-[480px]:h-3 max-[480px]:w-[35%]"
+          />
+        </div>
+      </div>
+      
+      {/* Credits/Level skeleton */}
+      <div className="flex items-center justify-end">
+        <Skeleton
+          width="70px"
+          height="24px"
+          borderRadius="6px"
+          theme={theme}
+          className="max-[480px]:w-14 max-[480px]:h-5"
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Leaderboard Skeleton for loading states in leaderboard views
+ */
+export function SkeletonLeaderboard({ 
+  className,
+  theme = "dashboard",
+  itemCount = 9,
+  showHeader = true
+}: { 
+  className?: string;
+  theme?: "valorant" | "dashboard";
+  itemCount?: number;
+  showHeader?: boolean;
+}) {
+  // Inject styles once
+  React.useEffect(() => {
+    injectStyles();
+  }, []);
+
+  return (
+    <div
+      className={cn(
+        "leaderboard-container",
+        "bg-[rgba(30,41,59,0.3)] border border-[rgba(148,163,184,0.1)]",
+        "rounded-2xl overflow-hidden backdrop-blur-sm",
+        "shadow-[0_8px_32px_rgba(0,0,0,0.15)]",
+        className
+      )}
+    >
+      {/* Header skeleton */}
+      {showHeader && (
+        <div className="p-6 border-b border-white/5 bg-white/[0.04]">
+          <Skeleton
+            width="30%"
+            height="28px"
+            borderRadius="4px"
+            theme={theme}
+          />
+        </div>
+      )}
+      
+      {/* Table headers skeleton */}
+      <div className={cn(
+        "grid gap-4 text-sm font-semibold text-white/70 uppercase tracking-wider border-b border-white/5",
+        // Responsive grid matching leaderboard.css breakpoints
+        "grid-cols-[80px_1fr_100px]", // Default desktop
+        "md:grid-cols-[80px_1fr_100px]", // Medium screens
+        "sm:grid-cols-[60px_1fr_90px]", // Tablet/small desktop
+        "max-[480px]:grid-cols-[50px_1fr_70px]", // Mobile
+        "py-4 px-6", // Default padding
+        "sm:py-3 sm:px-4", // Smaller padding on mobile
+      )}>
+        <div className="text-center">
+          <Skeleton
+            width="30px"
+            height="16px"
+            borderRadius="4px"
+            theme={theme}
+            className="max-[480px]:w-6 max-[480px]:h-3"
+          />
+        </div>
+        <div>
+          <Skeleton
+            width="40px"
+            height="16px"
+            borderRadius="4px"
+            theme={theme}
+            className="max-[480px]:w-8 max-[480px]:h-3"
+          />
+        </div>
+        <div className="text-right">
+          <Skeleton
+            width="50px"
+            height="16px"
+            borderRadius="4px"
+            theme={theme}
+            className="max-[480px]:w-10 max-[480px]:h-3"
+          />
+        </div>
+      </div>
+      
+      {/* Skeleton rows */}
+      <div>
+        {Array.from({ length: itemCount }).map((_, index) => (
+          <SkeletonLeaderboardRow
+            key={index}
+            theme={theme}
+            rank={index + 1}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}

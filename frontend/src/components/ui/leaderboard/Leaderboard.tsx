@@ -6,6 +6,7 @@ import { UserProfileModal } from '@/components/modals/UserProfileModal';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { SkeletonLeaderboard } from '@/components/ui/SkeletonUI';
 
 interface LeaderboardProps {
   users: UserProfileDTO[];
@@ -128,9 +129,8 @@ export function Leaderboard({
       <motion.div 
         ref={containerRef} 
         className={`leaderboard-container ${className}`}
-        initial="hidden"
-        animate="visible"
-        variants={containerVariants}
+        initial={{ opacity: 1 }}
+        animate={{ opacity: 1 }}
       >
         {showHeader && (
           <motion.div 
@@ -154,16 +154,18 @@ export function Leaderboard({
         )}
 
         {isLoading ? (
-          <div className="leaderboard-loading">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="leaderboard-skeleton-row">
-                <div className="leaderboard-skeleton-rank"></div>
-                <div className="leaderboard-skeleton-user"></div>
-                <div className="leaderboard-skeleton-credits"></div>
-              </div>
-            ))}
-          </div>
+          <SkeletonLeaderboard
+            theme="dashboard"
+            itemCount={itemsPerPage}
+            showHeader={false}
+            className="border-0 bg-transparent shadow-none rounded-none"
+          />
         ) : (
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+          >
           <div className={`leaderboard-table ${compact ? 'compact' : ''}`}>
             <div className="leaderboard-headers">
               <div className="leaderboard-header-rank">Rank</div>
@@ -294,6 +296,7 @@ export function Leaderboard({
               </motion.div>
             )}
           </div>
+          </motion.div>
         )}
       </motion.div>
 

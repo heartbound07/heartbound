@@ -138,19 +138,19 @@
   @apply bg-green-500/20 text-green-100 p-4 rounded-lg mt-4;
 }
 
-/* Scrollbar styling - Adding this new section */
+/* Scrollbar styling - Scoped to profile container only */
 /* For Webkit browsers (Chrome, Safari, newer Edge) */
-::-webkit-scrollbar {
+.profile-container ::-webkit-scrollbar {
   width: 8px;
   background-color: rgba(15, 15, 25, 0.2);
 }
 
-::-webkit-scrollbar-track {
+.profile-container ::-webkit-scrollbar-track {
   background-color: rgba(15, 15, 25, 0.2);
   border-radius: 10px;
 }
 
-::-webkit-scrollbar-thumb {
+.profile-container ::-webkit-scrollbar-thumb {
   background: linear-gradient(to bottom, var(--color-primary), var(--color-primary-hover));
   border-radius: 10px;
   border: 2px solid transparent;
@@ -158,13 +158,13 @@
   transition: all 0.3s ease;
 }
 
-::-webkit-scrollbar-thumb:hover {
+.profile-container ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(to bottom, var(--color-primary-hover), var(--color-primary-light));
   background-clip: content-box;
 }
 
-/* For Firefox */
-* {
+/* For Firefox - Scoped to profile container only */
+.profile-container * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-primary) rgba(15, 15, 25, 0.2);
 }

@@ -20,6 +20,10 @@ export function LeaderboardPage() {
 
   useEffect(() => {
     const fetchLeaderboardData = async () => {
+      // Record start time for minimum loading duration
+      const startTime = Date.now();
+      const MIN_LOADING_TIME = 800; // 800ms minimum loading time
+      
       try {
         setIsLoading(true);
         const leaderboardData = await getLeaderboardUsers(leaderboardType);
@@ -39,7 +43,17 @@ export function LeaderboardPage() {
         setError('Failed to load leaderboard data. Please try again later.');
         setCurrentUserProfile(null);
       } finally {
-        setIsLoading(false);
+        // Calculate elapsed time and ensure minimum loading time
+        const elapsedTime = Date.now() - startTime;
+        
+        if (elapsedTime < MIN_LOADING_TIME) {
+          // Wait for remaining time to reach minimum loading duration
+          setTimeout(() => {
+            setIsLoading(false);
+          }, MIN_LOADING_TIME - elapsedTime);
+        } else {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -106,9 +120,9 @@ export function LeaderboardPage() {
       {/* Main Leaderboard */}
       <motion.div 
         className="mb-8"
-        initial={{ opacity: 0, y: 50 }}
+        initial={{ opacity: isLoading ? 1 : 0, y: isLoading ? 0 : 50 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4, type: "spring" }}
+        transition={{ delay: isLoading ? 0 : 0.4, type: "spring" }}
       >
         <Leaderboard 
           users={users}

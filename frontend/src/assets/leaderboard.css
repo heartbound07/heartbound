@@ -311,7 +311,34 @@
   background-color: rgba(255, 255, 255, 0.02);
 }
 
-/* Override scrollbar styling for leaderboard components */
+/* Page-level scrollbar styling for LeaderboardPage */
+.container.mx-auto ::-webkit-scrollbar {
+  width: 8px;
+  background-color: rgba(15, 25, 35, 0.3);
+}
+
+.container.mx-auto ::-webkit-scrollbar-track {
+  background-color: rgba(15, 25, 35, 0.3);
+  border-radius: 4px;
+}
+
+.container.mx-auto ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.container.mx-auto ::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.3);
+}
+
+/* For Firefox - subtle scrollbar for LeaderboardPage */
+.container.mx-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.2) rgba(15, 25, 35, 0.3);
+}
+
+/* Override scrollbar styling for leaderboard components - keep them hidden */
 .leaderboard-container,
 .leaderboard-container * {
   /* Reset Firefox scrollbar */
