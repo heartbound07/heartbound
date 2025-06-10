@@ -798,7 +798,26 @@ export function PairingsPage() {
                   </div>
                 )}
                 
-
+                {/* Hero Section - Shows during loading for better UX */}
+                <motion.div className="section-header mb-12 text-center">
+                  <motion.h1 
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.1, type: "spring" }}
+                    className="pairings-hero-title text-4xl md:text-5xl text-primary mb-4"
+                  >
+                    Pairings
+                  </motion.h1>
+                  
+                  <motion.p 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-xl text-theme-secondary max-w-2xl mx-auto leading-relaxed"
+                  >
+                    {/* Loading state message */}
+                  </motion.p>
+                </motion.div>
 
                 {/* Main Content Grid Skeleton */}
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -1142,12 +1161,12 @@ export function PairingsPage() {
               )}
             </AnimatePresence>
 
-            {/* Hero Section with ShopPage-style animations */}
+            {/* Hero Section - Always visible in main render */}
             <motion.div className="section-header mb-12 text-center">
               <motion.h1 
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.3, type: "spring" }}
+                transition={{ delay: 0.1, type: "spring" }}
                 className="pairings-hero-title text-4xl md:text-5xl text-primary mb-4"
               >
                 Pairings
@@ -1156,7 +1175,7 @@ export function PairingsPage() {
               <motion.p 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
+                transition={{ delay: 0.2 }}
                 className="text-xl text-theme-secondary max-w-2xl mx-auto leading-relaxed"
               >
               </motion.p>
