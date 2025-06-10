@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Heart, Star, ChevronRight, X, AlertCircle, UserCheck, MessageSquare, Mic } from 'lucide-react'
+import { Heart, Star, ChevronRight, X, AlertCircle, UserCheck, MessageSquare, Mic, Flame, Trophy } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/valorant/avatar'
 import { Badge } from '@/components/ui/valorant/badge'
 import type { PairingDTO } from '@/config/pairingService'
@@ -18,6 +18,9 @@ interface PairingCardProps {
   onDelete?: (pairingId: number, event: React.MouseEvent) => void
   formatDate: (dateString: string) => string
   hasAdminActions?: boolean
+  // XP System data (optional)
+  currentStreak?: number
+  currentLevel?: number
 }
 
 interface PairingCardListProps {
@@ -32,6 +35,9 @@ interface PairingCardListProps {
   maxItems?: number
   emptyMessage?: string
   emptyIcon?: React.ReactNode
+  // XP System data (optional) - maps pairing ID to data
+  streakData?: Record<number, number>
+  levelData?: Record<number, number>
 }
 
 export const PairingCard = memo(({
@@ -46,6 +52,8 @@ export const PairingCard = memo(({
   onDelete,
   formatDate,
   hasAdminActions = false,
+  currentStreak,
+  currentLevel,
 }: PairingCardProps) => {
   // Memoize user click handlers to prevent unnecessary re-renders
   const handleUser1Click = useCallback(
@@ -239,6 +247,18 @@ export const PairingCard = memo(({
         {/* Engagement Metrics for Active Pairings */}
         {isActive && (
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Level Badge */}
+            <motion.div 
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 hover:bg-primary/15 border border-primary/20 rounded-full transition-colors duration-200 cursor-default"
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            >
+              <Star className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-medium text-[var(--color-text-primary)]">
+                Level {currentLevel ?? 1}
+              </span>
+            </motion.div>
+
             {/* Message Count Badge */}
             <motion.div 
               className="inline-flex items-center gap-2 px-3 py-1.5 bg-[var(--color-info)]/10 hover:bg-[var(--color-info)]/15 border border-[var(--color-info)]/20 rounded-full transition-colors duration-200 cursor-default"
@@ -260,6 +280,18 @@ export const PairingCard = memo(({
               <Mic className="h-3.5 w-3.5 text-[var(--color-warning)]" />
               <span className="text-xs font-medium text-[var(--color-text-primary)]">
                 {Math.floor(pairing.voiceTimeMinutes / 60)}h {pairing.voiceTimeMinutes % 60}m
+              </span>
+            </motion.div>
+
+            {/* Current Streak Badge */}
+            <motion.div 
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-500/10 hover:bg-orange-500/15 border border-orange-500/20 rounded-full transition-colors duration-200 cursor-default"
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            >
+              <Flame className={`h-3.5 w-3.5 ${(currentStreak ?? 0) > 0 ? 'text-orange-400' : 'text-gray-400'}`} />
+              <span className="text-xs font-medium text-[var(--color-text-primary)]">
+                {currentStreak ?? 0}
               </span>
             </motion.div>
           </div>
@@ -297,7 +329,9 @@ export const PairingCardList = memo(({
   hasAdminActions = false,
   maxItems = 5,
   emptyMessage = "No matches found",
-  emptyIcon
+  emptyIcon,
+  streakData,
+  levelData
 }: PairingCardListProps) => {
   const displayedPairings = useMemo(() => 
     pairings.slice(0, maxItems), 
@@ -346,6 +380,8 @@ export const PairingCardList = memo(({
             onDelete={onDelete}
             formatDate={formatDate}
             hasAdminActions={hasAdminActions}
+            currentStreak={streakData?.[pairing.id]}
+            currentLevel={levelData?.[pairing.id]}
           />
         )
       })}

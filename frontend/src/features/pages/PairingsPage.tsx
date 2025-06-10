@@ -32,7 +32,7 @@ import { PartnerUnmatchedModal } from "@/components/modals/PartnerUnmatchedModal
 import { useModalManager } from "@/hooks/useModalManager"
 import { PairingCardList } from "./PairingCard"
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary"
-import { XPCard } from "@/components/pairing/XPCard"
+import { XPCard } from "@/features/pages/XPCard"
 
 // Constants moved to top level for better performance
 const REGIONS = [
@@ -1458,16 +1458,18 @@ export function PairingsPage() {
                         userProfiles={userProfiles}
                         isActive={true}
                         onUserClick={handleUserClick}
-                        onUnpair={hasRole("ADMIN") ? handleUnpairUsers : undefined}
+                        onUnpair={handleUnpairUsers}
                         formatDate={formatDate}
                         hasAdminActions={hasRole("ADMIN")}
-                        maxItems={5}
+                        maxItems={10}
                         emptyMessage="No Active Matches"
                         emptyIcon={
                           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-[var(--color-success)]/20 to-primary/20 rounded-full flex items-center justify-center mb-4">
                             <UserCheck className="h-8 w-8 text-[var(--color-success)]" />
                           </div>
                         }
+                        streakData={{}}
+                        levelData={{}}
                       />
                       {currentMatches.length === 0 && !currentPairing && !queueStatus.inQueue && isQueueEnabled && (
                         <motion.div
@@ -1548,6 +1550,8 @@ export function PairingsPage() {
                                 <MessageCircle className="h-8 w-8 text-primary" />
                               </div>
                             }
+                            streakData={{}}
+                            levelData={{}}
                           />
                           {inactiveHistory.length === 0 && (
                             <motion.div
