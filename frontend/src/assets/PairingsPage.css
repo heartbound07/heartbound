@@ -306,9 +306,25 @@
 }
 
 /* Tab button focus styling for accessibility */
-.pairings-content .valorant-card button:focus {
+.pairings-content .valorant-card button:focus-visible {
   outline: 2px solid rgba(255, 255, 255, 0.5);
   outline-offset: 2px;
+}
+
+/* Remove outline on mouse focus for tab buttons */
+.pairings-content .valorant-card button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Remove outlines from clickable containers */
+.pairings-content div[tabindex]:focus:not(:focus-visible),
+.pairings-content [role="button"]:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Ensure divs with onClick handlers don't show browser default focus */
+.pairings-content div[onclick]:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* Icon styling within tabs */
@@ -443,4 +459,58 @@
     width: 1.125rem; /* Slightly smaller icon on mobile */
     height: 1.125rem;
   }
+}
+
+/* Modal and Profile Preview focus management */
+.user-profile-modal-container:focus {
+  outline: none;
+}
+
+/* ProfilePreview clickable container - remove focus outline */
+.pairings-content .w-\[300px\]:focus,
+.pairings-content [class*="w-[300px]"]:focus {
+  outline: none;
+}
+
+/* General clickable div containers */
+.pairings-content div:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* === Comprehensive Focus Management === */
+
+/* Remove browser default focus outlines for mouse clicks while preserving keyboard navigation */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Ensure proper focus-visible styling for all interactive elements */
+*:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* Specific overrides for components within PairingsPage */
+.pairings-content *:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* ProfilePreview clickable containers */
+.pairings-content .w-\[300px\],
+.pairings-content [class*="w-[300px]"],
+.pairings-content div[onClick] {
+  outline: none !important;
+}
+
+.pairings-content .w-\[300px\]:focus,
+.pairings-content [class*="w-[300px]"]:focus,
+.pairings-content div[onClick]:focus {
+  outline: none !important;
+}
+
+/* Modal containers */
+.user-profile-modal-container,
+.user-profile-modal-container:focus {
+  outline: none !important;
 }

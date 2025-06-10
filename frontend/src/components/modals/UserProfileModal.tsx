@@ -98,10 +98,13 @@ export function UserProfileModal({ isOpen, onClose, userProfile, position }: Use
     };
   }, [isOpen, onClose]);
 
-  // Handle focus trap
+  // Handle focus trap - focus the close button instead of container
   useEffect(() => {
     if (isOpen && modalRef.current) {
-      modalRef.current.focus();
+      const closeButton = modalRef.current.querySelector('button[aria-label="Close profile preview"]') as HTMLButtonElement;
+      if (closeButton) {
+        closeButton.focus();
+      }
     }
   }, [isOpen]);
 
@@ -123,13 +126,12 @@ export function UserProfileModal({ isOpen, onClose, userProfile, position }: Use
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.2 }}
-            className="absolute pointer-events-auto shadow-2xl"
+            className="absolute pointer-events-auto shadow-2xl user-profile-modal-container"
             style={{
               left: modalPosition ? `${modalPosition.x}px` : '50%',
               top: modalPosition ? `${modalPosition.y}px` : '50%',
               transform: modalPosition ? 'none' : 'translate(-50%, -50%)'
             }}
-            tabIndex={-1}
           >
             <motion.button
               initial={{ opacity: 0, scale: 0.8 }}
