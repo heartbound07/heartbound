@@ -30,6 +30,12 @@ const ANIMATION_VARIANTS = {
     animate: { opacity: 1, y: 0 },
     transition: { delay: 0.4, duration: 0.5, ease: "easeOut" }
   },
+  // Static variant for when skeleton is loading - no animation
+  leaderboardStatic: {
+    initial: { opacity: 1, y: 0 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0 }
+  },
   userCard: {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
@@ -147,10 +153,10 @@ export function LeaderboardPage() {
         </motion.div>
       </motion.div>
 
-      {/* Main Leaderboard - Single animation without complex transitions */}
+      {/* Main Leaderboard - Conditional animation based on loading state */}
       <motion.div 
         className="mb-8"
-        {...ANIMATION_VARIANTS.leaderboard}
+        {...(isLoading ? ANIMATION_VARIANTS.leaderboardStatic : ANIMATION_VARIANTS.leaderboard)}
       >
         <Leaderboard 
           users={users}

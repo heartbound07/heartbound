@@ -1,7 +1,7 @@
 import React from "react";
 import { cn } from "@/utils/cn";
 
-// Add shimmer animation styles to match ShopPage
+// Add shimmer animation styles to match PairingsPage aesthetic
 const shimmerStyles = `
   @keyframes shimmer {
     0% {
@@ -73,11 +73,11 @@ export function Skeleton({
   borderRadius,
   theme = "neutral",
 }: SkeletonProps) {
-  // Theme-specific colors - Updated to match ShopPage styling
+  // Updated theme-specific colors to match PairingsPage styling
   const themeClasses = {
     neutral: "from-gray-200 via-gray-300 to-gray-200 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700",
-    valorant: "from-[#1E293B]/30 via-[#1E293B]/50 to-[#1E293B]/30",
-    dashboard: "from-[#1E293B]/30 via-[#1E293B]/50 to-[#1E293B]/30",
+    valorant: "from-[rgba(31,39,49,0.4)] via-[rgba(31,39,49,0.6)] to-[rgba(31,39,49,0.4)]",
+    dashboard: "from-[rgba(31,39,49,0.4)] via-[rgba(31,39,49,0.6)] to-[rgba(31,39,49,0.4)]",
   };
 
   // Variant-specific styling
@@ -90,7 +90,7 @@ export function Skeleton({
 
   const animationClass = animate
     ? "bg-gradient-to-r animate-shimmer bg-[length:200%_100%]"
-    : "bg-gray-200 dark:bg-gray-700";
+    : "bg-[rgba(31,39,49,0.5)]";
 
   const style: React.CSSProperties = {
     width,
@@ -131,8 +131,8 @@ export function SkeletonGameCard({
     <div
       className={cn(
         "relative overflow-hidden rounded-xl backdrop-blur-sm",
-        "border border-white/10 shadow-lg",
-        "bg-[rgba(30,41,59,0.3)]", // Match shop-item-card background
+        "border border-[rgba(255,255,255,0.05)] shadow-lg",
+        "bg-[rgba(31,39,49,0.3)]", // Updated to match PairingsPage
         "w-64",
         "transition-all duration-300 ease-in-out",
         className
@@ -173,8 +173,8 @@ export function SkeletonPartyListing({
     <div
       className={cn(
         "rounded-xl border p-4 shadow-md backdrop-blur-sm",
-        "border-[rgba(148,163,184,0.1)] bg-[rgba(30,41,59,0.3)]", // Match shop-item-card styling
-        "hover:bg-[rgba(30,41,59,0.5)] transition-all duration-300",
+        "border-[rgba(255,255,255,0.05)] bg-[rgba(31,39,49,0.3)]", // Updated to match PairingsPage
+        "hover:bg-[rgba(31,39,49,0.4)] transition-all duration-300",
         className
       )}
     >
@@ -248,9 +248,9 @@ export function SkeletonPartyDetails({
   return (
     <div className={cn("space-y-8", className)}>
       {/* Party Header */}
-      <div className="bg-[rgba(30,41,59,0.3)] backdrop-blur-sm rounded-xl border border-[rgba(148,163,184,0.1)] shadow-2xl overflow-hidden">
+      <div className="bg-[rgba(31,39,49,0.3)] backdrop-blur-sm rounded-xl border border-[rgba(255,255,255,0.05)] shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="p-6 border-b border-white/10">
+        <div className="p-6 border-b border-[rgba(255,255,255,0.05)]">
           <div className="flex justify-between items-start gap-4">
             <div className="flex-1">
               <Skeleton 
@@ -307,7 +307,7 @@ export function SkeletonPartyDetails({
         </div>
         
         {/* Game Settings */}
-        <div className="p-6 bg-[rgba(30,41,59,0.5)]">
+        <div className="p-6 bg-[rgba(31,39,49,0.4)]">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[1, 2, 3].map((i) => (
               <Skeleton 
@@ -323,7 +323,7 @@ export function SkeletonPartyDetails({
       </div>
       
       {/* Player Slots */}
-      <div className="bg-[rgba(30,41,59,0.3)] backdrop-blur-sm rounded-xl border border-[rgba(148,163,184,0.1)] shadow-2xl p-6">
+      <div className="bg-[rgba(31,39,49,0.3)] backdrop-blur-sm rounded-xl border border-[rgba(255,255,255,0.05)] shadow-2xl p-6">
         <Skeleton 
           width="30%" 
           height="24px" 
@@ -410,12 +410,12 @@ export function SkeletonAuthentication({
   return (
     <div className={cn(
       "min-h-screen bg-gradient-to-br flex items-center justify-center p-6",
-      theme === "valorant" ? "from-[#0F1923] to-[#1A242F]" : "from-[#111827] to-[#1f2937]",
+      theme === "valorant" ? "from-[#0F1923] to-[#1F2731]" : "from-[#111827] to-[#1f2937]",
       className
     )}>
       <div className={cn(
         "p-8 rounded-xl backdrop-blur-sm border shadow-lg flex flex-col items-center",
-        "border-[rgba(148,163,184,0.1)] bg-[rgba(30,41,59,0.3)]", // Match shop styling
+        "border-[rgba(255,255,255,0.05)] bg-[rgba(31,39,49,0.3)]", // Updated to match PairingsPage
         className
       )}>
         <Skeleton 
@@ -459,7 +459,7 @@ export function SkeletonLeaderboardRow({
   return (
     <div
       className={cn(
-        "grid gap-4 items-center border-b border-white/5 transition-all duration-150",
+        "grid gap-4 items-center border-b border-[rgba(255,255,255,0.05)] transition-all duration-150",
         // Responsive grid matching leaderboard.css breakpoints
         "grid-cols-[80px_1fr_100px]", // Default desktop
         "md:grid-cols-[80px_1fr_100px]", // Medium screens
@@ -545,7 +545,8 @@ export function SkeletonLeaderboard({
     <div
       className={cn(
         "leaderboard-container",
-        "bg-[rgba(30,41,59,0.3)] border border-[rgba(148,163,184,0.1)]",
+        // Updated to match PairingsPage styling
+        "bg-[rgba(31,39,49,0.3)] border border-[rgba(255,255,255,0.05)]",
         "rounded-2xl overflow-hidden backdrop-blur-sm",
         "shadow-[0_8px_32px_rgba(0,0,0,0.15)]",
         className
@@ -553,7 +554,7 @@ export function SkeletonLeaderboard({
     >
       {/* Header skeleton */}
       {showHeader && (
-        <div className="p-6 border-b border-white/5 bg-white/[0.04]">
+        <div className="p-6 border-b border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.04)]">
           <Skeleton
             width="30%"
             height="28px"
@@ -565,7 +566,7 @@ export function SkeletonLeaderboard({
       
       {/* Table headers skeleton */}
       <div className={cn(
-        "grid gap-4 text-sm font-semibold text-white/70 uppercase tracking-wider border-b border-white/5",
+        "grid gap-4 text-sm font-semibold text-white/70 uppercase tracking-wider border-b border-[rgba(255,255,255,0.05)]",
         // Responsive grid matching leaderboard.css breakpoints
         "grid-cols-[80px_1fr_100px]", // Default desktop
         "md:grid-cols-[80px_1fr_100px]", // Medium screens
