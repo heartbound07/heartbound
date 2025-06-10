@@ -129,6 +129,9 @@
   border: 1px solid rgba(255, 255, 255, 0.05) !important; /* Matches border-white/5 */
   border-radius: 0.5rem; /* rounded-lg equivalent */
   transition: all 0.3s ease;
+  /* Ensure layout animations work smoothly */
+  transform-origin: top center;
+  will-change: height, transform;
 }
 
 /* Enhanced queue status card styling */
@@ -513,4 +516,60 @@
 .user-profile-modal-container,
 .user-profile-modal-container:focus {
   outline: none !important;
+}
+
+/* Optimize performance for layout animations */
+.pairings-content [data-framer-motion-layout] {
+  transform-origin: top center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Smooth height transitions for card content areas */
+.pairings-content .valorant-card [class*="space-y-"] {
+  /* Ensure smooth layout shifts when content changes */
+  transition: height 0.3s ease-in-out;
+}
+
+/* Prevent layout shifts during tab transitions */
+.pairings-content .valorant-card .tab-content-container {
+  /* Reserve minimum space to prevent jarring height changes */
+  min-height: 200px;
+  transition: min-height 0.3s ease-in-out;
+}
+
+/* Enhanced motion support for webkit browsers */
+@supports (will-change: height) {
+  .pairings-content .valorant-card {
+    will-change: height, transform, opacity;
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .pairings-content .valorant-card,
+  .pairings-content [data-framer-motion-layout] {
+    transition: none !important;
+    animation: none !important;
+  }
+  
+  /* Keep opacity transitions but remove transform animations */
+  .pairings-content .valorant-card * {
+    transition: opacity 0.2s ease !important;
+    transform: none !important;
+  }
+}
+
+/* Optimize rendering during layout animations */
+.pairings-content .xl:col-span-1 {
+  /* Ensure the right column container supports layout animations */
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Enhance tab content area animations */
+.pairings-content .valorant-card .space-y-6 {
+  /* Smooth transitions for tab content spacing */
+  transition: padding 0.3s ease-in-out;
 }

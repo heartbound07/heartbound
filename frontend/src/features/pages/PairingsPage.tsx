@@ -1556,7 +1556,11 @@ export function PairingsPage() {
               </div>
 
               {/* Right Column - XP Card, Current Matches & Match History */}
-              <div className="xl:col-span-1 space-y-8">
+              <motion.div 
+                className="xl:col-span-1 space-y-8"
+                layout
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+              >
                 {/* XP Card - Show XP, Achievements, and Voice Streaks for Active Pairing */}
                 <AnimatePresence>
                   {currentPairing && (
@@ -1566,6 +1570,7 @@ export function PairingsPage() {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
                       transition={{ duration: 0.5, delay: 0.2 }}
+                      layout
                     >
                       <XPCard 
                         pairingId={currentPairing.id}
@@ -1580,6 +1585,7 @@ export function PairingsPage() {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.3 }}
+                  layout
                 >
                   <Card className="valorant-card h-fit">
                     <CardHeader className="pb-4">
@@ -1638,6 +1644,7 @@ export function PairingsPage() {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
                       transition={{ delay: 0.4 }}
+                      layout
                     >
                       <Card className="valorant-card h-fit">
                         <CardHeader className="pb-4">
@@ -1710,7 +1717,7 @@ export function PairingsPage() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
+              </motion.div>
             </div>
           </div>
         </div>

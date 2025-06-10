@@ -247,49 +247,52 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
 
   return (
     <TooltipProvider>
-      <Card className={`valorant-card bg-theme-card border-theme theme-transition ${className}`}>
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-3 text-white text-xl">
-            <div className="p-2 bg-primary/20 rounded-lg">
-              <Zap className="h-5 w-5 text-primary" />
+      <motion.div layout transition={{ duration: 0.3, ease: "easeInOut" }}>
+        <Card className={`valorant-card bg-theme-card border-theme theme-transition ${className}`}>
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-white text-xl">
+              <div className="p-2 bg-primary/20 rounded-lg">
+                <Zap className="h-5 w-5 text-primary" />
+              </div>
+              Pair Level & Achievements
+            </CardTitle>
+            
+            {/* Tab Navigation */}
+            <div className="flex gap-2 mt-4">
+              {[
+                { key: 'overview', label: 'Overview', icon: TrendingUp },
+                { key: 'achievements', label: 'Achievements', icon: Trophy },
+                { key: 'streaks', label: 'Streaks', icon: Flame }
+              ].map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key as any)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium theme-transition ${
+                    activeTab === key
+                      ? 'bg-primary/20 text-primary border border-primary/30'
+                      : 'bg-theme-container text-theme-secondary hover:bg-theme-container/80'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </button>
+              ))}
             </div>
-            Pair Level & Achievements
-          </CardTitle>
-          
-          {/* Tab Navigation */}
-          <div className="flex gap-2 mt-4">
-            {[
-              { key: 'overview', label: 'Overview', icon: TrendingUp },
-              { key: 'achievements', label: 'Achievements', icon: Trophy },
-              { key: 'streaks', label: 'Streaks', icon: Flame }
-            ].map(({ key, label, icon: Icon }) => (
-              <button
-                key={key}
-                onClick={() => setActiveTab(key as any)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium theme-transition ${
-                  activeTab === key
-                    ? 'bg-primary/20 text-primary border border-primary/30'
-                    : 'bg-theme-container text-theme-secondary hover:bg-theme-container/80'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </button>
-            ))}
-          </div>
-        </CardHeader>
+          </CardHeader>
 
-        <CardContent>
-          <AnimatePresence mode="wait">
-            {activeTab === 'overview' && (
-              <motion.div
-                key="overview"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-6"
-              >
+          <CardContent>
+            <motion.div layout transition={{ duration: 0.3, ease: "easeInOut" }}>
+              <AnimatePresence mode="wait">
+                {activeTab === 'overview' && (
+                  <motion.div
+                    key="overview"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-6"
+                    layout
+                  >
                 {/* Level Progress */}
                 {levelData && (
                   <div className="space-y-4">
@@ -395,6 +398,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
                 className="space-y-6"
+                layout
               >
                 {/* Completed Achievements */}
                 {achievements.length > 0 && (
@@ -540,6 +544,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
                 className="space-y-6"
+                layout
               >
                 {voiceStreakStats ? (
                   <>
@@ -718,8 +723,10 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
               </motion.div>
             )}
           </AnimatePresence>
-        </CardContent>
-      </Card>
+            </motion.div>
+          </CardContent>
+        </Card>
+      </motion.div>
     </TooltipProvider>
   );
 }; 
