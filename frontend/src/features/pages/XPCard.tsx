@@ -245,7 +245,11 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
 
   return (
     <TooltipProvider>
-      <Card className={`valorant-card ${className}`}>
+      <Card className={`valorant-card ${className}`} style={{ 
+        background: 'rgba(31, 39, 49, 0.3)', 
+        backdropFilter: 'blur(8px)', 
+        border: '1px solid rgba(255, 255, 255, 0.05)' 
+      }}>
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-3 text-white text-xl">
             <div className="p-2 bg-primary/20 rounded-lg">
@@ -332,7 +336,10 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
 
                 {/* Quick Stats */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-[var(--color-container-bg)] rounded-lg">
+                  <div className="p-4 rounded-lg" style={{ 
+                    background: 'rgba(31, 39, 49, 0.4)', 
+                    border: '1px solid rgba(255, 255, 255, 0.05)' 
+                  }}>
                     <div className="flex items-center gap-2 mb-2">
                       <Trophy className="h-4 w-4 text-yellow-400" />
                       <span className="text-sm text-[var(--color-text-secondary)]">Achievements</span>
@@ -341,7 +348,10 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                   </div>
                   
                   {voiceStreakStats && (
-                    <div className="p-4 bg-[var(--color-container-bg)] rounded-lg">
+                    <div className="p-4 rounded-lg" style={{ 
+                      background: 'rgba(31, 39, 49, 0.4)', 
+                      border: '1px solid rgba(255, 255, 255, 0.05)' 
+                    }}>
                       <div className="flex items-center gap-2 mb-2">
                         <Flame className={`h-4 w-4 ${voiceStreakStats.currentStreak > 0 ? 'text-orange-400' : 'text-gray-400'}`} />
                         <span className="text-sm text-[var(--color-text-secondary)]">Voice Streak</span>
@@ -364,7 +374,8 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                       {achievements.slice(0, 3).map((achievement) => (
                         <div
                           key={achievement.id}
-                          className={`p-3 rounded-lg border ${getRarityColor(achievement.achievement.rarity)} bg-[var(--color-container-bg)]/50`}
+                          className={`p-3 rounded-lg border ${getRarityColor(achievement.achievement.rarity)}`}
+                          style={{ background: 'rgba(31, 39, 49, 0.5)' }}
                         >
                           <div className="flex items-center justify-between">
                             <div>
@@ -405,7 +416,8 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                       {achievements.map((achievement) => (
                         <div
                           key={achievement.id}
-                          className={`p-3 rounded-lg border ${getRarityColor(achievement.achievement.rarity)} bg-[var(--color-container-bg)]/50`}
+                          className={`p-3 rounded-lg border ${getRarityColor(achievement.achievement.rarity)}`}
+                          style={{ background: 'rgba(31, 39, 49, 0.5)' }}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -443,7 +455,8 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                       {availableAchievements.map((achievement) => (
                         <div
                           key={achievement.id}
-                          className="p-3 rounded-lg border border-gray-600 bg-[var(--color-container-bg)]/30 opacity-75"
+                          className="p-3 rounded-lg border border-gray-600 opacity-75"
+                          style={{ background: 'rgba(31, 39, 49, 0.3)' }}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -479,7 +492,10 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
 
                     {/* Achievement Categories Guide */}
                     <div className="grid gap-3">
-                      <div className="p-4 bg-[var(--color-container-bg)] rounded-lg border border-[var(--color-border)]">
+                      <div className="p-4 rounded-lg" style={{ 
+                        background: 'rgba(31, 39, 49, 0.4)', 
+                        border: '1px solid rgba(255, 255, 255, 0.05)' 
+                      }}>
                         <div className="flex items-center gap-3 mb-2">
                           <MessageSquare className="h-5 w-5 text-blue-400" />
                           <h4 className="font-semibold text-white">Message Milestones</h4>
@@ -489,7 +505,10 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                         </p>
                       </div>
 
-                      <div className="p-4 bg-[var(--color-container-bg)] rounded-lg border border-[var(--color-border)]">
+                      <div className="p-4 rounded-lg" style={{ 
+                        background: 'rgba(31, 39, 49, 0.4)', 
+                        border: '1px solid rgba(255, 255, 255, 0.05)' 
+                      }}>
                         <div className="flex items-center gap-3 mb-2">
                           <Flame className="h-5 w-5 text-orange-400" />
                           <h4 className="font-semibold text-white">Voice Streaks</h4>
@@ -499,7 +518,10 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                         </p>
                       </div>
 
-                      <div className="p-4 bg-[var(--color-container-bg)] rounded-lg border border-[var(--color-border)]">
+                      <div className="p-4 rounded-lg" style={{ 
+                        background: 'rgba(31, 39, 49, 0.4)', 
+                        border: '1px solid rgba(255, 255, 255, 0.05)' 
+                      }}>
                         <div className="flex items-center gap-3 mb-2">
                           <Calendar className="h-5 w-5 text-green-400" />
                           <h4 className="font-semibold text-white">Weekly Activity</h4>
@@ -509,7 +531,10 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                         </p>
                       </div>
 
-                      <div className="p-4 bg-[var(--color-container-bg)] rounded-lg border border-[var(--color-border)]">
+                      <div className="p-4 rounded-lg" style={{ 
+                        background: 'rgba(31, 39, 49, 0.4)', 
+                        border: '1px solid rgba(255, 255, 255, 0.05)' 
+                      }}>
                         <div className="flex items-center gap-3 mb-2">
                           <Info className="h-5 w-5 text-purple-400" />
                           <h4 className="font-semibold text-white">Special Achievements</h4>
@@ -590,7 +615,10 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
 
                     {/* Streak Stats */}
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-[var(--color-container-bg)] rounded-lg">
+                      <div className="p-4 rounded-lg" style={{ 
+                        background: 'rgba(31, 39, 49, 0.4)', 
+                        border: '1px solid rgba(255, 255, 255, 0.05)' 
+                      }}>
                         <div className="flex items-center gap-2 mb-2">
                           <TrendingUp className="h-4 w-4 text-blue-400" />
                           <span className="text-sm text-[var(--color-text-secondary)]">Best Streak</span>
@@ -614,7 +642,10 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                         </div>
                       </div>
                       
-                      <div className="p-4 bg-[var(--color-container-bg)] rounded-lg">
+                      <div className="p-4 rounded-lg" style={{ 
+                        background: 'rgba(31, 39, 49, 0.4)', 
+                        border: '1px solid rgba(255, 255, 255, 0.05)' 
+                      }}>
                         <div className="flex items-center gap-2 mb-2">
                           <Calendar className="h-4 w-4 text-green-400" />
                           <span className="text-sm text-[var(--color-text-secondary)]">Active Days</span>
