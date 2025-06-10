@@ -2,6 +2,7 @@ package com.app.heartbound.services.discord;
 
 import com.app.heartbound.entities.Pairing;
 import com.app.heartbound.repositories.pairing.PairingRepository;
+import com.app.heartbound.services.pairing.VoiceStreakService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.entities.Member;
@@ -11,6 +12,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -30,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DiscordVoiceTimeTrackerService extends ListenerAdapter {
 
     private final PairingRepository pairingRepository;
+    private final VoiceStreakService voiceStreakService;
     
     // Track active voice sessions: channelId -> pairingId
     private final ConcurrentHashMap<String, Long> activeVoiceSessions = new ConcurrentHashMap<>();
@@ -160,6 +163,16 @@ public class DiscordVoiceTimeTrackerService extends ListenerAdapter {
                         // Add to total voice time
                         int newTotalMinutes = pairing.getVoiceTimeMinutes() + (int) sessionMinutes;
                         pairing.setVoiceTimeMinutes(newTotalMinutes);
+                        
+                        // 🚀 XP SYSTEM: Update voice streak for today
+                        try {
+                            LocalDate today = LocalDate.now();
+                            // Get current voice minutes for today and add the session
+                            voiceStreakService.updateTodaysVoiceActivity(pairing.getId(), newTotalMinutes);
+                            log.info("Updated voice streak for pairing {} on {}", pairing.getId(), today);
+                        } catch (Exception e) {
+                            log.error("Failed to update voice streak for pairing {}: {}", pairing.getId(), e.getMessage());
+                        }
                         
                         log.info("Ended voice session for pairing {} (duration: {} minutes, total: {} minutes)", 
                             pairing.getId(), sessionMinutes, newTotalMinutes);

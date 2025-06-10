@@ -2,6 +2,8 @@ package com.app.heartbound.services.discord;
 
 import com.app.heartbound.entities.Pairing;
 import com.app.heartbound.repositories.pairing.PairingRepository;
+import com.app.heartbound.services.pairing.PairLevelService;
+import com.app.heartbound.services.pairing.AchievementService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -23,6 +25,8 @@ import java.util.Optional;
 public class DiscordMessageListenerService extends ListenerAdapter {
 
     private final PairingRepository pairingRepository;
+    private final PairLevelService pairLevelService;
+    private final AchievementService achievementService;
 
     @Override
     @Transactional
@@ -81,6 +85,21 @@ public class DiscordMessageListenerService extends ListenerAdapter {
                 
                 // Save the updated pairing
                 pairingRepository.save(pairing);
+                
+                // 🚀 XP SYSTEM: Update XP and check achievements after message activity
+                try {
+                    // Update pair level based on new message count
+                    pairLevelService.updatePairLevelFromActivity(pairing.getId());
+                    
+                    // Check for new achievements (every 100 messages to avoid spam)
+                    if (pairing.getMessageCount() % 100 == 0) {
+                        achievementService.checkAndUnlockAchievements(pairing.getId());
+                    }
+                    
+                    log.debug("Updated XP system for pairing {} after Discord message", pairing.getId());
+                } catch (Exception e) {
+                    log.error("Failed to update XP system for pairing {}: {}", pairing.getId(), e.getMessage());
+                }
                 
                 log.info("Updated message counts for pairing {}: user1={}, user2={}, total={}", 
                     pairing.getId(), 

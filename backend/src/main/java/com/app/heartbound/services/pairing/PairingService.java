@@ -40,6 +40,11 @@ public class PairingService {
     private final SimpMessagingTemplate messagingTemplate;
     private final DiscordPairingChannelService discordPairingChannelService;
     private final DiscordVoiceTimeTrackerService discordVoiceTimeTrackerService;
+    
+    // XP System Services
+    private final PairLevelService pairLevelService;
+    private final AchievementService achievementService;
+    private final VoiceStreakService voiceStreakService;
 
     /**
      * Create a new pairing between two users
@@ -91,6 +96,14 @@ public class PairingService {
         // 🚀 NEW: Create Discord channel for the pairing
         createDiscordChannelForPairing(savedPairing, request.getUser1DiscordId(), request.getUser2DiscordId());
 
+        // 🚀 XP SYSTEM: Initialize pair level for new pairing
+        try {
+            pairLevelService.getOrCreatePairLevel(savedPairing);
+            log.info("Initialized XP system for pairing {}", savedPairing.getId());
+        } catch (Exception e) {
+            log.error("Failed to initialize XP system for pairing {}: {}", savedPairing.getId(), e.getMessage());
+        }
+
         // CREATE BLACKLIST ENTRY IMMEDIATELY - prevents future re-matching
         createBlacklistEntry(sanitizedUser1Id, sanitizedUser2Id, 
                            "Matched on " + LocalDateTime.now() + " - permanent blacklist");
@@ -136,8 +149,21 @@ public class PairingService {
         }
 
         Pairing updatedPairing = pairingRepository.save(pairing);
-        log.info("Successfully updated activity for pairing ID: {}", pairingId);
 
+        // 🚀 XP SYSTEM: Update XP and check achievements after activity update
+        try {
+            // Update pair level based on new activity
+            pairLevelService.updatePairLevelFromActivity(pairingId);
+            
+            // Check for new achievements
+            achievementService.checkAndUnlockAchievements(pairingId);
+            
+            log.info("Updated XP system for pairing {} after activity update", pairingId);
+        } catch (Exception e) {
+            log.error("Failed to update XP system for pairing {}: {}", pairingId, e.getMessage());
+        }
+
+        log.info("Successfully updated activity for pairing ID: {}", pairingId);
         return mapToPairingDTO(updatedPairing);
     }
 

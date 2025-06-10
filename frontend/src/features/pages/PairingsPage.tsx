@@ -32,6 +32,7 @@ import { PartnerUnmatchedModal } from "@/components/modals/PartnerUnmatchedModal
 import { useModalManager } from "@/hooks/useModalManager"
 import { PairingCardList } from "./PairingCard"
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary"
+import { XPCard } from "@/components/pairing/XPCard"
 
 // Constants moved to top level for better performance
 const REGIONS = [
@@ -1063,6 +1064,7 @@ export function PairingsPage() {
                 {/* Current Status */}
                 <AnimatePresence mode="wait">
                   {currentPairing ? (
+                    <>
                     <motion.div
                       key="paired"
                       initial={{ opacity: 0, x: -20 }}
@@ -1275,6 +1277,20 @@ export function PairingsPage() {
                         </CardContent>
                       </Card>
                     </motion.div>
+
+                    {/* XP Card - Show XP, Achievements, and Voice Streaks for Active Pairing */}
+                    <motion.div
+                      key="xp-card"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: 0.2 }}
+                    >
+                      <XPCard 
+                        pairingId={currentPairing.id}
+                        className="mt-8"
+                      />
+                    </motion.div>
+                    </>
                   ) : queueStatus.inQueue ? (
                     <motion.div
                       key="in-queue"
