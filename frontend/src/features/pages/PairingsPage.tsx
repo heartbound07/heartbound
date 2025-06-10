@@ -856,6 +856,81 @@ export function PairingsPage() {
 
                   {/* Right Column */}
                   <div className="xl:col-span-1 space-y-8">
+                    {/* XP Card Skeleton */}
+                    <div className="valorant-card h-fit">
+                      <div className="p-6 border-b border-theme">
+                        <div className="flex items-center gap-3 mb-4">
+                          <Skeleton variant="circular" width="24px" height="24px" theme="valorant" />
+                          <Skeleton width="200px" height="24px" theme="valorant" />
+                        </div>
+                        
+                        {/* Tab Navigation Skeleton */}
+                        <div className="flex gap-2">
+                          {[1, 2, 3].map((i) => (
+                            <Skeleton key={i} width="80px" height="32px" borderRadius="6px" theme="valorant" />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="p-6 space-y-6">
+                        {/* Level Progress Skeleton */}
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Skeleton variant="circular" width="48px" height="48px" theme="valorant" />
+                              <div className="space-y-2">
+                                <Skeleton width="100px" height="20px" theme="valorant" />
+                                <Skeleton width="80px" height="16px" theme="valorant" />
+                              </div>
+                            </div>
+                            <Skeleton width="120px" height="24px" borderRadius="9999px" theme="valorant" />
+                          </div>
+                          
+                          {/* Progress Bar Skeleton */}
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <Skeleton width="100px" height="14px" theme="valorant" />
+                              <Skeleton width="40px" height="14px" theme="valorant" />
+                            </div>
+                            <Skeleton width="100%" height="12px" borderRadius="9999px" theme="valorant" />
+                          </div>
+                        </div>
+                        
+                        {/* Quick Stats Grid Skeleton */}
+                        <div className="grid grid-cols-2 gap-4">
+                          {[1, 2].map((i) => (
+                            <div key={i} className="p-4 rounded-lg bg-theme-container">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Skeleton variant="circular" width="16px" height="16px" theme="valorant" />
+                                <Skeleton width="80px" height="14px" theme="valorant" />
+                              </div>
+                              <Skeleton width="40px" height="24px" theme="valorant" />
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* Recent Items Skeleton */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Skeleton variant="circular" width="16px" height="16px" theme="valorant" />
+                            <Skeleton width="120px" height="16px" theme="valorant" />
+                          </div>
+                          <div className="space-y-2">
+                            {[1, 2].map((i) => (
+                              <div key={i} className="p-3 rounded-lg bg-theme-container">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <Skeleton width="70%" height="16px" className="mb-1" theme="valorant" />
+                                    <Skeleton width="50%" height="12px" theme="valorant" />
+                                  </div>
+                                  <Skeleton width="60px" height="20px" borderRadius="9999px" theme="valorant" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Current Matches */}
                     <div className="valorant-card h-fit">
                       <div className="p-6 border-b border-theme">
