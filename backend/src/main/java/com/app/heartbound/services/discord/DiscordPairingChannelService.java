@@ -41,9 +41,6 @@ public class DiscordPairingChannelService {
     
     // Maximum channel name length allowed by Discord
     private static final int MAX_CHANNEL_NAME_LENGTH = 100;
-    
-    // Channel topic prefix for pairing channels
-    private static final String PAIRING_CHANNEL_TOPIC = "Private channel for matched users - Don't Catch Feelings Challenge";
 
     /**
      * Creates a private text channel for two matched users
@@ -137,7 +134,7 @@ public class DiscordPairingChannelService {
                     return false;
                 }
                 
-                // Verify this is a pairing channel by checking topic or name pattern
+                // Verify this is a pairing channel by checking name pattern
                 if (!isPairingChannel(channel)) {
                     logger.warn("Channel {} does not appear to be a pairing channel, skipping deletion", channelId);
                     return false;
@@ -260,9 +257,6 @@ public class DiscordPairingChannelService {
                 channelAction = channelAction.setParent(category);
             }
             
-            // Set topic
-            channelAction = channelAction.setTopic(PAIRING_CHANNEL_TOPIC);
-            
             // Create the channel
             TextChannel channel = channelAction.complete();
             
@@ -292,12 +286,10 @@ public class DiscordPairingChannelService {
     }
     
     private boolean isPairingChannel(TextChannel channel) {
-        String topic = channel.getTopic();
         String name = channel.getName();
         
-        // Check if it's a pairing channel based on topic or naming pattern
-        return (topic != null && topic.contains("Private channel for matched users")) ||
-               name.matches(".*-\\d+$"); // Ends with dash and number (pairing ID)
+        // Check if it's a pairing channel based on naming pattern
+        return name.matches(".*-\\d+$"); // Ends with dash and number (pairing ID)
     }
     
     private boolean isValidDiscordId(String discordId) {
