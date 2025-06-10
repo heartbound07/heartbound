@@ -1,0 +1,97 @@
+/* 
+ * Z-Index System for Heartbound Application
+ * 
+ * This file documents the standardized z-index system used across the application
+ * to ensure proper layering and prevent visual conflicts between components.
+ * 
+ * HIERARCHY (from bottom to top):
+ * 
+ * 0-99: Base content layers
+ * 100-899: Content overlays and elevated components
+ * 900-949: Navigation (sidebar, mobile menu)
+ * 950-999: Navigation overlays (mobile toggle button)
+ * 1000-1399: Tooltips, dropdowns, and component-level overlays
+ * 1400-1499: Profile previews and temporary UI elements
+ * 1500+: Modal backdrops and critical UI overlays
+ */
+
+:root {
+  /* Base layers */
+  --z-base: 0;
+  --z-content: 1;
+  --z-elevated: 100;
+  
+  /* Navigation layers */
+  --z-sidebar: 900;
+  --z-mobile-toggle: 950;
+  
+  /* Overlay layers */
+  --z-tooltip: 1000;
+  --z-dropdown: 1100;
+  --z-popover: 1200;
+  --z-profile-preview: 1400;
+  
+  /* Modal layers */
+  --z-modal-backdrop: 1500;
+  --z-modal-content: 1501;
+  --z-modal-overlay: 1600;
+}
+
+/* Apply standardized z-index values */
+
+/* Sidebar and navigation */
+.dashboard-nav {
+  z-index: var(--z-sidebar) !important;
+}
+
+.mobile-menu-toggle {
+  z-index: var(--z-mobile-toggle) !important;
+}
+
+/* Profile preview */
+.profile-preview-portal {
+  z-index: var(--z-profile-preview) !important;
+}
+
+/* Modal backdrops - All modals use the same high z-index */
+.match-found-modal-backdrop,
+.no-match-modal-backdrop,
+.breakup-modal-backdrop,
+.breakup-success-modal-backdrop,
+.partner-unmatched-modal-backdrop,
+.group-create-modal-overlay {
+  z-index: var(--z-modal-backdrop) !important;
+}
+
+/* Ensure modal content is above backdrop */
+.modal-content {
+  z-index: var(--z-modal-content) !important;
+}
+
+/* Select dropdowns and other overlays */
+.select-content {
+  z-index: var(--z-dropdown) !important;
+}
+
+/* Tooltips and small overlays */
+.tooltip,
+.popover {
+  z-index: var(--z-tooltip) !important;
+}
+
+/* 
+ * USAGE GUIDELINES:
+ * 
+ * 1. Always use these standardized values instead of arbitrary z-index numbers
+ * 2. If you need a new layer, add it to this system and update the hierarchy
+ * 3. Test on both desktop and mobile to ensure proper layering
+ * 4. Never use z-index values higher than 1600 without updating this system
+ * 5. Document any new components that require specific z-index positioning
+ */
+
+/* 
+ * RESPONSIVE CONSIDERATIONS:
+ * 
+ * Mobile devices may have different stacking contexts, so always test
+ * modal visibility on smaller screens and adjust if necessary.
+ */ 

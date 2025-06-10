@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { HeartCrack, Heart, X, RotateCcw } from "lucide-react"
+import "@/assets/PartnerUnmatchedModal.css"
 
 interface PartnerUnmatchedModalProps {
   isOpen: boolean
@@ -23,14 +24,14 @@ export const PartnerUnmatchedModal: React.FC<PartnerUnmatchedModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm partner-unmatched-modal-backdrop flex items-center justify-center p-4">
         <motion.div
           initial={{ scale: 0.8, opacity: 0, y: 30 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.8, opacity: 0, y: 30 }}
-          className="relative w-full max-w-md"
+          className="partner-unmatched-modal-container"
         >
-          <Card className="valorant-card border-[var(--color-warning)]/30">
+          <Card className="partner-unmatched-modal-card border-[var(--color-warning)]/30">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-3 text-[var(--color-warning)]">

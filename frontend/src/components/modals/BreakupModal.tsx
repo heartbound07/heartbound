@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/valorant/label"
 import { AlertTriangle, Heart, X } from "lucide-react"
-import { cn } from "@/utils/cn"
+import { Textarea } from "@/components/ui/profile/textarea"
+import "@/assets/BreakupModal.css"
 
 interface BreakupModalProps {
   isOpen: boolean
@@ -14,24 +15,6 @@ interface BreakupModalProps {
   onConfirm: (reason: string) => Promise<void>
   partnerName?: string
 }
-
-// Custom Textarea component following the project's pattern
-const Textarea = React.forwardRef<
-  HTMLTextAreaElement,
-  React.TextareaHTMLAttributes<HTMLTextAreaElement>
->(({ className, ...props }, ref) => {
-  return (
-    <textarea
-      className={cn(
-        "flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none",
-        className
-      )}
-      ref={ref}
-      {...props}
-    />
-  )
-})
-Textarea.displayName = "Textarea"
 
 export const BreakupModal: React.FC<BreakupModalProps> = ({
   isOpen,
@@ -69,14 +52,14 @@ export const BreakupModal: React.FC<BreakupModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm breakup-modal-backdrop flex items-center justify-center p-4">
         <motion.div
           initial={{ scale: 0.8, opacity: 0, y: 30 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.8, opacity: 0, y: 30 }}
-          className="relative w-full max-w-md"
+          className="breakup-modal-container"
         >
-          <Card className="valorant-card border-[var(--color-error)]/30">
+          <Card className="breakup-modal-card border-[var(--color-warning)]/30">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-3 text-[var(--color-error)]">

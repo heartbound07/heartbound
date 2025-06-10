@@ -9,7 +9,7 @@
   backdrop-filter: blur(10px);
   transition: all var(--transition-speed) ease;
   overflow-x: hidden;
-  z-index: 1000;
+  z-index: 900;
   padding: 0;
 }
 
@@ -186,9 +186,9 @@
 @media (max-width: 768px) {
   .dashboard-nav {
     transform: translateX(-100%);
-    z-index: 1000;
+    z-index: 900;
     transition: transform var(--transition-speed) ease;
-    width: var(--sidebar-width) !important; /* Always use full width on mobile */
+    width: var(--sidebar-width) !important;
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
   }
   
@@ -222,6 +222,7 @@
     justify-content: center;
     transition: all var(--transition-speed) ease;
     backdrop-filter: blur(4px);
+    z-index: 950;
   }
   
   /* Hide the inner toggle button on mobile */

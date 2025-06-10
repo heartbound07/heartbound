@@ -1,0 +1,70 @@
+/* PartnerUnmatchedModal specific styles - Z-index standardization */
+
+/* Modal backdrop - Standardized z-index system */
+.partner-unmatched-modal-backdrop {
+  z-index: 1500; /* Standardized high value, well above sidebar (900) and mobile elements */
+}
+
+/* Responsive z-index adjustment - keeping same high value for consistency */
+@media (max-width: 768px) {
+  .partner-unmatched-modal-backdrop {
+    z-index: 1500; /* Consistent across all screen sizes */
+  }
+}
+
+/* Modal container */
+.partner-unmatched-modal-container {
+  position: relative;
+  width: 100%;
+  max-width: 28rem; /* max-w-md equivalent */
+}
+
+/* Modal card */
+.partner-unmatched-modal-card {
+  background: rgba(31, 39, 49, 0.3) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Close button */
+.partner-unmatched-modal-close-btn {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.partner-unmatched-modal-close-btn:hover {
+  color: var(--color-text-primary);
+  background: rgba(31, 39, 49, 0.5);
+}
+
+/* Action buttons */
+.partner-unmatched-modal-action-button {
+  width: 100%;
+  height: 3rem;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .partner-unmatched-modal-container {
+    max-width: calc(100vw - 2rem);
+  }
+} 

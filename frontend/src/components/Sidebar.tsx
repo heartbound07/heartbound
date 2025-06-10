@@ -234,7 +234,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
     return ReactDOM.createPortal(
       <div 
         ref={profilePreviewRef}
-        className="fixed z-[9999]"
+        className="fixed z-[1400]"
         style={{ 
           top: `${popupPosition.top}px`, 
           left: `${popupPosition.left}px` 

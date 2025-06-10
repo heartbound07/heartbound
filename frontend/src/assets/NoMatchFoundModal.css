@@ -1,14 +1,14 @@
 /* NoMatchFoundModal specific styles - Optimized and simplified */
 
-/* Modal backdrop - z-index fix only */
+/* Modal backdrop - Standardized z-index system */
 .no-match-modal-backdrop {
-  z-index: 1100; /* Higher than sidebar's z-index: 1000 */
+  z-index: 1500; /* Standardized high value, well above sidebar (900) and mobile elements */
 }
 
-/* Responsive z-index adjustment */
+/* Responsive z-index adjustment - keeping same high value for consistency */
 @media (max-width: 768px) {
   .no-match-modal-backdrop {
-    z-index: 1200; /* Even higher on mobile to ensure it's above mobile sidebar */
+    z-index: 1500; /* Consistent across all screen sizes */
   }
 }
 

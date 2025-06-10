@@ -1,3 +1,6 @@
+/* Import standardized z-index system */
+@import './z-index-system.css';
+
 /* 
  * Theme System
  * This file contains CSS variables and utility classes for theming the application
