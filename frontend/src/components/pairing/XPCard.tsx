@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Zap, Flame, Star, TrendingUp, Award, Target, Calendar } from 'lucide-react';
+import { Trophy, Zap, Flame, Star, TrendingUp, Award, Target, Calendar, Info, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/valorant/badge';
 import { Button } from '@/components/ui/button';
+import httpClient from '@/lib/api/httpClient';
 
 // Types for XP system data
 interface PairLevelData {
@@ -69,47 +70,93 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
       setError(null);
 
       const [levelResponse, achievementsResponse, availableResponse, streaksResponse] = await Promise.allSettled([
-        fetch(`/api/pairings/${pairingId}/level`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        }),
-        fetch(`/api/pairings/${pairingId}/achievements`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        }),
-        fetch(`/api/pairings/${pairingId}/achievements/available`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        }),
-        fetch(`/api/pairings/${pairingId}/streaks`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        })
+        httpClient.get(`/pairings/${pairingId}/level`),
+        httpClient.get(`/pairings/${pairingId}/achievements`),
+        httpClient.get(`/pairings/${pairingId}/achievements/available`),
+        httpClient.get(`/pairings/${pairingId}/streaks`)
       ]);
 
       // Handle level data
-      if (levelResponse.status === 'fulfilled' && levelResponse.value.ok) {
-        const levelData = await levelResponse.value.json();
-        setLevelData(levelData);
+      if (levelResponse.status === 'fulfilled' && levelResponse.value.status === 200) {
+        setLevelData(levelResponse.value.data);
       }
 
       // Handle achievements
-      if (achievementsResponse.status === 'fulfilled' && achievementsResponse.value.ok) {
-        const achievementsData = await achievementsResponse.value.json();
-        setAchievements(achievementsData);
+      if (achievementsResponse.status === 'fulfilled' && achievementsResponse.value.status === 200) {
+        setAchievements(achievementsResponse.value.data);
       }
 
       // Handle available achievements
-      if (availableResponse.status === 'fulfilled' && availableResponse.value.ok) {
-        const availableData = await availableResponse.value.json();
-        setAvailableAchievements(availableData);
+      if (availableResponse.status === 'fulfilled' && availableResponse.value.status === 200) {
+        setAvailableAchievements(availableResponse.value.data);
+      } else {
+        // If API fails, show example achievements for guidance
+        setAvailableAchievements([
+          {
+            id: 1,
+            achievementKey: "FIRST_STEPS",
+            name: "First Steps",
+            description: "Send your first 10 messages",
+            achievementType: "MESSAGE_MILESTONE",
+            xpReward: 50,
+            rarity: "COMMON",
+            tier: "BRONZE"
+          },
+          {
+            id: 2,
+            achievementKey: "VOICE_STREAK_3",
+            name: "Voice Enthusiast",
+            description: "Maintain a 3-day voice streak",
+            achievementType: "VOICE_STREAK",
+            xpReward: 100,
+            rarity: "COMMON",
+            tier: "BRONZE"
+          },
+          {
+            id: 3,
+            achievementKey: "WEEK_WARRIOR",
+            name: "Week Warrior",
+            description: "Stay active for 1 full week",
+            achievementType: "WEEKLY_ACTIVITY",
+            xpReward: 100,
+            rarity: "COMMON",
+            tier: "BRONZE"
+          }
+        ]);
       }
 
       // Handle voice streaks
-      if (streaksResponse.status === 'fulfilled' && streaksResponse.value.ok) {
-        const streaksData = await streaksResponse.value.json();
-        setVoiceStreakStats(streaksData.statistics);
+      if (streaksResponse.status === 'fulfilled' && streaksResponse.value.status === 200) {
+        setVoiceStreakStats(streaksResponse.value.data.statistics);
       }
 
     } catch (err) {
       console.error('Error fetching XP data:', err);
       setError('Failed to load XP data');
+      
+      // Show example achievements even when there's an error
+      setAvailableAchievements([
+        {
+          id: 1,
+          achievementKey: "FIRST_STEPS",
+          name: "First Steps",
+          description: "Send your first 10 messages",
+          achievementType: "MESSAGE_MILESTONE",
+          xpReward: 50,
+          rarity: "COMMON",
+          tier: "BRONZE"
+        },
+        {
+          id: 2,
+          achievementKey: "VOICE_STREAK_3", 
+          name: "Voice Enthusiast",
+          description: "Maintain a 3-day voice streak",
+          achievementType: "VOICE_STREAK",
+          xpReward: 100,
+          rarity: "COMMON",
+          tier: "BRONZE"
+        }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -410,9 +457,63 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
               )}
 
               {achievements.length === 0 && availableAchievements.length === 0 && (
-                <div className="text-center py-8 text-[var(--color-text-secondary)]">
-                  <Trophy className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>No achievements data available</p>
+                <div className="space-y-6">
+                  <div className="text-center py-6">
+                    <Trophy className="h-16 w-16 mx-auto mb-4 text-[var(--color-text-tertiary)]" />
+                    <h3 className="text-xl font-bold text-white mb-2">Start Your Achievement Journey!</h3>
+                    <p className="text-[var(--color-text-secondary)] mb-6">
+                      No achievements unlocked yet. Here's how you can earn them:
+                    </p>
+                  </div>
+
+                  {/* Achievement Categories Guide */}
+                  <div className="grid gap-3">
+                    <div className="p-4 bg-[var(--color-container-bg)] rounded-lg border border-[var(--color-border)]">
+                      <div className="flex items-center gap-3 mb-2">
+                        <MessageSquare className="h-5 w-5 text-blue-400" />
+                        <h4 className="font-semibold text-white">Message Milestones</h4>
+                      </div>
+                      <p className="text-sm text-[var(--color-text-secondary)]">
+                        Send 10, 50, 100, 500, or 1000+ messages to unlock achievements. Every 1000 messages = 100 XP!
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-[var(--color-container-bg)] rounded-lg border border-[var(--color-border)]">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Flame className="h-5 w-5 text-orange-400" />
+                        <h4 className="font-semibold text-white">Voice Streaks</h4>
+                      </div>
+                      <p className="text-sm text-[var(--color-text-secondary)]">
+                        Talk for 30+ minutes daily to build streaks. Achieve 3, 7, 14, or 30+ day streaks for rewards!
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-[var(--color-container-bg)] rounded-lg border border-[var(--color-border)]">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Calendar className="h-5 w-5 text-green-400" />
+                        <h4 className="font-semibold text-white">Weekly Activity</h4>
+                      </div>
+                      <p className="text-sm text-[var(--color-text-secondary)]">
+                        Stay active for 1, 4, 12, or 26+ weeks. Consistent activity earns 100 XP per week!
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-[var(--color-container-bg)] rounded-lg border border-[var(--color-border)]">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Info className="h-5 w-5 text-purple-400" />
+                        <h4 className="font-semibold text-white">Special Achievements</h4>
+                      </div>
+                      <p className="text-sm text-[var(--color-text-secondary)]">
+                        Voice time milestones, compatibility bonuses, and longevity rewards await!
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-center p-4 bg-primary/10 rounded-lg border border-primary/20">
+                    <p className="text-sm text-primary font-medium">
+                      💡 Tip: Start chatting and using voice to begin earning your first achievements!
+                    </p>
+                  </div>
                 </div>
               )}
             </motion.div>
