@@ -179,16 +179,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
     }
   };
 
-  // Get streak tier color
-  const getStreakTierColor = (tier: string) => {
-    switch (tier.toLowerCase()) {
-      case 'legendary': return 'text-yellow-400';
-      case 'epic': return 'text-purple-400';
-      case 'rare': return 'text-blue-400';
-      case 'common': return 'text-green-400';
-      default: return 'text-gray-400';
-    }
-  };
+
 
   if (loading) {
     return (
