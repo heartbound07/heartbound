@@ -246,10 +246,10 @@ const QueueJoinForm = memo(({
               </div>
             </div>
 
-            <div>
-              <Button
+            <div className="text-center">
+              <button
                 type="submit"
-                className="w-full valorant-button-primary h-12 text-base font-semibold"
+                className="join-queue-button"
                 disabled={loading || !isFormValid}
               >
                 {loading ? (
@@ -260,7 +260,7 @@ const QueueJoinForm = memo(({
                     Join the Queue
                   </>
                 )}
-              </Button>
+              </button>
             </div>
           </form>
         </CardContent>

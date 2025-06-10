@@ -330,3 +330,117 @@
 .pairings-content .valorant-card button:hover svg {
   transform: scale(1.1);
 }
+
+/* Join Queue Button - Custom minimal aesthetic design */
+.join-queue-button {
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem; /* 8px gap between icon and text */
+  
+  /* Sizing */
+  padding: 0.875rem 1.5rem; /* py-3.5 px-6 equivalent - slightly larger for better click target */
+  min-height: 3rem; /* 48px minimum height */
+  
+  /* Typography */
+  font-size: 1rem; /* text-base */
+  font-weight: 600; /* font-semibold */
+  font-family: inherit;
+  line-height: 1.5;
+  
+  /* Colors & Background */
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(31, 39, 49, 0.4); /* Matches valorant-card background */
+  border: 1px solid rgba(255, 255, 255, 0.08); /* Subtle border like other cards */
+  
+  /* Visual Effects */
+  border-radius: 0.5rem; /* rounded-lg to match card styling */
+  backdrop-filter: blur(8px); /* Matches card backdrop blur */
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  
+  /* Transitions */
+  transition: all 0.2s ease;
+  
+  /* Cursor */
+  cursor: pointer;
+  
+  /* Remove browser defaults */
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  text-decoration: none;
+  
+  /* Position for pseudo-elements */
+  position: relative;
+  overflow: hidden;
+}
+
+/* Hover Effects */
+.join-queue-button:hover:not(:disabled) {
+  color: white;
+  background: rgba(31, 39, 49, 0.6); /* Slightly more opaque on hover */
+  border-color: rgba(255, 255, 255, 0.15); /* More visible border */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px); /* Subtle lift effect */
+}
+
+/* Icon color change on hover */
+.join-queue-button:hover:not(:disabled) svg {
+  color: #FF4655; /* Valorant accent color for icon */
+  transform: scale(1.05); /* Subtle icon scale */
+}
+
+/* Active/Pressed State */
+.join-queue-button:active:not(:disabled) {
+  transform: translateY(0); /* Return to original position */
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  background: rgba(31, 39, 49, 0.7);
+}
+
+/* Disabled State */
+.join-queue-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  background: rgba(31, 39, 49, 0.2);
+  border-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.join-queue-button:disabled svg {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Focus State for Accessibility */
+.join-queue-button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* Icon Styling within Button */
+.join-queue-button svg {
+  width: 1.25rem; /* w-5 */
+  height: 1.25rem; /* h-5 */
+  transition: all 0.2s ease;
+  flex-shrink: 0; /* Prevent icon from shrinking */
+}
+
+/* Loading State Skeleton Override */
+.join-queue-button .skeleton {
+  margin: 0 auto;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 640px) {
+  .join-queue-button {
+    padding: 0.75rem 1.25rem; /* Slightly smaller on mobile */
+    font-size: 0.9rem;
+    min-height: 2.75rem; /* 44px - standard mobile touch target */
+  }
+  
+  .join-queue-button svg {
+    width: 1.125rem; /* Slightly smaller icon on mobile */
+    height: 1.125rem;
+  }
+}
