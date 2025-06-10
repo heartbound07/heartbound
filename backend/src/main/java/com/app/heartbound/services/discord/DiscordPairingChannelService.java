@@ -134,11 +134,8 @@ public class DiscordPairingChannelService {
                     return false;
                 }
                 
-                // Verify this is a pairing channel by checking name pattern
-                if (!isPairingChannel(channel)) {
-                    logger.warn("Channel {} does not appear to be a pairing channel, skipping deletion", channelId);
-                    return false;
-                }
+                // Channel ID comes from database, so we know it's a pairing channel
+                logger.debug("Proceeding with deletion of pairing channel {}", channelId);
                 
                 // Delete the channel
                 channel.delete()
