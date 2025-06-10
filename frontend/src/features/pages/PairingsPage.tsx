@@ -1211,7 +1211,7 @@ export function PairingsPage() {
                             <div className="p-4 bg-[var(--color-container-bg)] rounded-xl border border-[var(--color-border)]">
                               <div className="flex items-center gap-3 mb-4">
                                 <MessageSquare className="h-5 w-5 text-[var(--color-info)]" />
-                                <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">Chat Activity</h3>
+                                <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">Activity</h3>
                               </div>
                               
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

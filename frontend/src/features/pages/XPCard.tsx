@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/valorant/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/valorant/tooltip';
+import { useTheme } from '@/contexts/ThemeContext';
 import httpClient from '@/lib/api/httpClient';
 
 // Types for XP system data
@@ -56,6 +57,7 @@ interface XPCardProps {
 }
 
 export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => {
+  const { theme } = useTheme();
   const [levelData, setLevelData] = useState<PairLevelData | null>(null);
   const [achievements, setAchievements] = useState<PairAchievement[]>([]);
   const [availableAchievements, setAvailableAchievements] = useState<Achievement[]>([]);
@@ -212,11 +214,11 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="h-20 bg-[var(--color-container-bg)] rounded-lg animate-pulse" />
-            <div className="h-16 bg-[var(--color-container-bg)] rounded-lg animate-pulse" />
-            <div className="h-12 bg-[var(--color-container-bg)] rounded-lg animate-pulse" />
-          </div>
+                      <div className="space-y-4">
+              <div className="h-20 bg-theme-container rounded-lg animate-pulse" />
+              <div className="h-16 bg-theme-container rounded-lg animate-pulse" />
+              <div className="h-12 bg-theme-container rounded-lg animate-pulse" />
+            </div>
         </CardContent>
       </Card>
     );
@@ -245,11 +247,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
 
   return (
     <TooltipProvider>
-      <Card className={`valorant-card ${className}`} style={{ 
-        background: 'rgba(31, 39, 49, 0.3)', 
-        backdropFilter: 'blur(8px)', 
-        border: '1px solid rgba(255, 255, 255, 0.05)' 
-      }}>
+      <Card className={`valorant-card bg-theme-card border-theme theme-transition ${className}`}>
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-3 text-white text-xl">
             <div className="p-2 bg-primary/20 rounded-lg">
@@ -268,10 +266,10 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
               <button
                 key={key}
                 onClick={() => setActiveTab(key as any)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium theme-transition ${
                   activeTab === key
                     ? 'bg-primary/20 text-primary border border-primary/30'
-                    : 'bg-[var(--color-container-bg)] text-[var(--color-text-secondary)] hover:bg-[var(--color-container-bg)]/80'
+                    : 'bg-theme-container text-theme-secondary hover:bg-theme-container/80'
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -302,7 +300,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                         </div>
                         <div>
                           <h3 className="text-lg font-bold text-white">Level {levelData.currentLevel}</h3>
-                          <p className="text-sm text-[var(--color-text-secondary)]">
+                          <p className="text-sm text-theme-secondary">
                             {levelData.totalXP.toLocaleString()} Total XP
                           </p>
                         </div>
@@ -315,14 +313,14 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                     {/* XP Progress Bar */}
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-[var(--color-text-secondary)]">
+                        <span className="text-theme-secondary">
                           {levelData.currentLevelXP} / {levelData.nextLevelXP} XP
                         </span>
                         <span className="text-primary font-medium">
                           {Math.round(levelData.levelProgressPercentage)}%
                         </span>
                       </div>
-                      <div className="h-3 bg-[var(--color-container-bg)] rounded-full overflow-hidden">
+                      <div className="h-3 bg-theme-container rounded-full overflow-hidden">
                         <motion.div
                           className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full"
                           initial={{ width: 0 }}
@@ -336,25 +334,19 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
 
                 {/* Quick Stats */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-lg" style={{ 
-                    background: 'rgba(31, 39, 49, 0.4)', 
-                    border: '1px solid rgba(255, 255, 255, 0.05)' 
-                  }}>
+                  <div className="p-4 rounded-lg bg-theme-container border-theme theme-transition">
                     <div className="flex items-center gap-2 mb-2">
                       <Trophy className="h-4 w-4 text-yellow-400" />
-                      <span className="text-sm text-[var(--color-text-secondary)]">Achievements</span>
+                      <span className="text-sm text-theme-secondary">Achievements</span>
                     </div>
                     <div className="text-xl font-bold text-white">{achievements.length}</div>
                   </div>
                   
                   {voiceStreakStats && (
-                    <div className="p-4 rounded-lg" style={{ 
-                      background: 'rgba(31, 39, 49, 0.4)', 
-                      border: '1px solid rgba(255, 255, 255, 0.05)' 
-                    }}>
+                    <div className="p-4 rounded-lg bg-theme-container border-theme theme-transition">
                       <div className="flex items-center gap-2 mb-2">
                         <Flame className={`h-4 w-4 ${voiceStreakStats.currentStreak > 0 ? 'text-orange-400' : 'text-gray-400'}`} />
-                        <span className="text-sm text-[var(--color-text-secondary)]">Voice Streak</span>
+                        <span className="text-sm text-theme-secondary">Voice Streak</span>
                       </div>
                       <div className="text-xl font-bold text-white">
                         {voiceStreakStats.currentStreak} days
@@ -366,7 +358,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                 {/* Recent Achievements */}
                 {achievements.length > 0 && (
                   <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-[var(--color-text-secondary)] flex items-center gap-2">
+                    <h4 className="text-sm font-medium text-theme-secondary flex items-center gap-2">
                       <Award className="h-4 w-4" />
                       Recent Achievements
                     </h4>
@@ -374,13 +366,12 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                       {achievements.slice(0, 3).map((achievement) => (
                         <div
                           key={achievement.id}
-                          className={`p-3 rounded-lg border ${getRarityColor(achievement.achievement.rarity)}`}
-                          style={{ background: 'rgba(31, 39, 49, 0.5)' }}
+                          className={`p-3 rounded-lg border ${getRarityColor(achievement.achievement.rarity)} bg-theme-container theme-transition`}
                         >
                           <div className="flex items-center justify-between">
                             <div>
                               <h5 className="font-medium text-white">{achievement.achievement.name}</h5>
-                              <p className="text-xs text-[var(--color-text-secondary)]">
+                              <p className="text-xs text-theme-secondary">
                                 {achievement.unlockTimeDisplay}
                               </p>
                             </div>
@@ -408,7 +399,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                 {/* Completed Achievements */}
                 {achievements.length > 0 && (
                   <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-[var(--color-text-secondary)] flex items-center gap-2">
+                    <h4 className="text-sm font-medium text-theme-secondary flex items-center gap-2">
                       <Trophy className="h-4 w-4" />
                       Completed ({achievements.length})
                     </h4>
@@ -416,16 +407,15 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                       {achievements.map((achievement) => (
                         <div
                           key={achievement.id}
-                          className={`p-3 rounded-lg border ${getRarityColor(achievement.achievement.rarity)}`}
-                          style={{ background: 'rgba(31, 39, 49, 0.5)' }}
+                          className={`p-3 rounded-lg border ${getRarityColor(achievement.achievement.rarity)} bg-theme-container theme-transition`}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <h5 className="font-medium text-white">{achievement.achievement.name}</h5>
-                              <p className="text-sm text-[var(--color-text-secondary)] mt-1">
+                              <p className="text-sm text-theme-secondary mt-1">
                                 {achievement.achievement.description}
                               </p>
-                              <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
+                              <p className="text-xs text-theme-tertiary mt-1">
                                 Unlocked {achievement.unlockTimeDisplay}
                               </p>
                             </div>
@@ -433,7 +423,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                               <Badge variant="outline" className="text-primary border-primary/30 mb-1">
                                 +{achievement.xpAwarded} XP
                               </Badge>
-                              <div className="text-xs text-[var(--color-text-secondary)]">
+                              <div className="text-xs text-theme-secondary">
                                 {achievement.achievement.tier}
                               </div>
                             </div>
@@ -447,7 +437,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                 {/* Available Achievements */}
                 {availableAchievements.length > 0 && (
                   <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-[var(--color-text-secondary)] flex items-center gap-2">
+                    <h4 className="text-sm font-medium text-theme-secondary flex items-center gap-2">
                       <Target className="h-4 w-4" />
                       Available ({availableAchievements.length})
                     </h4>
@@ -455,13 +445,12 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                       {availableAchievements.map((achievement) => (
                         <div
                           key={achievement.id}
-                          className="p-3 rounded-lg border border-gray-600 opacity-75"
-                          style={{ background: 'rgba(31, 39, 49, 0.3)' }}
+                          className="p-3 rounded-lg border border-gray-600 opacity-75 bg-theme-card theme-transition"
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <h5 className="font-medium text-white">{achievement.name}</h5>
-                              <p className="text-sm text-[var(--color-text-secondary)] mt-1">
+                              <p className="text-sm text-theme-secondary mt-1">
                                 {achievement.description}
                               </p>
                             </div>
@@ -469,7 +458,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                               <Badge variant="outline" className="text-gray-400 border-gray-600 mb-1">
                                 {achievement.xpReward} XP
                               </Badge>
-                              <div className="text-xs text-[var(--color-text-secondary)]">
+                              <div className="text-xs text-theme-secondary">
                                 {achievement.tier}
                               </div>
                             </div>
@@ -483,63 +472,51 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                 {achievements.length === 0 && availableAchievements.length === 0 && (
                   <div className="space-y-6">
                     <div className="text-center py-6">
-                      <Trophy className="h-16 w-16 mx-auto mb-4 text-[var(--color-text-tertiary)]" />
+                      <Trophy className="h-16 w-16 mx-auto mb-4 text-theme-tertiary" />
                       <h3 className="text-xl font-bold text-white mb-2">Start Your Achievement Journey!</h3>
-                      <p className="text-[var(--color-text-secondary)] mb-6">
+                      <p className="text-theme-secondary mb-6">
                         No achievements unlocked yet. Here's how you can earn them:
                       </p>
                     </div>
 
                     {/* Achievement Categories Guide */}
                     <div className="grid gap-3">
-                      <div className="p-4 rounded-lg" style={{ 
-                        background: 'rgba(31, 39, 49, 0.4)', 
-                        border: '1px solid rgba(255, 255, 255, 0.05)' 
-                      }}>
+                      <div className="p-4 rounded-lg bg-theme-container border-theme theme-transition">
                         <div className="flex items-center gap-3 mb-2">
                           <MessageSquare className="h-5 w-5 text-blue-400" />
                           <h4 className="font-semibold text-white">Message Milestones</h4>
                         </div>
-                        <p className="text-sm text-[var(--color-text-secondary)]">
+                        <p className="text-sm text-theme-secondary">
                           Send 10, 50, 100, 500, or 1000+ messages to unlock achievements. Every 1000 messages = 100 XP!
                         </p>
                       </div>
 
-                      <div className="p-4 rounded-lg" style={{ 
-                        background: 'rgba(31, 39, 49, 0.4)', 
-                        border: '1px solid rgba(255, 255, 255, 0.05)' 
-                      }}>
+                      <div className="p-4 rounded-lg bg-theme-container border-theme theme-transition">
                         <div className="flex items-center gap-3 mb-2">
                           <Flame className="h-5 w-5 text-orange-400" />
                           <h4 className="font-semibold text-white">Voice Streaks</h4>
                         </div>
-                        <p className="text-sm text-[var(--color-text-secondary)]">
+                        <p className="text-sm text-theme-secondary">
                           Talk for 30+ minutes daily to build streaks. Achieve 3, 7, 14, or 30+ day streaks for rewards!
                         </p>
                       </div>
 
-                      <div className="p-4 rounded-lg" style={{ 
-                        background: 'rgba(31, 39, 49, 0.4)', 
-                        border: '1px solid rgba(255, 255, 255, 0.05)' 
-                      }}>
+                      <div className="p-4 rounded-lg bg-theme-container border-theme theme-transition">
                         <div className="flex items-center gap-3 mb-2">
                           <Calendar className="h-5 w-5 text-green-400" />
                           <h4 className="font-semibold text-white">Weekly Activity</h4>
                         </div>
-                        <p className="text-sm text-[var(--color-text-secondary)]">
+                        <p className="text-sm text-theme-secondary">
                           Stay active for 1, 4, 12, or 26+ weeks. Consistent activity earns 100 XP per week!
                         </p>
                       </div>
 
-                      <div className="p-4 rounded-lg" style={{ 
-                        background: 'rgba(31, 39, 49, 0.4)', 
-                        border: '1px solid rgba(255, 255, 255, 0.05)' 
-                      }}>
+                      <div className="p-4 rounded-lg bg-theme-container border-theme theme-transition">
                         <div className="flex items-center gap-3 mb-2">
                           <Info className="h-5 w-5 text-purple-400" />
                           <h4 className="font-semibold text-white">Special Achievements</h4>
                         </div>
-                        <p className="text-sm text-[var(--color-text-secondary)]">
+                        <p className="text-sm text-theme-secondary">
                           Voice time milestones, compatibility bonuses, and longevity rewards await!
                         </p>
                       </div>
@@ -581,7 +558,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                               <HelpCircle className="h-4 w-4 text-orange-400/70" />
                             </button>
                           </TooltipTrigger>
-                          <TooltipContent className="max-w-sm bg-[#1F2731] border border-orange-500/30 text-white">
+                          <TooltipContent className="max-w-sm bg-theme-container border border-orange-500/30 text-white">
                             <div className="space-y-3">
                               <div>
                                 <p className="font-medium text-orange-400">Current Streak:</p>
@@ -608,20 +585,17 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                       <div className="text-3xl font-bold text-orange-400 mb-2">
                         {voiceStreakStats.currentStreak} days
                       </div>
-                      <p className="text-sm text-[var(--color-text-secondary)]">
+                      <p className="text-sm text-theme-secondary">
                         {voiceStreakStats.hasActivityToday ? '🔥 Active today!' : 'No activity today'}
                       </p>
                     </div>
 
                     {/* Streak Stats */}
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 rounded-lg" style={{ 
-                        background: 'rgba(31, 39, 49, 0.4)', 
-                        border: '1px solid rgba(255, 255, 255, 0.05)' 
-                      }}>
+                      <div className="p-4 rounded-lg bg-theme-container border-theme theme-transition">
                         <div className="flex items-center gap-2 mb-2">
                           <TrendingUp className="h-4 w-4 text-blue-400" />
-                          <span className="text-sm text-[var(--color-text-secondary)]">Best Streak</span>
+                          <span className="text-sm text-theme-secondary">Best Streak</span>
                           <Tooltip open={openTooltip === 'best-streak'} onOpenChange={() => {}}>
                             <TooltipTrigger asChild>
                               <button 
@@ -632,7 +606,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                                 <HelpCircle className="h-3 w-3 text-blue-400/70" />
                               </button>
                             </TooltipTrigger>
-                            <TooltipContent className="bg-[#1F2731] border border-blue-500/30 text-white">
+                            <TooltipContent className="bg-theme-container border border-blue-500/30 text-white">
                               <p className="text-xs">Your longest consecutive daily voice streak</p>
                             </TooltipContent>
                           </Tooltip>
@@ -642,13 +616,10 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                         </div>
                       </div>
                       
-                      <div className="p-4 rounded-lg" style={{ 
-                        background: 'rgba(31, 39, 49, 0.4)', 
-                        border: '1px solid rgba(255, 255, 255, 0.05)' 
-                      }}>
+                      <div className="p-4 rounded-lg bg-theme-container border-theme theme-transition">
                         <div className="flex items-center gap-2 mb-2">
                           <Calendar className="h-4 w-4 text-green-400" />
-                          <span className="text-sm text-[var(--color-text-secondary)]">Active Days</span>
+                          <span className="text-sm text-theme-secondary">Active Days</span>
                           <Tooltip open={openTooltip === 'active-days'} onOpenChange={() => {}}>
                             <TooltipTrigger asChild>
                               <button 
@@ -659,7 +630,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                                 <HelpCircle className="h-3 w-3 text-green-400/70" />
                               </button>
                             </TooltipTrigger>
-                            <TooltipContent className="bg-[#1F2731] border border-green-500/30 text-white">
+                            <TooltipContent className="bg-theme-container border border-green-500/30 text-white">
                               <p className="text-xs">Total days you've used voice chat for 30+ minutes</p>
                             </TooltipContent>
                           </Tooltip>
@@ -676,7 +647,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <Trophy className="h-4 w-4 text-yellow-400" />
-                        <h4 className="text-sm font-medium text-[var(--color-text-secondary)]">Streak Milestones & XP Rewards</h4>
+                        <h4 className="text-sm font-medium text-theme-secondary">Streak Milestones & XP Rewards</h4>
                         <Tooltip open={openTooltip === 'streak-rewards'} onOpenChange={() => {}}>
                           <TooltipTrigger asChild>
                             <button 
@@ -687,7 +658,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                               <HelpCircle className="h-4 w-4 text-yellow-400/70" />
                             </button>
                           </TooltipTrigger>
-                          <TooltipContent className="max-w-sm bg-[#1F2731] border border-yellow-500/30 text-white">
+                          <TooltipContent className="max-w-sm bg-theme-container border border-yellow-500/30 text-white">
                             <div className="space-y-2">
                               <p className="font-medium text-yellow-400">Streak XP Rewards:</p>
                               <ul className="text-xs space-y-1">
@@ -722,7 +693,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                                 <div className={`text-sm font-medium ${achieved ? `text-${color}-400` : 'text-gray-400'}`}>
                                   {days} Days
                                 </div>
-                                <div className="text-xs text-[var(--color-text-secondary)]">
+                                <div className="text-xs text-theme-secondary">
                                   +{xp} XP
                                 </div>
                               </div>
@@ -738,7 +709,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                     </div>
                   </>
                 ) : (
-                  <div className="text-center py-8 text-[var(--color-text-secondary)]">
+                                      <div className="text-center py-8 text-theme-secondary">
                     <Flame className="h-12 w-12 mx-auto mb-3 opacity-50" />
                     <p>No voice streak data available</p>
                     <p className="text-xs mt-2">Start using voice chat to begin tracking your streaks!</p>
