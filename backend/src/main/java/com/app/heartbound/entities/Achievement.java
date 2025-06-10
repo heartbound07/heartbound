@@ -94,15 +94,29 @@ public class Achievement {
     }
 
     /**
-     * Get the display tier based on requirement value for milestone achievements
+     * Get the display tier based on rarity for all achievement types
      */
     public String getTier() {
-        if (achievementType == AchievementType.MESSAGE_MILESTONE) {
-            if (requirementValue >= 10000) return "Diamond";
-            if (requirementValue >= 5000) return "Gold";
-            if (requirementValue >= 1000) return "Silver";
-            return "Bronze";
+        // Map rarity to display-friendly tier names
+        switch (rarity.toLowerCase()) {
+            case "legendary":
+                return "Legendary";
+            case "diamond":
+                return "Diamond";
+            case "gold":
+                return "Gold";
+            case "silver":
+                return "Silver";
+            case "bronze":
+                return "Bronze";
+            case "rare":
+                return "Rare";
+            case "epic":
+                return "Epic";
+            case "common":
+                return "Common";
+            default:
+                return "Standard";
         }
-        return "Standard";
     }
 } 
