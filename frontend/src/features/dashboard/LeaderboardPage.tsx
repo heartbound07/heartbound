@@ -65,11 +65,8 @@ export function LeaderboardPage() {
   }, []);
 
   // Handle UserRankCard click navigation
-  const handleUserRankCardClick = useCallback((userRank: number, userData: UserProfileDTO) => {
-    const itemsPerPage = 9;
-    const targetPage = Math.ceil(userRank / itemsPerPage);
-    
-    // Set highlighting
+  const handleUserRankCardClick = useCallback((userData: UserProfileDTO) => {
+    // Set highlighting - the Leaderboard component will handle page navigation automatically
     setHighlightedUserId(userData.id);
     
     // Clear highlight after 3 seconds
@@ -79,9 +76,9 @@ export function LeaderboardPage() {
   }, []);
 
   // Handle page navigation from leaderboard
-  const handleGoToPage = useCallback((page: number) => {
-    // This will be called when leaderboard pagination changes
-    // We can use this for additional logic if needed
+  const handleGoToPage = useCallback(() => {
+    // This callback is available for future use if needed
+    // Page navigation is currently handled automatically by the Leaderboard component
   }, []);
 
   // Memoized current user profile calculation

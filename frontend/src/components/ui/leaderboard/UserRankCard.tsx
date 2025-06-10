@@ -8,7 +8,7 @@ interface UserRankCardProps {
   currentUser: UserProfileDTO | null;
   leaderboardUsers: UserProfileDTO[];
   leaderboardType: 'credits' | 'level';
-  onClick?: (userRank: number, userData: UserProfileDTO) => void;
+  onClick?: (userData: UserProfileDTO) => void;
 }
 
 // Optimized animation variants
@@ -76,7 +76,7 @@ export const UserRankCard = React.memo(function UserRankCard({
   // Handle click
   const handleClick = () => {
     if (onClick && userData && currentUser) {
-      onClick(userData.rank, currentUser);
+      onClick(currentUser);
     }
   };
 
