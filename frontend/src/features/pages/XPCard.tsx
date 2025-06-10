@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/valorant/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/valorant/tooltip';
-import { useTheme } from '@/contexts/ThemeContext';
 import httpClient from '@/lib/api/httpClient';
 
 // Types for XP system data
@@ -57,7 +56,6 @@ interface XPCardProps {
 }
 
 export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => {
-  const { theme } = useTheme();
   const [levelData, setLevelData] = useState<PairLevelData | null>(null);
   const [achievements, setAchievements] = useState<PairAchievement[]>([]);
   const [availableAchievements, setAvailableAchievements] = useState<Achievement[]>([]);
