@@ -8,6 +8,7 @@ interface UserRankCardProps {
   currentUser: UserProfileDTO | null;
   leaderboardUsers: UserProfileDTO[];
   leaderboardType: 'credits' | 'level';
+  onClick?: (userRank: number, userData: UserProfileDTO) => void;
 }
 
 // Optimized animation variants
@@ -29,10 +30,13 @@ const ICON_ANIMATION = {
   transition: { delay: 0.2, duration: 0.3, ease: "easeOut" }
 };
 
+// Removed HOVER_ANIMATION - now using CSS for better performance
+
 export const UserRankCard = React.memo(function UserRankCard({ 
   currentUser, 
   leaderboardUsers, 
-  leaderboardType 
+  leaderboardType,
+  onClick
 }: UserRankCardProps) {
   const { theme } = useTheme();
   
@@ -66,9 +70,16 @@ export const UserRankCard = React.memo(function UserRankCard({
   // Memoized theme-specific styles
   const themeStyles = useMemo(() => ({
     levelIconColor: theme === 'default' ? "text-blue-400" : "text-[var(--color-primary)]",
-    containerClass: `leaderboard-container theme-transition ${theme === 'default' ? 'theme-default' : 'theme-dark'} max-content rounded-xl shadow-md`
-  }), [theme]);
+    containerClass: `leaderboard-container theme-transition ${theme === 'default' ? 'theme-default' : 'theme-dark'} max-content rounded-xl shadow-md ${onClick ? 'cursor-pointer' : ''}`
+  }), [theme, onClick]);
   
+  // Handle click
+  const handleClick = () => {
+    if (onClick && userData && currentUser) {
+      onClick(userData.rank, currentUser);
+    }
+  };
+
   if (!userData) return null;
 
   const { rank, rankIcon } = userData;
@@ -77,6 +88,7 @@ export const UserRankCard = React.memo(function UserRankCard({
     <motion.div 
       className={themeStyles.containerClass}
       style={{ width: 'max-content' }}
+      onClick={handleClick}
       {...CARD_ANIMATION}
     >
       <div className="p-2 px-3">

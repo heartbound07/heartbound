@@ -50,6 +50,7 @@ export function LeaderboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [leaderboardType, setLeaderboardType] = useState<'credits' | 'level'>('credits');
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfileDTO | null>(null);
+  const [highlightedUserId, setHighlightedUserId] = useState<string | null>(null);
   
   // Get authenticated user from auth context
   const { user, isAuthenticated } = useAuth();
@@ -61,6 +62,26 @@ export function LeaderboardPage() {
 
   const handleCreditsToggle = useCallback(() => {
     setLeaderboardType('credits');
+  }, []);
+
+  // Handle UserRankCard click navigation
+  const handleUserRankCardClick = useCallback((userRank: number, userData: UserProfileDTO) => {
+    const itemsPerPage = 9;
+    const targetPage = Math.ceil(userRank / itemsPerPage);
+    
+    // Set highlighting
+    setHighlightedUserId(userData.id);
+    
+    // Clear highlight after 3 seconds
+    setTimeout(() => {
+      setHighlightedUserId(null);
+    }, 3000);
+  }, []);
+
+  // Handle page navigation from leaderboard
+  const handleGoToPage = useCallback((page: number) => {
+    // This will be called when leaderboard pagination changes
+    // We can use this for additional logic if needed
   }, []);
 
   // Memoized current user profile calculation
@@ -167,6 +188,8 @@ export function LeaderboardPage() {
           limit={100}
           leaderboardType={leaderboardType}
           itemsPerPage={9}
+          highlightUserId={highlightedUserId}
+          onGoToPage={handleGoToPage}
         />
       </motion.div>
 
@@ -182,6 +205,7 @@ export function LeaderboardPage() {
               currentUser={currentUserProfile}
               leaderboardUsers={users}
               leaderboardType={leaderboardType}
+              onClick={handleUserRankCardClick}
             />
           </motion.div>
         )}

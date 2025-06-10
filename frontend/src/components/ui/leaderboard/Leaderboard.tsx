@@ -19,6 +19,8 @@ interface LeaderboardProps {
   className?: string;
   leaderboardType?: 'credits' | 'level';
   itemsPerPage?: number;
+  highlightUserId?: string | null;
+  onGoToPage?: (page: number) => void;
 }
 
 // Optimized animation variants defined outside component
@@ -52,7 +54,8 @@ const LeaderboardRow = React.memo(({
   leaderboardType, 
   compact, 
   onClick,
-  positionDetails 
+  positionDetails,
+  isHighlighted 
 }: {
   user: UserProfileDTO;
   index: number;
@@ -61,15 +64,18 @@ const LeaderboardRow = React.memo(({
   compact: boolean;
   onClick: (user: UserProfileDTO, event: React.MouseEvent) => void;
   positionDetails: { icon: React.ReactNode; className: string };
+  isHighlighted?: boolean;
 }) => {
   const handleClick = useCallback((event: React.MouseEvent) => {
     onClick(user, event);
   }, [user, onClick]);
 
+  const highlightClassName = isHighlighted ? "highlighted" : "";
+
   return (
     <motion.div
       key={user.id || index}
-      className={`leaderboard-row ${positionDetails.className} cursor-pointer`}
+      className={`leaderboard-row ${positionDetails.className} ${highlightClassName} cursor-pointer`}
       onClick={handleClick}
       variants={ROW_VARIANTS}
       style={{ willChange: 'transform, opacity' }} // Optimize for animations
@@ -209,6 +215,8 @@ export const Leaderboard = React.memo(function Leaderboard({
   className = "",
   leaderboardType = 'credits',
   itemsPerPage = 9,
+  highlightUserId,
+  onGoToPage,
 }: LeaderboardProps) {
   // State for handling user profile modal
   const [selectedUser, setSelectedUser] = useState<UserProfileDTO | null>(null);
@@ -252,8 +260,9 @@ export const Leaderboard = React.memo(function Leaderboard({
   const goToPage = useCallback((page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
+      onGoToPage?.(page);
     }
-  }, [totalPages]);
+  }, [totalPages, onGoToPage]);
 
   // Memoized position details calculation
   const getPositionDetails = useCallback((index: number) => {
@@ -296,6 +305,19 @@ export const Leaderboard = React.memo(function Leaderboard({
   useEffect(() => {
     setCurrentPage(1);
   }, [leaderboardType, users]);
+
+  // Navigate to correct page when a user is highlighted
+  useEffect(() => {
+    if (highlightUserId && limitedUsers.length > 0) {
+      const userIndex = limitedUsers.findIndex(user => user.id === highlightUserId);
+      if (userIndex !== -1) {
+        const targetPage = Math.ceil((userIndex + 1) / itemsPerPage);
+        if (targetPage !== currentPage) {
+          setCurrentPage(targetPage);
+        }
+      }
+    }
+  }, [highlightUserId, limitedUsers, itemsPerPage, currentPage]);
 
   return (
     <>
@@ -356,6 +378,7 @@ export const Leaderboard = React.memo(function Leaderboard({
                   displayUsers.map((user, index) => {
                     const actualIndex = startIndex + index;
                     const positionDetails = getPositionDetails(actualIndex);
+                    const isHighlighted = highlightUserId === user.id;
                     
                     return (
                       <LeaderboardRow
@@ -367,6 +390,7 @@ export const Leaderboard = React.memo(function Leaderboard({
                         compact={compact}
                         onClick={handleUserClick}
                         positionDetails={positionDetails}
+                        isHighlighted={isHighlighted}
                       />
                     );
                   })

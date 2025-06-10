@@ -462,6 +462,42 @@
   transform: translateZ(0);
 }
 
+/* Highlight animations for user navigation */
+.leaderboard-row.highlighted {
+  background: linear-gradient(90deg, 
+    rgba(2, 132, 199, 0.15) 0%, 
+    rgba(2, 132, 199, 0.08) 100%) !important;
+  border: 1px solid rgba(2, 132, 199, 0.3) !important;
+  box-shadow: 0 0 20px rgba(2, 132, 199, 0.2) !important;
+  animation: highlightPulse 2s ease-out;
+}
+
+@keyframes highlightPulse {
+  0% {
+    box-shadow: 0 0 5px rgba(2, 132, 199, 0.1);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(2, 132, 199, 0.3);
+    transform: scale(1.01);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(2, 132, 199, 0.2);
+    transform: scale(1);
+  }
+}
+
+/* UserRankCard hover effects */
+.leaderboard-container.cursor-pointer:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border-color: rgba(2, 132, 199, 0.4);
+}
+
+.leaderboard-container.cursor-pointer:active {
+  transform: translateY(-1px) scale(0.98);
+}
+
 /* Content visibility optimization for off-screen elements */
 .leaderboard-row {
   content-visibility: auto;
