@@ -475,8 +475,7 @@
 /* UserRankCard hover effects */
 .leaderboard-container.cursor-pointer:hover {
   transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 0 0 20px rgba(250, 204, 21, 0.1);
-  border-color: rgba(250, 204, 21, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
 .leaderboard-container.cursor-pointer:active {
