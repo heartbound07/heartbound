@@ -63,6 +63,26 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'achievements' | 'streaks'>('overview');
+  const [openTooltip, setOpenTooltip] = useState<string | null>(null);
+
+  // Handle tooltip click
+  const handleTooltipClick = (tooltipId: string) => {
+    setOpenTooltip(openTooltip === tooltipId ? null : tooltipId);
+  };
+
+  // Close tooltip when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openTooltip && !(event.target as Element).closest('[data-tooltip-trigger]')) {
+        setOpenTooltip(null);
+      }
+    };
+
+    if (openTooltip) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openTooltip]);
 
   // Fetch XP data
   const fetchXPData = async () => {
@@ -526,9 +546,13 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                       <div className="flex items-center gap-3 mb-3">
                         <Flame className={`h-6 w-6 ${voiceStreakStats.currentStreak > 0 ? 'text-orange-400' : 'text-gray-400'}`} />
                         <h4 className="text-lg font-bold text-white">Current Streak</h4>
-                        <Tooltip>
+                        <Tooltip open={openTooltip === 'current-streak'} onOpenChange={() => {}}>
                           <TooltipTrigger asChild>
-                            <button className="p-1 hover:bg-orange-500/20 rounded">
+                            <button 
+                              className="p-1 hover:bg-orange-500/20 rounded"
+                              onClick={() => handleTooltipClick('current-streak')}
+                              data-tooltip-trigger
+                            >
                               <HelpCircle className="h-4 w-4 text-orange-400/70" />
                             </button>
                           </TooltipTrigger>
@@ -570,9 +594,13 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                         <div className="flex items-center gap-2 mb-2">
                           <TrendingUp className="h-4 w-4 text-blue-400" />
                           <span className="text-sm text-[var(--color-text-secondary)]">Best Streak</span>
-                          <Tooltip>
+                          <Tooltip open={openTooltip === 'best-streak'} onOpenChange={() => {}}>
                             <TooltipTrigger asChild>
-                              <button className="p-1 hover:bg-blue-500/20 rounded">
+                              <button 
+                                className="p-1 hover:bg-blue-500/20 rounded"
+                                onClick={() => handleTooltipClick('best-streak')}
+                                data-tooltip-trigger
+                              >
                                 <HelpCircle className="h-3 w-3 text-blue-400/70" />
                               </button>
                             </TooltipTrigger>
@@ -590,9 +618,13 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                         <div className="flex items-center gap-2 mb-2">
                           <Calendar className="h-4 w-4 text-green-400" />
                           <span className="text-sm text-[var(--color-text-secondary)]">Active Days</span>
-                          <Tooltip>
+                          <Tooltip open={openTooltip === 'active-days'} onOpenChange={() => {}}>
                             <TooltipTrigger asChild>
-                              <button className="p-1 hover:bg-green-500/20 rounded">
+                              <button 
+                                className="p-1 hover:bg-green-500/20 rounded"
+                                onClick={() => handleTooltipClick('active-days')}
+                                data-tooltip-trigger
+                              >
                                 <HelpCircle className="h-3 w-3 text-green-400/70" />
                               </button>
                             </TooltipTrigger>
@@ -614,9 +646,13 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                       <div className="flex items-center gap-2">
                         <Trophy className="h-4 w-4 text-yellow-400" />
                         <h4 className="text-sm font-medium text-[var(--color-text-secondary)]">Streak Milestones & XP Rewards</h4>
-                        <Tooltip>
+                        <Tooltip open={openTooltip === 'streak-rewards'} onOpenChange={() => {}}>
                           <TooltipTrigger asChild>
-                            <button className="p-1 hover:bg-yellow-500/20 rounded">
+                            <button 
+                              className="p-1 hover:bg-yellow-500/20 rounded"
+                              onClick={() => handleTooltipClick('streak-rewards')}
+                              data-tooltip-trigger
+                            >
                               <HelpCircle className="h-4 w-4 text-yellow-400/70" />
                             </button>
                           </TooltipTrigger>
