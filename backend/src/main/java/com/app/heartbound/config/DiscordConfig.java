@@ -172,9 +172,6 @@ public class DiscordConfig {
                     Commands.slash("fish", "Go fishing for a chance to win or lose credits"),
                     Commands.slash("stats", "View your current pairing statistics"),
                     Commands.slash("breakup", "End your current match/pairing")
-                        .addOptions(
-                            new OptionData(OptionType.STRING, "reason", "Reason for ending the match (optional)", false)
-                        )
                 )
                 .queue(
                     cmds -> {

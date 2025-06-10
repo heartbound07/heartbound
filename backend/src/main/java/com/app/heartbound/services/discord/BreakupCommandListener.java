@@ -8,8 +8,13 @@ import com.app.heartbound.entities.User;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.text.TextInput;
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import net.dv8tion.jda.api.interactions.modals.Modal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -104,9 +109,6 @@ public class BreakupCommandListener extends ListenerAdapter {
 
         logger.debug("Breakup command received from user: {}", event.getUser().getId());
         
-        // Acknowledge the interaction immediately to prevent timeout
-        event.deferReply(true).queue(); // Ephemeral response for privacy
-        
         try {
             String discordUserId = event.getUser().getId();
             
@@ -114,9 +116,9 @@ public class BreakupCommandListener extends ListenerAdapter {
             User user = userService.getUserById(discordUserId);
             if (user == null) {
                 logger.warn("User {} not found in system for /breakup command", discordUserId);
-                event.getHook().editOriginal("❌ **User not found in system**\n" +
+                event.reply("❌ **User not found in system**\n" +
                     "You need to log in to the web application first before using this command.\n" +
-                    "Visit: " + frontendBaseUrl).queue();
+                    "Visit: " + frontendBaseUrl).setEphemeral(true).queue();
                 return;
             }
             
@@ -124,9 +126,10 @@ public class BreakupCommandListener extends ListenerAdapter {
             Optional<PairingDTO> pairingOpt = pairingService.getCurrentPairing(discordUserId);
             if (pairingOpt.isEmpty()) {
                 logger.debug("User {} has no active pairing for breakup", discordUserId);
-                event.getHook().editOriginal("💔 **You are not currently matched with anyone**\n" +
+                event.reply("💔 **You are not currently matched with anyone**\n" +
                     "You need to be in an active match to use this command.\n" +
-                    "Visit the web application to join the matchmaking queue: " + frontendBaseUrl + "/dashboard/pairings").queue();
+                    "Visit the web application to join the matchmaking queue: " + frontendBaseUrl + "/dashboard/pairings")
+                    .setEphemeral(true).queue();
                 return;
             }
             
@@ -135,23 +138,75 @@ public class BreakupCommandListener extends ListenerAdapter {
             // Validate pairing is active
             if (!pairing.isActive()) {
                 logger.warn("User {} has an inactive pairing for /breakup command", discordUserId);
-                event.getHook().editOriginal("💔 **You are not currently matched with anyone**\n" +
+                event.reply("💔 **You are not currently matched with anyone**\n" +
                     "Your previous pairing has ended. Use the web application to find a new match!\n" +
-                    "Visit: " + frontendBaseUrl + "/dashboard/pairings").queue();
+                    "Visit: " + frontendBaseUrl + "/dashboard/pairings")
+                    .setEphemeral(true).queue();
                 return;
             }
             
-            // Get the optional reason parameter
-            String reason = Optional.ofNullable(event.getOption("reason"))
-                    .map(OptionMapping::getAsString)
-                    .orElse("No reason provided");
+            // Get partner information for the modal
+            String partnerId = pairing.getUser1Id().equals(discordUserId) ? 
+                              pairing.getUser2Id() : pairing.getUser1Id();
+            User partner = userService.getUserById(partnerId);
+            String partnerName = partner != null ? 
+                (partner.getDisplayName() != null ? partner.getDisplayName() : partner.getUsername()) : 
+                "Unknown";
+            
+            // Create and show the breakup confirmation modal
+            showBreakupModal(event, pairing, partnerName);
+            
+        } catch (Exception e) {
+            logger.error("Error processing breakup command for user {}: {}", event.getUser().getId(), e.getMessage(), e);
+            try {
+                event.reply("❌ **Error Processing Request**\n" +
+                    "An unexpected error occurred. Please try again later or use the web application.\n" +
+                    "Visit: " + frontendBaseUrl + "/dashboard/pairings")
+                    .setEphemeral(true).queue();
+            } catch (Exception ignored) {
+                logger.error("Failed to send error message for breakup command", ignored);
+            }
+        }
+    }
+    
+    @Override
+    public void onModalInteraction(ModalInteractionEvent event) {
+        if (!event.getModalId().startsWith("breakup-modal-")) {
+            return; // Not our modal
+        }
+        
+        logger.debug("Breakup modal submitted by user: {}", event.getUser().getId());
+        
+        // Acknowledge the modal submission immediately
+        event.deferReply(true).queue(); // Ephemeral response for privacy
+        
+        try {
+            String discordUserId = event.getUser().getId();
+            
+            // Extract pairing ID from modal ID (format: "breakup-modal-{pairingId}")
+            String modalId = event.getModalId();
+            Long pairingId = Long.parseLong(modalId.substring("breakup-modal-".length()));
+            
+            // Get the reason from the modal
+            String reason = event.getValue("breakup-reason").getAsString();
             
             // Validate and sanitize reason
-            if (reason.trim().isEmpty()) {
+            if (reason == null || reason.trim().isEmpty()) {
                 reason = "No reason provided";
             } else if (reason.length() > 500) {
                 reason = reason.substring(0, 500) + "...";
             }
+            
+            // Re-validate the pairing still exists and is active
+            Optional<PairingDTO> pairingOpt = pairingService.getCurrentPairing(discordUserId);
+            if (pairingOpt.isEmpty() || !pairingOpt.get().getId().equals(pairingId)) {
+                logger.warn("Pairing {} no longer exists or user {} not in pairing", pairingId, discordUserId);
+                event.getHook().editOriginal("❌ **Match No Longer Active**\n" +
+                    "Your match has already ended or you are no longer in this pairing.").queue();
+                return;
+            }
+            
+            PairingDTO pairing = pairingOpt.get();
             
             // Get partner information before breaking up
             String partnerId = pairing.getUser1Id().equals(discordUserId) ? 
@@ -165,7 +220,7 @@ public class BreakupCommandListener extends ListenerAdapter {
             PairingStats stats = extractPairingStats(pairing, discordUserId);
             
             logger.info("Processing Discord breakup for pairing {} by user {} with reason: {}", 
-                       pairing.getId(), discordUserId, reason);
+                       pairingId, discordUserId, reason);
             
             // Create breakup request DTO
             BreakupRequestDTO breakupRequest = BreakupRequestDTO.builder()
@@ -175,7 +230,7 @@ public class BreakupCommandListener extends ListenerAdapter {
                     .build();
             
             // Process the breakup using existing service method
-            PairingDTO updatedPairing = pairingService.breakupPairing(pairing.getId(), breakupRequest);
+            PairingDTO updatedPairing = pairingService.breakupPairing(pairingId, breakupRequest);
             
             // Build success confirmation embed
             MessageEmbed successEmbed = buildBreakupSuccessEmbed(stats, partnerName, reason, event.getUser().getName());
@@ -193,15 +248,49 @@ public class BreakupCommandListener extends ListenerAdapter {
             logger.warn("Invalid state for breakup from user {}: {}", event.getUser().getId(), e.getMessage());
             event.getHook().editOriginal("❌ **Cannot End Match**\n" + e.getMessage()).queue();
         } catch (Exception e) {
-            logger.error("Error processing breakup command for user {}: {}", event.getUser().getId(), e.getMessage(), e);
+            logger.error("Error processing breakup modal for user {}: {}", event.getUser().getId(), e.getMessage(), e);
             try {
                 event.getHook().editOriginal("❌ **Error Processing Breakup**\n" +
                     "An unexpected error occurred while ending your match. Please try again later or use the web application.\n" +
                     "Visit: " + frontendBaseUrl + "/dashboard/pairings").queue();
             } catch (Exception ignored) {
-                logger.error("Failed to send error message for breakup command", ignored);
+                logger.error("Failed to send error message for breakup modal", ignored);
             }
         }
+    }
+    
+    /**
+     * Create and display the breakup confirmation modal
+     */
+    private void showBreakupModal(SlashCommandInteractionEvent event, PairingDTO pairing, String partnerName) {
+        // Create text input for the breakup reason
+        TextInput reasonInput = TextInput.create("breakup-reason", "Reason for ending the match", TextInputStyle.PARAGRAPH)
+                .setPlaceholder("Enter your reason for ending this match (optional)...")
+                .setMinLength(0)
+                .setMaxLength(500)
+                .setRequired(false)
+                .build();
+        
+        // Create the modal with the pairing ID in the modal ID for reference
+        Modal breakupModal = Modal.create("breakup-modal-" + pairing.getId(), "💔 End Match Confirmation")
+                .addComponents(ActionRow.of(reasonInput))
+                .build();
+        
+        // Show the modal to the user
+        event.replyModal(breakupModal).queue(
+            success -> logger.debug("Breakup modal shown successfully to user {}", event.getUser().getId()),
+            error -> {
+                logger.error("Failed to show breakup modal to user {}: {}", event.getUser().getId(), error.getMessage());
+                // Fallback to immediate reply if modal fails
+                event.reply("❌ **Error showing breakup form**\n" +
+                    "Please try again or use the web application to end your match.\n" +
+                    "Visit: " + frontendBaseUrl + "/dashboard/pairings")
+                    .setEphemeral(true).queue();
+            }
+        );
+        
+        logger.info("Breakup modal displayed for user {} (pairing {} with {})", 
+                   event.getUser().getId(), pairing.getId(), partnerName);
     }
     
     /**
