@@ -185,12 +185,12 @@ const QueueJoinForm = memo(({
                   <SelectTrigger className="bg-theme-container border-theme text-white theme-transition">
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
-                  <SelectContent className="bg-theme-container border-theme theme-transition">
+                  <SelectContent className="bg-[#1F2731] border-theme theme-transition">
                     {GENDERS.map((g) => (
                       <SelectItem 
                         key={g.value} 
                         value={g.value}
-                        className="text-white hover:bg-theme-card focus:bg-theme-card theme-transition"
+                        className="text-white hover:bg-[#2A3441] hover:text-primary focus:bg-[#2A3441] focus:text-primary transition-all duration-200 ease-in-out cursor-pointer"
                       >
                         {g.label}
                       </SelectItem>
@@ -209,12 +209,12 @@ const QueueJoinForm = memo(({
                   <SelectTrigger className="bg-theme-container border-theme text-white theme-transition">
                     <SelectValue placeholder="Select region" />
                   </SelectTrigger>
-                  <SelectContent className="bg-theme-container border-theme theme-transition">
+                  <SelectContent className="bg-[#1F2731] border-theme theme-transition">
                     {REGIONS.map((reg) => (
                       <SelectItem 
                         key={reg.value} 
                         value={reg.value}
-                        className="text-white hover:bg-theme-card focus:bg-theme-card theme-transition"
+                        className="text-white hover:bg-[#2A3441] hover:text-primary focus:bg-[#2A3441] focus:text-primary transition-all duration-200 ease-in-out cursor-pointer"
                       >
                         {reg.label}
                       </SelectItem>
@@ -231,12 +231,12 @@ const QueueJoinForm = memo(({
                   <SelectTrigger className="bg-theme-container border-theme text-white theme-transition">
                     <SelectValue placeholder="Select rank" />
                   </SelectTrigger>
-                  <SelectContent className="bg-theme-container border-theme theme-transition">
+                  <SelectContent className="bg-[#1F2731] border-theme theme-transition">
                     {RANKS.map((r) => (
                       <SelectItem 
                         key={r.value} 
                         value={r.value}
-                        className="text-white hover:bg-theme-card focus:bg-theme-card theme-transition"
+                        className="text-white hover:bg-[#2A3441] hover:text-primary focus:bg-[#2A3441] focus:text-primary transition-all duration-200 ease-in-out cursor-pointer"
                       >
                         {r.label}
                       </SelectItem>
