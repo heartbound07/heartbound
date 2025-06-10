@@ -558,20 +558,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                     </div>
                   </div>
 
-                  {/* Voice Time Stats */}
-                  <div className="p-4 bg-[var(--color-container-bg)] rounded-lg">
-                    <h5 className="font-medium text-white mb-3">Total Voice Time</h5>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-2xl font-bold text-primary">
-                          {voiceStreakStats.totalVoiceHours}h {voiceStreakStats.totalVoiceMinutes % 60}m
-                        </div>
-                        <div className="text-sm text-[var(--color-text-secondary)]">
-                          {voiceStreakStats.totalVoiceMinutes.toLocaleString()} minutes total
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+
                 </>
               ) : (
                 <div className="text-center py-8 text-[var(--color-text-secondary)]">
