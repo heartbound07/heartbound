@@ -147,7 +147,7 @@ const QueueJoinForm = memo(({
   )
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+    <div>
       <Card className="valorant-card">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-3 text-white text-xl">
@@ -160,7 +160,7 @@ const QueueJoinForm = memo(({
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="age" className="text-sm font-medium text-theme-primary">
+                <Label htmlFor="age" className="text-sm font-medium text-white">
                   Age
                 </Label>
                 <Input
@@ -169,7 +169,7 @@ const QueueJoinForm = memo(({
                   placeholder="Enter your age"
                   value={formData.age}
                   onChange={(e) => updateFormField('age', e.target.value)}
-                  className="bg-theme-container border-theme text-theme-primary placeholder:text-theme-tertiary focus:border-primary focus:ring-1 focus:ring-primary/20 theme-transition"
+                  className="bg-theme-container border-theme text-white placeholder:text-theme-tertiary focus:border-primary focus:ring-1 focus:ring-primary/20 theme-transition"
                   min="13"
                   max="100"
                   required
@@ -178,11 +178,11 @@ const QueueJoinForm = memo(({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="gender" className="text-sm font-medium text-theme-primary">
+                <Label htmlFor="gender" className="text-sm font-medium text-white">
                   Gender
                 </Label>
                 <Select value={formData.gender} onValueChange={(value) => updateFormField('gender', value)} required>
-                  <SelectTrigger className="bg-theme-container border-theme text-theme-primary theme-transition">
+                  <SelectTrigger className="bg-theme-container border-theme text-white theme-transition">
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
                   <SelectContent className="bg-theme-container border-theme theme-transition">
@@ -190,7 +190,7 @@ const QueueJoinForm = memo(({
                       <SelectItem 
                         key={g.value} 
                         value={g.value}
-                        className="text-theme-primary hover:bg-theme-card focus:bg-theme-card theme-transition"
+                        className="text-white hover:bg-theme-card focus:bg-theme-card theme-transition"
                       >
                         {g.label}
                       </SelectItem>
@@ -201,12 +201,12 @@ const QueueJoinForm = memo(({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
-                <Label htmlFor="region" className="text-theme-secondary font-medium mb-2 block">
+              <div>
+                <Label htmlFor="region" className="text-white font-medium mb-2 block">
                   Region
                 </Label>
                 <Select value={formData.region} onValueChange={(value) => updateFormField('region', value)} required>
-                  <SelectTrigger className="bg-theme-container border-theme text-theme-primary theme-transition">
+                  <SelectTrigger className="bg-theme-container border-theme text-white theme-transition">
                     <SelectValue placeholder="Select region" />
                   </SelectTrigger>
                   <SelectContent className="bg-theme-container border-theme theme-transition">
@@ -214,21 +214,21 @@ const QueueJoinForm = memo(({
                       <SelectItem 
                         key={reg.value} 
                         value={reg.value}
-                        className="text-theme-primary hover:bg-theme-card focus:bg-theme-card theme-transition"
+                        className="text-white hover:bg-theme-card focus:bg-theme-card theme-transition"
                       >
                         {reg.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              </motion.div>
+              </div>
 
-              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}>
-                <Label htmlFor="rank" className="text-theme-secondary font-medium mb-2 block">
+              <div>
+                <Label htmlFor="rank" className="text-white font-medium mb-2 block">
                   VALORANT Rank
                 </Label>
                 <Select value={formData.rank} onValueChange={(value) => updateFormField('rank', value)} required>
-                  <SelectTrigger className="bg-theme-container border-theme text-theme-primary theme-transition">
+                  <SelectTrigger className="bg-theme-container border-theme text-white theme-transition">
                     <SelectValue placeholder="Select rank" />
                   </SelectTrigger>
                   <SelectContent className="bg-theme-container border-theme theme-transition">
@@ -236,17 +236,17 @@ const QueueJoinForm = memo(({
                       <SelectItem 
                         key={r.value} 
                         value={r.value}
-                        className="text-theme-primary hover:bg-theme-card focus:bg-theme-card theme-transition"
+                        className="text-white hover:bg-theme-card focus:bg-theme-card theme-transition"
                       >
                         {r.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              </motion.div>
+              </div>
             </div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+            <div>
               <Button
                 type="submit"
                 className="w-full valorant-button-primary h-12 text-base font-semibold"
@@ -261,11 +261,11 @@ const QueueJoinForm = memo(({
                   </>
                 )}
               </Button>
-            </motion.div>
+            </div>
           </form>
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   )
 })
 
@@ -297,6 +297,10 @@ export function PairingsPage() {
   const [adminState, setAdminState] = useState<AdminState>(initialAdminState)
   const [userProfiles, setUserProfiles] = useState<Record<string, UserProfileDTO>>({})
   const [userInitiatedBreakup, setUserInitiatedBreakup] = useState(false)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+
+  // Minimum loading time in milliseconds
+  const MIN_LOADING_TIME = 800
 
   // Sidebar state
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -558,6 +562,17 @@ export function PairingsPage() {
     }
   }, [pairingHistory])
 
+  // Handle initial loading with minimum loading time
+  useEffect(() => {
+    if (!loading && isInitialLoading) {
+      const timer = setTimeout(() => {
+        setIsInitialLoading(false);
+      }, MIN_LOADING_TIME);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [loading, isInitialLoading, MIN_LOADING_TIME])
+
   const handleUserClick = useCallback(
     (userId: string, event: React.MouseEvent) => {
       const profile = userProfiles[userId]
@@ -741,118 +756,215 @@ export function PairingsPage() {
     // Could add logic here to auto-open queue join form if needed
   }, [hidePartnerUnmatched])
 
-  if (loading) {
-    return (
-      <div className="pairings-container">
-        <DashboardNavigation />
-        
-        <main className={`pairings-content ${isCollapsed ? "sidebar-collapsed" : ""}`}>
-          <div className="min-h-screen bg-theme-gradient">
-            <div className="container mx-auto px-4 py-8 max-w-7xl">
-              {/* Admin Controls Skeleton */}
-              {hasRole("ADMIN") && (
-                <div className="mb-8">
-                  <div className="admin-controls rounded-xl border-theme bg-theme-container backdrop-blur-sm theme-transition">
-                    <div className="p-6 border-b border-theme">
-                      <div className="flex items-center gap-3 mb-4">
-                        <Skeleton variant="circular" width="32px" height="32px" theme="valorant" />
-                        <Skeleton width="150px" height="24px" theme="valorant" />
+  if (loading || isInitialLoading) {
+          return (
+        <div className="pairings-container">
+          <DashboardNavigation />
+          
+          <main className={`pairings-content ${isCollapsed ? "sidebar-collapsed" : ""}`}>
+            <div className="min-h-screen bg-theme-gradient">
+              <div className="container mx-auto px-4 py-8 max-w-7xl">
+                {/* Admin Controls Skeleton */}
+                {hasRole("ADMIN") && (
+                  <div className="mb-8">
+                    <div className="valorant-card">
+                      <div className="p-6 border-b border-theme">
+                        <div className="flex items-center gap-3 mb-4">
+                          <Skeleton variant="circular" width="32px" height="32px" theme="valorant" />
+                          <Skeleton width="150px" height="24px" theme="valorant" />
+                        </div>
+                      </div>
+                      <div className="p-6 space-y-6">
+                        {/* Queue Status Skeleton */}
+                        <div className="p-4 rounded-xl bg-theme-container border-theme">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <Skeleton variant="circular" width="16px" height="16px" theme="valorant" />
+                              <Skeleton width="200px" height="20px" theme="valorant" />
+                            </div>
+                            <Skeleton width="80px" height="20px" borderRadius="9999px" theme="valorant" />
+                          </div>
+                          <Skeleton width="60%" height="16px" theme="valorant" />
+                        </div>
+                        
+                        {/* Admin Buttons Skeleton */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                          {[1, 2, 3, 4].map((i) => (
+                            <Skeleton key={i} width="100%" height="48px" borderRadius="6px" theme="valorant" />
+                          ))}
+                        </div>
                       </div>
                     </div>
-                    <div className="p-6 space-y-6">
-                      {/* Queue Status Skeleton */}
-                      <div className="p-4 rounded-xl border-theme bg-theme-container backdrop-blur-sm theme-transition">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <Skeleton variant="circular" width="16px" height="16px" theme="valorant" />
-                            <Skeleton width="200px" height="20px" theme="valorant" />
-                          </div>
-                          <Skeleton width="80px" height="20px" borderRadius="9999px" theme="valorant" />
+                  </div>
+                )}
+                
+                {/* Hero Title Skeleton */}
+                <div className="text-center mb-12">
+                  <Skeleton width="200px" height="48px" className="mx-auto mb-4" theme="valorant" />
+                  <Skeleton width="400px" height="24px" className="mx-auto" theme="valorant" />
+                </div>
+
+                {/* Main Content Grid Skeleton */}
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                  {/* Left Column - Main Content */}
+                  <div className="xl:col-span-2 space-y-8">
+                    {/* Primary Card Skeleton */}
+                    <div className="valorant-card">
+                      <div className="p-6 border-b border-theme">
+                        <div className="flex items-center gap-3">
+                          <Skeleton variant="circular" width="24px" height="24px" theme="valorant" />
+                          <Skeleton width="180px" height="24px" theme="valorant" />
                         </div>
-                        <Skeleton width="60%" height="16px" theme="valorant" />
                       </div>
-                      
-                      {/* Admin Buttons Skeleton */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {[1, 2, 3, 4].map((i) => (
-                          <Skeleton key={i} width="100%" height="48px" borderRadius="6px" theme="valorant" />
+                      <div className="p-8 space-y-6">
+                        {/* Main content area */}
+                        <div className="text-center space-y-4">
+                          <Skeleton width="120px" height="32px" borderRadius="9999px" className="mx-auto" theme="valorant" />
+                          <Skeleton width="250px" height="32px" className="mx-auto" theme="valorant" />
+                          <Skeleton width="150px" height="16px" className="mx-auto" theme="valorant" />
+                        </div>
+                        
+                        {/* Form-like content */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <Skeleton width="60px" height="16px" theme="valorant" />
+                            <Skeleton width="100%" height="40px" borderRadius="6px" theme="valorant" />
+                          </div>
+                          <div className="space-y-2">
+                            <Skeleton width="80px" height="16px" theme="valorant" />
+                            <Skeleton width="100%" height="40px" borderRadius="6px" theme="valorant" />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Skeleton width="60px" height="16px" theme="valorant" />
+                            <Skeleton width="100%" height="40px" borderRadius="6px" theme="valorant" />
+                          </div>
+                          <div className="space-y-2">
+                            <Skeleton width="100px" height="16px" theme="valorant" />
+                            <Skeleton width="100%" height="40px" borderRadius="6px" theme="valorant" />
+                          </div>
+                        </div>
+                        
+                        <Skeleton width="100%" height="48px" borderRadius="6px" theme="valorant" />
+                      </div>
+                    </div>
+
+                    {/* XP Card Skeleton */}
+                    <div className="valorant-card">
+                      <div className="p-6 border-b border-theme">
+                        <div className="flex items-center gap-3">
+                          <Skeleton variant="circular" width="24px" height="24px" theme="valorant" />
+                          <Skeleton width="200px" height="24px" theme="valorant" />
+                        </div>
+                        <div className="flex gap-2 mt-4">
+                          {[1, 2, 3].map((i) => (
+                            <Skeleton key={i} width="80px" height="32px" borderRadius="6px" theme="valorant" />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="p-6 space-y-6">
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Skeleton variant="circular" width="48px" height="48px" theme="valorant" />
+                              <div className="space-y-2">
+                                <Skeleton width="100px" height="20px" theme="valorant" />
+                                <Skeleton width="80px" height="16px" theme="valorant" />
+                              </div>
+                            </div>
+                            <Skeleton width="120px" height="24px" borderRadius="9999px" theme="valorant" />
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <Skeleton width="100px" height="14px" theme="valorant" />
+                              <Skeleton width="40px" height="14px" theme="valorant" />
+                            </div>
+                            <Skeleton width="100%" height="12px" borderRadius="9999px" theme="valorant" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          {[1, 2].map((i) => (
+                            <div key={i} className="p-4 rounded-lg bg-theme-container">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Skeleton variant="circular" width="16px" height="16px" theme="valorant" />
+                                <Skeleton width="80px" height="14px" theme="valorant" />
+                              </div>
+                              <Skeleton width="40px" height="24px" theme="valorant" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column */}
+                  <div className="xl:col-span-1 space-y-8">
+                    {/* Current Matches */}
+                    <div className="valorant-card h-fit">
+                      <div className="p-6 border-b border-theme">
+                        <div className="flex items-center gap-3">
+                          <Skeleton variant="circular" width="24px" height="24px" theme="valorant" />
+                          <Skeleton width="120px" height="24px" theme="valorant" />
+                          <Skeleton width="30px" height="20px" borderRadius="9999px" theme="valorant" />
+                        </div>
+                      </div>
+                      <div className="p-6 space-y-4">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-theme-container">
+                            <div className="flex items-center gap-4">
+                              <Skeleton variant="circular" width="40px" height="40px" theme="valorant" />
+                              <div className="space-y-2">
+                                <Skeleton width="100px" height="16px" theme="valorant" />
+                                <Skeleton width="80px" height="14px" theme="valorant" />
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Skeleton width="60px" height="20px" borderRadius="9999px" theme="valorant" />
+                              <Skeleton width="80px" height="20px" borderRadius="9999px" theme="valorant" />
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Main Content Skeleton */}
-              <div className="space-y-8">
-                {/* Queue/Pairing Status Skeleton */}
-                <div className="valorant-card rounded-xl border-theme bg-theme-container backdrop-blur-sm theme-transition">
-                  <div className="p-8">
-                    <div className="text-center mb-8">
-                      <Skeleton width="200px" height="40px" borderRadius="9999px" className="mx-auto mb-4" theme="valorant" />
-                      <Skeleton width="300px" height="32px" className="mx-auto mb-2" theme="valorant" />
-                      <Skeleton width="150px" height="16px" className="mx-auto" theme="valorant" />
-                    </div>
-                    
-                    {/* Form or Status Content Skeleton */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                      <div className="space-y-2">
-                        <Skeleton width="60px" height="16px" theme="valorant" />
-                        <Skeleton width="100%" height="40px" borderRadius="6px" theme="valorant" />
-                      </div>
-                      <div className="space-y-2">
-                        <Skeleton width="80px" height="16px" theme="valorant" />
-                        <Skeleton width="100%" height="40px" borderRadius="6px" theme="valorant" />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                      <div className="space-y-2">
-                        <Skeleton width="60px" height="16px" theme="valorant" />
-                        <Skeleton width="100%" height="40px" borderRadius="6px" theme="valorant" />
-                      </div>
-                      <div className="space-y-2">
-                        <Skeleton width="100px" height="16px" theme="valorant" />
-                        <Skeleton width="100%" height="40px" borderRadius="6px" theme="valorant" />
-                      </div>
-                    </div>
-                    
-                    <Skeleton width="100%" height="48px" borderRadius="6px" theme="valorant" />
-                  </div>
-                </div>
-                
-                {/* Pairing History Skeleton */}
-                <div className="valorant-card rounded-xl border-theme bg-theme-container backdrop-blur-sm theme-transition">
-                                      <div className="p-6 border-b border-theme">
-                    <div className="flex items-center gap-3">
-                      <Skeleton variant="circular" width="24px" height="24px" theme="valorant" />
-                      <Skeleton width="150px" height="24px" theme="valorant" />
-                    </div>
-                  </div>
-                  <div className="p-6 space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="flex items-center justify-between p-4 rounded-lg border-theme bg-theme-container theme-transition">
-                        <div className="flex items-center gap-4">
-                          <Skeleton variant="circular" width="40px" height="40px" theme="valorant" />
-                          <div className="space-y-2">
-                            <Skeleton width="120px" height="16px" theme="valorant" />
-                            <Skeleton width="80px" height="14px" theme="valorant" />
+
+                    {/* Match History for Admin */}
+                    {hasRole("ADMIN") && (
+                      <div className="valorant-card h-fit">
+                        <div className="p-6 border-b border-theme">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Skeleton variant="circular" width="24px" height="24px" theme="valorant" />
+                              <Skeleton width="120px" height="24px" theme="valorant" />
+                              <Skeleton width="30px" height="20px" borderRadius="9999px" theme="valorant" />
+                            </div>
+                            <Skeleton width="100px" height="32px" borderRadius="6px" theme="valorant" />
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Skeleton width="60px" height="20px" borderRadius="9999px" theme="valorant" />
-                          <Skeleton width="80px" height="20px" borderRadius="9999px" theme="valorant" />
+                        <div className="p-6 space-y-4">
+                          {[1, 2].map((i) => (
+                            <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-theme-container">
+                              <div className="flex items-center gap-4">
+                                <Skeleton variant="circular" width="40px" height="40px" theme="valorant" />
+                                <div className="space-y-2">
+                                  <Skeleton width="100px" height="16px" theme="valorant" />
+                                  <Skeleton width="80px" height="14px" theme="valorant" />
+                                </div>
+                              </div>
+                              <Skeleton width="80px" height="20px" borderRadius="9999px" theme="valorant" />
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </main>
-      </div>
-    )
+          </main>
+        </div>
+      )
   }
 
   return (
@@ -866,12 +978,7 @@ export function PairingsPage() {
             {/* Admin Controls */}
             <AnimatePresence>
               {hasRole("ADMIN") && (
-                <motion.div
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="mb-8"
-                >
+                <div className="mb-8">
                   <Card className="admin-controls">
                     <CardHeader className="pb-4">
                       <CardTitle className="flex items-center gap-3 text-white">
@@ -1005,35 +1112,20 @@ export function PairingsPage() {
                       </AnimatePresence>
                     </CardContent>
                   </Card>
-                </motion.div>
+                </div>
               )}
             </AnimatePresence>
 
             {/* Hero Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-center mb-12"
-            >
+            <div className="text-center mb-12">
               <div className="relative">
-                <motion.h1
-                  className="pairings-hero-title text-4xl md:text-5xl text-primary mb-4"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
+                <h1 className="pairings-hero-title text-4xl md:text-5xl text-primary mb-4">
                   Pairings
-                </motion.h1>
+                </h1>
               </div>
-              <motion.p
-                className="text-xl text-theme-secondary max-w-2xl mx-auto leading-relaxed"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
-              >
-              </motion.p>
-            </motion.div>
+              <p className="text-xl text-theme-secondary max-w-2xl mx-auto leading-relaxed">
+              </p>
+            </div>
 
             {/* Error Display */}
             <AnimatePresence>
