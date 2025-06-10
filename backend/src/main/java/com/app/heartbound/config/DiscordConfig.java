@@ -9,6 +9,7 @@ import com.app.heartbound.services.discord.ShopCommandListener;
 import com.app.heartbound.services.discord.InventoryCommandListener;
 import com.app.heartbound.services.discord.FishCommandListener;
 import com.app.heartbound.services.discord.StatsCommandListener;
+import com.app.heartbound.services.discord.BreakupCommandListener;
 import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
 import jakarta.annotation.PreDestroy;
@@ -70,6 +71,10 @@ public class DiscordConfig {
     @Autowired
     private StatsCommandListener statsCommandListener;
 
+    @Lazy
+    @Autowired
+    private BreakupCommandListener breakupCommandListener;
+
     @Autowired
     private DiscordMessageListenerService discordMessageListenerService;
 
@@ -126,6 +131,9 @@ public class DiscordConfig {
             // Register stats command listener manually
             statsCommandListener.registerWithJDA(jdaInstance);
             
+            // Register breakup command listener manually
+            breakupCommandListener.registerWithJDA(jdaInstance);
+            
             // Register slash commands
             registerSlashCommands();
             
@@ -162,7 +170,11 @@ public class DiscordConfig {
                     Commands.slash("shop", "Displays items currently available in the shop"),
                     Commands.slash("inventory", "Displays the items you currently own"),
                     Commands.slash("fish", "Go fishing for a chance to win or lose credits"),
-                    Commands.slash("stats", "View your current pairing statistics")
+                    Commands.slash("stats", "View your current pairing statistics"),
+                    Commands.slash("breakup", "End your current match/pairing")
+                        .addOptions(
+                            new OptionData(OptionType.STRING, "reason", "Reason for ending the match (optional)", false)
+                        )
                 )
                 .queue(
                     cmds -> {
