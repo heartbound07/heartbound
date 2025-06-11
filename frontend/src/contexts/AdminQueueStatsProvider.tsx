@@ -14,6 +14,8 @@ interface AdminQueueStatsContextProps {
   isLoading: boolean;
   clearError: () => void;
   retryConnection: () => void;
+  refreshStats: () => Promise<void>;
+  isRefreshing: boolean;
 }
 
 const AdminQueueStatsContext = createContext<AdminQueueStatsContextProps | undefined>(undefined);
@@ -32,7 +34,9 @@ export const AdminQueueStatsProvider = ({ children }: AdminQueueStatsProviderPro
     isConnected: hookResult.isConnected,
     isLoading: hookResult.isLoading,
     clearError: hookResult.clearError,
-    retryConnection: hookResult.retryConnection
+    retryConnection: hookResult.retryConnection,
+    refreshStats: hookResult.refreshStats,
+    isRefreshing: hookResult.isRefreshing
   }), [hookResult]);
 
   return (

@@ -623,10 +623,11 @@ public class QueueService {
     }
     
     /**
-     * **OPTIMIZATION 5: Optimized scheduled broadcast with intelligent conditions**
-     * Now runs every 60 seconds (instead of 10) and only when necessary
+     * **OPTIMIZATION 5: Disabled scheduled broadcast - moved to on-demand model**
+     * Statistics are now fetched on-demand via REST API calls when admins need them.
+     * WebSocket broadcasts only occur when there are actual changes or admin interactions.
      */
-    @Scheduled(fixedRate = 30000) // 30 seconds - more frequent for now to ensure updates
+    // @Scheduled(fixedRate = 30000) // DISABLED: Moved to on-demand fetching model
     public void scheduledAdminQueueBroadcast() {
         try {
             // Be more liberal with broadcasting while we ensure presence detection works properly
@@ -688,6 +689,17 @@ public class QueueService {
         invalidateQueueStatsCache("Pair breakup: " + pairingId);
         
         // **OPTIMIZATION 4: Smart admin update - only if admins are connected**
+        broadcastAdminQueueUpdateIfNeeded();
+    }
+
+    // **NEW: Method for on-demand admin statistics refresh**
+    public void triggerAdminStatsRefresh() {
+        log.info("Admin stats refresh triggered manually");
+        
+        // Invalidate cache to ensure fresh data
+        invalidateQueueStatsCache("Manual admin refresh");
+        
+        // Broadcast immediately to any connected admin clients
         broadcastAdminQueueUpdateIfNeeded();
     }
 } 

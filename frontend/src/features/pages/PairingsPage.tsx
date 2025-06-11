@@ -294,8 +294,11 @@ export function PairingsPage() {
   const { isConnected } = useQueueUpdates()
   const { pairingUpdate, clearUpdate } = usePairingUpdates()
 
-  // Use live WebSocket admin queue stats
+  // Use live WebSocket admin queue stats for detailed metrics
   const { queueStats, isLoading: queueStatsLoading } = useAdminQueueStats()
+  
+  // Use lightweight queue updates for real-time user count
+  const { queueUpdate } = useQueueUpdates()
 
   // Use optimized modal manager
   const modalManager = useModalManager()
@@ -1544,32 +1547,33 @@ export function PairingsPage() {
                                 </div>
                               ))}
                             </div>
-                          ) : queueStats ? (
+                          ) : (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              {/* Use lightweight queue update for real-time user count */}
                               <div className="text-center p-4 bg-theme-container rounded-lg border border-primary/20">
                                 <div className="text-2xl font-bold text-primary mb-1">
-                                  {queueStats.totalUsersInQueue}
+                                  {queueUpdate?.totalQueueSize ?? queueStats?.totalUsersInQueue ?? 0}
                                 </div>
                                 <div className="text-sm text-theme-secondary">Users in Queue</div>
+                                <div className="text-xs text-theme-tertiary mt-1">
+                                  {queueUpdate?.totalQueueSize !== undefined ? 'Live' : 'Cached'}
+                                </div>
                               </div>
                               
+                              {/* Use admin stats for detailed metrics */}
                               <div className="text-center p-4 bg-theme-container rounded-lg border border-status-success/20">
                                 <div className="text-2xl font-bold text-status-success mb-1">
-                                  {queueStats.averageWaitTimeMinutes.toFixed(1)}m
+                                  {queueStats?.averageWaitTimeMinutes?.toFixed(1) ?? '--'}m
                                 </div>
                                 <div className="text-sm text-theme-secondary">Avg Wait Time</div>
                               </div>
                               
                               <div className="text-center p-4 bg-theme-container rounded-lg border border-status-warning/20">
                                 <div className="text-2xl font-bold text-status-warning mb-1">
-                                  {queueStats.matchSuccessRate?.toFixed(1) || 0}%
+                                  {queueStats?.matchSuccessRate?.toFixed(1) ?? '--'}%
                                 </div>
                                 <div className="text-sm text-theme-secondary">Match Success Rate</div>
                               </div>
-                            </div>
-                          ) : (
-                            <div className="text-center p-4">
-                              <p className="text-theme-secondary">Unable to load queue statistics</p>
                             </div>
                           )}
                         </CardContent>

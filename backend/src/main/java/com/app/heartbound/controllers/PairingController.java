@@ -478,5 +478,21 @@ public class PairingController {
         }
     }
 
+    @Operation(summary = "Trigger admin stats refresh", description = "Admin endpoint to manually trigger a refresh of queue statistics")
+    @PostMapping("/admin/queue/statistics/refresh")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<QueueStatsDTO> triggerStatsRefresh() {
+        try {
+            log.info("Admin triggering manual stats refresh");
+            queueService.triggerAdminStatsRefresh();
+            QueueStatsDTO stats = queueService.getQueueStatistics();
+            log.info("Manual stats refresh completed successfully");
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            log.error("Error during manual stats refresh: {}", e.getMessage(), e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to refresh statistics: " + e.getMessage());
+        }
+    }
+
 
 } 

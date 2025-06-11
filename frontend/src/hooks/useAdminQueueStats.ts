@@ -10,6 +10,8 @@ interface AdminQueueStatsHookReturn {
   isLoading: boolean;
   clearError: () => void;
   retryConnection: () => void;
+  refreshStats: () => Promise<void>;
+  isRefreshing: boolean;
 }
 
 export const useAdminQueueStats = (): AdminQueueStatsHookReturn => {
@@ -18,6 +20,7 @@ export const useAdminQueueStats = (): AdminQueueStatsHookReturn => {
   const [queueStats, setQueueStats] = useState<QueueStatsDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Only subscribe if user is an admin
   const isAdmin = hasRole('ADMIN');
@@ -97,24 +100,58 @@ export const useAdminQueueStats = (): AdminQueueStatsHookReturn => {
     fetchInitialStats();
   }, [isAdmin]);
 
-  // Periodic refresh as fallback to ensure data stays current
-  // This provides resilience in case WebSocket updates are missed
+  // Manual refresh function for on-demand statistics fetching
+  const refreshStats = useCallback(async () => {
+    if (!isAdmin) return;
+    
+    try {
+      setIsRefreshing(true);
+      setError(null);
+      console.log('[AdminQueueStats] Manual refresh of queue statistics');
+      
+      // Trigger server-side refresh and get fresh data
+      const response = await fetch('/pairings/admin/queue/statistics/refresh', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const stats = await response.json();
+        setQueueStats(stats);
+        console.log('[AdminQueueStats] Manual refresh completed successfully');
+      } else {
+        throw new Error(`Failed to refresh statistics: ${response.statusText}`);
+      }
+    } catch (err: any) {
+      console.error('[AdminQueueStats] Manual refresh failed:', err);
+      setError(err.message || 'Failed to refresh statistics');
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [isAdmin]);
+
+  // Reduced frequency fallback refresh (only when no WebSocket updates)
+  // This is now primarily a safety net rather than the main data source
   useEffect(() => {
     if (!isAdmin || !isConnected) {
       return;
     }
 
     const refreshInterval = setInterval(async () => {
+      // Only do fallback refresh if we haven't had recent updates
       try {
-        console.log('[AdminQueueStats] Periodic refresh of queue statistics');
+        console.log('[AdminQueueStats] Fallback refresh of queue statistics');
         const stats = await getQueueStatistics();
         setQueueStats(stats);
         setError(null);
       } catch (err: any) {
-        console.warn('[AdminQueueStats] Periodic refresh failed:', err);
-        // Don't set error on periodic refresh failures to avoid noise
+        console.warn('[AdminQueueStats] Fallback refresh failed:', err);
+        // Don't set error on fallback refresh failures to avoid noise
       }
-    }, 30000); // Refresh every 30 seconds as fallback
+    }, 120000); // Reduced to every 2 minutes as fallback only
 
     return () => {
       clearInterval(refreshInterval);
@@ -150,5 +187,7 @@ export const useAdminQueueStats = (): AdminQueueStatsHookReturn => {
     isLoading,
     clearError,
     retryConnection,
-  }), [queueStats, error, isConnected, isAdmin, isLoading, clearError, retryConnection]);
+    refreshStats,
+    isRefreshing,
+  }), [queueStats, error, isConnected, isAdmin, isLoading, clearError, retryConnection, refreshStats, isRefreshing]);
 }; 

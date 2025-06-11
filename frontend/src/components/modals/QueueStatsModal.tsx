@@ -68,8 +68,8 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
   isOpen,
   onClose
 }) => {
-  // Use the live data context
-  const { queueStats, error, isConnected, isLoading, retryConnection } = useAdminQueueStats()
+  // Use the live data context with on-demand refresh capability
+  const { queueStats, error, isConnected, isLoading, retryConnection, refreshStats, isRefreshing } = useAdminQueueStats()
   
   // Local state for user details and modal management
   const [userDetails, setUserDetails] = useState<QueueUserDetailsDTO[]>([])
@@ -108,6 +108,14 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
     
     prevStatsRef.current = queueStats
   }, [queueStats])
+
+  // Refresh statistics when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      console.log('[QueueStatsModal] Modal opened, refreshing statistics');
+      refreshStats();
+    }
+  }, [isOpen, refreshStats]);
 
   // Fetch user details when switching to users tab
   useEffect(() => {
@@ -189,6 +197,16 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                 <ConnectionStatus isConnected={isConnected} error={error} />
               </CardTitle>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={refreshStats}
+                  disabled={isRefreshing}
+                  className="text-primary hover:text-primary/80"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
                 {error && (
                   <Button
                     variant="ghost"
