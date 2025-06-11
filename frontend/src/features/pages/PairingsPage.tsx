@@ -12,11 +12,11 @@ import { Badge } from "@/components/ui/valorant/badge"
 import { Input } from "@/components/ui/profile/input"
 import { Label } from "@/components/ui/valorant/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
-import { Heart, Users, Trophy, MessageCircle, MessageSquare, Settings, User, MapPin, Calendar, AlertCircle, Clock, Zap, UserCheck, Activity, Trash2} from 'lucide-react'
+import { Heart, Users, Trophy, MessageCircle, MessageSquare, Settings, User, MapPin, Calendar, AlertCircle, Clock, Zap, UserCheck, Activity, Trash2, BarChart3} from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
-import type { JoinQueueRequestDTO } from "@/config/pairingService"
+import type { JoinQueueRequestDTO, QueueStatsDTO } from "@/config/pairingService"
 import { useQueueUpdates } from "@/contexts/QueueUpdates"
-import { performMatchmaking, deleteAllPairings, enableQueue, disableQueue } from "@/config/pairingService"
+import { performMatchmaking, deleteAllPairings, enableQueue, disableQueue, getQueueStatistics } from "@/config/pairingService"
 import { usePairingUpdates } from "@/contexts/PairingUpdates"
 import { MatchFoundModal } from "@/components/modals/MatchFoundModal"
 import { UserProfileModal } from "@/components/modals/UserProfileModal"
@@ -29,6 +29,7 @@ import { NoMatchFoundModal } from "@/components/modals/NoMatchFoundModal"
 import { BreakupModal } from "@/components/modals/BreakupModal"
 import { BreakupSuccessModal } from "@/components/modals/BreakupSuccessModal"
 import { PartnerUnmatchedModal } from "@/components/modals/PartnerUnmatchedModal"
+import { QueueStatsModal } from "@/components/modals/QueueStatsModal"
 import { useModalManager } from "@/hooks/useModalManager"
 import { PairingCardList } from "./PairingCard"
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary"
@@ -298,6 +299,8 @@ export function PairingsPage() {
   const [userProfiles, setUserProfiles] = useState<Record<string, UserProfileDTO>>({})
   const [userInitiatedBreakup, setUserInitiatedBreakup] = useState(false)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [queueStats, setQueueStats] = useState<QueueStatsDTO | null>(null)
+  const [queueStatsLoading, setQueueStatsLoading] = useState(false)
 
   // Minimum loading time in milliseconds
   const MIN_LOADING_TIME = 800
@@ -399,6 +402,8 @@ export function PairingsPage() {
     hideBreakupSuccess,
     showPartnerUnmatched,
     hidePartnerUnmatched,
+    showQueueStats,
+    hideQueueStats,
   } = modalManager
 
   const updateAdminState = useCallback((updates: Partial<AdminState>) => {
@@ -470,6 +475,26 @@ export function PairingsPage() {
       updateAdminState({ actionLoading: false })
     }
   }, [updateAdminState])
+
+  // Queue statistics functions
+  const fetchQueueStats = useCallback(async () => {
+    if (!hasRole("ADMIN")) return
+
+    try {
+      setQueueStatsLoading(true)
+      const stats = await getQueueStatistics()
+      setQueueStats(stats)
+    } catch (error: any) {
+      console.error("Failed to fetch queue statistics:", error)
+      // Don't show error in admin state as it's not critical
+    } finally {
+      setQueueStatsLoading(false)
+    }
+  }, [hasRole])
+
+  const handleShowQueueStats = useCallback(() => {
+    showQueueStats()
+  }, [showQueueStats])
 
   // Effect to handle real-time WebSocket updates
   useEffect(() => {
@@ -572,6 +597,26 @@ export function PairingsPage() {
       return () => clearTimeout(timer);
     }
   }, [loading, isInitialLoading, MIN_LOADING_TIME])
+
+  // Fetch queue statistics for admins
+  useEffect(() => {
+    if (hasRole("ADMIN") && !loading) {
+      fetchQueueStats()
+      
+      // Set up periodic refresh every 30 seconds
+      const interval = setInterval(fetchQueueStats, 30000)
+      
+      return () => clearInterval(interval)
+    }
+  }, [hasRole, loading, fetchQueueStats])
+
+  // Listen for queue updates to refresh stats
+  useEffect(() => {
+    if (hasRole("ADMIN") && isConnected) {
+      // Refresh stats when queue updates are received
+      fetchQueueStats()
+    }
+  }, [hasRole, isConnected, pairingUpdate, fetchQueueStats])
 
   const handleUserClick = useCallback(
     (userId: string, event: React.MouseEvent) => {
@@ -1502,6 +1547,79 @@ export function PairingsPage() {
                   ) : null}
                 </AnimatePresence>
 
+                {/* Admin Queue Statistics Display */}
+                {hasRole("ADMIN") && !currentPairing && (
+                  <AnimatePresence>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="mb-6"
+                    >
+                      <Card className="valorant-card">
+                        <CardHeader className="pb-4">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="flex items-center gap-3 text-white">
+                              <div className="p-2 bg-status-info/20 rounded-lg">
+                                <Activity className="h-5 w-5 text-status-info" />
+                              </div>
+                              Queue Statistics
+                            </CardTitle>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleShowQueueStats}
+                              className="border-primary/30 text-primary hover:border-primary/50 hover:bg-primary/10"
+                            >
+                              <Activity className="h-4 w-4 mr-2" />
+                              View Details
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          {queueStatsLoading ? (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              {[1, 2, 3].map((i) => (
+                                <div key={i} className="text-center p-4 bg-theme-container rounded-lg">
+                                  <Skeleton width="40px" height="32px" className="mx-auto mb-2" theme="valorant" />
+                                  <Skeleton width="80px" height="16px" className="mx-auto" theme="valorant" />
+                                </div>
+                              ))}
+                            </div>
+                          ) : queueStats ? (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="text-center p-4 bg-theme-container rounded-lg border border-primary/20">
+                                <div className="text-2xl font-bold text-primary mb-1">
+                                  {queueStats.totalUsersInQueue}
+                                </div>
+                                <div className="text-sm text-theme-secondary">Users in Queue</div>
+                              </div>
+                              
+                              <div className="text-center p-4 bg-theme-container rounded-lg border border-status-success/20">
+                                <div className="text-2xl font-bold text-status-success mb-1">
+                                  {queueStats.averageWaitTimeMinutes.toFixed(1)}m
+                                </div>
+                                <div className="text-sm text-theme-secondary">Avg Wait Time</div>
+                              </div>
+                              
+                              <div className="text-center p-4 bg-theme-container rounded-lg border border-status-warning/20">
+                                <div className="text-2xl font-bold text-status-warning mb-1">
+                                  {queueStats.matchSuccessRate?.toFixed(1) || 0}%
+                                </div>
+                                <div className="text-sm text-theme-secondary">Match Success Rate</div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-center p-4">
+                              <p className="text-theme-secondary">Unable to load queue statistics</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  </AnimatePresence>
+                )}
+
                 {/* Queue Join Section */}
                 {!currentPairing && (
                   <ErrorBoundary>
@@ -1777,6 +1895,13 @@ export function PairingsPage() {
               onClose={handleClosePartnerUnmatchedModal}
               onJoinQueue={handleJoinQueueFromPartnerModal}
               partnerName={modalState.offlineBreakupPartnerName || pairedUser?.displayName || "your match"}
+            />
+          )}
+
+          {modalState.showQueueStatsModal && hasRole("ADMIN") && (
+            <QueueStatsModal
+              isOpen={modalState.showQueueStatsModal}
+              onClose={hideQueueStats}
             />
           )}
         </AnimatePresence>

@@ -41,6 +41,9 @@ public class MatchmakingService {
     public List<PairingDTO> performMatchmaking() {
         log.info("Starting matchmaking process...");
         
+        // Update last matchmaking run timestamp
+        queueService.updateLastMatchmakingRun();
+        
         List<MatchQueueUser> eligibleUsers = queueService.getEligibleUsersForMatching();
         log.info("Found {} eligible users for matching", eligibleUsers.size());
         

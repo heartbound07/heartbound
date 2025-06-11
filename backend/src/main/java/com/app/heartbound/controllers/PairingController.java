@@ -407,5 +407,43 @@ public class PairingController {
         }
     }
 
+    @Operation(summary = "Get queue statistics", description = "Admin endpoint to get comprehensive queue analytics and statistics")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Queue statistics retrieved successfully"),
+        @ApiResponse(responseCode = "403", description = "Admin access required")
+    })
+    @GetMapping("/admin/queue/statistics")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<QueueStatsDTO> getQueueStatistics() {
+        try {
+            log.info("Admin requesting queue statistics");
+            QueueStatsDTO stats = queueService.getQueueStatistics();
+            log.info("Successfully retrieved queue statistics with {} users in queue", stats.getTotalUsersInQueue());
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            log.error("Error fetching queue statistics: {}", e.getMessage(), e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to fetch queue statistics: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Get queue user details", description = "Admin endpoint to get detailed information about users currently in queue")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Queue user details retrieved successfully"),
+        @ApiResponse(responseCode = "403", description = "Admin access required")
+    })
+    @GetMapping("/admin/queue/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<QueueUserDetailsDTO>> getQueueUserDetails() {
+        try {
+            log.info("Admin requesting queue user details");
+            List<QueueUserDetailsDTO> userDetails = queueService.getQueueUserDetails();
+            log.info("Successfully retrieved {} user details from queue", userDetails.size());
+            return ResponseEntity.ok(userDetails);
+        } catch (Exception e) {
+            log.error("Error fetching queue user details: {}", e.getMessage(), e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to fetch queue user details: " + e.getMessage());
+        }
+    }
+
 
 } 

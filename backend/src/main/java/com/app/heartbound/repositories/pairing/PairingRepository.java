@@ -34,4 +34,8 @@ public interface PairingRepository extends JpaRepository<Pairing, Long> {
 
     // Find pairing by Discord channel ID
     Optional<Pairing> findByDiscordChannelId(Long discordChannelId);
+    
+    // Count pairings created after a specific date/time (for admin statistics)
+    @Query("SELECT COUNT(p) FROM Pairing p WHERE p.matchedAt >= :afterDate")
+    int countByMatchedAtAfter(@Param("afterDate") java.time.LocalDateTime afterDate);
 } 

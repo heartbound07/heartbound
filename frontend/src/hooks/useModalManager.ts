@@ -17,6 +17,7 @@ interface ModalState {
   showBreakupSuccessModal: boolean
   showPartnerUnmatchedModal: boolean
   offlineBreakupPartnerName: string | null
+  showQueueStatsModal: boolean
 }
 
 // Initial modal state
@@ -34,6 +35,7 @@ const initialModalState: ModalState = {
   showBreakupSuccessModal: false,
   showPartnerUnmatchedModal: false,
   offlineBreakupPartnerName: null,
+  showQueueStatsModal: false,
 }
 
 export const useModalManager = () => {
@@ -115,6 +117,14 @@ export const useModalManager = () => {
     })
   }, [updateModal])
 
+  const showQueueStats = useCallback(() => {
+    updateModal({ showQueueStatsModal: true })
+  }, [updateModal])
+
+  const hideQueueStats = useCallback(() => {
+    updateModal({ showQueueStatsModal: false })
+  }, [updateModal])
+
   // Reset all modals
   const resetModals = useCallback(() => {
     setModalState(initialModalState)
@@ -139,6 +149,8 @@ export const useModalManager = () => {
     hideBreakupSuccess,
     showPartnerUnmatched,
     hidePartnerUnmatched,
+    showQueueStats,
+    hideQueueStats,
     resetModals,
     updateModal,
   }), [
@@ -157,6 +169,8 @@ export const useModalManager = () => {
     hideBreakupSuccess,
     showPartnerUnmatched,
     hidePartnerUnmatched,
+    showQueueStats,
+    hideQueueStats,
     resetModals,
     updateModal,
   ])

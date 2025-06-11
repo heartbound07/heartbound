@@ -68,6 +68,39 @@ export interface QueueConfigDTO {
   timestamp: string;
 }
 
+export interface QueueStatsDTO {
+  totalUsersInQueue: number;
+  averageWaitTimeMinutes: number;
+  lastMatchmakingRun: string;
+  queueByRegion: Record<string, number>;
+  queueByRank: Record<string, number>;
+  queueByGender: Record<string, number>;
+  queueByAgeRange: Record<string, number>;
+  matchSuccessRate: number;
+  totalMatchesCreatedToday: number;
+  totalUsersMatchedToday: number;
+  queueSizeHistory: Record<string, number>;
+  waitTimeHistory: Record<string, number>;
+  queueStartTime: string;
+  queueEnabled: boolean;
+  lastUpdatedBy: string;
+}
+
+export interface QueueUserDetailsDTO {
+  userId: string;
+  username: string;
+  avatar: string;
+  age: number;
+  region: 'NA_EAST' | 'NA_WEST' | 'EU' | 'LATAM' | 'BR' | 'KR' | 'AP';
+  rank: 'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'ASCENDANT' | 'IMMORTAL' | 'RADIANT';
+  gender: 'MALE' | 'FEMALE' | 'NON_BINARY' | 'PREFER_NOT_TO_SAY';
+  queuedAt: string;
+  waitTimeMinutes: number;
+  queuePosition: number;
+  estimatedWaitTimeMinutes: number;
+  recentlyQueued: boolean;
+}
+
 /**
  * Get the current user's active pairing
  */
@@ -241,6 +274,32 @@ export const breakupPairing = async (
     return response.data;
   } catch (error) {
     console.error('Error initiating breakup:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get queue statistics (admin function)
+ */
+export const getQueueStatistics = async (): Promise<QueueStatsDTO> => {
+  try {
+    const response = await httpClient.get('/pairings/admin/queue/statistics');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching queue statistics:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get detailed queue user information (admin function)
+ */
+export const getQueueUserDetails = async (): Promise<QueueUserDetailsDTO[]> => {
+  try {
+    const response = await httpClient.get('/pairings/admin/queue/users');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching queue user details:', error);
     throw error;
   }
 }; 
