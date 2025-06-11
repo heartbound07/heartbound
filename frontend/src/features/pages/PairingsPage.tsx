@@ -14,9 +14,9 @@ import { Label } from "@/components/ui/valorant/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
 import { Heart, Users, Trophy, MessageCircle, MessageSquare, Settings, User, MapPin, Calendar, AlertCircle, Clock, Zap, UserCheck, Activity, Trash2 } from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
-import type { JoinQueueRequestDTO, QueueStatsDTO } from "@/config/pairingService"
+import type { JoinQueueRequestDTO } from "@/config/pairingService"
 import { useQueueUpdates } from "@/contexts/QueueUpdates"
-import { performMatchmaking, deleteAllPairings, enableQueue, disableQueue, getQueueStatistics } from "@/config/pairingService"
+import { performMatchmaking, deleteAllPairings, enableQueue, disableQueue } from "@/config/pairingService"
 import { usePairingUpdates } from "@/contexts/PairingUpdates"
 import { MatchFoundModal } from "@/components/modals/MatchFoundModal"
 import { UserProfileModal } from "@/components/modals/UserProfileModal"
@@ -31,6 +31,7 @@ import { BreakupSuccessModal } from "@/components/modals/BreakupSuccessModal"
 import { PartnerUnmatchedModal } from "@/components/modals/PartnerUnmatchedModal"
 import { QueueStatsModal } from "@/components/modals/QueueStatsModal"
 import { useModalManager } from "@/hooks/useModalManager"
+import { useAdminQueueStats } from "@/contexts/AdminQueueStatsProvider"
 import { PairingCardList } from "./PairingCard"
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary"
 import { XPCard } from "@/features/pages/XPCard"
@@ -293,14 +294,15 @@ export function PairingsPage() {
   const { isConnected } = useQueueUpdates()
   const { pairingUpdate, clearUpdate } = usePairingUpdates()
 
+  // Use live WebSocket admin queue stats
+  const { queueStats, isLoading: queueStatsLoading } = useAdminQueueStats()
+
   // Use optimized modal manager
   const modalManager = useModalManager()
   const [adminState, setAdminState] = useState<AdminState>(initialAdminState)
   const [userProfiles, setUserProfiles] = useState<Record<string, UserProfileDTO>>({})
   const [userInitiatedBreakup, setUserInitiatedBreakup] = useState(false)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
-  const [queueStats, setQueueStats] = useState<QueueStatsDTO | null>(null)
-  const [queueStatsLoading, setQueueStatsLoading] = useState(false)
 
   // Minimum loading time in milliseconds
   const MIN_LOADING_TIME = 800
@@ -476,21 +478,7 @@ export function PairingsPage() {
     }
   }, [updateAdminState])
 
-  // Queue statistics functions
-  const fetchQueueStats = useCallback(async () => {
-    if (!hasRole("ADMIN")) return
 
-    try {
-      setQueueStatsLoading(true)
-      const stats = await getQueueStatistics()
-      setQueueStats(stats)
-    } catch (error: any) {
-      console.error("Failed to fetch queue statistics:", error)
-      // Don't show error in admin state as it's not critical
-    } finally {
-      setQueueStatsLoading(false)
-    }
-  }, [hasRole])
 
   const handleShowQueueStats = useCallback(() => {
     showQueueStats()
@@ -598,25 +586,7 @@ export function PairingsPage() {
     }
   }, [loading, isInitialLoading, MIN_LOADING_TIME])
 
-  // Fetch queue statistics for admins
-  useEffect(() => {
-    if (hasRole("ADMIN") && !loading) {
-      fetchQueueStats()
-      
-      // Set up periodic refresh every 30 seconds
-      const interval = setInterval(fetchQueueStats, 30000)
-      
-      return () => clearInterval(interval)
-    }
-  }, [hasRole, loading, fetchQueueStats])
 
-  // Listen for queue updates to refresh stats
-  useEffect(() => {
-    if (hasRole("ADMIN") && isConnected) {
-      // Refresh stats when queue updates are received
-      fetchQueueStats()
-    }
-  }, [hasRole, isConnected, pairingUpdate, fetchQueueStats])
 
   const handleUserClick = useCallback(
     (userId: string, event: React.MouseEvent) => {
@@ -1080,19 +1050,13 @@ export function PairingsPage() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                       {/* Queue Status Display */}
-                      <motion.div
-                        className="p-4 rounded-xl border-theme bg-theme-container backdrop-blur-sm theme-transition"
-                        whileHover={{ scale: 1.02 }}
-                        transition={{ type: "spring", stiffness: 300 }}
-                      >
+                      <div className="p-4 rounded-xl border-theme bg-theme-container backdrop-blur-sm theme-transition">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
-                            <motion.div
+                            <div
                               className={`w-4 h-4 rounded-full ${
                                 isQueueEnabled ? "bg-status-success" : "bg-status-error"
                               }`}
-                              animate={{ scale: [1, 1.2, 1] }}
-                              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
                             />
                             <span className="text-white font-semibold text-lg">
                               Queue Status: {isQueueEnabled ? "Active" : "Disabled"}
@@ -1107,11 +1071,11 @@ export function PairingsPage() {
                         {queueConfig && (
                           <p className="text-theme-secondary text-sm">{queueConfig.message}</p>
                         )}
-                      </motion.div>
+                      </div>
 
                       {/* Admin Action Buttons */}
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <div>
                           <Button
                             onClick={handleEnableQueue}
                             disabled={adminState.queueConfigLoading || isQueueEnabled}
@@ -1127,9 +1091,9 @@ export function PairingsPage() {
                               </>
                             )}
                           </Button>
-                        </motion.div>
+                        </div>
 
-                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <div>
                           <Button
                             onClick={handleDisableQueue}
                             disabled={adminState.queueConfigLoading || !isQueueEnabled}
@@ -1145,9 +1109,9 @@ export function PairingsPage() {
                               </>
                             )}
                           </Button>
-                        </motion.div>
+                        </div>
 
-                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <div>
                           <Button
                             onClick={handleAdminMatchmaking}
                             disabled={adminState.actionLoading}
@@ -1162,9 +1126,9 @@ export function PairingsPage() {
                               </>
                             )}
                           </Button>
-                        </motion.div>
+                        </div>
 
-                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <div>
                           <Button
                             onClick={handleDeleteAllPairings}
                             disabled={adminState.actionLoading}
@@ -1180,26 +1144,21 @@ export function PairingsPage() {
                               </>
                             )}
                           </Button>
-                        </motion.div>
+                        </div>
                       </div>
 
                       {/* Admin Messages */}
-                      <AnimatePresence>
-                        {(adminState.message || adminState.queueConfigMessage) && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className={`p-4 rounded-xl text-sm font-medium ${
-                              (adminState.message || adminState.queueConfigMessage)?.includes("Error")
-                                ? "bg-status-error/10 border border-status-error/20 text-status-error"
-                                : "bg-status-success/10 border border-status-success/20 text-status-success"
-                            }`}
-                          >
-                            {adminState.queueConfigMessage || adminState.message}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                      {(adminState.message || adminState.queueConfigMessage) && (
+                        <div
+                          className={`p-4 rounded-xl text-sm font-medium ${
+                            (adminState.message || adminState.queueConfigMessage)?.includes("Error")
+                              ? "bg-status-error/10 border border-status-error/20 text-status-error"
+                              : "bg-status-success/10 border border-status-success/20 text-status-success"
+                          }`}
+                        >
+                          {adminState.queueConfigMessage || adminState.message}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
@@ -1549,13 +1508,7 @@ export function PairingsPage() {
 
                 {/* Admin Queue Statistics Display */}
                 {hasRole("ADMIN") && !currentPairing && (
-                  <AnimatePresence>
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      className="mb-6"
-                    >
+                  <div className="mb-6">
                       <Card className="valorant-card">
                         <CardHeader className="pb-4">
                           <div className="flex items-center justify-between">
@@ -1616,8 +1569,7 @@ export function PairingsPage() {
                           )}
                         </CardContent>
                       </Card>
-                    </motion.div>
-                  </AnimatePresence>
+                    </div>
                 )}
 
                 {/* Queue Join Section */}
