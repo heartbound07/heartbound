@@ -26,6 +26,7 @@ import { PairingsPage } from '@/features/pages/PairingsPage';
 import QueueUpdatesProvider from '@/contexts/QueueUpdates';
 import PairingUpdatesProvider from '@/contexts/PairingUpdates';
 import { QueueConfigProvider } from '@/contexts/QueueConfigUpdates';
+import { AdminQueueStatsProvider } from '@/contexts/AdminQueueStatsProvider';
 import { MessageQueueDemo } from '@/examples/MessageQueueDemo';
 
 // Admin route guard component
@@ -65,7 +66,9 @@ function ProtectedRoutes() {
           <QueueUpdatesProvider>
             <QueueConfigProvider>
               <PairingUpdatesProvider>
-                <Outlet />
+                <AdminQueueStatsProvider>
+                  <Outlet />
+                </AdminQueueStatsProvider>
               </PairingUpdatesProvider>
             </QueueConfigProvider>
           </QueueUpdatesProvider>

@@ -1,3 +1,6 @@
+// Import QueueStatsDTO type for admin stats
+import type { QueueStatsDTO } from '@/config/pairingService';
+
 export type WebSocketConnectionStatus = 
   | 'disconnected' 
   | 'connecting' 
@@ -179,6 +182,7 @@ export type TopicMessageMap = {
   '/topic/party': LFGPartyEvent;
   '/topic/queue': QueueUpdateEvent;
   '/topic/queue/config': QueueConfigUpdateEvent;
+  '/topic/admin/queue-stats': QueueStatsDTO;
 } & {
   [key: `/user/${string}/topic/pairings`]: PairingUpdateEvent;
 };

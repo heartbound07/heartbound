@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -101,6 +102,9 @@ public class QueueService {
 
         // Broadcast queue update via WebSocket
         broadcastQueueUpdate();
+        
+        // Broadcast admin-specific update with comprehensive statistics
+        broadcastAdminQueueUpdate();
 
         log.info("Saved queue user: ID={}, Age={}, Gender={}, Region={}, Rank={}, InQueue={}", 
                  queueUser.getUserId(), queueUser.getAge(), queueUser.getGender(), 
@@ -121,6 +125,9 @@ public class QueueService {
             
             // Broadcast queue update via WebSocket
             broadcastQueueUpdate();
+            
+            // Broadcast admin-specific update with comprehensive statistics
+            broadcastAdminQueueUpdate();
         } else {
             log.warn("User {} was not in queue", userId);
         }
@@ -238,6 +245,9 @@ public class QueueService {
         
         messagingTemplate.convertAndSend("/topic/queue/config", configUpdate);
         logger.info("Queue status changed to {} by {}", enabled ? "ENABLED" : "DISABLED", updatedBy);
+        
+        // Broadcast admin-specific update with comprehensive statistics
+        broadcastAdminQueueUpdate();
     }
 
     public boolean isQueueEnabled() {
@@ -518,10 +528,29 @@ public class QueueService {
     public void broadcastAdminQueueUpdate() {
         try {
             QueueStatsDTO stats = getQueueStatistics();
-            messagingTemplate.convertAndSend("/topic/queue/admin", stats);
+            messagingTemplate.convertAndSend("/topic/admin/queue-stats", stats);
             log.debug("Broadcasted admin queue update with comprehensive statistics");
         } catch (Exception e) {
             log.error("Failed to broadcast admin queue update: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * Scheduled periodic broadcast of admin queue statistics as a fallback mechanism
+     * Runs every 10 seconds to ensure admin dashboards remain synchronized
+     */
+    @Scheduled(fixedRate = 10000) // 10 seconds
+    public void scheduledAdminQueueBroadcast() {
+        try {
+            // Only broadcast if there are users in queue or recent activity
+            List<MatchQueueUser> activeUsers = queueRepository.findByInQueueTrue();
+            if (!activeUsers.isEmpty() || 
+                Duration.between(lastMatchmakingRun, LocalDateTime.now()).toMinutes() < 30) {
+                broadcastAdminQueueUpdate();
+                log.trace("Scheduled admin queue stats broadcast completed");
+            }
+        } catch (Exception e) {
+            log.error("Failed to execute scheduled admin queue broadcast: {}", e.getMessage());
         }
     }
 } 

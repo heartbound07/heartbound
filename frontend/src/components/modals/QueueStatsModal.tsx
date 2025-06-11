@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import React, { useState, useEffect, useRef } from "react"
+import { motion, AnimatePresence, useSpring, useTransform } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/valorant/badge"
@@ -19,9 +19,13 @@ import {
   BarChart3,
   Activity,
   Timer,
-  Target
+  Target,
+  Wifi,
+  WifiOff,
+  AlertCircle
 } from "lucide-react"
-import { QueueStatsDTO, QueueUserDetailsDTO, getQueueStatistics, getQueueUserDetails } from "@/config/pairingService"
+import { QueueStatsDTO, QueueUserDetailsDTO, getQueueUserDetails } from "@/config/pairingService"
+import { useAdminQueueStats } from "@/contexts/AdminQueueStatsProvider"
 import "@/assets/QueueStatsModal.css"
 
 interface QueueStatsModalProps {
@@ -29,40 +33,113 @@ interface QueueStatsModalProps {
   onClose: () => void
 }
 
+// Animated number component for count-up effects
+const AnimatedNumber: React.FC<{ value: number; duration?: number; decimals?: number }> = ({ 
+  value, 
+  duration = 0.5, 
+  decimals = 0 
+}) => {
+  const spring = useSpring(value, { duration: duration * 1000 })
+  const display = useTransform(spring, (current) => 
+    decimals > 0 ? current.toFixed(decimals) : Math.floor(current).toString()
+  )
+  
+  return <motion.span>{display}</motion.span>
+}
+
+// Connection status indicator
+const ConnectionStatus: React.FC<{ isConnected: boolean; error: string | null }> = ({ 
+  isConnected, 
+  error 
+}) => {
+  if (error) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/30">
+        <AlertCircle className="h-3 w-3 text-red-400" />
+        <span className="text-xs text-red-400">Connection Error</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${
+      isConnected 
+        ? 'bg-green-500/20 border-green-500/30' 
+        : 'bg-yellow-500/20 border-yellow-500/30'
+    }`}>
+      {isConnected ? (
+        <Wifi className="h-3 w-3 text-green-400" />
+      ) : (
+        <WifiOff className="h-3 w-3 text-yellow-400" />
+      )}
+      <span className={`text-xs ${isConnected ? 'text-green-400' : 'text-yellow-400'}`}>
+        {isConnected ? 'Live Updates' : 'Connecting...'}
+      </span>
+    </div>
+  )
+}
+
 export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
   isOpen,
   onClose
 }) => {
-  const [stats, setStats] = useState<QueueStatsDTO | null>(null)
+  // Use the live data context
+  const { queueStats, error, isConnected, isLoading, clearError, retryConnection } = useAdminQueueStats()
+  
+  // Local state for user details and modal management
   const [userDetails, setUserDetails] = useState<QueueUserDetailsDTO[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [userDetailsLoading, setUserDetailsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'breakdown' | 'users'>('overview')
+  const [updatedFields, setUpdatedFields] = useState<Set<string>>(new Set())
 
-  // Fetch data when modal opens
+  // Keep track of previous values to detect changes
+  const prevStatsRef = useRef(queueStats)
+
+  // Detect field changes and trigger glow effects
   useEffect(() => {
-    if (isOpen) {
-      fetchQueueData()
-    }
-  }, [isOpen])
+    if (queueStats && prevStatsRef.current) {
+      const newUpdatedFields = new Set<string>()
+      
+      // Check for changes in key metrics
+      if (queueStats.totalUsersInQueue !== prevStatsRef.current.totalUsersInQueue) {
+        newUpdatedFields.add('totalUsers')
+      }
+      if (queueStats.averageWaitTimeMinutes !== prevStatsRef.current.averageWaitTimeMinutes) {
+        newUpdatedFields.add('avgWait')
+      }
+      if (queueStats.matchSuccessRate !== prevStatsRef.current.matchSuccessRate) {
+        newUpdatedFields.add('successRate')
+      }
+      if (queueStats.totalMatchesCreatedToday !== prevStatsRef.current.totalMatchesCreatedToday) {
+        newUpdatedFields.add('matchesToday')
+      }
 
-  const fetchQueueData = async () => {
+      if (newUpdatedFields.size > 0) {
+        setUpdatedFields(newUpdatedFields)
+        // Clear the glow effect after 2 seconds
+        setTimeout(() => setUpdatedFields(new Set()), 2000)
+      }
+    }
+    
+    prevStatsRef.current = queueStats
+  }, [queueStats])
+
+  // Fetch user details when switching to users tab
+  useEffect(() => {
+    if (isOpen && activeTab === 'users') {
+      fetchUserDetails()
+    }
+  }, [isOpen, activeTab])
+
+  const fetchUserDetails = async () => {
     try {
-      setLoading(true)
-      setError(null)
-      
-      const [statsData, usersData] = await Promise.all([
-        getQueueStatistics(),
-        getQueueUserDetails()
-      ])
-      
-      setStats(statsData)
+      setUserDetailsLoading(true)
+      const usersData = await getQueueUserDetails()
       setUserDetails(usersData)
     } catch (err: any) {
-      console.error('Error fetching queue data:', err)
-      setError(err.message || 'Failed to load queue data')
+      console.error('Error fetching user details:', err)
     } finally {
-      setLoading(false)
+      setUserDetailsLoading(false)
     }
   }
 
@@ -130,17 +207,20 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                     <BarChart3 className="h-6 w-6" />
                   </div>
                   Queue Analytics Dashboard
+                  <ConnectionStatus isConnected={isConnected} error={error} />
                 </CardTitle>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={fetchQueueData}
-                    disabled={loading}
-                    className="text-primary hover:text-primary/80"
-                  >
-                    <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                  </Button>
+                  {error && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={retryConnection}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      Retry
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -176,7 +256,7 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
             </CardHeader>
             
             <CardContent className="max-h-[70vh] overflow-y-auto">
-              {loading ? (
+              {isLoading ? (
                 <div className="text-center py-8">
                   <RefreshCw className="h-8 w-8 mx-auto mb-3 animate-spin text-primary" />
                   <p className="text-theme-secondary">Loading queue analytics...</p>
@@ -186,17 +266,22 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                   <Target className="h-8 w-8 mx-auto mb-3 opacity-50" />
                   <p>{error}</p>
                   <Button 
-                    onClick={fetchQueueData} 
+                    onClick={retryConnection} 
                     variant="outline" 
                     size="sm" 
                     className="mt-3"
                   >
-                    Retry
+                    Retry Connection
                   </Button>
+                </div>
+              ) : !queueStats ? (
+                <div className="text-center py-8">
+                  <BarChart3 className="h-8 w-8 mx-auto mb-3 opacity-50 text-theme-tertiary" />
+                  <p className="text-theme-secondary">No queue data available</p>
                 </div>
               ) : (
                 <AnimatePresence mode="wait">
-                  {activeTab === 'overview' && stats && (
+                  {activeTab === 'overview' && (
                     <motion.div
                       key="overview"
                       initial={{ opacity: 0, y: 20 }}
@@ -211,7 +296,7 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                             <Users className="h-4 w-4 text-primary" />
                             <span className="text-sm text-theme-secondary">Total in Queue</span>
                           </div>
-                          <div className="text-2xl font-bold text-white">{stats.totalUsersInQueue}</div>
+                          <div className="text-2xl font-bold text-white">{queueStats.totalUsersInQueue}</div>
                         </div>
                         
                         <div className="p-4 rounded-lg bg-theme-container border-theme">
@@ -220,7 +305,7 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                             <span className="text-sm text-theme-secondary">Avg Wait Time</span>
                           </div>
                           <div className="text-2xl font-bold text-white">
-                            {formatWaitTime(stats.averageWaitTimeMinutes)}
+                            {formatWaitTime(queueStats.averageWaitTimeMinutes)}
                           </div>
                         </div>
                         
@@ -230,7 +315,7 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                             <span className="text-sm text-theme-secondary">Success Rate</span>
                           </div>
                           <div className="text-2xl font-bold text-white">
-                            {Math.round(stats.matchSuccessRate)}%
+                            {Math.round(queueStats.matchSuccessRate)}%
                           </div>
                         </div>
                         
@@ -239,7 +324,7 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                             <Trophy className="h-4 w-4 text-yellow-400" />
                             <span className="text-sm text-theme-secondary">Matches Today</span>
                           </div>
-                          <div className="text-2xl font-bold text-white">{stats.totalMatchesCreatedToday}</div>
+                          <div className="text-2xl font-bold text-white">{queueStats.totalMatchesCreatedToday}</div>
                         </div>
                       </div>
 
@@ -252,12 +337,12 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                               <span className="text-sm text-theme-secondary">Queue Status</span>
                               <Badge 
                                 variant="outline" 
-                                className={stats.queueEnabled ? 'text-green-400 border-green-400' : 'text-red-400 border-red-400'}
+                                className={queueStats.queueEnabled ? 'text-green-400 border-green-400' : 'text-red-400 border-red-400'} 
                               >
-                                {stats.queueEnabled ? 'Enabled' : 'Disabled'}
+                                {queueStats.queueEnabled ? 'Enabled' : 'Disabled'}
                               </Badge>
                             </div>
-                            <p className="text-xs text-theme-tertiary">Last updated by {stats.lastUpdatedBy}</p>
+                            <p className="text-xs text-theme-tertiary">Last updated by {queueStats.lastUpdatedBy}</p>
                           </div>
                           
                           <div className="p-4 rounded-lg bg-theme-container border-theme">
@@ -265,7 +350,7 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                               <Timer className="h-4 w-4 text-primary" />
                               <span className="text-sm text-theme-secondary">Last Matchmaking</span>
                             </div>
-                            <p className="text-sm text-white">{formatTime(stats.lastMatchmakingRun)}</p>
+                            <p className="text-sm text-white">{formatTime(queueStats.lastMatchmakingRun)}</p>
                           </div>
                         </div>
                       </div>
@@ -276,21 +361,21 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="p-4 rounded-lg bg-theme-container border-theme text-center">
                             <div className="text-xl font-bold text-green-400 mb-1">
-                              {stats.totalMatchesCreatedToday}
+                              {queueStats.totalMatchesCreatedToday}
                             </div>
                             <div className="text-sm text-theme-secondary">Matches Created</div>
                           </div>
                           
                           <div className="p-4 rounded-lg bg-theme-container border-theme text-center">
                             <div className="text-xl font-bold text-blue-400 mb-1">
-                              {stats.totalUsersMatchedToday}
+                              {queueStats.totalUsersMatchedToday}
                             </div>
                             <div className="text-sm text-theme-secondary">Users Matched</div>
                           </div>
                           
                           <div className="p-4 rounded-lg bg-theme-container border-theme text-center">
                             <div className="text-xl font-bold text-primary mb-1">
-                              {stats.totalUsersInQueue}
+                              {queueStats.totalUsersInQueue}
                             </div>
                             <div className="text-sm text-theme-secondary">Currently Queued</div>
                           </div>
@@ -299,7 +384,7 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                     </motion.div>
                   )}
 
-                  {activeTab === 'breakdown' && stats && (
+                  {activeTab === 'breakdown' && queueStats && (
                     <motion.div
                       key="breakdown"
                       initial={{ opacity: 0, y: 20 }}
@@ -314,7 +399,7 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                           By Region
                         </h4>
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                          {Object.entries(stats.queueByRegion).map(([region, count]) => (
+                          {Object.entries(queueStats.queueByRegion).map(([region, count]) => (
                             <div key={region} className="p-3 rounded-lg bg-theme-container border-theme">
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-theme-secondary">{getRegionLabel(region)}</span>
@@ -334,7 +419,7 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                           By Rank
                         </h4>
                         <div className="grid grid-cols-3 lg:grid-cols-5 gap-3">
-                          {Object.entries(stats.queueByRank).map(([rank, count]) => (
+                          {Object.entries(queueStats.queueByRank).map(([rank, count]) => (
                             <div key={rank} className="p-3 rounded-lg bg-theme-container border-theme">
                               <div className="text-center">
                                 <div className={`text-sm font-medium ${getRankColor(rank)}`}>{rank}</div>
@@ -352,7 +437,7 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                           By Gender
                         </h4>
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                          {Object.entries(stats.queueByGender).map(([gender, count]) => (
+                          {Object.entries(queueStats.queueByGender).map(([gender, count]) => (
                             <div key={gender} className="p-3 rounded-lg bg-theme-container border-theme">
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-theme-secondary">
@@ -374,7 +459,7 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                           By Age Range
                         </h4>
                         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                          {Object.entries(stats.queueByAgeRange).map(([ageRange, count]) => (
+                          {Object.entries(queueStats.queueByAgeRange).map(([ageRange, count]) => (
                             <div key={ageRange} className="p-3 rounded-lg bg-theme-container border-theme">
                               <div className="text-center">
                                 <div className="text-sm text-theme-secondary">{ageRange}</div>
