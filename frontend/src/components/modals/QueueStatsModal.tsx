@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
-import { motion, AnimatePresence, useSpring, useTransform } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/valorant/badge"
@@ -24,7 +24,7 @@ import {
   WifiOff,
   AlertCircle
 } from "lucide-react"
-import { QueueStatsDTO, QueueUserDetailsDTO, getQueueUserDetails } from "@/config/pairingService"
+import { QueueUserDetailsDTO, getQueueUserDetails } from "@/config/pairingService"
 import { useAdminQueueStats } from "@/contexts/AdminQueueStatsProvider"
 import "@/assets/QueueStatsModal.css"
 
@@ -33,19 +33,7 @@ interface QueueStatsModalProps {
   onClose: () => void
 }
 
-// Animated number component for count-up effects
-const AnimatedNumber: React.FC<{ value: number; duration?: number; decimals?: number }> = ({ 
-  value, 
-  duration = 0.5, 
-  decimals = 0 
-}) => {
-  const spring = useSpring(value, { duration: duration * 1000 })
-  const display = useTransform(spring, (current) => 
-    decimals > 0 ? current.toFixed(decimals) : Math.floor(current).toString()
-  )
-  
-  return <motion.span>{display}</motion.span>
-}
+
 
 // Connection status indicator
 const ConnectionStatus: React.FC<{ isConnected: boolean; error: string | null }> = ({ 
@@ -84,7 +72,7 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
   onClose
 }) => {
   // Use the live data context
-  const { queueStats, error, isConnected, isLoading, clearError, retryConnection } = useAdminQueueStats()
+  const { queueStats, error, isConnected, isLoading, retryConnection } = useAdminQueueStats()
   
   // Local state for user details and modal management
   const [userDetails, setUserDetails] = useState<QueueUserDetailsDTO[]>([])
@@ -289,17 +277,43 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                       exit={{ opacity: 0, y: -20 }}
                       className="space-y-6"
                     >
-                      {/* Key Metrics */}
+                      {/* Key Metrics with Enhanced Animations */}
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="p-4 rounded-lg bg-theme-container border-theme">
+                        <motion.div 
+                          className={`p-4 rounded-lg bg-theme-container border-theme transition-all duration-300 ${
+                            updatedFields.has('totalUsers') ? 'ring-2 ring-primary/50 bg-primary/5' : ''
+                          }`}
+                          animate={updatedFields.has('totalUsers') ? {
+                            boxShadow: [
+                              '0 0 0 0 rgb(var(--color-primary) / 0.3)',
+                              '0 0 0 8px rgb(var(--color-primary) / 0.1)', 
+                              '0 0 0 0 rgb(var(--color-primary) / 0)'
+                            ]
+                          } : {}}
+                          transition={{ duration: 1 }}
+                        >
                           <div className="flex items-center gap-2 mb-2">
                             <Users className="h-4 w-4 text-primary" />
                             <span className="text-sm text-theme-secondary">Total in Queue</span>
                           </div>
-                          <div className="text-2xl font-bold text-white">{queueStats.totalUsersInQueue}</div>
-                        </div>
+                          <div className="text-2xl font-bold text-white">
+                            {queueStats.totalUsersInQueue}
+                          </div>
+                        </motion.div>
                         
-                        <div className="p-4 rounded-lg bg-theme-container border-theme">
+                        <motion.div 
+                          className={`p-4 rounded-lg bg-theme-container border-theme transition-all duration-300 ${
+                            updatedFields.has('avgWait') ? 'ring-2 ring-primary/50 bg-primary/5' : ''
+                          }`}
+                          animate={updatedFields.has('avgWait') ? {
+                            boxShadow: [
+                              '0 0 0 0 rgb(var(--color-primary) / 0.3)',
+                              '0 0 0 8px rgb(var(--color-primary) / 0.1)',
+                              '0 0 0 0 rgb(var(--color-primary) / 0)'
+                            ]
+                          } : {}}
+                          transition={{ duration: 1 }}
+                        >
                           <div className="flex items-center gap-2 mb-2">
                             <Clock className="h-4 w-4 text-blue-400" />
                             <span className="text-sm text-theme-secondary">Avg Wait Time</span>
@@ -307,9 +321,21 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                           <div className="text-2xl font-bold text-white">
                             {formatWaitTime(queueStats.averageWaitTimeMinutes)}
                           </div>
-                        </div>
+                        </motion.div>
                         
-                        <div className="p-4 rounded-lg bg-theme-container border-theme">
+                        <motion.div 
+                          className={`p-4 rounded-lg bg-theme-container border-theme transition-all duration-300 ${
+                            updatedFields.has('successRate') ? 'ring-2 ring-primary/50 bg-primary/5' : ''
+                          }`}
+                          animate={updatedFields.has('successRate') ? {
+                            boxShadow: [
+                              '0 0 0 0 rgb(var(--color-primary) / 0.3)',
+                              '0 0 0 8px rgb(var(--color-primary) / 0.1)',
+                              '0 0 0 0 rgb(var(--color-primary) / 0)'
+                            ]
+                          } : {}}
+                          transition={{ duration: 1 }}
+                        >
                           <div className="flex items-center gap-2 mb-2">
                             <TrendingUp className="h-4 w-4 text-green-400" />
                             <span className="text-sm text-theme-secondary">Success Rate</span>
@@ -317,15 +343,29 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                           <div className="text-2xl font-bold text-white">
                             {Math.round(queueStats.matchSuccessRate)}%
                           </div>
-                        </div>
+                        </motion.div>
                         
-                        <div className="p-4 rounded-lg bg-theme-container border-theme">
+                        <motion.div 
+                          className={`p-4 rounded-lg bg-theme-container border-theme transition-all duration-300 ${
+                            updatedFields.has('matchesToday') ? 'ring-2 ring-primary/50 bg-primary/5' : ''
+                          }`}
+                          animate={updatedFields.has('matchesToday') ? {
+                            boxShadow: [
+                              '0 0 0 0 rgb(var(--color-primary) / 0.3)',
+                              '0 0 0 8px rgb(var(--color-primary) / 0.1)',
+                              '0 0 0 0 rgb(var(--color-primary) / 0)'
+                            ]
+                          } : {}}
+                          transition={{ duration: 1 }}
+                        >
                           <div className="flex items-center gap-2 mb-2">
                             <Trophy className="h-4 w-4 text-yellow-400" />
                             <span className="text-sm text-theme-secondary">Matches Today</span>
                           </div>
-                          <div className="text-2xl font-bold text-white">{queueStats.totalMatchesCreatedToday}</div>
-                        </div>
+                          <div className="text-2xl font-bold text-white">
+                            {queueStats.totalMatchesCreatedToday}
+                          </div>
+                        </motion.div>
                       </div>
 
                       {/* System Status */}
@@ -400,14 +440,19 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                         </h4>
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                           {Object.entries(queueStats.queueByRegion).map(([region, count]) => (
-                            <div key={region} className="p-3 rounded-lg bg-theme-container border-theme">
+                            <motion.div 
+                              key={region} 
+                              className="p-3 rounded-lg bg-theme-container border-theme"
+                              whileHover={{ scale: 1.02 }}
+                              transition={{ type: "spring", stiffness: 300 }}
+                            >
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-theme-secondary">{getRegionLabel(region)}</span>
                                 <Badge variant="outline" className="text-primary border-primary/30">
                                   {count}
                                 </Badge>
                               </div>
-                            </div>
+                            </motion.div>
                           ))}
                         </div>
                       </div>
@@ -420,12 +465,19 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                         </h4>
                         <div className="grid grid-cols-3 lg:grid-cols-5 gap-3">
                           {Object.entries(queueStats.queueByRank).map(([rank, count]) => (
-                            <div key={rank} className="p-3 rounded-lg bg-theme-container border-theme">
+                            <motion.div 
+                              key={rank} 
+                              className="p-3 rounded-lg bg-theme-container border-theme"
+                              whileHover={{ scale: 1.02 }}
+                              transition={{ type: "spring", stiffness: 300 }}
+                            >
                               <div className="text-center">
                                 <div className={`text-sm font-medium ${getRankColor(rank)}`}>{rank}</div>
-                                <div className="text-lg font-bold text-white">{count}</div>
+                                <div className="text-lg font-bold text-white">
+                                  {count}
+                                </div>
                               </div>
-                            </div>
+                            </motion.div>
                           ))}
                         </div>
                       </div>
@@ -438,7 +490,11 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                         </h4>
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                           {Object.entries(queueStats.queueByGender).map(([gender, count]) => (
-                            <div key={gender} className="p-3 rounded-lg bg-theme-container border-theme">
+                            <motion.div 
+                              key={gender} 
+                              className="p-3 rounded-lg bg-theme-container border-theme"
+                              whileHover={{ scale: 1.02 }}
+                            >
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-theme-secondary">
                                   {gender.replace('_', ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase())}
@@ -447,7 +503,7 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                                   {count}
                                 </Badge>
                               </div>
-                            </div>
+                            </motion.div>
                           ))}
                         </div>
                       </div>
@@ -460,12 +516,18 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                         </h4>
                         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                           {Object.entries(queueStats.queueByAgeRange).map(([ageRange, count]) => (
-                            <div key={ageRange} className="p-3 rounded-lg bg-theme-container border-theme">
+                            <motion.div 
+                              key={ageRange} 
+                              className="p-3 rounded-lg bg-theme-container border-theme"
+                              whileHover={{ scale: 1.02 }}
+                            >
                               <div className="text-center">
                                 <div className="text-sm text-theme-secondary">{ageRange}</div>
-                                <div className="text-lg font-bold text-white">{count}</div>
+                                <div className="text-lg font-bold text-white">
+                                  {count}
+                                </div>
                               </div>
-                            </div>
+                            </motion.div>
                           ))}
                         </div>
                       </div>
@@ -485,9 +547,24 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                           <Users className="h-5 w-5 text-primary" />
                           Users in Queue ({userDetails.length})
                         </h4>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={fetchUserDetails}
+                          disabled={userDetailsLoading}
+                          className="text-primary hover:text-primary/80"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${userDetailsLoading ? 'animate-spin' : ''}`} />
+                          Refresh
+                        </Button>
                       </div>
                       
-                      {userDetails.length === 0 ? (
+                      {userDetailsLoading ? (
+                        <div className="text-center py-8">
+                          <RefreshCw className="h-6 w-6 mx-auto mb-2 animate-spin text-primary" />
+                          <p className="text-theme-secondary text-sm">Loading user details...</p>
+                        </div>
+                      ) : userDetails.length === 0 ? (
                         <div className="text-center py-8">
                           <Users className="h-12 w-12 mx-auto mb-3 text-theme-tertiary opacity-50" />
                           <p className="text-theme-secondary">No users currently in queue</p>
