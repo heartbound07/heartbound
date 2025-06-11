@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useWebSocket } from './useWebSocket';
 import { useAuth } from '@/contexts/auth/useAuth';
-import { getQueueStatistics, warmUpQueueStatsCache, type QueueStatsDTO } from '@/config/pairingService';
+import { getQueueStatistics, type QueueStatsDTO } from '@/config/pairingService';
 
 interface AdminQueueStatsHookReturn {
   queueStats: QueueStatsDTO | null;
