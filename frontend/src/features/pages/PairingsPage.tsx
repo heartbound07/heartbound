@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/valorant/badge"
 import { Input } from "@/components/ui/profile/input"
 import { Label } from "@/components/ui/valorant/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
-import { Heart, Users, Trophy, MessageCircle, MessageSquare, Settings, User, MapPin, Calendar, AlertCircle, Clock, Zap, UserCheck, Activity, Trash2, BarChart3} from 'lucide-react'
+import { Heart, Users, Trophy, MessageCircle, MessageSquare, Settings, User, MapPin, Calendar, AlertCircle, Clock, Zap, UserCheck, Activity, Trash2 } from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
 import type { JoinQueueRequestDTO, QueueStatsDTO } from "@/config/pairingService"
 import { useQueueUpdates } from "@/contexts/QueueUpdates"
