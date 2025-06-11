@@ -292,6 +292,19 @@ export const getQueueStatistics = async (): Promise<QueueStatsDTO> => {
 };
 
 /**
+ * Trigger manual refresh of queue statistics (admin function)
+ */
+export const refreshQueueStatistics = async (): Promise<QueueStatsDTO> => {
+  try {
+    const response = await httpClient.post('/pairings/admin/queue/statistics/refresh');
+    return response.data;
+  } catch (error) {
+    console.error('Error refreshing queue statistics:', error);
+    throw error;
+  }
+};
+
+/**
  * Warm up queue statistics cache (admin function)
  */
 export const warmUpQueueStatsCache = async (): Promise<{ status: string; message: string }> => {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useWebSocket } from './useWebSocket';
 import { useAuth } from '@/contexts/auth/useAuth';
-import { getQueueStatistics, type QueueStatsDTO } from '@/config/pairingService';
+import { getQueueStatistics, refreshQueueStatistics, type QueueStatsDTO } from '@/config/pairingService';
 
 interface AdminQueueStatsHookReturn {
   queueStats: QueueStatsDTO | null;
@@ -109,22 +109,10 @@ export const useAdminQueueStats = (): AdminQueueStatsHookReturn => {
       setError(null);
       console.log('[AdminQueueStats] Manual refresh of queue statistics');
       
-      // Trigger server-side refresh and get fresh data
-      const response = await fetch('/pairings/admin/queue/statistics/refresh', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const stats = await response.json();
-        setQueueStats(stats);
-        console.log('[AdminQueueStats] Manual refresh completed successfully');
-      } else {
-        throw new Error(`Failed to refresh statistics: ${response.statusText}`);
-      }
+      // Use the proper API client with correct base URL and headers
+      const stats = await refreshQueueStatistics();
+      setQueueStats(stats);
+      console.log('[AdminQueueStats] Manual refresh completed successfully');
     } catch (err: any) {
       console.error('[AdminQueueStats] Manual refresh failed:', err);
       setError(err.message || 'Failed to refresh statistics');
