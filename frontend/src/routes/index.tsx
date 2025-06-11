@@ -28,6 +28,7 @@ import PairingUpdatesProvider from '@/contexts/PairingUpdates';
 import { QueueConfigProvider } from '@/contexts/QueueConfigUpdates';
 import { AdminQueueStatsProvider } from '@/contexts/AdminQueueStatsProvider';
 import { MessageQueueDemo } from '@/examples/MessageQueueDemo';
+import { NotFoundPage } from '@/features/NotFoundPage';
 
 // Admin route guard component
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -151,16 +152,24 @@ export function AppRoutes() {
           
           {/* Inventory route */}
           <Route path="inventory" element={<InventoryPage />} />
+          
+          {/* Catch-all for non-existent protected routes */}
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
         <Route path="/dashboard/valorant" element={<ValorantPageLayout />}>
           <Route index element={<ValorantPage />} />
           <Route path=":partyId" element={<ValorantPartyDetails />} />
+          {/* Catch-all for non-existent valorant routes */}
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
         <Route path="/pairings" element={<PairingsPage />} />
       </Route>
 
       {/* Default redirect - now routes to /login */}
       <Route path="/" element={<Navigate to="/login" replace />} />
+      
+      {/* Catch-all route for any non-existent pages */}
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 } 
