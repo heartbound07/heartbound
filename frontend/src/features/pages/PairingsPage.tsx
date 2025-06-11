@@ -21,7 +21,7 @@ import { usePairingUpdates } from "@/contexts/PairingUpdates"
 import { MatchFoundModal } from "@/components/modals/MatchFoundModal"
 import { UserProfileModal } from "@/components/modals/UserProfileModal"
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
-import { DashboardNavigation } from "@/components/Sidebar"
+
 import "@/assets/PairingsPage.css"
 import { useQueueConfig } from "@/contexts/QueueConfigUpdates"
 import { Skeleton } from "@/components/ui/SkeletonUI"
@@ -310,11 +310,7 @@ export function PairingsPage() {
   // Minimum loading time in milliseconds
   const MIN_LOADING_TIME = 800
 
-  // Sidebar state
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    const savedState = localStorage.getItem("sidebar-collapsed")
-    return savedState ? JSON.parse(savedState) : false
-  })
+
 
   // Queue timer state with ref for performance
   const [queueTimer, setQueueTimer] = useState<string>('0s')
@@ -364,17 +360,7 @@ export function PairingsPage() {
     }
   }, [queueStatus.inQueue])
 
-  // Optimized sidebar state listener
-  useEffect(() => {
-    const handleSidebarStateChange = (event: CustomEvent) => {
-      setIsCollapsed(event.detail.collapsed)
-    }
 
-    window.addEventListener("sidebarStateChange", handleSidebarStateChange as EventListener)
-    return () => {
-      window.removeEventListener("sidebarStateChange", handleSidebarStateChange as EventListener)
-    }
-  }, [])
 
   // Memoized date formatter for performance
   const formatDate = useMemo(
@@ -781,10 +767,7 @@ export function PairingsPage() {
 
   if (loading || isInitialLoading) {
           return (
-        <div className="pairings-container">
-          <DashboardNavigation />
-          
-          <main className={`pairings-content ${isCollapsed ? "sidebar-collapsed" : ""}`}>
+        <div className="min-h-screen bg-theme-gradient">
             <div className="min-h-screen bg-theme-gradient">
               <div className="container mx-auto px-4 py-8 max-w-7xl">
                 {/* Admin Controls Skeleton */}
@@ -1030,19 +1013,14 @@ export function PairingsPage() {
                 </div>
               </div>
             </div>
-          </main>
         </div>
       )
   }
 
   return (
-    <div className="pairings-container">
-      <DashboardNavigation />
-
-      <main className={`pairings-content ${isCollapsed ? "sidebar-collapsed" : ""}`}>
-        <ErrorBoundary>
-        <div className="min-h-screen bg-theme-gradient">
-          <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-7xl w-full overflow-hidden">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-theme-gradient">
+        <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-7xl w-full overflow-hidden">
             {/* Admin Controls */}
             <AnimatePresence>
               {hasRole("ADMIN") && (
@@ -1866,9 +1844,7 @@ export function PairingsPage() {
             />
           )}
         </AnimatePresence>
-        </ErrorBoundary>
-      </main>
-    </div>
+    </ErrorBoundary>
   )
 }
 

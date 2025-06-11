@@ -122,7 +122,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
     },
     {
       label: "Pairings",
-      path: "/pairings",
+      path: "/dashboard/pairings",
       icon: <Users size={20} />,
       exact: true
     },

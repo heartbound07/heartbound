@@ -153,6 +153,9 @@ export function AppRoutes() {
           {/* Inventory route */}
           <Route path="inventory" element={<InventoryPage />} />
           
+          {/* Pairings route - moved from top-level to dashboard child */}
+          <Route path="pairings" element={<PairingsPage />} />
+          
           {/* Catch-all for non-existent protected routes */}
           <Route path="*" element={<NotFoundPage />} />
         </Route>
@@ -162,7 +165,6 @@ export function AppRoutes() {
           {/* Catch-all for non-existent valorant routes */}
           <Route path="*" element={<NotFoundPage />} />
         </Route>
-        <Route path="/pairings" element={<PairingsPage />} />
       </Route>
 
       {/* Default redirect - now routes to /login */}

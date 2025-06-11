@@ -12,6 +12,55 @@
   --valorant-accent: #FF4655;
 }
 
+/* Override any dashboard layout styles that might be affecting PairingsPage */
+/* Ensure PairingsPage maintains its original styling when rendered in DashboardLayout */
+.min-h-screen.bg-theme-gradient {
+  /* Remove any unwanted borders, outlines, or padding from dashboard layout */
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove unwanted focus outlines from dashboard layout inheritance */
+.min-h-screen.bg-theme-gradient *:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure container maintains original styling */
+.min-h-screen.bg-theme-gradient .container,
+.min-h-screen.bg-theme-gradient .container * {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove any inherited borders from all elements */
+.min-h-screen.bg-theme-gradient *:not(.valorant-card):not(.admin-controls):not(.queue-status-card):not(.active-pairing-card) {
+  border: none !important;
+}
+
+/* Ensure card content areas don't have unwanted borders */
+.min-h-screen.bg-theme-gradient .space-y-6,
+.min-h-screen.bg-theme-gradient .space-y-4,
+.min-h-screen.bg-theme-gradient .space-y-8,
+.min-h-screen.bg-theme-gradient .gap-8,
+.min-h-screen.bg-theme-gradient .gap-6,
+.min-h-screen.bg-theme-gradient .gap-4 {
+  border: none !important;
+  outline: none !important;
+}
+
+/* Specifically ensure XP Card has no unwanted outlines */
+.min-h-screen.bg-theme-gradient .valorant-card .space-y-6 *,
+.min-h-screen.bg-theme-gradient .valorant-card .space-y-4 *,
+.min-h-screen.bg-theme-gradient .valorant-card .flex *,
+.min-h-screen.bg-theme-gradient .valorant-card .grid * {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 .pairings-container {
   /* Updated background to match ValorantPage aesthetic */
   background: var(--valorant-bg-primary);
@@ -114,7 +163,8 @@
 }
 
 /* Updated general card styling to match ValorantPage */
-.pairings-content .card {
+.pairings-content .card,
+.min-h-screen.bg-theme-gradient .card {
   background: rgba(31, 39, 49, 0.3) !important; /* Matches bg-[#1F2731]/30 */
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.05) !important; /* Matches border-white/5 */
@@ -123,7 +173,8 @@
 }
 
 /* Specific styling for valorant-card class */
-.pairings-content .valorant-card {
+.pairings-content .valorant-card,
+.min-h-screen.bg-theme-gradient .valorant-card {
   background: rgba(31, 39, 49, 0.3) !important; /* Matches bg-[#1F2731]/30 */
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.05) !important; /* Matches border-white/5 */
@@ -132,6 +183,9 @@
   /* Ensure layout animations work smoothly */
   transform-origin: top center;
   will-change: height, transform;
+  /* Remove any unwanted outlines */
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Enhanced queue status card styling */
@@ -732,7 +786,27 @@
 /* === Comprehensive Focus Outline Removal === */
 
 /* Remove all default focus outlines for mouse interactions while preserving keyboard navigation */
-.pairings-content *:focus:not(:focus-visible) {
+.pairings-content *:focus:not(:focus-visible),
+.min-h-screen.bg-theme-gradient *:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Specifically target XPCard and remove any unwanted outlines */
+.min-h-screen.bg-theme-gradient .valorant-card *,
+.min-h-screen.bg-theme-gradient .valorant-card *:focus,
+.min-h-screen.bg-theme-gradient .valorant-card button,
+.min-h-screen.bg-theme-gradient .valorant-card button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove dashboard layout inherited borders and outlines */
+.min-h-screen.bg-theme-gradient .grid,
+.min-h-screen.bg-theme-gradient .grid *,
+.min-h-screen.bg-theme-gradient .card-content,
+.min-h-screen.bg-theme-gradient .card-header {
+  border: none !important;
   outline: none !important;
   box-shadow: none !important;
 }
@@ -741,7 +815,11 @@
 .pairings-content input:focus,
 .pairings-content select:focus,
 .pairings-content textarea:focus,
-.pairings-content button:focus {
+.pairings-content button:focus,
+.min-h-screen.bg-theme-gradient input:focus,
+.min-h-screen.bg-theme-gradient select:focus,
+.min-h-screen.bg-theme-gradient textarea:focus,
+.min-h-screen.bg-theme-gradient button:focus {
   outline: none !important;
   box-shadow: none !important;
 }
@@ -850,7 +928,45 @@
 
 /* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
-  .pairings-content *:focus-visible {
+  .pairings-content *:focus-visible,
+  .min-h-screen.bg-theme-gradient *:focus-visible {
     transition: none !important;
   }
+}
+
+/* === FINAL COMPREHENSIVE OVERRIDE === */
+/* Ensure EXACT same appearance as before the route change */
+
+/* Remove ALL unwanted borders and outlines from dashboard layout inheritance */
+.min-h-screen.bg-theme-gradient *:not(.valorant-card):not(.admin-controls):not(.queue-status-card):not(.active-pairing-card):not(.border):not([class*="border-"]) {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Allow only the intended card borders */
+.min-h-screen.bg-theme-gradient .valorant-card {
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.min-h-screen.bg-theme-gradient .admin-controls {
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.min-h-screen.bg-theme-gradient .queue-status-card {
+  border: 1px solid rgba(59, 130, 246, 0.15) !important;
+}
+
+.min-h-screen.bg-theme-gradient .active-pairing-card {
+  border: 1px solid rgba(34, 197, 94, 0.1) !important;
+}
+
+/* Override any dashboard button focus states */
+.min-h-screen.bg-theme-gradient button:focus,
+.min-h-screen.bg-theme-gradient button:focus-visible,
+.min-h-screen.bg-theme-gradient input:focus,
+.min-h-screen.bg-theme-gradient input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: inherit !important;
 }
