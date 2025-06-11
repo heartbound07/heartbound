@@ -131,6 +131,9 @@ public class MatchmakingService {
                     // 🚀 BROADCAST MATCH FOUND NOTIFICATIONS
                     broadcastMatchFound(pairing, currentUser.getUserId(), bestMatch.getUserId());
                     
+                    // **OPTIMIZATION: Trigger cache invalidation after successful match**
+                    // This ensures admin stats reflect the new pairing immediately
+                    
                 } catch (Exception e) {
                     log.error("Failed to create pairing between {} and {}: {}", 
                              currentUser.getUserId(), bestMatch.getUserId(), e.getMessage());
@@ -143,6 +146,11 @@ public class MatchmakingService {
         
         // 🚀 NEW: NOTIFY UNMATCHED USERS
         notifyUnmatchedUsers(eligibleUsers, matchedUserIds);
+        
+        // **OPTIMIZATION: Notify QueueService about created matches for cache invalidation**
+        if (!newPairings.isEmpty()) {
+            queueService.onMatchesCreated(newPairings.size());
+        }
         
         log.info("Matchmaking completed. Created {} new pairings", newPairings.size());
         return newPairings;

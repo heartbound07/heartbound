@@ -292,6 +292,32 @@ export const getQueueStatistics = async (): Promise<QueueStatsDTO> => {
 };
 
 /**
+ * Warm up queue statistics cache (admin function)
+ */
+export const warmUpQueueStatsCache = async (): Promise<{ status: string; message: string }> => {
+  try {
+    const response = await httpClient.post('/pairings/admin/queue/cache/warmup');
+    return response.data;
+  } catch (error) {
+    console.error('Error warming up cache:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get cache status (admin function)
+ */
+export const getCacheStatus = async (): Promise<Record<string, any>> => {
+  try {
+    const response = await httpClient.get('/pairings/admin/queue/cache/status');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching cache status:', error);
+    throw error;
+  }
+};
+
+/**
  * Get detailed queue user information (admin function)
  */
 export const getQueueUserDetails = async (): Promise<QueueUserDetailsDTO[]> => {

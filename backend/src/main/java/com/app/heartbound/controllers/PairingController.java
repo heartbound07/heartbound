@@ -426,6 +426,39 @@ public class PairingController {
         }
     }
 
+    @Operation(summary = "Warm up cache", description = "Admin endpoint to pre-compute and cache queue statistics")
+    @PostMapping("/admin/queue/cache/warmup")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> warmUpCache() {
+        try {
+            log.info("Admin requesting cache warm-up");
+            queueService.warmUpCache();
+            Map<String, String> response = Map.of(
+                "status", "success", 
+                "message", "Queue statistics cache warmed up successfully"
+            );
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error warming up cache: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("status", "error", "message", "Failed to warm up cache: " + e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Get cache status", description = "Admin endpoint to check cache health and statistics")
+    @GetMapping("/admin/queue/cache/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> getCacheStatus() {
+        try {
+            Map<String, Object> status = queueService.getCacheStatus();
+            return ResponseEntity.ok(status);
+        } catch (Exception e) {
+            log.error("Error fetching cache status: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch cache status: " + e.getMessage()));
+        }
+    }
+
     @Operation(summary = "Get queue user details", description = "Admin endpoint to get detailed information about users currently in queue")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Queue user details retrieved successfully"),

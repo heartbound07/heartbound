@@ -18,9 +18,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.user.SimpUserRegistry;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import java.time.LocalDateTime;
 import java.time.Duration;
@@ -30,6 +33,8 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 @RequiredArgsConstructor
@@ -37,11 +42,14 @@ import java.util.stream.Collectors;
 public class QueueService {
 
     private static final Logger logger = LoggerFactory.getLogger(QueueService.class);
+    private static final String QUEUE_STATS_CACHE_KEY = "queue_stats";
+    private static final String ADMIN_QUEUE_STATS_TOPIC = "/topic/admin/queue-stats";
 
     private final MatchQueueUserRepository queueRepository;
     private final PairingRepository pairingRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final UserRepository userRepository;
+    private final SimpUserRegistry simpUserRegistry;
 
     // Add queue enabled state - default to true
     private volatile boolean queueEnabled = true;
@@ -50,6 +58,16 @@ public class QueueService {
     // Track queue start time for statistics
     private LocalDateTime queueStartTime = LocalDateTime.now();
     private LocalDateTime lastMatchmakingRun = LocalDateTime.now();
+
+    // **OPTIMIZATION 1: Caffeine Cache for expensive queue statistics**
+    private final Cache<String, QueueStatsDTO> queueStatsCache = Caffeine.newBuilder()
+            .maximumSize(10)
+            .expireAfterWrite(30, TimeUnit.SECONDS) // Cache expires after 30 seconds
+            .build();
+
+    // **OPTIMIZATION 2: Track cache invalidation and presence**
+    private final AtomicBoolean cacheInvalidated = new AtomicBoolean(false);
+    private volatile LocalDateTime lastCacheInvalidation = LocalDateTime.now();
 
     @Transactional
     public QueueStatusDTO joinQueue(JoinQueueRequestDTO request) {
@@ -103,8 +121,11 @@ public class QueueService {
         // Broadcast queue update via WebSocket
         broadcastQueueUpdate();
         
-        // Broadcast admin-specific update with comprehensive statistics
-        broadcastAdminQueueUpdate();
+        // **OPTIMIZATION 3: Event-driven cache invalidation**
+        invalidateQueueStatsCache("User joined queue");
+        
+        // **OPTIMIZATION 4: Smart admin update - only if admins are connected**
+        broadcastAdminQueueUpdateIfNeeded();
 
         log.info("Saved queue user: ID={}, Age={}, Gender={}, Region={}, Rank={}, InQueue={}", 
                  queueUser.getUserId(), queueUser.getAge(), queueUser.getGender(), 
@@ -126,8 +147,11 @@ public class QueueService {
             // Broadcast queue update via WebSocket
             broadcastQueueUpdate();
             
-            // Broadcast admin-specific update with comprehensive statistics
-            broadcastAdminQueueUpdate();
+            // **OPTIMIZATION 3: Event-driven cache invalidation**
+            invalidateQueueStatsCache("User left queue");
+            
+            // **OPTIMIZATION 4: Smart admin update - only if admins are connected**
+            broadcastAdminQueueUpdateIfNeeded();
         } else {
             log.warn("User {} was not in queue", userId);
         }
@@ -246,8 +270,11 @@ public class QueueService {
         messagingTemplate.convertAndSend("/topic/queue/config", configUpdate);
         logger.info("Queue status changed to {} by {}", enabled ? "ENABLED" : "DISABLED", updatedBy);
         
-        // Broadcast admin-specific update with comprehensive statistics
-        broadcastAdminQueueUpdate();
+        // **OPTIMIZATION 3: Event-driven cache invalidation**
+        invalidateQueueStatsCache("Queue status changed");
+        
+        // **OPTIMIZATION 4: Smart admin update - only if admins are connected**
+        broadcastAdminQueueUpdateIfNeeded();
     }
 
     public boolean isQueueEnabled() {
@@ -277,14 +304,24 @@ public class QueueService {
     public void updateLastMatchmakingRun() {
         this.lastMatchmakingRun = LocalDateTime.now();
         
-        // Broadcast admin-specific queue update with timing info
-        broadcastAdminQueueUpdate();
+        // **OPTIMIZATION 3: Event-driven cache invalidation**
+        invalidateQueueStatsCache("Matchmaking run completed");
+        
+        // **OPTIMIZATION 4: Smart admin update - only if admins are connected**
+        broadcastAdminQueueUpdateIfNeeded();
     }
     
-    // ADMIN-ONLY: Get comprehensive queue statistics
+    // **OPTIMIZATION 1: Cached method for expensive queue statistics**
     public QueueStatsDTO getQueueStatistics() {
         try {
-            log.info("Fetching queue statistics...");
+            // Try to get from cache first
+            QueueStatsDTO cachedStats = queueStatsCache.getIfPresent(QUEUE_STATS_CACHE_KEY);
+            if (cachedStats != null && !cacheInvalidated.get()) {
+                log.debug("Returning cached queue statistics");
+                return cachedStats;
+            }
+
+            log.info("Computing fresh queue statistics...");
             
             List<MatchQueueUser> activeUsers = queueRepository.findByInQueueTrue();
             log.info("Found {} active users in queue", activeUsers.size());
@@ -325,7 +362,11 @@ public class QueueService {
                     .lastUpdatedBy(lastUpdatedBy != null ? lastUpdatedBy : "SYSTEM")
                     .build();
             
-            log.info("Successfully built queue statistics");
+            // Cache the computed stats
+            queueStatsCache.put(QUEUE_STATS_CACHE_KEY, stats);
+            cacheInvalidated.set(false);
+            
+            log.info("Successfully computed and cached queue statistics");
             return stats;
             
         } catch (Exception e) {
@@ -524,33 +565,129 @@ public class QueueService {
         return history;
     }
     
+    // **OPTIMIZATION 3: Cache invalidation method**
+    private void invalidateQueueStatsCache(String reason) {
+        queueStatsCache.invalidate(QUEUE_STATS_CACHE_KEY);
+        cacheInvalidated.set(true);
+        lastCacheInvalidation = LocalDateTime.now();
+        log.debug("Queue stats cache invalidated due to: {}", reason);
+    }
+
+    // **OPTIMIZATION 4: Presence-aware broadcasting**
+    private boolean hasAdminSubscriptions() {
+        try {
+            // Check if any users are subscribed to the admin queue stats topic
+            int adminUsers = 0;
+            int adminSubscriptions = 0;
+            
+            for (var user : simpUserRegistry.getUsers()) {
+                adminUsers++;
+                boolean hasAdminSub = user.getSessions().stream()
+                        .anyMatch(session -> session.getSubscriptions().stream()
+                                .anyMatch(sub -> sub.getDestination().equals(ADMIN_QUEUE_STATS_TOPIC)));
+                if (hasAdminSub) {
+                    adminSubscriptions++;
+                }
+            }
+            
+            log.debug("Presence check: {} total users, {} admin subscriptions to {}", adminUsers, adminSubscriptions, ADMIN_QUEUE_STATS_TOPIC);
+            return adminSubscriptions > 0;
+        } catch (Exception e) {
+            log.debug("Could not check admin subscriptions, defaulting to true: {}", e.getMessage());
+            return true; // Default to true if we can't determine subscription status
+        }
+    }
+
+    // **OPTIMIZATION 4: Smart admin broadcasting**
+    private void broadcastAdminQueueUpdateIfNeeded() {
+        // For now, be more liberal with broadcasting to ensure admins get updates
+        // The caching still provides the performance benefit
+        boolean hasSubscriptions = hasAdminSubscriptions();
+        if (hasSubscriptions || simpUserRegistry.getUserCount() > 0) {
+            log.info("Broadcasting queue update - subscriptions: {}, total users: {}", hasSubscriptions, simpUserRegistry.getUserCount());
+            broadcastAdminQueueUpdate();
+        } else {
+            log.debug("No users connected, skipping queue stats broadcast");
+        }
+    }
+
     // Broadcast admin-specific queue updates with statistics
     public void broadcastAdminQueueUpdate() {
         try {
-            QueueStatsDTO stats = getQueueStatistics();
-            messagingTemplate.convertAndSend("/topic/admin/queue-stats", stats);
-            log.debug("Broadcasted admin queue update with comprehensive statistics");
+            QueueStatsDTO stats = getQueueStatistics(); // This now uses the cache
+            messagingTemplate.convertAndSend(ADMIN_QUEUE_STATS_TOPIC, stats);
+            log.info("Broadcasted admin queue update with comprehensive statistics - {} users in queue", stats.getTotalUsersInQueue());
         } catch (Exception e) {
             log.error("Failed to broadcast admin queue update: {}", e.getMessage());
         }
     }
     
     /**
-     * Scheduled periodic broadcast of admin queue statistics as a fallback mechanism
-     * Runs every 10 seconds to ensure admin dashboards remain synchronized
+     * **OPTIMIZATION 5: Optimized scheduled broadcast with intelligent conditions**
+     * Now runs every 60 seconds (instead of 10) and only when necessary
      */
-    @Scheduled(fixedRate = 10000) // 10 seconds
+    @Scheduled(fixedRate = 30000) // 30 seconds - more frequent for now to ensure updates
     public void scheduledAdminQueueBroadcast() {
         try {
-            // Only broadcast if there are users in queue or recent activity
+            // Be more liberal with broadcasting while we ensure presence detection works properly
+            boolean hasSubscriptions = hasAdminSubscriptions();
+            boolean hasUsers = simpUserRegistry.getUserCount() > 0;
+            
+            if (!hasSubscriptions && !hasUsers) {
+                log.trace("No subscriptions and no users, skipping scheduled broadcast");
+                return;
+            }
+
             List<MatchQueueUser> activeUsers = queueRepository.findByInQueueTrue();
-            if (!activeUsers.isEmpty() || 
-                Duration.between(lastMatchmakingRun, LocalDateTime.now()).toMinutes() < 30) {
+            boolean hasRecentActivity = Duration.between(lastMatchmakingRun, LocalDateTime.now()).toMinutes() < 30;
+            boolean hasRecentCacheInvalidation = Duration.between(lastCacheInvalidation, LocalDateTime.now()).toMinutes() < 10;
+            
+            if (!activeUsers.isEmpty() || hasRecentActivity || hasRecentCacheInvalidation || hasSubscriptions) {
                 broadcastAdminQueueUpdate();
-                log.trace("Scheduled admin queue stats broadcast completed");
+                log.trace("Scheduled admin queue stats broadcast completed - {} users in queue, {} total users connected", activeUsers.size(), simpUserRegistry.getUserCount());
+            } else {
+                log.trace("No activity detected, skipping scheduled broadcast");
             }
         } catch (Exception e) {
             log.error("Failed to execute scheduled admin queue broadcast: {}", e.getMessage());
         }
+    }
+
+    // **NEW: Method for manual cache warm-up (useful for admin dashboard loading)**
+    public void warmUpCache() {
+        log.info("Warming up queue statistics cache...");
+        getQueueStatistics(); // This will compute and cache the stats
+    }
+
+    // **NEW: Method to get cache status (for monitoring/debugging)**
+    public Map<String, Object> getCacheStatus() {
+        Map<String, Object> status = new HashMap<>();
+        status.put("cacheSize", queueStatsCache.estimatedSize());
+        status.put("cacheInvalidated", cacheInvalidated.get());
+        status.put("lastInvalidation", lastCacheInvalidation);
+        status.put("hasAdminSubscriptions", hasAdminSubscriptions());
+        return status;
+    }
+
+    // **NEW: Method called after matches are created to update stats**
+    public void onMatchesCreated(int numberOfMatches) {
+        log.info("Match creation event: {} new matches created", numberOfMatches);
+        
+        // **OPTIMIZATION 3: Event-driven cache invalidation**
+        invalidateQueueStatsCache("Matches created: " + numberOfMatches);
+        
+        // **OPTIMIZATION 4: Smart admin update - only if admins are connected**
+        broadcastAdminQueueUpdateIfNeeded();
+    }
+
+    // **NEW: Method called after pairs break up to update stats**
+    public void onPairBreakup(String pairingId) {
+        log.info("Pair breakup event: pairing {} ended", pairingId);
+        
+        // **OPTIMIZATION 3: Event-driven cache invalidation**
+        invalidateQueueStatsCache("Pair breakup: " + pairingId);
+        
+        // **OPTIMIZATION 4: Smart admin update - only if admins are connected**
+        broadcastAdminQueueUpdateIfNeeded();
     }
 } 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useWebSocket } from './useWebSocket';
 import { useAuth } from '@/contexts/auth/useAuth';
-import { getQueueStatistics, type QueueStatsDTO } from '@/config/pairingService';
+import { getQueueStatistics, warmUpQueueStatsCache, type QueueStatsDTO } from '@/config/pairingService';
 
 interface AdminQueueStatsHookReturn {
   queueStats: QueueStatsDTO | null;
@@ -40,8 +40,32 @@ export const useAdminQueueStats = (): AdminQueueStatsHookReturn => {
       }
     );
 
+    // After subscribing, trigger a cache warm-up to ensure we get initial data
+    // This helps with the optimized backend that only broadcasts when admins are connected
+    const warmUpCache = async () => {
+      try {
+        console.log('[AdminQueueStats] Warming up cache after subscription');
+        const response = await fetch('/pairings/admin/queue/cache/warmup', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (response.ok) {
+          console.log('[AdminQueueStats] Cache warmed up successfully');
+        }
+      } catch (error) {
+        console.log('[AdminQueueStats] Cache warm-up failed, will rely on initial fetch:', error);
+      }
+    };
+
+    // Warm up cache after a short delay to ensure subscription is established
+    const warmUpTimer = setTimeout(warmUpCache, 500);
+
     return () => {
       console.log('[AdminQueueStats] Cleaning up WebSocket subscription');
+      clearTimeout(warmUpTimer);
       unsubscribe();
     };
   }, [subscribe, isConnected, isAdmin]);
@@ -72,6 +96,30 @@ export const useAdminQueueStats = (): AdminQueueStatsHookReturn => {
 
     fetchInitialStats();
   }, [isAdmin]);
+
+  // Periodic refresh as fallback to ensure data stays current
+  // This provides resilience in case WebSocket updates are missed
+  useEffect(() => {
+    if (!isAdmin || !isConnected) {
+      return;
+    }
+
+    const refreshInterval = setInterval(async () => {
+      try {
+        console.log('[AdminQueueStats] Periodic refresh of queue statistics');
+        const stats = await getQueueStatistics();
+        setQueueStats(stats);
+        setError(null);
+      } catch (err: any) {
+        console.warn('[AdminQueueStats] Periodic refresh failed:', err);
+        // Don't set error on periodic refresh failures to avoid noise
+      }
+    }, 30000); // Refresh every 30 seconds as fallback
+
+    return () => {
+      clearInterval(refreshInterval);
+    };
+  }, [isAdmin, isConnected]);
 
   const clearError = useCallback(() => {
     setError(null);
