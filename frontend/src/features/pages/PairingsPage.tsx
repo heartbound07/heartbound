@@ -516,6 +516,11 @@ export function PairingsPage() {
         }
         refreshData() // Update pairing data
         clearUpdate()
+      } else if (pairingUpdate.eventType === "ACTIVITY_UPDATE") {
+        console.log("[PairingsPage] Activity update received - handled by usePairings hook:", pairingUpdate)
+        // Activity updates are handled by the usePairings hook for optimal performance
+        // No need to call refreshData() here as it would cause unnecessary re-fetching
+        // The hook already updates currentPairing state, which will trigger UI re-renders
       }
     }
   }, [pairingUpdate, refreshData, clearUpdate, showMatchFound, showNoMatch, showQueueRemoved, showBreakupSuccess, showPartnerUnmatched])

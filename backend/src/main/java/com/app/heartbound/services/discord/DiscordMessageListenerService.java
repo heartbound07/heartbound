@@ -8,9 +8,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -27,6 +30,7 @@ public class DiscordMessageListenerService extends ListenerAdapter {
     private final PairingRepository pairingRepository;
     private final PairLevelService pairLevelService;
     private final AchievementService achievementService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
@@ -101,6 +105,13 @@ public class DiscordMessageListenerService extends ListenerAdapter {
                     log.error("Failed to update XP system for pairing {}: {}", pairing.getId(), e.getMessage());
                 }
                 
+                // 🔥 REAL-TIME UPDATES: Broadcast activity update via WebSocket
+                try {
+                    broadcastActivityUpdate(pairing);
+                } catch (Exception e) {
+                    log.error("Failed to broadcast message activity update for pairing {}: {}", pairing.getId(), e.getMessage());
+                }
+                
                 log.info("Updated message counts for pairing {}: user1={}, user2={}, total={}", 
                     pairing.getId(), 
                     pairing.getUser1MessageCount(), 
@@ -111,6 +122,37 @@ public class DiscordMessageListenerService extends ListenerAdapter {
         } catch (Exception e) {
             log.error("Error processing Discord message for channel {}: {}", 
                 event.getChannel().getId(), e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Broadcast activity update to both users in the pairing via WebSocket
+     */
+    private void broadcastActivityUpdate(Pairing pairing) {
+        try {
+            // Create activity update payload
+            Map<String, Object> activityUpdate = Map.of(
+                "eventType", "ACTIVITY_UPDATE",
+                "pairing", Map.of(
+                    "id", pairing.getId(),
+                    "messageCount", pairing.getMessageCount(),
+                    "user1MessageCount", pairing.getUser1MessageCount(),
+                    "user2MessageCount", pairing.getUser2MessageCount()
+                ),
+                "message", "Message activity updated",
+                "timestamp", LocalDateTime.now().toString()
+            );
+
+            // Send to both users
+            messagingTemplate.convertAndSend("/user/" + pairing.getUser1Id() + "/topic/pairings", activityUpdate);
+            messagingTemplate.convertAndSend("/user/" + pairing.getUser2Id() + "/topic/pairings", activityUpdate);
+
+            log.debug("Broadcasted message activity update for pairing {} to users {} and {}", 
+                    pairing.getId(), pairing.getUser1Id(), pairing.getUser2Id());
+
+        } catch (Exception e) {
+            log.error("Failed to broadcast activity update for pairing {}: {}", 
+                    pairing.getId(), e.getMessage());
         }
     }
 } 

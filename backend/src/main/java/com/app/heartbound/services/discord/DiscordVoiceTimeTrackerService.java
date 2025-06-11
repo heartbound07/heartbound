@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.unions.AudioChannelUnion;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -33,6 +35,7 @@ public class DiscordVoiceTimeTrackerService extends ListenerAdapter {
 
     private final PairingRepository pairingRepository;
     private final VoiceStreakService voiceStreakService;
+    private final SimpMessagingTemplate messagingTemplate;
     
     // Track active voice sessions: channelId -> pairingId
     private final ConcurrentHashMap<String, Long> activeVoiceSessions = new ConcurrentHashMap<>();
@@ -174,13 +177,24 @@ public class DiscordVoiceTimeTrackerService extends ListenerAdapter {
                             log.error("Failed to update voice streak for pairing {}: {}", pairing.getId(), e.getMessage());
                         }
                         
+                        // Clear session start time
+                        pairing.setCurrentVoiceSessionStart(null);
+                        pairingRepository.save(pairing);
+                        
+                        // 🔥 REAL-TIME UPDATES: Broadcast voice time update via WebSocket
+                        try {
+                            broadcastVoiceTimeUpdate(pairing);
+                        } catch (Exception e) {
+                            log.error("Failed to broadcast voice time update for pairing {}: {}", pairing.getId(), e.getMessage());
+                        }
+                        
                         log.info("Ended voice session for pairing {} (duration: {} minutes, total: {} minutes)", 
                             pairing.getId(), sessionMinutes, newTotalMinutes);
+                    } else {
+                        // Clear session start time even for short sessions
+                        pairing.setCurrentVoiceSessionStart(null);
+                        pairingRepository.save(pairing);
                     }
-                    
-                    // Clear session start time
-                    pairing.setCurrentVoiceSessionStart(null);
-                    pairingRepository.save(pairing);
                 }
             }
             
@@ -190,6 +204,35 @@ public class DiscordVoiceTimeTrackerService extends ListenerAdapter {
         } catch (Exception e) {
             log.error("Error ending voice session for pairing {} in channel {}: {}", 
                 pairingId, channelId, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Broadcast voice time activity update to both users in the pairing via WebSocket
+     */
+    private void broadcastVoiceTimeUpdate(Pairing pairing) {
+        try {
+            // Create voice time update payload
+            Map<String, Object> activityUpdate = Map.of(
+                "eventType", "ACTIVITY_UPDATE",
+                "pairing", Map.of(
+                    "id", pairing.getId(),
+                    "voiceTimeMinutes", pairing.getVoiceTimeMinutes()
+                ),
+                "message", "Voice time updated",
+                "timestamp", LocalDateTime.now().toString()
+            );
+
+            // Send to both users
+            messagingTemplate.convertAndSend("/user/" + pairing.getUser1Id() + "/topic/pairings", activityUpdate);
+            messagingTemplate.convertAndSend("/user/" + pairing.getUser2Id() + "/topic/pairings", activityUpdate);
+
+            log.debug("Broadcasted voice time update for pairing {} to users {} and {}", 
+                    pairing.getId(), pairing.getUser1Id(), pairing.getUser2Id());
+
+        } catch (Exception e) {
+            log.error("Failed to broadcast voice time update for pairing {}: {}", 
+                    pairing.getId(), e.getMessage());
         }
     }
 

@@ -158,7 +158,7 @@ export interface LFGPartyEvent {
 }
 
 export interface PairingUpdateEvent {
-  eventType: 'MATCH_FOUND' | 'PAIRING_ENDED' | 'NO_MATCH_FOUND' | 'QUEUE_REMOVED';
+  eventType: 'MATCH_FOUND' | 'PAIRING_ENDED' | 'NO_MATCH_FOUND' | 'QUEUE_REMOVED' | 'ACTIVITY_UPDATE';
   pairing?: any; // PairingDTO
   message: string;
   timestamp: string;

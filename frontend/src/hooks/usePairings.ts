@@ -16,10 +16,12 @@ import {
 } from '@/config/pairingService';
 import { getUserProfile, type UserProfileDTO } from '@/config/userService';
 import { useQueueUpdates } from '@/contexts/QueueUpdates';
+import { usePairingUpdates } from '@/contexts/PairingUpdates';
 
 export const usePairings = () => {
   const { user } = useAuth();
   const { queueUpdate } = useQueueUpdates();
+  const { pairingUpdate, clearUpdate } = usePairingUpdates();
   const [currentPairing, setCurrentPairing] = useState<PairingDTO | null>(null);
   const [pairingHistory, setPairingHistory] = useState<PairingDTO[]>([]);
   const [queueStatus, setQueueStatus] = useState<QueueStatusDTO>({ inQueue: false });
@@ -165,6 +167,33 @@ export const usePairings = () => {
       });
     }
   }, [queueUpdate, user?.id]);
+
+  // Listen for pairing updates and handle real-time activity updates
+  useEffect(() => {
+    if (pairingUpdate) {
+      console.log('[usePairings] Received pairing update:', pairingUpdate);
+      
+      if (pairingUpdate.eventType === 'ACTIVITY_UPDATE' && pairingUpdate.pairing?.id === currentPairing?.id) {
+        // Update the current pairing with the new activity data
+        setCurrentPairing(prev => {
+          if (!prev) return null;
+          return { ...prev, ...pairingUpdate.pairing };
+        });
+        
+        // Also update the pairing in history if it exists
+        setPairingHistory(prev => 
+          prev.map(pairing => 
+            pairing.id === pairingUpdate.pairing?.id 
+              ? { ...pairing, ...pairingUpdate.pairing }
+              : pairing
+          )
+        );
+        
+        clearUpdate();
+        console.log('[usePairings] Updated pairing statistics in real-time');
+      }
+    }
+  }, [pairingUpdate, currentPairing?.id, clearUpdate]);
 
   // Initial data fetch
   useEffect(() => {

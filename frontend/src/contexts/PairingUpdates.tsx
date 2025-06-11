@@ -8,7 +8,7 @@ import { usePairingUpdates as usePairingUpdatesHook } from '../hooks/usePairingU
 import type { PairingDTO } from '@/config/pairingService';
 
 export interface PairingUpdateEvent {
-  eventType: 'MATCH_FOUND' | 'PAIRING_ENDED' | 'NO_MATCH_FOUND' | 'QUEUE_REMOVED';
+  eventType: 'MATCH_FOUND' | 'PAIRING_ENDED' | 'NO_MATCH_FOUND' | 'QUEUE_REMOVED' | 'ACTIVITY_UPDATE';
   pairing?: PairingDTO;
   message: string;
   timestamp: string;
