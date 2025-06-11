@@ -256,7 +256,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
             </CardTitle>
             
             {/* Tab Navigation */}
-            <div className="flex gap-2 mt-4">
+            <div className="flex gap-1 mt-4 w-full">
               {[
                 { key: 'overview', label: 'Overview', icon: TrendingUp },
                 { key: 'achievements', label: 'Achievements', icon: Trophy },
@@ -265,14 +265,14 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                 <button
                   key={key}
                   onClick={() => setActiveTab(key as any)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium theme-transition ${
+                  className={`flex items-center gap-1 sm:gap-2 px-1 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium theme-transition min-h-[44px] justify-center flex-1 ${
                     activeTab === key
                       ? 'bg-primary/20 text-primary border border-primary/30'
                       : 'bg-theme-container text-theme-secondary hover:bg-theme-container/80'
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
-                  {label}
+                  <Icon className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                  <span className="truncate text-center min-w-0">{label}</span>
                 </button>
               ))}
             </div>

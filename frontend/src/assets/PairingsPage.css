@@ -453,6 +453,111 @@
   }
 }
 
+/* iPhone 12 Pro and similar devices (390px width) */
+@media (max-width: 430px) {
+  /* Main container fixes for narrow screens */
+  .pairings-content {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    overflow-x: hidden;
+  }
+  
+  /* Container width fixes */
+  .pairings-content .container {
+    max-width: 100% !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  
+  /* Grid layout adjustments */
+  .pairings-content .grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+  
+  /* Card responsive adjustments */
+  .pairings-content .valorant-card {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+  
+  /* Form grid adjustments for narrow screens */
+  .pairings-content .grid.grid-cols-1.md\\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+  
+  /* Tab navigation specific fixes for XPCard */
+  .pairings-content .valorant-card .flex.flex-wrap {
+    gap: 0.25rem !important;
+  }
+  
+  .pairings-content .valorant-card button[class*="flex-1"] {
+    min-width: 0;
+    flex: 1 1 calc(33.333% - 0.25rem);
+    font-size: 0.75rem !important;
+    padding: 0.5rem 0.25rem !important;
+  }
+  
+  /* Stats grid adjustments */
+  .pairings-content .grid.grid-cols-2 {
+    gap: 0.5rem !important;
+  }
+  
+  .pairings-content .grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* Text size adjustments for readability */
+  .pairings-content .text-xl {
+    font-size: 1.125rem !important;
+  }
+  
+  .pairings-content .text-2xl {
+    font-size: 1.25rem !important;
+  }
+  
+  /* Badge and small element adjustments */
+  .pairings-content .text-sm {
+    font-size: 0.75rem !important;
+  }
+  
+  /* Avatar size adjustments */
+  .pairings-content .h-16.w-16 {
+    height: 3rem !important;
+    width: 3rem !important;
+  }
+}
+
+/* Additional breakpoint for very narrow screens (320px - iPhone SE) */
+@media (max-width: 375px) {
+  .pairings-content .container {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+  
+  /* Even smaller tabs for very narrow screens */
+  .pairings-content .valorant-card button[class*="flex-1"] {
+    font-size: 0.625rem !important;
+    padding: 0.5rem 0.125rem !important;
+  }
+  
+  /* Reduce icon sizes */
+  .pairings-content .valorant-card button[class*="flex-1"] svg {
+    width: 0.75rem !important;
+    height: 0.75rem !important;
+  }
+  
+  /* Compact grid for very small screens */
+  .pairings-content .grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* Modal and Profile Preview focus management */
 .user-profile-modal-container:focus {
   outline: none;
