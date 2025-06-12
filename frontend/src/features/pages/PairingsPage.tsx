@@ -314,38 +314,92 @@ export function PairingsPage() {
 
   // Queue timer state with ref for performance
   const [queueTimer, setQueueTimer] = useState<string>('0s')
-  const queueStartTimeRef = useRef<number | null>(null)
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Track the last known pairing to detect offline breakups
   const LAST_PAIRING_KEY = useMemo(() => `last-pairing-${user?.id}`, [user?.id])
 
-  // Optimized queue timer effect with cleanup
+  // Helper function to calculate elapsed time from backend queuedAt timestamp
+  const calculateElapsedTime = useCallback((queuedAtString: string): number => {
+    try {
+      // Backend sends LocalDateTime without timezone info, but it's actually UTC
+      // So we need to parse it as UTC, not local time
+      let queuedAt: Date
+      if (queuedAtString.includes('T') && !queuedAtString.includes('Z') && !queuedAtString.includes('+')) {
+        // Add 'Z' to indicate UTC if not already present
+        queuedAt = new Date(queuedAtString + 'Z')
+      } else {
+        queuedAt = new Date(queuedAtString)
+      }
+      
+      const now = new Date()
+      const timeDiff = now.getTime() - queuedAt.getTime()
+      const seconds = Math.floor(timeDiff / 1000)
+      
+      return Math.max(0, seconds) // Ensure we don't return negative values
+    } catch (error) {
+      console.warn('Failed to parse queuedAt timestamp:', queuedAtString, error)
+      return 0
+    }
+  }, [])
+
+  // Format elapsed seconds into readable time string
+  const formatElapsedTime = useCallback((totalSeconds: number): string => {
+    if (totalSeconds < 0) return '0s'
+    
+    const hours = Math.floor(totalSeconds / 3600)
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+    const seconds = totalSeconds % 60
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`
+    } else {
+      return `${seconds}s`
+    }
+  }, [])
+
+  // Optimized queue timer effect with backend timestamp-based calculation
   useEffect(() => {
     if (queueStatus.inQueue) {
-      queueStartTimeRef.current = Date.now()
-      setQueueTimer('0s')
-      
-      timerIntervalRef.current = setInterval(() => {
-        if (queueStartTimeRef.current) {
-          const elapsed = Math.floor((Date.now() - queueStartTimeRef.current) / 1000)
-          
-          const hours = Math.floor(elapsed / 3600)
-          const minutes = Math.floor((elapsed % 3600) / 60)
-          const seconds = elapsed % 60
-
-          if (hours > 0) {
-            setQueueTimer(`${hours}h ${minutes}m`)
-          } else if (minutes > 0) {
-            setQueueTimer(`${minutes}m ${seconds}s`)
-          } else {
-            setQueueTimer(`${seconds}s`)
-          }
+      if (queueStatus.queuedAt) {
+        // Use backend timestamp when available
+        const initialElapsed = calculateElapsedTime(queueStatus.queuedAt)
+        setQueueTimer(formatElapsedTime(initialElapsed))
+        
+        // Set up interval to update timer every second
+        timerIntervalRef.current = setInterval(() => {
+          const currentElapsed = calculateElapsedTime(queueStatus.queuedAt!)
+          setQueueTimer(formatElapsedTime(currentElapsed))
+        }, 1000)
+      } else {
+        // Fallback: Use localStorage to track queue join time across sessions
+        const queueJoinKey = `queue-join-time-${user?.id}`
+        let queueStartTime = localStorage.getItem(queueJoinKey)
+        
+        if (!queueStartTime) {
+          // First time joining queue - store current time
+          queueStartTime = new Date().toISOString()
+          localStorage.setItem(queueJoinKey, queueStartTime)
         }
-      }, 1000)
+        
+        // Calculate elapsed time from stored timestamp
+        const initialElapsed = calculateElapsedTime(queueStartTime)
+        setQueueTimer(formatElapsedTime(initialElapsed))
+        
+        // Set up interval to update timer every second
+        timerIntervalRef.current = setInterval(() => {
+          const currentElapsed = calculateElapsedTime(queueStartTime!)
+          setQueueTimer(formatElapsedTime(currentElapsed))
+        }, 1000)
+      }
     } else {
+      // Reset timer when not in queue and clear localStorage
       setQueueTimer('0s')
-      queueStartTimeRef.current = null
+      if (user?.id) {
+        localStorage.removeItem(`queue-join-time-${user.id}`)
+      }
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current)
         timerIntervalRef.current = null
@@ -358,7 +412,7 @@ export function PairingsPage() {
         timerIntervalRef.current = null
       }
     }
-  }, [queueStatus.inQueue])
+  }, [queueStatus.inQueue, queueStatus.queuedAt, calculateElapsedTime, formatElapsedTime, user?.id])
 
 
 
@@ -1463,7 +1517,7 @@ export function PairingsPage() {
                               </div>
                             )}
                             
-                            {queueStatus.queuedAt && (
+                            {queueStatus.inQueue && (
                               <div className="text-center">
                                 <div className="text-3xl font-bold text-status-success mb-1">
                                   {queueTimer}
