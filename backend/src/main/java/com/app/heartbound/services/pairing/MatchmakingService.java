@@ -147,6 +147,13 @@ public class MatchmakingService {
         // 🚀 NEW: NOTIFY UNMATCHED USERS
         notifyUnmatchedUsers(eligibleUsers, matchedUserIds);
         
+        // **CRITICAL: Remove matched users from queue and trigger live admin updates**
+        if (!matchedUserIds.isEmpty()) {
+            List<String> matchedUserIdsList = new ArrayList<>(matchedUserIds);
+            queueService.removeMatchedUsersFromQueue(matchedUserIdsList);
+            log.info("Removed {} matched users from queue for live admin updates", matchedUserIdsList.size());
+        }
+        
         // **OPTIMIZATION: Notify QueueService about created matches for cache invalidation**
         if (!newPairings.isEmpty()) {
             queueService.onMatchesCreated(newPairings.size());

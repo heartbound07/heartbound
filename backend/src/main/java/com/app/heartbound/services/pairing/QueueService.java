@@ -710,7 +710,7 @@ public class QueueService {
     }
 
     /**
-     * **OPTIMIZATION: Event-driven cache invalidation for match creation**
+     * **OPTIMIZATION: Event-driven cache invalidation and queue cleanup for match creation**
      */
     public void onMatchesCreated(int numberOfMatches) {
         log.info("Match creation event: {} new matches created", numberOfMatches);
@@ -724,6 +724,42 @@ public class QueueService {
         
         // **OPTIMIZATION: Immediate admin update for match events**
         broadcastAdminQueueUpdateIfNeeded();
+    }
+
+    /**
+     * **NEW: Remove matched users from queue and trigger live updates**
+     * Called by MatchmakingService when users are successfully matched
+     */
+    @Transactional
+    public void removeMatchedUsersFromQueue(List<String> matchedUserIds) {
+        if (matchedUserIds.isEmpty()) {
+            return;
+        }
+        
+        log.info("Removing {} matched users from queue: {}", matchedUserIds.size(), matchedUserIds);
+        
+        // Remove users from queue efficiently
+        List<MatchQueueUser> usersToUpdate = queueRepository.findByUserIdIn(matchedUserIds);
+        for (MatchQueueUser user : usersToUpdate) {
+            if (user.isInQueue()) {
+                user.setInQueue(false);
+                log.debug("Removed user {} from queue (matched)", user.getUserId());
+            }
+        }
+        
+        if (!usersToUpdate.isEmpty()) {
+            queueRepository.saveAll(usersToUpdate);
+            log.info("Successfully removed {} users from queue after matching", usersToUpdate.size());
+            
+            // **CRITICAL: Invalidate all caches immediately after queue changes**
+            invalidateRelevantCaches("Users removed from queue after matching");
+            
+            // **CRITICAL: Send immediate broadcasts for live admin updates**
+            broadcastQueueUpdate(); // For general queue size updates
+            broadcastAdminQueueUpdateIfNeeded(); // For detailed admin statistics
+            
+            log.info("Live queue updates sent - admin interface should reflect {} fewer users in queue", usersToUpdate.size());
+        }
     }
 
     public void onPairBreakup(String pairingId) {

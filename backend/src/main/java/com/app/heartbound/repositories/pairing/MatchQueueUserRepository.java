@@ -79,6 +79,12 @@ public interface MatchQueueUserRepository extends JpaRepository<MatchQueueUser, 
     List<LocalDateTime> getActiveQueueTimes();
 
     /**
+     * Find multiple users by their user IDs for batch operations
+     * Used by QueueService to remove matched users from queue efficiently
+     */
+    List<MatchQueueUser> findByUserIdIn(List<String> userIds);
+
+    /**
      * Count users queued after specific date for performance tracking
      */
     @Query("SELECT COUNT(*) FROM MatchQueueUser mqu WHERE mqu.queuedAt >= :afterDate AND mqu.inQueue = true")
