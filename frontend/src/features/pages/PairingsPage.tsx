@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/valorant/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
 import { Heart, Users, Trophy, MessageCircle, MessageSquare, Settings, User, MapPin, Calendar, AlertCircle, Clock, Zap, UserCheck, Activity, Trash2 } from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
-import type { JoinQueueRequestDTO } from "@/config/pairingService"
+import type { JoinQueueRequestDTO, PairingDTO } from "@/config/pairingService"
 import { useQueueUpdates } from "@/contexts/QueueUpdates"
 import { performMatchmaking, deleteAllPairings, enableQueue, disableQueue } from "@/config/pairingService"
 import { usePairingUpdates } from "@/contexts/PairingUpdates"
@@ -30,6 +30,7 @@ import { BreakupModal } from "@/components/modals/BreakupModal"
 import { BreakupSuccessModal } from "@/components/modals/BreakupSuccessModal"
 import { PartnerUnmatchedModal } from "@/components/modals/PartnerUnmatchedModal"
 import { QueueStatsModal } from "@/components/modals/QueueStatsModal"
+import { AdminPairManagementModal } from "@/components/modals/AdminPairManagementModal"
 import { useModalManager } from "@/hooks/useModalManager"
 import { useAdminQueueStats } from "@/hooks/useAdminQueueStats"
 import { PairingCardList } from "./PairingCard"
@@ -306,6 +307,10 @@ export function PairingsPage() {
   const [userProfiles, setUserProfiles] = useState<Record<string, UserProfileDTO>>({})
   const [userInitiatedBreakup, setUserInitiatedBreakup] = useState(false)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
+  
+  // Admin Pair Management Modal state
+  const [showAdminPairModal, setShowAdminPairModal] = useState(false)
+  const [selectedPairingForAdmin, setSelectedPairingForAdmin] = useState<PairingDTO | null>(null)
 
   // Minimum loading time in milliseconds
   const MIN_LOADING_TIME = 800
@@ -526,6 +531,19 @@ export function PairingsPage() {
   const handleShowQueueStats = useCallback(() => {
     showQueueStats()
   }, [showQueueStats])
+
+  // Admin Pair Management Modal handlers
+  const handleOpenAdminPairModal = useCallback((pairing: PairingDTO) => {
+    setSelectedPairingForAdmin(pairing)
+    setShowAdminPairModal(true)
+  }, [])
+
+  const handleCloseAdminPairModal = useCallback(() => {
+    setShowAdminPairModal(false)
+    setSelectedPairingForAdmin(null)
+    // Refresh data after closing modal to show any updates
+    refreshData()
+  }, [refreshData])
 
   // Effect to handle real-time WebSocket updates
   useEffect(() => {
@@ -1703,6 +1721,7 @@ export function PairingsPage() {
                         isActive={true}
                         onUserClick={handleUserClick}
                         onUnpair={handleUnpairUsers}
+                        onManagePair={hasRole("ADMIN") ? handleOpenAdminPairModal : undefined}
                         formatDate={formatDate}
                         hasAdminActions={hasRole("ADMIN")}
                         maxItems={10}
@@ -1786,6 +1805,7 @@ export function PairingsPage() {
                             isActive={false}
                             onUserClick={handleUserClick}
                             onDelete={handleDeletePairing}
+                            onManagePair={handleOpenAdminPairModal}
                             formatDate={formatDate}
                             hasAdminActions={true}
                             maxItems={5}
@@ -1881,6 +1901,15 @@ export function PairingsPage() {
             <QueueStatsModal
               isOpen={modalState.showQueueStatsModal}
               onClose={hideQueueStats}
+            />
+          )}
+
+          {showAdminPairModal && selectedPairingForAdmin && hasRole("ADMIN") && (
+            <AdminPairManagementModal
+              isOpen={showAdminPairModal}
+              onClose={handleCloseAdminPairModal}
+              pairing={selectedPairingForAdmin}
+              userProfiles={userProfiles}
             />
           )}
         </AnimatePresence>

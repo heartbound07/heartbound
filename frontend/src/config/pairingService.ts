@@ -341,4 +341,154 @@ export const getQueueUserDetails = async (): Promise<QueueUserDetailsDTO[]> => {
     console.error('Error fetching queue user details:', error);
     throw error;
   }
+};
+
+// XP System Types
+export interface PairLevelDTO {
+  id: number;
+  pairingId: number;
+  currentLevel: number;
+  totalXP: number;
+  currentLevelXP: number;
+  nextLevelXP: number;
+  xpNeededForNextLevel: number;
+  levelProgressPercentage: number;
+  readyToLevelUp: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AchievementDTO {
+  id: number;
+  achievementKey: string;
+  name: string;
+  description: string;
+  achievementType: string;
+  xpReward: number;
+  requirementValue: number;
+  requirementDescription: string;
+  iconUrl?: string;
+  badgeColor?: string;
+  rarity: string;
+  tier: number;
+  active: boolean;
+  hidden: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PairAchievementDTO {
+  id: number;
+  pairingId: number;
+  achievement: AchievementDTO;
+  unlockedAt: string;
+  progressValue: number;
+  xpAwarded: number;
+  notified: boolean;
+  recentlyUnlocked: boolean;
+  unlockTimeDisplay: string;
+  createdAt: string;
+}
+
+export interface VoiceStreakDTO {
+  id: number;
+  pairingId: number;
+  streakDate: string;
+  voiceMinutes: number;
+  streakCount: number;
+  active: boolean;
+  isToday: boolean;
+  isYesterday: boolean;
+  meetsMinimumActivity: boolean;
+  streakXPReward: number;
+  streakTier: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdatePairingActivityDTO {
+  messageIncrement: number;
+  wordIncrement: number;
+  emojiIncrement: number;
+  activeDays?: number;
+}
+
+// XP System API Functions
+
+/**
+ * Get pair level and XP information
+ */
+export const getPairLevel = async (pairingId: number): Promise<PairLevelDTO> => {
+  try {
+    const response = await httpClient.get(`/pairings/${pairingId}/level`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching pair level:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get achievements for a pairing
+ */
+export const getPairingAchievements = async (pairingId: number): Promise<PairAchievementDTO[]> => {
+  try {
+    const response = await httpClient.get(`/pairings/${pairingId}/achievements`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching pairing achievements:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get available achievements for a pairing
+ */
+export const getAvailableAchievements = async (pairingId: number): Promise<AchievementDTO[]> => {
+  try {
+    const response = await httpClient.get(`/pairings/${pairingId}/achievements/available`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching available achievements:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get voice streaks for a pairing
+ */
+export const getVoiceStreaks = async (pairingId: number): Promise<{ statistics: any; recentStreaks: VoiceStreakDTO[] }> => {
+  try {
+    const response = await httpClient.get(`/pairings/${pairingId}/streaks`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching voice streaks:', error);
+    throw error;
+  }
+};
+
+/**
+ * Manually trigger achievement checking (admin only)
+ */
+export const checkAchievements = async (pairingId: number): Promise<PairAchievementDTO[]> => {
+  try {
+    const response = await httpClient.post(`/pairings/achievements/check/${pairingId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error checking achievements:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update pairing activity metrics
+ */
+export const updatePairingActivity = async (pairingId: number, activity: UpdatePairingActivityDTO): Promise<PairingDTO> => {
+  try {
+    const response = await httpClient.patch(`/pairings/${pairingId}/activity`, activity);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating pairing activity:', error);
+    throw error;
+  }
 }; 

@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Heart, Star, ChevronRight, X, AlertCircle, UserCheck, MessageSquare, Mic, Flame } from 'lucide-react'
+import { Heart, Star, ChevronRight, X, AlertCircle, UserCheck, MessageSquare, Mic, Flame, Settings } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/valorant/avatar'
 import { Badge } from '@/components/ui/valorant/badge'
 import type { PairingDTO } from '@/config/pairingService'
@@ -16,6 +16,7 @@ interface PairingCardProps {
   onUserClick: (userId: string, event: React.MouseEvent) => void
   onUnpair?: (pairingId: number, event: React.MouseEvent) => void
   onDelete?: (pairingId: number, event: React.MouseEvent) => void
+  onManagePair?: (pairing: PairingDTO, event: React.MouseEvent) => void
   formatDate: (dateString: string) => string
   hasAdminActions?: boolean
   // XP System data (optional)
@@ -30,6 +31,7 @@ interface PairingCardListProps {
   onUserClick: (userId: string, event: React.MouseEvent) => void
   onUnpair?: (pairingId: number, event: React.MouseEvent) => void
   onDelete?: (pairingId: number, event: React.MouseEvent) => void
+  onManagePair?: (pairing: PairingDTO, event: React.MouseEvent) => void
   formatDate: (dateString: string) => string
   hasAdminActions?: boolean
   maxItems?: number
@@ -50,6 +52,7 @@ export const PairingCard = memo(({
   onUserClick,
   onUnpair,
   onDelete,
+  onManagePair,
   formatDate,
   hasAdminActions = false,
   currentStreak,
@@ -74,6 +77,11 @@ export const PairingCard = memo(({
   const handleDelete = useCallback(
     (event: React.MouseEvent) => onDelete?.(pairing.id, event),
     [onDelete, pairing.id]
+  )
+
+  const handleManagePair = useCallback(
+    (event: React.MouseEvent) => onManagePair?.(pairing, event),
+    [onManagePair, pairing]
   )
 
   // Memoize breakup information to avoid recalculation - match current implementation exactly
@@ -126,6 +134,20 @@ export const PairingCard = memo(({
       {/* Admin Actions */}
       {hasAdminActions && (
         <>
+          {/* Manage Pair Button */}
+          {onManagePair && (
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleManagePair}
+              className="absolute top-2 left-2 p-1 rounded-full bg-primary/20 border border-primary/30 text-primary hover:bg-primary/30 transition-colors opacity-0 group-hover:opacity-100 z-10"
+              title="Manage pair metrics and achievements"
+              aria-label="Manage pair"
+            >
+              <Settings className="h-3 w-3" />
+            </motion.button>
+          )}
+
           {isActive && onUnpair && (
             <motion.button
               whileHover={{ scale: 1.1 }}
@@ -327,6 +349,7 @@ export const PairingCardList = memo(({
   onUserClick,
   onUnpair,
   onDelete,
+  onManagePair,
   formatDate,
   hasAdminActions = false,
   maxItems = 5,
@@ -380,6 +403,7 @@ export const PairingCardList = memo(({
             onUserClick={onUserClick}
             onUnpair={onUnpair}
             onDelete={onDelete}
+            onManagePair={onManagePair}
             formatDate={formatDate}
             hasAdminActions={hasAdminActions}
             currentStreak={streakData?.[pairing.id]}
