@@ -9,6 +9,7 @@ import com.app.heartbound.entities.MatchQueueUser;
 import com.app.heartbound.repositories.pairing.MatchQueueUserRepository;
 import com.app.heartbound.repositories.pairing.PairingRepository;
 import com.app.heartbound.repositories.UserRepository;
+import com.app.heartbound.config.WebSocketConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -290,6 +291,20 @@ public class QueueService {
     }
 
     /**
+     * Broadcast queue configuration updates to all users via WebSocket
+     */
+    public void broadcastQueueConfigUpdate() {
+        try {
+            QueueConfigDTO config = getQueueConfig();
+            messagingTemplate.convertAndSend(WebSocketConfig.QUEUE_CONFIG_TOPIC, config);
+            log.info("Broadcasted queue config update: enabled={}, updatedBy={}", 
+                     config.isQueueEnabled(), config.getUpdatedBy());
+        } catch (Exception e) {
+            log.error("Failed to broadcast queue config update", e);
+        }
+    }
+
+    /**
      * **OPTIMIZATION: Centralized queue configuration management**
      */
     public void setQueueEnabled(boolean enabled, String updatedBy) {
@@ -331,6 +346,9 @@ public class QueueService {
                     }
                 }
             }
+            
+            // **CRITICAL: Broadcast queue config changes to all users immediately**
+            broadcastQueueConfigUpdate();
             
             scheduleDebouncedBroadcast();
         }

@@ -25,6 +25,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public static final String PARTY_UPDATE = "/party/update";
     // Add queue-specific topics
     public static final String QUEUE_TOPIC = "/topic/queue";
+    public static final String QUEUE_CONFIG_TOPIC = "/topic/queue/config";
     public static final String MATCH_TOPIC = "/topic/matches";
 
     private final JWTChannelInterceptor jwtChannelInterceptor;
