@@ -16,11 +16,12 @@ import { Heart, Users, Trophy, MessageCircle, MessageSquare, Settings, User, Map
 import { motion, AnimatePresence } from "framer-motion"
 import type { JoinQueueRequestDTO, PairingDTO } from "@/config/pairingService"
 import { useQueueUpdates } from "@/contexts/QueueUpdates"
-import { performMatchmaking, deleteAllPairings, enableQueue, disableQueue, getBatchPairLevels, getBatchCurrentStreaks } from "@/config/pairingService"
+import { performMatchmaking, deleteAllPairings, enableQueue, disableQueue } from "@/config/pairingService"
 import { usePairingUpdates } from "@/contexts/PairingUpdates"
 import { MatchFoundModal } from "@/components/modals/MatchFoundModal"
 import { UserProfileModal } from "@/components/modals/UserProfileModal"
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
+import { useXPData, invalidateXPData } from "@/hooks/useXPData"
 
 import "@/assets/PairingsPage.css"
 import { useQueueConfig } from "@/contexts/QueueConfigUpdates"
@@ -308,9 +309,12 @@ export function PairingsPage() {
   const [userInitiatedBreakup, setUserInitiatedBreakup] = useState(false)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   
-  // XP System data for pairing cards
-  const [pairingLevels, setPairingLevels] = useState<Record<number, number>>({})
-  const [pairingStreaks, setPairingStreaks] = useState<Record<number, number>>({})
+  // Optimized XP data fetching with caching
+  const pairingIds = useMemo(() => pairingHistory.map(p => p.id), [pairingHistory])
+  const { 
+    levelData: pairingLevels, 
+    streakData: pairingStreaks
+  } = useXPData(pairingIds)
   
   // Admin Pair Management Modal state
   const [showAdminPairModal, setShowAdminPairModal] = useState(false)
@@ -548,28 +552,10 @@ export function PairingsPage() {
     // Refresh data after closing modal to show any updates
     refreshData()
     
-    // Also refresh XP data to show level/streak changes
+    // Invalidate XP cache to trigger fresh data fetch through useXPData hook
     if (pairingHistory.length > 0) {
       const pairingIds = pairingHistory.map(p => p.id)
-      
-      try {
-        const [levelData, streakData] = await Promise.all([
-          getBatchPairLevels(pairingIds),
-          getBatchCurrentStreaks(pairingIds)
-        ])
-
-        const levels: Record<number, number> = {}
-        Object.entries(levelData).forEach(([pairingId, levelInfo]) => {
-          if (levelInfo) {
-            levels[Number(pairingId)] = levelInfo.currentLevel
-          }
-        })
-
-        setPairingLevels(levels)
-        setPairingStreaks(streakData)
-      } catch (error) {
-        console.error("Failed to refresh XP data after admin modal close:", error)
-      }
+      invalidateXPData(pairingIds)
     }
   }, [refreshData, pairingHistory])
 
@@ -664,45 +650,8 @@ export function PairingsPage() {
       }
     }
 
-    const fetchXPData = async () => {
-      if (pairingHistory.length === 0) {
-        setPairingLevels({})
-        setPairingStreaks({})
-        return
-      }
-
-      const pairingIds = pairingHistory.map(p => p.id)
-      
-      try {
-        // Fetch level and streak data in parallel
-        const [levelData, streakData] = await Promise.all([
-          getBatchPairLevels(pairingIds),
-          getBatchCurrentStreaks(pairingIds)
-        ])
-
-        // Convert level data to just the level numbers
-        const levels: Record<number, number> = {}
-        Object.entries(levelData).forEach(([pairingId, levelInfo]) => {
-          if (levelInfo) {
-            levels[Number(pairingId)] = levelInfo.currentLevel
-          }
-        })
-
-        setPairingLevels(levels)
-        setPairingStreaks(streakData)
-        
-        console.log('Fetched XP data for pairings:', { levels, streakData })
-      } catch (error) {
-        console.error("Failed to fetch XP data for pairings:", error)
-        // Set empty objects on error to prevent UI issues
-        setPairingLevels({})
-        setPairingStreaks({})
-      }
-    }
-
     if (pairingHistory.length > 0) {
       fetchUserProfiles()
-      fetchXPData()
     }
   }, [pairingHistory])
 

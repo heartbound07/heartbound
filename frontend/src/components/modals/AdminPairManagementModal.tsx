@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import "@/assets/AdminPairManagementModal.css"
@@ -588,9 +588,17 @@ export function AdminPairManagementModal({
     )
   }
 
-  // Get user profiles
-  const user1Profile = userProfiles[pairing.user1Id]
-  const user2Profile = userProfiles[pairing.user2Id]
+  // Memoize user profiles to prevent unnecessary recalculations
+  const user1Profile = useMemo(() => userProfiles[pairing.user1Id], [userProfiles, pairing.user1Id])
+  const user2Profile = useMemo(() => userProfiles[pairing.user2Id], [userProfiles, pairing.user2Id])
+
+  // Memoize tab configuration to prevent unnecessary re-renders
+  const tabConfig = useMemo(() => [
+    { id: 'overview', label: 'Overview', icon: Activity },
+    { id: 'achievements', label: 'Achievements', icon: Trophy },
+    { id: 'metrics', label: 'Metrics', icon: TrendingUp },
+    { id: 'streaks', label: 'Voice Streaks', icon: Calendar },
+  ], [])
 
   if (!isOpen) return null
 
@@ -662,12 +670,7 @@ export function AdminPairManagementModal({
 
             {/* Tab Navigation */}
             <div className="flex gap-2 mt-4">
-              {[
-                { id: 'overview', label: 'Overview', icon: Activity },
-                { id: 'achievements', label: 'Achievements', icon: Trophy },
-                { id: 'metrics', label: 'Metrics', icon: TrendingUp },
-                { id: 'streaks', label: 'Voice Streaks', icon: Calendar },
-              ].map(({ id, label, icon: Icon }) => (
+              {tabConfig.map(({ id, label, icon: Icon }) => (
                 <Button
                   key={id}
                   variant={activeTab === id ? "default" : "outline"}

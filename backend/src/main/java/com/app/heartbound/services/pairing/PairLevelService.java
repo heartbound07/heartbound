@@ -1,5 +1,6 @@
 package com.app.heartbound.services.pairing;
 
+import com.app.heartbound.config.CacheConfig;
 import com.app.heartbound.entities.PairLevel;
 import com.app.heartbound.entities.Pairing;
 import com.app.heartbound.repositories.pairing.PairLevelRepository;
@@ -30,19 +31,35 @@ public class PairLevelService {
     private final PairLevelRepository pairLevelRepository;
     private final PairingRepository pairingRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final CacheConfig cacheConfig;
 
     /**
-     * Get or create pair level for a pairing
+     * Get or create pair level for a pairing with caching optimization
      */
     @Transactional
     public PairLevel getOrCreatePairLevel(Long pairingId) {
+        // Check cache first
+        PairLevel cachedLevel = (PairLevel) cacheConfig.getPairLevelCache().getIfPresent(pairingId);
+        if (cachedLevel != null) {
+            log.debug("Pair level cache HIT for pairingId: {}", pairingId);
+            return cachedLevel;
+        }
+
+        log.debug("Pair level cache MISS for pairingId: {}", pairingId);
+        
         Optional<Pairing> pairingOpt = pairingRepository.findById(pairingId);
         if (pairingOpt.isEmpty()) {
             throw new IllegalArgumentException("Pairing not found with ID: " + pairingId);
         }
 
         Pairing pairing = pairingOpt.get();
-        return getOrCreatePairLevel(pairing);
+        PairLevel pairLevel = getOrCreatePairLevel(pairing);
+        
+        // Cache the result
+        cacheConfig.getPairLevelCache().put(pairingId, pairLevel);
+        log.debug("Cached pair level for pairingId: {}", pairingId);
+        
+        return pairLevel;
     }
 
     /**
@@ -98,6 +115,9 @@ public class PairLevelService {
 
         PairLevel savedLevel = pairLevelRepository.save(pairLevel);
         
+        // Invalidate cache after modification
+        cacheConfig.invalidatePairingCaches(pairingId);
+        
         // Broadcast XP gain notification
         broadcastXPUpdate(savedLevel, xpToAdd, reason, leveledUp, oldLevel);
         
@@ -127,6 +147,9 @@ public class PairLevelService {
         recalculateLevelData(pairLevel);
 
         PairLevel savedLevel = pairLevelRepository.save(pairLevel);
+        
+        // Invalidate cache after modification
+        cacheConfig.invalidatePairingCaches(pairingId);
         
         // Broadcast XP removal notification
         broadcastXPUpdate(savedLevel, -xpToRemove, reason, savedLevel.getCurrentLevel() < oldLevel, oldLevel);
@@ -254,25 +277,46 @@ public class PairLevelService {
         // Get or create pair level
         PairLevel pairLevel = getOrCreatePairLevel(pairingId);
         
+        // Track whether we need to recalculate based on XP or level
+        boolean levelWasSetManually = false;
+        boolean xpWasModified = false;
+        
         // Apply updates
         if (updateRequest.getCurrentLevel() != null) {
-            pairLevel.setCurrentLevel(Math.max(1, updateRequest.getCurrentLevel()));
-            log.info("Set level to {}", updateRequest.getCurrentLevel());
+            int newLevel = Math.max(1, updateRequest.getCurrentLevel());
+            pairLevel.setCurrentLevel(newLevel);
+            levelWasSetManually = true;
+            
+            // Calculate the minimum XP required for this level
+            int xpForLevel = calculateMinimumXPForLevel(newLevel);
+            pairLevel.setTotalXP(xpForLevel);
+            
+            log.info("Set level to {} with minimum XP {}", newLevel, xpForLevel);
         }
         
         if (updateRequest.getTotalXP() != null) {
             pairLevel.setTotalXP(Math.max(0, updateRequest.getTotalXP()));
+            xpWasModified = true;
             log.info("Set total XP to {}", updateRequest.getTotalXP());
         }
         
         if (updateRequest.getXpIncrement() != null && updateRequest.getXpIncrement() != 0) {
             int newTotalXP = Math.max(0, pairLevel.getTotalXP() + updateRequest.getXpIncrement());
             pairLevel.setTotalXP(newTotalXP);
+            xpWasModified = true;
             log.info("Applied XP increment of {}, new total: {}", updateRequest.getXpIncrement(), newTotalXP);
         }
         
-        // Recalculate level-related fields
-        recalculateLevelData(pairLevel);
+        // Only recalculate level if XP was modified but level wasn't manually set
+        if (xpWasModified && !levelWasSetManually) {
+            recalculateLevelData(pairLevel);
+        } else if (levelWasSetManually || xpWasModified) {
+            // Just recalculate the level progression fields without changing the level
+            recalculateLevelProgressFields(pairLevel);
+        }
+        
+        // Invalidate cache after modification
+        cacheConfig.invalidatePairingCaches(pairingId);
         
         // Save and return
         PairLevel savedLevel = pairLevelRepository.save(pairLevel);
@@ -304,6 +348,36 @@ public class PairLevelService {
         pairLevel.setCurrentLevel(level);
         pairLevel.setCurrentLevelXP(totalXP - xpUsed);
         pairLevel.setNextLevelXP(PairLevel.calculateNextLevelXP(level));
+    }
+
+    /**
+     * Calculate minimum XP required for a specific level
+     */
+    private int calculateMinimumXPForLevel(int targetLevel) {
+        int totalXP = 0;
+        for (int level = 1; level < targetLevel; level++) {
+            totalXP += PairLevel.calculateNextLevelXP(level);
+        }
+        return totalXP;
+    }
+
+    /**
+     * Recalculate level progression fields without changing the current level
+     */
+    private void recalculateLevelProgressFields(PairLevel pairLevel) {
+        int currentLevel = pairLevel.getCurrentLevel();
+        int totalXP = pairLevel.getTotalXP();
+        
+        // Calculate XP used up to current level
+        int xpUsedForCurrentLevel = calculateMinimumXPForLevel(currentLevel);
+        
+        // Calculate current level progress
+        int currentLevelXP = totalXP - xpUsedForCurrentLevel;
+        int nextLevelXP = PairLevel.calculateNextLevelXP(currentLevel);
+        
+        // Set the calculated values
+        pairLevel.setCurrentLevelXP(Math.max(0, currentLevelXP));
+        pairLevel.setNextLevelXP(nextLevelXP);
     }
 
     /**
