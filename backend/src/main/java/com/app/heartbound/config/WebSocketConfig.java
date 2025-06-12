@@ -65,19 +65,23 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void configureClientInboundChannel(ChannelRegistration registration) {
         registration.interceptors(jwtChannelInterceptor)
                    .taskExecutor()
-                   .corePoolSize(4)
-                   .maxPoolSize(8)
-                   .queueCapacity(100);
+                   .corePoolSize(8)
+                   .maxPoolSize(16)
+                   .queueCapacity(200)
+                   .keepAliveSeconds(60);
         
-        logger.debug("JWTChannelInterceptor attached with resource limits");
+        logger.debug("JWTChannelInterceptor attached with enhanced resource limits");
     }
 
     @Override
     public void configureClientOutboundChannel(ChannelRegistration registration) {
-        // Configure outbound channel with limits
+        // Configure outbound channel with enhanced limits
         registration.taskExecutor()
-                   .corePoolSize(4)
-                   .maxPoolSize(8)
-                   .queueCapacity(100);
+                   .corePoolSize(8)
+                   .maxPoolSize(16)
+                   .queueCapacity(200)
+                   .keepAliveSeconds(60);
+        
+        logger.debug("Outbound channel configured with enhanced resource limits");
     }
 }
