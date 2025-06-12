@@ -348,7 +348,7 @@ public class QueueService {
     }
 
     /**
-     * **OPTIMIZED: Efficient eligible users fetching with date filtering**
+     * **OPTIMIZED: Efficient eligible users fetching**
      */
     @Transactional(readOnly = true)
     public List<MatchQueueUser> getEligibleUsersForMatching() {
@@ -356,13 +356,9 @@ public class QueueService {
             return List.of(); // Return empty list if queue is disabled
         }
         
-        // **OPTIMIZATION: Only fetch users queued for at least 1 minute to avoid matching users who just joined**
-        LocalDateTime eligibilityThreshold = LocalDateTime.now().minusMinutes(1);
-        List<MatchQueueUser> allActiveUsers = queueRepository.findByInQueueTrue();
-        
-        return allActiveUsers.stream()
-                .filter(user -> user.getQueuedAt().isBefore(eligibilityThreshold))
-                .collect(Collectors.toList());
+        // Return all active users - maintain original business logic
+        // No artificial delays for matchmaking eligibility
+        return queueRepository.findByInQueueTrue();
     }
 
     public void updateLastMatchmakingRun() {
