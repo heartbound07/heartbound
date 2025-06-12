@@ -197,9 +197,11 @@ export function AdminPairManagementModal({
   }, [pairing.id])
 
   const handleMetricChange = useCallback((field: keyof EditableMetrics, value: number) => {
+    // Ensure value is a valid number, default to 0 if NaN
+    const safeValue = isNaN(value) ? 0 : Math.max(0, value)
     setEditableMetrics(prev => ({
       ...prev,
-      [field]: Math.max(0, value) // Ensure non-negative values
+      [field]: safeValue
     }))
     setHasUnsavedChanges(true)
   }, [])
@@ -270,9 +272,11 @@ export function AdminPairManagementModal({
 
   // Admin Level/XP handlers
   const handleLevelDataChange = useCallback((field: keyof EditableLevelData, value: number) => {
+    // Ensure value is a valid number, default to 0 if NaN
+    const safeValue = isNaN(value) ? 0 : Math.max(0, value)
     setEditableLevelData(prev => ({
       ...prev,
-      [field]: Math.max(0, value)
+      [field]: safeValue
     }))
     setHasUnsavedLevelChanges(true)
   }, [])
@@ -776,7 +780,11 @@ export function AdminPairManagementModal({
                             <div className="text-sm text-theme-secondary">XP to Next Level</div>
                           </div>
                           <div className="text-center p-4 rounded-lg bg-status-warning/10 border border-status-warning/20">
-                            <div className="text-2xl font-bold text-status-warning mb-1">{Math.round(pairLevel.levelProgressPercentage)}%</div>
+                            <div className="text-2xl font-bold text-status-warning mb-1">
+                              {pairLevel.levelProgressPercentage != null && !isNaN(pairLevel.levelProgressPercentage) 
+                                ? Math.round(pairLevel.levelProgressPercentage) 
+                                : 0}%
+                            </div>
                             <div className="text-sm text-theme-secondary">Progress</div>
                           </div>
                         </div>
@@ -1242,19 +1250,23 @@ export function AdminPairManagementModal({
                         </h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           <div className="text-center p-4 rounded-lg bg-status-success/10 border border-status-success/20">
-                            <div className="text-2xl font-bold text-status-success mb-1">{streakStats.currentStreak}</div>
+                            <div className="text-2xl font-bold text-status-success mb-1">{streakStats.currentStreak || 0}</div>
                             <div className="text-sm text-theme-secondary">Current Streak</div>
                           </div>
                           <div className="text-center p-4 rounded-lg bg-primary/10 border border-primary/20">
-                            <div className="text-2xl font-bold text-primary mb-1">{streakStats.longestStreak}</div>
+                            <div className="text-2xl font-bold text-primary mb-1">{streakStats.longestStreak || 0}</div>
                             <div className="text-sm text-theme-secondary">Longest Streak</div>
                           </div>
                           <div className="text-center p-4 rounded-lg bg-status-info/10 border border-status-info/20">
-                            <div className="text-2xl font-bold text-status-info mb-1">{streakStats.totalStreakDays}</div>
+                            <div className="text-2xl font-bold text-status-info mb-1">{streakStats.totalStreakDays || 0}</div>
                             <div className="text-sm text-theme-secondary">Total Streak Days</div>
                           </div>
                           <div className="text-center p-4 rounded-lg bg-status-warning/10 border border-status-warning/20">
-                            <div className="text-2xl font-bold text-status-warning mb-1">{Math.round(streakStats.averageVoiceMinutes)}</div>
+                            <div className="text-2xl font-bold text-status-warning mb-1">
+                              {streakStats.averageVoiceMinutes != null && !isNaN(streakStats.averageVoiceMinutes) 
+                                ? Math.round(streakStats.averageVoiceMinutes) 
+                                : 0}
+                            </div>
                             <div className="text-sm text-theme-secondary">Avg Voice/Day</div>
                           </div>
                         </div>

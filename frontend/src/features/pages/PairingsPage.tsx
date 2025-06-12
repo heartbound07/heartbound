@@ -16,7 +16,7 @@ import { Heart, Users, Trophy, MessageCircle, MessageSquare, Settings, User, Map
 import { motion, AnimatePresence } from "framer-motion"
 import type { JoinQueueRequestDTO, PairingDTO } from "@/config/pairingService"
 import { useQueueUpdates } from "@/contexts/QueueUpdates"
-import { performMatchmaking, deleteAllPairings, enableQueue, disableQueue } from "@/config/pairingService"
+import { performMatchmaking, deleteAllPairings, enableQueue, disableQueue, getBatchPairLevels, getBatchCurrentStreaks } from "@/config/pairingService"
 import { usePairingUpdates } from "@/contexts/PairingUpdates"
 import { MatchFoundModal } from "@/components/modals/MatchFoundModal"
 import { UserProfileModal } from "@/components/modals/UserProfileModal"
@@ -308,6 +308,10 @@ export function PairingsPage() {
   const [userInitiatedBreakup, setUserInitiatedBreakup] = useState(false)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   
+  // XP System data for pairing cards
+  const [pairingLevels, setPairingLevels] = useState<Record<number, number>>({})
+  const [pairingStreaks, setPairingStreaks] = useState<Record<number, number>>({})
+  
   // Admin Pair Management Modal state
   const [showAdminPairModal, setShowAdminPairModal] = useState(false)
   const [selectedPairingForAdmin, setSelectedPairingForAdmin] = useState<PairingDTO | null>(null)
@@ -538,12 +542,36 @@ export function PairingsPage() {
     setShowAdminPairModal(true)
   }, [])
 
-  const handleCloseAdminPairModal = useCallback(() => {
+  const handleCloseAdminPairModal = useCallback(async () => {
     setShowAdminPairModal(false)
     setSelectedPairingForAdmin(null)
     // Refresh data after closing modal to show any updates
     refreshData()
-  }, [refreshData])
+    
+    // Also refresh XP data to show level/streak changes
+    if (pairingHistory.length > 0) {
+      const pairingIds = pairingHistory.map(p => p.id)
+      
+      try {
+        const [levelData, streakData] = await Promise.all([
+          getBatchPairLevels(pairingIds),
+          getBatchCurrentStreaks(pairingIds)
+        ])
+
+        const levels: Record<number, number> = {}
+        Object.entries(levelData).forEach(([pairingId, levelInfo]) => {
+          if (levelInfo) {
+            levels[Number(pairingId)] = levelInfo.currentLevel
+          }
+        })
+
+        setPairingLevels(levels)
+        setPairingStreaks(streakData)
+      } catch (error) {
+        console.error("Failed to refresh XP data after admin modal close:", error)
+      }
+    }
+  }, [refreshData, pairingHistory])
 
   // Effect to handle real-time WebSocket updates
   useEffect(() => {
@@ -636,8 +664,45 @@ export function PairingsPage() {
       }
     }
 
+    const fetchXPData = async () => {
+      if (pairingHistory.length === 0) {
+        setPairingLevels({})
+        setPairingStreaks({})
+        return
+      }
+
+      const pairingIds = pairingHistory.map(p => p.id)
+      
+      try {
+        // Fetch level and streak data in parallel
+        const [levelData, streakData] = await Promise.all([
+          getBatchPairLevels(pairingIds),
+          getBatchCurrentStreaks(pairingIds)
+        ])
+
+        // Convert level data to just the level numbers
+        const levels: Record<number, number> = {}
+        Object.entries(levelData).forEach(([pairingId, levelInfo]) => {
+          if (levelInfo) {
+            levels[Number(pairingId)] = levelInfo.currentLevel
+          }
+        })
+
+        setPairingLevels(levels)
+        setPairingStreaks(streakData)
+        
+        console.log('Fetched XP data for pairings:', { levels, streakData })
+      } catch (error) {
+        console.error("Failed to fetch XP data for pairings:", error)
+        // Set empty objects on error to prevent UI issues
+        setPairingLevels({})
+        setPairingStreaks({})
+      }
+    }
+
     if (pairingHistory.length > 0) {
       fetchUserProfiles()
+      fetchXPData()
     }
   }, [pairingHistory])
 
@@ -1731,8 +1796,8 @@ export function PairingsPage() {
                             <UserCheck className="h-8 w-8 text-status-success" />
                           </div>
                         }
-                        streakData={{}}
-                        levelData={{}}
+                        streakData={pairingStreaks}
+                        levelData={pairingLevels}
                       />
                       {currentMatches.length === 0 && !currentPairing && !queueStatus.inQueue && isQueueEnabled && (
                         <motion.div
@@ -1815,8 +1880,8 @@ export function PairingsPage() {
                                 <MessageCircle className="h-8 w-8 text-primary" />
                               </div>
                             }
-                            streakData={{}}
-                            levelData={{}}
+                            streakData={pairingStreaks}
+                            levelData={pairingLevels}
                           />
                           {inactiveHistory.length === 0 && (
                             <motion.div

@@ -4,6 +4,7 @@ import com.app.heartbound.entities.Achievement;
 import com.app.heartbound.entities.PairAchievement;
 import com.app.heartbound.entities.Pairing;
 import com.app.heartbound.enums.AchievementType;
+import com.app.heartbound.dto.pairing.ManageAchievementDTO;
 import com.app.heartbound.repositories.pairing.AchievementRepository;
 import com.app.heartbound.repositories.pairing.PairAchievementRepository;
 import com.app.heartbound.repositories.pairing.PairingRepository;
@@ -344,7 +345,7 @@ public class AchievementService {
      * Admin: Manage achievement (unlock/lock)
      */
     @Transactional
-    public Map<String, Object> manageAchievementAdmin(Long pairingId, com.app.heartbound.dto.pairing.ManageAchievementDTO manageRequest) {
+    public Map<String, Object> manageAchievementAdmin(Long pairingId, ManageAchievementDTO manageRequest) {
         log.info("Admin managing achievement for pairing {}: {}", pairingId, manageRequest);
         
         // Get pairing
@@ -425,10 +426,10 @@ public class AchievementService {
         // Remove the achievement
         pairAchievementRepository.delete(pairAchievement);
         
-        // Remove XP (negative amount)
+        // Remove XP
         if (xpToRemove > 0) {
             try {
-                pairLevelService.addXP(pairing.getId(), -xpToRemove, "Admin Achievement Removal: " + achievement.getName());
+                pairLevelService.removeXP(pairing.getId(), xpToRemove, "Admin Achievement Removal: " + achievement.getName());
             } catch (Exception e) {
                 log.error("Failed to remove XP for admin achievement lock: {}", e.getMessage());
             }

@@ -4,6 +4,7 @@ import com.app.heartbound.entities.PairLevel;
 import com.app.heartbound.entities.Pairing;
 import com.app.heartbound.repositories.pairing.PairLevelRepository;
 import com.app.heartbound.repositories.pairing.PairingRepository;
+import com.app.heartbound.dto.pairing.UpdatePairLevelDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -102,6 +103,36 @@ public class PairLevelService {
         
         log.info("Added {} XP to pairing {}: Total XP: {}, Level: {}, Reason: {}", 
                 xpToAdd, pairingId, savedLevel.getTotalXP(), savedLevel.getCurrentLevel(), reason);
+
+        return savedLevel;
+    }
+
+    /**
+     * Remove XP from a pairing (for admin actions like achievement removal)
+     */
+    @Transactional
+    public PairLevel removeXP(Long pairingId, int xpToRemove, String reason) {
+        if (xpToRemove <= 0) {
+            throw new IllegalArgumentException("XP to remove must be positive");
+        }
+
+        PairLevel pairLevel = getOrCreatePairLevel(pairingId);
+        int oldLevel = pairLevel.getCurrentLevel();
+        
+        // Remove XP (ensure it doesn't go below 0)
+        int newTotalXP = Math.max(0, pairLevel.getTotalXP() - xpToRemove);
+        pairLevel.setTotalXP(newTotalXP);
+        
+        // Recalculate level data based on new total XP
+        recalculateLevelData(pairLevel);
+
+        PairLevel savedLevel = pairLevelRepository.save(pairLevel);
+        
+        // Broadcast XP removal notification
+        broadcastXPUpdate(savedLevel, -xpToRemove, reason, savedLevel.getCurrentLevel() < oldLevel, oldLevel);
+        
+        log.info("Removed {} XP from pairing {}: Total XP: {}, Level: {}, Reason: {}", 
+                xpToRemove, pairingId, savedLevel.getTotalXP(), savedLevel.getCurrentLevel(), reason);
 
         return savedLevel;
     }
@@ -217,7 +248,7 @@ public class PairLevelService {
      * Admin: Update pair level and XP directly
      */
     @Transactional
-    public PairLevel updatePairLevelAdmin(Long pairingId, com.app.heartbound.dto.pairing.UpdatePairLevelDTO updateRequest) {
+    public PairLevel updatePairLevelAdmin(Long pairingId, UpdatePairLevelDTO updateRequest) {
         log.info("Admin updating pair level for pairing {}: {}", pairingId, updateRequest);
         
         // Get or create pair level

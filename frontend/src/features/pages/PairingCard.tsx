@@ -306,7 +306,7 @@ export const PairingCard = memo(({
             </motion.div>
 
             {/* Current Streak Badge - Only show if there's an actual streak */}
-            {currentStreak && currentStreak > 0 && (
+            {(currentStreak !== undefined && currentStreak > 0) && (
               <motion.div 
                 className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-500/10 hover:bg-orange-500/15 border border-orange-500/20 rounded-full transition-colors duration-200 cursor-default"
                 whileHover={{ scale: 1.02 }}

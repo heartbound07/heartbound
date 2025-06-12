@@ -4,6 +4,8 @@ import com.app.heartbound.entities.VoiceStreak;
 import com.app.heartbound.entities.Pairing;
 import com.app.heartbound.repositories.pairing.VoiceStreakRepository;
 import com.app.heartbound.repositories.pairing.PairingRepository;
+import com.app.heartbound.dto.pairing.UpdateVoiceStreakDTO;
+import com.app.heartbound.dto.pairing.CreateVoiceStreakDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -297,7 +299,7 @@ public class VoiceStreakService {
      * Admin: Update voice streak
      */
     @Transactional
-    public VoiceStreak updateVoiceStreakAdmin(Long streakId, com.app.heartbound.dto.pairing.UpdateVoiceStreakDTO updateRequest) {
+    public VoiceStreak updateVoiceStreakAdmin(Long streakId, UpdateVoiceStreakDTO updateRequest) {
         log.info("Admin updating voice streak {}: {}", streakId, updateRequest);
         
         VoiceStreak voiceStreak = voiceStreakRepository.findById(streakId)
@@ -331,7 +333,7 @@ public class VoiceStreakService {
      * Admin: Create voice streak
      */
     @Transactional
-    public VoiceStreak createVoiceStreakAdmin(Long pairingId, com.app.heartbound.dto.pairing.CreateVoiceStreakDTO createRequest) {
+    public VoiceStreak createVoiceStreakAdmin(Long pairingId, CreateVoiceStreakDTO createRequest) {
         log.info("Admin creating voice streak for pairing {}: {}", pairingId, createRequest);
         
         Pairing pairing = pairingRepository.findById(pairingId)

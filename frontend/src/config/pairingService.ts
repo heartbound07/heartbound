@@ -468,6 +468,68 @@ export const getVoiceStreaks = async (pairingId: number): Promise<{ statistics: 
 };
 
 /**
+ * Batch fetch level data for multiple pairings
+ */
+export const getBatchPairLevels = async (pairingIds: number[]): Promise<Record<number, PairLevelDTO>> => {
+  try {
+    const promises = pairingIds.map(async (id) => {
+      try {
+        const response = await httpClient.get(`/pairings/${id}/level`);
+        return { id, data: response.data };
+      } catch (error) {
+        console.warn(`Failed to fetch level for pairing ${id}:`, error);
+        return { id, data: null };
+      }
+    });
+
+    const results = await Promise.allSettled(promises);
+    const levelData: Record<number, PairLevelDTO> = {};
+
+    results.forEach((result) => {
+      if (result.status === 'fulfilled' && result.value.data) {
+        levelData[result.value.id] = result.value.data;
+      }
+    });
+
+    return levelData;
+  } catch (error) {
+    console.error('Error batch fetching pair levels:', error);
+    return {};
+  }
+};
+
+/**
+ * Batch fetch current streak counts for multiple pairings
+ */
+export const getBatchCurrentStreaks = async (pairingIds: number[]): Promise<Record<number, number>> => {
+  try {
+    const promises = pairingIds.map(async (id) => {
+      try {
+        const response = await httpClient.get(`/pairings/${id}/streaks`);
+        return { id, currentStreak: response.data.statistics.currentStreak || 0 };
+      } catch (error) {
+        console.warn(`Failed to fetch streaks for pairing ${id}:`, error);
+        return { id, currentStreak: 0 };
+      }
+    });
+
+    const results = await Promise.allSettled(promises);
+    const streakData: Record<number, number> = {};
+
+    results.forEach((result) => {
+      if (result.status === 'fulfilled') {
+        streakData[result.value.id] = result.value.currentStreak;
+      }
+    });
+
+    return streakData;
+  } catch (error) {
+    console.error('Error batch fetching current streaks:', error);
+    return {};
+  }
+};
+
+/**
  * Manually trigger achievement checking (admin only)
  */
 export const checkAchievements = async (pairingId: number): Promise<PairAchievementDTO[]> => {
@@ -553,7 +615,7 @@ export interface CreateVoiceStreakDTO {
  */
 export const updateVoiceStreak = async (streakId: number, streakUpdate: UpdateVoiceStreakDTO): Promise<VoiceStreakDTO> => {
   try {
-    const response = await httpClient.patch(`/voice-streaks/${streakId}/admin`, streakUpdate);
+    const response = await httpClient.patch(`/pairings/voice-streaks/${streakId}/admin`, streakUpdate);
     return response.data;
   } catch (error) {
     console.error('Error updating voice streak:', error);
@@ -579,7 +641,7 @@ export const createVoiceStreak = async (pairingId: number, streakData: CreateVoi
  */
 export const deleteVoiceStreak = async (streakId: number): Promise<{ message: string }> => {
   try {
-    const response = await httpClient.delete(`/voice-streaks/${streakId}/admin`);
+    const response = await httpClient.delete(`/pairings/voice-streaks/${streakId}/admin`);
     return response.data;
   } catch (error) {
     console.error('Error deleting voice streak:', error);
