@@ -341,6 +341,110 @@ public class AchievementService {
     }
 
     /**
+     * Admin: Manage achievement (unlock/lock)
+     */
+    @Transactional
+    public Map<String, Object> manageAchievementAdmin(Long pairingId, com.app.heartbound.dto.pairing.ManageAchievementDTO manageRequest) {
+        log.info("Admin managing achievement for pairing {}: {}", pairingId, manageRequest);
+        
+        // Get pairing
+        Pairing pairing = pairingRepository.findById(pairingId)
+            .orElseThrow(() -> new IllegalArgumentException("Pairing not found: " + pairingId));
+        
+        // Get achievement
+        Achievement achievement = achievementRepository.findById(manageRequest.getAchievementId())
+            .orElseThrow(() -> new IllegalArgumentException("Achievement not found: " + manageRequest.getAchievementId()));
+        
+        String action = manageRequest.getAction().toLowerCase();
+        
+        if ("unlock".equals(action)) {
+            return unlockAchievementAdmin(pairing, achievement, manageRequest.getCustomXP());
+        } else if ("lock".equals(action)) {
+            return lockAchievementAdmin(pairing, achievement);
+        } else {
+            throw new IllegalArgumentException("Invalid action: " + action + ". Must be 'unlock' or 'lock'");
+        }
+    }
+    
+    private Map<String, Object> unlockAchievementAdmin(Pairing pairing, Achievement achievement, Integer customXP) {
+        // Check if already unlocked
+        Optional<PairAchievement> existing = pairAchievementRepository.findByPairingAndAchievement(pairing, achievement);
+        if (existing.isPresent()) {
+            return Map.of(
+                "message", "Achievement already unlocked",
+                "achievement", existing.get()
+            );
+        }
+        
+        // Use custom XP if provided, otherwise use default
+        int xpToAward = customXP != null ? customXP : achievement.getXpReward();
+        
+        // Create achievement
+        PairAchievement pairAchievement = PairAchievement.builder()
+            .pairing(pairing)
+            .achievement(achievement)
+            .progressValue(achievement.getRequirementValue()) // Set to requirement value for admin unlock
+            .xpAwarded(xpToAward)
+            .notified(false)
+            .build();
+        
+        PairAchievement saved = pairAchievementRepository.save(pairAchievement);
+        
+        // Award XP
+        if (xpToAward > 0) {
+            try {
+                pairLevelService.addXP(pairing.getId(), xpToAward, "Admin Achievement: " + achievement.getName());
+            } catch (Exception e) {
+                log.error("Failed to award XP for admin achievement unlock: {}", e.getMessage());
+            }
+        }
+        
+        log.info("Admin unlocked achievement '{}' for pairing {}: {} XP awarded", 
+                achievement.getName(), pairing.getId(), xpToAward);
+        
+        return Map.of(
+            "message", "Achievement unlocked successfully",
+            "achievement", saved,
+            "xpAwarded", xpToAward
+        );
+    }
+    
+    private Map<String, Object> lockAchievementAdmin(Pairing pairing, Achievement achievement) {
+        // Find existing achievement
+        Optional<PairAchievement> existing = pairAchievementRepository.findByPairingAndAchievement(pairing, achievement);
+        if (existing.isEmpty()) {
+            return Map.of(
+                "message", "Achievement was not unlocked",
+                "achievement", null
+            );
+        }
+        
+        PairAchievement pairAchievement = existing.get();
+        int xpToRemove = pairAchievement.getXpAwarded();
+        
+        // Remove the achievement
+        pairAchievementRepository.delete(pairAchievement);
+        
+        // Remove XP (negative amount)
+        if (xpToRemove > 0) {
+            try {
+                pairLevelService.addXP(pairing.getId(), -xpToRemove, "Admin Achievement Removal: " + achievement.getName());
+            } catch (Exception e) {
+                log.error("Failed to remove XP for admin achievement lock: {}", e.getMessage());
+            }
+        }
+        
+        log.info("Admin locked achievement '{}' for pairing {}: {} XP removed", 
+                achievement.getName(), pairing.getId(), xpToRemove);
+        
+        return Map.of(
+            "message", "Achievement locked successfully",
+            "achievement", pairAchievement,
+            "xpRemoved", xpToRemove
+        );
+    }
+
+    /**
      * Delete all achievements for a pairing
      */
     @Transactional

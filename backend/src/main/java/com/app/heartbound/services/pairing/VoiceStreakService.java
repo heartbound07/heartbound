@@ -294,6 +294,88 @@ public class VoiceStreakService {
     }
 
     /**
+     * Admin: Update voice streak
+     */
+    @Transactional
+    public VoiceStreak updateVoiceStreakAdmin(Long streakId, com.app.heartbound.dto.pairing.UpdateVoiceStreakDTO updateRequest) {
+        log.info("Admin updating voice streak {}: {}", streakId, updateRequest);
+        
+        VoiceStreak voiceStreak = voiceStreakRepository.findById(streakId)
+            .orElseThrow(() -> new IllegalArgumentException("Voice streak not found: " + streakId));
+        
+        // Update fields if provided
+        if (updateRequest.getStreakDate() != null) {
+            voiceStreak.setStreakDate(LocalDate.parse(updateRequest.getStreakDate()));
+        }
+        
+        if (updateRequest.getVoiceMinutes() != null) {
+            voiceStreak.setVoiceMinutes(Math.max(0, updateRequest.getVoiceMinutes()));
+        }
+        
+        if (updateRequest.getStreakCount() != null) {
+            voiceStreak.setStreakCount(Math.max(1, updateRequest.getStreakCount()));
+        }
+        
+        if (updateRequest.getActive() != null) {
+            voiceStreak.setActive(updateRequest.getActive());
+        }
+        
+        VoiceStreak saved = voiceStreakRepository.save(voiceStreak);
+        log.info("Admin updated voice streak {}: Date={}, Minutes={}, Count={}, Active={}", 
+                 streakId, saved.getStreakDate(), saved.getVoiceMinutes(), saved.getStreakCount(), saved.isActive());
+        
+        return saved;
+    }
+    
+    /**
+     * Admin: Create voice streak
+     */
+    @Transactional
+    public VoiceStreak createVoiceStreakAdmin(Long pairingId, com.app.heartbound.dto.pairing.CreateVoiceStreakDTO createRequest) {
+        log.info("Admin creating voice streak for pairing {}: {}", pairingId, createRequest);
+        
+        Pairing pairing = pairingRepository.findById(pairingId)
+            .orElseThrow(() -> new IllegalArgumentException("Pairing not found: " + pairingId));
+        
+        LocalDate streakDate = LocalDate.parse(createRequest.getStreakDate());
+        
+        // Check if streak already exists for this date
+        Optional<VoiceStreak> existing = voiceStreakRepository.findByPairingAndStreakDate(pairing, streakDate);
+        if (existing.isPresent()) {
+            throw new IllegalArgumentException("Voice streak already exists for date: " + streakDate);
+        }
+        
+        VoiceStreak voiceStreak = VoiceStreak.builder()
+            .pairing(pairing)
+            .streakDate(streakDate)
+            .voiceMinutes(Math.max(0, createRequest.getVoiceMinutes()))
+            .streakCount(Math.max(1, createRequest.getStreakCount()))
+            .active(createRequest.getActive())
+            .build();
+        
+        VoiceStreak saved = voiceStreakRepository.save(voiceStreak);
+        log.info("Admin created voice streak for pairing {}: Date={}, Minutes={}, Count={}, Active={}", 
+                 pairingId, saved.getStreakDate(), saved.getVoiceMinutes(), saved.getStreakCount(), saved.isActive());
+        
+        return saved;
+    }
+    
+    /**
+     * Admin: Delete voice streak
+     */
+    @Transactional
+    public void deleteVoiceStreakAdmin(Long streakId) {
+        log.info("Admin deleting voice streak {}", streakId);
+        
+        VoiceStreak voiceStreak = voiceStreakRepository.findById(streakId)
+            .orElseThrow(() -> new IllegalArgumentException("Voice streak not found: " + streakId));
+        
+        voiceStreakRepository.delete(voiceStreak);
+        log.info("Admin deleted voice streak {}: Date={}, Pairing={}", 
+                 streakId, voiceStreak.getStreakDate(), voiceStreak.getPairing().getId());
+    }
+
+    /**
      * Delete all voice streaks for a pairing
      */
     @Transactional

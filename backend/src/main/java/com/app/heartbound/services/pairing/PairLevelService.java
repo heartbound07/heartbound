@@ -214,6 +214,68 @@ public class PairLevelService {
     }
 
     /**
+     * Admin: Update pair level and XP directly
+     */
+    @Transactional
+    public PairLevel updatePairLevelAdmin(Long pairingId, com.app.heartbound.dto.pairing.UpdatePairLevelDTO updateRequest) {
+        log.info("Admin updating pair level for pairing {}: {}", pairingId, updateRequest);
+        
+        // Get or create pair level
+        PairLevel pairLevel = getOrCreatePairLevel(pairingId);
+        
+        // Apply updates
+        if (updateRequest.getCurrentLevel() != null) {
+            pairLevel.setCurrentLevel(Math.max(1, updateRequest.getCurrentLevel()));
+            log.info("Set level to {}", updateRequest.getCurrentLevel());
+        }
+        
+        if (updateRequest.getTotalXP() != null) {
+            pairLevel.setTotalXP(Math.max(0, updateRequest.getTotalXP()));
+            log.info("Set total XP to {}", updateRequest.getTotalXP());
+        }
+        
+        if (updateRequest.getXpIncrement() != null && updateRequest.getXpIncrement() != 0) {
+            int newTotalXP = Math.max(0, pairLevel.getTotalXP() + updateRequest.getXpIncrement());
+            pairLevel.setTotalXP(newTotalXP);
+            log.info("Applied XP increment of {}, new total: {}", updateRequest.getXpIncrement(), newTotalXP);
+        }
+        
+        // Recalculate level-related fields
+        recalculateLevelData(pairLevel);
+        
+        // Save and return
+        PairLevel savedLevel = pairLevelRepository.save(pairLevel);
+        log.info("Admin updated pair level for pairing {}: Level {}, XP {}", 
+                 pairingId, savedLevel.getCurrentLevel(), savedLevel.getTotalXP());
+        
+        return savedLevel;
+    }
+
+    /**
+     * Recalculate level data based on total XP
+     */
+    private void recalculateLevelData(PairLevel pairLevel) {
+        int totalXP = pairLevel.getTotalXP();
+        int level = 1;
+        int xpUsed = 0;
+        
+        // Calculate what level this XP should be
+        while (true) {
+            int xpForNextLevel = PairLevel.calculateNextLevelXP(level);
+            if (xpUsed + xpForNextLevel > totalXP) {
+                break;
+            }
+            xpUsed += xpForNextLevel;
+            level++;
+        }
+        
+        // Set the calculated values
+        pairLevel.setCurrentLevel(level);
+        pairLevel.setCurrentLevelXP(totalXP - xpUsed);
+        pairLevel.setNextLevelXP(PairLevel.calculateNextLevelXP(level));
+    }
+
+    /**
      * Broadcast XP update to pairing users via WebSocket
      */
     private void broadcastXPUpdate(PairLevel pairLevel, int xpGained, String reason, boolean leveledUp, int oldLevel) {

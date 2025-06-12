@@ -1,6 +1,10 @@
 package com.app.heartbound.controllers;
 
 import com.app.heartbound.dto.pairing.*;
+import com.app.heartbound.dto.pairing.UpdatePairLevelDTO;
+import com.app.heartbound.dto.pairing.ManageAchievementDTO;
+import com.app.heartbound.dto.pairing.UpdateVoiceStreakDTO;
+import com.app.heartbound.dto.pairing.CreateVoiceStreakDTO;
 import com.app.heartbound.entities.PairLevel;
 import com.app.heartbound.entities.PairAchievement;
 import com.app.heartbound.entities.Achievement;
@@ -182,6 +186,136 @@ public class PairLevelController {
         } catch (Exception e) {
             log.error("Error checking achievements for pairing {}", pairingId, e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to check achievements");
+        }
+    }
+
+    // ===== ADMIN ENDPOINTS =====
+
+    @Operation(summary = "Admin: Update pair level and XP", description = "Admin-only endpoint to directly modify pair level and XP")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pair level updated successfully"),
+            @ApiResponse(responseCode = "404", description = "Pairing not found"),
+            @ApiResponse(responseCode = "403", description = "Admin access required")
+    })
+    @PatchMapping("/{pairingId}/level/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<PairLevelDTO> updatePairLevelAdmin(
+            @PathVariable Long pairingId,
+            @RequestBody UpdatePairLevelDTO updateRequest) {
+        log.info("Admin updating pair level for pairing {}: {}", pairingId, updateRequest);
+        
+        try {
+            PairLevel updatedLevel = pairLevelService.updatePairLevelAdmin(pairingId, updateRequest);
+            return ResponseEntity.ok(mapToPairLevelDTO(updatedLevel));
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request for pair level update: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (Exception e) {
+            log.error("Error updating pair level for pairing {}", pairingId, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to update pair level");
+        }
+    }
+
+    @Operation(summary = "Admin: Manage achievement", description = "Admin-only endpoint to manually unlock or lock achievements")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Achievement managed successfully"),
+            @ApiResponse(responseCode = "404", description = "Pairing or achievement not found"),
+            @ApiResponse(responseCode = "403", description = "Admin access required")
+    })
+    @PostMapping("/{pairingId}/achievements/admin/manage")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> manageAchievement(
+            @PathVariable Long pairingId,
+            @RequestBody ManageAchievementDTO manageRequest) {
+        log.info("Admin managing achievement for pairing {}: {}", pairingId, manageRequest);
+        
+        try {
+            Map<String, Object> result = achievementService.manageAchievementAdmin(pairingId, manageRequest);
+            return ResponseEntity.ok(result);
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request for achievement management: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (Exception e) {
+            log.error("Error managing achievement for pairing {}", pairingId, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to manage achievement");
+        }
+    }
+
+    @Operation(summary = "Admin: Update voice streak", description = "Admin-only endpoint to update an existing voice streak")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Voice streak updated successfully"),
+            @ApiResponse(responseCode = "404", description = "Voice streak not found"),
+            @ApiResponse(responseCode = "403", description = "Admin access required")
+    })
+    @PatchMapping("/voice-streaks/{streakId}/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<VoiceStreakDTO> updateVoiceStreakAdmin(
+            @PathVariable Long streakId,
+            @RequestBody UpdateVoiceStreakDTO updateRequest) {
+        log.info("Admin updating voice streak {}: {}", streakId, updateRequest);
+        
+        try {
+            VoiceStreak updatedStreak = voiceStreakService.updateVoiceStreakAdmin(streakId, updateRequest);
+            return ResponseEntity.ok(mapToVoiceStreakDTO(updatedStreak));
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request for voice streak update: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (Exception e) {
+            log.error("Error updating voice streak {}", streakId, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to update voice streak");
+        }
+    }
+
+    @Operation(summary = "Admin: Create voice streak", description = "Admin-only endpoint to create a new voice streak")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Voice streak created successfully"),
+            @ApiResponse(responseCode = "404", description = "Pairing not found"),
+            @ApiResponse(responseCode = "403", description = "Admin access required")
+    })
+    @PostMapping("/{pairingId}/streaks/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<VoiceStreakDTO> createVoiceStreakAdmin(
+            @PathVariable Long pairingId,
+            @RequestBody CreateVoiceStreakDTO createRequest) {
+        log.info("Admin creating voice streak for pairing {}: {}", pairingId, createRequest);
+        
+        try {
+            VoiceStreak newStreak = voiceStreakService.createVoiceStreakAdmin(pairingId, createRequest);
+            return ResponseEntity.ok(mapToVoiceStreakDTO(newStreak));
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request for voice streak creation: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (Exception e) {
+            log.error("Error creating voice streak for pairing {}", pairingId, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create voice streak");
+        }
+    }
+
+    @Operation(summary = "Admin: Delete voice streak", description = "Admin-only endpoint to delete a voice streak")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Voice streak deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Voice streak not found"),
+            @ApiResponse(responseCode = "403", description = "Admin access required")
+    })
+    @DeleteMapping("/voice-streaks/{streakId}/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> deleteVoiceStreakAdmin(@PathVariable Long streakId) {
+        log.info("Admin deleting voice streak {}", streakId);
+        
+        try {
+            voiceStreakService.deleteVoiceStreakAdmin(streakId);
+            return ResponseEntity.ok(Map.of("message", "Voice streak deleted successfully"));
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request for voice streak deletion: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (Exception e) {
+            log.error("Error deleting voice streak {}", streakId, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to delete voice streak");
         }
     }
 

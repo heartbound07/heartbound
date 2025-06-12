@@ -491,4 +491,98 @@ export const updatePairingActivity = async (pairingId: number, activity: UpdateP
     console.error('Error updating pairing activity:', error);
     throw error;
   }
+};
+
+// Admin-only XP/Level Management
+export interface UpdatePairLevelDTO {
+  currentLevel?: number;
+  totalXP?: number;
+  xpIncrement?: number; // Add this much XP (can be negative)
+}
+
+/**
+ * Admin: Directly update pair level and XP (admin only)
+ */
+export const updatePairLevel = async (pairingId: number, levelUpdate: UpdatePairLevelDTO): Promise<PairLevelDTO> => {
+  try {
+    const response = await httpClient.patch(`/pairings/${pairingId}/level/admin`, levelUpdate);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating pair level:', error);
+    throw error;
+  }
+};
+
+// Admin-only Achievement Management
+export interface ManageAchievementDTO {
+  achievementId: number;
+  action: 'unlock' | 'lock';
+  customXP?: number; // Override default XP if unlocking
+}
+
+/**
+ * Admin: Manually unlock or lock an achievement (admin only)
+ */
+export const manageAchievement = async (pairingId: number, achievementAction: ManageAchievementDTO): Promise<PairAchievementDTO | { message: string }> => {
+  try {
+    const response = await httpClient.post(`/pairings/${pairingId}/achievements/admin/manage`, achievementAction);
+    return response.data;
+  } catch (error) {
+    console.error('Error managing achievement:', error);
+    throw error;
+  }
+};
+
+// Admin-only Voice Streak Management
+export interface UpdateVoiceStreakDTO {
+  streakDate: string; // ISO date string
+  voiceMinutes: number;
+  streakCount?: number; // Override calculated streak count
+  active?: boolean;
+}
+
+export interface CreateVoiceStreakDTO {
+  streakDate: string;
+  voiceMinutes: number;
+  streakCount: number;
+  active: boolean;
+}
+
+/**
+ * Admin: Update an existing voice streak (admin only)
+ */
+export const updateVoiceStreak = async (streakId: number, streakUpdate: UpdateVoiceStreakDTO): Promise<VoiceStreakDTO> => {
+  try {
+    const response = await httpClient.patch(`/voice-streaks/${streakId}/admin`, streakUpdate);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating voice streak:', error);
+    throw error;
+  }
+};
+
+/**
+ * Admin: Create a new voice streak (admin only)
+ */
+export const createVoiceStreak = async (pairingId: number, streakData: CreateVoiceStreakDTO): Promise<VoiceStreakDTO> => {
+  try {
+    const response = await httpClient.post(`/pairings/${pairingId}/streaks/admin`, streakData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating voice streak:', error);
+    throw error;
+  }
+};
+
+/**
+ * Admin: Delete a voice streak (admin only)
+ */
+export const deleteVoiceStreak = async (streakId: number): Promise<{ message: string }> => {
+  try {
+    const response = await httpClient.delete(`/voice-streaks/${streakId}/admin`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting voice streak:', error);
+    throw error;
+  }
 }; 

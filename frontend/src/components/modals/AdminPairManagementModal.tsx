@@ -26,7 +26,13 @@ import {
   Award,
   TrendingUp,
   Calendar,
-  Users
+  Users,
+  Plus,
+  Minus,
+  Edit3,
+  Trash2,
+  Lock,
+  Unlock
 } from 'lucide-react'
 import type { 
   PairingDTO, 
@@ -34,7 +40,11 @@ import type {
   PairAchievementDTO, 
   AchievementDTO, 
   VoiceStreakDTO,
-  UpdatePairingActivityDTO 
+  UpdatePairingActivityDTO,
+  UpdatePairLevelDTO,
+  ManageAchievementDTO,
+  UpdateVoiceStreakDTO,
+  CreateVoiceStreakDTO
 } from "@/config/pairingService"
 import { 
   getPairLevel, 
@@ -42,7 +52,12 @@ import {
   getAvailableAchievements, 
   getVoiceStreaks, 
   checkAchievements, 
-  updatePairingActivity 
+  updatePairingActivity,
+  updatePairLevel,
+  manageAchievement,
+  updateVoiceStreak,
+  createVoiceStreak,
+  deleteVoiceStreak
 } from "@/config/pairingService"
 import type { UserProfileDTO } from "@/config/userService"
 
@@ -61,6 +76,12 @@ interface EditableMetrics {
   wordCount: number
   emojiCount: number
   activeDays: number
+}
+
+interface EditableLevelData {
+  currentLevel: number
+  totalXP: number
+  xpIncrement: number
 }
 
 interface StreakStatistics {
@@ -103,6 +124,21 @@ export function AdminPairManagementModal({
   })
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
+  // Admin level/XP controls
+  const [editableLevelData, setEditableLevelData] = useState<EditableLevelData>({
+    currentLevel: 1,
+    totalXP: 0,
+    xpIncrement: 0
+  })
+  const [hasUnsavedLevelChanges, setHasUnsavedLevelChanges] = useState(false)
+
+  // Admin achievement controls
+  const [customXPAmount, setCustomXPAmount] = useState<number>(0)
+
+  // Admin streak controls
+  const [editingStreakId, setEditingStreakId] = useState<number | null>(null)
+  const [showCreateStreak, setShowCreateStreak] = useState(false)
+
   // Initialize editable metrics from pairing data
   useEffect(() => {
     if (pairing) {
@@ -117,6 +153,17 @@ export function AdminPairManagementModal({
       })
     }
   }, [pairing])
+
+  // Initialize level data from loaded data
+  useEffect(() => {
+    if (pairLevel) {
+      setEditableLevelData({
+        currentLevel: pairLevel.currentLevel,
+        totalXP: pairLevel.totalXP,
+        xpIncrement: 0
+      })
+    }
+  }, [pairLevel])
 
   // Load all data when modal opens
   useEffect(() => {
@@ -221,15 +268,321 @@ export function AdminPairManagementModal({
     setHasUnsavedChanges(false)
   }, [pairing])
 
+  // Admin Level/XP handlers
+  const handleLevelDataChange = useCallback((field: keyof EditableLevelData, value: number) => {
+    setEditableLevelData(prev => ({
+      ...prev,
+      [field]: Math.max(0, value)
+    }))
+    setHasUnsavedLevelChanges(true)
+  }, [])
+
+  const handleSaveLevelData = useCallback(async () => {
+    setActionLoading(true)
+    setError(null)
+    setSuccessMessage(null)
+
+    try {
+      const levelUpdate: UpdatePairLevelDTO = {}
+      
+      if (editableLevelData.currentLevel !== pairLevel?.currentLevel) {
+        levelUpdate.currentLevel = editableLevelData.currentLevel
+      }
+      if (editableLevelData.totalXP !== pairLevel?.totalXP) {
+        levelUpdate.totalXP = editableLevelData.totalXP
+      }
+      if (editableLevelData.xpIncrement !== 0) {
+        levelUpdate.xpIncrement = editableLevelData.xpIncrement
+      }
+
+      if (Object.keys(levelUpdate).length > 0) {
+        await updatePairLevel(pairing.id, levelUpdate)
+        setSuccessMessage('Level and XP updated successfully!')
+        setHasUnsavedLevelChanges(false)
+        
+        // Reload data to show updated values
+        setTimeout(() => {
+          loadAllData()
+        }, 1000)
+      } else {
+        setSuccessMessage('No changes to save.')
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to update level data')
+    } finally {
+      setActionLoading(false)
+    }
+  }, [editableLevelData, pairLevel, pairing.id, loadAllData])
+
+  const handleResetLevelChanges = useCallback(() => {
+    if (pairLevel) {
+      setEditableLevelData({
+        currentLevel: pairLevel.currentLevel,
+        totalXP: pairLevel.totalXP,
+        xpIncrement: 0
+      })
+      setHasUnsavedLevelChanges(false)
+    }
+  }, [pairLevel])
+
+  // Admin Achievement handlers
+  const handleManageAchievement = useCallback(async (achievementId: number, action: 'unlock' | 'lock') => {
+    setActionLoading(true)
+    setError(null)
+    setSuccessMessage(null)
+
+    try {
+      const achievementAction: ManageAchievementDTO = {
+        achievementId,
+        action,
+        customXP: customXPAmount > 0 ? customXPAmount : undefined
+      }
+
+      await manageAchievement(pairing.id, achievementAction)
+      setSuccessMessage(`Achievement ${action}ed successfully!`)
+      setCustomXPAmount(0)
+      
+      // Reload data to show updated achievements
+      loadAllData()
+    } catch (err: any) {
+      setError(err.message || `Failed to ${action} achievement`)
+    } finally {
+      setActionLoading(false)
+    }
+  }, [pairing.id, customXPAmount, loadAllData])
+
+  // Admin Voice Streak handlers
+  const handleUpdateVoiceStreak = useCallback(async (streakId: number, streakData: UpdateVoiceStreakDTO) => {
+    setActionLoading(true)
+    setError(null)
+    setSuccessMessage(null)
+
+    try {
+      await updateVoiceStreak(streakId, streakData)
+      setSuccessMessage('Voice streak updated successfully!')
+      setEditingStreakId(null)
+      
+      // Reload data to show updated streaks
+      loadAllData()
+    } catch (err: any) {
+      setError(err.message || 'Failed to update voice streak')
+    } finally {
+      setActionLoading(false)
+    }
+  }, [loadAllData])
+
+  const handleCreateVoiceStreak = useCallback(async (streakData: CreateVoiceStreakDTO) => {
+    setActionLoading(true)
+    setError(null)
+    setSuccessMessage(null)
+
+    try {
+      await createVoiceStreak(pairing.id, streakData)
+      setSuccessMessage('Voice streak created successfully!')
+      setShowCreateStreak(false)
+      
+      // Reload data to show new streak
+      loadAllData()
+    } catch (err: any) {
+      setError(err.message || 'Failed to create voice streak')
+    } finally {
+      setActionLoading(false)
+    }
+  }, [pairing.id, loadAllData])
+
+  const handleDeleteVoiceStreak = useCallback(async (streakId: number) => {
+    if (!confirm('Are you sure you want to delete this voice streak? This action cannot be undone.')) {
+      return
+    }
+
+    setActionLoading(true)
+    setError(null)
+    setSuccessMessage(null)
+
+    try {
+      await deleteVoiceStreak(streakId)
+      setSuccessMessage('Voice streak deleted successfully!')
+      
+      // Reload data to show updated streaks
+      loadAllData()
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete voice streak')
+    } finally {
+      setActionLoading(false)
+    }
+  }, [loadAllData])
+
   const handleClose = useCallback(() => {
-    if (hasUnsavedChanges) {
+    if (hasUnsavedChanges || hasUnsavedLevelChanges) {
       if (confirm('You have unsaved changes. Are you sure you want to close?')) {
         onClose()
       }
     } else {
       onClose()
     }
-  }, [hasUnsavedChanges, onClose])
+  }, [hasUnsavedChanges, hasUnsavedLevelChanges, onClose])
+
+  // Create Streak Form Component
+  const CreateStreakForm = ({ onSubmit, onCancel, isLoading }: {
+    onSubmit: (data: CreateVoiceStreakDTO) => void
+    onCancel: () => void
+    isLoading: boolean
+  }) => {
+    const [formData, setFormData] = useState<CreateVoiceStreakDTO>({
+      streakDate: new Date().toISOString().split('T')[0],
+      voiceMinutes: 0,
+      streakCount: 1,
+      active: true
+    })
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="streakDate" className="text-white mb-2 block text-sm">Date</Label>
+          <Input
+            id="streakDate"
+            type="date"
+            value={formData.streakDate}
+            onChange={(e) => setFormData(prev => ({ ...prev, streakDate: e.target.value }))}
+            className="bg-theme-container border-theme text-white"
+          />
+        </div>
+        <div>
+          <Label htmlFor="voiceMinutes" className="text-white mb-2 block text-sm">Voice Minutes</Label>
+          <Input
+            id="voiceMinutes"
+            type="number"
+            value={formData.voiceMinutes}
+            onChange={(e) => setFormData(prev => ({ ...prev, voiceMinutes: parseInt(e.target.value) || 0 }))}
+            className="bg-theme-container border-theme text-white"
+            min="0"
+          />
+        </div>
+        <div>
+          <Label htmlFor="streakCount" className="text-white mb-2 block text-sm">Streak Count</Label>
+          <Input
+            id="streakCount"
+            type="number"
+            value={formData.streakCount}
+            onChange={(e) => setFormData(prev => ({ ...prev, streakCount: parseInt(e.target.value) || 1 }))}
+            className="bg-theme-container border-theme text-white"
+            min="1"
+          />
+        </div>
+        <div className="flex items-center space-x-2">
+          <input
+            id="active"
+            type="checkbox"
+            checked={formData.active}
+            onChange={(e) => setFormData(prev => ({ ...prev, active: e.target.checked }))}
+            className="rounded border-theme"
+          />
+          <Label htmlFor="active" className="text-white text-sm">Active Streak</Label>
+        </div>
+        <div className="md:col-span-2 flex gap-3 pt-4">
+          <Button
+            onClick={() => onSubmit(formData)}
+            disabled={isLoading}
+            className="valorant-button-success"
+          >
+            {isLoading ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+            Create Streak
+          </Button>
+          <Button
+            onClick={onCancel}
+            variant="outline"
+            className="border-theme text-theme-secondary hover:border-status-error/50 hover:text-status-error"
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Edit Streak Form Component
+  const EditStreakForm = ({ streak, onSubmit, onCancel, isLoading }: {
+    streak: VoiceStreakDTO
+    onSubmit: (data: UpdateVoiceStreakDTO) => void  
+    onCancel: () => void
+    isLoading: boolean
+  }) => {
+    const [formData, setFormData] = useState<UpdateVoiceStreakDTO>({
+      streakDate: streak.streakDate,
+      voiceMinutes: streak.voiceMinutes,
+      streakCount: streak.streakCount,
+      active: streak.active
+    })
+
+    return (
+      <div className="p-4 rounded-lg bg-status-info/10 border border-status-info/20">
+        <h5 className="text-white font-semibold mb-3">Edit Streak - {streak.streakDate}</h5>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <Label htmlFor="editStreakDate" className="text-white mb-2 block text-sm">Date</Label>
+            <Input
+              id="editStreakDate"
+              type="date"
+              value={formData.streakDate}
+              onChange={(e) => setFormData(prev => ({ ...prev, streakDate: e.target.value }))}
+              className="bg-theme-container border-theme text-white"
+            />
+          </div>
+          <div>
+            <Label htmlFor="editVoiceMinutes" className="text-white mb-2 block text-sm">Voice Minutes</Label>
+            <Input
+              id="editVoiceMinutes"
+              type="number"
+              value={formData.voiceMinutes}
+              onChange={(e) => setFormData(prev => ({ ...prev, voiceMinutes: parseInt(e.target.value) || 0 }))}
+              className="bg-theme-container border-theme text-white"
+              min="0"
+            />
+          </div>
+          <div>
+            <Label htmlFor="editStreakCount" className="text-white mb-2 block text-sm">Streak Count</Label>
+            <Input
+              id="editStreakCount"
+              type="number"
+              value={formData.streakCount}
+              onChange={(e) => setFormData(prev => ({ ...prev, streakCount: parseInt(e.target.value) || 1 }))}
+              className="bg-theme-container border-theme text-white"
+              min="1"
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              id="editActive"
+              type="checkbox"
+              checked={formData.active}
+              onChange={(e) => setFormData(prev => ({ ...prev, active: e.target.checked }))}
+              className="rounded border-theme"
+            />
+            <Label htmlFor="editActive" className="text-white text-sm">Active Streak</Label>
+          </div>
+          <div className="md:col-span-2 flex gap-3 pt-2">
+            <Button
+              onClick={() => onSubmit(formData)}
+              disabled={isLoading}
+              className="valorant-button-success"
+              size="sm"
+            >
+              {isLoading ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+              Update
+            </Button>
+            <Button
+              onClick={onCancel}
+              variant="outline"
+              size="sm"
+              className="border-theme text-theme-secondary hover:border-status-error/50 hover:text-status-error"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // Get user profiles
   const user1Profile = userProfiles[pairing.user1Id]
@@ -372,14 +725,44 @@ export function AdminPairManagementModal({
                 {/* Overview Tab */}
                 {activeTab === 'overview' && (
                   <div className="space-y-6">
-                    {/* XP & Level Summary */}
+                    {/* XP & Level Summary with Admin Controls */}
                     {pairLevel && (
                       <div className="p-6 rounded-xl bg-theme-container border-theme">
-                        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                          <Star className="h-5 w-5 text-primary" />
-                          Pair Level & XP
-                        </h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                            <Star className="h-5 w-5 text-primary" />
+                            Pair Level & XP
+                          </h3>
+                          
+                          {/* Admin Level Controls */}
+                          <div className="flex items-center gap-2">
+                            <Button
+                              onClick={handleSaveLevelData}
+                              disabled={actionLoading || !hasUnsavedLevelChanges}
+                              className="valorant-button-success"
+                              size="sm"
+                            >
+                              {actionLoading ? (
+                                <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <Save className="h-3 w-3 mr-1" />
+                              )}
+                              Save XP
+                            </Button>
+                            <Button
+                              onClick={handleResetLevelChanges}
+                              disabled={!hasUnsavedLevelChanges}
+                              variant="outline"
+                              size="sm"
+                              className="border-theme text-theme-secondary hover:border-status-warning/50 hover:text-status-warning"
+                            >
+                              <RotateCcw className="h-3 w-3 mr-1" />
+                              Reset
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                           <div className="text-center p-4 rounded-lg bg-primary/10 border border-primary/20">
                             <div className="text-2xl font-bold text-primary mb-1">{pairLevel.currentLevel}</div>
                             <div className="text-sm text-theme-secondary">Current Level</div>
@@ -397,6 +780,73 @@ export function AdminPairManagementModal({
                             <div className="text-sm text-theme-secondary">Progress</div>
                           </div>
                         </div>
+
+                        {/* Admin XP/Level Adjustment Controls */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-lg bg-primary/5 border border-primary/10">
+                          <div>
+                            <Label htmlFor="adminLevel" className="text-white mb-2 block text-sm">Set Level</Label>
+                            <Input
+                              id="adminLevel"
+                              type="number"
+                              value={editableLevelData.currentLevel}
+                              onChange={(e) => handleLevelDataChange('currentLevel', parseInt(e.target.value) || 1)}
+                              className="bg-theme-container border-theme text-white text-sm"
+                              min="1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="adminTotalXP" className="text-white mb-2 block text-sm">Set Total XP</Label>
+                            <Input
+                              id="adminTotalXP"
+                              type="number"
+                              value={editableLevelData.totalXP}
+                              onChange={(e) => handleLevelDataChange('totalXP', parseInt(e.target.value) || 0)}
+                              className="bg-theme-container border-theme text-white text-sm"
+                              min="0"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="adminXPIncrement" className="text-white mb-2 block text-sm">Add/Remove XP</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                id="adminXPIncrement"
+                                type="number"
+                                value={editableLevelData.xpIncrement}
+                                onChange={(e) => handleLevelDataChange('xpIncrement', parseInt(e.target.value) || 0)}
+                                className="bg-theme-container border-theme text-white text-sm flex-1"
+                                placeholder="±XP"
+                              />
+                              <Button
+                                onClick={() => handleLevelDataChange('xpIncrement', editableLevelData.xpIncrement + 100)}
+                                size="sm"
+                                variant="outline"
+                                className="border-status-success/30 text-status-success hover:bg-status-success/10"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                onClick={() => handleLevelDataChange('xpIncrement', editableLevelData.xpIncrement - 100)}
+                                size="sm"
+                                variant="outline"
+                                className="border-status-error/30 text-status-error hover:bg-status-error/10"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {hasUnsavedLevelChanges && (
+                          <div className="mt-4 p-3 rounded-lg bg-status-info/10 border border-status-info/20">
+                            <p className="text-status-info text-sm">
+                              <strong>Preview:</strong> Level will be set to {editableLevelData.currentLevel}, 
+                              Total XP to {editableLevelData.totalXP}
+                              {editableLevelData.xpIncrement !== 0 && (
+                                <>, with ${editableLevelData.xpIncrement > 0 ? '+' : ''}{editableLevelData.xpIncrement} XP adjustment</>
+                              )}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -467,7 +917,7 @@ export function AdminPairManagementModal({
                 {activeTab === 'achievements' && (
                   <div className="space-y-6">
                     {/* Admin Actions */}
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 flex-wrap">
                       <Button
                         onClick={handleCheckAchievements}
                         disabled={actionLoading}
@@ -480,6 +930,20 @@ export function AdminPairManagementModal({
                         )}
                         Check Achievements
                       </Button>
+                      
+                      {/* Custom XP Input for Manual Unlocks */}
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="customXP" className="text-white text-sm whitespace-nowrap">Custom XP:</Label>
+                        <Input
+                          id="customXP"
+                          type="number"
+                          value={customXPAmount}
+                          onChange={(e) => setCustomXPAmount(parseInt(e.target.value) || 0)}
+                          className="bg-theme-container border-theme text-white w-24"
+                          min="0"
+                          placeholder="0"
+                        />
+                      </div>
                     </div>
 
                     {/* Unlocked Achievements */}
@@ -506,6 +970,18 @@ export function AdminPairManagementModal({
                                   <span>Progress: {achievement.progressValue}</span>
                                 </div>
                               </div>
+                              
+                              {/* Admin Lock Button */}
+                              <Button
+                                onClick={() => handleManageAchievement(achievement.achievement.id, 'lock')}
+                                disabled={actionLoading}
+                                variant="outline"
+                                size="sm"
+                                className="border-status-error/30 text-status-error hover:bg-status-error/10"
+                                title="Lock this achievement"
+                              >
+                                <Lock className="h-3 w-3" />
+                              </Button>
                             </div>
                           ))}
                         </div>
@@ -535,8 +1011,23 @@ export function AdminPairManagementModal({
                                 <div className="flex items-center gap-4 text-xs text-theme-tertiary">
                                   <span>Requirement: {achievement.requirementDescription}</span>
                                   <span>XP Reward: +{achievement.xpReward}</span>
+                                  {customXPAmount > 0 && (
+                                    <span className="text-status-info">Override XP: +{customXPAmount}</span>
+                                  )}
                                 </div>
                               </div>
+                              
+                              {/* Admin Unlock Button */}
+                              <Button
+                                onClick={() => handleManageAchievement(achievement.id, 'unlock')}
+                                disabled={actionLoading}
+                                variant="outline"
+                                size="sm"
+                                className="border-status-success/30 text-status-success hover:bg-status-success/10"
+                                title={`Unlock this achievement${customXPAmount > 0 ? ` with ${customXPAmount} XP` : ''}`}
+                              >
+                                <Unlock className="h-3 w-3" />
+                              </Button>
                             </div>
                           ))}
                         </div>
@@ -718,6 +1209,30 @@ export function AdminPairManagementModal({
                 {/* Streaks Tab */}
                 {activeTab === 'streaks' && (
                   <div className="space-y-6">
+                    {/* Admin Streak Actions */}
+                    <div className="flex gap-3 flex-wrap">
+                      <Button
+                        onClick={() => setShowCreateStreak(true)}
+                        disabled={actionLoading}
+                        className="valorant-button-primary"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create New Streak
+                      </Button>
+                    </div>
+
+                    {/* Create New Streak Form */}
+                    {showCreateStreak && (
+                      <div className="p-6 rounded-xl bg-primary/5 border border-primary/10">
+                        <h4 className="text-lg font-semibold text-white mb-4">Create New Voice Streak</h4>
+                        <CreateStreakForm 
+                          onSubmit={handleCreateVoiceStreak}
+                          onCancel={() => setShowCreateStreak(false)}
+                          isLoading={actionLoading}
+                        />
+                      </div>
+                    )}
+
                     {/* Streak Statistics */}
                     {streakStats && (
                       <div className="p-6 rounded-xl bg-theme-container border-theme">
@@ -746,30 +1261,65 @@ export function AdminPairManagementModal({
                       </div>
                     )}
 
-                    {/* Recent Streaks */}
+                    {/* Recent Streaks with Admin Controls */}
                     <div className="p-6 rounded-xl bg-theme-container border-theme">
                       <h3 className="text-lg font-semibold text-white mb-4">
-                        Recent Voice Streaks
+                        Voice Streaks Management
                       </h3>
                       {voiceStreaks.length > 0 ? (
                         <div className="space-y-3">
                           {voiceStreaks.map((streak) => (
-                            <div key={streak.id} className="flex items-center gap-4 p-4 rounded-lg bg-theme-container border border-theme-tertiary/30">
-                              <Calendar className="h-5 w-5 text-status-warning flex-shrink-0" />
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="font-semibold text-white">{streak.streakDate}</span>
-                                  {streak.isToday && <Badge variant="outline" className="text-xs">Today</Badge>}
-                                  {streak.isYesterday && <Badge variant="outline" className="text-xs">Yesterday</Badge>}
-                                  {streak.active && <Badge variant="outline" className="text-status-success border-status-success/30">Active</Badge>}
+                            <div key={streak.id}>
+                              {editingStreakId === streak.id ? (
+                                <EditStreakForm
+                                  streak={streak}
+                                  onSubmit={(data) => handleUpdateVoiceStreak(streak.id, data)}
+                                  onCancel={() => setEditingStreakId(null)}
+                                  isLoading={actionLoading}
+                                />
+                              ) : (
+                                <div className="flex items-center gap-4 p-4 rounded-lg bg-theme-container border border-theme-tertiary/30">
+                                  <Calendar className="h-5 w-5 text-status-warning flex-shrink-0" />
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="font-semibold text-white">{streak.streakDate}</span>
+                                      {streak.isToday && <Badge variant="outline" className="text-xs">Today</Badge>}
+                                      {streak.isYesterday && <Badge variant="outline" className="text-xs">Yesterday</Badge>}
+                                      {streak.active && <Badge variant="outline" className="text-status-success border-status-success/30">Active</Badge>}
+                                    </div>
+                                    <div className="flex items-center gap-4 text-sm text-theme-secondary">
+                                      <span>Voice: {streak.voiceMinutes}m</span>
+                                      <span>Streak: {streak.streakCount} days</span>
+                                      <span>Tier: {streak.streakTier}</span>
+                                      <span>XP: +{streak.streakXPReward}</span>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Admin Buttons */}
+                                  <div className="flex gap-2">
+                                    <Button
+                                      onClick={() => setEditingStreakId(streak.id)}
+                                      disabled={actionLoading}
+                                      variant="outline"
+                                      size="sm"
+                                      className="border-status-info/30 text-status-info hover:bg-status-info/10"
+                                      title="Edit this streak"
+                                    >
+                                      <Edit3 className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      onClick={() => handleDeleteVoiceStreak(streak.id)}
+                                      disabled={actionLoading}
+                                      variant="outline"
+                                      size="sm"
+                                      className="border-status-error/30 text-status-error hover:bg-status-error/10"
+                                      title="Delete this streak"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-4 text-sm text-theme-secondary">
-                                  <span>Voice: {streak.voiceMinutes}m</span>
-                                  <span>Streak: {streak.streakCount} days</span>
-                                  <span>Tier: {streak.streakTier}</span>
-                                  <span>XP: +{streak.streakXPReward}</span>
-                                </div>
-                              </div>
+                              )}
                             </div>
                           ))}
                         </div>
