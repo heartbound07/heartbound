@@ -1438,13 +1438,16 @@ export function PairingsPage() {
 
                           {/* Queue Information Grid */}
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                            {queueStatus.queuePosition && queueStatus.totalQueueSize && (
+                            {queueStatus.queuePosition && (queueUpdate?.totalQueueSize ?? queueStatus.totalQueueSize) && (
                               <div className="text-center">
                                 <div className="text-3xl font-bold text-status-info mb-1">
                                   {queueStatus.queuePosition}
                                 </div>
                                 <div className="text-sm text-theme-secondary">
-                                  of {queueStatus.totalQueueSize} in queue
+                                  of {queueUpdate?.totalQueueSize ?? queueStatus.totalQueueSize} in queue
+                                  <div className="text-xs text-theme-tertiary mt-1">
+                                    {queueUpdate?.totalQueueSize !== undefined ? '● Live' : '○ Cached'}
+                                  </div>
                                 </div>
                               </div>
                             )}

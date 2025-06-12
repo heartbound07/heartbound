@@ -158,12 +158,18 @@ export const usePairings = () => {
   // Listen for queue updates and refresh status when queue size changes
   useEffect(() => {
     if (queueUpdate && user?.id) {
-      console.log('Queue update received, refreshing status...');
-      // Only fetch queue status to avoid unnecessary full data fetch
+      console.log('Queue update received, updating queue count live...');
+      // Update queue status with live count for immediate UI feedback
+      setQueueStatus(prevStatus => ({
+        ...prevStatus,
+        totalQueueSize: queueUpdate.totalQueueSize
+      }));
+      
+      // Also fetch fresh queue status to get accurate position
       getQueueStatus(user.id).then(status => {
         setQueueStatus(status);
       }).catch(err => {
-        console.error('Error updating queue status:', err);
+        console.error('Error refreshing queue status:', err);
       });
     }
   }, [queueUpdate, user?.id]);

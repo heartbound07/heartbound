@@ -7,9 +7,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, String> {
@@ -27,4 +30,20 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     // Add this method to your existing UserRepository interface
     List<User> findByInventoryContaining(Shop item);
+
+    // **OPTIMIZATION: Batch operations for QueueService performance**
+    
+    /**
+     * Fetch multiple users by IDs in a single query to avoid N+1 problem
+     * Used by QueueService.getQueueUserDetails() for efficient batch loading
+     */
+    @Query("SELECT u FROM User u WHERE u.id IN :userIds")
+    List<User> findByIdIn(@Param("userIds") Set<String> userIds);
+
+    /**
+     * Get user profiles as a map for efficient lookup by QueueService
+     * Returns key-value pairs for fast access in queue detail calculations
+     */
+    @Query("SELECT u.id, u.username, u.avatar FROM User u WHERE u.id IN :userIds")
+    List<Object[]> findUserProfilesByIds(@Param("userIds") Set<String> userIds);
 }

@@ -1,4 +1,4 @@
-package com.app.heartbound.controllers.admin;
+package com.app.heartbound.controllers;
 
 import com.app.heartbound.config.security.JWTCacheConfig;
 import com.app.heartbound.config.security.JWTTokenProvider;
