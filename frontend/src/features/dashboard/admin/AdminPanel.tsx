@@ -67,7 +67,10 @@ export function AdminPanel() {
           <div className="bg-slate-800/50 rounded-lg p-5 border border-white/5 hover:border-primary/20 transition-all duration-300">
             <h2 className="text-lg font-semibold text-white mb-3">System Stats</h2>
             <p className="text-slate-300 mb-4">View system statistics and performance metrics</p>
-            <button className="px-4 py-2 bg-primary/20 text-primary hover:bg-primary/30 rounded-md transition-colors">
+            <button 
+              className="px-4 py-2 bg-primary/20 text-primary hover:bg-primary/30 rounded-md transition-colors"
+              onClick={() => navigateTo('/dashboard/admin/system-stats')}
+            >
               View Stats
             </button>
           </div>

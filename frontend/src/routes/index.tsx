@@ -11,6 +11,7 @@ import { ProfilePage } from '@/features/dashboard/ProfilePage';
 import { AdminPanel } from '@/features/dashboard/admin/AdminPanel';
 import { UserManagement } from '@/features/dashboard/admin/UserManagement';
 import { DiscordBotSettings } from '@/features/dashboard/admin/DiscordBotSettings';
+import { SystemStats } from '@/features/dashboard/admin/SystemStats';
 import ValorantPage from '@/features/valorant/ValorantPage';
 import ValorantPartyDetails from '@/features/valorant/ValorantPartyDetails';
 import { DiscordCallback } from '@/features/auth/DiscordCallback';
@@ -121,6 +122,14 @@ export function AppRoutes() {
               element={
                 <AdminRoute>
                   <DiscordBotSettings />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="system-stats"
+              element={
+                <AdminRoute>
+                  <SystemStats />
                 </AdminRoute>
               } 
             />
