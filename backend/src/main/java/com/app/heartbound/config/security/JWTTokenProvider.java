@@ -10,6 +10,7 @@ import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
@@ -50,6 +51,9 @@ public class JWTTokenProvider {
     @Value("${jwt.refresh-token-expiration-ms}")
     private long jwtRefreshExpirationInMs;
 
+    @Value("${jwt.cache.enabled:true}")
+    private boolean cacheEnabled;
+
     public static final String TOKEN_TYPE_ACCESS = "ACCESS";
     public static final String TOKEN_TYPE_REFRESH = "REFRESH";
 
@@ -57,6 +61,9 @@ public class JWTTokenProvider {
     private SecretKey refreshKey;
     private final Set<String> usedRefreshTokens = ConcurrentHashMap.newKeySet();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    
+    // JWT Cache Configuration - Autowired after construction
+    private JWTCacheConfig jwtCacheConfig;
 
     @PostConstruct
     public void init() {
@@ -80,7 +87,14 @@ public class JWTTokenProvider {
 
         logger.debug("JWT Access Token Expiration (ms): {}", jwtExpirationInMs);
         logger.debug("JWT Refresh Token Expiration (ms): {}", jwtRefreshExpirationInMs);
+        logger.info("JWT Caching enabled: {}", cacheEnabled);
         scheduler.scheduleAtFixedRate(this::cleanupUsedTokens, 1, 1, TimeUnit.HOURS);
+    }
+
+    @Autowired
+    public void setJwtCacheConfig(JWTCacheConfig jwtCacheConfig) {
+        this.jwtCacheConfig = jwtCacheConfig;
+        logger.debug("JWT Cache Configuration injected successfully");
     }
 
     @PreDestroy
@@ -427,5 +441,237 @@ public class JWTTokenProvider {
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
+    }
+
+    // ============================= PERFORMANCE OPTIMIZED METHODS =============================
+
+    /**
+     * **PERFORMANCE CRITICAL**: Optimized token validation with caching.
+     * This method eliminates redundant token parsing by caching validation results.
+     * Used primarily by WebSocket connections where performance is crucial.
+     *
+     * @param token The JWT token to validate
+     * @return true if token is valid, false otherwise
+     * @throws InvalidTokenException if token is invalid
+     */
+    public boolean validateTokenOptimized(String token) throws InvalidTokenException {
+        if (token == null || token.trim().isEmpty()) {
+            throw new InvalidTokenException("Token cannot be null or empty");
+        }
+
+        // Check cache first if caching is enabled
+        if (cacheEnabled && jwtCacheConfig != null) {
+            String cacheKey = jwtCacheConfig.generateTokenCacheKey(token);
+            Boolean cachedResult = jwtCacheConfig.getTokenValidationCache().getIfPresent(cacheKey);
+            
+            if (cachedResult != null) {
+                logger.debug("Token validation cache HIT - returning cached result: {}", cachedResult);
+                if (!cachedResult) {
+                    throw new InvalidTokenException("Token is invalid (cached result)");
+                }
+                return true;
+            }
+            logger.debug("Token validation cache MISS - performing validation");
+        }
+
+        // Perform actual validation
+        boolean isValid;
+        try {
+            Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
+            isValid = true;
+            logger.debug("Token validation successful");
+        } catch (SignatureException ex) {
+            logger.error("Invalid JWT signature: {}", ex.getMessage());
+            isValid = false;
+        } catch (MalformedJwtException ex) {
+            logger.error("Invalid JWT token: {}", ex.getMessage());
+            isValid = false;
+        } catch (ExpiredJwtException ex) {
+            logger.error("Expired JWT token: {}", ex.getMessage());
+            isValid = false;
+        } catch (UnsupportedJwtException ex) {
+            logger.error("Unsupported JWT token: {}", ex.getMessage());
+            isValid = false;
+        } catch (IllegalArgumentException ex) {
+            logger.error("JWT claims string is empty: {}", ex.getMessage());
+            isValid = false;
+        } catch (io.jsonwebtoken.JwtException ex) {
+            logger.error("JWT processing error: {}", ex.getMessage());
+            isValid = false;
+        }
+
+        // Cache the result if caching is enabled
+        if (cacheEnabled && jwtCacheConfig != null) {
+            String cacheKey = jwtCacheConfig.generateTokenCacheKey(token);
+            jwtCacheConfig.getTokenValidationCache().put(cacheKey, isValid);
+            logger.debug("Token validation result cached: {}", isValid);
+        }
+
+        if (!isValid) {
+            throw new InvalidTokenException("Token validation failed");
+        }
+
+        return true;
+    }
+
+    /**
+     * **PERFORMANCE CRITICAL**: Get Claims from token with caching.
+     * This method caches parsed Claims objects to avoid repeated parsing operations.
+     *
+     * @param token The JWT token
+     * @return Claims object
+     * @throws InvalidTokenException if token is invalid
+     */
+    public Claims getClaimsOptimized(String token) throws InvalidTokenException {
+        if (token == null || token.trim().isEmpty()) {
+            throw new InvalidTokenException("Token cannot be null or empty");
+        }
+
+        // Check cache first if caching is enabled
+        if (cacheEnabled && jwtCacheConfig != null) {
+            String cacheKey = jwtCacheConfig.generateTokenCacheKey(token);
+            Claims cachedClaims = jwtCacheConfig.getClaimsCache().getIfPresent(cacheKey);
+            
+            if (cachedClaims != null) {
+                // Verify cached claims are still valid (not expired)
+                if (cachedClaims.getExpiration().after(new Date())) {
+                    logger.debug("Claims cache HIT - returning cached claims");
+                    return cachedClaims;
+                } else {
+                    // Remove expired entry from cache
+                    jwtCacheConfig.getClaimsCache().invalidate(cacheKey);
+                    logger.debug("Expired claims removed from cache");
+                }
+            }
+            logger.debug("Claims cache MISS - parsing token");
+        }
+
+        // Parse claims from token
+        Claims claims;
+        try {
+            claims = parseAndValidateAccessToken(token);
+            logger.debug("Token claims parsed successfully");
+        } catch (InvalidTokenException e) {
+            logger.error("Failed to parse token claims: {}", e.getMessage());
+            throw e;
+        }
+
+        // Cache the result if caching is enabled
+        if (cacheEnabled && jwtCacheConfig != null && claims != null) {
+            String cacheKey = jwtCacheConfig.generateTokenCacheKey(token);
+            jwtCacheConfig.getClaimsCache().put(cacheKey, claims);
+            logger.debug("Claims cached successfully");
+        }
+
+        return claims;
+    }
+
+    /**
+     * **PERFORMANCE CRITICAL**: Get user details from token with comprehensive caching.
+     * This method extracts and caches all user-related information from a JWT token
+     * to eliminate the need for multiple parsing operations.
+     *
+     * @param token The JWT token
+     * @return JWTUserDetails containing all user information
+     * @throws InvalidTokenException if token is invalid
+     */
+    public JWTUserDetails getUserDetailsOptimized(String token) throws InvalidTokenException {
+        if (token == null || token.trim().isEmpty()) {
+            throw new InvalidTokenException("Token cannot be null or empty");
+        }
+
+        // Check cache first if caching is enabled
+        if (cacheEnabled && jwtCacheConfig != null) {
+            String cacheKey = jwtCacheConfig.generateTokenCacheKey(token);
+            JWTUserDetails cachedDetails = jwtCacheConfig.getUserDetailsCache().getIfPresent(cacheKey);
+            
+            if (cachedDetails != null && cachedDetails.isValid()) {
+                logger.debug("User details cache HIT - returning cached details for user: {}", cachedDetails.getUserId());
+                return cachedDetails;
+            } else if (cachedDetails != null) {
+                // Remove expired entry from cache
+                jwtCacheConfig.getUserDetailsCache().invalidate(cacheKey);
+                logger.debug("Expired user details removed from cache");
+            }
+            logger.debug("User details cache MISS - extracting details");
+        }
+
+        // Extract user details from token
+        Claims claims = getClaimsOptimized(token);
+        
+        JWTUserDetails userDetails = JWTUserDetails.builder()
+                .userId(claims.getSubject())
+                .username(claims.get("username", String.class))
+                .email(claims.get("email", String.class))
+                .avatar(claims.get("avatar", String.class))
+                .roles(getRolesFromClaims(claims))
+                .credits(claims.get("credits", Integer.class))
+                .tokenType(claims.get("type", String.class))
+                .expirationTime(claims.getExpiration().getTime())
+                .issuedAt(claims.getIssuedAt() != null ? claims.getIssuedAt().getTime() : System.currentTimeMillis())
+                .jti(claims.getId())
+                .build();
+
+        // Cache the result if caching is enabled
+        if (cacheEnabled && jwtCacheConfig != null) {
+            String cacheKey = jwtCacheConfig.generateTokenCacheKey(token);
+            jwtCacheConfig.getUserDetailsCache().put(cacheKey, userDetails);
+            logger.debug("User details cached successfully for user: {}", userDetails.getUserId());
+        }
+
+        return userDetails;
+    }
+
+    /**
+     * **PERFORMANCE CRITICAL**: Optimized method for WebSocket authentication.
+     * Combines validation and user details extraction in a single operation.
+     * This is the primary method used by JWTChannelInterceptor for WebSocket connections.
+     *
+     * @param token The JWT token
+     * @return JWTUserDetails if token is valid
+     * @throws InvalidTokenException if token is invalid
+     */
+    public JWTUserDetails authenticateTokenOptimized(String token) throws InvalidTokenException {
+        long startTime = System.nanoTime();
+        
+        try {
+            // This method combines validation and details extraction efficiently
+            JWTUserDetails userDetails = getUserDetailsOptimized(token);
+            
+            long duration = System.nanoTime() - startTime;
+            logger.debug("Token authentication completed in {} microseconds for user: {}", 
+                    duration / 1000, userDetails.getUserId());
+            
+            return userDetails;
+        } catch (InvalidTokenException e) {
+            long duration = System.nanoTime() - startTime;
+            logger.warn("Token authentication failed in {} microseconds: {}", duration / 1000, e.getMessage());
+            throw e;
+        }
+    }
+
+    /**
+     * Invalidates all cached data for a specific token.
+     * Use this when a token is revoked, blacklisted, or when user permissions change.
+     *
+     * @param token The token to invalidate
+     */
+    public void invalidateTokenCache(String token) {
+        if (cacheEnabled && jwtCacheConfig != null && token != null) {
+            jwtCacheConfig.invalidateToken(token);
+            logger.info("Token cache invalidated for security reasons");
+        }
+    }
+
+    /**
+     * Gets cache statistics for monitoring and performance analysis.
+     *
+     * @return Cache statistics or null if caching is disabled
+     */
+    public JWTCacheConfig.CacheStats getCacheStatistics() {
+        if (cacheEnabled && jwtCacheConfig != null) {
+            return jwtCacheConfig.getCacheStats();
+        }
+        return null;
     }
 }

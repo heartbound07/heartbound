@@ -50,24 +50,23 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
             String token = header.substring(7);
             logger.debug("JWT token extracted from Authorization header.");
             try {
-                Claims claims = jwtTokenProvider.parseAndValidateAccessToken(token); // Single parse and validation
-                String userId = claims.getSubject();
-                Set<Role> roles = jwtTokenProvider.getRolesFromClaims(claims); // Extract roles from claims
+                // **PERFORMANCE OPTIMIZED**: Use cached authentication method
+                JWTUserDetails userDetails = jwtTokenProvider.authenticateTokenOptimized(token);
                 
-                if (userId != null && !userId.isEmpty()) {
-                    logger.debug("JWT token validated. Setting authentication for user id: {}", userId);
+                if (userDetails.getUserId() != null && !userDetails.getUserId().isEmpty()) {
+                    logger.debug("JWT token validated. Setting authentication for user id: {}", userDetails.getUserId());
                     
-                    List<GrantedAuthority> authorities = roles.stream()
+                    List<GrantedAuthority> authorities = userDetails.getRoles().stream()
                             .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
                             .collect(Collectors.toList());
                     
                     UsernamePasswordAuthenticationToken authentication = 
-                        new UsernamePasswordAuthenticationToken(userId, null, authorities);
+                        new UsernamePasswordAuthenticationToken(userDetails.getUserId(), null, authorities);
                     
                     SecurityContextHolder.getContext().setAuthentication(authentication);
-                    logger.debug("User {} authenticated with roles: {}", userId, roles);
+                    logger.debug("User {} authenticated with roles: {}", userDetails.getUserId(), userDetails.getRoles());
                 } else {
-                    logger.warn("JWT token validated but no user ID was found in claims.");
+                    logger.warn("JWT token validated but no user ID was found in user details.");
                 }
             } catch (InvalidTokenException e) {
                 logger.warn("Invalid JWT token provided in header: {}", e.getMessage());
