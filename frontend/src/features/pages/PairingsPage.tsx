@@ -1520,40 +1520,23 @@ export function PairingsPage() {
                         </CardHeader>
                         <CardContent>
                           {queueStatsLoading ? (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                              {[1, 2, 3].map((i) => (
-                                <div key={i} className="text-center p-4 bg-theme-container rounded-lg">
-                                  <Skeleton width="40px" height="32px" className="mx-auto mb-2" theme="valorant" />
-                                  <Skeleton width="80px" height="16px" className="mx-auto" theme="valorant" />
-                                </div>
-                              ))}
+                            <div className="flex justify-center">
+                              <div className="text-center p-4 bg-theme-container rounded-lg max-w-xs w-full">
+                                <Skeleton width="40px" height="32px" className="mx-auto mb-2" theme="valorant" />
+                                <Skeleton width="80px" height="16px" className="mx-auto" theme="valorant" />
+                              </div>
                             </div>
                           ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                              {/* Use lightweight queue update for real-time user count */}
-                              <div className="text-center p-4 bg-theme-container rounded-lg border border-primary/20">
-                                <div className="text-2xl font-bold text-primary mb-1">
+                            <div className="flex justify-center">
+                              {/* Simplified queue statistics - only showing user count */}
+                              <div className="text-center p-6 bg-theme-container rounded-lg border border-primary/20 max-w-xs w-full">
+                                <div className="text-3xl font-bold text-primary mb-2">
                                   {queueUpdate?.totalQueueSize ?? queueStats?.totalUsersInQueue ?? 0}
                                 </div>
-                                <div className="text-sm text-theme-secondary">Users in Queue</div>
-                                <div className="text-xs text-theme-tertiary mt-1">
-                                  {queueUpdate?.totalQueueSize !== undefined ? 'Live' : 'Cached'}
+                                <div className="text-base text-theme-secondary mb-1">Users in Queue</div>
+                                <div className="text-xs text-theme-tertiary">
+                                  {queueUpdate?.totalQueueSize !== undefined ? '● Live' : '○ Cached'}
                                 </div>
-                              </div>
-                              
-                              {/* Use admin stats for detailed metrics */}
-                              <div className="text-center p-4 bg-theme-container rounded-lg border border-status-success/20">
-                                <div className="text-2xl font-bold text-status-success mb-1">
-                                  {queueStats?.averageWaitTimeMinutes?.toFixed(1) ?? '--'}m
-                                </div>
-                                <div className="text-sm text-theme-secondary">Avg Wait Time</div>
-                              </div>
-                              
-                              <div className="text-center p-4 bg-theme-container rounded-lg border border-status-warning/20">
-                                <div className="text-2xl font-bold text-status-warning mb-1">
-                                  {queueStats?.matchSuccessRate?.toFixed(1) ?? '--'}%
-                                </div>
-                                <div className="text-sm text-theme-secondary">Match Success Rate</div>
                               </div>
                             </div>
                           )}
