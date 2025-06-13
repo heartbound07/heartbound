@@ -15,12 +15,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 /**
  * DiscordMessageListenerService
  * 
- * Service that listens to Discord messages in pairing channels and updates
- * message counts for each user in their respective pairings.
+ * Service that listens to Discord messages and updates pairing activity.
+ * Tracks message counts, word counts, emoji usage, and triggers XP/achievement systems.
  */
 @Service
 @RequiredArgsConstructor
@@ -31,6 +32,9 @@ public class DiscordMessageListenerService extends ListenerAdapter {
     private final PairLevelService pairLevelService;
     private final AchievementService achievementService;
     private final SimpMessagingTemplate messagingTemplate;
+    
+    // Callback for Discord leaderboard refresh (set by PairingService to avoid circular dependency)
+    private Consumer<Long> discordLeaderboardRefreshCallback;
 
     @Override
     @Transactional
@@ -112,6 +116,15 @@ public class DiscordMessageListenerService extends ListenerAdapter {
                     log.error("Failed to broadcast message activity update for pairing {}: {}", pairing.getId(), e.getMessage());
                 }
                 
+                // 🚀 NEW: Refresh Discord leaderboard after message activity
+                if (discordLeaderboardRefreshCallback != null) {
+                    try {
+                        discordLeaderboardRefreshCallback.accept(pairing.getId());
+                    } catch (Exception e) {
+                        log.error("Failed to refresh Discord leaderboard for pairing {}: {}", pairing.getId(), e.getMessage());
+                    }
+                }
+                
                 log.info("Updated message counts for pairing {}: user1={}, user2={}, total={}", 
                     pairing.getId(), 
                     pairing.getUser1MessageCount(), 
@@ -154,5 +167,12 @@ public class DiscordMessageListenerService extends ListenerAdapter {
             log.error("Failed to broadcast activity update for pairing {}: {}", 
                     pairing.getId(), e.getMessage());
         }
+    }
+
+    /**
+     * Set the Discord leaderboard refresh callback (called by PairingService to avoid circular dependency)
+     */
+    public void setDiscordLeaderboardRefreshCallback(Consumer<Long> callback) {
+        this.discordLeaderboardRefreshCallback = callback;
     }
 } 

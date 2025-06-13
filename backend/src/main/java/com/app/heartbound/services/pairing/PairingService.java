@@ -12,11 +12,13 @@ import com.app.heartbound.repositories.pairing.PairingRepository;
 import com.app.heartbound.services.discord.DiscordPairingChannelService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
 import com.app.heartbound.services.discord.DiscordLeaderboardService;
+import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.annotation.PostConstruct;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -42,11 +44,25 @@ public class PairingService {
     private final DiscordPairingChannelService discordPairingChannelService;
     private final DiscordVoiceTimeTrackerService discordVoiceTimeTrackerService;
     private final DiscordLeaderboardService discordLeaderboardService;
+    private final DiscordMessageListenerService discordMessageListenerService;
     
     // XP System Services
     private final PairLevelService pairLevelService;
     private final AchievementService achievementService;
     private final VoiceStreakService voiceStreakService;
+    
+    /**
+     * Initialize callbacks to avoid circular dependencies
+     */
+    @PostConstruct
+    public void initializeCallbacks() {
+        // Set Discord leaderboard refresh callbacks to avoid circular dependencies
+        pairLevelService.setDiscordLeaderboardRefreshCallback(this::refreshLeaderboardForPairing);
+        achievementService.setDiscordLeaderboardRefreshCallback(this::refreshLeaderboardForPairing);
+        discordMessageListenerService.setDiscordLeaderboardRefreshCallback(this::refreshLeaderboardForPairing);
+        
+        log.info("Initialized Discord leaderboard refresh callbacks for XP system and Discord services");
+    }
 
     /**
      * Create a new pairing between two users

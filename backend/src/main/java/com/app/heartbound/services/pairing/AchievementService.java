@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 /**
  * AchievementService
@@ -35,6 +36,9 @@ public class AchievementService {
     private final PairingRepository pairingRepository;
     private final PairLevelService pairLevelService;
     private final SimpMessagingTemplate messagingTemplate;
+    
+    // Callback for Discord leaderboard refresh (set by PairingService to avoid circular dependency)
+    private Consumer<Long> discordLeaderboardRefreshCallback;
 
     /**
      * Check and unlock achievements for a pairing based on current activity
@@ -70,6 +74,15 @@ public class AchievementService {
 
             if (!newAchievements.isEmpty()) {
                 log.info("Unlocked {} achievements for pairing {}", newAchievements.size(), pairingId);
+                
+                // 🚀 NEW: Refresh Discord leaderboard after achievement unlocks
+                if (discordLeaderboardRefreshCallback != null) {
+                    try {
+                        discordLeaderboardRefreshCallback.accept(pairingId);
+                    } catch (Exception e) {
+                        log.error("Failed to refresh Discord leaderboard after achievement unlock for pairing {}: {}", pairingId, e.getMessage());
+                    }
+                }
             }
 
         } catch (Exception e) {
@@ -459,5 +472,12 @@ public class AchievementService {
         } else {
             log.info("No achievements found to delete for pairing {}", pairingId);
         }
+    }
+
+    /**
+     * Set the Discord leaderboard refresh callback (called by PairingService to avoid circular dependency)
+     */
+    public void setDiscordLeaderboardRefreshCallback(Consumer<Long> callback) {
+        this.discordLeaderboardRefreshCallback = callback;
     }
 } 

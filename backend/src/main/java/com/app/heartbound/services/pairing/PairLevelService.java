@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 /**
  * PairLevelService
@@ -32,6 +33,9 @@ public class PairLevelService {
     private final PairingRepository pairingRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final CacheConfig cacheConfig;
+    
+    // Callback for Discord leaderboard refresh (set by PairingService to avoid circular dependency)
+    private Consumer<Long> discordLeaderboardRefreshCallback;
 
     /**
      * Get or create pair level for a pairing with caching optimization
@@ -121,7 +125,14 @@ public class PairLevelService {
         // Broadcast XP gain notification
         broadcastXPUpdate(savedLevel, xpToAdd, reason, leveledUp, oldLevel);
         
-        // Note: Leaderboard refresh handled by PairingService when needed
+        // 🚀 NEW: Refresh Discord leaderboard after XP gain
+        if (discordLeaderboardRefreshCallback != null) {
+            try {
+                discordLeaderboardRefreshCallback.accept(pairingId);
+            } catch (Exception e) {
+                log.error("Failed to refresh Discord leaderboard for pairing {}: {}", pairingId, e.getMessage());
+            }
+        }
         
         log.info("Added {} XP to pairing {}: Total XP: {}, Level: {}, Reason: {}", 
                 xpToAdd, pairingId, savedLevel.getTotalXP(), savedLevel.getCurrentLevel(), reason);
@@ -156,7 +167,14 @@ public class PairLevelService {
         // Broadcast XP removal notification
         broadcastXPUpdate(savedLevel, -xpToRemove, reason, savedLevel.getCurrentLevel() < oldLevel, oldLevel);
         
-        // Note: Leaderboard refresh handled by PairingService when needed
+        // 🚀 NEW: Refresh Discord leaderboard after XP removal
+        if (discordLeaderboardRefreshCallback != null) {
+            try {
+                discordLeaderboardRefreshCallback.accept(pairingId);
+            } catch (Exception e) {
+                log.error("Failed to refresh Discord leaderboard for pairing {}: {}", pairingId, e.getMessage());
+            }
+        }
         
         log.info("Removed {} XP from pairing {}: Total XP: {}, Level: {}, Reason: {}", 
                 xpToRemove, pairingId, savedLevel.getTotalXP(), savedLevel.getCurrentLevel(), reason);
@@ -460,5 +478,12 @@ public class PairLevelService {
             pairLevelRepository.delete(pairLevel);
             log.info("Successfully deleted pair level data for pairing {}", pairingId);
         });
+    }
+
+    /**
+     * Set the Discord leaderboard refresh callback (called by PairingService to avoid circular dependency)
+     */
+    public void setDiscordLeaderboardRefreshCallback(Consumer<Long> callback) {
+        this.discordLeaderboardRefreshCallback = callback;
     }
 } 
