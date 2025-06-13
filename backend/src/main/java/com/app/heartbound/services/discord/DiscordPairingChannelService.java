@@ -433,7 +433,7 @@ public class DiscordPairingChannelService {
         }).orTimeout(15, TimeUnit.SECONDS)
           .exceptionally(throwable -> {
               logger.error("Timeout or error in achievement notification: {}", throwable.getMessage());
-              return false;
+              return false; 
           });
     }
     
