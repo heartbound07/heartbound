@@ -450,16 +450,6 @@ public class DiscordPairingChannelService {
             // Set achievement title with celebration emoji
             embed.setTitle("🎉 Achievement Unlocked!");
             
-            // Build description with user mentions if enabled and IDs are available
-            StringBuilder description = new StringBuilder();
-            if (mentionUsersInAchievements && user1DiscordId != null && user2DiscordId != null) {
-                description.append("Congratulations <@").append(user1DiscordId)
-                          .append("> and <@").append(user2DiscordId).append(">!");
-            } else {
-                description.append("Congratulations on your new achievement!");
-            }
-            embed.setDescription(description.toString());
-            
             // Set color based on achievement rarity
             embed.setColor(getRarityColor(achievementRarity));
             
@@ -473,13 +463,7 @@ public class DiscordPairingChannelService {
             String rarityDisplay = getRarityDisplayName(achievementRarity);
             embed.addField("💎 Rarity", rarityDisplay, true);
             
-            // Add progress value if meaningful
-            if (progressValue > 0) {
-                embed.addField("📊 Progress", String.format("%,d", progressValue), true);
-            }
-            
-            // Add footer with timestamp
-            embed.setFooter("Keep up the great work together! 💕");
+            // Add timestamp
             embed.setTimestamp(Instant.now());
             
             return embed;
