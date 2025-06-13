@@ -11,6 +11,7 @@ import com.app.heartbound.repositories.pairing.MatchQueueUserRepository;
 import com.app.heartbound.repositories.pairing.PairingRepository;
 import com.app.heartbound.services.discord.DiscordPairingChannelService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
+import com.app.heartbound.services.discord.DiscordLeaderboardService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -40,6 +41,7 @@ public class PairingService {
     private final SimpMessagingTemplate messagingTemplate;
     private final DiscordPairingChannelService discordPairingChannelService;
     private final DiscordVoiceTimeTrackerService discordVoiceTimeTrackerService;
+    private final DiscordLeaderboardService discordLeaderboardService;
     
     // XP System Services
     private final PairLevelService pairLevelService;
@@ -111,8 +113,12 @@ public class PairingService {
         // Remove users from queue if they are queued
         removeUsersFromQueue(sanitizedUser1Id, sanitizedUser2Id);
 
+        // 🚀 NEW: Add pairing to Discord leaderboard
+        PairingDTO pairingDTO = mapToPairingDTO(savedPairing);
+        addPairingToLeaderboard(pairingDTO);
+
         log.info("Successfully created pairing with ID: {} and blacklisted users", savedPairing.getId());
-        return mapToPairingDTO(savedPairing);
+        return pairingDTO;
     }
 
     /**
@@ -239,6 +245,9 @@ public class PairingService {
         // 🎉 NEW: Send breakup announcement to Discord channel
         sendBreakupAnnouncementToDiscord(sanitizedInitiatorId, partnerId, pairingId);
 
+        // 🚀 NEW: Remove pairing from Discord leaderboard
+        removePairingFromLeaderboard(pairingId);
+
         // DON'T create blacklist entry here - it already exists from pairing creation
         // Just update the reason if needed
         blacklistEntryRepository.findByUserPair(pairing.getUser1Id(), pairing.getUser2Id())
@@ -319,6 +328,9 @@ public class PairingService {
             // 🚀 NEW: Delete Discord channel when admin deletes pairing
             deleteDiscordChannelForPairing(pairing, "Admin bulk deletion of all active pairings");
             
+            // 🚀 NEW: Remove pairing from Discord leaderboard
+            removePairingFromLeaderboard(pairing.getId());
+            
             log.info("Deactivated pairing {} between users {} and {}", 
                     pairing.getId(), pairing.getUser1Id(), pairing.getUser2Id());
         }
@@ -356,6 +368,9 @@ public class PairingService {
         // 🚀 NEW: Delete Discord channel for the admin unpaired pairing
         deleteDiscordChannelForPairing(pairing, "Admin unpair by " + adminUsername);
         
+        // 🚀 NEW: Remove pairing from Discord leaderboard
+        removePairingFromLeaderboard(pairingId);
+        
         // Update blacklist entry reason (blacklist STAYS - users cannot match again)
         blacklistEntryRepository.findByUserPair(pairing.getUser1Id(), pairing.getUser2Id())
                 .ifPresent(blacklistEntry -> {
@@ -384,6 +399,9 @@ public class PairingService {
 
         // 🚀 NEW: Delete Discord channel before deleting pairing record
         deleteDiscordChannelForPairing(pairing, "Pairing permanently deleted by admin");
+
+        // 🚀 NEW: Remove pairing from Discord leaderboard
+        removePairingFromLeaderboard(pairingId);
 
         // 🎯 NEW: Delete all XP system data first to avoid foreign key constraints
         try {
@@ -728,6 +746,62 @@ public class PairingService {
             log.error("Failed to initiate breakup announcement for pairing {}: {}", 
                      pairingId, e.getMessage());
             // Don't throw - breakup should succeed even if announcement fails
+        }
+    }
+
+    /**
+     * Add pairing to Discord leaderboard with proper error handling
+     */
+    private void addPairingToLeaderboard(PairingDTO pairing) {
+        try {
+            log.info("Adding pairing {} to Discord leaderboard", pairing.getId());
+            
+            discordLeaderboardService.addOrUpdatePairingEmbed(pairing)
+                    .thenAccept(success -> {
+                        if (success) {
+                            log.info("Successfully added pairing {} to Discord leaderboard", pairing.getId());
+                        } else {
+                            log.warn("Failed to add pairing {} to Discord leaderboard", pairing.getId());
+                        }
+                    })
+                    .exceptionally(throwable -> {
+                        log.error("Exception adding pairing {} to Discord leaderboard: {}", 
+                                 pairing.getId(), throwable.getMessage());
+                        return null;
+                    });
+                    
+        } catch (Exception e) {
+            log.error("Failed to initiate Discord leaderboard update for pairing {}: {}", 
+                     pairing.getId(), e.getMessage());
+            // Don't throw - pairing should succeed even if leaderboard update fails
+        }
+    }
+
+    /**
+     * Remove pairing from Discord leaderboard with proper error handling
+     */
+    private void removePairingFromLeaderboard(Long pairingId) {
+        try {
+            log.info("Removing pairing {} from Discord leaderboard", pairingId);
+            
+            discordLeaderboardService.removePairingEmbed(pairingId)
+                    .thenAccept(success -> {
+                        if (success) {
+                            log.info("Successfully removed pairing {} from Discord leaderboard", pairingId);
+                        } else {
+                            log.warn("Failed to remove pairing {} from Discord leaderboard", pairingId);
+                        }
+                    })
+                    .exceptionally(throwable -> {
+                        log.error("Exception removing pairing {} from Discord leaderboard: {}", 
+                                 pairingId, throwable.getMessage());
+                        return null;
+                    });
+                    
+        } catch (Exception e) {
+            log.error("Failed to initiate Discord leaderboard removal for pairing {}: {}", 
+                     pairingId, e.getMessage());
+            // Don't throw - breakup should succeed even if leaderboard removal fails
         }
     }
 } 
