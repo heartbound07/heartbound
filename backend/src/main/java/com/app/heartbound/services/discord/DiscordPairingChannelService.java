@@ -171,6 +171,7 @@ public class DiscordPairingChannelService {
         tracking.append("• **Messages & word count** - Every message contributes to your pair stats\n");
         tracking.append("• **Voice time** - Join voice channels together to build streaks\n");
         tracking.append("• **Active days** - Keep the conversation going to increase your score\n");
+        tracking.append("• Use ").append(MarkdownUtil.monospace("/stats")).append(" to view your current progress\n");
         
         // Level up section
         StringBuilder levelUp = new StringBuilder();
@@ -200,7 +201,7 @@ public class DiscordPairingChannelService {
     }
 
     /**
-     * Deletes a pairing channel
+     * Deletes a pairing channel   
      * 
      * @param channelId The Discord channel ID to delete
      * @param reason Reason for deletion (for audit logs)
