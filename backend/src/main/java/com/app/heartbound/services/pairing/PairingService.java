@@ -62,7 +62,10 @@ public class PairingService {
         voiceStreakService.setDiscordLeaderboardRefreshCallback(this::refreshLeaderboardForPairing);
         discordMessageListenerService.setDiscordLeaderboardRefreshCallback(this::refreshLeaderboardForPairing);
         
-        log.info("Initialized Discord leaderboard refresh callbacks for XP system and Discord services");
+        // 🎉 NEW: Set Discord achievement notification callback to avoid circular dependencies
+        achievementService.setDiscordAchievementNotificationCallback(this::sendDiscordAchievementNotification);
+        
+        log.info("Initialized Discord leaderboard refresh callbacks and achievement notification callback for XP system and Discord services");
     }
 
     /**
@@ -847,6 +850,32 @@ public class PairingService {
              log.error("Failed to refresh Discord leaderboard for pairing {}: {}", 
                       pairingId, e.getMessage());
              // Don't throw - external operations should succeed even if leaderboard refresh fails
+         }
+     }
+     
+     /**
+      * Send Discord achievement notification to pairing channel (callback method to avoid circular dependency)
+      */
+     private void sendDiscordAchievementNotification(String channelId, String user1Id, String user2Id,
+                                                     String achievementName, String achievementDescription,
+                                                     int xpAwarded, String achievementRarity, int progressValue) {
+         try {
+             log.debug("Sending Discord achievement notification to channel {}: {}", channelId, achievementName);
+             
+             // Send Discord achievement notification asynchronously
+             discordPairingChannelService.sendAchievementNotification(
+                 channelId, user1Id, user2Id, achievementName, achievementDescription,
+                 xpAwarded, achievementRarity, progressValue
+             ).exceptionally(throwable -> {
+                 log.warn("Failed to send Discord achievement notification to channel {}: {}", 
+                         channelId, throwable.getMessage());
+                 return false;
+             });
+             
+         } catch (Exception e) {
+             log.error("Failed to initiate Discord achievement notification to channel {}: {}", 
+                      channelId, e.getMessage());
+             // Don't throw - achievement unlock should succeed even if Discord notification fails
          }
      }
 } 

@@ -39,6 +39,19 @@ public class AchievementService {
     
     // Callback for Discord leaderboard refresh (set by PairingService to avoid circular dependency)
     private Consumer<Long> discordLeaderboardRefreshCallback;
+    
+    // 🎉 NEW: Callback for Discord achievement notifications (set by PairingService to avoid circular dependency)
+    private AchievementNotificationCallback discordAchievementNotificationCallback;
+
+    /**
+     * Functional interface for Discord achievement notification callback
+     */
+    @FunctionalInterface
+    public interface AchievementNotificationCallback {
+        void sendNotification(String channelId, String user1Id, String user2Id, 
+                             String achievementName, String achievementDescription, 
+                             int xpAwarded, String achievementRarity, int progressValue);
+    }
 
     /**
      * Check and unlock achievements for a pairing based on current activity
@@ -247,6 +260,32 @@ public class AchievementService {
             messagingTemplate.convertAndSend("/user/" + pairing.getUser1Id() + "/topic/achievements", achievementNotification);
             messagingTemplate.convertAndSend("/user/" + pairing.getUser2Id() + "/topic/achievements", achievementNotification);
 
+            // 🎉 NEW: Send Discord achievement notification to pairing channel using callback
+            if (discordAchievementNotificationCallback != null && pairing.getDiscordChannelId() != null) {
+                try {
+                    String channelId = pairing.getDiscordChannelId().toString();
+                    discordAchievementNotificationCallback.sendNotification(
+                        channelId,
+                        pairing.getUser1Id(),
+                        pairing.getUser2Id(),
+                        achievement.getName(),
+                        achievement.getDescription(),
+                        pairAchievement.getXpAwarded(),
+                        achievement.getRarity(),
+                        pairAchievement.getProgressValue() != null ? pairAchievement.getProgressValue() : 0
+                    );
+                    
+                    log.debug("Initiated Discord achievement notification for pairing {} in channel {}", 
+                             pairing.getId(), channelId);
+                } catch (Exception e) {
+                    log.warn("Error initiating Discord achievement notification for pairing {}: {}", 
+                            pairing.getId(), e.getMessage());
+                }
+            } else {
+                log.debug("No Discord achievement notification callback or channel ID found for pairing {}, skipping Discord achievement notification", 
+                         pairing.getId());
+            }
+
             // Mark as notified
             pairAchievement.setNotified(true);
             pairAchievementRepository.save(pairAchievement);
@@ -413,6 +452,29 @@ public class AchievementService {
             }
         }
         
+        // 🎉 NEW: Send Discord achievement notification for admin unlocks using callback
+        if (discordAchievementNotificationCallback != null && pairing.getDiscordChannelId() != null) {
+            try {
+                String channelId = pairing.getDiscordChannelId().toString();
+                discordAchievementNotificationCallback.sendNotification(
+                    channelId,
+                    pairing.getUser1Id(),
+                    pairing.getUser2Id(),
+                    achievement.getName(),
+                    achievement.getDescription(),
+                    xpToAward,
+                    achievement.getRarity(),
+                    achievement.getRequirementValue()
+                );
+                
+                log.debug("Initiated Discord achievement notification for admin unlock pairing {} in channel {}", 
+                         pairing.getId(), channelId);
+            } catch (Exception e) {
+                log.warn("Error initiating Discord achievement notification for admin unlock pairing {}: {}", 
+                        pairing.getId(), e.getMessage());
+            }
+        }
+        
         log.info("Admin unlocked achievement '{}' for pairing {}: {} XP awarded", 
                 achievement.getName(), pairing.getId(), xpToAward);
         
@@ -479,5 +541,12 @@ public class AchievementService {
      */
     public void setDiscordLeaderboardRefreshCallback(Consumer<Long> callback) {
         this.discordLeaderboardRefreshCallback = callback;
+    }
+    
+    /**
+     * Set the Discord achievement notification callback (called by PairingService to avoid circular dependency)
+     */
+    public void setDiscordAchievementNotificationCallback(AchievementNotificationCallback callback) {
+        this.discordAchievementNotificationCallback = callback;
     }
 } 

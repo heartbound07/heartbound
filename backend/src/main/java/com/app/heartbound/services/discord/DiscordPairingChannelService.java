@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.util.EnumSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.time.Instant;
 
 /**
  * DiscordPairingChannelService
@@ -44,6 +45,12 @@ public class DiscordPairingChannelService {
     
     @Value("${frontend.base.url}")
     private String frontendBaseUrl;
+    
+    @Value("${discord.achievements.enabled:true}")
+    private boolean achievementNotificationsEnabled;
+    
+    @Value("${discord.achievements.mention-users:true}")
+    private boolean mentionUsersInAchievements;
     
     // Maximum channel name length allowed by Discord
     private static final int MAX_CHANNEL_NAME_LENGTH = 100;
@@ -334,6 +341,189 @@ public class DiscordPairingChannelService {
         embed.setDescription(member1.getAsMention() + " and " + member2.getAsMention() + " have just broken up! 😔💔");
         
         return embed;
+    }
+    
+    /**
+     * Sends an achievement notification embed to a pairing channel
+     * 
+     * @param channelId Discord channel ID of the pairing channel
+     * @param user1DiscordId Discord ID of first user
+     * @param user2DiscordId Discord ID of second user
+     * @param achievementName Name of the achievement unlocked
+     * @param achievementDescription Description of the achievement
+     * @param xpAwarded XP points awarded for the achievement
+     * @param achievementRarity Rarity level of the achievement (bronze, silver, gold, diamond)
+     * @param progressValue The progress value when achievement was unlocked
+     * @return CompletableFuture containing notification result
+     */
+    public CompletableFuture<Boolean> sendAchievementNotification(String channelId, String user1DiscordId, 
+                                                                  String user2DiscordId, String achievementName,
+                                                                  String achievementDescription, int xpAwarded,
+                                                                  String achievementRarity, int progressValue) {
+        if (!achievementNotificationsEnabled) {
+            logger.debug("Achievement notifications are disabled, skipping notification");
+            return CompletableFuture.completedFuture(false);
+        }
+        
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                logger.info("Sending achievement notification to channel {}: {}", channelId, achievementName);
+                
+                // Input validation
+                if (channelId == null || channelId.trim().isEmpty()) {
+                    logger.warn("Cannot send achievement notification: channelId is null or empty");
+                    return false;
+                }
+                
+                if (!isValidDiscordId(channelId)) {
+                    logger.warn("Cannot send achievement notification: invalid channel ID format");
+                    return false;
+                }
+                
+                // Validate Discord user IDs
+                String validUser1Id = user1DiscordId;
+                String validUser2Id = user2DiscordId;
+                
+                if (validUser1Id != null && !isValidDiscordId(validUser1Id)) {
+                    logger.warn("Invalid user1 Discord ID format: {}", validUser1Id);
+                    validUser1Id = null;
+                }
+                
+                if (validUser2Id != null && !isValidDiscordId(validUser2Id)) {
+                    logger.warn("Invalid user2 Discord ID format: {}", validUser2Id);
+                    validUser2Id = null;
+                }
+                
+                Guild guild = getGuild();
+                if (guild == null) {
+                    logger.warn("Cannot send achievement notification: Discord server not accessible");
+                    return false;
+                }
+                
+                TextChannel channel = guild.getTextChannelById(channelId);
+                if (channel == null) {
+                    logger.warn("Achievement notification channel not found: {}", channelId);
+                    return false;
+                }
+                
+                // Build achievement embed
+                EmbedBuilder embed = buildAchievementNotificationEmbed(
+                    validUser1Id, validUser2Id, achievementName, achievementDescription, 
+                    xpAwarded, achievementRarity, progressValue, guild);
+                
+                if (embed == null) {
+                    logger.warn("Failed to build achievement embed for channel {}", channelId);
+                    return false;
+                }
+                
+                // Send the achievement notification
+                channel.sendMessageEmbeds(embed.build()).queue(
+                    success -> logger.info("Successfully sent achievement notification '{}' to channel {}", 
+                                          achievementName, channelId),
+                    error -> logger.warn("Failed to send achievement notification '{}' to channel {}: {}", 
+                                        achievementName, channelId, error.getMessage())
+                );
+                
+                return true;
+                
+            } catch (Exception e) {
+                logger.error("Error sending achievement notification to channel {}: {}", channelId, e.getMessage());
+                return false;
+            }
+        }).orTimeout(15, TimeUnit.SECONDS)
+          .exceptionally(throwable -> {
+              logger.error("Timeout or error in achievement notification: {}", throwable.getMessage());
+              return false;
+          });
+    }
+    
+    /**
+     * Build the achievement notification embed with proper styling and information
+     */
+    private EmbedBuilder buildAchievementNotificationEmbed(String user1DiscordId, String user2DiscordId,
+                                                           String achievementName, String achievementDescription,
+                                                           int xpAwarded, String achievementRarity, int progressValue,
+                                                           Guild guild) {
+        try {
+            EmbedBuilder embed = new EmbedBuilder();
+            
+            // Set achievement title with celebration emoji
+            embed.setTitle("🎉 Achievement Unlocked!");
+            
+            // Build description with user mentions if enabled and IDs are available
+            StringBuilder description = new StringBuilder();
+            if (mentionUsersInAchievements && user1DiscordId != null && user2DiscordId != null) {
+                description.append("Congratulations <@").append(user1DiscordId)
+                          .append("> and <@").append(user2DiscordId).append(">!");
+            } else {
+                description.append("Congratulations on your new achievement!");
+            }
+            embed.setDescription(description.toString());
+            
+            // Set color based on achievement rarity
+            embed.setColor(getRarityColor(achievementRarity));
+            
+            // Add main achievement information
+            embed.addField("🏆 " + achievementName, achievementDescription, false);
+            
+            // Add XP reward information
+            embed.addField("✨ XP Reward", String.format("**+%,d XP**", xpAwarded), true);
+            
+            // Add rarity information with appropriate emoji
+            String rarityDisplay = getRarityDisplayName(achievementRarity);
+            embed.addField("💎 Rarity", rarityDisplay, true);
+            
+            // Add progress value if meaningful
+            if (progressValue > 0) {
+                embed.addField("📊 Progress", String.format("%,d", progressValue), true);
+            }
+            
+            // Add footer with timestamp
+            embed.setFooter("Keep up the great work together! 💕");
+            embed.setTimestamp(Instant.now());
+            
+            return embed;
+            
+        } catch (Exception e) {
+            logger.error("Failed to build achievement notification embed: {}", e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Get Discord color based on achievement rarity
+     */
+    private Color getRarityColor(String rarity) {
+        if (rarity == null) {
+            return Color.decode("#58b9ff"); // Default blue
+        }
+        
+        return switch (rarity.toLowerCase()) {
+            case "bronze" -> Color.decode("#CD7F32"); // Bronze color
+            case "silver" -> Color.decode("#C0C0C0"); // Silver color
+            case "gold" -> Color.decode("#FFD700");   // Gold color
+            case "diamond" -> Color.decode("#B9F2FF"); // Diamond blue
+            case "legendary" -> Color.decode("#FF6B35"); // Legendary orange
+            default -> Color.decode("#58b9ff"); // Default blue
+        };
+    }
+    
+    /**
+     * Get display name for achievement rarity with emoji
+     */
+    private String getRarityDisplayName(String rarity) {
+        if (rarity == null) {
+            return "🔵 Common";
+        }
+        
+        return switch (rarity.toLowerCase()) {
+            case "bronze" -> "🥉 Bronze";
+            case "silver" -> "🥈 Silver";
+            case "gold" -> "🥇 Gold";
+            case "diamond" -> "💎 Diamond";
+            case "legendary" -> "🌟 Legendary";
+            default -> "🔵 Common";
+        };
     }
     
     // Private helper methods
