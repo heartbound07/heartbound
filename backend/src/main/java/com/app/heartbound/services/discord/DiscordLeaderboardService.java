@@ -289,8 +289,7 @@ public class DiscordLeaderboardService {
             
             EmbedBuilder embedBuilder = new EmbedBuilder()
                 .setColor(DISCORD_BLURPLE)
-                .setDescription(description)
-                .setTimestamp(LocalDateTime.now());
+                .setDescription(description);
             
             // Add level and XP field (inline set to false for Level field only)
             if (pairLevel != null) {
@@ -338,7 +337,11 @@ public class DiscordLeaderboardService {
                 embedBuilder.setThumbnail(thumbnailUrl);
             }
             
-            // Footer removed as requested
+            // Add footer with clean match date format
+            if (pairing.getMatchedAt() != null) {
+                String matchedDate = DATE_FORMATTER.format(pairing.getMatchedAt());
+                embedBuilder.setFooter("Matched on " + matchedDate);
+            }
             
             return embedBuilder.build();
             
