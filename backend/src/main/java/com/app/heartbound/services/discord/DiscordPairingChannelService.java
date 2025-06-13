@@ -253,6 +253,91 @@ public class DiscordPairingChannelService {
           });
     }
     
+    /**
+     * Sends a breakup announcement to the specified Discord channel
+     * 
+     * @param user1DiscordId Discord ID of the first user in the breakup
+     * @param user2DiscordId Discord ID of the second user in the breakup
+     * @param pairingId The pairing ID for reference
+     * @return CompletableFuture containing announcement result
+     */
+    public CompletableFuture<Boolean> sendBreakupAnnouncement(String user1DiscordId, String user2DiscordId, Long pairingId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                logger.info("Sending breakup announcement for users {} and {} (pairing ID: {})", 
+                           user1DiscordId, user2DiscordId, pairingId);
+                
+                // Input validation
+                if (user1DiscordId == null || user2DiscordId == null || pairingId == null) {
+                    logger.warn("Cannot send breakup announcement: null parameters provided");
+                    return false;
+                }
+                
+                // Validate Discord IDs
+                if (!isValidDiscordId(user1DiscordId) || !isValidDiscordId(user2DiscordId)) {
+                    logger.warn("Cannot send breakup announcement: invalid Discord ID format");
+                    return false;
+                }
+                
+                Guild guild = getGuild();
+                if (guild == null) {
+                    logger.warn("Cannot send breakup announcement: Discord server not accessible");
+                    return false;
+                }
+                
+                // Get the announcement channel
+                TextChannel announcementChannel = guild.getTextChannelById("1303106586650218518");
+                if (announcementChannel == null) {
+                    logger.warn("Breakup announcement channel not found with ID: 1303106586650218518");
+                    return false;
+                }
+                
+                // Validate that both users are members of the server
+                Member member1 = validateServerMember(guild, user1DiscordId);
+                Member member2 = validateServerMember(guild, user2DiscordId);
+                
+                if (member1 == null || member2 == null) {
+                    logger.warn("Cannot send breakup announcement: one or both users are not server members");
+                    return false;
+                }
+                
+                // Create the breakup announcement embed
+                EmbedBuilder embed = buildBreakupAnnouncementEmbed(member1, member2);
+                
+                // Send the announcement
+                announcementChannel.sendMessageEmbeds(embed.build()).queue(
+                    success -> logger.info("Successfully sent breakup announcement for pairing {} to channel {}", 
+                                          pairingId, announcementChannel.getName()),
+                    error -> logger.warn("Failed to send breakup announcement for pairing {}: {}", 
+                                        pairingId, error.getMessage())
+                );
+                
+                return true;
+                
+            } catch (Exception e) {
+                logger.error("Error sending breakup announcement for users {} and {}: {}", 
+                           user1DiscordId, user2DiscordId, e.getMessage());
+                return false;
+            }
+        }).orTimeout(15, TimeUnit.SECONDS)
+          .exceptionally(throwable -> {
+              logger.error("Timeout or error in breakup announcement: {}", throwable.getMessage());
+              return false;
+          });
+    }
+
+    /**
+     * Build the breakup announcement embed
+     */
+    private EmbedBuilder buildBreakupAnnouncementEmbed(Member member1, Member member2) {
+        EmbedBuilder embed = new EmbedBuilder();
+        
+        embed.setColor(Color.decode("#ff6b6b")); // Red color for breakup
+        embed.setDescription(member1.getAsMention() + " and " + member2.getAsMention() + " have just broken up! 😔💔");
+        
+        return embed;
+    }
+    
     // Private helper methods
     
     private Guild getGuild() {

@@ -236,6 +236,9 @@ public class PairingService {
         // 🚀 NEW: Delete Discord channel for the pairing
         deleteDiscordChannelForPairing(updatedPairing, "Pairing ended: " + (sanitizedReason != null ? sanitizedReason : "No reason provided"));
 
+        // 🎉 NEW: Send breakup announcement to Discord channel
+        sendBreakupAnnouncementToDiscord(sanitizedInitiatorId, partnerId, pairingId);
+
         // DON'T create blacklist entry here - it already exists from pairing creation
         // Just update the reason if needed
         blacklistEntryRepository.findByUserPair(pairing.getUser1Id(), pairing.getUser2Id())
@@ -695,6 +698,36 @@ public class PairingService {
             
         } catch (Exception e) {
             log.error("Failed to broadcast pairing ended notifications: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Send breakup announcement to Discord channel with proper error handling
+     */
+    private void sendBreakupAnnouncementToDiscord(String user1Id, String user2Id, Long pairingId) {
+        try {
+            log.info("Attempting to send breakup announcement for pairing {} with users {} and {}", 
+                     pairingId, user1Id, user2Id);
+            
+            // Send breakup announcement asynchronously
+            discordPairingChannelService.sendBreakupAnnouncement(user1Id, user2Id, pairingId)
+                    .thenAccept(success -> {
+                        if (success) {
+                            log.info("Successfully sent breakup announcement for pairing {}", pairingId);
+                        } else {
+                            log.warn("Failed to send breakup announcement for pairing {} - channel may not exist or bot lacks permissions", pairingId);
+                        }
+                    })
+                    .exceptionally(throwable -> {
+                        log.error("Exception during breakup announcement for pairing {}: {}", 
+                                 pairingId, throwable.getMessage());
+                        return null;
+                    });
+                    
+        } catch (Exception e) {
+            log.error("Failed to initiate breakup announcement for pairing {}: {}", 
+                     pairingId, e.getMessage());
+            // Don't throw - breakup should succeed even if announcement fails
         }
     }
 } 
