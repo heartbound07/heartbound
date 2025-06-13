@@ -155,8 +155,8 @@ public class DiscordPairingChannelService {
     private EmbedBuilder buildWelcomeMessageEmbed(Member member1, Member member2, Long pairingId) {
         EmbedBuilder embed = new EmbedBuilder();
         
-        embed.setColor(Color.PINK);
-        embed.setTitle("💕 Don't Catch Feelings Challenge Guide");
+        embed.setColor(Color.decode("#58b9ff"));
+        embed.setTitle("💕 Guide 💕");
         
         // About this channel section
         StringBuilder aboutChannel = new StringBuilder();
