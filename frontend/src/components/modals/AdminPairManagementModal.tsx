@@ -145,10 +145,14 @@ export function AdminPairManagementModal({
   // Initialize editable metrics from pairing data
   useEffect(() => {
     if (pairing) {
+      const user1Messages = pairing.user1MessageCount || 0
+      const user2Messages = pairing.user2MessageCount || 0
+      const calculatedTotal = user1Messages + user2Messages
+      
       setEditableMetrics({
-        messageCount: pairing.messageCount,
-        user1MessageCount: pairing.user1MessageCount,
-        user2MessageCount: pairing.user2MessageCount,
+        messageCount: calculatedTotal, // Use calculated total instead of stored value
+        user1MessageCount: user1Messages,
+        user2MessageCount: user2Messages,
         voiceTimeMinutes: pairing.voiceTimeMinutes,
         wordCount: pairing.wordCount,
         emojiCount: pairing.emojiCount,
@@ -202,10 +206,20 @@ export function AdminPairManagementModal({
   const handleMetricChange = useCallback((field: keyof EditableMetrics, value: number) => {
     // Ensure value is a valid number, default to 0 if NaN
     const safeValue = isNaN(value) ? 0 : Math.max(0, value)
-    setEditableMetrics(prev => ({
-      ...prev,
-      [field]: safeValue
-    }))
+    
+    setEditableMetrics(prev => {
+      const updated = {
+        ...prev,
+        [field]: safeValue
+      }
+      
+      // Auto-calculate total messages when individual user messages change
+      if (field === 'user1MessageCount' || field === 'user2MessageCount') {
+        updated.messageCount = updated.user1MessageCount + updated.user2MessageCount
+      }
+      
+      return updated
+    })
     setHasUnsavedChanges(true)
   }, [])
 
@@ -273,10 +287,14 @@ export function AdminPairManagementModal({
   }, [pairing.id, loadAllData])
 
   const handleResetChanges = useCallback(() => {
+    const user1Messages = pairing.user1MessageCount || 0
+    const user2Messages = pairing.user2MessageCount || 0
+    const calculatedTotal = user1Messages + user2Messages
+    
     setEditableMetrics({
-      messageCount: pairing.messageCount,
-      user1MessageCount: pairing.user1MessageCount,
-      user2MessageCount: pairing.user2MessageCount,
+      messageCount: calculatedTotal, // Use calculated total instead of stored value
+      user1MessageCount: user1Messages,
+      user2MessageCount: user2Messages,
       voiceTimeMinutes: pairing.voiceTimeMinutes,
       wordCount: pairing.wordCount,
       emojiCount: pairing.emojiCount,
@@ -1107,15 +1125,18 @@ export function AdminPairManagementModal({
                         </h3>
                         <div className="space-y-4">
                           <div>
-                            <Label htmlFor="totalMessages" className="text-white mb-2 block">Total Messages</Label>
+                            <Label htmlFor="totalMessages" className="text-white mb-2 block">Total Messages (Auto-calculated)</Label>
                             <Input
                               id="totalMessages"
                               type="number"
                               value={editableMetrics.messageCount}
-                              onChange={(e) => handleMetricChange('messageCount', parseInt(e.target.value) || 0)}
-                              className="bg-theme-container border-theme text-white"
+                              readOnly
+                              className="bg-theme-container/50 border-theme text-white cursor-not-allowed opacity-75"
                               min="0"
                             />
+                            <div className="text-xs text-theme-secondary mt-1">
+                              Automatically calculated from individual user messages
+                            </div>
                           </div>
                           <div>
                             <Label htmlFor="user1Messages" className="text-white mb-2 block">

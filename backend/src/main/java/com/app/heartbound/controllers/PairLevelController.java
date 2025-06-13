@@ -238,6 +238,10 @@ public class PairLevelController {
         
         try {
             Map<String, Object> result = achievementService.manageAchievementAdmin(pairingId, manageRequest);
+            
+            // 🚀 NEW: Refresh Discord leaderboard after admin achievement management
+            pairingService.refreshLeaderboardForPairing(pairingId);
+            
             return ResponseEntity.ok(result);
             
         } catch (IllegalArgumentException e) {
