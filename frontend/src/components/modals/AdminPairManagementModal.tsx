@@ -59,6 +59,7 @@ import {
   createVoiceStreak,
   deleteVoiceStreak
 } from "@/config/pairingService"
+import { invalidateXPData } from "@/hooks/useXPData"
 import type { UserProfileDTO } from "@/config/userService"
 
 interface AdminPairManagementModalProps {
@@ -66,6 +67,7 @@ interface AdminPairManagementModalProps {
   onClose: () => void
   pairing: PairingDTO
   userProfiles: Record<string, UserProfileDTO>
+  onPairingUpdated?: () => void
 }
 
 interface EditableMetrics {
@@ -96,7 +98,8 @@ export function AdminPairManagementModal({
   isOpen, 
   onClose, 
   pairing, 
-  userProfiles 
+  userProfiles,
+  onPairingUpdated
 }: AdminPairManagementModalProps) {
   // State management
   const [activeTab, setActiveTab] = useState<'overview' | 'achievements' | 'metrics' | 'streaks'>('overview')
@@ -212,17 +215,29 @@ export function AdminPairManagementModal({
     setSuccessMessage(null)
 
     try {
-      // Calculate increments from current values
+      // For admin updates, send direct values instead of increments
       const activity: UpdatePairingActivityDTO = {
-        messageIncrement: editableMetrics.messageCount - pairing.messageCount,
+        messageIncrement: 0, // Not used for admin updates
         wordIncrement: editableMetrics.wordCount - pairing.wordCount,
         emojiIncrement: editableMetrics.emojiCount - pairing.emojiCount,
-        activeDays: editableMetrics.activeDays
+        activeDays: editableMetrics.activeDays,
+        // Admin direct updates
+        user1MessageCount: editableMetrics.user1MessageCount,
+        user2MessageCount: editableMetrics.user2MessageCount,
+        voiceTimeMinutes: editableMetrics.voiceTimeMinutes
       }
 
       await updatePairingActivity(pairing.id, activity)
       setSuccessMessage('Metrics updated successfully! XP and achievements will be recalculated automatically.')
       setHasUnsavedChanges(false)
+      
+      // Invalidate XP cache to ensure fresh data
+      invalidateXPData([pairing.id])
+      
+      // Notify parent component to refresh its data
+      if (onPairingUpdated) {
+        onPairingUpdated()
+      }
       
       // Reload data to show updated values
       setTimeout(() => {

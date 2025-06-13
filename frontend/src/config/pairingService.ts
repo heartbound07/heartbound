@@ -411,6 +411,10 @@ export interface UpdatePairingActivityDTO {
   wordIncrement: number;
   emojiIncrement: number;
   activeDays?: number;
+  // Admin-only fields for direct metric updates
+  user1MessageCount?: number;
+  user2MessageCount?: number;
+  voiceTimeMinutes?: number;
 }
 
 // XP System API Functions

@@ -1924,6 +1924,7 @@ export function PairingsPage() {
               onClose={handleCloseAdminPairModal}
               pairing={selectedPairingForAdmin}
               userProfiles={userProfiles}
+              onPairingUpdated={refreshData}
             />
           )}
         </AnimatePresence>

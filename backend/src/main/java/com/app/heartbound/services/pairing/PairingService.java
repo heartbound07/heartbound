@@ -138,8 +138,34 @@ public class PairingService {
             throw new IllegalStateException("Cannot update activity for inactive pairing");
         }
 
-        // Update activity metrics
-        pairing.setMessageCount(pairing.getMessageCount() + request.getMessageIncrement());
+        // Check if this is an admin direct update or increment update
+        boolean isAdminDirectUpdate = request.getUser1MessageCount() != null || 
+                                      request.getUser2MessageCount() != null || 
+                                      request.getVoiceTimeMinutes() != null;
+
+        if (isAdminDirectUpdate) {
+            // Admin direct updates - set values directly
+            if (request.getUser1MessageCount() != null) {
+                pairing.setUser1MessageCount(Math.max(0, request.getUser1MessageCount()));
+            }
+            if (request.getUser2MessageCount() != null) {
+                pairing.setUser2MessageCount(Math.max(0, request.getUser2MessageCount()));
+            }
+            if (request.getVoiceTimeMinutes() != null) {
+                pairing.setVoiceTimeMinutes(Math.max(0, request.getVoiceTimeMinutes()));
+            }
+            
+            // Recalculate total message count
+            pairing.setMessageCount(pairing.getUser1MessageCount() + pairing.getUser2MessageCount());
+            
+            log.info("Admin direct update applied for pairing {}: user1Messages={}, user2Messages={}, voiceMinutes={}", 
+                    pairingId, pairing.getUser1MessageCount(), pairing.getUser2MessageCount(), pairing.getVoiceTimeMinutes());
+        } else {
+            // Regular increment updates
+            pairing.setMessageCount(pairing.getMessageCount() + request.getMessageIncrement());
+        }
+        
+        // Always apply these updates (both admin and regular)
         pairing.setWordCount(pairing.getWordCount() + request.getWordIncrement());
         pairing.setEmojiCount(pairing.getEmojiCount() + request.getEmojiIncrement());
 

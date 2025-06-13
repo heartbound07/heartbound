@@ -28,4 +28,9 @@ public class UpdatePairingActivityDTO {
 
     // Optional: Direct update to active days if calculated externally
     private Integer activeDays;
+    
+    // Admin-only fields for direct metric updates
+    private Integer user1MessageCount;
+    private Integer user2MessageCount;
+    private Integer voiceTimeMinutes;
 } 
