@@ -3,10 +3,10 @@ package com.app.heartbound.services.discord;
 import com.app.heartbound.dto.pairing.PairingDTO;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.entities.PairLevel;
+import com.app.heartbound.entities.Pairing;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.pairing.PairLevelService;
 import com.app.heartbound.services.pairing.VoiceStreakService;
-import com.app.heartbound.services.pairing.PairingService;
 import com.app.heartbound.repositories.pairing.PairingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,11 +24,9 @@ import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.awt.Color;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -264,15 +262,17 @@ public class DiscordLeaderboardService {
                 Thread.sleep(2000);
                 
                 // Now create new embeds in correct order (highest level first)
-                for (com.app.heartbound.entities.Pairing pairing : orderedPairings) {
+                for (int i = 0; i < orderedPairings.size(); i++) {
                     try {
+                        Pairing pairing = orderedPairings.get(i);
                         PairingDTO pairingDTO = mapToPairingDTO(pairing);
-                        addOrUpdatePairingEmbed(pairingDTO).join();
+                        int rank = i + 1; // 1-indexed rank
+                        addOrUpdatePairingEmbedWithRank(pairingDTO, rank).join();
                         
                         // Delay between embeds to ensure proper ordering and avoid rate limits
                         Thread.sleep(800);
                     } catch (Exception e) {
-                        log.error("Failed to create embed for pairing {} during refresh: {}", pairing.getId(), e.getMessage());
+                        log.error("Failed to create embed for pairing {} during refresh: {}", orderedPairings.get(i).getId(), e.getMessage());
                     }
                 }
                 
@@ -326,13 +326,23 @@ public class DiscordLeaderboardService {
      */
     @Async
     public CompletableFuture<Boolean> addOrUpdatePairingEmbed(PairingDTO pairing) {
+        // Determine rank for this pairing
+        Integer rank = determinePairingRank(pairing.getId());
+        return addOrUpdatePairingEmbedWithRank(pairing, rank);
+    }
+    
+    /**
+     * Add or update a pairing embed in the Discord leaderboard with specific rank
+     */
+    @Async
+    public CompletableFuture<Boolean> addOrUpdatePairingEmbedWithRank(PairingDTO pairing, Integer rank) {
         if (!leaderboardEnabled || !pairing.isActive()) {
             return CompletableFuture.completedFuture(false);
         }
         
         return CompletableFuture.supplyAsync(() -> {
             try {
-                log.info("Adding/updating leaderboard embed for pairing ID: {}", pairing.getId());
+                log.info("Adding/updating leaderboard embed for pairing ID: {} with rank: {}", pairing.getId(), rank);
                 
                 TextChannel channel = getLeaderboardChannel();
                 if (channel == null) {
@@ -346,7 +356,7 @@ public class DiscordLeaderboardService {
                     existingMessageId = pairingMessageMap.get(pairing.getId());
                 }
                 
-                MessageEmbed embed = buildPairingEmbed(pairing);
+                MessageEmbed embed = buildPairingEmbed(pairing, rank);
                 if (embed == null) {
                     log.warn("Failed to build embed for pairing {}", pairing.getId());
                     return false;
@@ -366,6 +376,27 @@ public class DiscordLeaderboardService {
                 return false;
             }
         });
+    }
+    
+    /**
+     * Determine the rank of a pairing in the leaderboard
+     */
+    private Integer determinePairingRank(Long pairingId) {
+        try {
+            List<Pairing> orderedPairings = pairingRepository.findActivePairingsOrderedByLevel();
+            
+            for (int i = 0; i < orderedPairings.size(); i++) {
+                if (orderedPairings.get(i).getId().equals(pairingId)) {
+                    return i + 1; // 1-indexed rank
+                }
+            }
+            
+            log.warn("Could not determine rank for pairing {} - not found in active pairings", pairingId);
+            return null;
+        } catch (Exception e) {
+            log.error("Failed to determine rank for pairing {}: {}", pairingId, e.getMessage());
+            return null;
+        }
     }
     
     /**
@@ -452,6 +483,13 @@ public class DiscordLeaderboardService {
      * Build the Discord embed for a pairing
      */
     private MessageEmbed buildPairingEmbed(PairingDTO pairing) {
+        return buildPairingEmbed(pairing, null);
+    }
+    
+    /**
+     * Build the Discord embed for a pairing with rank information
+     */
+    private MessageEmbed buildPairingEmbed(PairingDTO pairing, Integer rank) {
         try {
             log.info("Building Discord embed for pairing {} with users {} and {}", 
                     pairing.getId(), pairing.getUser1Id(), pairing.getUser2Id());
@@ -490,6 +528,11 @@ public class DiscordLeaderboardService {
                 .setColor(DISCORD_BLURPLE)
                 .setDescription(description);
             
+            // Add title with rank if provided
+            if (rank != null) {
+                embedBuilder.setTitle(String.format("Rank %d", rank));
+            }
+            
             // Add level and XP field (inline set to false for Level field only)
             if (pairLevel != null) {
                 embedBuilder.addField(
@@ -517,10 +560,9 @@ public class DiscordLeaderboardService {
             );
             
             // Add streak field (inline)
-            String streakText = currentStreak == 1 ? "1 day streak" : String.format("%d day streak", currentStreak);
             embedBuilder.addField(
-                String.format("**%s**", streakText),
-                "", // Empty value for streak field
+                "**Streak**",
+                String.valueOf(currentStreak),
                 true
             );
             
