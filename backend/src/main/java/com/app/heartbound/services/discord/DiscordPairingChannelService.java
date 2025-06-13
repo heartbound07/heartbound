@@ -9,6 +9,8 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.utils.MarkdownUtil;
+import net.dv8tion.jda.api.EmbedBuilder;
+import java.awt.Color;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +41,9 @@ public class DiscordPairingChannelService {
     
     @Value("${discord.pairing.category.id:}")
     private String pairingCategoryId;
+    
+    @Value("${frontend.base.url}")
+    private String frontendBaseUrl;
     
     // Maximum channel name length allowed by Discord
     private static final int MAX_CHANNEL_NAME_LENGTH = 100;
@@ -119,80 +124,79 @@ public class DiscordPairingChannelService {
      */
     private void sendWelcomeMessage(TextChannel channel, Member member1, Member member2, Long pairingId) {
         try {
-            logger.debug("Sending welcome message to pairing channel {} (pairing ID: {})", channel.getId(), pairingId);
+            // Send the simple welcome header message first
+            String welcomeHeader = "🎉 " + MarkdownUtil.bold("Welcome to your private pairing channel!") + " 🎉\n\n" +
+                                 "Hey " + member1.getAsMention() + " and " + member2.getAsMention() + "! " +
+                                 "You've been matched in the Don't Catch Feelings Challenge!";
             
-            // Build the welcome message with user mentions and informative content
-            String welcomeMessage = buildWelcomeMessageContent(member1, member2, pairingId);
+            // Create the embed with detailed information
+            EmbedBuilder embed = buildWelcomeMessageEmbed(member1, member2, pairingId);
             
-            // Send the message asynchronously to avoid blocking channel creation
-            channel.sendMessage(welcomeMessage)
-                   .queue(
-                       message -> {
-                           logger.info("Successfully sent welcome message to pairing channel {} (pairing ID: {})", 
-                                      channel.getId(), pairingId);
-                       },
-                       error -> {
-                           // Log the error but don't fail the channel creation
-                           logger.warn("Failed to send welcome message to pairing channel {} (pairing ID: {}): {}", 
-                                      channel.getId(), pairingId, error.getMessage());
-                       }
-                   );
-                   
+            // Send the welcome header message first
+            channel.sendMessage(welcomeHeader).queue(
+                success -> {
+                    // Then send the embed
+                    channel.sendMessageEmbeds(embed.build()).queue(
+                        embedSuccess -> logger.info("Successfully sent welcome message and embed to channel: {}", channel.getName()),
+                        embedError -> logger.warn("Failed to send welcome embed to channel {}: {}", channel.getName(), embedError.getMessage())
+                    );
+                },
+                error -> logger.warn("Failed to send welcome message to channel {}: {}", channel.getName(), error.getMessage())
+            );
+            
         } catch (Exception e) {
-            // Graceful error handling - welcome message failure shouldn't break channel creation
-            logger.warn("Exception while sending welcome message to pairing channel {} (pairing ID: {}): {}", 
-                       channel.getId(), pairingId, e.getMessage());
+            logger.error("Error sending welcome message to channel {}: {}", channel.getName(), e.getMessage());
         }
     }
 
     /**
-     * Builds the content for the welcome message
-     * 
-     * @param member1 First member of the pairing
-     * @param member2 Second member of the pairing
-     * @param pairingId The pairing ID for reference
-     * @return The formatted welcome message content
+     * Build the welcome message embed with detailed information
      */
-    private String buildWelcomeMessageContent(Member member1, Member member2, Long pairingId) {
-        StringBuilder message = new StringBuilder();
+    private EmbedBuilder buildWelcomeMessageEmbed(Member member1, Member member2, Long pairingId) {
+        EmbedBuilder embed = new EmbedBuilder();
         
-        // Welcome header with user mentions
-        message.append("🎉 ").append(MarkdownUtil.bold("Welcome to your private pairing channel!")).append(" 🎉\n\n");
-        message.append("Hey ").append(member1.getAsMention()).append(" and ").append(member2.getAsMention()).append("! ");
-        message.append("You've been matched in the Don't Catch Feelings Challenge! ");
+        embed.setColor(Color.PINK);
+        embed.setTitle("💕 Don't Catch Feelings Challenge Guide");
         
-        // Channel explanation
-        message.append("📱 ").append(MarkdownUtil.bold("About this channel:")).append("\n");
-        message.append("• This is your **private channel** - only you two can see it\n");
-        message.append("• Perfect place to chat, get to know each other, and have fun!\n");
-        message.append("• Feel free to share memes, talk about games, or just vibe together\n\n");
+        // About this channel section
+        StringBuilder aboutChannel = new StringBuilder();
+        aboutChannel.append("**📱 About this channel:**\n");
+        aboutChannel.append("• This is your **private channel** - only you two can see it\n");
+        aboutChannel.append("• Perfect place to chat, get to know each other, and have fun!\n");
+        aboutChannel.append("• Feel free to share memes, talk about games, or just vibe together\n");
         
-        // Stat tracking info
-        message.append("📊 ").append(MarkdownUtil.bold("What we track:")).append("\n");
-        message.append("• **Messages & word count** - Every message contributes to your pair stats\n");
-        message.append("• **Voice time** - Join voice channels together to build streaks\n");
-        message.append("• **Active days** - Keep the conversation going to increase your score\n");
-        message.append("• **Emojis & reactions** - Express yourselves and have fun!\n\n");
+        // What we track section
+        StringBuilder tracking = new StringBuilder();
+        tracking.append("**📊 What we track:**\n");
+        tracking.append("• **Messages & word count** - Every message contributes to your pair stats\n");
+        tracking.append("• **Voice time** - Join voice channels together to build streaks\n");
+        tracking.append("• **Active days** - Keep the conversation going to increase your score\n");
         
-        // Achievement system
-        message.append("🏆 ").append(MarkdownUtil.bold("Level up together:")).append("\n");
-        message.append("• Unlock **achievements** by hitting activity milestones\n");
-        message.append("• Gain **XP points** for every interaction\n");
-        message.append("• Build **voice streaks** by chatting in voice channels daily\n");
-        message.append("• Check your progress on the pairings page anytime!\n\n");
+        // Level up section
+        StringBuilder levelUp = new StringBuilder();
+        levelUp.append("**🏆 Level up together:**\n");
+        levelUp.append("• Unlock **achievements** by hitting activity milestones\n");
+        levelUp.append("• Gain **XP points** for every interaction\n");
+        levelUp.append("• Build **voice streaks** by chatting in voice channels daily\n");
+        levelUp.append("• Check your progress on the [pairings page](").append(frontendBaseUrl).append("/dashboard/pairings) anytime!\n");
         
-        // Breakup instructions
-        message.append("💔 ").append(MarkdownUtil.bold("If things don't work out:")).append("\n");
-        message.append("• Use the ").append(MarkdownUtil.monospace("/breakup")).append(" command in this channel\n");
-        message.append("• Or visit the **pairings page** in the app to end the match\n");
-        message.append("• No hard feelings - finding the right match takes time!\n\n");
+        // Breakup section
+        StringBuilder breakup = new StringBuilder();
+        breakup.append("**💔 If things don't work out:**\n");
+        breakup.append("• Use the ").append(MarkdownUtil.monospace("/breakup")).append(" command in this channel\n");
+        breakup.append("• Or visit the [pairings page](").append(frontendBaseUrl).append("/dashboard/pairings) in the app to end the match\n");
+        breakup.append("• No hard feelings - finding the right match takes time!\n");
         
-        // Encouraging footer
-        message.append("💝 ").append(MarkdownUtil.italics("Remember: The goal is to have fun and make a genuine connection."));
-        message.append(" Don't catch feelings too quickly, but don't be afraid to be yourself!").append("\n\n");
-        message.append("Good luck, and may the odds be ever in your favor! ✨");
+        // Add fields to embed
+        embed.addField("", aboutChannel.toString(), false);
+        embed.addField("", tracking.toString(), false);
+        embed.addField("", levelUp.toString(), false);
+        embed.addField("", breakup.toString(), false);
         
-        return message.toString();
+        // Footer message
+        embed.setFooter("💝 Remember: The goal is to have fun and make a genuine connection. Don't catch feelings too quickly, but don't be afraid to be yourself! Good luck, and may the odds be ever in your favor! ✨");
+        
+        return embed;
     }
 
     /**
