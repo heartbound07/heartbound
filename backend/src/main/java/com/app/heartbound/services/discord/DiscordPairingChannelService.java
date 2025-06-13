@@ -186,7 +186,6 @@ public class DiscordPairingChannelService {
         breakup.append("**💔 If things don't work out:**\n");
         breakup.append("• Use the ").append(MarkdownUtil.monospace("/breakup")).append(" command in this channel\n");
         breakup.append("• Or visit the [pairings page](").append(frontendBaseUrl).append("/dashboard/pairings) in the app to end the match\n");
-        breakup.append("• No hard feelings - finding the right match takes time!\n");
         
         // Add fields to embed
         embed.addField("", aboutChannel.toString(), false);
