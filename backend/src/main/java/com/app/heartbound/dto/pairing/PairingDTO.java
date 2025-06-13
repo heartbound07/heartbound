@@ -22,6 +22,7 @@ public class PairingDTO {
     private String user2Id;
     private Long discordChannelId;
     private String discordChannelName;
+    private String discordLeaderboardMessageId;
     private LocalDateTime matchedAt;
     private int messageCount;
     private int user1MessageCount;

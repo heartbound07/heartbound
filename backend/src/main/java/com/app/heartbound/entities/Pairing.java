@@ -47,6 +47,10 @@ public class Pairing {
     @Column(name = "discord_channel_name")
     private String discordChannelName;
 
+    // Discord leaderboard message ID for persistent tracking
+    @Column(name = "discord_leaderboard_message_id")
+    private String discordLeaderboardMessageId;
+
     @Column(name = "matched_at", nullable = false)
     private LocalDateTime matchedAt;
 

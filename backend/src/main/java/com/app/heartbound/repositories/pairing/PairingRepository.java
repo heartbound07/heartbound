@@ -35,6 +35,12 @@ public interface PairingRepository extends JpaRepository<Pairing, Long> {
     // Find pairing by Discord channel ID
     Optional<Pairing> findByDiscordChannelId(Long discordChannelId);
     
+    // Find active pairings ordered by level (highest first), then by total XP (highest first)
+    @Query("SELECT p FROM Pairing p LEFT JOIN PairLevel pl ON pl.pairing.id = p.id " +
+           "WHERE p.active = true " +
+           "ORDER BY COALESCE(pl.currentLevel, 1) DESC, COALESCE(pl.totalXP, 0) DESC, p.matchedAt ASC")
+    List<Pairing> findActivePairingsOrderedByLevel();
+    
     // Count pairings created after a specific date/time (for admin statistics)
     @Query("SELECT COUNT(p) FROM Pairing p WHERE p.matchedAt >= :afterDate")
     int countByMatchedAtAfter(@Param("afterDate") java.time.LocalDateTime afterDate);

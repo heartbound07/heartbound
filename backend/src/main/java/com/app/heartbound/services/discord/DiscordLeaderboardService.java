@@ -30,12 +30,21 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * DiscordLeaderboardService
  * 
  * Manages Discord leaderboard embeds for active pairings.
  * Automatically creates, updates, and removes pairing embeds in the configured Discord channel.
+ * 
+ * FEATURES:
+ * - Persistent Discord message ID tracking to prevent duplicates on restart
+ * - Level-based ordering (highest level first, then by XP)
+ * - Startup validation and cleanup of orphaned messages
+ * - Graceful error handling without breaking core functionality
  */
 @Service
 @RequiredArgsConstructor
@@ -63,7 +72,7 @@ public class DiscordLeaderboardService {
     private final VoiceStreakService voiceStreakService;
     private final PairingRepository pairingRepository;
     
-    // Track Discord message IDs for each pairing embed
+    // Keep in-memory map for fast lookups, but now backed by database persistence
     private final ConcurrentHashMap<Long, String> pairingMessageMap = new ConcurrentHashMap<>();
     
     @PostConstruct
@@ -77,6 +86,14 @@ public class DiscordLeaderboardService {
                     // Wait a bit for JDA to be fully ready
                     Thread.sleep(5000);
                     log.info("Starting delayed leaderboard initialization...");
+                    
+                    // Load existing message IDs from database to in-memory map
+                    loadPersistedMessageIds();
+                    
+                    // Validate and clean up existing Discord messages
+                    validateAndCleanupExistingMessages().join();
+                    
+                    // Refresh leaderboard with proper ordering
                     refreshEntireLeaderboard().join();
                 } catch (Exception e) {
                     log.error("Failed to initialize leaderboard on startup: {}", e.getMessage(), e);
@@ -88,7 +105,109 @@ public class DiscordLeaderboardService {
     }
     
     /**
-     * Refresh the entire leaderboard with all active pairings
+     * Load persisted Discord message IDs from database into in-memory map
+     */
+    private void loadPersistedMessageIds() {
+        try {
+            List<com.app.heartbound.entities.Pairing> activePairings = pairingRepository.findByActiveTrue();
+            int loadedCount = 0;
+            
+            for (com.app.heartbound.entities.Pairing pairing : activePairings) {
+                if (pairing.getDiscordLeaderboardMessageId() != null && !pairing.getDiscordLeaderboardMessageId().isEmpty()) {
+                    pairingMessageMap.put(pairing.getId(), pairing.getDiscordLeaderboardMessageId());
+                    loadedCount++;
+                }
+            }
+            
+            log.info("Loaded {} persisted Discord message IDs into memory", loadedCount);
+        } catch (Exception e) {
+            log.error("Failed to load persisted message IDs: {}", e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Validate existing Discord messages and clean up orphaned ones
+     */
+    @Async
+    public CompletableFuture<Void> validateAndCleanupExistingMessages() {
+        if (!leaderboardEnabled) {
+            return CompletableFuture.completedFuture(null);
+        }
+        
+        return CompletableFuture.runAsync(() -> {
+            try {
+                log.info("Validating and cleaning up existing Discord leaderboard messages");
+                
+                TextChannel channel = getLeaderboardChannel();
+                if (channel == null) {
+                    log.warn("Cannot validate messages - leaderboard channel not found");
+                    return;
+                }
+                
+                // Get recent messages from Discord channel (last 100 messages should be enough)
+                List<Message> discordMessages = channel.getHistory().retrievePast(100).complete();
+                
+                // Get active pairings with their message IDs
+                List<com.app.heartbound.entities.Pairing> activePairings = pairingRepository.findByActiveTrue();
+                Set<String> validMessageIds = activePairings.stream()
+                    .map(com.app.heartbound.entities.Pairing::getDiscordLeaderboardMessageId)
+                    .filter(id -> id != null && !id.isEmpty())
+                    .collect(Collectors.toSet());
+                
+                Set<Long> activePairingIds = activePairings.stream()
+                    .map(com.app.heartbound.entities.Pairing::getId)
+                    .collect(Collectors.toSet());
+                
+                int deletedCount = 0;
+                int validatedCount = 0;
+                
+                // Check each Discord message
+                for (Message message : discordMessages) {
+                    // Skip non-bot messages
+                    if (!message.getAuthor().equals(jda.getSelfUser())) {
+                        continue;
+                    }
+                    
+                    // Skip messages that aren't embeds (our leaderboard messages are embeds)
+                    if (message.getEmbeds().isEmpty()) {
+                        continue;
+                    }
+                    
+                    String messageId = message.getId();
+                    
+                    // Check if this message ID is associated with an active pairing
+                    boolean isValidMessage = validMessageIds.contains(messageId);
+                    
+                    if (!isValidMessage) {
+                        // This is an orphaned leaderboard message - delete it
+                        try {
+                            message.delete().queue(
+                                success -> log.debug("Deleted orphaned leaderboard message: {}", messageId),
+                                error -> log.warn("Failed to delete orphaned message {}: {}", messageId, error.getMessage())
+                            );
+                            deletedCount++;
+                            
+                            // Small delay to avoid rate limiting
+                            Thread.sleep(200);
+                        } catch (Exception e) {
+                            log.warn("Error deleting orphaned message {}: {}", messageId, e.getMessage());
+                        }
+                    } else {
+                        validatedCount++;
+                    }
+                }
+                
+                log.info("Message validation complete - {} valid messages, {} orphaned messages deleted", 
+                        validatedCount, deletedCount);
+                
+            } catch (Exception e) {
+                log.error("Failed to validate and cleanup messages: {}", e.getMessage(), e);
+            }
+        });
+    }
+    
+    /**
+     * Refresh the entire leaderboard with all active pairings in proper order
      */
     @Async
     public CompletableFuture<Void> refreshEntireLeaderboard() {
@@ -98,28 +217,66 @@ public class DiscordLeaderboardService {
         
         return CompletableFuture.runAsync(() -> {
             try {
-                log.info("Refreshing Discord leaderboard with all active pairings");
+                log.info("Refreshing Discord leaderboard with level-based ordering");
                 
-                // Get all active pairings
-                List<com.app.heartbound.entities.Pairing> activePairings = pairingRepository.findByActiveTrue();
+                // Get all active pairings ordered by level (highest first), then by XP
+                List<com.app.heartbound.entities.Pairing> orderedPairings = pairingRepository.findActivePairingsOrderedByLevel();
                 
-                if (activePairings.isEmpty()) {
+                if (orderedPairings.isEmpty()) {
                     log.info("No active pairings found to display in leaderboard");
                     return;
                 }
                 
-                log.info("Found {} active pairings to add to leaderboard", activePairings.size());
+                log.info("Found {} active pairings to add to leaderboard in level order", orderedPairings.size());
                 
-                // Convert to DTOs and add to leaderboard
-                for (com.app.heartbound.entities.Pairing pairing : activePairings) {
-                    PairingDTO pairingDTO = mapToPairingDTO(pairing);
-                    addOrUpdatePairingEmbed(pairingDTO).join(); // Wait for each to complete
-                    
-                    // Small delay to avoid Discord rate limiting
-                    Thread.sleep(500);
+                // To ensure proper Discord ordering, we need to delete existing messages and recreate them
+                // This guarantees the correct visual order in Discord channel
+                TextChannel channel = getLeaderboardChannel();
+                if (channel == null) {
+                    log.warn("Cannot refresh leaderboard - channel not found");
+                    return;
                 }
                 
-                log.info("Successfully refreshed leaderboard with {} pairings", activePairings.size());
+                // First, delete all existing leaderboard messages for proper ordering
+                for (com.app.heartbound.entities.Pairing pairing : orderedPairings) {
+                    String existingMessageId = pairing.getDiscordLeaderboardMessageId();
+                    if (existingMessageId != null && !existingMessageId.isEmpty()) {
+                        try {
+                            channel.deleteMessageById(existingMessageId).queue(
+                                success -> log.debug("Deleted existing message for pairing {} for reordering", pairing.getId()),
+                                error -> log.debug("Could not delete existing message {} (may not exist): {}", existingMessageId, error.getMessage())
+                            );
+                            
+                            // Clear from database and memory
+                            pairing.setDiscordLeaderboardMessageId(null);
+                            pairingRepository.save(pairing);
+                            pairingMessageMap.remove(pairing.getId());
+                            
+                            // Small delay to avoid rate limiting
+                            Thread.sleep(300);
+                        } catch (Exception e) {
+                            log.debug("Error deleting existing message for pairing {}: {}", pairing.getId(), e.getMessage());
+                        }
+                    }
+                }
+                
+                // Wait a bit for deletions to complete
+                Thread.sleep(2000);
+                
+                // Now create new embeds in correct order (highest level first)
+                for (com.app.heartbound.entities.Pairing pairing : orderedPairings) {
+                    try {
+                        PairingDTO pairingDTO = mapToPairingDTO(pairing);
+                        addOrUpdatePairingEmbed(pairingDTO).join();
+                        
+                        // Delay between embeds to ensure proper ordering and avoid rate limits
+                        Thread.sleep(800);
+                    } catch (Exception e) {
+                        log.error("Failed to create embed for pairing {} during refresh: {}", pairing.getId(), e.getMessage());
+                    }
+                }
+                
+                log.info("Successfully refreshed leaderboard with {} pairings in level order", orderedPairings.size());
                 
             } catch (Exception e) {
                 log.error("Failed to refresh entire leaderboard: {}", e.getMessage(), e);
@@ -128,7 +285,7 @@ public class DiscordLeaderboardService {
     }
     
     /**
-     * Map Pairing entity to PairingDTO (simplified version)
+     * Map Pairing entity to PairingDTO (updated with new field)
      */
     private PairingDTO mapToPairingDTO(com.app.heartbound.entities.Pairing pairing) {
         return PairingDTO.builder()
@@ -137,6 +294,7 @@ public class DiscordLeaderboardService {
                 .user2Id(pairing.getUser2Id())
                 .discordChannelId(pairing.getDiscordChannelId())
                 .discordChannelName(pairing.getDiscordChannelName())
+                .discordLeaderboardMessageId(pairing.getDiscordLeaderboardMessageId())
                 .matchedAt(pairing.getMatchedAt())
                 .messageCount(pairing.getMessageCount())
                 .user1MessageCount(pairing.getUser1MessageCount())
@@ -182,16 +340,19 @@ public class DiscordLeaderboardService {
                     return false;
                 }
                 
-                // Check if embed already exists
-                String existingMessageId = pairingMessageMap.get(pairing.getId());
-                MessageEmbed embed = buildPairingEmbed(pairing);
+                // Check for existing message ID (now from database/memory)
+                String existingMessageId = pairing.getDiscordLeaderboardMessageId();
+                if (existingMessageId == null || existingMessageId.isEmpty()) {
+                    existingMessageId = pairingMessageMap.get(pairing.getId());
+                }
                 
+                MessageEmbed embed = buildPairingEmbed(pairing);
                 if (embed == null) {
                     log.warn("Failed to build embed for pairing {}", pairing.getId());
                     return false;
                 }
                 
-                if (existingMessageId != null) {
+                if (existingMessageId != null && !existingMessageId.isEmpty()) {
                     // Update existing message
                     return updateExistingEmbed(channel, existingMessageId, embed, pairing.getId());
                 } else {
@@ -220,8 +381,19 @@ public class DiscordLeaderboardService {
             try {
                 log.debug("Removing leaderboard embed for pairing ID: {}", pairingId);
                 
-                String messageId = pairingMessageMap.remove(pairingId);
-                if (messageId == null) {
+                // Get message ID from database first, then memory
+                Optional<com.app.heartbound.entities.Pairing> pairingOpt = pairingRepository.findById(pairingId);
+                String messageId = null;
+                
+                if (pairingOpt.isPresent()) {
+                    messageId = pairingOpt.get().getDiscordLeaderboardMessageId();
+                }
+                
+                if (messageId == null || messageId.isEmpty()) {
+                    messageId = pairingMessageMap.get(pairingId);
+                }
+                
+                if (messageId == null || messageId.isEmpty()) {
                     log.debug("No message found to remove for pairing {}", pairingId);
                     return true; // Not an error, just nothing to remove
                 }
@@ -234,9 +406,36 @@ public class DiscordLeaderboardService {
                 
                 // Delete the message
                 channel.deleteMessageById(messageId).queue(
-                    success -> log.debug("Successfully deleted leaderboard message for pairing {}", pairingId),
-                    error -> log.warn("Failed to delete leaderboard message for pairing {}: {}", 
-                                    pairingId, error.getMessage())
+                    success -> {
+                        log.debug("Successfully deleted leaderboard message for pairing {}", pairingId);
+                        
+                        // Clean up database and memory
+                        try {
+                            Optional<com.app.heartbound.entities.Pairing> pairing = pairingRepository.findById(pairingId);
+                            if (pairing.isPresent()) {
+                                pairing.get().setDiscordLeaderboardMessageId(null);
+                                pairingRepository.save(pairing.get());
+                            }
+                            pairingMessageMap.remove(pairingId);
+                        } catch (Exception e) {
+                            log.warn("Failed to clean up message ID for pairing {}: {}", pairingId, e.getMessage());
+                        }
+                    },
+                    error -> {
+                        log.warn("Failed to delete leaderboard message for pairing {}: {}", pairingId, error.getMessage());
+                        
+                        // Clean up tracking even if delete failed (message might not exist)
+                        try {
+                            Optional<com.app.heartbound.entities.Pairing> pairing = pairingRepository.findById(pairingId);
+                            if (pairing.isPresent()) {
+                                pairing.get().setDiscordLeaderboardMessageId(null);
+                                pairingRepository.save(pairing.get());
+                            }
+                            pairingMessageMap.remove(pairingId);
+                        } catch (Exception e) {
+                            log.warn("Failed to clean up message ID for pairing {}: {}", pairingId, e.getMessage());
+                        }
+                    }
                 );
                 
                 return true;
@@ -354,7 +553,7 @@ public class DiscordLeaderboardService {
     /**
      * Get the Discord leaderboard channel
      */
-        private TextChannel getLeaderboardChannel() {
+    private TextChannel getLeaderboardChannel() {
         try {
             log.debug("Getting Discord guild with ID: {}", discordServerId);
             Guild guild = jda.getGuildById(discordServerId);
@@ -388,14 +587,16 @@ public class DiscordLeaderboardService {
                 success -> log.debug("Successfully updated leaderboard embed for pairing {}", pairingId),
                 error -> {
                     log.warn("Failed to update leaderboard embed for pairing {}: {}", pairingId, error.getMessage());
-                    // Remove the invalid message ID from our map
+                    // Remove the invalid message ID from our map and database
                     pairingMessageMap.remove(pairingId);
+                    clearMessageIdFromDatabase(pairingId);
                 }
             );
             return true;
         } catch (Exception e) {
             log.error("Exception updating embed for pairing {}: {}", pairingId, e.getMessage());
             pairingMessageMap.remove(pairingId);
+            clearMessageIdFromDatabase(pairingId);
             return false;
         }
     }
@@ -407,10 +608,12 @@ public class DiscordLeaderboardService {
         try {
             channel.sendMessageEmbeds(embed).queue(
                 message -> {
-                    // Store the message ID for future updates
-                    pairingMessageMap.put(pairingId, message.getId());
+                    // Store the message ID for future updates (both in memory and database)
+                    String messageId = message.getId();
+                    pairingMessageMap.put(pairingId, messageId);
+                    saveMessageIdToDatabase(pairingId, messageId);
                     log.debug("Successfully created leaderboard embed for pairing {} with message ID {}", 
-                             pairingId, message.getId());
+                             pairingId, messageId);
                 },
                 error -> log.warn("Failed to create leaderboard embed for pairing {}: {}", 
                                 pairingId, error.getMessage())
@@ -419,6 +622,42 @@ public class DiscordLeaderboardService {
         } catch (Exception e) {
             log.error("Exception creating embed for pairing {}: {}", pairingId, e.getMessage());
             return false;
+        }
+    }
+    
+    /**
+     * Save Discord message ID to database for persistent tracking
+     */
+    private void saveMessageIdToDatabase(Long pairingId, String messageId) {
+        try {
+            Optional<com.app.heartbound.entities.Pairing> pairingOpt = pairingRepository.findById(pairingId);
+            if (pairingOpt.isPresent()) {
+                com.app.heartbound.entities.Pairing pairing = pairingOpt.get();
+                pairing.setDiscordLeaderboardMessageId(messageId);
+                pairingRepository.save(pairing);
+                log.debug("Saved Discord message ID {} for pairing {} to database", messageId, pairingId);
+            } else {
+                log.warn("Could not save message ID - pairing {} not found", pairingId);
+            }
+        } catch (Exception e) {
+            log.error("Failed to save message ID to database for pairing {}: {}", pairingId, e.getMessage());
+        }
+    }
+    
+    /**
+     * Clear Discord message ID from database
+     */
+    private void clearMessageIdFromDatabase(Long pairingId) {
+        try {
+            Optional<com.app.heartbound.entities.Pairing> pairingOpt = pairingRepository.findById(pairingId);
+            if (pairingOpt.isPresent()) {
+                com.app.heartbound.entities.Pairing pairing = pairingOpt.get();
+                pairing.setDiscordLeaderboardMessageId(null);
+                pairingRepository.save(pairing);
+                log.debug("Cleared Discord message ID for pairing {} from database", pairingId);
+            }
+        } catch (Exception e) {
+            log.error("Failed to clear message ID from database for pairing {}: {}", pairingId, e.getMessage());
         }
     }
     
