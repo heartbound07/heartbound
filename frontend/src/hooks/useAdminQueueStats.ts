@@ -48,16 +48,9 @@ export const useAdminQueueStats = (): AdminQueueStatsHookReturn => {
     const warmUpCache = async () => {
       try {
         console.log('[AdminQueueStats] Warming up cache after subscription');
-        const response = await fetch('/pairings/admin/queue/cache/warmup', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (response.ok) {
-          console.log('[AdminQueueStats] Cache warmed up successfully');
-        }
+        const { warmUpQueueStatsCache } = await import('../config/pairingService');
+        await warmUpQueueStatsCache();
+        console.log('[AdminQueueStats] Cache warmed up successfully');
       } catch (error) {
         console.log('[AdminQueueStats] Cache warm-up failed, will rely on initial fetch:', error);
       }
