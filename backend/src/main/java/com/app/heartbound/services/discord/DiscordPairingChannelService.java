@@ -125,9 +125,7 @@ public class DiscordPairingChannelService {
     private void sendWelcomeMessage(TextChannel channel, Member member1, Member member2, Long pairingId) {
         try {
             // Send the simple welcome header message first
-            String welcomeHeader = "🎉 " + MarkdownUtil.bold("Welcome to your private pairing channel!") + " 🎉\n\n" +
-                                 "Hey " + member1.getAsMention() + " and " + member2.getAsMention() + "! " +
-                                 "You've been matched in the Don't Catch Feelings Challenge!";
+            String welcomeHeader = "Hey " + member1.getAsMention() + " and " + member2.getAsMention() + "! ";
             
             // Create the embed with detailed information
             EmbedBuilder embed = buildWelcomeMessageEmbed(member1, member2, pairingId);
@@ -156,7 +154,7 @@ public class DiscordPairingChannelService {
         EmbedBuilder embed = new EmbedBuilder();
         
         embed.setColor(Color.decode("#58b9ff"));
-        embed.setTitle("💕 Guide 💕");
+        embed.setTitle("💕 Welcome to your private pairing channel! 💕");
         
         // About this channel section
         StringBuilder aboutChannel = new StringBuilder();
