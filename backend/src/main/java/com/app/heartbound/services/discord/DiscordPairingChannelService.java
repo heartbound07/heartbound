@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.utils.MarkdownUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -91,6 +92,9 @@ public class DiscordPairingChannelService {
                 logger.info("Successfully created pairing channel '{}' (ID: {}) for users {} and {}", 
                            channelName, channel.getId(), user1DiscordId, user2DiscordId);
                 
+                // 🎉 NEW: Send welcome message to the newly created channel
+                sendWelcomeMessage(channel, member1, member2, pairingId);
+                
                 return ChannelCreationResult.success(channel.getId(), channelName);
                 
             } catch (Exception e) {
@@ -103,6 +107,92 @@ public class DiscordPairingChannelService {
               logger.error("Timeout or error in channel creation: {}", throwable.getMessage());
               return ChannelCreationResult.failure("Channel creation timed out");
           });
+    }
+
+    /**
+     * Sends a welcome message to a newly created pairing channel
+     * 
+     * @param channel The Discord text channel to send the message to
+     * @param member1 First member of the pairing
+     * @param member2 Second member of the pairing
+     * @param pairingId The pairing ID for reference
+     */
+    private void sendWelcomeMessage(TextChannel channel, Member member1, Member member2, Long pairingId) {
+        try {
+            logger.debug("Sending welcome message to pairing channel {} (pairing ID: {})", channel.getId(), pairingId);
+            
+            // Build the welcome message with user mentions and informative content
+            String welcomeMessage = buildWelcomeMessageContent(member1, member2, pairingId);
+            
+            // Send the message asynchronously to avoid blocking channel creation
+            channel.sendMessage(welcomeMessage)
+                   .queue(
+                       message -> {
+                           logger.info("Successfully sent welcome message to pairing channel {} (pairing ID: {})", 
+                                      channel.getId(), pairingId);
+                       },
+                       error -> {
+                           // Log the error but don't fail the channel creation
+                           logger.warn("Failed to send welcome message to pairing channel {} (pairing ID: {}): {}", 
+                                      channel.getId(), pairingId, error.getMessage());
+                       }
+                   );
+                   
+        } catch (Exception e) {
+            // Graceful error handling - welcome message failure shouldn't break channel creation
+            logger.warn("Exception while sending welcome message to pairing channel {} (pairing ID: {}): {}", 
+                       channel.getId(), pairingId, e.getMessage());
+        }
+    }
+
+    /**
+     * Builds the content for the welcome message
+     * 
+     * @param member1 First member of the pairing
+     * @param member2 Second member of the pairing
+     * @param pairingId The pairing ID for reference
+     * @return The formatted welcome message content
+     */
+    private String buildWelcomeMessageContent(Member member1, Member member2, Long pairingId) {
+        StringBuilder message = new StringBuilder();
+        
+        // Welcome header with user mentions
+        message.append("🎉 ").append(MarkdownUtil.bold("Welcome to your private pairing channel!")).append(" 🎉\n\n");
+        message.append("Hey ").append(member1.getAsMention()).append(" and ").append(member2.getAsMention()).append("! ");
+        message.append("You've been matched in the Don't Catch Feelings Challenge! ");
+        
+        // Channel explanation
+        message.append("📱 ").append(MarkdownUtil.bold("About this channel:")).append("\n");
+        message.append("• This is your **private channel** - only you two can see it\n");
+        message.append("• Perfect place to chat, get to know each other, and have fun!\n");
+        message.append("• Feel free to share memes, talk about games, or just vibe together\n\n");
+        
+        // Stat tracking info
+        message.append("📊 ").append(MarkdownUtil.bold("What we track:")).append("\n");
+        message.append("• **Messages & word count** - Every message contributes to your pair stats\n");
+        message.append("• **Voice time** - Join voice channels together to build streaks\n");
+        message.append("• **Active days** - Keep the conversation going to increase your score\n");
+        message.append("• **Emojis & reactions** - Express yourselves and have fun!\n\n");
+        
+        // Achievement system
+        message.append("🏆 ").append(MarkdownUtil.bold("Level up together:")).append("\n");
+        message.append("• Unlock **achievements** by hitting activity milestones\n");
+        message.append("• Gain **XP points** for every interaction\n");
+        message.append("• Build **voice streaks** by chatting in voice channels daily\n");
+        message.append("• Check your progress on the pairings page anytime!\n\n");
+        
+        // Breakup instructions
+        message.append("💔 ").append(MarkdownUtil.bold("If things don't work out:")).append("\n");
+        message.append("• Use the ").append(MarkdownUtil.monospace("/breakup")).append(" command in this channel\n");
+        message.append("• Or visit the **pairings page** in the app to end the match\n");
+        message.append("• No hard feelings - finding the right match takes time!\n\n");
+        
+        // Encouraging footer
+        message.append("💝 ").append(MarkdownUtil.italics("Remember: The goal is to have fun and make a genuine connection."));
+        message.append(" Don't catch feelings too quickly, but don't be afraid to be yourself!").append("\n\n");
+        message.append("Good luck, and may the odds be ever in your favor! ✨");
+        
+        return message.toString();
     }
 
     /**
