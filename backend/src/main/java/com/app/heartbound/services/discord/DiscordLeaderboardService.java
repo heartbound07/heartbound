@@ -53,6 +53,11 @@ public class DiscordLeaderboardService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy");
     private static final String HEART_EMOJI = "♡";
     
+    // Medal emojis for top ranks
+    private static final String GOLD_MEDAL_EMOJI = "🥇";
+    private static final String SILVER_MEDAL_EMOJI = "🥈";
+    private static final String BRONZE_MEDAL_EMOJI = "🥉";
+    
     @Autowired
     private JDA jda;
     
@@ -400,6 +405,21 @@ public class DiscordLeaderboardService {
     }
     
     /**
+     * Format rank title with appropriate medal emojis for top 3 positions
+     * 
+     * @param rank The 1-indexed rank position
+     * @return Formatted title string with medal emoji for top 3, or standard format for others
+     */
+    private String formatRankTitle(int rank) {
+        return switch (rank) {
+            case 1 -> String.format("%s Rank %d", GOLD_MEDAL_EMOJI, rank);
+            case 2 -> String.format("%s Rank %d", SILVER_MEDAL_EMOJI, rank);
+            case 3 -> String.format("%s Rank %d", BRONZE_MEDAL_EMOJI, rank);
+            default -> String.format("Rank %d", rank);
+        };
+    }
+    
+    /**
      * Remove a pairing embed from the Discord leaderboard
      */
     @Async
@@ -530,7 +550,7 @@ public class DiscordLeaderboardService {
             
             // Add title with rank if provided
             if (rank != null) {
-                embedBuilder.setTitle(String.format("Rank %d", rank));
+                embedBuilder.setTitle(formatRankTitle(rank));
             }
             
             // Add level and XP field (inline set to false for Level field only)
