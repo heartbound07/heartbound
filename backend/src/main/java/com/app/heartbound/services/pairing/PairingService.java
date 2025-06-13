@@ -195,6 +195,9 @@ public class PairingService {
             log.error("Failed to update XP system for pairing {}: {}", pairingId, e.getMessage());
         }
 
+        // 🚀 NEW: Refresh Discord leaderboard after activity update
+        addPairingToLeaderboard(mapToPairingDTO(updatedPairing));
+
         log.info("Successfully updated activity for pairing ID: {}", pairingId);
         return mapToPairingDTO(updatedPairing);
     }
@@ -798,10 +801,35 @@ public class PairingService {
                         return null;
                     });
                     
-        } catch (Exception e) {
-            log.error("Failed to initiate Discord leaderboard removal for pairing {}: {}", 
-                     pairingId, e.getMessage());
-            // Don't throw - breakup should succeed even if leaderboard removal fails
-        }
-    }
+                 } catch (Exception e) {
+             log.error("Failed to initiate Discord leaderboard removal for pairing {}: {}", 
+                      pairingId, e.getMessage());
+             // Don't throw - breakup should succeed even if leaderboard removal fails
+         }
+     }
+
+     /**
+      * Refresh Discord leaderboard for a specific pairing (public method for external calls)
+      */
+     public void refreshLeaderboardForPairing(Long pairingId) {
+         try {
+             log.debug("Refreshing Discord leaderboard for pairing {} after external update", pairingId);
+             
+             // Get the pairing
+             Optional<Pairing> pairingOpt = pairingRepository.findById(pairingId);
+             if (pairingOpt.isEmpty() || !pairingOpt.get().isActive()) {
+                 log.debug("Pairing {} not found or not active, skipping leaderboard refresh", pairingId);
+                 return;
+             }
+             
+             // Refresh leaderboard
+             PairingDTO pairingDTO = mapToPairingDTO(pairingOpt.get());
+             addPairingToLeaderboard(pairingDTO);
+             
+         } catch (Exception e) {
+             log.error("Failed to refresh Discord leaderboard for pairing {}: {}", 
+                      pairingId, e.getMessage());
+             // Don't throw - external operations should succeed even if leaderboard refresh fails
+         }
+     }
 } 

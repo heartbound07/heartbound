@@ -5,6 +5,7 @@ import com.app.heartbound.dto.pairing.UpdatePairLevelDTO;
 import com.app.heartbound.dto.pairing.ManageAchievementDTO;
 import com.app.heartbound.dto.pairing.UpdateVoiceStreakDTO;
 import com.app.heartbound.dto.pairing.CreateVoiceStreakDTO;
+import com.app.heartbound.services.pairing.PairingService;
 import com.app.heartbound.entities.PairLevel;
 import com.app.heartbound.entities.PairAchievement;
 import com.app.heartbound.entities.Achievement;
@@ -45,6 +46,7 @@ public class PairLevelController {
     private final PairLevelService pairLevelService;
     private final AchievementService achievementService;
     private final VoiceStreakService voiceStreakService;
+    private final PairingService pairingService;
 
     @Operation(summary = "Get pair level and XP information", description = "Get current level and XP data for a pairing")
     @ApiResponses(value = {
@@ -206,6 +208,10 @@ public class PairLevelController {
         
         try {
             PairLevel updatedLevel = pairLevelService.updatePairLevelAdmin(pairingId, updateRequest);
+            
+            // 🚀 NEW: Refresh Discord leaderboard after admin level update
+            pairingService.refreshLeaderboardForPairing(pairingId);
+            
             return ResponseEntity.ok(mapToPairLevelDTO(updatedLevel));
             
         } catch (IllegalArgumentException e) {

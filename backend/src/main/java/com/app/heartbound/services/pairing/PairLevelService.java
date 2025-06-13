@@ -121,6 +121,8 @@ public class PairLevelService {
         // Broadcast XP gain notification
         broadcastXPUpdate(savedLevel, xpToAdd, reason, leveledUp, oldLevel);
         
+        // Note: Leaderboard refresh handled by PairingService when needed
+        
         log.info("Added {} XP to pairing {}: Total XP: {}, Level: {}, Reason: {}", 
                 xpToAdd, pairingId, savedLevel.getTotalXP(), savedLevel.getCurrentLevel(), reason);
 
@@ -153,6 +155,8 @@ public class PairLevelService {
         
         // Broadcast XP removal notification
         broadcastXPUpdate(savedLevel, -xpToRemove, reason, savedLevel.getCurrentLevel() < oldLevel, oldLevel);
+        
+        // Note: Leaderboard refresh handled by PairingService when needed
         
         log.info("Removed {} XP from pairing {}: Total XP: {}, Level: {}, Reason: {}", 
                 xpToRemove, pairingId, savedLevel.getTotalXP(), savedLevel.getCurrentLevel(), reason);
@@ -439,6 +443,8 @@ public class PairLevelService {
         
         PairLevel savedLevel = pairLevelRepository.save(pairLevel);
         log.info("Reset pair level for pairing {}", pairingId);
+        
+        // Note: Leaderboard refresh handled by PairingService when needed
         
         return savedLevel;
     }
