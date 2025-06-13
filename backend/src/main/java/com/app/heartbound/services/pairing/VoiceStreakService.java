@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 /**
  * VoiceStreakService
@@ -33,6 +34,9 @@ public class VoiceStreakService {
     private final PairingRepository pairingRepository;
     private final PairLevelService pairLevelService;
     private final SimpMessagingTemplate messagingTemplate;
+    
+    // Callback for Discord leaderboard refresh (set by PairingService to avoid circular dependency)
+    private Consumer<Long> discordLeaderboardRefreshCallback;
 
     /**
      * Update voice activity for a pairing on a specific date
@@ -75,6 +79,15 @@ public class VoiceStreakService {
         // Check for streak milestones and award XP
         if (isNewStreak && savedStreak.meetsMinimumActivity()) {
             checkStreakMilestones(savedStreak);
+        }
+
+        // 🚀 NEW: Refresh Discord leaderboard after voice activity update
+        if (discordLeaderboardRefreshCallback != null) {
+            try {
+                discordLeaderboardRefreshCallback.accept(pairingId);
+            } catch (Exception e) {
+                log.error("Failed to refresh Discord leaderboard after voice activity update for pairing {}: {}", pairingId, e.getMessage());
+            }
         }
 
         log.info("Updated voice activity for pairing {} on {}: {} minutes, streak: {}", 
@@ -323,6 +336,16 @@ public class VoiceStreakService {
         }
         
         VoiceStreak saved = voiceStreakRepository.save(voiceStreak);
+        
+        // 🚀 NEW: Refresh Discord leaderboard after admin voice streak update
+        if (discordLeaderboardRefreshCallback != null) {
+            try {
+                discordLeaderboardRefreshCallback.accept(saved.getPairing().getId());
+            } catch (Exception e) {
+                log.error("Failed to refresh Discord leaderboard after admin voice streak update for pairing {}: {}", saved.getPairing().getId(), e.getMessage());
+            }
+        }
+        
         log.info("Admin updated voice streak {}: Date={}, Minutes={}, Count={}, Active={}", 
                  streakId, saved.getStreakDate(), saved.getVoiceMinutes(), saved.getStreakCount(), saved.isActive());
         
@@ -356,6 +379,16 @@ public class VoiceStreakService {
             .build();
         
         VoiceStreak saved = voiceStreakRepository.save(voiceStreak);
+        
+        // 🚀 NEW: Refresh Discord leaderboard after admin voice streak creation
+        if (discordLeaderboardRefreshCallback != null) {
+            try {
+                discordLeaderboardRefreshCallback.accept(pairingId);
+            } catch (Exception e) {
+                log.error("Failed to refresh Discord leaderboard after admin voice streak creation for pairing {}: {}", pairingId, e.getMessage());
+            }
+        }
+        
         log.info("Admin created voice streak for pairing {}: Date={}, Minutes={}, Count={}, Active={}", 
                  pairingId, saved.getStreakDate(), saved.getVoiceMinutes(), saved.getStreakCount(), saved.isActive());
         
@@ -372,9 +405,21 @@ public class VoiceStreakService {
         VoiceStreak voiceStreak = voiceStreakRepository.findById(streakId)
             .orElseThrow(() -> new IllegalArgumentException("Voice streak not found: " + streakId));
         
+        Long pairingId = voiceStreak.getPairing().getId();
+        
         voiceStreakRepository.delete(voiceStreak);
+        
+        // 🚀 NEW: Refresh Discord leaderboard after admin voice streak deletion
+        if (discordLeaderboardRefreshCallback != null) {
+            try {
+                discordLeaderboardRefreshCallback.accept(pairingId);
+            } catch (Exception e) {
+                log.error("Failed to refresh Discord leaderboard after admin voice streak deletion for pairing {}: {}", pairingId, e.getMessage());
+            }
+        }
+        
         log.info("Admin deleted voice streak {}: Date={}, Pairing={}", 
-                 streakId, voiceStreak.getStreakDate(), voiceStreak.getPairing().getId());
+                 streakId, voiceStreak.getStreakDate(), pairingId);
     }
 
     /**
@@ -391,5 +436,12 @@ public class VoiceStreakService {
         } else {
             log.info("No voice streak records found to delete for pairing {}", pairingId);
         }
+    }
+
+    /**
+     * Set the Discord leaderboard refresh callback (called by PairingService to avoid circular dependency)
+     */
+    public void setDiscordLeaderboardRefreshCallback(Consumer<Long> callback) {
+        this.discordLeaderboardRefreshCallback = callback;
     }
 } 

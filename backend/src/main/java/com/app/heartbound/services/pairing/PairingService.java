@@ -59,6 +59,7 @@ public class PairingService {
         // Set Discord leaderboard refresh callbacks to avoid circular dependencies
         pairLevelService.setDiscordLeaderboardRefreshCallback(this::refreshLeaderboardForPairing);
         achievementService.setDiscordLeaderboardRefreshCallback(this::refreshLeaderboardForPairing);
+        voiceStreakService.setDiscordLeaderboardRefreshCallback(this::refreshLeaderboardForPairing);
         discordMessageListenerService.setDiscordLeaderboardRefreshCallback(this::refreshLeaderboardForPairing);
         
         log.info("Initialized Discord leaderboard refresh callbacks for XP system and Discord services");
