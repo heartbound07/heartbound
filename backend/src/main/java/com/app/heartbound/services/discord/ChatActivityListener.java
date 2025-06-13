@@ -2,6 +2,7 @@ package com.app.heartbound.services.discord;
 
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
+import com.app.heartbound.repositories.pairing.PairingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -31,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 public class ChatActivityListener extends ListenerAdapter {
     
     private final UserService userService;
+    private final PairingRepository pairingRepository;
     
     @Value("${discord.activity.enabled:true}")
     private boolean activityEnabled;
@@ -310,6 +312,13 @@ public class ChatActivityListener extends ListenerAdapter {
         // Ignore messages from bots, DMs, or self
         if (!event.isFromGuild() || event.getAuthor().isBot() || 
             event.getAuthor().getId().equals(event.getJDA().getSelfUser().getId())) {
+            return;
+        }
+        
+        // 🚀 NEW: Skip pairing channels to avoid double XP/credits (pairing XP system handles these)
+        long channelId = event.getChannel().getIdLong();
+        if (pairingRepository.findByDiscordChannelId(channelId).isPresent()) {
+            log.debug("Skipping individual user XP/credits for pairing channel: {} - pairing XP system will handle this", channelId);
             return;
         }
         
