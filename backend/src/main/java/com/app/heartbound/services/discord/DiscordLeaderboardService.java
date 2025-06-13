@@ -272,23 +272,35 @@ public class DiscordLeaderboardService {
             // Fetch voice streak data
             int currentStreak = voiceStreakService.getCurrentStreakCount(pairing.getId());
             
+            // Build description with Discord user mentions for clickable references
+            String description;
+            if (pairing.getUser1Id() != null && pairing.getUser2Id() != null) {
+                description = String.format("<@%s> %s <@%s>", 
+                                          pairing.getUser1Id(), 
+                                          HEART_EMOJI, 
+                                          pairing.getUser2Id());
+            } else {
+                // Fallback to usernames if Discord IDs are not available
+                description = String.format("@%s %s @%s", 
+                                          sanitizeUsername(user1Profile.getUsername()), 
+                                          HEART_EMOJI, 
+                                          sanitizeUsername(user2Profile.getUsername()));
+            }
+            
             EmbedBuilder embedBuilder = new EmbedBuilder()
                 .setColor(DISCORD_BLURPLE)
-                .setTitle(String.format("@%s %s @%s", 
-                         sanitizeUsername(user1Profile.getUsername()), 
-                         HEART_EMOJI, 
-                         sanitizeUsername(user2Profile.getUsername())))
+                .setDescription(description)
                 .setTimestamp(LocalDateTime.now());
             
-            // Add level and XP field
+            // Add level and XP field (inline set to false for Level field only)
             if (pairLevel != null) {
                 embedBuilder.addField(
                     String.format("**Level %d**", pairLevel.getCurrentLevel()),
                     String.format("%,d XP", pairLevel.getTotalXP()),
-                    true
+                    false
                 );
             } else {
-                embedBuilder.addField("**Level 1**", "0 XP", true);
+                embedBuilder.addField("**Level 1**", "0 XP", false);
             }
             
             // Add message count field
@@ -326,11 +338,7 @@ public class DiscordLeaderboardService {
                 embedBuilder.setThumbnail(thumbnailUrl);
             }
             
-            // Add footer with match date
-            if (pairing.getMatchedAt() != null) {
-                String matchedDate = DATE_FORMATTER.format(pairing.getMatchedAt());
-                embedBuilder.setFooter("Matched on " + matchedDate);
-            }
+            // Footer removed as requested
             
             return embedBuilder.build();
             
