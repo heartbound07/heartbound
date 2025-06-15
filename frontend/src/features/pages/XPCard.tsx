@@ -373,16 +373,24 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                           key={achievement.id}
                           className={`p-3 rounded-lg border ${getRarityColor(achievement.achievement.rarity)} bg-theme-container theme-transition`}
                         >
-                          <div className="flex items-center justify-between">
-                            <div>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
                               <h5 className="font-medium text-white">{achievement.achievement.name}</h5>
-                              <p className="text-xs text-theme-secondary">
-                                {achievement.unlockTimeDisplay}
+                              <p className="text-sm text-theme-secondary mt-1">
+                                {achievement.achievement.description}
+                              </p>
+                              <p className="text-xs text-theme-tertiary mt-1">
+                                Unlocked {achievement.unlockTimeDisplay}
                               </p>
                             </div>
-                            <Badge variant="outline" className="text-primary border-primary/30">
-                              +{achievement.xpAwarded} XP
-                            </Badge>
+                            <div className="text-right ml-3">
+                              <Badge variant="outline" className="text-primary border-primary/30 mb-1">
+                                +{achievement.xpAwarded} XP
+                              </Badge>
+                              <div className="text-xs text-theme-secondary">
+                                {achievement.achievement.tier}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -451,7 +459,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                       {availableAchievements.map((achievement) => (
                         <div
                           key={achievement.id}
-                          className="p-3 rounded-lg border border-gray-600 opacity-75 bg-theme-card theme-transition"
+                          className={`p-3 rounded-lg border ${getRarityColor(achievement.rarity)} bg-theme-container theme-transition opacity-75`}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -461,7 +469,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                               </p>
                             </div>
                             <div className="text-right ml-3">
-                              <Badge variant="outline" className="text-gray-400 border-gray-600 mb-1">
+                              <Badge variant="outline" className="text-primary border-primary/30 mb-1">
                                 {achievement.xpReward} XP
                               </Badge>
                               <div className="text-xs text-theme-secondary">
@@ -689,11 +697,7 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
                         ].map(({ days, xp, color, achieved }) => (
                           <div
                             key={days}  
-                            className={`p-3 rounded-lg border ${
-                              achieved 
-                                ? `border-${color}-500/50 bg-${color}-500/10` 
-                                : 'border-gray-600 bg-gray-500/10'
-                            }`}
+                            className={`p-3 rounded-lg bg-theme-container border-theme theme-transition ${achieved ? 'opacity-100' : 'opacity-75'}`}
                           >
                             <div className="flex items-center justify-between">
                               <div>
