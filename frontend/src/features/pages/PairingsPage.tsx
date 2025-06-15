@@ -1105,8 +1105,8 @@ export function PairingsPage() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-theme-gradient">
-        <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-7xl w-full overflow-hidden">
+      <div className="pairings-page-wrapper">
+        <div className="pairings-inner-container">
             {/* Admin Controls */}
             <AnimatePresence>
               {hasRole("ADMIN") && (

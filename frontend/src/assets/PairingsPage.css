@@ -1,204 +1,100 @@
-/* PairingsPage specific styles */
+/* =============================================================================
+   PAIRINGS PAGE - CLEAN CSS ISOLATION STRATEGY
+   =============================================================================
+   
+   This CSS file uses a wrapper-based isolation strategy to prevent conflicts
+   with dashboard.css while maintaining the existing PairingsPage design.
+   
+   Key Strategy:
+   1. Use .pairings-page-wrapper to create an isolation boundary
+   2. Scope all styles within this wrapper to prevent inheritance issues
+   3. Minimize !important declarations by using proper specificity
+   4. Maintain existing visual design and functionality
+   
+============================================================================= */
 
-/* Root variables for consistency - Updated to match ValorantPage */
+/* Root variables for consistency */
 :root {
   --sidebar-width: 280px;
   --sidebar-collapsed-width: 80px;
   --transition-speed: 0.3s;
-  /* Updated color scheme to match ValorantPage */
+  /* Valorant color scheme */
   --valorant-bg-primary: #0F1923;
   --valorant-bg-secondary: #1F2731;
-  --valorant-border: rgba(255, 255, 255, 0.05); /* Matches border-white/5 */
+  --valorant-border: rgba(255, 255, 255, 0.05);
   --valorant-accent: #FF4655;
 }
 
-/* Override any dashboard layout styles that might be affecting PairingsPage */
-/* Ensure PairingsPage maintains its original styling when rendered in DashboardLayout */
-.min-h-screen.bg-theme-gradient {
-  /* Remove any unwanted borders, outlines, or padding from dashboard layout */
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-}
+/* =============================================================================
+   MAIN WRAPPER - CSS ISOLATION BOUNDARY
+============================================================================= */
 
-/* Remove unwanted focus outlines from dashboard layout inheritance */
-.min-h-screen.bg-theme-gradient *:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* Ensure container maintains original styling */
-.min-h-screen.bg-theme-gradient .container,
-.min-h-screen.bg-theme-gradient .container * {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* Remove any inherited borders from all elements */
-.min-h-screen.bg-theme-gradient *:not(.valorant-card):not(.admin-controls):not(.queue-status-card):not(.active-pairing-card) {
-  border: none !important;
-}
-
-/* Ensure card content areas don't have unwanted borders */
-.min-h-screen.bg-theme-gradient .space-y-6,
-.min-h-screen.bg-theme-gradient .space-y-4,
-.min-h-screen.bg-theme-gradient .space-y-8,
-.min-h-screen.bg-theme-gradient .gap-8,
-.min-h-screen.bg-theme-gradient .gap-6,
-.min-h-screen.bg-theme-gradient .gap-4 {
-  border: none !important;
-  outline: none !important;
-}
-
-/* Specifically ensure XP Card has no unwanted outlines */
-.min-h-screen.bg-theme-gradient .valorant-card .space-y-6 *,
-.min-h-screen.bg-theme-gradient .valorant-card .space-y-4 *,
-.min-h-screen.bg-theme-gradient .valorant-card .flex *,
-.min-h-screen.bg-theme-gradient .valorant-card .grid * {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-.pairings-container {
-  /* Updated background to match ValorantPage aesthetic */
-  background: var(--valorant-bg-primary);
-  /* Ensure it fills the viewport height */
-  min-height: 100vh;
-  /* Use a flex layout to organize its children */
-  display: flex;
-  flex-direction: column; /* Stack vertically on small screens */
-  /* Remove any default margins */
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  width: 100%;
-  position: relative; 
-}
-
-@media (min-width: 768px) {
-  .pairings-container {
-    flex-direction: row; /* Sidebar + content side-by-side on larger screens */
-  }
+.pairings-page-wrapper {
+  /* Reset any inherited dashboard styles */
+  all: unset;
   
-  .pairings-content {
-    /* Offset content so it doesn't go behind the fixed sidebar */
-    margin-left: var(--sidebar-width);
-    width: calc(100% - var(--sidebar-width));
-    transition: margin-left var(--transition-speed), width var(--transition-speed);
-  }
-  
-  /* Adjust content when sidebar is collapsed */
-  .pairings-content.sidebar-collapsed {
-    margin-left: var(--sidebar-collapsed-width);
-    width: calc(100% - var(--sidebar-collapsed-width));
-  }
-}
-
-.pairings-content {
-  /* Allow the content area to fill the remaining space */
-  flex: 1;
-  /* Add proper padding to ensure content doesn't overflow */
-  padding: 0;
-  /* Allow scrolling within the content area only */
-  overflow-y: auto;
-  width: 100%;
-  height: 100vh; /* Limit to viewport height */
+  /* Establish new stacking context */
   position: relative;
-}
-
-/* Custom scrollbar for webkit browsers */
-.pairings-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.pairings-content::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.3);
-  border-radius: 4px;
-}
-
-.pairings-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  transition: background 0.2s ease;
-}
-
-.pairings-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-/* For Firefox */
-.pairings-content {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(15, 23, 42, 0.3);
-}
-
-/* Responsive adjustments for small screens */
-@media (max-width: 768px) {
-  .pairings-content,
-  .pairings-content.sidebar-collapsed {
-    margin-left: 0;
-    width: 100%;
-    /* Adjust top padding to account for mobile header */
-    padding-top: 60px; /* Fixed value for mobile header */
-    transition: none; /* Remove transition on mobile */
-    height: 100vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1;
-  }
+  z-index: 1;
   
-  .pairings-container {
-    position: fixed;
-    inset: 0;
-    z-index: 1;
-    overflow: hidden;
+  /* Full container behavior */
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  
+  /* Override dashboard content padding/margins */
+  margin: 0 !important;
+  padding: 0 !important;
+  
+  /* Set our own background */
+  background: linear-gradient(135deg, var(--color-bg-gradient-from, #0F1923), var(--color-bg-gradient-to, #1F2731));
+  
+  /* Typography inheritance */
+  font-family: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+/* Inner container for proper spacing */
+.pairings-page-wrapper .pairings-inner-container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1rem 0.5rem;
+  overflow-x: hidden;
+}
+
+@media (min-width: 640px) {
+  .pairings-page-wrapper .pairings-inner-container {
+    padding: 2rem 1rem;
   }
 }
 
-/* Updated general card styling to match ValorantPage */
-.pairings-content .card,
-.min-h-screen.bg-theme-gradient .card {
-  background: rgba(31, 39, 49, 0.3) !important; /* Matches bg-[#1F2731]/30 */
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05) !important; /* Matches border-white/5 */
-  border-radius: 0.5rem; /* rounded-lg equivalent */
-  transition: all 0.3s ease;
-}
+/* =============================================================================
+   CARD SYSTEM
+============================================================================= */
 
-/* Specific styling for valorant-card class */
-.pairings-content .valorant-card,
-.min-h-screen.bg-theme-gradient .valorant-card {
-  background: rgba(31, 39, 49, 0.3) !important; /* Matches bg-[#1F2731]/30 */
+.pairings-page-wrapper .card,
+.pairings-page-wrapper .valorant-card {
+  background: rgba(31, 39, 49, 0.3);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05) !important; /* Matches border-white/5 */
-  border-radius: 0.5rem; /* rounded-lg equivalent */
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
   transition: all 0.3s ease;
-  /* Ensure layout animations work smoothly */
   transform-origin: top center;
   will-change: height, transform;
-  /* Remove any unwanted outlines */
-  outline: none !important;
-  box-shadow: none !important;
 }
 
-/* Enhanced queue status card styling */
-.queue-status-card {
-  background: rgba(31, 39, 49, 0.6) !important;
-  border: 1px solid rgba(59, 130, 246, 0.15) !important;
+.pairings-page-wrapper .queue-status-card {
+  background: rgba(31, 39, 49, 0.6);
+  border: 1px solid rgba(59, 130, 246, 0.15);
   backdrop-filter: blur(12px);
   border-radius: 1rem;
   position: relative;
   overflow: hidden;
 }
 
-.queue-status-card::before {
+.pairings-page-wrapper .queue-status-card::before {
   content: '';
   position: absolute;
   top: 0;
@@ -209,259 +105,82 @@
   pointer-events: none;
 }
 
-/* Remove pulsing animation from connection indicator */
-.queue-status-card .w-2.h-2.rounded-full {
-  transition: background-color 0.3s ease;
-}
-
-/* Active pairing styling - Updated */
-.active-pairing-card {
-  background: rgba(31, 39, 49, 0.4) !important;
-  border: 1px solid rgba(34, 197, 94, 0.1) !important; /* More subtle green border */
+.pairings-page-wrapper .active-pairing-card {
+  background: rgba(31, 39, 49, 0.4);
+  border: 1px solid rgba(34, 197, 94, 0.1);
   position: relative;
   overflow: hidden;
 }
 
-/* Pairing history user avatars hover effect */
-.pairings-content .user-avatar-container {
-  transition: all 0.2s ease;
-}
-
-/* Admin controls styling - Updated */
-.admin-controls {
-  background: rgba(31, 39, 49, 0.6) !important;
+.pairings-page-wrapper .admin-controls {
+  background: rgba(31, 39, 49, 0.6);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05) !important; /* Matches border-white/5 */
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 0.5rem;
 }
 
-/* Smooth transitions for all interactive elements */
-.pairings-content button,
-.pairings-content .card,
-.pairings-content .user-avatar-container {
-  transition: all 0.2s ease;
-}
+/* =============================================================================
+   TYPOGRAPHY
+============================================================================= */
 
-/* Loading states */
-.pairings-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
-}
-
-/* Error states - Updated */
-.pairings-error {
-  background: rgba(31, 39, 49, 0.3) !important;
-  border: 1px solid rgba(239, 68, 68, 0.2) !important;
-  color: #fca5a5;
-  padding: 1rem;
-  border-radius: 0.75rem;
-  text-align: center;
-  backdrop-filter: blur(8px);
-}
-
-/* Success states - Updated */
-.pairings-success {
-  background: rgba(31, 39, 49, 0.3) !important;
-  border: 1px solid rgba(34, 197, 94, 0.2) !important;
-  color: #86efac;
-  padding: 1rem;
-  border-radius: 0.75rem;
-  text-align: center;
-  backdrop-filter: blur(8px);
-}
-
-/* Enhanced container backgrounds */
-.pairings-content .bg-\[var\(--color-container-bg\)\] {
-  background: rgba(31, 39, 49, 0.4) !important;
-  border: 1px solid var(--valorant-border);
-  border-radius: 0.75rem;
-}
-
-/* Updated main content background */
-.pairings-content .bg-\[var\(--color-bg-gradient-from\)\] {
-  background: var(--valorant-bg-primary) !important;
-}
-
-/* Override any remaining white borders */
-.pairings-content .border-white\/10,
-.pairings-content [class*="border-white/10"] {
-  border-color: rgba(255, 255, 255, 0.05) !important;
-}
-
-.pairings-content .border-white\/5,
-.pairings-content [class*="border-white/5"] {
-  border-color: rgba(255, 255, 255, 0.05) !important;
-}
-
-/* Match history item styling */
-.pairings-content .border {
-  border-color: rgba(255, 255, 255, 0.05) !important;
-}
-
-/* Custom header styling */
-.pairings-hero-title {
+.pairings-page-wrapper .pairings-hero-title {
   font-family: 'Grandstander', sans-serif;
   font-weight: bold;
   letter-spacing: -0.025em;
-}
-
-/* Fallback for browsers that don't support the custom font */
-.pairings-hero-title {
   font-feature-settings: "kern" 1, "liga" 1;
 }
 
-/* XPCard Tab Navigation Styling */
-.pairings-content .valorant-card button[class*="theme-transition"] {
-  transition: all 0.2s ease !important;
-  position: relative;
-  z-index: 1;
-}
+/* =============================================================================
+   BUTTONS AND INTERACTIVE ELEMENTS
+============================================================================= */
 
-/* Inactive tab styling */
-.pairings-content .valorant-card button:not([class*="bg-primary"]) {
-  background: rgba(31, 39, 49, 0.6) !important;
-  color: rgba(148, 163, 184, 0.9) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-}
-
-/* Inactive tab hover effect */
-.pairings-content .valorant-card button:not([class*="bg-primary"]):hover {
-  background: rgba(31, 39, 49, 0.8) !important;
-  color: rgba(148, 163, 184, 1) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Active tab styling */
-.pairings-content .valorant-card button[class*="bg-primary"] {
-  background: rgba(255, 255, 255, 0.1) !important;
-  color: white !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
-}
-
-/* Active tab hover effect */
-.pairings-content .valorant-card button[class*="bg-primary"]:hover {
-  background: rgba(255, 255, 255, 0.15) !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-  transform: translateY(-1px);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Tab button focus styling for accessibility */
-.pairings-content .valorant-card button:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
-  outline-offset: 2px;
-}
-
-/* Remove outline on mouse focus for tab buttons */
-.pairings-content .valorant-card button:focus:not(:focus-visible) {
-  outline: none;
-}
-
-/* Remove outlines from clickable containers */
-.pairings-content div[tabindex]:focus:not(:focus-visible),
-.pairings-content [role="button"]:focus:not(:focus-visible) {
-  outline: none;
-}
-
-/* Ensure divs with onClick handlers don't show browser default focus */
-.pairings-content div[onclick]:focus:not(:focus-visible) {
-  outline: none;
-}
-
-/* Icon styling within tabs */
-.pairings-content .valorant-card button svg {
-  transition: all 0.2s ease;
-}
-
-/* Icon color for active tabs */
-.pairings-content .valorant-card button[class*="bg-primary"] svg {
-  color: white !important;
-}
-
-/* Icon color for inactive tabs */
-.pairings-content .valorant-card button:not([class*="bg-primary"]) svg {
-  color: rgba(148, 163, 184, 0.8) !important;
-}
-
-/* Icon hover effects */
-.pairings-content .valorant-card button:hover svg {
-  transform: scale(1.1);
-}
-
-/* Join Queue Button - Custom minimal aesthetic design */
-.join-queue-button {
-  /* Layout */
+.pairings-page-wrapper .join-queue-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem; /* 8px gap between icon and text */
-  
-  /* Sizing */
-  padding: 0.875rem 1.5rem; /* py-3.5 px-6 equivalent - slightly larger for better click target */
-  min-height: 3rem; /* 48px minimum height */
-  
-  /* Typography */
-  font-size: 1rem; /* text-base */
-  font-weight: 600; /* font-semibold */
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  min-height: 3rem;
+  font-size: 1rem;
+  font-weight: 600;
   font-family: inherit;
   line-height: 1.5;
-  
-  /* Colors & Background */
   color: rgba(255, 255, 255, 0.9);
-  background: rgba(31, 39, 49, 0.4); /* Matches valorant-card background */
-  border: 1px solid rgba(255, 255, 255, 0.08); /* Subtle border like other cards */
-  
-  /* Visual Effects */
-  border-radius: 0.5rem; /* rounded-lg to match card styling */
-  backdrop-filter: blur(8px); /* Matches card backdrop blur */
+  background: rgba(31, 39, 49, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  backdrop-filter: blur(8px);
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  
-  /* Transitions */
   transition: all 0.2s ease;
-  
-  /* Cursor */
   cursor: pointer;
-  
-  /* Remove browser defaults */
   outline: none;
   appearance: none;
   -webkit-appearance: none;
   text-decoration: none;
-  
-  /* Position for pseudo-elements */
   position: relative;
   overflow: hidden;
 }
 
-/* Hover Effects */
-.join-queue-button:hover:not(:disabled) {
+.pairings-page-wrapper .join-queue-button:hover:not(:disabled) {
   color: white;
-  background: rgba(31, 39, 49, 0.6); /* Slightly more opaque on hover */
-  border-color: rgba(255, 255, 255, 0.15); /* More visible border */
+  background: rgba(31, 39, 49, 0.6);
+  border-color: rgba(255, 255, 255, 0.15);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px); /* Subtle lift effect */
+  transform: translateY(-1px);
 }
 
-/* Icon color change on hover */
-.join-queue-button:hover:not(:disabled) svg {
-  color: #FF4655; /* Valorant accent color for icon */
-  transform: scale(1.05); /* Subtle icon scale */
+.pairings-page-wrapper .join-queue-button:hover:not(:disabled) svg {
+  color: #FF4655;
+  transform: scale(1.05);
 }
 
-/* Active/Pressed State */
-.join-queue-button:active:not(:disabled) {
-  transform: translateY(0); /* Return to original position */
+.pairings-page-wrapper .join-queue-button:active:not(:disabled) {
+  transform: translateY(0);
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   background: rgba(31, 39, 49, 0.7);
 }
 
-/* Disabled State */
-.join-queue-button:disabled {
+.pairings-page-wrapper .join-queue-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
@@ -470,294 +189,111 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
-.join-queue-button:disabled svg {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-/* Focus State for Accessibility */
-.join-queue-button:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
-  outline-offset: 2px;
-}
-
-/* Icon Styling within Button */
-.join-queue-button svg {
-  width: 1.25rem; /* w-5 */
-  height: 1.25rem; /* h-5 */
+.pairings-page-wrapper .join-queue-button svg {
+  width: 1.25rem;
+  height: 1.25rem;
   transition: all 0.2s ease;
-  flex-shrink: 0; /* Prevent icon from shrinking */
+  flex-shrink: 0;
 }
 
-/* Loading State Skeleton Override */
-.join-queue-button .skeleton {
-  margin: 0 auto;
+/* =============================================================================
+   TAB NAVIGATION SYSTEM
+============================================================================= */
+
+.pairings-page-wrapper .valorant-card button[class*="theme-transition"] {
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 1;
 }
 
-/* Mobile Responsiveness */
-@media (max-width: 640px) {
-  .join-queue-button {
-    padding: 0.75rem 1.25rem; /* Slightly smaller on mobile */
-    font-size: 0.9rem;
-    min-height: 2.75rem; /* 44px - standard mobile touch target */
-  }
-  
-  .join-queue-button svg {
-    width: 1.125rem; /* Slightly smaller icon on mobile */
-    height: 1.125rem;
-  }
+.pairings-page-wrapper .valorant-card button:not([class*="bg-primary"]) {
+  background: rgba(31, 39, 49, 0.6);
+  color: rgba(148, 163, 184, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* iPhone 12 Pro and similar devices (390px width) */
-@media (max-width: 430px) {
-  /* Main container fixes for narrow screens */
-  .pairings-content {
-    padding-left: 0.5rem !important;
-    padding-right: 0.5rem !important;
-    overflow-x: hidden;
-  }
-  
-  /* Container width fixes */
-  .pairings-content .container {
-    max-width: 100% !important;
-    padding-left: 0.75rem !important;
-    padding-right: 0.75rem !important;
-  }
-  
-  /* Grid layout adjustments */
-  .pairings-content .grid {
-    grid-template-columns: 1fr !important;
-    gap: 1rem !important;
-  }
-  
-  /* Card responsive adjustments */
-  .pairings-content .valorant-card {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box;
-  }
-  
-  /* Form grid adjustments for narrow screens */
-  .pairings-content .grid.grid-cols-1.md\\:grid-cols-2 {
-    grid-template-columns: 1fr !important;
-    gap: 0.75rem !important;
-  }
-  
-  /* Tab navigation specific fixes for XPCard */
-  .pairings-content .valorant-card .flex.flex-wrap {
-    gap: 0.25rem !important;
-  }
-  
-  .pairings-content .valorant-card button[class*="flex-1"] {
-    min-width: 0;
-    flex: 1 1 calc(33.333% - 0.25rem);
-    font-size: 0.75rem !important;
-    padding: 0.5rem 0.25rem !important;
-  }
-  
-  /* Stats grid adjustments */
-  .pairings-content .grid.grid-cols-2 {
-    gap: 0.5rem !important;
-  }
-  
-  .pairings-content .grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4 {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 0.5rem !important;
-  }
-  
-  /* Text size adjustments for readability */
-  .pairings-content .text-xl {
-    font-size: 1.125rem !important;
-  }
-  
-  .pairings-content .text-2xl {
-    font-size: 1.25rem !important;
-  }
-  
-  /* Badge and small element adjustments */
-  .pairings-content .text-sm {
-    font-size: 0.75rem !important;
-  }
-  
-  /* Avatar size adjustments */
-  .pairings-content .h-16.w-16 {
-    height: 3rem !important;
-    width: 3rem !important;
-  }
+.pairings-page-wrapper .valorant-card button:not([class*="bg-primary"]):hover {
+  background: rgba(31, 39, 49, 0.8);
+  color: rgba(148, 163, 184, 1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Additional breakpoint for very narrow screens (320px - iPhone SE) */
-@media (max-width: 375px) {
-  .pairings-content .container {
-    padding-left: 0.5rem !important;
-    padding-right: 0.5rem !important;
-  }
-  
-  /* Even smaller tabs for very narrow screens */
-  .pairings-content .valorant-card button[class*="flex-1"] {
-    font-size: 0.625rem !important;
-    padding: 0.5rem 0.125rem !important;
-  }
-  
-  /* Reduce icon sizes */
-  .pairings-content .valorant-card button[class*="flex-1"] svg {
-    width: 0.75rem !important;
-    height: 0.75rem !important;
-  }
-  
-  /* Compact grid for very small screens */
-  .pairings-content .grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4 {
-    grid-template-columns: 1fr !important;
-  }
+.pairings-page-wrapper .valorant-card button[class*="bg-primary"] {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
-/* Modal and Profile Preview focus management */
-.user-profile-modal-container:focus {
-  outline: none;
+.pairings-page-wrapper .valorant-card button[class*="bg-primary"]:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* ProfilePreview clickable container - remove focus outline */
-.pairings-content .w-\[300px\]:focus,
-.pairings-content [class*="w-[300px]"]:focus {
-  outline: none;
+.pairings-page-wrapper .valorant-card button svg {
+  transition: all 0.2s ease;
 }
 
-/* General clickable div containers */
-.pairings-content div:focus:not(:focus-visible) {
-  outline: none;
+.pairings-page-wrapper .valorant-card button[class*="bg-primary"] svg {
+  color: white;
 }
 
-/* === Comprehensive Focus Management === */
-
-/* Remove browser default focus outlines for mouse clicks while preserving keyboard navigation */
-*:focus:not(:focus-visible) {
-  outline: none;
+.pairings-page-wrapper .valorant-card button:not([class*="bg-primary"]) svg {
+  color: rgba(148, 163, 184, 0.8);
 }
 
-/* Ensure proper focus-visible styling for all interactive elements */
-*:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
-  outline-offset: 2px;
+.pairings-page-wrapper .valorant-card button:hover svg {
+  transform: scale(1.1);
 }
 
-/* Specific overrides for components within PairingsPage */
-.pairings-content *:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
-  outline-offset: 2px;
-}
+/* =============================================================================
+   STATE INDICATORS
+============================================================================= */
 
-/* ProfilePreview clickable containers */
-.pairings-content .w-\[300px\],
-.pairings-content [class*="w-[300px]"],
-.pairings-content div[onClick] {
-  outline: none !important;
-}
-
-.pairings-content .w-\[300px\]:focus,
-.pairings-content [class*="w-[300px]"]:focus,
-.pairings-content div[onClick]:focus {
-  outline: none !important;
-}
-
-/* Modal containers */
-.user-profile-modal-container,
-.user-profile-modal-container:focus {
-  outline: none !important;
-}
-
-/* Optimize performance for layout animations */
-.pairings-content [data-framer-motion-layout] {
-  transform-origin: top center;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-/* Smooth height transitions for card content areas */
-.pairings-content .valorant-card [class*="space-y-"] {
-  /* Ensure smooth layout shifts when content changes */
-  transition: height 0.3s ease-in-out;
-}
-
-/* Prevent layout shifts during tab transitions */
-.pairings-content .valorant-card .tab-content-container {
-  /* Reserve minimum space to prevent jarring height changes */
+.pairings-page-wrapper .pairings-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 200px;
-  transition: min-height 0.3s ease-in-out;
 }
 
-/* Enhanced motion support for webkit browsers */
-@supports (will-change: height) {
-  .pairings-content .valorant-card {
-    will-change: height, transform, opacity;
-  }
-}
-
-/* Reduce motion for users who prefer it */
-@media (prefers-reduced-motion: reduce) {
-  .pairings-content .valorant-card,
-  .pairings-content [data-framer-motion-layout] {
-    transition: none !important;
-    animation: none !important;
-  }
-  
-  /* Keep opacity transitions but remove transform animations */
-  .pairings-content .valorant-card * {
-    transition: opacity 0.2s ease !important;
-    transform: none !important;
-  }
-}
-
-/* Optimize rendering during layout animations */
-.pairings-content .xl:col-span-1 {
-  /* Ensure the right column container supports layout animations */
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-/* Enhance tab content area animations */
-.pairings-content .valorant-card .space-y-6 {
-  /* Smooth transitions for tab content spacing */
-  transition: padding 0.3s ease-in-out;
-}
-
-/* Custom scrollbar styling for achievements sections */
-.pairings-content .valorant-card .max-h-48.overflow-y-auto {
-  /* Custom scrollbar for achievements list */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(31, 39, 49, 0.3);
-}
-
-.pairings-content .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
-}
-
-.pairings-content .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar-track {
+.pairings-page-wrapper .pairings-error {
   background: rgba(31, 39, 49, 0.3);
-  border-radius: 3px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  text-align: center;
+  backdrop-filter: blur(8px);
 }
 
-.pairings-content .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
-  transition: background 0.2s ease;
+.pairings-page-wrapper .pairings-success {
+  background: rgba(31, 39, 49, 0.3);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  color: #86efac;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  text-align: center;
+  backdrop-filter: blur(8px);
 }
 
-.pairings-content .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
+/* =============================================================================
+   PROGRESS BARS
+============================================================================= */
 
-/* Enhanced progress bar styling with thin outline */
-.xp-progress-container {
+.pairings-page-wrapper .xp-progress-container {
   padding: 1px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   border: 0.5px solid rgba(255, 255, 255, 0.08);
 }
 
-.xp-progress-bar {
-  height: 12px !important;
+.pairings-page-wrapper .xp-progress-bar {
+  height: 12px;
   background: rgba(31, 39, 49, 0.8);
   border-radius: 6px;
   overflow: hidden;
@@ -765,14 +301,14 @@
   border: 0.5px solid rgba(255, 255, 255, 0.05);
 }
 
-.xp-progress-fill {
+.pairings-page-wrapper .xp-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #FF4655 0%, #FF4655 50%, rgba(255, 70, 85, 0.8) 100%) !important;
+  background: linear-gradient(90deg, #FF4655 0%, #FF4655 50%, rgba(255, 70, 85, 0.8) 100%);
   border-radius: 5px;
   position: relative;
 }
 
-.xp-progress-fill::after {
+.pairings-page-wrapper .xp-progress-fill::after {
   content: '';
   position: absolute;
   top: 0;
@@ -783,190 +319,398 @@
   border-radius: 5px;
 }
 
-/* === Comprehensive Focus Outline Removal === */
+/* =============================================================================
+   SCROLLBAR CUSTOMIZATION
+============================================================================= */
 
-/* Remove all default focus outlines for mouse interactions while preserving keyboard navigation */
-.pairings-content *:focus:not(:focus-visible),
-.min-h-screen.bg-theme-gradient *:focus:not(:focus-visible) {
-  outline: none !important;
-  box-shadow: none !important;
+.pairings-page-wrapper .pairings-inner-container::-webkit-scrollbar {
+  width: 8px;
 }
 
-/* Specifically target XPCard and remove any unwanted outlines */
-.min-h-screen.bg-theme-gradient .valorant-card *,
-.min-h-screen.bg-theme-gradient .valorant-card *:focus,
-.min-h-screen.bg-theme-gradient .valorant-card button,
-.min-h-screen.bg-theme-gradient .valorant-card button:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* Remove dashboard layout inherited borders and outlines */
-.min-h-screen.bg-theme-gradient .grid,
-.min-h-screen.bg-theme-gradient .grid *,
-.min-h-screen.bg-theme-gradient .card-content,
-.min-h-screen.bg-theme-gradient .card-header {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* Form elements focus outline removal */
-.pairings-content input:focus,
-.pairings-content select:focus,
-.pairings-content textarea:focus,
-.pairings-content button:focus,
-.min-h-screen.bg-theme-gradient input:focus,
-.min-h-screen.bg-theme-gradient select:focus,
-.min-h-screen.bg-theme-gradient textarea:focus,
-.min-h-screen.bg-theme-gradient button:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* Specific form control focus removal */
-.pairings-content .valorant-card input:focus,
-.pairings-content .valorant-card select:focus,
-.pairings-content .valorant-card textarea:focus,
-.pairings-content .valorant-card button:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* Queue join form specific focus removal */
-.pairings-content form input:focus,
-.pairings-content form select:focus,
-.pairings-content form button:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* Select trigger and content focus removal */
-.pairings-content [data-radix-select-trigger]:focus,
-.pairings-content [data-radix-select-content]:focus,
-.pairings-content [data-radix-select-item]:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* Remove focus from clickable containers and cards */
-.pairings-content .valorant-card:focus,
-.pairings-content .card:focus,
-.pairings-content [role="button"]:focus,
-.pairings-content div[onClick]:focus,
-.pairings-content div[tabindex]:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* Avatar and profile preview focus removal */
-.pairings-content .user-avatar-container:focus,
-.pairings-content .w-\[300px\]:focus,
-.pairings-content [class*="w-[300px]"]:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* Admin controls focus removal */
-.pairings-content .admin-controls button:focus,
-.pairings-content .admin-controls input:focus,
-.pairings-content .admin-controls select:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* Tab navigation focus removal */
-.pairings-content .valorant-card button[class*="theme-transition"]:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* Join queue button specific focus removal */
-.join-queue-button:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* General button focus removal */
-.pairings-content button:focus,
-.pairings-content [type="button"]:focus,
-.pairings-content [type="submit"]:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* Modal and overlay focus removal */
-.pairings-content .modal:focus,
-.pairings-content .overlay:focus,
-.pairings-content [data-state="open"]:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* === Maintain Accessibility for Keyboard Users === */
-
-/* Only show focus indicators for keyboard navigation (focus-visible) */
-.pairings-content *:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.3) !important;
-  outline-offset: 2px !important;
+.pairings-page-wrapper .pairings-inner-container::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.3);
   border-radius: 4px;
 }
 
-/* Form elements focus-visible styling for accessibility */
-.pairings-content input:focus-visible,
-.pairings-content select:focus-visible,
-.pairings-content textarea:focus-visible {
+.pairings-page-wrapper .pairings-inner-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.pairings-page-wrapper .pairings-inner-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.pairings-page-wrapper .pairings-inner-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(15, 23, 42, 0.3);
+}
+
+.pairings-page-wrapper .valorant-card .max-h-48.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(31, 39, 49, 0.3);
+}
+
+.pairings-page-wrapper .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pairings-page-wrapper .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar-track {
+  background: rgba(31, 39, 49, 0.3);
+  border-radius: 3px;
+}
+
+.pairings-page-wrapper .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.pairings-page-wrapper .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* =============================================================================
+   BADGE & UI COMPONENT OVERRIDES
+============================================================================= */
+
+/* Fix Badge component outline variant within pairings page */
+.pairings-page-wrapper .inline-flex.items-center.rounded-full.border,
+.pairings-page-wrapper [class*="badge"],
+.pairings-page-wrapper [class*="Badge"] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(31, 39, 49, 0.4) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Specific overrides for Age, Gender, Region, Rank badges in matched card */
+.pairings-page-wrapper .active-pairing-card .inline-flex.items-center.gap-2.p-2 {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(31, 39, 49, 0.6) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* Activity card stat containers */
+.pairings-page-wrapper .text-center.p-3 {
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  background: rgba(31, 39, 49, 0.4) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* End This Match button */
+.pairings-page-wrapper .border-status-error\/30 {
+  border-color: rgba(239, 68, 68, 0.2) !important;
+  background: rgba(31, 39, 49, 0.3) !important;
+}
+
+.pairings-page-wrapper .border-status-error\/30:hover {
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  background: rgba(239, 68, 68, 0.05) !important;
+}
+
+/* XP Card Badge overrides */
+.pairings-page-wrapper .valorant-card .inline-flex.items-center.rounded-full.border {
+  border-color: rgba(255, 70, 85, 0.2) !important;
+  background: rgba(31, 39, 49, 0.4) !important;
+  color: rgba(255, 70, 85, 0.9) !important;
+}
+
+.pairings-page-wrapper .valorant-card .text-primary.border-primary\/30 {
+  border-color: rgba(255, 70, 85, 0.2) !important;
+  color: rgba(255, 70, 85, 0.9) !important;
+}
+
+/* Generic outline badge fixes */
+.pairings-page-wrapper [class*="variant-outline"],
+.pairings-page-wrapper [class*="outline"] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(31, 39, 49, 0.3) !important;
+}
+
+/* Achievement rarity color fixes */
+.pairings-page-wrapper .text-yellow-400.border-yellow-400 {
+  border-color: rgba(250, 204, 21, 0.3) !important;
+  background: rgba(250, 204, 21, 0.05) !important;
+}
+
+.pairings-page-wrapper .text-purple-400.border-purple-400 {
+  border-color: rgba(196, 181, 253, 0.3) !important;
+  background: rgba(196, 181, 253, 0.05) !important;
+}
+
+.pairings-page-wrapper .text-blue-400.border-blue-400 {
+  border-color: rgba(96, 165, 250, 0.3) !important;
+  background: rgba(96, 165, 250, 0.05) !important;
+}
+
+.pairings-page-wrapper .text-green-400.border-green-400 {
+  border-color: rgba(74, 222, 128, 0.3) !important;
+  background: rgba(74, 222, 128, 0.05) !important;
+}
+
+.pairings-page-wrapper .text-gray-400.border-gray-400 {
+  border-color: rgba(156, 163, 175, 0.3) !important;
+  background: rgba(156, 163, 175, 0.05) !important;
+}
+
+/* Fix any remaining white borders */
+.pairings-page-wrapper [class*="border-white"],
+.pairings-page-wrapper [class*="border-gray-200"],
+.pairings-page-wrapper [class*="border-slate-200"] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* =============================================================================
+   FOCUS MANAGEMENT & ACCESSIBILITY
+============================================================================= */
+
+.pairings-page-wrapper *:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.pairings-page-wrapper *:focus-visible {
+  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
+  outline-offset: 2px;
+  border-color: rgba(255, 70, 85, 0.3) !important;
+}
+
+.pairings-page-wrapper input:focus-visible,
+.pairings-page-wrapper select:focus-visible,
+.pairings-page-wrapper textarea:focus-visible {
   outline: 2px solid rgba(255, 70, 85, 0.5) !important;
-  outline-offset: 1px !important;
+  outline-offset: 1px;
+  border-color: rgba(255, 70, 85, 0.3) !important;
 }
 
-/* Button focus-visible styling */
-.pairings-content button:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.4) !important;
-  outline-offset: 2px !important;
+.pairings-page-wrapper button:focus-visible {
+  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
+  outline-offset: 2px;
+  border-color: rgba(255, 70, 85, 0.3) !important;
 }
 
-/* Reduce motion for accessibility */
-@media (prefers-reduced-motion: reduce) {
-  .pairings-content *:focus-visible,
-  .min-h-screen.bg-theme-gradient *:focus-visible {
-    transition: none !important;
+/* Override any ring focus styles */
+.pairings-page-wrapper *:focus,
+.pairings-page-wrapper *:focus-visible {
+  --tw-ring-color: rgba(255, 70, 85, 0.2) !important;
+  --tw-ring-offset-color: transparent !important;
+}
+
+/* =============================================================================
+   TOOLTIP COMPONENT OVERRIDES
+============================================================================= */
+
+/* Fix Tooltip borders used in XPCard */
+.pairings-page-wrapper .bg-theme-container.border.border-orange-500\/30,
+.pairings-page-wrapper .bg-theme-container.border.border-blue-500\/30,
+.pairings-page-wrapper .bg-theme-container.border.border-green-500\/30,
+.pairings-page-wrapper .bg-theme-container.border.border-yellow-500\/30 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(31, 39, 49, 0.9) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Additional Tooltip overrides */
+.pairings-page-wrapper [data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+}
+
+.pairings-page-wrapper [data-radix-popper-content-wrapper] > div {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(31, 39, 49, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* =============================================================================
+   ADDITIONAL UI COMPONENT FIXES
+============================================================================= */
+
+/* Fix any Select component borders */
+.pairings-page-wrapper .bg-theme-container.border-theme,
+.pairings-page-wrapper [class*="SelectTrigger"] {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  background: rgba(31, 39, 49, 0.6) !important;
+}
+
+.pairings-page-wrapper .bg-theme-container.border-theme:hover,
+.pairings-page-wrapper [class*="SelectTrigger"]:hover {
+  border-color: rgba(255, 70, 85, 0.3) !important;
+  background: rgba(31, 39, 49, 0.8) !important;
+}
+
+/* Fix Input component borders */
+.pairings-page-wrapper input.border-theme {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  background: rgba(31, 39, 49, 0.6) !important;
+}
+
+.pairings-page-wrapper input.border-theme:focus {
+  border-color: rgba(255, 70, 85, 0.4) !important;
+  background: rgba(31, 39, 49, 0.8) !important;
+}
+
+/* Fix Card component borders */
+.pairings-page-wrapper .valorant-card {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Fix any remaining default borders */
+.pairings-page-wrapper .border-gray-300,
+.pairings-page-wrapper .border-gray-400,
+.pairings-page-wrapper .border-gray-500,
+.pairings-page-wrapper .border-slate-300,
+.pairings-page-wrapper .border-slate-400,
+.pairings-page-wrapper .border-slate-500 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Fix any Button component borders */
+.pairings-page-wrapper button[class*="border-"],
+.pairings-page-wrapper .btn[class*="border-"] {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.pairings-page-wrapper button[class*="border-"]:hover,
+.pairings-page-wrapper .btn[class*="border-"]:hover {
+  border-color: rgba(255, 70, 85, 0.3) !important;
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN
+============================================================================= */
+
+@media (max-width: 640px) {
+  .pairings-page-wrapper .join-queue-button {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+    min-height: 2.75rem;
+  }
+  
+  .pairings-page-wrapper .join-queue-button svg {
+    width: 1.125rem;
+    height: 1.125rem;
   }
 }
 
-/* === FINAL COMPREHENSIVE OVERRIDE === */
-/* Ensure EXACT same appearance as before the route change */
-
-/* Remove ALL unwanted borders and outlines from dashboard layout inheritance */
-.min-h-screen.bg-theme-gradient *:not(.valorant-card):not(.admin-controls):not(.queue-status-card):not(.active-pairing-card):not(.border):not([class*="border-"]) {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
+@media (max-width: 430px) {
+  .pairings-page-wrapper .pairings-inner-container {
+    padding: 1rem 0.5rem;
+    overflow-x: hidden;
+  }
+  
+  .pairings-page-wrapper .grid.grid-cols-1.md\\:grid-cols-2 {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .pairings-page-wrapper .valorant-card .flex.flex-wrap {
+    gap: 0.25rem;
+  }
+  
+  .pairings-page-wrapper .valorant-card button[class*="flex-1"] {
+    min-width: 0;
+    flex: 1 1 calc(33.333% - 0.25rem);
+    font-size: 0.75rem;
+    padding: 0.5rem 0.25rem;
+  }
+  
+  .pairings-page-wrapper .grid.grid-cols-2 {
+    gap: 0.5rem;
+  }
+  
+  .pairings-page-wrapper .grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .pairings-page-wrapper .text-xl {
+    font-size: 1.125rem;
+  }
+  
+  .pairings-page-wrapper .text-2xl {
+    font-size: 1.25rem;
+  }
+  
+  .pairings-page-wrapper .text-sm {
+    font-size: 0.75rem;
+  }
+  
+  .pairings-page-wrapper .h-16.w-16 {
+    height: 3rem;
+    width: 3rem;
+  }
 }
 
-/* Allow only the intended card borders */
-.min-h-screen.bg-theme-gradient .valorant-card {
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+@media (max-width: 375px) {
+  .pairings-page-wrapper .pairings-inner-container {
+    padding: 1rem 0.25rem;
+  }
+  
+  .pairings-page-wrapper .valorant-card button[class*="flex-1"] {
+    font-size: 0.625rem;
+    padding: 0.5rem 0.125rem;
+  }
+  
+  .pairings-page-wrapper .valorant-card button[class*="flex-1"] svg {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+  
+  .pairings-page-wrapper .grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4 {
+    grid-template-columns: 1fr;
+  }
 }
 
-.min-h-screen.bg-theme-gradient .admin-controls {
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+/* =============================================================================
+   PERFORMANCE OPTIMIZATIONS
+============================================================================= */
+
+.pairings-page-wrapper [data-framer-motion-layout] {
+  transform-origin: top center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
-.min-h-screen.bg-theme-gradient .queue-status-card {
-  border: 1px solid rgba(59, 130, 246, 0.15) !important;
+.pairings-page-wrapper .valorant-card [class*="space-y-"] {
+  transition: height 0.3s ease-in-out;
 }
 
-.min-h-screen.bg-theme-gradient .active-pairing-card {
-  border: 1px solid rgba(34, 197, 94, 0.1) !important;
+.pairings-page-wrapper .valorant-card .tab-content-container {
+  min-height: 200px;
+  transition: min-height 0.3s ease-in-out;
 }
 
-/* Override any dashboard button focus states */
-.min-h-screen.bg-theme-gradient button:focus,
-.min-h-screen.bg-theme-gradient button:focus-visible,
-.min-h-screen.bg-theme-gradient input:focus,
-.min-h-screen.bg-theme-gradient input:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
-  border-color: inherit !important;
+@supports (will-change: height) {
+  .pairings-page-wrapper .valorant-card {
+    will-change: height, transform, opacity;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pairings-page-wrapper .valorant-card,
+  .pairings-page-wrapper [data-framer-motion-layout] {
+    transition: none;
+    animation: none;
+  }
+  
+  .pairings-page-wrapper .valorant-card * {
+    transition: opacity 0.2s ease;
+    transform: none;
+  }
+  
+  .pairings-page-wrapper *:focus-visible {
+    transition: none;
+  }
+}
+
+.pairings-page-wrapper .xl:col-span-1 {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.pairings-page-wrapper .valorant-card .space-y-6 {
+  transition: padding 0.3s ease-in-out;
 }
