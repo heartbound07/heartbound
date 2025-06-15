@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/valorant/av
 import { Badge } from '@/components/ui/valorant/badge'
 import type { PairingDTO } from '@/config/pairingService'
 import type { UserProfileDTO } from '@/config/userService'
+import '@/assets/PairingCard.css'
 
 interface PairingCardProps {
   pairing: PairingDTO
@@ -124,13 +125,14 @@ export const PairingCard = memo(({
   )
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className="group p-4 rounded-xl border transition-all duration-300 hover:border-[var(--color-success)]/30 relative"
-      style={cardStyle}
-    >
+    <div className="pairing-card-wrapper">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.1 }}
+        className="group p-4 rounded-xl border transition-all duration-300 hover:border-[var(--color-success)]/30 relative"
+        style={cardStyle}
+      >
       {/* Admin Actions */}
       {hasAdminActions && (
         <>
@@ -336,6 +338,7 @@ export const PairingCard = memo(({
         </div>
       </div>
     </motion.div>
+    </div>
   )
 })
 
@@ -365,11 +368,12 @@ export const PairingCardList = memo(({
 
   if (displayedPairings.length === 0) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center py-12"
-      >
+      <div className="pairing-card-wrapper">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center py-12"
+        >
         {emptyIcon || (
           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-[var(--color-success)]/20 to-primary/20 rounded-full flex items-center justify-center mb-4">
             <UserCheck className="h-8 w-8 text-[var(--color-success)]" />
@@ -379,11 +383,13 @@ export const PairingCardList = memo(({
           {emptyMessage}
         </h3>
       </motion.div>
+      </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="pairing-card-wrapper">
+      <div className="space-y-4">
       {displayedPairings.map((pairing, index) => {
         const user1Profile = userProfiles[pairing.user1Id]
         const user2Profile = userProfiles[pairing.user2Id]
@@ -411,6 +417,7 @@ export const PairingCardList = memo(({
           />
         )
       })}
+      </div>
     </div>
   )
 })

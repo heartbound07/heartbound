@@ -1,0 +1,469 @@
+/* =============================================================================
+   PAIRING CARD COMPONENT - ISOLATED CSS
+   =============================================================================
+   
+   This CSS file contains styles specific to the PairingCard component.
+   Uses .pairing-card-wrapper for namespace isolation to prevent conflicts.
+   
+   Key Features:
+   1. Individual pairing card styling
+   2. User profile displays
+   3. Admin action buttons
+   4. Breakup and status indicators
+   5. Responsive design for mobile
+   
+============================================================================= */
+
+/* Root variables for pairing cards */
+:root {
+  --pairing-accent-color: #FF4655;
+  --pairing-bg-primary: #0F1923;
+  --pairing-bg-secondary: #1F2731;
+  --pairing-border: rgba(255, 255, 255, 0.05);
+  --pairing-card-radius: 0.75rem;
+  --pairing-transition: all 0.3s ease;
+  --pairing-success-color: #22c55e;
+  --pairing-warning-color: #f59e0b;
+  --pairing-error-color: #ef4444;
+}
+
+/* =============================================================================
+   PAIRING CARD WRAPPER - CSS ISOLATION BOUNDARY
+============================================================================= */
+
+.pairing-card-wrapper {
+  /* Reset any inherited styles */
+  all: unset;
+  
+  /* Establish new stacking context */
+  position: relative;
+  z-index: 1;
+  
+  /* Full container behavior */
+  display: block;
+  width: 100%;
+  
+  /* Typography inheritance */
+  font-family: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+/* =============================================================================
+   PAIRING CARD CONTAINERS
+============================================================================= */
+
+.pairing-card-wrapper .active-pairing-card {
+  background: rgba(31, 39, 49, 0.4);
+  border: 1px solid rgba(34, 197, 94, 0.1);
+  border-radius: var(--pairing-card-radius);
+  position: relative;
+  overflow: hidden;
+  transition: var(--pairing-transition);
+}
+
+.pairing-card-wrapper .active-pairing-card:hover {
+  border-color: rgba(34, 197, 94, 0.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pairing-card-wrapper .inactive-pairing-card {
+  background: rgba(31, 39, 49, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--pairing-card-radius);
+  position: relative;
+  overflow: hidden;
+  transition: var(--pairing-transition);
+  opacity: 0.8;
+}
+
+.pairing-card-wrapper .inactive-pairing-card:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+  opacity: 1;
+}
+
+/* =============================================================================
+   PAIRING CARD BADGES & INDICATORS
+============================================================================= */
+
+/* Specific overrides for Age, Gender, Region, Rank badges in pairing card */
+.pairing-card-wrapper .active-pairing-card .inline-flex.items-center.gap-2.p-2 {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(31, 39, 49, 0.6) !important;
+  backdrop-filter: blur(4px) !important;
+  border-radius: 0.5rem;
+}
+
+.pairing-card-wrapper .inactive-pairing-card .inline-flex.items-center.gap-2.p-2 {
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  background: rgba(31, 39, 49, 0.4) !important;
+  backdrop-filter: blur(4px) !important;
+  border-radius: 0.5rem;
+}
+
+/* Fix Badge component outline variant within pairing cards */
+.pairing-card-wrapper .inline-flex.items-center.rounded-full.border,
+.pairing-card-wrapper [class*="badge"],
+.pairing-card-wrapper [class*="Badge"] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(31, 39, 49, 0.4) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Activity card stat containers */
+.pairing-card-wrapper .text-center.p-3 {
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  background: rgba(31, 39, 49, 0.4) !important;
+  backdrop-filter: blur(4px) !important;
+  border-radius: 0.5rem;
+  transition: var(--pairing-transition);
+}
+
+.pairing-card-wrapper .text-center.p-3:hover {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(31, 39, 49, 0.6) !important;
+}
+
+/* =============================================================================
+   PAIRING CARD ADMIN CONTROLS
+============================================================================= */
+
+/* End This Match button */
+.pairing-card-wrapper .border-status-error\/30 {
+  border-color: rgba(239, 68, 68, 0.2) !important;
+  background: rgba(31, 39, 49, 0.3) !important;
+  color: rgba(239, 68, 68, 0.9) !important;
+  transition: var(--pairing-transition);
+}
+
+.pairing-card-wrapper .border-status-error\/30:hover {
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  background: rgba(239, 68, 68, 0.05) !important;
+}
+
+/* Admin action buttons */
+.pairing-card-wrapper .admin-action-button {
+  background: rgba(31, 39, 49, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  transition: var(--pairing-transition);
+  backdrop-filter: blur(4px);
+}
+
+.pairing-card-wrapper .admin-action-button:hover {
+  background: rgba(31, 39, 49, 0.8);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pairing-card-wrapper .admin-action-button.manage-button {
+  border-color: rgba(255, 70, 85, 0.3);
+  color: rgba(255, 70, 85, 0.9);
+}
+
+.pairing-card-wrapper .admin-action-button.manage-button:hover {
+  background: rgba(255, 70, 85, 0.1);
+  border-color: rgba(255, 70, 85, 0.5);
+}
+
+.pairing-card-wrapper .admin-action-button.unpair-button {
+  border-color: rgba(245, 158, 11, 0.3);
+  color: rgba(245, 158, 11, 0.9);
+}
+
+.pairing-card-wrapper .admin-action-button.unpair-button:hover {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+.pairing-card-wrapper .admin-action-button.delete-button {
+  border-color: rgba(239, 68, 68, 0.3);
+  color: rgba(239, 68, 68, 0.9);
+}
+
+.pairing-card-wrapper .admin-action-button.delete-button:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* =============================================================================
+   PAIRING CARD USER PROFILES
+============================================================================= */
+
+.pairing-card-wrapper .user-profile-section {
+  background: rgba(31, 39, 49, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  transition: var(--pairing-transition);
+  cursor: pointer;
+}
+
+.pairing-card-wrapper .user-profile-section:hover {
+  background: rgba(31, 39, 49, 0.6);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.pairing-card-wrapper .user-avatar {
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  transition: var(--pairing-transition);
+}
+
+.pairing-card-wrapper .active-pairing-card .user-avatar {
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.pairing-card-wrapper .user-avatar:hover {
+  transform: scale(1.05);
+}
+
+.pairing-card-wrapper .user-name {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  transition: var(--pairing-transition);
+}
+
+.pairing-card-wrapper .user-profile-section:hover .user-name {
+  color: white;
+}
+
+/* =============================================================================
+   PAIRING CARD STATUS INDICATORS
+============================================================================= */
+
+.pairing-card-wrapper .status-indicator {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  transition: var(--pairing-transition);
+}
+
+.pairing-card-wrapper .status-indicator.active {
+  background: var(--pairing-success-color);
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3);
+}
+
+.pairing-card-wrapper .status-indicator.inactive {
+  background: rgba(156, 163, 175, 0.6);
+  box-shadow: 0 0 0 2px rgba(156, 163, 175, 0.2);
+}
+
+.pairing-card-wrapper .breakup-indicator {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  color: rgba(239, 68, 68, 0.9);
+  font-size: 0.875rem;
+}
+
+/* =============================================================================
+   PAIRING CARD STATISTICS
+============================================================================= */
+
+.pairing-card-wrapper .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+}
+
+.pairing-card-wrapper .stat-item {
+  background: rgba(31, 39, 49, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  text-align: center;
+  transition: var(--pairing-transition);
+}
+
+.pairing-card-wrapper .stat-item:hover {
+  background: rgba(31, 39, 49, 0.6);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.pairing-card-wrapper .stat-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.pairing-card-wrapper .stat-label {
+  font-size: 0.75rem;
+  color: rgba(148, 163, 184, 0.8);
+  margin-top: 0.25rem;
+}
+
+/* =============================================================================
+   PAIRING CARD FOCUS MANAGEMENT & ACCESSIBILITY
+============================================================================= */
+
+.pairing-card-wrapper *:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.pairing-card-wrapper *:focus-visible {
+  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
+  outline-offset: 2px;
+}
+
+.pairing-card-wrapper button:focus-visible {
+  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
+  outline-offset: 2px;
+}
+
+.pairing-card-wrapper .user-profile-section:focus-visible {
+  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
+  outline-offset: 2px;
+}
+
+/* =============================================================================
+   PAIRING CARD RESPONSIVE DESIGN
+============================================================================= */
+
+@media (max-width: 768px) {
+  .pairing-card-wrapper .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .pairing-card-wrapper .stat-item {
+    padding: 0.5rem;
+  }
+  
+  .pairing-card-wrapper .stat-value {
+    font-size: 1.125rem;
+  }
+  
+  .pairing-card-wrapper .stat-label {
+    font-size: 0.6875rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .pairing-card-wrapper .user-profile-section {
+    padding: 0.5rem;
+  }
+  
+  .pairing-card-wrapper .admin-action-button {
+    padding: 0.375rem;
+  }
+  
+  .pairing-card-wrapper .text-center.p-3 {
+    padding: 0.5rem !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .pairing-card-wrapper .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .pairing-card-wrapper .stat-item {
+    padding: 0.5rem;
+  }
+  
+  .pairing-card-wrapper .user-name {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .pairing-card-wrapper .active-pairing-card,
+  .pairing-card-wrapper .inactive-pairing-card {
+    border-radius: 0.5rem;
+  }
+  
+  .pairing-card-wrapper .user-profile-section {
+    padding: 0.375rem;
+  }
+  
+  .pairing-card-wrapper .admin-action-button {
+    padding: 0.25rem;
+  }
+  
+  .pairing-card-wrapper .admin-action-button svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+}
+
+/* =============================================================================
+   PAIRING CARD PERFORMANCE OPTIMIZATIONS
+============================================================================= */
+
+@supports (will-change: transform) {
+  .pairing-card-wrapper .active-pairing-card,
+  .pairing-card-wrapper .inactive-pairing-card {
+    will-change: transform, border-color, box-shadow;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pairing-card-wrapper * {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
+  
+  .pairing-card-wrapper *:hover {
+    transform: none !important;
+  }
+}
+
+/* =============================================================================
+   PAIRING CARD LIST SPECIFIC STYLES
+============================================================================= */
+
+.pairing-card-wrapper .pairing-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pairing-card-wrapper .pairing-list-empty {
+  background: rgba(31, 39, 49, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--pairing-card-radius);
+  padding: 2rem;
+  text-align: center;
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.pairing-card-wrapper .pairing-list-empty svg {
+  width: 3rem;
+  height: 3rem;
+  margin: 0 auto 1rem;
+  color: rgba(148, 163, 184, 0.6);
+}
+
+/* =============================================================================
+   PAIRING CARD LOADING & ERROR STATES
+============================================================================= */
+
+.pairing-card-wrapper .pairing-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  background: rgba(31, 39, 49, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--pairing-card-radius);
+}
+
+.pairing-card-wrapper .pairing-error {
+  background: rgba(31, 39, 49, 0.3);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  padding: 1rem;
+  border-radius: var(--pairing-card-radius);
+  text-align: center;
+  backdrop-filter: blur(8px);
+} 

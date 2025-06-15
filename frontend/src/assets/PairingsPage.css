@@ -197,58 +197,11 @@
 }
 
 /* =============================================================================
-   TAB NAVIGATION SYSTEM
+   TAB NAVIGATION SYSTEM - MOVED TO COMPONENT-SPECIFIC CSS FILES
 ============================================================================= */
 
-.pairings-page-wrapper .valorant-card button[class*="theme-transition"] {
-  transition: all 0.2s ease;
-  position: relative;
-  z-index: 1;
-}
-
-.pairings-page-wrapper .valorant-card button:not([class*="bg-primary"]) {
-  background: rgba(31, 39, 49, 0.6);
-  color: rgba(148, 163, 184, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.pairings-page-wrapper .valorant-card button:not([class*="bg-primary"]):hover {
-  background: rgba(31, 39, 49, 0.8);
-  color: rgba(148, 163, 184, 1);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.pairings-page-wrapper .valorant-card button[class*="bg-primary"] {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
-}
-
-.pairings-page-wrapper .valorant-card button[class*="bg-primary"]:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.pairings-page-wrapper .valorant-card button svg {
-  transition: all 0.2s ease;
-}
-
-.pairings-page-wrapper .valorant-card button[class*="bg-primary"] svg {
-  color: white;
-}
-
-.pairings-page-wrapper .valorant-card button:not([class*="bg-primary"]) svg {
-  color: rgba(148, 163, 184, 0.8);
-}
-
-.pairings-page-wrapper .valorant-card button:hover svg {
-  transform: scale(1.1);
-}
+/* XP Card tab navigation moved to XPCard.css */
+/* General button styles remain here if needed for other components */
 
 /* =============================================================================
    STATE INDICATORS
@@ -282,42 +235,11 @@
 }
 
 /* =============================================================================
-   PROGRESS BARS
+   PROGRESS BARS - MOVED TO COMPONENT-SPECIFIC CSS FILES
 ============================================================================= */
 
-.pairings-page-wrapper .xp-progress-container {
-  padding: 1px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  border: 0.5px solid rgba(255, 255, 255, 0.08);
-}
-
-.pairings-page-wrapper .xp-progress-bar {
-  height: 12px;
-  background: rgba(31, 39, 49, 0.8);
-  border-radius: 6px;
-  overflow: hidden;
-  position: relative;
-  border: 0.5px solid rgba(255, 255, 255, 0.05);
-}
-
-.pairings-page-wrapper .xp-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #FF4655 0%, #FF4655 50%, rgba(255, 70, 85, 0.8) 100%);
-  border-radius: 5px;
-  position: relative;
-}
-
-.pairings-page-wrapper .xp-progress-fill::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
-  border-radius: 5px;
-}
+/* XP Progress bars moved to XPCard.css */
+/* Pairing-specific progress bars remain here if needed */
 
 /* =============================================================================
    SCROLLBAR CUSTOMIZATION
@@ -372,89 +294,13 @@
 }
 
 /* =============================================================================
-   BADGE & UI COMPONENT OVERRIDES
+   BADGE & UI COMPONENT OVERRIDES - MOVED TO COMPONENT-SPECIFIC CSS FILES
 ============================================================================= */
 
-/* Fix Badge component outline variant within pairings page */
-.pairings-page-wrapper .inline-flex.items-center.rounded-full.border,
-.pairings-page-wrapper [class*="badge"],
-.pairings-page-wrapper [class*="Badge"] {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  background: rgba(31, 39, 49, 0.4) !important;
-  color: rgba(255, 255, 255, 0.9) !important;
-}
+/* XP Card badge overrides moved to XPCard.css */
+/* Pairing Card badge overrides moved to PairingCard.css */
 
-/* Specific overrides for Age, Gender, Region, Rank badges in matched card */
-.pairings-page-wrapper .active-pairing-card .inline-flex.items-center.gap-2.p-2 {
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  background: rgba(31, 39, 49, 0.6) !important;
-  backdrop-filter: blur(4px) !important;
-}
-
-/* Activity card stat containers */
-.pairings-page-wrapper .text-center.p-3 {
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  background: rgba(31, 39, 49, 0.4) !important;
-  backdrop-filter: blur(4px) !important;
-}
-
-/* End This Match button */
-.pairings-page-wrapper .border-status-error\/30 {
-  border-color: rgba(239, 68, 68, 0.2) !important;
-  background: rgba(31, 39, 49, 0.3) !important;
-}
-
-.pairings-page-wrapper .border-status-error\/30:hover {
-  border-color: rgba(239, 68, 68, 0.4) !important;
-  background: rgba(239, 68, 68, 0.05) !important;
-}
-
-/* XP Card Badge overrides */
-.pairings-page-wrapper .valorant-card .inline-flex.items-center.rounded-full.border {
-  border-color: rgba(255, 70, 85, 0.2) !important;
-  background: rgba(31, 39, 49, 0.4) !important;
-  color: rgba(255, 70, 85, 0.9) !important;
-}
-
-.pairings-page-wrapper .valorant-card .text-primary.border-primary\/30 {
-  border-color: rgba(255, 70, 85, 0.2) !important;
-  color: rgba(255, 70, 85, 0.9) !important;
-}
-
-/* Generic outline badge fixes */
-.pairings-page-wrapper [class*="variant-outline"],
-.pairings-page-wrapper [class*="outline"] {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  background: rgba(31, 39, 49, 0.3) !important;
-}
-
-/* Achievement rarity color fixes */
-.pairings-page-wrapper .text-yellow-400.border-yellow-400 {
-  border-color: rgba(250, 204, 21, 0.3) !important;
-  background: rgba(250, 204, 21, 0.05) !important;
-}
-
-.pairings-page-wrapper .text-purple-400.border-purple-400 {
-  border-color: rgba(196, 181, 253, 0.3) !important;
-  background: rgba(196, 181, 253, 0.05) !important;
-}
-
-.pairings-page-wrapper .text-blue-400.border-blue-400 {
-  border-color: rgba(96, 165, 250, 0.3) !important;
-  background: rgba(96, 165, 250, 0.05) !important;
-}
-
-.pairings-page-wrapper .text-green-400.border-green-400 {
-  border-color: rgba(74, 222, 128, 0.3) !important;
-  background: rgba(74, 222, 128, 0.05) !important;
-}
-
-.pairings-page-wrapper .text-gray-400.border-gray-400 {
-  border-color: rgba(156, 163, 175, 0.3) !important;
-  background: rgba(156, 163, 175, 0.05) !important;
-}
-
-/* Fix any remaining white borders */
+/* General badge fixes that apply to all components remain here */
 .pairings-page-wrapper [class*="border-white"],
 .pairings-page-wrapper [class*="border-gray-200"],
 .pairings-page-wrapper [class*="border-slate-200"] {
@@ -499,29 +345,11 @@
 }
 
 /* =============================================================================
-   TOOLTIP COMPONENT OVERRIDES
+   TOOLTIP COMPONENT OVERRIDES - MOVED TO COMPONENT-SPECIFIC CSS FILES
 ============================================================================= */
 
-/* Fix Tooltip borders used in XPCard */
-.pairings-page-wrapper .bg-theme-container.border.border-orange-500\/30,
-.pairings-page-wrapper .bg-theme-container.border.border-blue-500\/30,
-.pairings-page-wrapper .bg-theme-container.border.border-green-500\/30,
-.pairings-page-wrapper .bg-theme-container.border.border-yellow-500\/30 {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  background: rgba(31, 39, 49, 0.9) !important;
-  backdrop-filter: blur(8px) !important;
-}
-
-/* Additional Tooltip overrides */
-.pairings-page-wrapper [data-radix-popper-content-wrapper] {
-  z-index: 9999 !important;
-}
-
-.pairings-page-wrapper [data-radix-popper-content-wrapper] > div {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  background: rgba(31, 39, 49, 0.95) !important;
-  backdrop-filter: blur(12px) !important;
-}
+/* XP Card tooltip overrides moved to XPCard.css */
+/* General tooltip styles that apply to all components remain here if needed */
 
 /* =============================================================================
    ADDITIONAL UI COMPONENT FIXES
@@ -605,17 +433,6 @@
     gap: 0.75rem;
   }
   
-  .pairings-page-wrapper .valorant-card .flex.flex-wrap {
-    gap: 0.25rem;
-  }
-  
-  .pairings-page-wrapper .valorant-card button[class*="flex-1"] {
-    min-width: 0;
-    flex: 1 1 calc(33.333% - 0.25rem);
-    font-size: 0.75rem;
-    padding: 0.5rem 0.25rem;
-  }
-  
   .pairings-page-wrapper .grid.grid-cols-2 {
     gap: 0.5rem;
   }
@@ -648,69 +465,21 @@
     padding: 1rem 0.25rem;
   }
   
-  .pairings-page-wrapper .valorant-card button[class*="flex-1"] {
-    font-size: 0.625rem;
-    padding: 0.5rem 0.125rem;
-  }
-  
-  .pairings-page-wrapper .valorant-card button[class*="flex-1"] svg {
-    width: 0.75rem;
-    height: 0.75rem;
-  }
-  
   .pairings-page-wrapper .grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4 {
     grid-template-columns: 1fr;
   }
 }
 
 /* =============================================================================
-   PERFORMANCE OPTIMIZATIONS
+   PERFORMANCE OPTIMIZATIONS - MOVED TO COMPONENT-SPECIFIC CSS FILES
 ============================================================================= */
 
-.pairings-page-wrapper [data-framer-motion-layout] {
-  transform-origin: top center;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-.pairings-page-wrapper .valorant-card [class*="space-y-"] {
-  transition: height 0.3s ease-in-out;
-}
-
-.pairings-page-wrapper .valorant-card .tab-content-container {
-  min-height: 200px;
-  transition: min-height 0.3s ease-in-out;
-}
-
-@supports (will-change: height) {
-  .pairings-page-wrapper .valorant-card {
-    will-change: height, transform, opacity;
-  }
-}
+/* Component-specific performance optimizations moved to respective CSS files */
+/* General page performance optimizations remain here */
 
 @media (prefers-reduced-motion: reduce) {
-  .pairings-page-wrapper .valorant-card,
-  .pairings-page-wrapper [data-framer-motion-layout] {
-    transition: none;
-    animation: none;
+  .pairings-page-wrapper * {
+    transition: none !important;
+    animation: none !important;
   }
-  
-  .pairings-page-wrapper .valorant-card * {
-    transition: opacity 0.2s ease;
-    transform: none;
-  }
-  
-  .pairings-page-wrapper *:focus-visible {
-    transition: none;
-  }
-}
-
-.pairings-page-wrapper .xl:col-span-1 {
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-.pairings-page-wrapper .valorant-card .space-y-6 {
-  transition: padding 0.3s ease-in-out;
 }

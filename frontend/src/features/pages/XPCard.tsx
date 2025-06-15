@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/valorant/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/valorant/tooltip';
 import httpClient from '@/lib/api/httpClient';
+import '@/assets/XPCard.css';
 
 // Types for XP system data
 interface PairLevelData {
@@ -244,9 +245,10 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
   }
 
   return (
-    <TooltipProvider>
-      <motion.div layout transition={{ duration: 0.3, ease: "easeInOut" }}>
-        <Card className={`valorant-card bg-theme-card border-theme theme-transition ${className}`}>
+    <div className="xp-card-wrapper">
+      <TooltipProvider>
+        <motion.div layout transition={{ duration: 0.3, ease: "easeInOut" }}>
+          <Card className={`valorant-card bg-theme-card border-theme theme-transition ${className}`}>
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-3 text-white text-xl">
               <div className="p-2 bg-primary/20 rounded-lg">
@@ -728,5 +730,6 @@ export const XPCard: React.FC<XPCardProps> = ({ pairingId, className = '' }) => 
         </Card>
       </motion.div>
     </TooltipProvider>
+    </div>
   );
 }; 

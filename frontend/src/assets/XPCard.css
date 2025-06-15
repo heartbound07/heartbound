@@ -1,0 +1,426 @@
+/* =============================================================================
+   XP CARD COMPONENT - ISOLATED CSS
+   =============================================================================
+   
+   This CSS file contains styles specific to the XPCard component.
+   Uses .xp-card-wrapper for namespace isolation to prevent conflicts.
+   
+   Key Features:
+   1. XP progress bars and animations
+   2. Achievement badges and tooltips
+   3. Level progression indicators
+   4. Voice streak statistics
+   5. Tab navigation system
+   
+============================================================================= */
+
+/* Root variables for XP system - matching PairingsPage theme */
+:root {
+  --xp-accent-color: #FF4655;
+  --xp-bg-primary: #0F1923;
+  --xp-bg-secondary: #1F2731;
+  --xp-border: rgba(255, 255, 255, 0.05);
+  --xp-card-radius: 0.5rem;
+  --xp-transition: all 0.3s ease;
+}
+
+/* =============================================================================
+   XP CARD WRAPPER - CSS ISOLATION BOUNDARY
+============================================================================= */
+
+.xp-card-wrapper {
+  /* Reset any inherited styles */
+  all: unset;
+  
+  /* Establish new stacking context */
+  position: relative;
+  z-index: 1;
+  
+  /* Full container behavior */
+  display: block;
+  width: 100%;
+  
+  /* Typography inheritance with dark theme enforcement */
+  font-family: inherit;
+  line-height: inherit;
+  color: white !important;
+}
+
+/* =============================================================================
+   XP CARD TEXT COLOR OVERRIDES - DARK THEME ENFORCEMENT  
+============================================================================= */
+
+.xp-card-wrapper * {
+  color: inherit;
+}
+
+.xp-card-wrapper .text-white {
+  color: white !important;
+}
+
+.xp-card-wrapper .text-theme-secondary {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.xp-card-wrapper .text-theme-tertiary {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.xp-card-wrapper .text-gray-400 {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.xp-card-wrapper .text-gray-500 {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.xp-card-wrapper .text-slate-400 {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.xp-card-wrapper .text-slate-500 {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* =============================================================================
+   XP CARD CONTAINER
+============================================================================= */
+
+.xp-card-wrapper .valorant-card {
+  background: rgba(31, 39, 49, 0.3) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: var(--xp-card-radius);
+  transition: var(--xp-transition);
+  transform-origin: top center;
+  will-change: height, transform;
+  color: white !important;
+}
+
+/* =============================================================================
+   XP PROGRESS BARS
+============================================================================= */
+
+.xp-card-wrapper .xp-progress-container {
+  padding: 1px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
+}
+
+.xp-card-wrapper .xp-progress-bar {
+  height: 12px;
+  background: rgba(31, 39, 49, 0.8);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  border: 0.5px solid rgba(255, 255, 255, 0.05);
+}
+
+.xp-card-wrapper .xp-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FF4655 0%, #FF4655 50%, rgba(255, 70, 85, 0.8) 100%);
+  border-radius: 5px;
+  position: relative;
+  transition: width 0.5s ease-in-out;
+}
+
+.xp-card-wrapper .xp-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+  border-radius: 5px;
+}
+
+/* =============================================================================
+   XP TAB NAVIGATION SYSTEM
+============================================================================= */
+
+.xp-card-wrapper .valorant-card button[class*="theme-transition"] {
+  transition: var(--xp-transition);
+  position: relative;
+  z-index: 1;
+}
+
+.xp-card-wrapper .valorant-card button:not([class*="bg-primary"]) {
+  background: rgba(30, 41, 59, 0.5) !important;
+  color: white !important;
+  border: 1px solid rgba(148, 163, 184, 0.2) !important;
+}
+
+/* Removed hover effect for cleaner appearance */
+
+.xp-card-wrapper .valorant-card button[class*="bg-primary"] {
+  background: var(--color-primary) !important;
+  color: white !important;
+  border: 1px solid var(--color-primary) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Removed hover effect for cleaner appearance */
+
+/* Specific overrides for active tab text colors */
+.xp-card-wrapper .valorant-card button[class*="bg-primary"].text-primary,
+.xp-card-wrapper .valorant-card button[class*="bg-primary"] .text-primary,
+.xp-card-wrapper .valorant-card button[class*="bg-primary"] span {
+  color: white !important;
+}
+
+/* Removed hover text overrides since hover effects are removed */
+
+.xp-card-wrapper .valorant-card button svg {
+  transition: var(--xp-transition);
+}
+
+.xp-card-wrapper .valorant-card button[class*="bg-primary"] svg {
+  color: white !important;
+}
+
+.xp-card-wrapper .valorant-card button:not([class*="bg-primary"]) svg {
+  color: white !important;
+}
+
+/* Removed SVG hover transform for cleaner appearance */
+
+/* =============================================================================
+   XP BADGE & ACHIEVEMENT OVERRIDES
+============================================================================= */
+
+/* XP Card Badge overrides */
+.xp-card-wrapper .valorant-card .inline-flex.items-center.rounded-full.border {
+  border-color: rgba(255, 70, 85, 0.2) !important;
+  background: rgba(31, 39, 49, 0.4) !important;
+  color: rgba(255, 70, 85, 0.9) !important;
+}
+
+.xp-card-wrapper .valorant-card .text-primary.border-primary\/30 {
+  border-color: rgba(255, 70, 85, 0.2) !important;
+  color: rgba(255, 70, 85, 0.9) !important;
+}
+
+/* Container backgrounds to match glass morphism */
+.xp-card-wrapper .bg-theme-container {
+  background: rgba(31, 39, 49, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.xp-card-wrapper .bg-theme-card {
+  background: rgba(31, 39, 49, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Override PairingsPage hover effects that affect XPCard containers */
+.xp-card-wrapper .bg-theme-container:hover,
+.xp-card-wrapper .bg-theme-container.border-theme:hover {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  background: rgba(31, 39, 49, 0.6) !important;
+}
+
+/* Achievement rarity color fixes */
+.xp-card-wrapper .text-yellow-400.border-yellow-400 {
+  border-color: rgba(250, 204, 21, 0.3) !important;
+  background: rgba(250, 204, 21, 0.05) !important;
+}
+
+.xp-card-wrapper .text-purple-400.border-purple-400 {
+  border-color: rgba(196, 181, 253, 0.3) !important;
+  background: rgba(196, 181, 253, 0.05) !important;
+}
+
+.xp-card-wrapper .text-blue-400.border-blue-400 {
+  border-color: rgba(96, 165, 250, 0.3) !important;
+  background: rgba(96, 165, 250, 0.05) !important;
+}
+
+.xp-card-wrapper .text-green-400.border-green-400 {
+  border-color: rgba(74, 222, 128, 0.3) !important;
+  background: rgba(74, 222, 128, 0.05) !important;
+}
+
+.xp-card-wrapper .text-gray-400.border-gray-400 {
+  border-color: rgba(156, 163, 175, 0.3) !important;
+  background: rgba(156, 163, 175, 0.05) !important;
+}
+
+/* Generic outline badge fixes for XP card */
+.xp-card-wrapper [class*="variant-outline"],
+.xp-card-wrapper [class*="outline"] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(31, 39, 49, 0.3) !important;
+}
+
+/* =============================================================================
+   XP TOOLTIP COMPONENT OVERRIDES
+============================================================================= */
+
+/* Fix Tooltip borders used in XPCard */
+.xp-card-wrapper .bg-theme-container.border.border-orange-500\/30,
+.xp-card-wrapper .bg-theme-container.border.border-blue-500\/30,
+.xp-card-wrapper .bg-theme-container.border.border-green-500\/30,
+.xp-card-wrapper .bg-theme-container.border.border-yellow-500\/30 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(31, 39, 49, 0.9) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Additional Tooltip overrides for XP card */
+.xp-card-wrapper [data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+}
+
+.xp-card-wrapper [data-radix-popper-content-wrapper] > div {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(31, 39, 49, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* =============================================================================
+   XP SCROLLBAR CUSTOMIZATION
+============================================================================= */
+
+.xp-card-wrapper .valorant-card .max-h-48.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(31, 39, 49, 0.3);
+}
+
+.xp-card-wrapper .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.xp-card-wrapper .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar-track {
+  background: rgba(31, 39, 49, 0.3);
+  border-radius: 3px;
+}
+
+.xp-card-wrapper .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+/* Removed scrollbar thumb hover effect for consistency */
+
+/* =============================================================================
+   XP FOCUS MANAGEMENT & ACCESSIBILITY
+============================================================================= */
+
+.xp-card-wrapper *:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.xp-card-wrapper *:focus-visible {
+  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
+  outline-offset: 2px;
+  border-color: rgba(255, 70, 85, 0.3) !important;
+}
+
+.xp-card-wrapper input:focus-visible,
+.xp-card-wrapper select:focus-visible,
+.xp-card-wrapper textarea:focus-visible {
+  outline: 2px solid rgba(255, 70, 85, 0.5) !important;
+  outline-offset: 1px;
+  border-color: rgba(255, 70, 85, 0.3) !important;
+}
+
+.xp-card-wrapper button:focus-visible {
+  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
+  outline-offset: 2px;
+  border-color: rgba(255, 70, 85, 0.3) !important;
+}
+
+/* Override any ring focus styles */
+.xp-card-wrapper *:focus,
+.xp-card-wrapper *:focus-visible {
+  --tw-ring-color: rgba(255, 70, 85, 0.2) !important;
+  --tw-ring-offset-color: transparent !important;
+}
+
+/* =============================================================================
+   XP RESPONSIVE DESIGN
+============================================================================= */
+
+@media (max-width: 640px) {
+  .xp-card-wrapper .valorant-card button[class*="flex-1"] {
+    min-width: 0;
+    flex: 1 1 calc(33.333% - 0.25rem);
+    font-size: 0.75rem;
+    padding: 0.5rem 0.25rem;
+  }
+}
+
+@media (max-width: 430px) {
+  .xp-card-wrapper .valorant-card .flex.flex-wrap {
+    gap: 0.25rem;
+  }
+  
+  .xp-card-wrapper .valorant-card button[class*="flex-1"] {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.25rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .xp-card-wrapper .valorant-card button[class*="flex-1"] {
+    font-size: 0.625rem;
+    padding: 0.5rem 0.125rem;
+  }
+  
+  .xp-card-wrapper .valorant-card button[class*="flex-1"] svg {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+}
+
+/* =============================================================================
+   XP PERFORMANCE OPTIMIZATIONS
+============================================================================= */
+
+.xp-card-wrapper [data-framer-motion-layout] {
+  transform-origin: top center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.xp-card-wrapper .valorant-card [class*="space-y-"] {
+  transition: height 0.3s ease-in-out;
+}
+
+.xp-card-wrapper .valorant-card .tab-content-container {
+  min-height: 200px;
+  transition: min-height 0.3s ease-in-out;
+}
+
+@supports (will-change: height) {
+  .xp-card-wrapper .valorant-card {
+    will-change: height, transform, opacity;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-card-wrapper .valorant-card,
+  .xp-card-wrapper [data-framer-motion-layout] {
+    transition: none;
+    animation: none;
+  }
+  
+  .xp-card-wrapper .valorant-card * {
+    transition: opacity 0.2s ease;
+    transform: none;
+  }
+  
+  .xp-card-wrapper *:focus-visible {
+    transition: none;
+  }
+}
+
+.xp-card-wrapper .valorant-card .space-y-6 {
+  transition: padding 0.3s ease-in-out;
+} 
