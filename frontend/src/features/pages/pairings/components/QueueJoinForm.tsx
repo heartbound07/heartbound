@@ -10,6 +10,9 @@ import { Heart } from 'lucide-react'
 import type { JoinQueueRequestDTO } from "@/config/pairingService"
 import { Skeleton } from "@/components/ui/SkeletonUI"
 
+// Import component-specific CSS
+import "@/assets/QueueJoinForm.css"
+
 // Constants for form options
 const REGIONS = [
   { value: "NA_EAST", label: "NA East" },
@@ -109,7 +112,7 @@ export const QueueJoinForm = memo(({
   )
 
   return (
-    <div>
+    <div className="queue-join-form-wrapper">
       <Card className="valorant-card">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-3 text-white text-xl">
@@ -120,7 +123,7 @@ export const QueueJoinForm = memo(({
         </CardHeader>
         <CardContent className="space-y-6">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="form-grid-2 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="age" className="text-sm font-medium text-white">
                   Age
@@ -144,15 +147,15 @@ export const QueueJoinForm = memo(({
                   Gender
                 </Label>
                 <Select value={formData.gender} onValueChange={(value) => updateFormField('gender', value)} required>
-                  <SelectTrigger className="bg-theme-container border-theme text-white theme-transition">
+                  <SelectTrigger className="select-trigger text-white theme-transition">
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1F2731] border-theme theme-transition">
-                    {GENDERS.map((g) => (
-                      <SelectItem 
-                        key={g.value} 
-                        value={g.value}
-                        className="text-white hover:bg-[#2A3441] hover:text-primary focus:bg-[#2A3441] focus:text-primary transition-all duration-200 ease-in-out cursor-pointer"
+                                      <SelectContent className="select-content theme-transition">
+                      {GENDERS.map((g) => (
+                        <SelectItem 
+                          key={g.value} 
+                          value={g.value}
+                          className="select-item"
                       >
                         {g.label}
                       </SelectItem>
@@ -162,21 +165,21 @@ export const QueueJoinForm = memo(({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="form-grid-2 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="region" className="text-white font-medium mb-2 block">
                   Region
                 </Label>
                 <Select value={formData.region} onValueChange={(value) => updateFormField('region', value)} required>
-                  <SelectTrigger className="bg-theme-container border-theme text-white theme-transition">
+                  <SelectTrigger className="select-trigger text-white theme-transition">
                     <SelectValue placeholder="Select region" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1F2731] border-theme theme-transition">
-                    {REGIONS.map((reg) => (
-                      <SelectItem 
-                        key={reg.value} 
-                        value={reg.value}
-                        className="text-white hover:bg-[#2A3441] hover:text-primary focus:bg-[#2A3441] focus:text-primary transition-all duration-200 ease-in-out cursor-pointer"
+                                      <SelectContent className="select-content theme-transition">
+                      {REGIONS.map((reg) => (
+                        <SelectItem 
+                          key={reg.value} 
+                          value={reg.value}
+                          className="select-item"
                       >
                         {reg.label}
                       </SelectItem>
@@ -190,15 +193,15 @@ export const QueueJoinForm = memo(({
                   VALORANT Rank
                 </Label>
                 <Select value={formData.rank} onValueChange={(value) => updateFormField('rank', value)} required>
-                  <SelectTrigger className="bg-theme-container border-theme text-white theme-transition">
+                  <SelectTrigger className="select-trigger text-white theme-transition">
                     <SelectValue placeholder="Select rank" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1F2731] border-theme theme-transition">
-                    {RANKS.map((r) => (
-                      <SelectItem 
-                        key={r.value} 
-                        value={r.value}
-                        className="text-white hover:bg-[#2A3441] hover:text-primary focus:bg-[#2A3441] focus:text-primary transition-all duration-200 ease-in-out cursor-pointer"
+                                      <SelectContent className="select-content theme-transition">
+                      {RANKS.map((r) => (
+                        <SelectItem 
+                          key={r.value} 
+                          value={r.value}
+                          className="select-item"
                       >
                         {r.label}
                       </SelectItem>

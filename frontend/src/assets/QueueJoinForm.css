@@ -1,0 +1,427 @@
+/* =============================================================================
+   QUEUE JOIN FORM COMPONENT - ISOLATED CSS
+   =============================================================================
+   
+   This CSS file contains styles specific to the QueueJoinForm component.
+   Uses .queue-join-form-wrapper for namespace isolation to prevent conflicts.
+   
+   Key Features:
+   1. Form input styling with glass morphism
+   2. Select dropdown customization
+   3. Join queue button animations
+   4. Form validation states
+   5. Responsive form layout
+   
+============================================================================= */
+
+/* Root variables for Queue Join Form - matching XPCard theme */
+:root {
+  --queue-form-accent-color: #FF4655;
+  --queue-form-bg-primary: #0F1923;
+  --queue-form-bg-secondary: #1F2731;
+  --queue-form-border: rgba(255, 255, 255, 0.05);
+  --queue-form-card-radius: 0.5rem;
+  --queue-form-transition: all 0.3s ease;
+  --queue-form-primary-color: #FF4655;
+}
+
+/* =============================================================================
+   QUEUE JOIN FORM WRAPPER - CSS ISOLATION BOUNDARY
+============================================================================= */
+
+.queue-join-form-wrapper {
+  /* Reset any inherited styles */
+  all: unset;
+  
+  /* Establish new stacking context */
+  position: relative;
+  z-index: 1;
+  
+  /* Full container behavior */
+  display: block;
+  width: 100%;
+  
+  /* Typography inheritance with dark theme enforcement */
+  font-family: inherit;
+  line-height: inherit;
+  color: white !important;
+}
+
+/* =============================================================================
+   QUEUE JOIN FORM TEXT COLOR OVERRIDES - DARK THEME ENFORCEMENT  
+============================================================================= */
+
+.queue-join-form-wrapper * {
+  color: inherit;
+}
+
+.queue-join-form-wrapper .text-white {
+  color: white !important;
+}
+
+.queue-join-form-wrapper .text-theme-secondary {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.queue-join-form-wrapper .text-theme-tertiary {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.queue-join-form-wrapper .text-primary {
+  color: var(--queue-form-primary-color) !important;
+}
+
+.queue-join-form-wrapper .placeholder\\:text-theme-tertiary::placeholder {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* =============================================================================
+   QUEUE JOIN FORM CARD CONTAINER
+============================================================================= */
+
+.queue-join-form-wrapper .valorant-card {
+  background: rgba(31, 39, 49, 0.3) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: var(--queue-form-card-radius);
+  transition: var(--queue-form-transition);
+  transform-origin: top center;
+  will-change: height, transform;
+  color: white !important;
+}
+
+.queue-join-form-wrapper .valorant-card:hover {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* =============================================================================
+   FORM INPUT STYLING
+============================================================================= */
+
+.queue-join-form-wrapper input[type="number"] {
+  background: rgba(31, 39, 49, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 0.5rem;
+  color: white !important;
+  transition: var(--queue-form-transition);
+  backdrop-filter: blur(4px);
+}
+
+.queue-join-form-wrapper input[type="number"]:focus {
+  border-color: rgba(255, 70, 85, 0.4) !important;
+  background: rgba(31, 39, 49, 0.8) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 1px rgba(255, 70, 85, 0.2) !important;
+}
+
+.queue-join-form-wrapper input[type="number"]:hover:not(:focus) {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(31, 39, 49, 0.7) !important;
+}
+
+.queue-join-form-wrapper input[type="number"]::placeholder {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* =============================================================================
+   SELECT DROPDOWN STYLING
+============================================================================= */
+
+.queue-join-form-wrapper .select-trigger {
+  background: rgba(31, 39, 49, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 0.5rem;
+  color: white !important;
+  transition: var(--queue-form-transition);
+  backdrop-filter: blur(4px);
+}
+
+.queue-join-form-wrapper .select-trigger:hover {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(31, 39, 49, 0.7) !important;
+}
+
+.queue-join-form-wrapper .select-trigger[data-state="open"] {
+  border-color: rgba(255, 70, 85, 0.4) !important;
+  background: rgba(31, 39, 49, 0.8) !important;
+  box-shadow: 0 0 0 1px rgba(255, 70, 85, 0.2) !important;
+}
+
+.queue-join-form-wrapper .select-trigger[data-placeholder] {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Select content dropdown */
+.queue-join-form-wrapper .select-content {
+  background: rgba(31, 39, 49, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+  z-index: 9999;
+}
+
+.queue-join-form-wrapper .select-item {
+  color: white !important;
+  transition: var(--queue-form-transition);
+  cursor: pointer;
+}
+
+.queue-join-form-wrapper .select-item:hover,
+.queue-join-form-wrapper .select-item[data-highlighted] {
+  background: rgba(42, 52, 65, 0.8) !important;
+  color: var(--queue-form-primary-color) !important;
+}
+
+.queue-join-form-wrapper .select-item:focus,
+.queue-join-form-wrapper .select-item[data-state="checked"] {
+  background: rgba(42, 52, 65, 0.9) !important;
+  color: var(--queue-form-primary-color) !important;
+}
+
+/* =============================================================================
+   LABEL STYLING
+============================================================================= */
+
+.queue-join-form-wrapper label {
+  color: white !important;
+  font-weight: 500;
+  transition: var(--queue-form-transition);
+}
+
+.queue-join-form-wrapper label:hover {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* =============================================================================
+   JOIN QUEUE BUTTON STYLING
+============================================================================= */
+
+.queue-join-form-wrapper .join-queue-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  min-height: 3rem;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(31, 39, 49, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 0.5rem;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  transition: var(--queue-form-transition);
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.queue-join-form-wrapper .join-queue-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 70, 85, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.queue-join-form-wrapper .join-queue-button:hover:not(:disabled) {
+  color: white !important;
+  background: rgba(31, 39, 49, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.queue-join-form-wrapper .join-queue-button:hover:not(:disabled)::before {
+  opacity: 1;
+}
+
+.queue-join-form-wrapper .join-queue-button:hover:not(:disabled) svg {
+  color: var(--queue-form-primary-color) !important;
+  transform: scale(1.05);
+}
+
+.queue-join-form-wrapper .join-queue-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  background: rgba(31, 39, 49, 0.7) !important;
+}
+
+.queue-join-form-wrapper .join-queue-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  background: rgba(31, 39, 49, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.queue-join-form-wrapper .join-queue-button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  transition: var(--queue-form-transition);
+  flex-shrink: 0;
+  color: var(--queue-form-primary-color);
+}
+
+/* =============================================================================
+   FORM VALIDATION STATES
+============================================================================= */
+
+.queue-join-form-wrapper input:invalid:not(:placeholder-shown) {
+  border-color: rgba(255, 70, 85, 0.5) !important;
+  background: rgba(255, 70, 85, 0.05) !important;
+}
+
+.queue-join-form-wrapper input:valid:not(:placeholder-shown) {
+  border-color: rgba(34, 197, 94, 0.3) !important;
+  background: rgba(34, 197, 94, 0.02) !important;
+}
+
+/* =============================================================================
+   GLASS MORPHISM CONTAINER OVERRIDES
+============================================================================= */
+
+.queue-join-form-wrapper .bg-theme-container {
+  background: rgba(31, 39, 49, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.queue-join-form-wrapper .border-theme {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.queue-join-form-wrapper .theme-transition {
+  transition: var(--queue-form-transition);
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN
+============================================================================= */
+
+@media (max-width: 768px) {
+  .queue-join-form-wrapper .form-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .queue-join-form-wrapper .join-queue-button {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+    min-height: 2.75rem;
+  }
+  
+  .queue-join-form-wrapper .join-queue-button svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+}
+
+@media (max-width: 430px) {
+  .queue-join-form-wrapper .form-grid-2 {
+    gap: 0.75rem;
+  }
+  
+  .queue-join-form-wrapper .join-queue-button {
+    width: 100%;
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* =============================================================================
+   FOCUS MANAGEMENT & ACCESSIBILITY
+============================================================================= */
+
+.queue-join-form-wrapper *:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.queue-join-form-wrapper *:focus-visible {
+  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
+  outline-offset: 2px;
+  border-color: rgba(255, 70, 85, 0.3) !important;
+}
+
+.queue-join-form-wrapper input:focus-visible,
+.queue-join-form-wrapper select:focus-visible {
+  outline: 2px solid rgba(255, 70, 85, 0.5) !important;
+  outline-offset: 1px;
+  border-color: rgba(255, 70, 85, 0.3) !important;
+}
+
+.queue-join-form-wrapper button:focus-visible {
+  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
+  outline-offset: 2px;
+  border-color: rgba(255, 70, 85, 0.3) !important;
+}
+
+/* Override any ring focus styles */
+.queue-join-form-wrapper *:focus,
+.queue-join-form-wrapper *:focus-visible {
+  --tw-ring-color: rgba(255, 70, 85, 0.2) !important;
+  --tw-ring-offset-color: transparent !important;
+}
+
+/* =============================================================================
+   PERFORMANCE OPTIMIZATIONS
+============================================================================= */
+
+.queue-join-form-wrapper .join-queue-button,
+.queue-join-form-wrapper input,
+.queue-join-form-wrapper .select-trigger {
+  will-change: transform, background-color, border-color;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .queue-join-form-wrapper * {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* =============================================================================
+   FLOATING LABEL ANIMATIONS (OPTIONAL ENHANCEMENT)
+============================================================================= */
+
+.queue-join-form-wrapper .floating-label-container {
+  position: relative;
+}
+
+.queue-join-form-wrapper .floating-label {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  transition: var(--queue-form-transition);
+  pointer-events: none;
+  background: rgba(31, 39, 49, 0.8);
+  padding: 0 0.25rem;
+  border-radius: 2px;
+}
+
+.queue-join-form-wrapper .floating-label.active {
+  top: -0.5rem;
+  left: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--queue-form-primary-color);
+} 

@@ -1,0 +1,536 @@
+/* =============================================================================
+   QUEUE STATUS COMPONENT - ISOLATED CSS
+   =============================================================================
+   
+   This CSS file contains styles specific to the QueueStatus component.
+   Uses .queue-status-wrapper for namespace isolation to prevent conflicts.
+   
+   Key Features:
+   1. Queue status display with glass morphism
+   2. Connection status indicators
+   3. Queue position and timer displays
+   4. Leave queue button styling
+   5. Loading states and animations
+   
+============================================================================= */
+
+/* Root variables for Queue Status - matching XPCard theme */
+:root {
+  --queue-status-accent-color: #FF4655;
+  --queue-status-bg-primary: #0F1923;
+  --queue-status-bg-secondary: #1F2731;
+  --queue-status-border: rgba(255, 255, 255, 0.05);
+  --queue-status-card-radius: 0.5rem;
+  --queue-status-transition: all 0.3s ease;
+  --queue-status-info-color: #3b82f6;
+  --queue-status-success-color: #22c55e;
+  --queue-status-error-color: #ef4444;
+}
+
+/* =============================================================================
+   QUEUE STATUS WRAPPER - CSS ISOLATION BOUNDARY
+============================================================================= */
+
+.queue-status-wrapper {
+  /* Reset any inherited styles */
+  all: unset;
+  
+  /* Establish new stacking context */
+  position: relative;
+  z-index: 1;
+  
+  /* Full container behavior */
+  display: block;
+  width: 100%;
+  
+  /* Typography inheritance with dark theme enforcement */
+  font-family: inherit;
+  line-height: inherit;
+  color: white !important;
+}
+
+/* =============================================================================
+   QUEUE STATUS TEXT COLOR OVERRIDES - DARK THEME ENFORCEMENT  
+============================================================================= */
+
+.queue-status-wrapper * {
+  color: inherit;
+}
+
+.queue-status-wrapper .text-white {
+  color: white !important;
+}
+
+.queue-status-wrapper .text-theme-secondary {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.queue-status-wrapper .text-theme-tertiary {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.queue-status-wrapper .text-status-info {
+  color: var(--queue-status-info-color) !important;
+}
+
+.queue-status-wrapper .text-status-success {
+  color: var(--queue-status-success-color) !important;
+}
+
+.queue-status-wrapper .text-status-error {
+  color: var(--queue-status-error-color) !important;
+}
+
+.queue-status-wrapper .text-primary {
+  color: var(--queue-status-accent-color) !important;
+}
+
+/* =============================================================================
+   QUEUE STATUS CARD CONTAINER
+============================================================================= */
+
+.queue-status-wrapper .queue-status-card {
+  background: rgba(31, 39, 49, 0.6) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(59, 130, 246, 0.15) !important;
+  border-radius: 1rem;
+  position: relative;
+  overflow: hidden;
+  color: white !important;
+  transition: var(--queue-status-transition);
+}
+
+.queue-status-wrapper .queue-status-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* =============================================================================
+   CONNECTION STATUS INDICATOR
+============================================================================= */
+
+.queue-status-wrapper .connection-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: var(--queue-status-transition);
+}
+
+.queue-status-wrapper .connection-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: var(--queue-status-transition);
+  position: relative;
+}
+
+.queue-status-wrapper .connection-dot.connected {
+  background-color: var(--queue-status-success-color);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+}
+
+.queue-status-wrapper .connection-dot.connected::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(34, 197, 94, 0.3) 0%, transparent 70%);
+  animation: pulse-success 2s infinite;
+}
+
+.queue-status-wrapper .connection-dot.disconnected {
+  background-color: var(--queue-status-error-color);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+.queue-status-wrapper .connection-dot.disconnected::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.3) 0%, transparent 70%);
+  animation: pulse-error 1.5s infinite;
+}
+
+/* =============================================================================
+   QUEUE STATUS BADGE
+============================================================================= */
+
+.queue-status-wrapper .status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(59, 130, 246, 0.1) !important;
+  border: 1px solid rgba(59, 130, 246, 0.2) !important;
+  border-radius: 9999px;
+  backdrop-filter: blur(8px);
+  transition: var(--queue-status-transition);
+}
+
+.queue-status-wrapper .status-badge:hover {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+  transform: translateY(-1px);
+}
+
+.queue-status-wrapper .status-badge-icon {
+  color: var(--queue-status-info-color) !important;
+  animation: spin 2s linear infinite;
+}
+
+/* =============================================================================
+   QUEUE INFORMATION GRID
+============================================================================= */
+
+.queue-status-wrapper .queue-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.queue-status-wrapper .queue-info-item {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(31, 39, 49, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 0.75rem;
+  backdrop-filter: blur(8px);
+  transition: var(--queue-status-transition);
+}
+
+.queue-status-wrapper .queue-info-item:hover {
+  background: rgba(31, 39, 49, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  transform: translateY(-2px);
+}
+
+.queue-status-wrapper .queue-info-value {
+  font-size: 1.875rem;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+  transition: var(--queue-status-transition);
+}
+
+.queue-status-wrapper .queue-info-value.position {
+  color: var(--queue-status-info-color) !important;
+}
+
+.queue-status-wrapper .queue-info-value.wait-time {
+  color: var(--queue-status-accent-color) !important;
+}
+
+.queue-status-wrapper .queue-info-value.timer {
+  color: var(--queue-status-success-color) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.queue-status-wrapper .queue-info-label {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.queue-status-wrapper .queue-info-meta {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5) !important;
+  margin-top: 0.25rem;
+}
+
+/* =============================================================================
+   LEAVE QUEUE BUTTON STYLING
+============================================================================= */
+
+.queue-status-wrapper .leave-queue-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 2rem;
+  min-height: 3rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7) !important;
+  background: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 0.5rem;
+  backdrop-filter: blur(4px);
+  transition: var(--queue-status-transition);
+  cursor: pointer;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.queue-status-wrapper .leave-queue-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.queue-status-wrapper .leave-queue-button:hover:not(:disabled) {
+  color: var(--queue-status-error-color) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  background: rgba(239, 68, 68, 0.05) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+.queue-status-wrapper .leave-queue-button:hover:not(:disabled)::before {
+  opacity: 1;
+}
+
+.queue-status-wrapper .leave-queue-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+.queue-status-wrapper .leave-queue-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.queue-status-wrapper .leave-queue-button svg {
+  transition: var(--queue-status-transition);
+}
+
+.queue-status-wrapper .leave-queue-button:hover:not(:disabled) svg {
+  color: var(--queue-status-error-color) !important;
+}
+
+/* =============================================================================
+   LOADING STATES
+============================================================================= */
+
+.queue-status-wrapper .loading-skeleton {
+  background: rgba(31, 39, 49, 0.4) !important;
+  border-radius: 0.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.queue-status-wrapper .loading-skeleton::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+/* =============================================================================
+   GLASS MORPHISM CONTAINER OVERRIDES
+============================================================================= */
+
+.queue-status-wrapper .bg-theme-container {
+  background: rgba(31, 39, 49, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.queue-status-wrapper .border-theme {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.queue-status-wrapper .theme-transition {
+  transition: var(--queue-status-transition);
+}
+
+/* =============================================================================
+   ANIMATIONS
+============================================================================= */
+
+@keyframes pulse-success {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes pulse-error {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN
+============================================================================= */
+
+@media (max-width: 768px) {
+  .queue-status-wrapper .queue-info-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .queue-status-wrapper .queue-info-value {
+    font-size: 1.5rem;
+  }
+  
+  .queue-status-wrapper .status-badge {
+    padding: 0.5rem 1rem;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .queue-status-wrapper .queue-info-grid {
+    gap: 0.75rem;
+  }
+  
+  .queue-status-wrapper .queue-info-item {
+    padding: 0.75rem;
+  }
+  
+  .queue-status-wrapper .queue-info-value {
+    font-size: 1.25rem;
+  }
+  
+  .queue-status-wrapper .leave-queue-button {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 430px) {
+  .queue-status-wrapper .queue-status-card {
+    margin: 0 -0.5rem;
+    border-radius: 0.75rem;
+  }
+  
+  .queue-status-wrapper .status-badge {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .queue-status-wrapper .leave-queue-button {
+    width: 100%;
+    margin-top: 1rem;
+  }
+}
+
+/* =============================================================================
+   FOCUS MANAGEMENT & ACCESSIBILITY
+============================================================================= */
+
+.queue-status-wrapper *:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.queue-status-wrapper *:focus-visible {
+  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
+  outline-offset: 2px;
+  border-color: rgba(255, 70, 85, 0.3) !important;
+}
+
+.queue-status-wrapper button:focus-visible {
+  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
+  outline-offset: 2px;
+}
+
+/* =============================================================================
+   PERFORMANCE OPTIMIZATIONS
+============================================================================= */
+
+.queue-status-wrapper .leave-queue-button,
+.queue-status-wrapper .queue-info-item,
+.queue-status-wrapper .status-badge {
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.queue-status-wrapper .queue-info-value.timer {
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .queue-status-wrapper * {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
+  
+  .queue-status-wrapper .connection-dot::after {
+    animation: none !important;
+  }
+  
+  .queue-status-wrapper .status-badge-icon {
+    animation: none !important;
+  }
+  
+  .queue-status-wrapper .loading-skeleton::after {
+    animation: none !important;
+  }
+}
+
+/* =============================================================================
+   HIGH CONTRAST MODE SUPPORT
+============================================================================= */
+
+@media (prefers-contrast: high) {
+  .queue-status-wrapper .queue-status-card {
+    border-width: 2px !important;
+  }
+  
+  .queue-status-wrapper .connection-dot {
+    border: 1px solid currentColor;
+  }
+  
+  .queue-status-wrapper .leave-queue-button {
+    border-width: 2px !important;
+  }
+} 

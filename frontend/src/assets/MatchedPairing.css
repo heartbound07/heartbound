@@ -1,0 +1,394 @@
+/* =============================================================================
+   MATCHED PAIRING COMPONENT - ISOLATED CSS
+   =============================================================================
+   
+   This CSS file contains styles specific to the MatchedPairing component.
+   Uses .matched-pairing-wrapper for namespace isolation to prevent conflicts.
+   
+   Key Features:
+   1. Partner profile display with glass morphism
+   2. Match statistics and details
+   3. Activity metrics display
+   4. Breakup button styling
+   5. Discord channel integration
+   
+============================================================================= */
+
+/* Root variables for Matched Pairing - matching XPCard theme */
+:root {
+  --matched-accent-color: #FF4655;
+  --matched-bg-primary: #0F1923;
+  --matched-bg-secondary: #1F2731;
+  --matched-border: rgba(255, 255, 255, 0.05);
+  --matched-card-radius: 0.5rem;
+  --matched-transition: all 0.3s ease;
+  --matched-success-color: #22c55e;
+}
+
+/* =============================================================================
+   MATCHED PAIRING WRAPPER - CSS ISOLATION BOUNDARY
+============================================================================= */
+
+.matched-pairing-wrapper {
+  /* Reset any inherited styles */
+  all: unset;
+  
+  /* Establish new stacking context */
+  position: relative;
+  z-index: 1;
+  
+  /* Full container behavior */
+  display: block;
+  width: 100%;
+  
+  /* Typography inheritance with dark theme enforcement */
+  font-family: inherit;
+  line-height: inherit;
+  color: white !important;
+}
+
+/* =============================================================================
+   MATCHED PAIRING TEXT COLOR OVERRIDES - DARK THEME ENFORCEMENT  
+============================================================================= */
+
+.matched-pairing-wrapper * {
+  color: inherit;
+}
+
+.matched-pairing-wrapper .text-white {
+  color: white !important;
+}
+
+.matched-pairing-wrapper .text-theme-secondary {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.matched-pairing-wrapper .text-theme-tertiary {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.matched-pairing-wrapper .text-status-success {
+  color: var(--matched-success-color) !important;
+}
+
+.matched-pairing-wrapper .text-status-info {
+  color: #3b82f6 !important;
+}
+
+.matched-pairing-wrapper .text-status-warning {
+  color: #f59e0b !important;
+}
+
+.matched-pairing-wrapper .text-status-error {
+  color: var(--matched-accent-color) !important;
+}
+
+.matched-pairing-wrapper .text-primary {
+  color: var(--matched-accent-color) !important;
+}
+
+/* =============================================================================
+   MATCHED PAIRING CARD CONTAINER
+============================================================================= */
+
+.matched-pairing-wrapper .active-pairing-card {
+  background: rgba(31, 39, 49, 0.4) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(34, 197, 94, 0.1) !important;
+  border-radius: var(--matched-card-radius);
+  transition: var(--matched-transition);
+  position: relative;
+  overflow: hidden;
+  color: white !important;
+}
+
+.matched-pairing-wrapper .active-pairing-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.02) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* =============================================================================
+   PARTNER PROFILE SECTION
+============================================================================= */
+
+.matched-pairing-wrapper .partner-profile-container {
+  background: rgba(31, 39, 49, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 0.75rem;
+  transition: var(--matched-transition);
+}
+
+.matched-pairing-wrapper .partner-profile-container:hover {
+  background: rgba(31, 39, 49, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Avatar styling */
+.matched-pairing-wrapper .partner-avatar {
+  border: 2px solid rgba(34, 197, 94, 0.5) !important;
+  transition: var(--matched-transition);
+}
+
+.matched-pairing-wrapper .partner-avatar:hover {
+  border-color: rgba(34, 197, 94, 0.8) !important;
+  transform: scale(1.05);
+}
+
+/* =============================================================================
+   MATCH STATISTICS BADGES
+============================================================================= */
+
+.matched-pairing-wrapper .match-stat-badge {
+  background: rgba(31, 39, 49, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 0.5rem;
+  transition: var(--matched-transition);
+  backdrop-filter: blur(4px);
+}
+
+.matched-pairing-wrapper .match-stat-badge:hover {
+  background: rgba(31, 39, 49, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Specific stat icon colors */
+.matched-pairing-wrapper .stat-age-icon {
+  color: #3b82f6 !important;
+}
+
+.matched-pairing-wrapper .stat-gender-icon {
+  color: var(--matched-accent-color) !important;
+}
+
+.matched-pairing-wrapper .stat-region-icon {
+  color: var(--matched-success-color) !important;
+}
+
+.matched-pairing-wrapper .stat-rank-icon {
+  color: #f59e0b !important;
+}
+
+/* =============================================================================
+   MATCH DETAILS SECTION
+============================================================================= */
+
+.matched-pairing-wrapper .match-detail-item {
+  background: rgba(31, 39, 49, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 0.5rem;
+  transition: var(--matched-transition);
+  backdrop-filter: blur(4px);
+}
+
+.matched-pairing-wrapper .match-detail-item:hover {
+  background: rgba(31, 39, 49, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Discord link styling */
+.matched-pairing-wrapper .discord-link {
+  color: white !important;
+  transition: var(--matched-transition);
+}
+
+.matched-pairing-wrapper .discord-link:hover {
+  color: var(--matched-success-color) !important;
+}
+
+.matched-pairing-wrapper .discord-link svg {
+  transition: var(--matched-transition);
+}
+
+.matched-pairing-wrapper .discord-link:hover svg {
+  transform: translateX(2px);
+}
+
+/* =============================================================================
+   ACTIVITY METRICS SECTION
+============================================================================= */
+
+.matched-pairing-wrapper .activity-container {
+  background: rgba(31, 39, 49, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 0.75rem;
+  transition: var(--matched-transition);
+}
+
+.matched-pairing-wrapper .activity-metric {
+  background: rgba(31, 39, 49, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 0.5rem;
+  transition: var(--matched-transition);
+  backdrop-filter: blur(4px);
+}
+
+.matched-pairing-wrapper .activity-metric:hover {
+  background: rgba(31, 39, 49, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  transform: translateY(-1px);
+}
+
+/* Activity metric colors */
+.matched-pairing-wrapper .metric-user-messages {
+  background: rgba(34, 197, 94, 0.1) !important;
+  border-color: rgba(34, 197, 94, 0.2) !important;
+}
+
+.matched-pairing-wrapper .metric-partner-messages {
+  background: rgba(255, 70, 85, 0.1) !important;
+  border-color: rgba(255, 70, 85, 0.2) !important;
+}
+
+.matched-pairing-wrapper .metric-total-messages {
+  background: rgba(59, 130, 246, 0.1) !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+.matched-pairing-wrapper .metric-voice-time {
+  background: rgba(245, 158, 11, 0.1) !important;
+  border-color: rgba(245, 158, 11, 0.2) !important;
+}
+
+/* =============================================================================
+   BREAKUP BUTTON STYLING
+============================================================================= */
+
+.matched-pairing-wrapper .breakup-button {
+  background: transparent !important;
+  border: 1px solid rgba(255, 70, 85, 0.3) !important;
+  color: var(--matched-accent-color) !important;
+  border-radius: 0.5rem;
+  transition: var(--matched-transition);
+  backdrop-filter: blur(4px);
+}
+
+.matched-pairing-wrapper .breakup-button:hover:not(:disabled) {
+  background: rgba(255, 70, 85, 0.1) !important;
+  border-color: rgba(255, 70, 85, 0.5) !important;
+  color: white !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 70, 85, 0.2);
+}
+
+.matched-pairing-wrapper .breakup-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(255, 70, 85, 0.2);
+}
+
+.matched-pairing-wrapper .breakup-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.matched-pairing-wrapper .breakup-button svg {
+  transition: var(--matched-transition);
+}
+
+.matched-pairing-wrapper .breakup-button:hover:not(:disabled) svg {
+  color: white !important;
+}
+
+/* =============================================================================
+   GLASS MORPHISM CONTAINER OVERRIDES
+============================================================================= */
+
+.matched-pairing-wrapper .bg-theme-container {
+  background: rgba(31, 39, 49, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.matched-pairing-wrapper .border-theme {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.matched-pairing-wrapper .theme-transition {
+  transition: var(--matched-transition);
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN
+============================================================================= */
+
+@media (max-width: 768px) {
+  .matched-pairing-wrapper .match-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .matched-pairing-wrapper .activity-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .matched-pairing-wrapper .partner-profile-container {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+  
+  .matched-pairing-wrapper .match-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .matched-pairing-wrapper .activity-metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .matched-pairing-wrapper .match-detail-item {
+    text-align: center;
+  }
+}
+
+/* =============================================================================
+   FOCUS MANAGEMENT & ACCESSIBILITY
+============================================================================= */
+
+.matched-pairing-wrapper *:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.matched-pairing-wrapper *:focus-visible {
+  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
+  outline-offset: 2px;
+  border-color: rgba(255, 70, 85, 0.3) !important;
+}
+
+.matched-pairing-wrapper button:focus-visible {
+  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
+  outline-offset: 2px;
+}
+
+/* =============================================================================
+   PERFORMANCE OPTIMIZATIONS
+============================================================================= */
+
+.matched-pairing-wrapper .partner-avatar,
+.matched-pairing-wrapper .activity-metric,
+.matched-pairing-wrapper .breakup-button {
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .matched-pairing-wrapper * {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
+} 
