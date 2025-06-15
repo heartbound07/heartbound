@@ -1335,7 +1335,7 @@ export function PairingsPage() {
 
                                 {/* Match Stats */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                  <div className="flex items-center gap-2 p-2 bg-status-info/10 rounded-lg border border-status-info/20 hover:bg-status-info/20 transition-colors">
+                                  <div className="flex items-center gap-2 p-2 bg-theme-container rounded-lg border-theme theme-transition">
                                     <User className="h-4 w-4 text-status-info" />
                                     <span className="text-sm font-medium text-theme-secondary">
                                       {currentPairing?.user1Id === user?.id
@@ -1344,7 +1344,7 @@ export function PairingsPage() {
                                     </span>
                                   </div>
 
-                                  <div className="flex items-center gap-2 p-2 bg-primary/10 rounded-lg border border-primary/20 hover:bg-primary/20 transition-colors">
+                                  <div className="flex items-center gap-2 p-2 bg-theme-container rounded-lg border-theme theme-transition">
                                     <Users className="h-4 w-4 text-primary" />
                                     <span className="text-sm font-medium text-theme-secondary">
                                       {GENDERS.find(
@@ -1357,7 +1357,7 @@ export function PairingsPage() {
                                     </span>
                                   </div>
 
-                                  <div className="flex items-center gap-2 p-2 bg-status-success/10 rounded-lg border border-status-success/20 hover:bg-status-success/20 transition-colors">
+                                  <div className="flex items-center gap-2 p-2 bg-theme-container rounded-lg border-theme theme-transition">
                                     <MapPin className="h-4 w-4 text-status-success" />
                                     <span className="text-sm font-medium text-theme-secondary">
                                       {REGIONS.find(
@@ -1370,7 +1370,7 @@ export function PairingsPage() {
                                     </span>
                                   </div>
 
-                                  <div className="flex items-center gap-2 p-2 bg-status-warning/10 rounded-lg border border-status-warning/20 hover:bg-status-warning/20 transition-colors">
+                                  <div className="flex items-center gap-2 p-2 bg-theme-container rounded-lg border-theme theme-transition">
                                     <Trophy className="h-4 w-4 text-status-warning" />
                                     <span className="text-sm font-medium text-theme-secondary">
                                       {RANKS.find(

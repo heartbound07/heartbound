@@ -300,6 +300,49 @@
 /* XP Card badge overrides moved to XPCard.css */
 /* Pairing Card badge overrides moved to PairingCard.css */
 
+/* =============================================================================
+   "YOU'RE MATCHED" SECTION OVERRIDES
+============================================================================= */
+
+/* Fix Match Stats badges in "You're Matched" section */
+.pairings-page-wrapper .active-pairing-card .bg-theme-container {
+  background: rgba(31, 39, 49, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Override any colored borders in Match Stats */
+.pairings-page-wrapper .active-pairing-card [class*="border-status-"],
+.pairings-page-wrapper .active-pairing-card [class*="border-primary"] {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Fix Activity section badges */
+.pairings-page-wrapper .active-pairing-card [class*="bg-status-success/10"],
+.pairings-page-wrapper .active-pairing-card [class*="bg-primary/10"],
+.pairings-page-wrapper .active-pairing-card [class*="bg-status-info/10"],
+.pairings-page-wrapper .active-pairing-card [class*="bg-status-warning/10"] {
+  background: rgba(31, 39, 49, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Fix Activity section border overrides */
+.pairings-page-wrapper .active-pairing-card [class*="border-status-success/20"],
+.pairings-page-wrapper .active-pairing-card [class*="border-primary/20"],
+.pairings-page-wrapper .active-pairing-card [class*="border-status-info/20"],
+.pairings-page-wrapper .active-pairing-card [class*="border-status-warning/20"] {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Ensure text colors remain visible */
+.pairings-page-wrapper .active-pairing-card .text-theme-secondary {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.pairings-page-wrapper .active-pairing-card .text-white {
+  color: white !important;
+}
+
 /* General badge fixes that apply to all components remain here */
 .pairings-page-wrapper [class*="border-white"],
 .pairings-page-wrapper [class*="border-gray-200"],
