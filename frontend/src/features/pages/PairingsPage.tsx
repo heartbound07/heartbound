@@ -8,8 +8,7 @@ import { usePairings } from "@/hooks/usePairings"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/valorant/badge"
-import { Heart, Users, Settings, AlertCircle, Zap, UserCheck, Activity, Trash2, 
-  User, MapPin, Trophy, Calendar, MessageCircle, MessageSquare, Clock } from 'lucide-react'
+import { Heart, Users, Settings, AlertCircle, Zap, UserCheck, Activity, Trash2, MessageCircle} from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
 import type { JoinQueueRequestDTO, PairingDTO } from "@/config/pairingService"
 import { useQueueUpdates } from "@/contexts/QueueUpdates"
