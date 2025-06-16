@@ -4,7 +4,6 @@ import { WebSocketProvider } from '@/contexts/WebSocketProvider';
 import PartyUpdatesProvider from '@/contexts/PartyUpdates';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ValorantPageLayout } from '@/components/valorant/ValorantPageLayout';
-import { PairingsPageLayout } from '@/features/pages/PairingsPageLayout';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { AuthErrorPage } from '@/features/auth/AuthErrorPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
@@ -181,7 +180,7 @@ export function AppRoutes() {
         </Route>
         
         {/* Pairings page */}
-        <Route path="/pairings" element={<PairingsPageLayout />}>
+        <Route path="/pairings" element={<ValorantPageLayout />}>
           <Route index element={<PairingsPage />} />
         </Route>
         

@@ -1,24 +1,25 @@
 /* =============================================================================
-   MATCHED PAIRING COMPONENT - ISOLATED CSS
+   MATCHED PAIRING COMPONENT - XPCARD EXACT ALIGNMENT
    =============================================================================
    
-   This CSS file contains styles specific to the MatchedPairing component.
-   Uses .matched-pairing-wrapper for namespace isolation to prevent conflicts.
-   
-   Key Features:
-   1. Partner profile display with glass morphism
-   2. Match statistics and details
-   3. Activity metrics display
-   4. Breakup button styling
-   5. Discord channel integration
+   Design Refinements to Exactly Match XPCard Aesthetic:
+   1. Removed all colored backgrounds from activity metrics
+   2. Applied XPCard's neutral card styling consistently
+   3. Removed all hover effects for cleaner appearance
+   4. Unified card design language across components
+   5. Maintained glass morphism with consistent styling
+   6. Updated section icons to white for visual consistency
+   7. Removed green gradient overlay from main container
+   8. Changed "You're Matched!" heading to white text
+   9. Removed green ring from profile avatar
    
 ============================================================================= */
 
-/* Root variables for Matched Pairing - matching XPCard theme */
+/* Enhanced root variables aligned with XPCard design system */
 :root {
-  --matched-accent-color: #FF4655;
-  --matched-bg-primary: #0F1923;
-  --matched-bg-secondary: #1F2731;
+  --matched-accent-color: #ff4655;
+  --matched-bg-primary: #0f1923;
+  --matched-bg-secondary: #1f2731;
   --matched-border: rgba(255, 255, 255, 0.05);
   --matched-card-radius: 0.5rem;
   --matched-transition: all 0.3s ease;
@@ -26,29 +27,22 @@
 }
 
 /* =============================================================================
-   MATCHED PAIRING WRAPPER - CSS ISOLATION BOUNDARY
+   MATCHED PAIRING WRAPPER - ENHANCED ISOLATION
 ============================================================================= */
 
 .matched-pairing-wrapper {
-  /* Reset any inherited styles */
   all: unset;
-  
-  /* Establish new stacking context */
   position: relative;
   z-index: 1;
-  
-  /* Full container behavior */
   display: block;
   width: 100%;
-  
-  /* Typography inheritance with dark theme enforcement */
   font-family: inherit;
   line-height: inherit;
   color: white !important;
 }
 
 /* =============================================================================
-   MATCHED PAIRING TEXT COLOR OVERRIDES - DARK THEME ENFORCEMENT  
+   SIMPLIFIED TEXT COLOR SYSTEM - XPCARD ALIGNED
 ============================================================================= */
 
 .matched-pairing-wrapper * {
@@ -72,11 +66,11 @@
 }
 
 .matched-pairing-wrapper .text-status-info {
-  color: #3b82f6 !important;
+  color: #60a5fa !important;
 }
 
 .matched-pairing-wrapper .text-status-warning {
-  color: #f59e0b !important;
+  color: #fbbf24 !important;
 }
 
 .matched-pairing-wrapper .text-status-error {
@@ -88,13 +82,13 @@
 }
 
 /* =============================================================================
-   MATCHED PAIRING CARD CONTAINER
+   MAIN CARD CONTAINER - CLEAN XPCARD STYLE WITHOUT GREEN OVERLAY
 ============================================================================= */
 
 .matched-pairing-wrapper .active-pairing-card {
-  background: rgba(31, 39, 49, 0.4) !important;
-  backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(34, 197, 94, 0.1) !important;
+  background: rgba(31, 39, 49, 0.3) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
   border-radius: var(--matched-card-radius);
   transition: var(--matched-transition);
   position: relative;
@@ -102,19 +96,63 @@
   color: white !important;
 }
 
-.matched-pairing-wrapper .active-pairing-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.02) 0%, transparent 70%);
-  pointer-events: none;
+/* REMOVED: Green gradient overlay for cleaner XPCard aesthetic */
+/* .matched-pairing-wrapper .active-pairing-card::before - completely removed */
+
+/* =============================================================================
+   HEADER STYLING - WHITE TEXT FOR "YOU'RE MATCHED!" HEADING
+============================================================================= */
+
+/* Override the success color for the main heading text to white */
+.matched-pairing-wrapper .text-status-success.text-xl {
+  color: white !important;
+}
+
+/* Ensure the heading text specifically is white */
+.matched-pairing-wrapper CardTitle.text-status-success {
+  color: white !important;
+}
+
+/* Target the specific heading element */
+.matched-pairing-wrapper .active-pairing-card .text-status-success {
+  color: white !important;
 }
 
 /* =============================================================================
-   PARTNER PROFILE SECTION
+   SECTION ICONS - WHITE COLOR FOR VISUAL CONSISTENCY
+============================================================================= */
+
+/* "You're Matched!" header icon - changed to white */
+.matched-pairing-wrapper .text-status-success .h-6.w-6 {
+  color: white !important;
+}
+
+/* "Matched" section Calendar icon - changed to white */
+.matched-pairing-wrapper .match-detail-item .text-primary {
+  color: white !important;
+}
+
+/* "Discord Channel" section MessageCircle icon - changed to white */
+.matched-pairing-wrapper .match-detail-item .text-status-success {
+  color: white !important;
+}
+
+/* "Activity" section MessageSquare icon - changed to white */
+.matched-pairing-wrapper .activity-container .text-status-info {
+  color: white !important;
+}
+
+/* Specific icon targeting for better precision */
+.matched-pairing-wrapper .match-detail-item svg {
+  color: white !important;
+}
+
+.matched-pairing-wrapper .activity-container > div:first-child svg {
+  color: white !important;
+}
+
+/* =============================================================================
+   PARTNER PROFILE SECTION - XPCARD ALIGNED
 ============================================================================= */
 
 .matched-pairing-wrapper .partner-profile-container {
@@ -125,24 +163,36 @@
   transition: var(--matched-transition);
 }
 
+/* Removed hover effects to match XPCard */
 .matched-pairing-wrapper .partner-profile-container:hover {
-  background: rgba(31, 39, 49, 0.8) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
+  background: rgba(31, 39, 49, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
 }
 
-/* Avatar styling */
+/* REMOVED GREEN RING - Neutral avatar styling */
 .matched-pairing-wrapper .partner-avatar {
-  border: 2px solid rgba(34, 197, 94, 0.5) !important;
+  border: 2px solid rgba(255, 255, 255, 0.1) !important; /* Changed from green to neutral */
   transition: var(--matched-transition);
 }
 
 .matched-pairing-wrapper .partner-avatar:hover {
-  border-color: rgba(34, 197, 94, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important; /* Changed from green to neutral */
   transform: scale(1.05);
 }
 
+/* Remove any additional green styling that might affect the avatar */
+.matched-pairing-wrapper .partner-avatar,
+.matched-pairing-wrapper .partner-avatar * {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.matched-pairing-wrapper .partner-avatar:hover,
+.matched-pairing-wrapper .partner-avatar:hover * {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
 /* =============================================================================
-   MATCH STATISTICS BADGES
+   MATCH STATISTICS - XPCARD ALIGNED STYLING
 ============================================================================= */
 
 .matched-pairing-wrapper .match-stat-badge {
@@ -150,17 +200,18 @@
   border: 1px solid rgba(255, 255, 255, 0.05) !important;
   border-radius: 0.5rem;
   transition: var(--matched-transition);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
 }
 
+/* Removed hover effects to match XPCard */
 .matched-pairing-wrapper .match-stat-badge:hover {
-  background: rgba(31, 39, 49, 0.8) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
+  background: rgba(31, 39, 49, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
 }
 
-/* Specific stat icon colors */
+/* Simplified stat icon colors - kept for visual distinction in stats */
 .matched-pairing-wrapper .stat-age-icon {
-  color: #3b82f6 !important;
+  color: #60a5fa !important;
 }
 
 .matched-pairing-wrapper .stat-gender-icon {
@@ -172,11 +223,11 @@
 }
 
 .matched-pairing-wrapper .stat-rank-icon {
-  color: #f59e0b !important;
+  color: #fbbf24 !important;
 }
 
 /* =============================================================================
-   MATCH DETAILS SECTION
+   MATCH DETAILS SECTION - XPCARD ALIGNED
 ============================================================================= */
 
 .matched-pairing-wrapper .match-detail-item {
@@ -184,18 +235,20 @@
   border: 1px solid rgba(255, 255, 255, 0.05) !important;
   border-radius: 0.5rem;
   transition: var(--matched-transition);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
 }
 
+/* Removed hover effects to match XPCard */
 .matched-pairing-wrapper .match-detail-item:hover {
-  background: rgba(31, 39, 49, 0.8) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
+  background: rgba(31, 39, 49, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
 }
 
-/* Discord link styling */
+/* Simplified Discord link styling */
 .matched-pairing-wrapper .discord-link {
-  color: white !important;
+  color: rgba(255, 255, 255, 0.9) !important;
   transition: var(--matched-transition);
+  text-decoration: none;
 }
 
 .matched-pairing-wrapper .discord-link:hover {
@@ -211,7 +264,7 @@
 }
 
 /* =============================================================================
-   ACTIVITY METRICS SECTION
+   ACTIVITY METRICS - EXACT XPCARD CARD STYLING
 ============================================================================= */
 
 .matched-pairing-wrapper .activity-container {
@@ -222,43 +275,56 @@
   transition: var(--matched-transition);
 }
 
+/* ALL ACTIVITY METRICS - EXACT XPCARD NEUTRAL STYLING */
 .matched-pairing-wrapper .activity-metric {
-  background: rgba(31, 39, 49, 0.4) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  background: rgba(31, 39, 49, 0.6) !important; /* Exact XPCard card background */
+  border: 1px solid rgba(255, 255, 255, 0.05) !important; /* Exact XPCard border */
   border-radius: 0.5rem;
   transition: var(--matched-transition);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
 }
 
+/* REMOVED ALL HOVER EFFECTS - NO TRANSFORMS OR COLOR CHANGES */
 .matched-pairing-wrapper .activity-metric:hover {
-  background: rgba(31, 39, 49, 0.6) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
-  transform: translateY(-1px);
+  background: rgba(31, 39, 49, 0.6) !important; /* Same as default - no change */
+  border-color: rgba(255, 255, 255, 0.05) !important; /* Same as default - no change */
+  transform: none; /* No transform on hover */
 }
 
-/* Activity metric colors */
+/* REMOVED ALL COLORED BACKGROUNDS - UNIFIED NEUTRAL STYLING */
 .matched-pairing-wrapper .metric-user-messages {
-  background: rgba(34, 197, 94, 0.1) !important;
-  border-color: rgba(34, 197, 94, 0.2) !important;
+  background: rgba(31, 39, 49, 0.6) !important; /* Same neutral background as XPCard */
+  border-color: rgba(255, 255, 255, 0.05) !important; /* Same neutral border as XPCard */
 }
 
 .matched-pairing-wrapper .metric-partner-messages {
-  background: rgba(255, 70, 85, 0.1) !important;
-  border-color: rgba(255, 70, 85, 0.2) !important;
+  background: rgba(31, 39, 49, 0.6) !important; /* Same neutral background as XPCard */
+  border-color: rgba(255, 255, 255, 0.05) !important; /* Same neutral border as XPCard */
 }
 
 .matched-pairing-wrapper .metric-total-messages {
-  background: rgba(59, 130, 246, 0.1) !important;
-  border-color: rgba(59, 130, 246, 0.2) !important;
+  background: rgba(31, 39, 49, 0.6) !important; /* Same neutral background as XPCard */
+  border-color: rgba(255, 255, 255, 0.05) !important; /* Same neutral border as XPCard */
 }
 
 .matched-pairing-wrapper .metric-voice-time {
-  background: rgba(245, 158, 11, 0.1) !important;
-  border-color: rgba(245, 158, 11, 0.2) !important;
+  background: rgba(31, 39, 49, 0.6) !important; /* Same neutral background as XPCard */
+  border-color: rgba(255, 255, 255, 0.05) !important; /* Same neutral border as XPCard */
+}
+
+/* REMOVED ALL HOVER EFFECTS FOR INDIVIDUAL METRICS */
+.matched-pairing-wrapper .metric-user-messages:hover,
+.matched-pairing-wrapper .metric-partner-messages:hover,
+.matched-pairing-wrapper .metric-total-messages:hover,
+.matched-pairing-wrapper .metric-voice-time:hover {
+  background: rgba(31, 39, 49, 0.6) !important; /* No change on hover */
+  border-color: rgba(255, 255, 255, 0.05) !important; /* No change on hover */
+  transform: none !important; /* No transform on hover */
+  box-shadow: none !important; /* No shadow on hover */
 }
 
 /* =============================================================================
-   BREAKUP BUTTON STYLING
+   BREAKUP BUTTON - XPCARD ALIGNED STYLING
 ============================================================================= */
 
 .matched-pairing-wrapper .breakup-button {
@@ -267,7 +333,7 @@
   color: var(--matched-accent-color) !important;
   border-radius: 0.5rem;
   transition: var(--matched-transition);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
 }
 
 .matched-pairing-wrapper .breakup-button:hover:not(:disabled) {
@@ -275,12 +341,10 @@
   border-color: rgba(255, 70, 85, 0.5) !important;
   color: white !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 70, 85, 0.2);
 }
 
 .matched-pairing-wrapper .breakup-button:active:not(:disabled) {
   transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(255, 70, 85, 0.2);
 }
 
 .matched-pairing-wrapper .breakup-button:disabled {
@@ -298,7 +362,7 @@
 }
 
 /* =============================================================================
-   GLASS MORPHISM CONTAINER OVERRIDES
+   GLASS MORPHISM OVERRIDES - XPCARD CONSISTENCY
 ============================================================================= */
 
 .matched-pairing-wrapper .bg-theme-container {
@@ -316,18 +380,18 @@
 }
 
 /* =============================================================================
-   RESPONSIVE DESIGN
+   RESPONSIVE DESIGN - MAINTAINED FROM ORIGINAL
 ============================================================================= */
 
 @media (max-width: 768px) {
   .matched-pairing-wrapper .match-stats-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
+    gap: 0.75rem;
   }
-  
+
   .matched-pairing-wrapper .activity-metrics-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
+    gap: 1rem;
   }
 }
 
@@ -335,33 +399,39 @@
   .matched-pairing-wrapper .partner-profile-container {
     flex-direction: column;
     text-align: center;
-    gap: 1rem;
+    gap: 1.5rem;
+    padding: 1.5rem;
   }
-  
+
   .matched-pairing-wrapper .match-stats-grid {
     grid-template-columns: 1fr;
-    gap: 0.5rem;
+    gap: 0.75rem;
   }
-  
+
   .matched-pairing-wrapper .activity-metrics-grid {
     grid-template-columns: 1fr;
-    gap: 0.5rem;
+    gap: 0.75rem;
   }
-  
+
   .matched-pairing-wrapper .match-detail-item {
     text-align: center;
+    padding: 1rem;
+  }
+
+  .matched-pairing-wrapper .activity-container {
+    padding: 1rem;
   }
 }
 
-
-
 /* =============================================================================
-   PERFORMANCE OPTIMIZATIONS
+   PERFORMANCE OPTIMIZATIONS - MAINTAINED
 ============================================================================= */
 
 .matched-pairing-wrapper .partner-avatar,
 .matched-pairing-wrapper .activity-metric,
-.matched-pairing-wrapper .breakup-button {
+.matched-pairing-wrapper .breakup-button,
+.matched-pairing-wrapper .match-stat-badge,
+.matched-pairing-wrapper .match-detail-item {
   will-change: transform;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
@@ -373,4 +443,24 @@
     animation: none !important;
     transform: none !important;
   }
-} 
+}
+
+/* =============================================================================
+   FOCUS STATES - XPCARD ALIGNED ACCESSIBILITY
+============================================================================= */
+
+.matched-pairing-wrapper .breakup-button:focus-visible {
+  outline: 2px solid var(--matched-accent-color);
+  outline-offset: 2px;
+}
+
+.matched-pairing-wrapper .discord-link:focus-visible {
+  outline: 2px solid var(--matched-success-color);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+.matched-pairing-wrapper .partner-avatar:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.3);
+  outline-offset: 4px;
+}
