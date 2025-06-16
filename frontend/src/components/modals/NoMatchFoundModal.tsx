@@ -77,12 +77,10 @@ export function NoMatchFoundModal({
 
               <CardContent className="no-match-modal-content">
                 <div className="no-match-modal-full-section">
-                  {/* Status Icon - Matching Queue Form Icon Treatment */}
-                  <div className="no-match-modal-compatibility">
-                    <div className="no-match-modal-compatibility-row">
-                      {/* Remove the status icon div completely */}
-
-                      {totalInQueue && totalInQueue > 1 && (
+                  {/* Only render compatibility section when there's queue info to show */}
+                  {totalInQueue && totalInQueue > 1 && (
+                    <div className="no-match-modal-compatibility">
+                      <div className="no-match-modal-compatibility-row">
                         <div className="no-match-modal-queue-info">
                           <div className="flex items-center justify-center gap-2">
                             <Users className="h-4 w-4 text-[var(--modal-text-tertiary)]" />
@@ -91,9 +89,9 @@ export function NoMatchFoundModal({
                             </Badge>
                           </div>
                         </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Action Buttons - Matching Queue Form Button Design */}
                   <div className="no-match-modal-action-section">
