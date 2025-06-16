@@ -354,6 +354,18 @@
 }
 
 /* =============================================================================
+   CARD COMPONENT BORDER OVERRIDES - FIX WHITE OUTLINE ISSUE
+============================================================================= */
+
+/* Override default Card component border that causes white outlines */
+.matched-pairing-wrapper .active-pairing-card,
+.matched-pairing-wrapper .valorant-card,
+.matched-pairing-wrapper [class*="rounded-lg"][class*="border"] {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  outline: none;
+}
+
+/* =============================================================================
    FOCUS MANAGEMENT & ACCESSIBILITY
 ============================================================================= */
 

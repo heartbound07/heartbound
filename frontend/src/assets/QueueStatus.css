@@ -461,6 +461,18 @@
 }
 
 /* =============================================================================
+   CARD COMPONENT BORDER OVERRIDES - FIX WHITE OUTLINE ISSUE
+============================================================================= */
+
+/* Override default Card component border that causes white outlines */
+.queue-status-wrapper .queue-status-card,
+.queue-status-wrapper .valorant-card,
+.queue-status-wrapper [class*="rounded-lg"][class*="border"] {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  outline: none;
+}
+
+/* =============================================================================
    FOCUS MANAGEMENT & ACCESSIBILITY
 ============================================================================= */
 

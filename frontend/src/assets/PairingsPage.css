@@ -389,6 +389,46 @@
 }
 
 /* =============================================================================
+   CARD COMPONENT BORDER OVERRIDES - FIX WHITE OUTLINE ISSUE
+============================================================================= */
+
+/* Override default Card component border that causes white outlines */
+.pairings-page-wrapper .valorant-card[class*="border"],
+.pairings-page-wrapper [class*="card"][class*="border"],
+.pairings-page-wrapper .no-match-modal-card[class*="border"],
+.pairings-page-wrapper .match-found-modal-card[class*="border"] {
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Remove any default borders from Card components */
+.pairings-page-wrapper .valorant-card,
+.pairings-page-wrapper [data-card="true"],
+.pairings-page-wrapper [class*="rounded-lg"][class*="border"][class*="bg-card"] {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Override Tailwind ring utilities that might cause white outlines */
+.pairings-page-wrapper [class*="ring-white"],
+.pairings-page-wrapper [class*="ring-1"],
+.pairings-page-wrapper [class*="ring-2"] {
+  --tw-ring-color: rgba(255, 70, 85, 0.2) !important;
+  --tw-ring-opacity: 0.2 !important;
+}
+
+.pairings-page-wrapper [class*="focus:ring-white"],
+.pairings-page-wrapper [class*="focus-visible:ring-white"] {
+  --tw-ring-color: rgba(255, 70, 85, 0.4) !important;
+}
+
+/* Override Badge component default styling that might cause white outlines */
+.pairings-page-wrapper [class*="badge"],
+.pairings-page-wrapper [class*="Badge"],
+.pairings-page-wrapper [class*="rounded-full"][class*="border"][class*="px-2.5"] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  --tw-ring-color: rgba(255, 70, 85, 0.2) !important;
+}
+
+/* =============================================================================
    FOCUS MANAGEMENT & ACCESSIBILITY
 ============================================================================= */
 

@@ -28,6 +28,23 @@
   border-radius: 0.5rem;
   overflow: hidden;
   position: relative;
+  outline: none;
+}
+
+/* Override any default Card component styling that might cause white outlines */
+.no-match-modal-backdrop .valorant-card,
+.no-match-modal-backdrop [class*="rounded-lg"][class*="border"] {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  outline: none;
+}
+
+/* Override Badge and ring utilities that might cause white outlines */
+.no-match-modal-backdrop [class*="badge"],
+.no-match-modal-backdrop [class*="Badge"],
+.no-match-modal-backdrop [class*="rounded-full"][class*="border"] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  --tw-ring-color: rgba(255, 70, 85, 0.2) !important;
+  outline: none;
 }
 
 /* Static background gradient - no animation */
