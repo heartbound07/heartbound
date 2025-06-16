@@ -10,7 +10,7 @@ import { Heart, Users, MapPin, Trophy, User } from "lucide-react"
 import type { JoinQueueRequestDTO } from "@/config/pairingService"
 
 // Import component-specific CSS
-import "./QueueJoinForm.css"
+import "@/assets/QueueJoinForm.css"
 
 // Constants for form options
 const REGIONS = [
