@@ -1,129 +1,235 @@
-/* NoMatchFoundModal specific styles - Optimized and simplified */
+/* =============================================================================
+   NO MATCH FOUND MODAL - ALIGNED WITH QUEUE JOIN FORM DESIGN
+   =============================================================================
+   
+   Refined to match QueueJoinForm design language with consistent color system,
+   glass morphism effects, and interaction patterns.
+   
+============================================================================= */
 
-/* Modal backdrop - Standardized z-index system */
-.no-match-modal-backdrop {
-  z-index: 1500; /* Standardized high value, well above sidebar (900) and mobile elements */
+/* Enhanced CSS Variables - Matching QueueJoinForm */
+:root {
+  --modal-accent: #ff4655;
+  --modal-accent-hover: #ff5a6a;
+  --modal-accent-light: rgba(255, 70, 85, 0.1);
+  --modal-bg-primary: #0f1923;
+  --modal-bg-secondary: #1f2731;
+  --modal-bg-tertiary: #2a3441;
+  --modal-border: rgba(255, 255, 255, 0.06);
+  --modal-border-hover: rgba(255, 255, 255, 0.12);
+  --modal-border-focus: rgba(255, 70, 85, 0.3);
+  --modal-text-primary: #ffffff;
+  --modal-text-secondary: rgba(255, 255, 255, 0.8);
+  --modal-text-tertiary: rgba(255, 255, 255, 0.5);
+  --modal-radius: 12px;
+  --modal-radius-sm: 8px;
+  --modal-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --modal-transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Responsive z-index adjustment - keeping same high value for consistency */
+/* =============================================================================
+   MODAL BACKDROP - CONSISTENT WITH QUEUE FORM
+============================================================================= */
+
+.no-match-modal-backdrop {
+  z-index: 1500;
+  background: rgba(15, 25, 35, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
 @media (max-width: 768px) {
   .no-match-modal-backdrop {
-    z-index: 1500; /* Consistent across all screen sizes */
+    z-index: 1500;
   }
 }
 
-/* Modal container */
+/* =============================================================================
+   MODAL CONTAINER
+============================================================================= */
+
 .no-match-modal-container {
   position: relative;
   width: 100%;
-  max-width: 32rem; /* max-w-lg equivalent */
+  max-width: 28rem;
   outline: none;
+  font-family: inherit;
+  color: var(--modal-text-primary);
 }
 
-/* Modal card */
+.no-match-modal-container * {
+  box-sizing: border-box;
+}
+
+/* =============================================================================
+   MODAL CARD - MATCHING QUEUE FORM GLASS MORPHISM
+============================================================================= */
+
 .no-match-modal-card {
-  background: rgba(31, 39, 49, 0.3) !important;
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: 0.5rem;
+  background: rgba(31, 39, 49, 0.4) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid var(--modal-border) !important;
+  border-radius: var(--modal-radius) !important;
+  transition: var(--modal-transition) !important;
   overflow: hidden;
   position: relative;
   outline: none;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
+.no-match-modal-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  pointer-events: none;
+}
 
+/* =============================================================================
+   BACKGROUND GRADIENT - SUBTLE ACCENT INTEGRATION
+============================================================================= */
 
-/* Static background gradient - no animation */
 .no-match-modal-bg-gradient {
   position: absolute;
   inset: 0;
-  opacity: 0.3;
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2) 0%, rgba(168, 85, 247, 0.1) 50%, rgba(255, 152, 0, 0.2) 100%);
+  opacity: 0.08;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 70, 85, 0.1) 0%,
+    rgba(31, 39, 49, 0.02) 50%,
+    rgba(255, 70, 85, 0.05) 100%
+  );
+  animation: gentle-pulse 4s ease-in-out infinite alternate;
 }
 
-/* Close button */
+@keyframes gentle-pulse {
+  0% {
+    opacity: 0.08;
+  }
+  100% {
+    opacity: 0.04;
+  }
+}
+
+/* =============================================================================
+   CLOSE BUTTON - MATCHING QUEUE FORM INTERACTION STYLE
+============================================================================= */
+
 .no-match-modal-close-btn {
   position: absolute;
-  right: 0.5rem;
-  top: 0.5rem;
-  color: var(--color-text-secondary);
-  background: transparent;
-  border: none;
+  right: 1.25rem;
+  top: 1.25rem;
+  color: var(--modal-text-tertiary);
+  background: rgba(42, 52, 65, 0.4) !important;
+  border: 1px solid var(--modal-border) !important;
   padding: 0.5rem;
-  border-radius: 0.375rem;
-  transition: all 0.2s ease;
+  border-radius: var(--modal-radius-sm);
+  transition: var(--modal-transition);
   cursor: pointer;
   z-index: 10;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .no-match-modal-close-btn:hover {
-  color: var(--color-text-primary);
-  background: rgba(31, 39, 49, 0.5);
+  color: var(--modal-text-primary);
+  background: rgba(42, 52, 65, 0.6) !important;
+  border-color: var(--modal-border-hover) !important;
 }
 
-/* Header styles */
+/* =============================================================================
+   HEADER - CONSISTENT WITH QUEUE FORM TYPOGRAPHY
+============================================================================= */
+
 .no-match-modal-header {
   position: relative;
   text-align: center;
-  padding: 1.5rem 1.5rem 1rem 1.5rem;
+  padding: 2rem 2rem 1rem 2rem;
+  border-bottom: 1px solid var(--modal-border);
 }
 
 .no-match-modal-title-large {
-  font-size: 1.875rem;
-  font-weight: bold;
-  color: var(--color-text-primary);
-  margin-bottom: 1.5rem;
-  margin-top: 1rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--modal-text-primary);
+  margin: 0;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
 }
 
 .no-match-modal-subtitle {
-  color: var(--color-text-secondary);
-  font-size: 1.125rem;
+  color: var(--modal-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.4;
+  margin-top: 0.5rem;
 }
 
-/* Content area */
+/* =============================================================================
+   CONTENT AREA - SPACIOUS LAYOUT MATCHING QUEUE FORM
+============================================================================= */
+
 .no-match-modal-content {
-  padding: 0 1.5rem 1.5rem 1.5rem;
+  padding: 2rem;
   position: relative;
 }
 
-/* Full content section */
 .no-match-modal-full-section {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
-/* Compatibility section (reused for status display) */
+/* =============================================================================
+   STATUS SECTION - ICON TREATMENT MATCHING QUEUE FORM
+============================================================================= */
+
 .no-match-modal-compatibility {
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 .no-match-modal-compatibility-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 1rem;
   flex-direction: column;
 }
 
-/* Static status icon - no animation */
+/* Remove or comment out the status icon styles */
 .no-match-modal-status-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: none; /* Hide the icon container */
 }
 
-/* Queue info */
+/* =============================================================================
+   QUEUE INFO - MATCHING FORM FIELD STYLING
+============================================================================= */
+
 .no-match-modal-queue-info {
-  margin-top: 1rem;
+  margin-top: 0.5rem;
   text-align: center;
 }
 
-/* Action section */
+.no-match-modal-queue-info .flex {
+  background: rgba(42, 52, 65, 0.4) !important;
+  border: 1px solid var(--modal-border);
+  border-radius: var(--modal-radius-sm);
+  padding: 0.75rem 1rem;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* =============================================================================
+   ACTION BUTTONS - MATCHING QUEUE FORM BUTTON DESIGN
+============================================================================= */
+
 .no-match-modal-action-section {
   display: flex;
   flex-direction: column;
@@ -131,42 +237,142 @@
 }
 
 .no-match-modal-action-button {
+  position: relative;
   width: 100%;
-  height: 3rem;
-  font-size: 1rem;
+  height: 48px;
+  font-size: 0.9375rem;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s ease;
+  gap: 0.75rem;
+  transition: var(--modal-transition) !important;
   outline: none;
   box-shadow: none;
+  border-radius: var(--modal-radius-sm);
+  font-family: inherit;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow: hidden;
 }
 
-.no-match-modal-action-description {
-  font-size: 0.75rem;
-  text-align: center;
-  color: var(--color-text-tertiary);
+/* Primary Button - Matching Queue Form Submit Button Style */
+.no-match-modal-action-button.valorant-button-primary {
+  background: rgba(31, 39, 49, 0.6) !important;
+  border: 1px solid var(--modal-border) !important;
+  color: var(--modal-text-primary) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
+.no-match-modal-action-button.valorant-button-primary:hover {
+  border-color: var(--modal-accent) !important;
+  background: rgba(31, 39, 49, 0.7) !important;
+}
 
+.no-match-modal-action-button.valorant-button-primary .button-icon {
+  color: var(--modal-accent);
+}
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
+/* Secondary Button - Matching Form Input Style */
+.no-match-modal-action-button[variant="outline"] {
+  background: rgba(42, 52, 65, 0.4) !important;
+  border: 1px solid var(--modal-border) !important;
+  color: var(--modal-text-secondary) !important;
+}
+
+.no-match-modal-action-button[variant="outline"]:hover {
+  border-color: var(--modal-border-hover) !important;
+  background: rgba(42, 52, 65, 0.6) !important;
+  color: var(--modal-text-primary) !important;
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN - MATCHING QUEUE FORM BREAKPOINTS
+============================================================================= */
+
+@media (max-width: 640px) {
   .no-match-modal-container {
-    max-width: calc(100vw - 2rem);
+    max-width: calc(100vw - 1.5rem);
   }
-  
+
   .no-match-modal-header {
-    padding: 1rem 1rem 0.5rem 1rem;
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
   }
-  
+
   .no-match-modal-content {
-    padding: 0 1rem 1rem 1rem;
+    padding: 1.5rem;
   }
-  
+
   .no-match-modal-title-large {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
-} 
+
+  .no-match-modal-close-btn {
+    right: 1rem;
+    top: 1rem;
+  }
+
+  .no-match-modal-action-section .grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .no-match-modal-action-button {
+    height: 52px;
+    font-size: 0.9375rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .no-match-modal-header {
+    padding: 1.25rem 1.25rem 0.75rem 1.25rem;
+  }
+
+  .no-match-modal-content {
+    padding: 1.25rem;
+  }
+}
+
+/* =============================================================================
+   ACCESSIBILITY & PERFORMANCE - MATCHING QUEUE FORM STANDARDS
+============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .no-match-modal-bg-gradient {
+    animation: none;
+  }
+
+  .no-match-modal-close-btn,
+  .no-match-modal-action-button {
+    transition: none !important;
+  }
+}
+
+.no-match-modal-close-btn,
+.no-match-modal-action-button {
+  will-change: transform, background-color, border-color;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* =============================================================================
+   FOCUS STATES - CONSISTENT WITH QUEUE FORM
+============================================================================= */
+
+.no-match-modal-close-btn:focus-visible,
+.no-match-modal-action-button:focus-visible {
+  outline: 2px solid var(--modal-accent);
+  outline-offset: 2px;
+}
+
+/* =============================================================================
+   BADGE STYLING - MATCHING FORM ELEMENTS
+============================================================================= */
+
+/* Remove red badge styling - make it neutral */
+.no-match-modal-queue-info .valorant-badge {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: var(--modal-border-hover) !important;
+  color: var(--modal-text-secondary) !important;
+}
