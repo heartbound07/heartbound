@@ -13,11 +13,6 @@ div[class*="overflow-hidden"][class*="bg-[#0F1923]"][class*="rounded-lg"]:hover 
   transform: translateZ(0) translateY(-8px) !important;
 }
 
-/* Special styling for "NEW" party cards */
-.border-\[\#FF4655\]\/20.ring-2.ring-\[\#FF4655\]\/10 {
-  /* Removed box-shadow */
-}
-
 /* ===== NEW Indicator Badge ===== */
 div[class*="absolute -right-1 -top-1 bg-[#FF4655]"] {
   border: 1px solid #FF6B76 !important;
@@ -28,10 +23,6 @@ div[class*="absolute -right-1 -top-1 bg-[#FF4655]"] {
 /* ===== Header Section ===== */
 .text-sm.font-semibold.text-white.tracking-wide {
   letter-spacing: 0.5px;
-}
-
-.text-xs.text-zinc-400.mt-1.line-clamp-2 {
-  /* Removed text-shadow */
 }
 
 /* ===== Party Details Icons Row ===== */
@@ -66,10 +57,6 @@ span[class*="text-xs font-medium text-white bg-[#1F2731] py-1 px-2.5 rounded-ful
   font-weight: bold !important;
 }
 
-/* Players label with icon */
-div[class*="flex items-center gap-2"] svg[class*="text-[#FF4655]"] {
-  /* Removed filter drop-shadow */
-}
 
 /* ===== Player Avatar Slots ===== */
 /* Filled player slot */
@@ -88,11 +75,6 @@ div[class*="border-2 border-dashed border-[#1F2731]"] {
 
 div[class*="border-2 border-dashed border-[#1F2731]"]:hover {
   transform: scale(1.12) !important;
-}
-
-/* Plus icon in empty slot */
-div[class*="border-2 border-dashed border-[#1F2731]"] svg {
-  /* Removed filter drop-shadow */
 }
 
 /* ===== Join/View Button ===== */
