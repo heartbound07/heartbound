@@ -205,12 +205,12 @@ export default function Listing({ party, isNew = false }: ListingProps) {
         setHasRequestedToJoin(true);
         
         // Redirect to the party page after sending join request
-        navigate(`/dashboard/valorant/${party.id}`);
+        navigate(`/valorant/${party.id}`);
       } else {
         // For open parties, join directly as before
         await joinParty(party.id);
         // Redirect to the party page after a successful join
-        navigate(`/dashboard/valorant/${party.id}`);
+        navigate(`/valorant/${party.id}`);
       }
     } catch (error: any) {
       // Handle any errors that occur during the join process
@@ -226,7 +226,7 @@ export default function Listing({ party, isNew = false }: ListingProps) {
   // Handle the "View Party" navigation for owners and existing participants
   const handleViewParty = () => {
     // Redirect owners or participants to the party details page using the correct route
-    navigate(`/dashboard/valorant/${party.id}`);
+    navigate(`/valorant/${party.id}`);
   };
 
   // Get the appropriate button text based on user's status

@@ -282,7 +282,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
       // Show success toast
       toast.success("Party created successfully!");
       // Redirect to the party details page using the new party's id
-      navigate(`/dashboard/valorant/${newParty.id}`)
+              navigate(`/valorant/${newParty.id}`)
     } catch (error: any) {
       console.error("Error posting group:", error)
       // Display error message using toast

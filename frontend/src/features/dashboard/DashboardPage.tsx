@@ -117,7 +117,7 @@ export function DashboardPage() {
                 key={game.id}
                 onClick={() => {
                   if (game.id === 'valorant') {
-                    navigate('/dashboard/valorant');
+                    navigate('/valorant');
                   }
                 }}
                 className="flex justify-center p-3"

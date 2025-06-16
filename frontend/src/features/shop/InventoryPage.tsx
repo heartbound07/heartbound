@@ -430,7 +430,7 @@ export function InventoryPage() {
                 }
               </div>
               <motion.button 
-                onClick={() => window.location.href = '/dashboard/shop'}
+                onClick={() => window.location.href = '/shop'}
                 className="visit-shop-button"
                 whileHover={{ scale: 1.05, backgroundColor: 'rgba(var(--color-primary-rgb, 0, 136, 204), 0.9)' }}
                 whileTap={{ scale: 0.95 }}

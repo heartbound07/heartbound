@@ -26,7 +26,7 @@ export function AdminPanel() {
             <p className="text-slate-300 mb-4">Manage users, roles, and permissions</p>
             <button 
               className="px-4 py-2 bg-primary/20 text-primary hover:bg-primary/30 rounded-md transition-colors"
-              onClick={() => navigateTo('/dashboard/admin/users')}
+              onClick={() => navigateTo('/admin/users')}
             >
               Manage Users
             </button>
@@ -38,7 +38,7 @@ export function AdminPanel() {
             <p className="text-slate-300 mb-4">Create and manage shop items, categories, and inventory</p>
             <button 
               className="px-4 py-2 bg-primary/20 text-primary hover:bg-primary/30 rounded-md transition-colors"
-              onClick={() => navigateTo('/dashboard/shop/admin')}
+              onClick={() => navigateTo('/shop/admin')}
             >
               Manage Shop
             </button>
@@ -50,7 +50,7 @@ export function AdminPanel() {
             <p className="text-slate-300 mb-4">Configure Discord bot activity and leveling settings</p>
             <button 
               className="px-4 py-2 bg-primary/20 text-primary hover:bg-primary/30 rounded-md transition-colors"
-              onClick={() => navigateTo('/dashboard/admin/discord-settings')}
+              onClick={() => navigateTo('/admin/discord-settings')}
             >
               Configure Bot
             </button>
@@ -69,7 +69,7 @@ export function AdminPanel() {
             <p className="text-slate-300 mb-4">View system statistics and performance metrics</p>
             <button 
               className="px-4 py-2 bg-primary/20 text-primary hover:bg-primary/30 rounded-md transition-colors"
-              onClick={() => navigateTo('/dashboard/admin/system-stats')}
+              onClick={() => navigateTo('/admin/system-stats')}
             >
               View Stats
             </button>
@@ -81,7 +81,7 @@ export function AdminPanel() {
             <p className="text-slate-300 mb-4">Test and monitor WebSocket message queuing system</p>
             <button 
               className="px-4 py-2 bg-primary/20 text-primary hover:bg-primary/30 rounded-md transition-colors"
-              onClick={() => navigateTo('/dashboard/admin/message-queue-demo')}
+              onClick={() => navigateTo('/admin/message-queue-demo')}
             >
               Open Demo
             </button>

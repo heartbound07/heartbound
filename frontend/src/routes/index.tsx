@@ -36,7 +36,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   const { hasRole } = useAuth();
   
   if (!hasRole('ADMIN')) {
-    return <RouterNavigate to="/dashboard" replace />;
+    return <RouterNavigate to="/profile" replace />;
   }
   
   return <>{children}</>;
@@ -54,7 +54,7 @@ function AdminShopRoute({ children }: { children: React.ReactNode }) {
   // Double security check
   if (!hasRole('ADMIN')) {
     console.warn('Unauthorized admin shop access attempt blocked');
-    return <RouterNavigate to="/dashboard" replace />;
+    return <RouterNavigate to="/profile" replace />;
   }
   
   return <>{children}</>;
@@ -89,95 +89,113 @@ export function AppRoutes() {
       <Route path="/auth/error" element={<AuthErrorPage />} />
       
       {/* Riot Games verification file route */}
-      <Route path="/riot.txt" element={
+      <Route path="/riot.txt" element={ 
         <pre style={{ fontFamily: 'monospace' }}>7afb92b0-5252-4000-9ba3-fab43c393d15</pre>
       } />
 
       {/* Protected routes */}
       <Route element={<ProtectedRoutes />}>
+        
+        {/* Dashboard (main page) */}
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />
-          <Route path="profile" element={<ProfilePage />} />
-          
-          {/* Admin routes - protected with AdminRoute component */}
-          <Route path="admin">
-            <Route 
-              index
-              element={
-                <AdminRoute>
-                  <AdminPanel />
-                </AdminRoute>
-              } 
-            />
-            <Route 
-              path="users"
-              element={
-                <AdminRoute>
-                  <UserManagement />
-                </AdminRoute>
-              } 
-            />
-            <Route 
-              path="discord-settings"
-              element={
-                <AdminRoute>
-                  <DiscordBotSettings />
-                </AdminRoute>
-              } 
-            />
-            <Route 
-              path="system-stats"
-              element={
-                <AdminRoute>
-                  <SystemStats />
-                </AdminRoute>
-              } 
-            />
-            {/* Message Queue Demo - Admin only */}
-            <Route 
-              path="message-queue-demo"
-              element={
-                <AdminRoute>
-                  <MessageQueueDemo />
-                </AdminRoute>
-              } 
-            />
-          </Route>
-          <Route path="leaderboard" element={<LeaderboardPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          
-          {/* Shop routes with proper protection */}
-          <Route path="shop">
-            <Route index element={<ShopPage />} />
-            <Route 
-              path="admin" 
-              element={
-                <AdminShopRoute>
-                  <ShopAdminPage />
-                </AdminShopRoute>
-              } 
-            />
-          </Route>
-          
-          {/* Inventory route */}
-          <Route path="inventory" element={<InventoryPage />} />
-          
-          {/* Pairings route - moved from top-level to dashboard child */}
-          <Route path="pairings" element={<PairingsPage />} />
-          
-          {/* Catch-all for non-existent protected routes */}
-          <Route path="*" element={<NotFoundPage />} />
         </Route>
-        <Route path="/dashboard/valorant" element={<ValorantPageLayout />}>
+        
+        {/* Profile page */}
+        <Route path="/profile" element={<DashboardLayout />}>
+          <Route index element={<ProfilePage />} />
+        </Route>
+        
+        {/* Admin routes - protected with AdminRoute component */}
+        <Route path="/admin" element={<DashboardLayout />}>
+          <Route 
+            index
+            element={
+              <AdminRoute>
+                <AdminPanel />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="users"
+            element={
+              <AdminRoute>
+                <UserManagement />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="discord-settings"
+            element={
+              <AdminRoute>
+                <DiscordBotSettings />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="system-stats"
+            element={
+              <AdminRoute>
+                <SystemStats />
+              </AdminRoute>
+            } 
+          />
+          {/* Message Queue Demo - Admin only */}
+          <Route 
+            path="message-queue-demo"
+            element={
+              <AdminRoute>
+                <MessageQueueDemo />
+              </AdminRoute>
+            } 
+          />
+        </Route>
+        
+        {/* Leaderboard page */}
+        <Route path="/leaderboard" element={<DashboardLayout />}>
+          <Route index element={<LeaderboardPage />} />
+        </Route>
+        
+        {/* Settings page */}
+        <Route path="/settings" element={<DashboardLayout />}>
+          <Route index element={<SettingsPage />} />
+        </Route>
+        
+        {/* Shop routes with proper protection */}
+        <Route path="/shop" element={<DashboardLayout />}>
+          <Route index element={<ShopPage />} />
+          <Route 
+            path="admin" 
+            element={
+              <AdminShopRoute>
+                <ShopAdminPage />
+              </AdminShopRoute>
+            } 
+          />
+        </Route>
+        
+        {/* Inventory page */}
+        <Route path="/inventory" element={<DashboardLayout />}>
+          <Route index element={<InventoryPage />} />
+        </Route>
+        
+        {/* Pairings page */}
+        <Route path="/pairings" element={<DashboardLayout />}>
+          <Route index element={<PairingsPage />} />
+        </Route>
+        
+        {/* Valorant routes with ValorantPageLayout */}
+        <Route path="/valorant" element={<ValorantPageLayout />}>
           <Route index element={<ValorantPage />} />
           <Route path=":partyId" element={<ValorantPartyDetails />} />
           {/* Catch-all for non-existent valorant routes */}
           <Route path="*" element={<NotFoundPage />} />
         </Route>
+
       </Route>
 
-      {/* Default redirect - now routes to /login */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* Default redirect - now routes to /profile instead of /login */}
+      <Route path="/" element={<Navigate to="/profile" replace />} />
       
       {/* Catch-all route for any non-existent pages */}
       <Route path="*" element={<NotFoundPage />} />

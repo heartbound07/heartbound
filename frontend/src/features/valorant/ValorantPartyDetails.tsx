@@ -199,7 +199,7 @@ export default function ValorantPartyDetails() {
         setUserActiveParty(null);
         
         // Navigate back to dashboard
-        navigate("/dashboard/valorant");
+        navigate("/valorant");
         
         // Clear the update
         clearUpdate();
@@ -339,7 +339,7 @@ export default function ValorantPartyDetails() {
       setUserActiveParty(null); // Immediately reset the active party state
       // Show success *after* navigation potentially starts
       showToast("Party successfully deleted", "success");
-      navigate("/dashboard/valorant");
+      navigate("/valorant");
     } catch (err: any) {
       console.error("Error deleting party:", err);
       showToast(err.response?.data?.message || "Failed to delete party", "error");
@@ -398,7 +398,7 @@ export default function ValorantPartyDetails() {
           // Reset active party state here too
           setUserActiveParty(null)
           // Navigate away after deletion
-          navigate("/dashboard/valorant");
+          navigate("/valorant");
         })
         .catch((err) => {
           console.error("Error auto-deleting expired party:", err);
@@ -582,7 +582,7 @@ export default function ValorantPartyDetails() {
       setUserActiveParty(null);
       
       showToast("You have left the party", "success");
-      navigate("/dashboard/valorant");
+      navigate("/valorant");
     } catch (err: any) {
       console.error("Error leaving party:", err);
       showToast(err.response?.data?.message || "Failed to leave party", "error");
@@ -669,7 +669,7 @@ export default function ValorantPartyDetails() {
           <div className="text-xl font-medium text-white/90 mb-2">Party Not Found</div>
           <div className="text-sm text-white/50 mb-6">The party you are looking for does not exist or has been deleted.</div>
           <Button 
-            onClick={() => navigate("/dashboard/valorant")} 
+            onClick={() => navigate("/valorant")} 
             className="bg-[#FF4655] hover:bg-[#FF4655]/90 text-white font-medium px-4 py-2 rounded-md transition-colors"
           >
             Return to Dashboard

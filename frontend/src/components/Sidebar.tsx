@@ -8,10 +8,11 @@ import { MdDashboard, MdAdminPanelSettings } from "react-icons/md"
 import { IoSettingsSharp } from "react-icons/io5"
 import { FaCoins, FaTrophy, FaShoppingCart, FaBoxOpen } from "react-icons/fa"
 import { useState, useRef, useEffect } from "react"
-import { ChevronRight, Menu, LogOut, Users } from "lucide-react"
+import { ChevronRight, Menu, LogOut, Users, Settings } from "lucide-react"
 import { ProfilePreview } from "@/components/ui/profile/ProfilePreview"
 import ReactDOM from "react-dom"
 import valorantLogo from '@/assets/images/valorant-logo.png'
+
 
 /**
  * DashboardNavigation
@@ -34,14 +35,16 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
   const { user, profile, hasRole, logout } = useAuth()
   
   // Add this to detect if we're on the Valorant page
-  const isValorantPage = location.pathname.includes('/valorant')
+  const isValorantPage = () => {
+    return location.pathname.includes('/valorant')
+  }
   
   // Use the detected page to override the theme if needed
-  const effectiveTheme = isValorantPage ? 'default' : theme
+  const effectiveTheme = isValorantPage() ? 'default' : theme
   
   const [gamesExpanded, setGamesExpanded] = useState(() => {
     // Auto-expand if we're on a game page
-    return location.pathname.includes('/dashboard/valorant')
+    return location.pathname.includes('/valorant')
   })
   const [showProfilePreview, setShowProfilePreview] = useState(false)
   const profileSectionRef = useRef<HTMLDivElement>(null)
@@ -93,7 +96,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
   // Define games submenu items
   const gameItems = [
     { 
-      path: "/dashboard/valorant", 
+      path: "/valorant", 
       label: "VALORANT", 
       logo: valorantLogo,
       id: "valorant"
@@ -122,26 +125,26 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
     },
     {
       label: "Pairings",
-      path: "/dashboard/pairings",
+      path: "/pairings",
       icon: <Users size={20} />,
       exact: true
     },
     {
-      path: "/dashboard/leaderboard",
+      path: "/leaderboard",
       label: "Leaderboard",
       icon: <FaTrophy size={20} />,
       hasSubmenu: false
     },
     // Shop navigation item
     {
-      path: "/dashboard/shop",
+      path: "/shop",
       label: "Shop",
       icon: <FaShoppingCart size={20} />,
       hasSubmenu: false
     },
     // Inventory navigation item
     {
-      path: "/dashboard/inventory",
+      path: "/inventory",
       label: "Inventory",
       icon: <FaBoxOpen size={20} />,
       hasSubmenu: false
@@ -149,7 +152,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
     // Only show admin panel option if user has ADMIN role
     ...(isAdmin ? [
       {
-        path: "/dashboard/admin",
+        path: "/admin",
         label: "Admin Panel",
         icon: <MdAdminPanelSettings size={20} />,
         hasSubmenu: false
@@ -210,16 +213,16 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
   const onGamePage = gameItems.some(game => location.pathname.includes(game.id))
 
   // Check if we're on the profile page
-  const isProfilePage = location.pathname === '/dashboard/profile'
+  const isProfilePage = location.pathname === '/profile'
   
   // Check if we're on the settings page
-  const isSettingsPage = location.pathname === '/dashboard/settings'
+  const isSettingsPage = location.pathname === '/settings'
 
   const handleProfileClick = () => {
     // Don't show the profile preview if we're already on the profile page
     if (isProfilePage) {
       // If on profile page, just navigate there (no need for preview)
-      navigate('/dashboard/profile');
+      navigate('/profile');
       return;
     }
     
@@ -249,7 +252,7 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
           pronouns={profile?.pronouns}
           user={user}
           onClick={() => {
-            navigate('/dashboard/profile');
+            navigate('/profile');
             setShowProfilePreview(false);
           }}
           equippedBadgeIds={profile?.equippedBadgeIds || []}
@@ -504,14 +507,14 @@ export function DashboardNavigation({ theme = 'default', onCollapseChange }: Das
             {/* Settings Button - Conditionally render only when expanded */}
             {!isCollapsed && (
               <button
-                onClick={() => navigate('/dashboard/settings')}
+                onClick={() => navigate('/settings')}
                 // Make settings button take available space when expanded
                 className={`flex-1 flex items-center justify-start gap-2 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
                   ${
-                    isSettingsPage
-                      ? "bg-primary/20 text-white shadow-md"
-                      : "text-slate-300 hover:bg-white/5 hover:text-white"
-                  }`}
+                    isSettingsPage 
+                  ? "bg-primary/20 text-white shadow-md"
+                  : "text-slate-300 hover:bg-white/5 hover:text-white"
+                }`}
                 aria-current={isSettingsPage ? "page" : undefined}
                 aria-label="Settings"
               >

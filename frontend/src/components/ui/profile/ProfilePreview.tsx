@@ -87,7 +87,7 @@ export function ProfilePreview({
   
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent the click from bubbling up
-    navigate('/dashboard/profile');
+    navigate('/profile');
   };
 
   const toggleBioExpansion = (e: React.MouseEvent) => {
