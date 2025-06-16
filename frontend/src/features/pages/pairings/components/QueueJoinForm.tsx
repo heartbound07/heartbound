@@ -10,7 +10,7 @@ import { Heart, Users, MapPin, Trophy, User } from "lucide-react"
 import type { JoinQueueRequestDTO } from "@/config/pairingService"
 
 // Import component-specific CSS
-import "@/assets/QueueJoinForm.css"
+import "./QueueJoinForm.css"
 
 // Constants for form options
 const REGIONS = [
@@ -247,7 +247,6 @@ export const QueueJoinForm = memo(({ onJoinQueue, loading }: QueueJoinFormProps)
                   <div className="button-content">
                     <Users className="button-icon" />
                     <span>Join the Queue</span>
-                    <div className="button-shine" />
                   </div>
                 )}
               </button>

@@ -2,8 +2,8 @@
    REFINED QUEUE JOIN FORM - MINIMAL MODERN DESIGN
    =============================================================================
    
-   Clean, minimal design with refined visual hierarchy and improved user experience.
-   Maintains glass morphism aesthetic with simplified, more spacious layout.
+   Ultra-clean, minimal design with refined visual hierarchy and improved UX.
+   Maintains glass morphism aesthetic with the most simplified, spacious layout.
    
 ============================================================================= */
 
@@ -46,7 +46,7 @@
 }
 
 /* =============================================================================
-   CARD CONTAINER - SIMPLIFIED GLASS MORPHISM
+   CARD CONTAINER - ULTRA-CLEAN GLASS MORPHISM
 ============================================================================= */
 
 .queue-join-form-wrapper .valorant-card {
@@ -71,16 +71,16 @@
   pointer-events: none;
 }
 
-/* Removed hover effects as requested */
+/* Removed all hover and shadow effects as requested */
 
 /* =============================================================================
-   HEADER - IMPROVED VISUAL HIERARCHY
+   HEADER - CLEAN VISUAL HIERARCHY (NO RED GRADIENT)
 ============================================================================= */
 
 .queue-join-form-wrapper .form-header {
   padding: 2rem 2rem 1rem 2rem;
   border-bottom: 1px solid var(--queue-form-border);
-  background: linear-gradient(135deg, rgba(255, 70, 85, 0.05), transparent);
+  /* Removed red gradient background as requested */
 }
 
 .queue-join-form-wrapper .form-title {
@@ -157,8 +157,6 @@
   color: var(--queue-form-accent);
   flex-shrink: 0;
 }
-
-/* Removed section header text as requested */
 
 /* =============================================================================
    FORM GRID - RESPONSIVE LAYOUT
@@ -299,7 +297,7 @@
 }
 
 /* =============================================================================
-   SUBMIT BUTTON - REFINED DESIGN WITH WHITE SHINE & RED OUTLINE
+   SUBMIT BUTTON - WHITE SHINE & RED OUTLINE ONLY
 ============================================================================= */
 
 .queue-join-form-wrapper .form-actions {
@@ -337,7 +335,7 @@
 
 .queue-join-form-wrapper .join-queue-button:hover:not(:disabled) {
   border-color: var(--queue-form-accent) !important; /* Red outline on hover - kept */
-  /* All other hover effects removed */
+  /* All other hover effects removed except white shine */
 }
 
 .queue-join-form-wrapper .join-queue-button:active:not(:disabled) {
@@ -367,8 +365,6 @@
   color: var(--queue-form-accent);
   transition: var(--queue-form-transition-fast);
 }
-
-/* White shine effect - kept as requested */
 
 /* Loading State */
 .queue-join-form-wrapper .button-loading {
