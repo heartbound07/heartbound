@@ -680,7 +680,7 @@ export function PairingsPage() {
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.1, type: "spring" }}
-                    className="pairings-hero-title text-4xl md:text-5xl text-primary mb-4"
+                    className="pairings-hero-title font-grandstander text-4xl md:text-5xl text-primary mb-4"
                   >
                     Pairings
                   </motion.h1>

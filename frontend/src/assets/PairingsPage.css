@@ -162,10 +162,18 @@
 ============================================================================= */
 
 .pairings-page-wrapper .pairings-hero-title {
-  font-family: 'Grandstander', sans-serif;
+  font-family: 'Grandstander', sans-serif !important;
   font-weight: bold;
   letter-spacing: -0.025em;
   font-feature-settings: "kern" 1, "liga" 1;
+}
+
+/* Ensure the title uses custom font in all states */
+.pairings-hero-title,
+h1.pairings-hero-title,
+.text-4xl.pairings-hero-title,
+.text-5xl.pairings-hero-title {
+  font-family: 'Grandstander', sans-serif !important;
 }
 
 /* =============================================================================
