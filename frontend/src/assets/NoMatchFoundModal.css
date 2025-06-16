@@ -17,6 +17,7 @@
   position: relative;
   width: 100%;
   max-width: 32rem; /* max-w-lg equivalent */
+  outline: none;
 }
 
 /* Modal card */
@@ -136,6 +137,8 @@
   justify-content: center;
   gap: 0.5rem;
   transition: all 0.2s ease;
+  outline: none;
+  box-shadow: none;
 }
 
 .no-match-modal-action-description {
@@ -143,6 +146,8 @@
   text-align: center;
   color: var(--color-text-tertiary);
 }
+
+
 
 /* Responsive adjustments */
 @media (max-width: 768px) {

@@ -55,6 +55,42 @@
   color: inherit;
 }
 
+/* Layout container classes for PairingsPageLayout */
+.pairings-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+}
+
+.pairings-content {
+  flex: 1;
+  transition: margin-left var(--transition-speed) ease;
+  margin-left: var(--sidebar-width);
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-height: 100vh;
+  width: calc(100% - var(--sidebar-width));
+}
+
+.pairings-content.sidebar-collapsed {
+  margin-left: var(--sidebar-collapsed-width);
+  width: calc(100% - var(--sidebar-collapsed-width));
+}
+
+@media (max-width: 768px) {
+  .pairings-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    transition: none; /* Remove transition on mobile to prevent content shift */
+  }
+  
+  .pairings-content.sidebar-collapsed {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
 /* Inner container for proper spacing */
 .pairings-page-wrapper .pairings-inner-container {
   width: 100%;
@@ -83,6 +119,8 @@
   transition: all 0.3s ease;
   transform-origin: top center;
   will-change: height, transform;
+  outline: none;
+  box-shadow: none;
 }
 
 .pairings-page-wrapper .queue-status-card {
@@ -355,36 +393,25 @@
 ============================================================================= */
 
 .pairings-page-wrapper *:focus:not(:focus-visible) {
-  outline: none !important;
-  box-shadow: none !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  outline: none;
+  box-shadow: none;
 }
 
 .pairings-page-wrapper *:focus-visible {
-  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
+  outline: 2px solid rgba(255, 70, 85, 0.4);
   outline-offset: 2px;
-  border-color: rgba(255, 70, 85, 0.3) !important;
 }
 
 .pairings-page-wrapper input:focus-visible,
 .pairings-page-wrapper select:focus-visible,
 .pairings-page-wrapper textarea:focus-visible {
-  outline: 2px solid rgba(255, 70, 85, 0.5) !important;
+  outline: 2px solid rgba(255, 70, 85, 0.5);
   outline-offset: 1px;
-  border-color: rgba(255, 70, 85, 0.3) !important;
 }
 
 .pairings-page-wrapper button:focus-visible {
-  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
+  outline: 2px solid rgba(255, 70, 85, 0.4);
   outline-offset: 2px;
-  border-color: rgba(255, 70, 85, 0.3) !important;
-}
-
-/* Override any ring focus styles */
-.pairings-page-wrapper *:focus,
-.pairings-page-wrapper *:focus-visible {
-  --tw-ring-color: rgba(255, 70, 85, 0.2) !important;
-  --tw-ring-offset-color: transparent !important;
 }
 
 /* =============================================================================
@@ -427,25 +454,31 @@
   border-color: rgba(255, 255, 255, 0.05) !important;
 }
 
-/* Fix any remaining default borders */
+/* Remove default borders that cause white outlines */
 .pairings-page-wrapper .border-gray-300,
 .pairings-page-wrapper .border-gray-400,
 .pairings-page-wrapper .border-gray-500,
 .pairings-page-wrapper .border-slate-300,
 .pairings-page-wrapper .border-slate-400,
 .pairings-page-wrapper .border-slate-500 {
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: transparent;
 }
 
-/* Fix any Button component borders */
+/* Clean button styling without white borders */
+.pairings-page-wrapper button,
+.pairings-page-wrapper .btn {
+  outline: none;
+  box-shadow: none;
+}
+
 .pairings-page-wrapper button[class*="border-"],
 .pairings-page-wrapper .btn[class*="border-"] {
-  border-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .pairings-page-wrapper button[class*="border-"]:hover,
 .pairings-page-wrapper .btn[class*="border-"]:hover {
-  border-color: rgba(255, 70, 85, 0.3) !important;
+  border-color: rgba(255, 70, 85, 0.3);
 }
 
 /* =============================================================================
