@@ -344,51 +344,7 @@
   }
 }
 
-/* =============================================================================
-   CARD COMPONENT BORDER OVERRIDES - FIX WHITE OUTLINE ISSUE
-============================================================================= */
 
-/* Override default Card component border that causes white outlines */
-.queue-join-form-wrapper .valorant-card,
-.queue-join-form-wrapper [class*="rounded-lg"][class*="border"] {
-  border-color: rgba(255, 255, 255, 0.05) !important;
-  outline: none;
-}
-
-/* =============================================================================
-   FOCUS MANAGEMENT & ACCESSIBILITY
-============================================================================= */
-
-.queue-join-form-wrapper *:focus:not(:focus-visible) {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-.queue-join-form-wrapper *:focus-visible {
-  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
-  outline-offset: 2px;
-  border-color: rgba(255, 70, 85, 0.3) !important;
-}
-
-.queue-join-form-wrapper input:focus-visible,
-.queue-join-form-wrapper select:focus-visible {
-  outline: 2px solid rgba(255, 70, 85, 0.5) !important;
-  outline-offset: 1px;
-  border-color: rgba(255, 70, 85, 0.3) !important;
-}
-
-.queue-join-form-wrapper button:focus-visible {
-  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
-  outline-offset: 2px;
-  border-color: rgba(255, 70, 85, 0.3) !important;
-}
-
-/* Override any ring focus styles */
-.queue-join-form-wrapper *:focus,
-.queue-join-form-wrapper *:focus-visible {
-  --tw-ring-color: rgba(255, 70, 85, 0.2) !important;
-  --tw-ring-offset-color: transparent !important;
-}
 
 /* =============================================================================
    PERFORMANCE OPTIMIZATIONS

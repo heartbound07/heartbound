@@ -353,37 +353,7 @@
   }
 }
 
-/* =============================================================================
-   CARD COMPONENT BORDER OVERRIDES - FIX WHITE OUTLINE ISSUE
-============================================================================= */
 
-/* Override default Card component border that causes white outlines */
-.matched-pairing-wrapper .active-pairing-card,
-.matched-pairing-wrapper .valorant-card,
-.matched-pairing-wrapper [class*="rounded-lg"][class*="border"] {
-  border-color: rgba(255, 255, 255, 0.05) !important;
-  outline: none;
-}
-
-/* =============================================================================
-   FOCUS MANAGEMENT & ACCESSIBILITY
-============================================================================= */
-
-.matched-pairing-wrapper *:focus:not(:focus-visible) {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-.matched-pairing-wrapper *:focus-visible {
-  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
-  outline-offset: 2px;
-  border-color: rgba(255, 70, 85, 0.3) !important;
-}
-
-.matched-pairing-wrapper button:focus-visible {
-  outline: 2px solid rgba(255, 70, 85, 0.4) !important;
-  outline-offset: 2px;
-}
 
 /* =============================================================================
    PERFORMANCE OPTIMIZATIONS
