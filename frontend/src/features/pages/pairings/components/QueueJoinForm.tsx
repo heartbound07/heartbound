@@ -6,9 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/profile/input"
 import { Label } from "@/components/ui/valorant/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/valorant/select"
-import { Heart } from 'lucide-react'
+import { Heart, Users, MapPin, Trophy, User } from "lucide-react"
 import type { JoinQueueRequestDTO } from "@/config/pairingService"
-import { Skeleton } from "@/components/ui/SkeletonUI"
 
 // Import component-specific CSS
 import "@/assets/QueueJoinForm.css"
@@ -49,16 +48,13 @@ interface QueueJoinFormProps {
   loading: boolean
 }
 
-// Enhanced Queue Join Form with better UX - Memoized for performance
-export const QueueJoinForm = memo(({
-  onJoinQueue,
-  loading,
-}: QueueJoinFormProps) => {
+// Enhanced Queue Join Form with minimal modern design - Memoized for performance
+export const QueueJoinForm = memo(({ onJoinQueue, loading }: QueueJoinFormProps) => {
   const [formData, setFormData] = useState({
     age: "",
     region: "",
     rank: "",
-    gender: ""
+    gender: "",
   })
 
   // Secure input validation
@@ -69,15 +65,18 @@ export const QueueJoinForm = memo(({
 
   // Sanitize input to prevent XSS
   const sanitizeInput = useCallback((input: string): string => {
-    return input.trim().replace(/[<>'"]/g, '')
+    return input.trim().replace(/[<>'"]/g, "")
   }, [])
 
-  const updateFormField = useCallback((field: keyof typeof formData, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: field === 'age' ? value : sanitizeInput(value)
-    }))
-  }, [sanitizeInput])
+  const updateFormField = useCallback(
+    (field: keyof typeof formData, value: string) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: field === "age" ? value : sanitizeInput(value),
+      }))
+    },
+    [sanitizeInput],
+  )
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -106,126 +105,154 @@ export const QueueJoinForm = memo(({
     [formData, onJoinQueue, validateAge],
   )
 
-  const isFormValid = useMemo(() => 
-    validateAge(formData.age) && formData.region && formData.rank && formData.gender,
-    [formData, validateAge]
+  const isFormValid = useMemo(
+    () => validateAge(formData.age) && formData.region && formData.rank && formData.gender,
+    [formData, validateAge],
   )
 
   return (
     <div className="queue-join-form-wrapper">
       <Card className="valorant-card">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-3 text-white text-xl">
-            <div className="p-2 bg-primary/20 rounded-lg">
-              <Heart className="h-5 w-5 text-primary" />
+        <CardHeader className="form-header">
+          <CardTitle className="form-title">
+            <div className="title-icon">
+              <Heart className="h-6 w-6" />
+            </div>
+            <div className="title-content">
+              <h2>Find Your Match</h2>
+              <p>Connect with players in your region and skill level</p>
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="form-grid-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="age" className="text-sm font-medium text-white">
-                  Age
-                </Label>
-                <Input
-                  id="age"
-                  type="number"
-                  placeholder="Enter your age"
-                  value={formData.age}
-                  onChange={(e) => updateFormField('age', e.target.value)}
-                  className="bg-theme-container border-theme text-white placeholder:text-theme-tertiary focus:border-primary focus:ring-1 focus:ring-primary/20 theme-transition"
-                  min="13"
-                  max="100"
-                  required
-                  aria-describedby="age-error"
-                />
+
+        <CardContent className="form-content">
+          <form onSubmit={handleSubmit} className="form-container">
+            {/* Personal Information Section */}
+            <div className="form-section">
+              <div className="section-header">
+                <User className="section-icon" aria-label="Personal Information" />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="gender" className="text-sm font-medium text-white">
-                  Gender
-                </Label>
-                <Select value={formData.gender} onValueChange={(value) => updateFormField('gender', value)} required>
-                  <SelectTrigger className="select-trigger text-white theme-transition">
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                                      <SelectContent className="select-content theme-transition">
-                      {GENDERS.map((g) => (
-                        <SelectItem 
-                          key={g.value} 
-                          value={g.value}
-                          className="select-item"
-                      >
-                        {g.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+              <div className="form-grid">
+                <div className="form-field">
+                  <Label htmlFor="age" className="field-label">
+                    Age
+                  </Label>
+                  <div className="input-container">
+                    <Input
+                      id="age"
+                      type="number"
+                      placeholder="18"
+                      value={formData.age}
+                      onChange={(e) => updateFormField("age", e.target.value)}
+                      className="form-input"
+                      min="13"
+                      max="100"
+                      required
+                      aria-describedby="age-error"
+                    />
+                  </div>
+                </div>
 
-            <div className="form-grid-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="region" className="text-white font-medium mb-2 block">
-                  Region
-                </Label>
-                <Select value={formData.region} onValueChange={(value) => updateFormField('region', value)} required>
-                  <SelectTrigger className="select-trigger text-white theme-transition">
-                    <SelectValue placeholder="Select region" />
-                  </SelectTrigger>
-                                      <SelectContent className="select-content theme-transition">
-                      {REGIONS.map((reg) => (
-                        <SelectItem 
-                          key={reg.value} 
-                          value={reg.value}
-                          className="select-item"
-                      >
-                        {reg.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="rank" className="text-white font-medium mb-2 block">
-                  VALORANT Rank
-                </Label>
-                <Select value={formData.rank} onValueChange={(value) => updateFormField('rank', value)} required>
-                  <SelectTrigger className="select-trigger text-white theme-transition">
-                    <SelectValue placeholder="Select rank" />
-                  </SelectTrigger>
-                                      <SelectContent className="select-content theme-transition">
-                      {RANKS.map((r) => (
-                        <SelectItem 
-                          key={r.value} 
-                          value={r.value}
-                          className="select-item"
-                      >
-                        {r.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="form-field">
+                  <Label htmlFor="gender" className="field-label">
+                    Gender
+                  </Label>
+                  <div className="select-container">
+                    <Select
+                      value={formData.gender}
+                      onValueChange={(value) => updateFormField("gender", value)}
+                      required
+                    >
+                      <SelectTrigger className="form-select">
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent className="select-content">
+                        {GENDERS.map((g) => (
+                          <SelectItem key={g.value} value={g.value} className="select-item">
+                            {g.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="text-center">
-              <button
-                type="submit"
-                className="join-queue-button"
-                disabled={loading || !isFormValid}
-              >
+            {/* Gaming Information Section */}
+            <div className="form-section">
+              <div className="section-header">
+                <Trophy className="section-icon" aria-label="Gaming Profile" />
+              </div>
+
+              <div className="form-grid">
+                <div className="form-field">
+                  <Label htmlFor="region" className="field-label">
+                    <MapPin className="label-icon" />
+                    Region
+                  </Label>
+                  <div className="select-container">
+                    <Select
+                      value={formData.region}
+                      onValueChange={(value) => updateFormField("region", value)}
+                      required
+                    >
+                      <SelectTrigger className="form-select">
+                        <SelectValue placeholder="Select your region" />
+                      </SelectTrigger>
+                      <SelectContent className="select-content">
+                        {REGIONS.map((reg) => (
+                          <SelectItem key={reg.value} value={reg.value} className="select-item">
+                            {reg.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="form-field">
+                  <Label htmlFor="rank" className="field-label">
+                    <Trophy className="label-icon" />
+                    VALORANT Rank
+                  </Label>
+                  <div className="select-container">
+                    <Select value={formData.rank} onValueChange={(value) => updateFormField("rank", value)} required>
+                      <SelectTrigger className="form-select">
+                        <SelectValue placeholder="Select your rank" />
+                      </SelectTrigger>
+                      <SelectContent className="select-content">
+                        {RANKS.map((r) => (
+                          <SelectItem key={r.value} value={r.value} className="select-item">
+                            {r.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div className="form-actions">
+              <button type="submit" className="join-queue-button" disabled={loading || !isFormValid}>
                 {loading ? (
-                  <Skeleton width="120px" height="20px" theme="valorant" className="mx-auto" />
+                  <div className="button-loading">
+                    <div className="loading-spinner" />
+                    <span>Joining Queue...</span>
+                  </div>
                 ) : (
-                  <>
-                    <Heart className="mr-2 h-5 w-5" />
-                    Join the Queue
-                  </>
+                  <div className="button-content">
+                    <Users className="button-icon" />
+                    <span>Join the Queue</span>
+                    <div className="button-shine" />
+                  </div>
                 )}
               </button>
+
+              {!isFormValid && <p className="form-hint">Please fill in all fields to join the queue</p>}
             </div>
           </form>
         </CardContent>
@@ -234,4 +261,4 @@ export const QueueJoinForm = memo(({
   )
 })
 
-QueueJoinForm.displayName = 'QueueJoinForm' 
+QueueJoinForm.displayName = "QueueJoinForm"

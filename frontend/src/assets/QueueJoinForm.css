@@ -1,394 +1,508 @@
 /* =============================================================================
-   QUEUE JOIN FORM COMPONENT - ISOLATED CSS
+   REFINED QUEUE JOIN FORM - MINIMAL MODERN DESIGN
    =============================================================================
    
-   This CSS file contains styles specific to the QueueJoinForm component.
-   Uses .queue-join-form-wrapper for namespace isolation to prevent conflicts.
-   
-   Key Features:
-   1. Form input styling with glass morphism
-   2. Select dropdown customization
-   3. Join queue button animations
-   4. Form validation states
-   5. Responsive form layout
+   Clean, minimal design with refined visual hierarchy and improved user experience.
+   Maintains glass morphism aesthetic with simplified, more spacious layout.
    
 ============================================================================= */
 
-/* Root variables for Queue Join Form - matching XPCard theme */
+/* Enhanced CSS Variables */
 :root {
-  --queue-form-accent-color: #FF4655;
-  --queue-form-bg-primary: #0F1923;
-  --queue-form-bg-secondary: #1F2731;
-  --queue-form-border: rgba(255, 255, 255, 0.05);
-  --queue-form-card-radius: 0.5rem;
-  --queue-form-transition: all 0.3s ease;
-  --queue-form-primary-color: #FF4655;
+  --queue-form-accent: #ff4655;
+  --queue-form-accent-hover: #ff5a6a;
+  --queue-form-accent-light: rgba(255, 70, 85, 0.1);
+  --queue-form-bg-primary: #0f1923;
+  --queue-form-bg-secondary: #1f2731;
+  --queue-form-bg-tertiary: #2a3441;
+  --queue-form-border: rgba(255, 255, 255, 0.06);
+  --queue-form-border-hover: rgba(255, 255, 255, 0.12);
+  --queue-form-border-focus: rgba(255, 70, 85, 0.3);
+  --queue-form-text-primary: #ffffff;
+  --queue-form-text-secondary: rgba(255, 255, 255, 0.8);
+  --queue-form-text-tertiary: rgba(255, 255, 255, 0.5);
+  --queue-form-text-placeholder: rgba(255, 255, 255, 0.4);
+  --queue-form-radius: 12px;
+  --queue-form-radius-sm: 8px;
+  --queue-form-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --queue-form-transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* =============================================================================
-   QUEUE JOIN FORM WRAPPER - CSS ISOLATION BOUNDARY
+   WRAPPER & ISOLATION
 ============================================================================= */
 
 .queue-join-form-wrapper {
-  /* Reset any inherited styles */
-  all: unset;
-  
-  /* Establish new stacking context */
   position: relative;
-  z-index: 1;
-  
-  /* Full container behavior */
-  display: block;
   width: 100%;
-  
-  /* Typography inheritance with dark theme enforcement */
+  max-width: 600px;
+  margin: 0 auto;
   font-family: inherit;
-  line-height: inherit;
-  color: white !important;
+  color: var(--queue-form-text-primary);
 }
-
-/* =============================================================================
-   QUEUE JOIN FORM TEXT COLOR OVERRIDES - DARK THEME ENFORCEMENT  
-============================================================================= */
 
 .queue-join-form-wrapper * {
-  color: inherit;
-}
-
-.queue-join-form-wrapper .text-white {
-  color: white !important;
-}
-
-.queue-join-form-wrapper .text-theme-secondary {
-  color: rgba(255, 255, 255, 0.7) !important;
-}
-
-.queue-join-form-wrapper .text-theme-tertiary {
-  color: rgba(255, 255, 255, 0.5) !important;
-}
-
-.queue-join-form-wrapper .text-primary {
-  color: var(--queue-form-primary-color) !important;
-}
-
-.queue-join-form-wrapper .placeholder\\:text-theme-tertiary::placeholder {
-  color: rgba(255, 255, 255, 0.4) !important;
+  box-sizing: border-box;
 }
 
 /* =============================================================================
-   QUEUE JOIN FORM CARD CONTAINER
+   CARD CONTAINER - SIMPLIFIED GLASS MORPHISM
 ============================================================================= */
 
 .queue-join-form-wrapper .valorant-card {
-  background: rgba(31, 39, 49, 0.3) !important;
-  backdrop-filter: blur(8px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: var(--queue-form-card-radius);
-  transition: var(--queue-form-transition);
-  transform-origin: top center;
-  will-change: height, transform;
-  color: white !important;
-}
-
-.queue-join-form-wrapper .valorant-card:hover {
-  border-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-/* =============================================================================
-   FORM INPUT STYLING
-============================================================================= */
-
-.queue-join-form-wrapper input[type="number"] {
-  background: rgba(31, 39, 49, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 0.5rem;
-  color: white !important;
-  transition: var(--queue-form-transition);
-  backdrop-filter: blur(4px);
-}
-
-.queue-join-form-wrapper input[type="number"]:focus {
-  border-color: rgba(255, 70, 85, 0.4) !important;
-  background: rgba(31, 39, 49, 0.8) !important;
-  outline: none !important;
-  box-shadow: 0 0 0 1px rgba(255, 70, 85, 0.2) !important;
-}
-
-.queue-join-form-wrapper input[type="number"]:hover:not(:focus) {
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  background: rgba(31, 39, 49, 0.7) !important;
-}
-
-.queue-join-form-wrapper input[type="number"]::placeholder {
-  color: rgba(255, 255, 255, 0.4) !important;
-}
-
-/* =============================================================================
-   SELECT DROPDOWN STYLING
-============================================================================= */
-
-.queue-join-form-wrapper .select-trigger {
-  background: rgba(31, 39, 49, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 0.5rem;
-  color: white !important;
-  transition: var(--queue-form-transition);
-  backdrop-filter: blur(4px);
-}
-
-.queue-join-form-wrapper .select-trigger:hover {
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  background: rgba(31, 39, 49, 0.7) !important;
-}
-
-.queue-join-form-wrapper .select-trigger[data-state="open"] {
-  border-color: rgba(255, 70, 85, 0.4) !important;
-  background: rgba(31, 39, 49, 0.8) !important;
-  box-shadow: 0 0 0 1px rgba(255, 70, 85, 0.2) !important;
-}
-
-.queue-join-form-wrapper .select-trigger[data-placeholder] {
-  color: rgba(255, 255, 255, 0.4) !important;
-}
-
-/* Select content dropdown */
-.queue-join-form-wrapper .select-content {
-  background: rgba(31, 39, 49, 0.95) !important;
-  backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
-  z-index: 9999;
-}
-
-.queue-join-form-wrapper .select-item {
-  color: white !important;
-  transition: var(--queue-form-transition);
-  cursor: pointer;
-}
-
-.queue-join-form-wrapper .select-item:hover,
-.queue-join-form-wrapper .select-item[data-highlighted] {
-  background: rgba(42, 52, 65, 0.8) !important;
-  color: var(--queue-form-primary-color) !important;
-}
-
-.queue-join-form-wrapper .select-item:focus,
-.queue-join-form-wrapper .select-item[data-state="checked"] {
-  background: rgba(42, 52, 65, 0.9) !important;
-  color: var(--queue-form-primary-color) !important;
-}
-
-/* =============================================================================
-   LABEL STYLING
-============================================================================= */
-
-.queue-join-form-wrapper label {
-  color: white !important;
-  font-weight: 500;
-  transition: var(--queue-form-transition);
-}
-
-.queue-join-form-wrapper label:hover {
-  color: rgba(255, 255, 255, 0.9) !important;
-}
-
-/* =============================================================================
-   JOIN QUEUE BUTTON STYLING
-============================================================================= */
-
-.queue-join-form-wrapper .join-queue-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.875rem 1.5rem;
-  min-height: 3rem;
-  font-size: 1rem;
-  font-weight: 600;
-  font-family: inherit;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.9);
   background: rgba(31, 39, 49, 0.4) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 0.5rem;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  transition: var(--queue-form-transition);
-  cursor: pointer;
-  outline: none;
-  appearance: none;
-  -webkit-appearance: none;
-  text-decoration: none;
-  position: relative;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid var(--queue-form-border) !important;
+  border-radius: var(--queue-form-radius) !important;
+  transition: var(--queue-form-transition) !important;
   overflow: hidden;
+  position: relative;
 }
 
-.queue-join-form-wrapper .join-queue-button::before {
-  content: '';
+.queue-join-form-wrapper .valorant-card::before {
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 70, 85, 0.1) 0%, transparent 70%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
   pointer-events: none;
 }
 
-.queue-join-form-wrapper .join-queue-button:hover:not(:disabled) {
-  color: white !important;
-  background: rgba(31, 39, 49, 0.6) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
+/* Removed hover effects as requested */
+
+/* =============================================================================
+   HEADER - IMPROVED VISUAL HIERARCHY
+============================================================================= */
+
+.queue-join-form-wrapper .form-header {
+  padding: 2rem 2rem 1rem 2rem;
+  border-bottom: 1px solid var(--queue-form-border);
+  background: linear-gradient(135deg, rgba(255, 70, 85, 0.05), transparent);
 }
 
-.queue-join-form-wrapper .join-queue-button:hover:not(:disabled)::before {
-  opacity: 1;
+.queue-join-form-wrapper .form-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin: 0;
 }
 
-.queue-join-form-wrapper .join-queue-button:hover:not(:disabled) svg {
-  color: var(--queue-form-primary-color) !important;
-  transform: scale(1.05);
-}
-
-.queue-join-form-wrapper .join-queue-button:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  background: rgba(31, 39, 49, 0.7) !important;
-}
-
-.queue-join-form-wrapper .join-queue-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-  background: rgba(31, 39, 49, 0.2) !important;
-  border-color: rgba(255, 255, 255, 0.05) !important;
-  color: rgba(255, 255, 255, 0.5) !important;
-}
-
-.queue-join-form-wrapper .join-queue-button svg {
-  width: 1.25rem;
-  height: 1.25rem;
-  transition: var(--queue-form-transition);
+.queue-join-form-wrapper .title-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: var(--queue-form-accent-light);
+  border: 1px solid rgba(255, 70, 85, 0.2);
+  border-radius: var(--queue-form-radius-sm);
+  color: var(--queue-form-accent);
   flex-shrink: 0;
-  color: var(--queue-form-primary-color);
+}
+
+.queue-join-form-wrapper .title-content h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--queue-form-text-primary);
+  margin: 0 0 0.25rem 0;
+  line-height: 1.3;
+}
+
+.queue-join-form-wrapper .title-content p {
+  font-size: 0.875rem;
+  color: var(--queue-form-text-tertiary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* =============================================================================
+   FORM CONTENT - SPACIOUS LAYOUT
+============================================================================= */
+
+.queue-join-form-wrapper .form-content {
+  padding: 2rem;
+}
+
+.queue-join-form-wrapper .form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* =============================================================================
+   FORM SECTIONS - ICON-ONLY HEADERS
+============================================================================= */
+
+.queue-join-form-wrapper .form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.queue-join-form-wrapper .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--queue-form-border);
+  margin-bottom: 0.5rem;
+}
+
+.queue-join-form-wrapper .section-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--queue-form-accent);
+  flex-shrink: 0;
+}
+
+/* Removed section header text as requested */
+
+/* =============================================================================
+   FORM GRID - RESPONSIVE LAYOUT
+============================================================================= */
+
+.queue-join-form-wrapper .form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .queue-join-form-wrapper .form-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+}
+
+/* =============================================================================
+   FORM FIELDS - ENHANCED INPUT DESIGN
+============================================================================= */
+
+.queue-join-form-wrapper .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.queue-join-form-wrapper .field-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--queue-form-text-secondary) !important;
+  margin: 0;
+}
+
+.queue-join-form-wrapper .label-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--queue-form-text-tertiary);
+}
+
+/* =============================================================================
+   INPUT STYLING - MODERN MINIMAL DESIGN
+============================================================================= */
+
+.queue-join-form-wrapper .input-container,
+.queue-join-form-wrapper .select-container {
+  position: relative;
+}
+
+.queue-join-form-wrapper .form-input,
+.queue-join-form-wrapper .form-select {
+  width: 100%;
+  height: 48px;
+  padding: 0 1rem;
+  background: rgba(42, 52, 65, 0.4) !important;
+  border: 1px solid var(--queue-form-border) !important;
+  border-radius: var(--queue-form-radius-sm) !important;
+  color: var(--queue-form-text-primary) !important;
+  font-size: 0.9375rem;
+  transition: var(--queue-form-transition) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.queue-join-form-wrapper .form-input::placeholder {
+  color: var(--queue-form-text-placeholder) !important;
+}
+
+.queue-join-form-wrapper .form-input:hover:not(:focus),
+.queue-join-form-wrapper .form-select:hover:not([data-state="open"]) {
+  border-color: var(--queue-form-border-hover) !important;
+  background: rgba(42, 52, 65, 0.6) !important;
+}
+
+.queue-join-form-wrapper .form-input:focus,
+.queue-join-form-wrapper .form-select[data-state="open"] {
+  border-color: var(--queue-form-border-focus) !important;
+  background: rgba(42, 52, 65, 0.7) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(255, 70, 85, 0.1) !important;
+}
+
+/* =============================================================================
+   SELECT DROPDOWN - ENHANCED STYLING
+============================================================================= */
+
+.queue-join-form-wrapper .form-select[data-placeholder] {
+  color: var(--queue-form-text-placeholder) !important;
+}
+
+.queue-join-form-wrapper .select-content {
+  background: rgba(31, 39, 49, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid var(--queue-form-border-hover) !important;
+  border-radius: var(--queue-form-radius-sm) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5) !important;
+  padding: 0.5rem 0;
+  z-index: 9999;
+}
+
+.queue-join-form-wrapper .select-item {
+  padding: 0.75rem 1rem !important;
+  color: var(--queue-form-text-secondary) !important;
+  font-size: 0.9375rem;
+  transition: var(--queue-form-transition-fast) !important;
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.queue-join-form-wrapper .select-item:hover,
+.queue-join-form-wrapper .select-item[data-highlighted] {
+  background: rgba(255, 70, 85, 0.1) !important;
+  color: var(--queue-form-text-primary) !important;
+}
+
+.queue-join-form-wrapper .select-item[data-state="checked"] {
+  background: rgba(255, 70, 85, 0.15) !important;
+  color: var(--queue-form-accent) !important;
+  font-weight: 500;
 }
 
 /* =============================================================================
    FORM VALIDATION STATES
 ============================================================================= */
 
-.queue-join-form-wrapper input:invalid:not(:placeholder-shown) {
-  border-color: rgba(255, 70, 85, 0.5) !important;
-  background: rgba(255, 70, 85, 0.05) !important;
+.queue-join-form-wrapper .form-input:invalid:not(:placeholder-shown) {
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  background: rgba(239, 68, 68, 0.05) !important;
 }
 
-.queue-join-form-wrapper input:valid:not(:placeholder-shown) {
+.queue-join-form-wrapper .form-input:valid:not(:placeholder-shown) {
   border-color: rgba(34, 197, 94, 0.3) !important;
-  background: rgba(34, 197, 94, 0.02) !important;
 }
 
 /* =============================================================================
-   GLASS MORPHISM CONTAINER OVERRIDES
+   SUBMIT BUTTON - REFINED DESIGN WITH WHITE SHINE & RED OUTLINE
 ============================================================================= */
 
-.queue-join-form-wrapper .bg-theme-container {
+.queue-join-form-wrapper .form-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.queue-join-form-wrapper .join-queue-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 280px;
+  height: 56px;
+  padding: 0 2rem;
   background: rgba(31, 39, 49, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  backdrop-filter: blur(8px) !important;
+  border: 1px solid var(--queue-form-border) !important;
+  border-radius: var(--queue-form-radius) !important;
+  color: var(--queue-form-text-primary) !important;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  transition: var(--queue-form-transition) !important;
+  cursor: pointer;
+  outline: none;
+  overflow: hidden;
 }
 
-.queue-join-form-wrapper .border-theme {
-  border-color: rgba(255, 255, 255, 0.08) !important;
+.queue-join-form-wrapper .join-queue-button:hover:not(:disabled) {
+  border-color: var(--queue-form-accent) !important; /* Red outline on hover - kept */
+  /* All other hover effects removed */
 }
 
-.queue-join-form-wrapper .theme-transition {
-  transition: var(--queue-form-transition);
+.queue-join-form-wrapper .join-queue-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.queue-join-form-wrapper .join-queue-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  background: rgba(31, 39, 49, 0.3) !important;
+  border-color: var(--queue-form-border) !important;
+}
+
+.queue-join-form-wrapper .button-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  position: relative;
+  z-index: 1;
+}
+
+.queue-join-form-wrapper .button-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--queue-form-accent);
+  transition: var(--queue-form-transition-fast);
+}
+
+/* White shine effect - kept as requested */
+
+/* Loading State */
+.queue-join-form-wrapper .button-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.queue-join-form-wrapper .loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top: 2px solid var(--queue-form-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* =============================================================================
+   FORM HINT
+============================================================================= */
+
+.queue-join-form-wrapper .form-hint {
+  font-size: 0.8125rem;
+  color: var(--queue-form-text-tertiary);
+  text-align: center;
+  margin: 0;
+  opacity: 0.8;
 }
 
 /* =============================================================================
    RESPONSIVE DESIGN
 ============================================================================= */
 
-@media (max-width: 768px) {
-  .queue-join-form-wrapper .form-grid-2 {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-}
-
 @media (max-width: 640px) {
-  .queue-join-form-wrapper .join-queue-button {
-    padding: 0.75rem 1.25rem;
-    font-size: 0.9rem;
-    min-height: 2.75rem;
+  .queue-join-form-wrapper .form-header {
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
   }
-  
-  .queue-join-form-wrapper .join-queue-button svg {
-    width: 1.125rem;
-    height: 1.125rem;
+
+  .queue-join-form-wrapper .form-content {
+    padding: 1.5rem;
+  }
+
+  .queue-join-form-wrapper .form-container {
+    gap: 1.5rem;
+  }
+
+  .queue-join-form-wrapper .form-section {
+    gap: 1.25rem;
+  }
+
+  .queue-join-form-wrapper .form-grid {
+    gap: 1.25rem;
+  }
+
+  .queue-join-form-wrapper .title-content h2 {
+    font-size: 1.25rem;
+  }
+
+  .queue-join-form-wrapper .join-queue-button {
+    height: 52px;
+    font-size: 0.9375rem;
   }
 }
 
-@media (max-width: 430px) {
-  .queue-join-form-wrapper .form-grid-2 {
+@media (max-width: 480px) {
+  .queue-join-form-wrapper .form-header {
+    padding: 1.25rem 1.25rem 0.75rem 1.25rem;
+  }
+
+  .queue-join-form-wrapper .form-content {
+    padding: 1.25rem;
+  }
+
+  .queue-join-form-wrapper .form-title {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
     gap: 0.75rem;
   }
-  
-  .queue-join-form-wrapper .join-queue-button {
-    width: 100%;
-    padding: 0.75rem 1rem;
+
+  .queue-join-form-wrapper .title-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .queue-join-form-wrapper .section-icon {
+    width: 20px;
+    height: 20px;
   }
 }
 
-
-
 /* =============================================================================
-   PERFORMANCE OPTIMIZATIONS
+   ACCESSIBILITY & PERFORMANCE
 ============================================================================= */
-
-.queue-join-form-wrapper .join-queue-button,
-.queue-join-form-wrapper input,
-.queue-join-form-wrapper .select-trigger {
-  will-change: transform, background-color, border-color;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .queue-join-form-wrapper * {
     transition: none !important;
     animation: none !important;
-    transform: none !important;
+  }
+
+  .queue-join-form-wrapper .join-queue-button:hover:not(:disabled) {
+    transform: none;
   }
 }
 
+.queue-join-form-wrapper .form-input,
+.queue-join-form-wrapper .form-select,
+.queue-join-form-wrapper .join-queue-button {
+  will-change: transform, background-color, border-color;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
 /* =============================================================================
-   FLOATING LABEL ANIMATIONS (OPTIONAL ENHANCEMENT)
+   FOCUS VISIBLE IMPROVEMENTS
 ============================================================================= */
 
-.queue-join-form-wrapper .floating-label-container {
-  position: relative;
+.queue-join-form-wrapper .join-queue-button:focus-visible {
+  outline: 2px solid var(--queue-form-accent);
+  outline-offset: 2px;
 }
 
-.queue-join-form-wrapper .floating-label {
-  position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
-  color: rgba(255, 255, 255, 0.4);
-  transition: var(--queue-form-transition);
-  pointer-events: none;
-  background: rgba(31, 39, 49, 0.8);
-  padding: 0 0.25rem;
-  border-radius: 2px;
+.queue-join-form-wrapper .form-input:focus-visible,
+.queue-join-form-wrapper .form-select:focus-visible {
+  outline: 2px solid var(--queue-form-accent);
+  outline-offset: 2px;
 }
-
-.queue-join-form-wrapper .floating-label.active {
-  top: -0.5rem;
-  left: 0.5rem;
-  font-size: 0.75rem;
-  color: var(--queue-form-primary-color);
-} 
