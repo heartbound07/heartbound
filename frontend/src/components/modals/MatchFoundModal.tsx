@@ -62,15 +62,18 @@ export function MatchFoundModal({ pairing, onClose }: MatchFoundModalProps) {
               <div className="match-found-modal-bg-gradient" />
 
               <CardHeader className="match-found-modal-header">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClose}
-                  className="match-found-modal-close-btn"
-                  aria-label="Close modal"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                {/* Conditional Close Button - Only show after timer completes */}
+                {showFullMatch && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClose}
+                    className="match-found-modal-close-btn"
+                    aria-label="Close modal"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
 
                 {!showFullMatch ? (
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
@@ -100,20 +103,19 @@ export function MatchFoundModal({ pairing, onClose }: MatchFoundModalProps) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                   >
-                    {/* Modern Timer Design - Glass Morphism Integration */}
-                    <motion.div
-                      className="match-found-modal-timer-container"
+                    {/* Pure Timer Number - No Container */}
+                    <motion.span
+                      className="match-found-modal-timer-number"
                       initial={{ scale: 0.9, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ delay: 0.2, type: "spring", bounce: 0.1 }}
+                      aria-live="polite"
+                      aria-atomic="true"
                     >
-                      <div className="match-found-modal-timer-display">
-                        <span className="match-found-modal-timer-number" aria-live="polite" aria-atomic="true">
-                          {countdown}
-                        </span>
-                      </div>
-                      <div className="match-found-modal-timer-label">Seconds Remaining</div>
-                    </motion.div>
+                      {countdown}
+                    </motion.span>
+
+                    <div className="match-found-modal-timer-label">Seconds Remaining</div>
 
                     {/* Loading Animation */}
                     <div className="match-found-modal-loading-dots">

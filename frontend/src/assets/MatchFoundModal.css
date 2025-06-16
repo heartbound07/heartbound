@@ -1,9 +1,8 @@
 /* =============================================================================
-   MATCH FOUND MODAL - ENHANCED TIMER DESIGN & STREAMLINED LAYOUT
+   MATCH FOUND MODAL - PURE TIMER NUMBER ONLY
    =============================================================================
    
-   Updated to feature modern timer design and streamlined content layout
-   while maintaining consistency with NoMatchFoundModal design system.
+   Updated to feature only the timer number without any container or background.
    
 ============================================================================= */
 
@@ -202,76 +201,22 @@
 }
 
 /* =============================================================================
-   MODERN TIMER DESIGN - GLASS MORPHISM INTEGRATION
+   PURE TIMER NUMBER - NO CONTAINER
 ============================================================================= */
 
 .match-found-modal-countdown-section {
   text-align: center;
 }
 
-.match-found-modal-timer-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 2rem 1.5rem;
-  background: rgba(42, 52, 65, 0.4);
-  border: 1px solid var(--modal-border);
-  border-radius: var(--modal-radius);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  transition: var(--modal-transition);
-}
-
-.match-found-modal-timer-container:hover {
-  border-color: var(--modal-border-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
-}
-
-.match-found-modal-timer-display {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 1rem 2rem;
-  background: linear-gradient(135deg, var(--modal-accent), #a855f7);
-  border-radius: var(--modal-radius-sm);
-  box-shadow: 0 4px 16px rgba(255, 70, 85, 0.3);
-  position: relative;
-  overflow: hidden;
-}
-
-.match-found-modal-timer-display::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
-  }
-}
-
 .match-found-modal-timer-number {
-  font-size: 2.5rem;
+  font-size: 4rem;
   font-weight: 700;
-  color: white;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  color: var(--modal-accent);
   font-variant-numeric: tabular-nums;
   line-height: 1;
-  position: relative;
-  z-index: 1;
+  text-shadow: 0 4px 12px rgba(255, 70, 85, 0.4);
+  display: block;
+  margin: 0 auto;
 }
 
 .match-found-modal-timer-label {
@@ -280,7 +225,7 @@
   color: var(--modal-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-top: 0.5rem;
+  margin-top: 1rem;
 }
 
 /* =============================================================================
@@ -291,7 +236,7 @@
   display: flex;
   justify-content: center;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
 }
 
 .match-found-modal-loading-dot {
@@ -455,16 +400,8 @@
     font-size: 0.9375rem;
   }
 
-  .match-found-modal-timer-container {
-    padding: 1.5rem 1rem;
-  }
-
-  .match-found-modal-timer-display {
-    padding: 0.75rem 1.5rem;
-  }
-
   .match-found-modal-timer-number {
-    font-size: 2rem;
+    font-size: 3rem;
   }
 }
 
@@ -477,12 +414,8 @@
     padding: 1.25rem;
   }
 
-  .match-found-modal-timer-container {
-    padding: 1.25rem 0.75rem;
-  }
-
   .match-found-modal-timer-number {
-    font-size: 1.75rem;
+    font-size: 2.5rem;
   }
 }
 
@@ -493,21 +426,18 @@
 @media (prefers-reduced-motion: reduce) {
   .match-found-modal-bg-gradient,
   .match-found-modal-trophy-icon,
-  .match-found-modal-loading-dot,
-  .match-found-modal-timer-display::before {
+  .match-found-modal-loading-dot {
     animation: none !important;
   }
 
   .match-found-modal-close-btn,
-  .match-found-modal-action-button,
-  .match-found-modal-timer-container {
+  .match-found-modal-action-button {
     transition: none !important;
   }
 }
 
 .match-found-modal-close-btn,
-.match-found-modal-action-button,
-.match-found-modal-timer-container {
+.match-found-modal-action-button {
   will-change: transform, background-color, border-color;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
@@ -523,7 +453,8 @@
   outline-offset: 2px;
 }
 
-.match-found-modal-timer-container:focus-within {
-  border-color: var(--modal-border-focus);
-  box-shadow: 0 0 0 3px rgba(255, 70, 85, 0.1);
+.match-found-modal-timer-number:focus {
+  outline: 2px solid var(--modal-accent);
+  outline-offset: 4px;
+  border-radius: 4px;
 }
