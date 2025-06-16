@@ -50,10 +50,6 @@ div[class*="relative w-full aspect-square rounded-full"]:hover {
   transform: scale(1.08) !important;
 }
 
-/* Player slot highlight glow */
-div[class*="absolute -inset-0.5 bg-gradient-to-r"] {
-  /* Removed filter drop-shadow */
-}
 
 /* Leader crown */
 div[class*="absolute -top-2 -right-2 bg-gradient-to-br from-red-700"] {
@@ -184,11 +180,6 @@ div[class*="grid grid-cols-1 sm:grid-cols-3 gap-3"] {
   100% { border: 2px solid rgba(255, 70, 85, 0); }
 }
 
-/* ===== Empty Slots ===== */
-div[class*="border-2 border-[#FF4655]/20 p-2 bg-[#1F2731]/50"] {
-  /* Removed box-shadow */
-}
-
 div[class*="border-2 border-[#FF4655]/20 p-2 bg-[#1F2731]/50"]:hover {
   border-color: rgba(255, 70, 85, 0.6) !important;
 }
@@ -196,8 +187,4 @@ div[class*="border-2 border-[#FF4655]/20 p-2 bg-[#1F2731]/50"]:hover {
 /* ===== Global Enhancements ===== */
 h1.text-3xl.font-bold.text-white {
   letter-spacing: -0.5px;
-}
-
-p.text-\[\#8B97A4\] {
-  /* Removed text-shadow */
 }
