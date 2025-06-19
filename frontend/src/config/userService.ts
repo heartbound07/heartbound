@@ -111,3 +111,18 @@ export const getCurrentUserProfile = async (): Promise<UserProfileDTO> => {
     throw error;
   }
 };
+
+export interface DailyActivityDataDTO {
+  date: string; // Format: YYYY-MM-DD
+  count: number;
+}
+
+export const getDailyMessageActivity = async (days: number = 30): Promise<DailyActivityDataDTO[]> => {
+  try {
+    const response = await httpClient.get(`/users/me/activity/daily-messages?days=${days}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching daily message activity:', error);
+    throw error;
+  }
+};

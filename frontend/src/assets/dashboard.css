@@ -199,6 +199,133 @@
   @apply text-center text-red-300 mb-6 p-4 rounded-lg bg-red-500/10 backdrop-blur-sm;
 }
 
+/* Chart container and styling */
+.chart-container {
+  @apply bg-white/20 backdrop-blur-xl rounded-xl p-6 shadow-xl 
+         border border-white/15 transition-all duration-300
+         hover:bg-white/25 hover:border-white/25;
+  margin-top: 2rem;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.chart-header {
+  @apply flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6;
+}
+
+.chart-title {
+  @apply text-xl md:text-2xl font-bold text-white mb-1;
+}
+
+.chart-subtitle {
+  @apply text-sm text-white/70;
+}
+
+.chart-stats {
+  @apply flex gap-4 mt-3 sm:mt-0;
+}
+
+.chart-stat {
+  @apply flex flex-col items-center text-center;
+}
+
+.chart-stat-value {
+  @apply text-lg font-bold text-white;
+}
+
+.chart-stat-label {
+  @apply text-xs text-white/60 uppercase tracking-wide;
+}
+
+.chart-content {
+  @apply w-full;
+}
+
+/* Chart loading state */
+.chart-loading {
+  @apply flex items-center justify-center min-h-[320px];
+}
+
+/* Chart error state */
+.chart-error {
+  @apply flex items-center justify-center min-h-[320px];
+}
+
+.error-content {
+  @apply text-center;
+}
+
+.error-icon {
+  @apply text-4xl mb-3;
+}
+
+.error-title {
+  @apply text-lg font-semibold text-white mb-2;
+}
+
+.error-message {
+  @apply text-sm text-white/70;
+}
+
+/* Chart empty state */
+.chart-empty {
+  @apply flex items-center justify-center min-h-[320px];
+}
+
+.empty-content {
+  @apply text-center;
+}
+
+.empty-icon {
+  @apply text-4xl mb-3;
+}
+
+.empty-title {
+  @apply text-lg font-semibold text-white mb-2;
+}
+
+.empty-message {
+  @apply text-sm text-white/70;
+}
+
+/* Custom tooltip styling */
+.chart-tooltip {
+  @apply bg-gray-900/95 backdrop-blur-sm rounded-lg p-3 shadow-xl border border-white/20;
+}
+
+.chart-tooltip-label {
+  @apply text-white font-medium text-sm mb-1;
+}
+
+.chart-tooltip-value {
+  @apply text-white/90 text-sm flex items-center gap-2;
+}
+
+.chart-tooltip-indicator {
+  @apply w-3 h-3 rounded-full bg-[#FF4655] inline-block;
+}
+
+/* Responsive chart adjustments */
+@media (max-width: 768px) {
+  .chart-container {
+    @apply p-4 mx-4;
+    margin-top: 1.5rem;
+  }
+  
+  .chart-header {
+    @apply flex-col items-start;
+  }
+  
+  .chart-stats {
+    @apply w-full justify-center mt-4;
+  }
+  
+  .chart-title {
+    @apply text-lg;
+  }
+}
+
 /* Dashboard greeting animation enhancement */
 .dashboard-greeting {
   @apply transform transition-all duration-500;

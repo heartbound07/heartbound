@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getCurrentUserProfile, UserProfileDTO } from '@/config/userService';
+import { getCurrentUserProfile, UserProfileDTO, getDailyMessageActivity, DailyActivityDataDTO } from '@/config/userService';
+import { DailyActivityChart } from './components/DailyActivityChart';
 import '@/assets/dashboard.css';
 import '@/assets/animations.css';
 
@@ -18,6 +19,11 @@ export function DashboardPage() {
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
   
+  // State for daily activity chart data
+  const [activityData, setActivityData] = useState<DailyActivityDataDTO[]>([]);
+  const [activityLoading, setActivityLoading] = useState(true);
+  const [activityError, setActivityError] = useState<string | null>(null);
+  
   // Fetch user profile data
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -35,6 +41,25 @@ export function DashboardPage() {
     };
 
     fetchUserProfile();
+  }, []);
+
+  // Fetch daily activity data
+  useEffect(() => {
+    const fetchActivityData = async () => {
+      try {
+        setActivityLoading(true);
+        setActivityError(null);
+        const data = await getDailyMessageActivity(30); // Last 30 days
+        setActivityData(data);
+      } catch (error) {
+        console.error('Error fetching daily activity:', error);
+        setActivityError('Failed to load activity data');
+      } finally {
+        setActivityLoading(false);
+      }
+    };
+
+    fetchActivityData();
   }, []);
 
   return (
@@ -98,6 +123,13 @@ export function DashboardPage() {
           )}
         </div>
       </section>
+
+      {/* Daily Activity Chart Section */}
+      <DailyActivityChart 
+        data={activityData}
+        loading={activityLoading}
+        error={activityError}
+      />
 
       {/* Display error if any */}
       {error && (
