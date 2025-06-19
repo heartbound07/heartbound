@@ -112,7 +112,7 @@ export function DashboardNavigation({ theme = "default", onCollapseChange }: Das
   // Add admin panel to nav items if the user is an admin
   const navItems = [
     {
-      path: "/dashboard",
+      path: "/discover",
       label: "Discover",
       icon: <MdDashboard size={18} />,
       hasSubmenu: true,
@@ -199,6 +199,9 @@ export function DashboardNavigation({ theme = "default", onCollapseChange }: Das
 
   // Determine if we're on the main dashboard page
   const isMainDashboard = location.pathname === "/dashboard" || location.pathname === "/dashboard/"
+
+  // Determine if we're on the discover page
+  const isDiscoverPage = location.pathname === "/discover" || location.pathname === "/discover/"
 
   // Determine if we're on a specific game page
   const onGamePage = gameItems.some((game) => location.pathname.includes(game.id))
@@ -378,51 +381,60 @@ export function DashboardNavigation({ theme = "default", onCollapseChange }: Das
           <div className="nav-section">
             {navItems.map((item) => {
               const isActive =
-                item.path === "/dashboard"
-                  ? isMainDashboard || (item.hasSubmenu && onGamePage)
+                item.path === "/discover"
+                  ? isDiscoverPage
                   : location.pathname === item.path
 
               return (
                 <div key={item.path} className="nav-group">
-                  <button
-                    onClick={() => {
-                      if (isCollapsed && item.path === "/dashboard") {
-                        setIsCollapsed(false)
-                        setGamesExpanded(true)
-                      } else if (item.path === "/dashboard" && gamesExpanded) {
-                        setGamesExpanded(false)
-                      } else if (item.hasSubmenu) {
-                        setGamesExpanded(!gamesExpanded)
-                      } else {
-                        navigate(item.path)
-                      }
-                    }}
-                    className={`nav-item ${isActive ? "active" : ""} ${isCollapsed ? "collapsed" : ""}`}
-                    aria-current={isActive ? "page" : undefined}
-                  >
-                    <div className="nav-icon">{item.icon}</div>
+                  <div className={`nav-item ${isActive ? "active" : ""} ${isCollapsed ? "collapsed" : ""}`}>
+                    <button
+                      onClick={() => {
+                        if (isCollapsed) {
+                          setIsCollapsed(false)
+                          if (item.hasSubmenu) {
+                            setGamesExpanded(true)
+                          }
+                        } else {
+                          navigate(item.path)
+                        }
+                      }}
+                      className="nav-item-main"
+                      aria-current={isActive ? "page" : undefined}
+                    >
+                      <div className="nav-icon">{item.icon}</div>
 
-                    <AnimatePresence>
-                      {!isCollapsed && (
-                        <motion.span
-                          className="nav-label"
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -10 }}
-                          transition={{ duration: 0.15 }}
-                        >
-                          {item.label}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
+                      <AnimatePresence>
+                        {!isCollapsed && (
+                          <motion.span
+                            className="nav-label"
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -10 }}
+                            transition={{ duration: 0.15 }}
+                          >
+                            {item.label}
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </button>
 
-                    {item.hasSubmenu && !isMainDashboard && !isCollapsed && (
-                      <ChevronRight size={12} className={`submenu-arrow ${gamesExpanded ? "expanded" : ""}`} />
+                    {item.hasSubmenu && !isCollapsed && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setGamesExpanded(!gamesExpanded)
+                        }}
+                        className="nav-item-chevron"
+                        aria-label={gamesExpanded ? "Collapse submenu" : "Expand submenu"}
+                      >
+                        <ChevronRight size={12} className={`submenu-arrow ${gamesExpanded ? "expanded" : ""}`} />
+                      </button>
                     )}
-                  </button>
+                  </div>
 
                   {/* Submenu */}
-                  {item.hasSubmenu && !isMainDashboard && !isCollapsed && (
+                  {item.hasSubmenu && !isCollapsed && (
                     <div className={`submenu ${gamesExpanded ? "expanded" : ""}`}>
                       {gameItems.map((game) => {
                         const isGameActive = location.pathname.includes(game.path)

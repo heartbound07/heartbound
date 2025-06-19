@@ -7,6 +7,7 @@ import { ValorantPageLayout } from '@/components/valorant/ValorantPageLayout';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { AuthErrorPage } from '@/features/auth/AuthErrorPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
+import { DiscoverPage } from '@/features/dashboard/DiscoverPage';
 import { ProfilePage } from '@/features/dashboard/ProfilePage';
 import { AdminPanel } from '@/features/dashboard/admin/AdminPanel';
 import { UserManagement } from '@/features/dashboard/admin/UserManagement';
@@ -99,6 +100,11 @@ export function AppRoutes() {
         {/* Dashboard (main page) */}
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />
+        </Route>
+        
+        {/* Discover page */}
+        <Route path="/discover" element={<DashboardLayout />}>
+          <Route index element={<DiscoverPage />} />
         </Route>
         
         {/* Profile page */}
