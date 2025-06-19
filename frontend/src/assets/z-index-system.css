@@ -36,6 +36,7 @@
   /* Modal layers */
   --z-modal-backdrop: 1500;
   --z-modal-content: 1501;
+  --z-modal-dropdown: 1550;
   --z-modal-overlay: 1600;
 }
 
@@ -77,6 +78,11 @@
 /* Select dropdowns and other overlays */
 .select-content {
   z-index: var(--z-dropdown) !important;
+}
+
+/* Modal dropdowns - higher than modal content */
+.modal-dropdown {
+  z-index: var(--z-modal-dropdown) !important;
 }
 
 /* Tooltips and small overlays */

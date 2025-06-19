@@ -474,7 +474,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
                       <SelectTrigger className="h-10 border-0 bg-[#1F2731]/80 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-[#1F2731] focus:ring-2 focus:ring-[#FF4655]/50 shadow-sm">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200" position="popper" sideOffset={5} style={{ zIndex: 1300 }}>
+                      <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200 modal-dropdown" position="popper" sideOffset={5}>
                         <SelectItem value="competitive" className="focus:bg-[#FF4655]/10">Competitive</SelectItem>
                         <SelectItem value="casual" className="focus:bg-[#FF4655]/10">Casual</SelectItem>
                       </SelectContent>
@@ -500,7 +500,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
                       <SelectTrigger className="h-10 border-0 bg-[#1F2731]/80 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-[#1F2731] focus:ring-2 focus:ring-[#FF4655]/50 shadow-sm">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200" position="popper" sideOffset={5} style={{ zIndex: 1300 }}>
+                      <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200 modal-dropdown" position="popper" sideOffset={5}>
                         <SelectItem value="duo" className="focus:bg-[#FF4655]/10">Duo</SelectItem>
                         <SelectItem value="trio" className="focus:bg-[#FF4655]/10">Trio</SelectItem>
                         <SelectItem value="five-stack" className="focus:bg-[#FF4655]/10">5-Stack</SelectItem>
@@ -532,7 +532,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
                         <SelectTrigger className="h-10 border-0 bg-[#1F2731]/80 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-[#1F2731] focus:ring-2 focus:ring-[#FF4655]/50 shadow-sm">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200" position="popper" sideOffset={5} style={{ zIndex: 1300 }}>
+                        <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200 modal-dropdown" position="popper" sideOffset={5}>
                           {dropdown.options
                             .filter(option => 
                               !(dropdown.field === 'gameMode' && matchType === 'casual' && option.value === 'any')
@@ -572,7 +572,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
                     <SelectTrigger className="h-10 border-0 bg-[#1F2731]/80 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-[#1F2731] focus:ring-2 focus:ring-[#FF4655]/50 shadow-sm">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200" position="popper" sideOffset={5} style={{ zIndex: 1300 }}>
+                    <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200 modal-dropdown" position="popper" sideOffset={5}>
                       {dropdown.options.map((option) => (
                         <SelectItem key={option.value} value={option.value} className="focus:bg-[#FF4655]/10">
                           {option.label}
@@ -606,7 +606,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
                   <SelectTrigger className="h-10 border-0 bg-[#1F2731]/80 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-[#1F2731] focus:ring-2 focus:ring-[#FF4655]/50 shadow-sm">
                     <SelectValue placeholder="Select Rank" />
                   </SelectTrigger>
-                  <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200" position="popper" sideOffset={5} style={{ zIndex: 1300 }}>
+                  <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200 modal-dropdown" position="popper" sideOffset={5}>
                     <SelectItem value="IRON" className="focus:bg-[#FF4655]/10">Iron</SelectItem>
                     <SelectItem value="BRONZE" className="focus:bg-[#FF4655]/10">Bronze</SelectItem>
                     <SelectItem value="SILVER" className="focus:bg-[#FF4655]/10">Silver</SelectItem>
@@ -633,7 +633,7 @@ export default function PostGroupModal({ onClose, onPartyCreated }: PostGroupMod
                   <SelectTrigger className="h-10 border-0 bg-[#1F2731]/80 px-3 text-sm text-zinc-200 ring-1 ring-white/10 transition-colors hover:bg-[#1F2731] focus:ring-2 focus:ring-[#FF4655]/50 shadow-sm">
                     <SelectValue placeholder="Select Region" />
                   </SelectTrigger>
-                  <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200" position="popper" sideOffset={5} style={{ zIndex: 1300 }}>
+                  <SelectContent className="border-zinc-800 bg-[#1F2731] text-zinc-200 modal-dropdown" position="popper" sideOffset={5}>
                     <SelectItem value="NA_EAST" className="focus:bg-[#FF4655]/10">NA East</SelectItem>
                     <SelectItem value="NA_WEST" className="focus:bg-[#FF4655]/10">NA West</SelectItem>
                     <SelectItem value="NA_CENTRAL" className="focus:bg-[#FF4655]/10">NA Central</SelectItem>

@@ -194,8 +194,8 @@ export function AppRoutes() {
 
       </Route>
 
-      {/* Default redirect - now routes to /profile instead of /login */}
-      <Route path="/" element={<Navigate to="/profile" replace />} />
+      {/* Default redirect - routes to dashboard */}
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
       
       {/* Catch-all route for any non-existent pages */}
       <Route path="*" element={<NotFoundPage />} />
