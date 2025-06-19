@@ -38,6 +38,9 @@ public class UserProfileDTO {
     private Integer level;
     private Integer experience;
     
+    // Add message count field
+    private Long messageCount;
+    
     // Update the fields for equipped items to match the specific categories
     private UUID equippedUserColorId;
     private UUID equippedListingId;

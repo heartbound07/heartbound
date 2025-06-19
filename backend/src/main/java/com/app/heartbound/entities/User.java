@@ -59,6 +59,9 @@ public class User {
     private Integer level = 1;
     private Integer experience = 0;
     
+    // Add message count field to track total messages sent by user
+    private Long messageCount = 0L;
+    
     // Role-based security addition
     @ElementCollection(fetch = jakarta.persistence.FetchType.EAGER)
     @Enumerated(jakarta.persistence.EnumType.STRING)

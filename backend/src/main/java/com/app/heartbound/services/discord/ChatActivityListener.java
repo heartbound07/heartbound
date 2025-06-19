@@ -304,10 +304,8 @@ public class ChatActivityListener extends ListenerAdapter {
     
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
-        // Early returns for disabled feature or ineligible messages
-        if (!activityEnabled && !levelingEnabled) {
-            return;
-        }
+        // Early return only if ALL features are disabled (message counting always enabled)
+        // We always track message counts regardless of XP/activity feature status
         
         // Ignore messages from bots, DMs, or self
         if (!event.isFromGuild() || event.getAuthor().isBot() || 
@@ -359,6 +357,12 @@ public class ChatActivityListener extends ListenerAdapter {
                 log.warn("Achievement channel with ID {} not found", achievementChannelId);
                 return;
             }
+            
+            // Increment user's global message count (tracks all valid messages)
+            Long currentMessageCount = user.getMessageCount() != null ? user.getMessageCount() : 0L;
+            user.setMessageCount(currentMessageCount + 1);
+            userUpdated = true; // Mark user for update
+            log.debug("[MESSAGE COUNT DEBUG] Incremented message count for user {}. New count: {}", userId, user.getMessageCount());
             
             int awardedXp = 0;
             int initialLevel = (user.getLevel() != null) ? user.getLevel() : 1;
@@ -424,9 +428,9 @@ public class ChatActivityListener extends ListenerAdapter {
                             userId, userMessages.size(), timeWindowMinutes);
             }
             
-            // Persist changes if XP was added but no level up happened
+            // Persist changes if user was updated (message count, XP, credits) but no level up happened
             // Level-up already saves changes internally in checkAndProcessLevelUp
-            if (userUpdated && (user.getLevel() == null || calculateRequiredXp(user.getLevel()) > user.getExperience())) {
+            if (userUpdated && initialLevel == user.getLevel()) {
                 try {
                     userService.updateUser(user);
                     log.debug("Persisted user {} state after activity processing.", userId);

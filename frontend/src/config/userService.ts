@@ -14,6 +14,7 @@ export interface UserProfileDTO {
   credits?: number;
   level?: number;
   experience?: number;
+  messageCount?: number;
   equippedUserColorId?: string;
   equippedListingId?: string;
   equippedAccentId?: string;
