@@ -105,6 +105,7 @@ export const AllMatchesModal = ({ isOpen, onClose, pairings, userProfiles, onUse
   return createPortal(
     <AnimatePresence>
       <motion.div
+        key="all-matches-modal"
         className="all-matches-overlay"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

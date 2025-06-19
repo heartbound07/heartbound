@@ -118,7 +118,8 @@ export function UserProfileModal({ isOpen, onClose, userProfile, position }: Use
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 pointer-events-none"
+          className="fixed inset-0 pointer-events-none"
+          style={{ zIndex: 1600 }}
         >
           <motion.div
             ref={modalRef}

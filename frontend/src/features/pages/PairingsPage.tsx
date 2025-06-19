@@ -1371,6 +1371,7 @@ export function PairingsPage() {
         <AnimatePresence>
           {modalState.showUserProfileModal && modalState.selectedUserProfile && (
             <UserProfileModal
+              key="user-profile-modal"
               isOpen={modalState.showUserProfileModal}
               onClose={handleCloseUserProfileModal}
               userProfile={modalState.selectedUserProfile}
@@ -1380,6 +1381,7 @@ export function PairingsPage() {
 
           {isAllMatchesModalOpen && (
             <AllMatchesModal
+              key="all-matches-modal"
               isOpen={isAllMatchesModalOpen}
               onClose={() => setIsAllMatchesModalOpen(false)}
               pairings={currentMatches}
@@ -1389,11 +1391,16 @@ export function PairingsPage() {
           )}
 
           {modalState.showMatchModal && modalState.matchedPairing && (
-            <MatchFoundModal pairing={modalState.matchedPairing} onClose={handleCloseMatchModal} />
+            <MatchFoundModal
+              key="match-found-modal"
+              pairing={modalState.matchedPairing}
+              onClose={handleCloseMatchModal}
+            />
           )}
 
           {modalState.showNoMatchModal && modalState.noMatchData && (
             <NoMatchFoundModal
+              key="no-match-modal"
               onClose={handleCloseNoMatchModal}
               onStayInQueue={handleStayInQueue}
               onLeaveQueue={handleLeaveQueueFromModal}
@@ -1404,6 +1411,7 @@ export function PairingsPage() {
 
           {modalState.showQueueRemovedModal && modalState.queueRemovedMessage && (
             <QueueRemovedModal
+              key="queue-removed-modal"
               message={modalState.queueRemovedMessage}
               onClose={handleCloseQueueRemovedModal}
             />
@@ -1411,6 +1419,7 @@ export function PairingsPage() {
 
           {modalState.showBreakupModal && currentPairing && (
             <BreakupModal
+              key="breakup-modal"
               isOpen={modalState.showBreakupModal}
               onClose={() => hideBreakup()}
               onConfirm={handleBreakup}
@@ -1420,6 +1429,7 @@ export function PairingsPage() {
 
           {modalState.showBreakupSuccessModal && (
             <BreakupSuccessModal
+              key="breakup-success-modal"
               isOpen={modalState.showBreakupSuccessModal}
               onClose={handleCloseBreakupSuccessModal}
               partnerName={pairedUser?.displayName || "your match"}
@@ -1428,6 +1438,7 @@ export function PairingsPage() {
 
           {modalState.showPartnerUnmatchedModal && (
             <PartnerUnmatchedModal
+              key="partner-unmatched-modal"
               isOpen={modalState.showPartnerUnmatchedModal}
               onClose={handleClosePartnerUnmatchedModal}
               onJoinQueue={handleJoinQueueFromPartnerModal}
@@ -1437,6 +1448,7 @@ export function PairingsPage() {
 
           {modalState.showQueueStatsModal && hasRole("ADMIN") && (
             <QueueStatsModal
+              key="queue-stats-modal"
               isOpen={modalState.showQueueStatsModal}
               onClose={hideQueueStats}
             />
@@ -1444,6 +1456,7 @@ export function PairingsPage() {
 
           {showAdminPairModal && selectedPairingForAdmin && hasRole("ADMIN") && (
             <AdminPairManagementModal
+              key="admin-pair-management-modal"
               isOpen={showAdminPairModal}
               onClose={handleCloseAdminPairModal}
               pairing={selectedPairingForAdmin}
