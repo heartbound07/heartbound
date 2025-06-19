@@ -29,6 +29,7 @@
   flex-direction: column;
   z-index: 900;
   overflow: hidden;
+  font-family: 'gg sans', sans-serif;
   /* Remove fixed width - let framer-motion handle it */
 }
 
@@ -279,7 +280,6 @@
   position: relative;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(10px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   background: transparent;
 }
 
