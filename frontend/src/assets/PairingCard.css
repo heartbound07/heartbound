@@ -1,17 +1,17 @@
 /* =============================================================================
-   PAIRING CARD COMPONENT - DYNAMIC WIDTH DESIGN
+   PAIRING CARD COMPONENT - CLEAN DYNAMIC WIDTH DESIGN
    =============================================================================
    
    A flexible, responsive design with dynamic width that adapts to container
-   space. Removed red background effects and main container hover effects
+   space. Completely removed border-left colors for a clean, uniform appearance
    while maintaining modern aesthetics and visual hierarchy.
    
    Key Features:
    - Dynamic width that adapts to available container space
-   - No red background effects or main container hover transforms
-   - Maintained visual hierarchy and modern design
+   - No border-left colors or accent borders
+   - Clean, uniform appearance for all card states
    - Optimized for various screen sizes and containers
-   - Clean, maintainable CSS without specificity issues
+   - Maintained visual hierarchy through other design elements
    
 ============================================================================= */
 
@@ -63,7 +63,7 @@
 }
 
 /* =============================================================================
-   MAIN CARD CONTAINER - DYNAMIC WIDTH
+   MAIN CARD CONTAINER - CLEAN UNIFORM DESIGN
 ============================================================================= */
 
 .pairing-card {
@@ -78,14 +78,13 @@
   min-height: 140px;
 }
 
-/* Removed hover effects on main container */
+/* Removed all border-left styling - clean uniform appearance */
 .pairing-card--active {
-  border-left: 3px solid var(--pairing-text-secondary);
+  /* No special styling - same as inactive for uniform appearance */
 }
 
 .pairing-card--inactive {
   opacity: 0.9;
-  border-left: 3px solid var(--pairing-text-muted);
 }
 
 /* =============================================================================
