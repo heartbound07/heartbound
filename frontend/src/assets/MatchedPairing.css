@@ -1,466 +1,581 @@
 /* =============================================================================
-   MATCHED PAIRING COMPONENT - XPCARD EXACT ALIGNMENT
+   MATCHED PAIRING COMPONENT - DYNAMIC WIDTH MINIMALIST DESIGN
    =============================================================================
    
-   Design Refinements to Exactly Match XPCard Aesthetic:
-   1. Removed all colored backgrounds from activity metrics
-   2. Applied XPCard's neutral card styling consistently
-   3. Removed all hover effects for cleaner appearance
-   4. Unified card design language across components
-   5. Maintained glass morphism with consistent styling
-   6. Updated section icons to white for visual consistency
-   7. Removed green gradient overlay from main container
-   8. Changed "You're Matched!" heading to white text
-   9. Removed green ring from profile avatar
+   Design Philosophy:
+   - Dynamic card width that adapts to content
+   - Animated "You're Matched!" text with 5-second display
+   - Removed hover effects and visual distractions
+   - Centered text alignment in metric cards
+   - Modern minimalist aesthetic with glass morphism
    
 ============================================================================= */
 
-/* Enhanced root variables aligned with XPCard design system */
-:root {
-  --matched-accent-color: #ff4655;
-  --matched-bg-primary: #0f1923;
-  --matched-bg-secondary: #1f2731;
-  --matched-border: rgba(255, 255, 255, 0.05);
-  --matched-card-radius: 0.5rem;
-  --matched-transition: all 0.3s ease;
-  --matched-success-color: #22c55e;
+/* CSS Custom Properties with specified theme colors */
+.matched-pairing-container {
+  --accent-primary: #ff4655;
+  --accent-secondary: #ff6b7a;
+  --bg-primary: #0f1923;
+  --bg-secondary: #1f2731;
+  --glass-bg: rgba(31, 39, 49, 0.25);
+  --glass-bg-light: rgba(31, 39, 49, 0.15);
+  --glass-border: rgba(255, 255, 255, 0.05);
+  --glass-border-hover: rgba(255, 255, 255, 0.08);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-tertiary: rgba(255, 255, 255, 0.5);
+  --success-color: #22c55e;
+  --info-color: #60a5fa;
+  --warning-color: #fbbf24;
+  --border-radius: 8px;
+  --border-radius-lg: 12px;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-subtle: 0 2px 12px rgba(0, 0, 0, 0.1);
+  --shadow-medium: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 /* =============================================================================
-   MATCHED PAIRING WRAPPER - ENHANCED ISOLATION
+   MAIN CONTAINER - DYNAMIC WIDTH
 ============================================================================= */
 
-.matched-pairing-wrapper {
-  all: unset;
-  position: relative;
-  z-index: 1;
-  display: block;
+.matched-pairing-container {
   width: 100%;
-  font-family: inherit;
-  line-height: inherit;
-  color: white !important;
+  min-width: 320px;
+  max-width: none; /* Remove fixed max-width for dynamic sizing */
+  margin: 0 auto;
+  display: flex;
 }
 
-/* =============================================================================
-   SIMPLIFIED TEXT COLOR SYSTEM - XPCARD ALIGNED
-============================================================================= */
-
-.matched-pairing-wrapper * {
-  color: inherit;
-}
-
-.matched-pairing-wrapper .text-white {
-  color: white !important;
-}
-
-.matched-pairing-wrapper .text-theme-secondary {
-  color: rgba(255, 255, 255, 0.7) !important;
-}
-
-.matched-pairing-wrapper .text-theme-tertiary {
-  color: rgba(255, 255, 255, 0.5) !important;
-}
-
-.matched-pairing-wrapper .text-status-success {
-  color: var(--matched-success-color) !important;
-}
-
-.matched-pairing-wrapper .text-status-info {
-  color: #60a5fa !important;
-}
-
-.matched-pairing-wrapper .text-status-warning {
-  color: #fbbf24 !important;
-}
-
-.matched-pairing-wrapper .text-status-error {
-  color: var(--matched-accent-color) !important;
-}
-
-.matched-pairing-wrapper .text-primary {
-  color: var(--matched-accent-color) !important;
-}
-
-/* =============================================================================
-   MAIN CARD CONTAINER - CLEAN XPCARD STYLE WITHOUT GREEN OVERLAY
-============================================================================= */
-
-.matched-pairing-wrapper .active-pairing-card {
-  background: rgba(31, 39, 49, 0.3) !important;
-  backdrop-filter: blur(8px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: var(--matched-card-radius);
-  transition: var(--matched-transition);
-  position: relative;
+.matched-pairing-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-medium);
   overflow: hidden;
-  color: white !important;
+  position: relative;
+  width: 100%;
 }
 
-/* REMOVED: Green gradient overlay for cleaner XPCard aesthetic */
-/* .matched-pairing-wrapper .active-pairing-card::before - completely removed */
-
-/* =============================================================================
-   HEADER STYLING - WHITE TEXT FOR "YOU'RE MATCHED!" HEADING
-============================================================================= */
-
-/* Override the success color for the main heading text to white */
-.matched-pairing-wrapper .text-status-success.text-xl {
-  color: white !important;
-}
-
-/* Ensure the heading text specifically is white */
-.matched-pairing-wrapper CardTitle.text-status-success {
-  color: white !important;
-}
-
-/* Target the specific heading element */
-.matched-pairing-wrapper .active-pairing-card .text-status-success {
-  color: white !important;
-}
-
-/* =============================================================================
-   SECTION ICONS - WHITE COLOR FOR VISUAL CONSISTENCY
-============================================================================= */
-
-/* "You're Matched!" header icon - changed to white */
-.matched-pairing-wrapper .text-status-success .h-6.w-6 {
-  color: white !important;
-}
-
-/* "Matched" section Calendar icon - changed to white */
-.matched-pairing-wrapper .match-detail-item .text-primary {
-  color: white !important;
-}
-
-/* "Discord Channel" section MessageCircle icon - changed to white */
-.matched-pairing-wrapper .match-detail-item .text-status-success {
-  color: white !important;
-}
-
-/* "Activity" section MessageSquare icon - changed to white */
-.matched-pairing-wrapper .activity-container .text-status-info {
-  color: white !important;
-}
-
-/* Specific icon targeting for better precision */
-.matched-pairing-wrapper .match-detail-item svg {
-  color: white !important;
-}
-
-.matched-pairing-wrapper .activity-container > div:first-child svg {
-  color: white !important;
-}
-
-/* =============================================================================
-   PARTNER PROFILE SECTION - XPCARD ALIGNED
-============================================================================= */
-
-.matched-pairing-wrapper .partner-profile-container {
-  background: rgba(31, 39, 49, 0.6) !important;
-  backdrop-filter: blur(8px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: 0.75rem;
-  transition: var(--matched-transition);
-}
-
-/* Removed hover effects to match XPCard */
-.matched-pairing-wrapper .partner-profile-container:hover {
-  background: rgba(31, 39, 49, 0.6) !important;
-  border-color: rgba(255, 255, 255, 0.05) !important;
-}
-
-/* REMOVED GREEN RING - Neutral avatar styling */
-.matched-pairing-wrapper .partner-avatar {
-  border: 2px solid rgba(255, 255, 255, 0.1) !important; /* Changed from green to neutral */
-  transition: var(--matched-transition);
-}
-
-.matched-pairing-wrapper .partner-avatar:hover {
-  border-color: rgba(255, 255, 255, 0.2) !important; /* Changed from green to neutral */
-  transform: scale(1.05);
-}
-
-/* Remove any additional green styling that might affect the avatar */
-.matched-pairing-wrapper .partner-avatar,
-.matched-pairing-wrapper .partner-avatar * {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-.matched-pairing-wrapper .partner-avatar:hover,
-.matched-pairing-wrapper .partner-avatar:hover * {
-  border-color: rgba(255, 255, 255, 0.2) !important;
-}
-
-/* =============================================================================
-   MATCH STATISTICS - XPCARD ALIGNED STYLING
-============================================================================= */
-
-.matched-pairing-wrapper .match-stat-badge {
-  background: rgba(31, 39, 49, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: 0.5rem;
-  transition: var(--matched-transition);
-  backdrop-filter: blur(8px);
-}
-
-/* Removed hover effects to match XPCard */
-.matched-pairing-wrapper .match-stat-badge:hover {
-  background: rgba(31, 39, 49, 0.6) !important;
-  border-color: rgba(255, 255, 255, 0.05) !important;
-}
-
-/* Simplified stat icon colors - kept for visual distinction in stats */
-.matched-pairing-wrapper .stat-age-icon {
-  color: #60a5fa !important;
-}
-
-.matched-pairing-wrapper .stat-gender-icon {
-  color: var(--matched-accent-color) !important;
-}
-
-.matched-pairing-wrapper .stat-region-icon {
-  color: var(--matched-success-color) !important;
-}
-
-.matched-pairing-wrapper .stat-rank-icon {
-  color: #fbbf24 !important;
-}
-
-/* =============================================================================
-   MATCH DETAILS SECTION - XPCARD ALIGNED
-============================================================================= */
-
-.matched-pairing-wrapper .match-detail-item {
-  background: rgba(31, 39, 49, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: 0.5rem;
-  transition: var(--matched-transition);
-  backdrop-filter: blur(8px);
-}
-
-/* Removed hover effects to match XPCard */
-.matched-pairing-wrapper .match-detail-item:hover {
-  background: rgba(31, 39, 49, 0.6) !important;
-  border-color: rgba(255, 255, 255, 0.05) !important;
-}
-
-/* Simplified Discord link styling */
-.matched-pairing-wrapper .discord-link {
-  color: rgba(255, 255, 255, 0.9) !important;
-  transition: var(--matched-transition);
-  text-decoration: none;
-}
-
-.matched-pairing-wrapper .discord-link:hover {
-  color: var(--matched-success-color) !important;
-}
-
-.matched-pairing-wrapper .discord-link svg {
-  transition: var(--matched-transition);
-}
-
-.matched-pairing-wrapper .discord-link:hover svg {
-  transform: translateX(2px);
-}
-
-/* =============================================================================
-   ACTIVITY METRICS - EXACT XPCARD CARD STYLING
-============================================================================= */
-
-.matched-pairing-wrapper .activity-container {
-  background: rgba(31, 39, 49, 0.6) !important;
-  backdrop-filter: blur(8px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: 0.75rem;
-  transition: var(--matched-transition);
-}
-
-/* ALL ACTIVITY METRICS - EXACT XPCARD NEUTRAL STYLING */
-.matched-pairing-wrapper .activity-metric {
-  background: rgba(31, 39, 49, 0.6) !important; /* Exact XPCard card background */
-  border: 1px solid rgba(255, 255, 255, 0.05) !important; /* Exact XPCard border */
-  border-radius: 0.5rem;
-  transition: var(--matched-transition);
-  backdrop-filter: blur(8px);
-}
-
-/* REMOVED ALL HOVER EFFECTS - NO TRANSFORMS OR COLOR CHANGES */
-.matched-pairing-wrapper .activity-metric:hover {
-  background: rgba(31, 39, 49, 0.6) !important; /* Same as default - no change */
-  border-color: rgba(255, 255, 255, 0.05) !important; /* Same as default - no change */
-  transform: none; /* No transform on hover */
-}
-
-/* REMOVED ALL COLORED BACKGROUNDS - UNIFIED NEUTRAL STYLING */
-.matched-pairing-wrapper .metric-user-messages {
-  background: rgba(31, 39, 49, 0.6) !important; /* Same neutral background as XPCard */
-  border-color: rgba(255, 255, 255, 0.05) !important; /* Same neutral border as XPCard */
-}
-
-.matched-pairing-wrapper .metric-partner-messages {
-  background: rgba(31, 39, 49, 0.6) !important; /* Same neutral background as XPCard */
-  border-color: rgba(255, 255, 255, 0.05) !important; /* Same neutral border as XPCard */
-}
-
-.matched-pairing-wrapper .metric-total-messages {
-  background: rgba(31, 39, 49, 0.6) !important; /* Same neutral background as XPCard */
-  border-color: rgba(255, 255, 255, 0.05) !important; /* Same neutral border as XPCard */
-}
-
-.matched-pairing-wrapper .metric-voice-time {
-  background: rgba(31, 39, 49, 0.6) !important; /* Same neutral background as XPCard */
-  border-color: rgba(255, 255, 255, 0.05) !important; /* Same neutral border as XPCard */
-}
-
-/* REMOVED ALL HOVER EFFECTS FOR INDIVIDUAL METRICS */
-.matched-pairing-wrapper .metric-user-messages:hover,
-.matched-pairing-wrapper .metric-partner-messages:hover,
-.matched-pairing-wrapper .metric-total-messages:hover,
-.matched-pairing-wrapper .metric-voice-time:hover {
-  background: rgba(31, 39, 49, 0.6) !important; /* No change on hover */
-  border-color: rgba(255, 255, 255, 0.05) !important; /* No change on hover */
-  transform: none !important; /* No transform on hover */
-  box-shadow: none !important; /* No shadow on hover */
-}
-
-/* =============================================================================
-   BREAKUP BUTTON - XPCARD ALIGNED STYLING
-============================================================================= */
-
-.matched-pairing-wrapper .breakup-button {
-  background: transparent !important;
-  border: 1px solid rgba(255, 70, 85, 0.3) !important;
-  color: var(--matched-accent-color) !important;
-  border-radius: 0.5rem;
-  transition: var(--matched-transition);
-  backdrop-filter: blur(8px);
-}
-
-.matched-pairing-wrapper .breakup-button:hover:not(:disabled) {
-  background: rgba(255, 70, 85, 0.1) !important;
-  border-color: rgba(255, 70, 85, 0.5) !important;
-  color: white !important;
-  transform: translateY(-1px);
-}
-
-.matched-pairing-wrapper .breakup-button:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.matched-pairing-wrapper .breakup-button:disabled {
+/* Subtle top accent line */
+.matched-pairing-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
   opacity: 0.5;
-  cursor: not-allowed;
+}
+
+/* =============================================================================
+   ANIMATED HEADER - 5 SECOND DISPLAY WITH ENHANCED ANIMATIONS
+============================================================================= */
+
+.matched-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--glass-border);
+  background: linear-gradient(135deg, rgba(255, 70, 85, 0.02), transparent);
+}
+
+.matched-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  text-align: center;
+}
+
+.matched-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-subtle);
+}
+
+.matched-icon {
+  width: 18px;
+  height: 18px;
+  color: white;
+}
+
+/* =============================================================================
+   CONTENT LAYOUT - OPTIMIZED FOR DYNAMIC WIDTH
+============================================================================= */
+
+.matched-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+/* =============================================================================
+   PARTNER PROFILE SECTION - NO HOVER EFFECTS
+============================================================================= */
+
+.partner-section {
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-lg);
+  padding: 20px;
+  backdrop-filter: blur(12px);
+}
+
+.partner-profile {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.partner-avatar-container {
+  cursor: pointer;
+  transition: var(--transition);
+  border-radius: 50%;
+  position: relative;
+}
+
+/* Removed all hover effects and red outline */
+.partner-avatar-container:hover {
   transform: none;
 }
 
-.matched-pairing-wrapper .breakup-button svg {
-  transition: var(--matched-transition);
+.partner-avatar-container:focus {
+  outline: none;
 }
 
-.matched-pairing-wrapper .breakup-button:hover:not(:disabled) svg {
-  color: white !important;
+.partner-avatar-container:active {
+  transform: none;
+}
+
+.partner-avatar {
+  width: 64px;
+  height: 64px;
+  border: 2px solid var(--glass-border);
+  transition: none; /* Remove transition effects */
+}
+
+/* Remove any click/active state styling */
+.partner-avatar-container:active .partner-avatar,
+.partner-avatar-container:focus .partner-avatar {
+  border-color: var(--glass-border);
+  box-shadow: none;
+}
+
+.partner-avatar-fallback {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: white;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.partner-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.partner-name {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+  line-height: 1.2;
 }
 
 /* =============================================================================
-   GLASS MORPHISM OVERRIDES - XPCARD CONSISTENCY
+   STATS GRID - CLEAN LAYOUT
 ============================================================================= */
 
-.matched-pairing-wrapper .bg-theme-container {
-  background: rgba(31, 39, 49, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  backdrop-filter: blur(8px) !important;
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
 }
 
-.matched-pairing-wrapper .border-theme {
-  border-color: rgba(255, 255, 255, 0.05) !important;
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: var(--border-radius);
+  transition: var(--transition);
 }
 
-.matched-pairing-wrapper .theme-transition {
-  transition: var(--matched-transition);
+.stat-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.stat-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.age-icon {
+  color: var(--info-color);
+}
+.gender-icon {
+  color: var(--accent-primary);
+}
+.region-icon {
+  color: var(--success-color);
+}
+.rank-icon {
+  color: var(--warning-color);
+}
+
+.stat-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.3;
 }
 
 /* =============================================================================
-   RESPONSIVE DESIGN - MAINTAINED FROM ORIGINAL
+   MATCH DETAILS - RESPONSIVE LAYOUT
+============================================================================= */
+
+.match-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  backdrop-filter: blur(8px);
+  transition: var(--transition);
+}
+
+.detail-item:hover {
+  border-color: var(--glass-border-hover);
+}
+
+.detail-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius);
+  flex-shrink: 0;
+}
+
+.detail-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--text-primary);
+}
+
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.detail-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.discord-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--success-color);
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.discord-link:hover {
+  color: var(--text-primary);
+}
+
+.external-icon {
+  width: 14px;
+  height: 14px;
+  opacity: 0.6;
+  transition: var(--transition);
+}
+
+.discord-link:hover .external-icon {
+  opacity: 1;
+  transform: translateX(1px);
+}
+
+/* =============================================================================
+   ACTIVITY SECTION - CENTERED TEXT ALIGNMENT
+============================================================================= */
+
+.activity-section {
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-lg);
+  padding: 20px;
+  backdrop-filter: blur(12px);
+}
+
+.activity-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.activity-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(96, 165, 250, 0.08);
+  border-radius: var(--border-radius);
+}
+
+.activity-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--info-color);
+}
+
+.activity-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* =============================================================================
+   METRICS GRID - CENTERED TEXT AND DYNAMIC LAYOUT
+============================================================================= */
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 16px;
+  justify-items: center;
+}
+
+.metric-card {
+  padding: 16px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: var(--border-radius);
+  text-align: center; /* Ensure all text is centered */
+  transition: var(--transition);
+  width: 100%;
+  min-width: 120px;
+}
+
+.metric-card:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.metric-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  line-height: 1;
+  text-align: center; /* Explicitly center the value */
+}
+
+.metric-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.3;
+  text-align: center; /* Explicitly center the label */
+  word-wrap: break-word;
+}
+
+/* =============================================================================
+   ACTION SECTION - NO HOVER EFFECTS
+============================================================================= */
+
+.action-section {
+  padding-top: 20px;
+  border-top: 1px solid var(--glass-border);
+}
+
+.breakup-button {
+  width: 100%;
+  padding: 14px 20px;
+  background: transparent;
+  border: 1px solid rgba(255, 70, 85, 0.25);
+  color: var(--accent-primary);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--border-radius);
+  transition: none; /* Remove transition effects */
+  backdrop-filter: blur(8px);
+}
+
+/* Remove hover effects as requested */
+.breakup-button:hover:not(:disabled) {
+  background: transparent;
+  border-color: rgba(255, 70, 85, 0.25);
+  color: var(--accent-primary);
+  transform: none;
+}
+
+.breakup-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.breakup-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN - OPTIMIZED FOR DYNAMIC WIDTH
 ============================================================================= */
 
 @media (max-width: 768px) {
-  .matched-pairing-wrapper .match-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
+  .matched-pairing-card {
+    min-width: 300px;
+    max-width: 95vw;
   }
 
-  .matched-pairing-wrapper .activity-metrics-grid {
+  .matched-content {
+    padding: 20px;
+    gap: 18px;
+  }
+
+  .partner-profile {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .stats-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
+    gap: 10px;
+  }
+
+  .match-details {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
   }
 }
 
-@media (max-width: 640px) {
-  .matched-pairing-wrapper .partner-profile-container {
-    flex-direction: column;
-    text-align: center;
-    gap: 1.5rem;
-    padding: 1.5rem;
+@media (max-width: 480px) {
+  .matched-pairing-card {
+    min-width: 280px;
+    max-width: 98vw;
   }
 
-  .matched-pairing-wrapper .match-stats-grid {
+  .matched-header {
+    padding: 16px 20px;
+  }
+
+  .matched-title {
+    font-size: 18px;
+    gap: 10px;
+  }
+
+  .matched-icon-container {
+    width: 32px;
+    height: 32px;
+  }
+
+  .matched-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .partner-name {
+    font-size: 20px;
+  }
+
+  .stats-grid {
     grid-template-columns: 1fr;
-    gap: 0.75rem;
   }
 
-  .matched-pairing-wrapper .activity-metrics-grid {
+  .metrics-grid {
     grid-template-columns: 1fr;
-    gap: 0.75rem;
   }
 
-  .matched-pairing-wrapper .match-detail-item {
-    text-align: center;
-    padding: 1rem;
-  }
-
-  .matched-pairing-wrapper .activity-container {
-    padding: 1rem;
+  .metric-value {
+    font-size: 20px;
   }
 }
 
 /* =============================================================================
-   PERFORMANCE OPTIMIZATIONS - MAINTAINED
+   ACCESSIBILITY & PERFORMANCE
 ============================================================================= */
-
-.matched-pairing-wrapper .partner-avatar,
-.matched-pairing-wrapper .activity-metric,
-.matched-pairing-wrapper .breakup-button,
-.matched-pairing-wrapper .match-stat-badge,
-.matched-pairing-wrapper .match-detail-item {
-  will-change: transform;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
 
 @media (prefers-reduced-motion: reduce) {
-  .matched-pairing-wrapper * {
-    transition: none !important;
-    animation: none !important;
-    transform: none !important;
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
-/* =============================================================================
-   FOCUS STATES - XPCARD ALIGNED ACCESSIBILITY
-============================================================================= */
-
-.matched-pairing-wrapper .breakup-button:focus-visible {
-  outline: 2px solid var(--matched-accent-color);
+.breakup-button:focus-visible {
+  outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
 }
 
-.matched-pairing-wrapper .discord-link:focus-visible {
-  outline: 2px solid var(--matched-success-color);
+.discord-link:focus-visible {
+  outline: 2px solid var(--success-color);
   outline-offset: 2px;
-  border-radius: 0.25rem;
+  border-radius: 4px;
 }
 
-.matched-pairing-wrapper .partner-avatar:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.3);
-  outline-offset: 4px;
+.partner-avatar-container:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+/* Performance optimizations */
+.metric-card,
+.stat-item,
+.detail-item {
+  backface-visibility: hidden;
 }

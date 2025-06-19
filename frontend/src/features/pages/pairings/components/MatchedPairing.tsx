@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { memo, useMemo } from "react"
+import { memo, useMemo, useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
@@ -15,12 +15,13 @@ import {
   MessageCircle,
   MessageSquare,
   AlertCircle,
+  ExternalLink,
 } from "lucide-react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import type { PairingDTO } from "@/config/pairingService"
 import type { UserProfileDTO } from "@/config/userService"
 
-// Import XPCard-aligned component CSS
+// Import redesigned component CSS
 import "@/assets/MatchedPairing.css"
 
 // Constants for display formatting - preserved exactly
@@ -66,6 +67,18 @@ interface MatchedPairingProps {
 
 export const MatchedPairing = memo(
   ({ currentPairing, pairedUser, user, actionLoading, onUserClick, onBreakup, formatDate }: MatchedPairingProps) => {
+    // State for controlling "You're Matched!" text visibility
+    const [showMatchedText, setShowMatchedText] = useState(true)
+
+    // Timer effect for "You're Matched!" text - 5 seconds
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        setShowMatchedText(false)
+      }, 5000)
+
+      return () => clearTimeout(timer)
+    }, [])
+
     // Get partner ID - preserved business logic
     const partnerId = useMemo(() => {
       return currentPairing?.user1Id === user?.id ? currentPairing?.user2Id : currentPairing?.user1Id
@@ -98,174 +111,197 @@ export const MatchedPairing = memo(
     }
 
     return (
-      <div className="matched-pairing-wrapper">
-        <motion.div
-          key="paired"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 20 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Card className="active-pairing-card">
-            <CardHeader className="pb-4">
-              {/* "You're Matched!" header - Both icon and text now white via CSS */}
-              <CardTitle className="flex items-center gap-3 text-status-success text-xl">
-                <div className="p-2 bg-status-success/20 rounded-lg">
-                  <UserCheck className="h-6 w-6" />
-                </div>
-                You're Matched!
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Partner Profile Section */}
-              <div className="partner-profile-container flex items-center gap-4 p-4 rounded-xl theme-transition">
-                <motion.div
-                  whileHover={{ scale: 1.1 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                  className="cursor-pointer"
+      <motion.div
+        className="matched-pairing-container"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
+        <Card className="matched-pairing-card">
+          {/* Animated Header with 5-second display */}
+          <AnimatePresence>
+            {showMatchedText && (
+              <motion.div
+                initial={{ opacity: 0, y: -30, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -30, scale: 0.8 }}
+                transition={{
+                  duration: 0.8,
+                  ease: [0.4, 0, 0.2, 1],
+                }}
+              >
+                <CardHeader className="matched-header">
+                  <CardTitle className="matched-title">
+                    <motion.div
+                      className="matched-icon-container"
+                      initial={{ rotate: -180, scale: 0 }}
+                      animate={{ rotate: 0, scale: 1 }}
+                      transition={{ delay: 0.3, duration: 0.6, ease: "backOut" }}
+                    >
+                      <UserCheck className="matched-icon" />
+                    </motion.div>
+                    <motion.span
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.5, duration: 0.5 }}
+                    >
+                      You're Matched!
+                    </motion.span>
+                  </CardTitle>
+                </CardHeader>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <CardContent className="matched-content">
+            {/* Partner Profile Section */}
+            <motion.div
+              className="partner-section"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              <div className="partner-profile">
+                <div
+                  className="partner-avatar-container"
                   onClick={(e) => {
                     if (partnerId) {
                       onUserClick(partnerId, e)
                     }
                   }}
                 >
-                  <Avatar className="partner-avatar h-16 w-16">
+                  <Avatar className="partner-avatar">
                     <AvatarImage src={pairedUser?.avatar || "/placeholder.svg"} alt={pairedUser?.displayName} />
-                    <AvatarFallback className="bg-status-success/20 text-status-success text-xl font-bold">
+                    <AvatarFallback className="partner-avatar-fallback">
                       {pairedUser?.displayName?.charAt(0) || "?"}
                     </AvatarFallback>
                   </Avatar>
-                </motion.div>
+                </div>
 
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-white mb-2">{pairedUser?.displayName || "Your Match"}</h3>
+                <div className="partner-info">
+                  <h3 className="partner-name">{pairedUser?.displayName || "Your Match"}</h3>
 
-                  {/* Match Stats - kept colored icons for visual distinction */}
-                  <div className="match-stats-grid grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="match-stat-badge flex items-center gap-2 p-2 rounded-lg theme-transition">
-                      <User className="stat-age-icon h-4 w-4" />
-                      <span className="text-sm font-medium text-theme-secondary">{partnerStats?.age}</span>
+                  {/* Stats grid with improved layout */}
+                  <div className="stats-grid">
+                    <div className="stat-item">
+                      <User className="stat-icon age-icon" />
+                      <span className="stat-value">{partnerStats?.age}</span>
                     </div>
-
-                    <div className="match-stat-badge flex items-center gap-2 p-2 rounded-lg theme-transition">
-                      <Users className="stat-gender-icon h-4 w-4" />
-                      <span className="text-sm font-medium text-theme-secondary">
+                    <div className="stat-item">
+                      <Users className="stat-icon gender-icon" />
+                      <span className="stat-value">
                         {GENDERS.find((g) => g.value === partnerStats?.gender)?.label || "Not specified"}
                       </span>
                     </div>
-
-                    <div className="match-stat-badge flex items-center gap-2 p-2 rounded-lg theme-transition">
-                      <MapPin className="stat-region-icon h-4 w-4" />
-                      <span className="text-sm font-medium text-theme-secondary">
+                    <div className="stat-item">
+                      <MapPin className="stat-icon region-icon" />
+                      <span className="stat-value">
                         {REGIONS.find((r) => r.value === partnerStats?.region)?.label || "Not specified"}
                       </span>
                     </div>
-
-                    <div className="match-stat-badge flex items-center gap-2 p-2 rounded-lg theme-transition">
-                      <Trophy className="stat-rank-icon h-4 w-4" />
-                      <span className="text-sm font-medium text-theme-secondary">
+                    <div className="stat-item">
+                      <Trophy className="stat-icon rank-icon" />
+                      <span className="stat-value">
                         {RANKS.find((r) => r.value === partnerStats?.rank)?.label || "Not specified"}
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
+            </motion.div>
 
-              {/* Match Details - Calendar and MessageCircle icons now white via CSS */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="match-detail-item flex items-center gap-3 p-3 rounded-lg">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-sm text-theme-secondary">Matched</p>
-                    <p className="text-white font-medium">{formatDate(currentPairing.matchedAt)}</p>
-                  </div>
+            {/* Match Details */}
+            <motion.div
+              className="match-details"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+            >
+              <div className="detail-item">
+                <div className="detail-icon-container">
+                  <Calendar className="detail-icon" />
                 </div>
-                <div className="match-detail-item flex items-center gap-3 p-3 rounded-lg">
-                  <MessageCircle className="h-5 w-5 text-status-success" />
-                  <div className="flex-1">
-                    <p className="text-sm text-theme-secondary">Discord Channel</p>
-                    <a
-                      href="https://discord.com/channels/1161658340418523166/1381698742721187930"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="discord-link font-medium flex items-center gap-2 group"
-                    >
-                      <span>#pairing-chat</span>
-                      <svg
-                        className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
-                    </a>
-                  </div>
+                <div className="detail-content">
+                  <span className="detail-label">Matched</span>
+                  <span className="detail-value">{formatDate(currentPairing.matchedAt)}</span>
                 </div>
               </div>
 
-              {/* Activity Metrics - MessageSquare icon now white via CSS */}
-              <div className="activity-container p-4 rounded-xl theme-transition">
-                <div className="flex items-center gap-3 mb-4">
-                  <MessageSquare className="h-5 w-5 text-status-info" />
-                  <h3 className="text-lg font-semibold text-white">Activity</h3>
+              <div className="detail-item">
+                <div className="detail-icon-container">
+                  <MessageCircle className="detail-icon" />
                 </div>
-
-                <div className="activity-metrics-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Your Messages - Now with neutral XPCard styling */}
-                  <div className="activity-metric metric-user-messages text-center p-3 rounded-lg">
-                    <div className="text-2xl font-bold text-status-success mb-1">{userMessageCount}</div>
-                    <div className="text-sm text-theme-secondary">Your Messages</div>
-                  </div>
-
-                  {/* Partner's Messages - Now with neutral XPCard styling */}
-                  <div className="activity-metric metric-partner-messages text-center p-3 rounded-lg">
-                    <div className="text-2xl font-bold text-primary mb-1">{partnerStats?.messageCount || 0}</div>
-                    <div className="text-sm text-theme-secondary">
-                      {pairedUser?.displayName || "Partner"}'s Messages
-                    </div>
-                  </div>
-
-                  {/* Total Messages - Now with neutral XPCard styling */}
-                  <div className="activity-metric metric-total-messages text-center p-3 rounded-lg">
-                    <div className="text-2xl font-bold text-status-info mb-1">{currentPairing?.messageCount || 0}</div>
-                    <div className="text-sm text-theme-secondary">Total Messages</div>
-                  </div>
-
-                  {/* Voice Time - Now with neutral XPCard styling */}
-                  <div className="activity-metric metric-voice-time text-center p-3 rounded-lg">
-                    <div className="text-2xl font-bold text-status-warning mb-1">
-                      {Math.floor((currentPairing?.voiceTimeMinutes || 0) / 60)}h{" "}
-                      {(currentPairing?.voiceTimeMinutes || 0) % 60}m
-                    </div>
-                    <div className="text-sm text-theme-secondary">Voice Time</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Breakup Button */}
-              <div className="pt-4 border-t border-theme">
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Button
-                    onClick={onBreakup}
-                    disabled={actionLoading}
-                    variant="outline"
-                    className="breakup-button w-full"
+                <div className="detail-content">
+                  <span className="detail-label">Discord Channel</span>
+                  <a
+                    href="https://discord.com/channels/1161658340418523166/1381698742721187930"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="discord-link"
                   >
-                    <AlertCircle className="h-4 w-4 mr-2" />
-                    End This Match
-                  </Button>
-                </motion.div>
+                    <span>#pairing-chat</span>
+                    <ExternalLink className="external-icon" />
+                  </a>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
+            </motion.div>
+
+            {/* Activity Metrics with centered text */}
+            <motion.div
+              className="activity-section"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+            >
+              <div className="activity-header">
+                <div className="activity-icon-container">
+                  <MessageSquare className="activity-icon" />
+                </div>
+                <h3 className="activity-title">Activity</h3>
+              </div>
+
+              <div className="metrics-grid">
+                <div className="metric-card user-messages">
+                  <div className="metric-value">{userMessageCount}</div>
+                  <div className="metric-label">Your Messages</div>
+                </div>
+
+                <div className="metric-card partner-messages">
+                  <div className="metric-value">{partnerStats?.messageCount || 0}</div>
+                  <div className="metric-label">{pairedUser?.displayName || "Partner"}'s Messages</div>
+                </div>
+
+                <div className="metric-card total-messages">
+                  <div className="metric-value">{currentPairing?.messageCount || 0}</div>
+                  <div className="metric-label">Total Messages</div>
+                </div>
+
+                <div className="metric-card voice-time">
+                  <div className="metric-value">
+                    {Math.floor((currentPairing?.voiceTimeMinutes || 0) / 60)}h{" "}
+                    {(currentPairing?.voiceTimeMinutes || 0) % 60}m
+                  </div>
+                  <div className="metric-label">Voice Time</div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Action Section */}
+            <motion.div
+              className="action-section"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+            >
+              <Button onClick={onBreakup} disabled={actionLoading} variant="outline" className="breakup-button">
+                <AlertCircle className="breakup-icon" />
+                End This Match
+              </Button>
+            </motion.div>
+          </CardContent>
+        </Card>
+      </motion.div>
     )
   },
 )
