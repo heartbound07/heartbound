@@ -263,7 +263,7 @@ export function PairingsPage() {
       const sanitizedData = {
         ...queueData,
         userId: user.id,
-        age: Math.max(13, Math.min(100, queueData.age)), // Clamp age values
+        age: Math.max(15, Math.min(100, queueData.age)), // Clamp age values
       }
 
       try {

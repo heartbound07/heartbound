@@ -184,13 +184,13 @@ public class DiscordPairingChannelService {
         levelUp.append("• Unlock **achievements** by hitting activity milestones\n");
         levelUp.append("• Gain **XP points** for every interaction\n");
         levelUp.append("• Build **voice streaks** by chatting in voice channels daily\n");
-        levelUp.append("• Check your progress on the [pairings page](").append(frontendBaseUrl).append("/dashboard/pairings) anytime!\n");
+        levelUp.append("• Check your progress on the [pairings page](").append(frontendBaseUrl).append("/pairings) anytime!\n");
         
         // Breakup section
         StringBuilder breakup = new StringBuilder();
         breakup.append("**💔 If things don't work out:**\n");
         breakup.append("• Use the ").append(MarkdownUtil.monospace("/breakup")).append(" command in this channel\n");
-        breakup.append("• Or visit the [pairings page](").append(frontendBaseUrl).append("/dashboard/pairings) in the app to end the match\n");
+        breakup.append("• Or visit the [pairings page](").append(frontendBaseUrl).append("/pairings) in the app to end the match\n");
         
         // Add fields to embed
         embed.addField("", aboutChannel.toString(), false);

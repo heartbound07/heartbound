@@ -60,7 +60,7 @@ export const QueueJoinForm = memo(({ onJoinQueue, loading }: QueueJoinFormProps)
   // Secure input validation
   const validateAge = useCallback((age: string): boolean => {
     const ageNum = Number.parseInt(age)
-    return !Number.isNaN(ageNum) && ageNum >= 13 && ageNum <= 100
+    return !Number.isNaN(ageNum) && ageNum >= 15 && ageNum <= 100
   }, [])
 
   // Sanitize input to prevent XSS
@@ -84,7 +84,7 @@ export const QueueJoinForm = memo(({ onJoinQueue, loading }: QueueJoinFormProps)
 
       const ageNum = Number.parseInt(formData.age)
       if (!validateAge(formData.age)) {
-        throw new Error("Please enter a valid age between 13 and 100")
+        throw new Error("Age must be at least 15!")
       }
 
       if (!formData.region || !formData.rank || !formData.gender) {
@@ -146,7 +146,7 @@ export const QueueJoinForm = memo(({ onJoinQueue, loading }: QueueJoinFormProps)
                       value={formData.age}
                       onChange={(e) => updateFormField("age", e.target.value)}
                       className="form-input"
-                      min="13"
+                      min="15"
                       max="100"
                       required
                       aria-describedby="age-error"
