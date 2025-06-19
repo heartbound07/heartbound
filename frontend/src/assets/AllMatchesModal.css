@@ -72,10 +72,6 @@
   border-radius: 3px;
 }
 
-.all-matches-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.5);
-}
-
 .all-matches-row {
   display: grid;
   grid-template-columns: 60px 1fr 200px;
@@ -85,15 +81,9 @@
   background-color: rgba(255, 255, 255, 0.03);
   border-radius: 0.5rem;
   border: 1px solid transparent;
-  transition: background-color 0.15s ease-out, border-color 0.15s ease-out;
   will-change: transform, opacity;
   /* Optimize for GPU acceleration */
   transform: translateZ(0);
-}
-
-.all-matches-row:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-color: rgba(148, 163, 184, 0.1);
 }
 
 .all-matches-rank {
@@ -199,14 +189,7 @@
   background-color: rgba(0, 0, 0, 0.2);
   padding: 0.375rem 0.625rem;
   border-radius: 9999px;
-  transition: background-color 0.15s ease-out, transform 0.15s ease-out;
-  will-change: transform;
   font-variant-numeric: tabular-nums;
-}
-
-.metric-item:hover {
-  background-color: rgba(0, 0, 0, 0.3);
-  transform: translateY(-1px);
 }
 
 .all-matches-empty {

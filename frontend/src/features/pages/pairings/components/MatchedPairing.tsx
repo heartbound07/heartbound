@@ -192,7 +192,7 @@ export const MatchedPairing = memo(
                     rel="noopener noreferrer"
                     className="discord-link"
                   >
-                    <span>#pairing-chat</span>
+                    <span>#leaderboard</span>
                     <ExternalLink className="external-icon" />
                   </a>
                 </div>
