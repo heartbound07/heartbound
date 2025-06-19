@@ -33,6 +33,7 @@ import { useAdminQueueStats } from "@/hooks/useAdminQueueStats"
 import { PairingCardList } from "./PairingCard"
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary"
 import { XPCard } from "@/features/pages/XPCard"
+import { AllMatchesModal } from "@/components/modals/AllMatchesModal"
 
 // Import extracted components
 import { QueueJoinForm } from "@/features/pages/pairings/components/QueueJoinForm"
@@ -92,6 +93,7 @@ export function PairingsPage() {
   const [userProfiles, setUserProfiles] = useState<Record<string, UserProfileDTO>>({})
   const [userInitiatedBreakup, setUserInitiatedBreakup] = useState(false)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [isAllMatchesModalOpen, setIsAllMatchesModalOpen] = useState(false)
   
   // Optimized XP data fetching with caching
   const pairingIds = useMemo(() => pairingHistory.map(p => p.id), [pairingHistory])
@@ -1225,15 +1227,20 @@ export function PairingsPage() {
                 >
                   <Card className="valorant-card h-fit">
                     <CardHeader className="pb-4">
-                      <CardTitle className="flex items-center gap-3 text-white">
-                        <div className="p-2 bg-status-success/20 rounded-lg">
-                          <UserCheck className="h-5 w-5 text-status-success" />
-                        </div>
-                        Current Matches
-                        <Badge variant="outline" className="">
-                          {currentMatches.length}
-                        </Badge>
-                      </CardTitle>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-3 text-white">
+                          <div className="p-2 bg-status-success/20 rounded-lg">
+                            <UserCheck className="h-5 w-5 text-status-success" />
+                          </div>
+                          Current Matches
+                          <Badge variant="outline" className="">
+                            {currentMatches.length}
+                          </Badge>
+                        </CardTitle>
+                        <Button variant="outline" size="sm" onClick={() => setIsAllMatchesModalOpen(true)}>
+                          View all
+                        </Button>
+                      </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <PairingCardList
@@ -1368,6 +1375,16 @@ export function PairingsPage() {
               onClose={handleCloseUserProfileModal}
               userProfile={modalState.selectedUserProfile}
               position={modalState.userProfileModalPosition}
+            />
+          )}
+
+          {isAllMatchesModalOpen && (
+            <AllMatchesModal
+              isOpen={isAllMatchesModalOpen}
+              onClose={() => setIsAllMatchesModalOpen(false)}
+              pairings={currentMatches}
+              userProfiles={userProfiles}
+              onUserClick={handleUserClick}
             />
           )}
 
