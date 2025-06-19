@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.LinkedHashSet;
+import java.time.LocalDateTime;
 
 @Data
 @Entity
@@ -61,6 +62,16 @@ public class User {
     
     // Add message count field to track total messages sent by user
     private Long messageCount = 0L;
+    
+    // Add time-based message count fields
+    private Integer messagesToday = 0;
+    private Integer messagesThisWeek = 0;
+    private Integer messagesThisTwoWeeks = 0;
+    
+    // Add timestamp fields for tracking when to reset counters
+    private LocalDateTime lastDailyReset;
+    private LocalDateTime lastWeeklyReset;
+    private LocalDateTime lastBiWeeklyReset;
     
     // Role-based security addition
     @ElementCollection(fetch = jakarta.persistence.FetchType.EAGER)

@@ -43,22 +43,58 @@ export function DashboardPage() {
       <section className="stats-section mb-12">
         <div className="stats-grid">
           {statsLoading ? (
-            <div className="dashboard-card animate-fadeSlideIn">
-              <div className="animate-pulse">
-                <div className="h-4 bg-white/20 rounded mb-2 w-1/2"></div>
-                <div className="h-8 bg-white/20 rounded w-1/3"></div>
+            // Loading state for all cards
+            <>
+              <div className="dashboard-card animate-fadeSlideIn">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-white/20 rounded mb-2 w-1/2"></div>
+                  <div className="h-8 bg-white/20 rounded w-1/3"></div>
+                </div>
               </div>
-            </div>
+              <div className="dashboard-card animate-fadeSlideIn">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-white/20 rounded mb-2 w-1/2"></div>
+                  <div className="h-8 bg-white/20 rounded w-1/3"></div>
+                </div>
+              </div>
+              <div className="dashboard-card animate-fadeSlideIn">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-white/20 rounded mb-2 w-1/2"></div>
+                  <div className="h-8 bg-white/20 rounded w-1/3"></div>
+                </div>
+              </div>
+              <div className="dashboard-card animate-fadeSlideIn">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-white/20 rounded mb-2 w-1/2"></div>
+                  <div className="h-8 bg-white/20 rounded w-1/3"></div>
+                </div>
+              </div>
+            </>
           ) : statsError ? (
             <div className="dashboard-card animate-fadeSlideIn">
               <h3 className="card-title text-lg font-semibold mb-2 text-red-400">Error</h3>
               <p className="text-sm text-red-300">{statsError}</p>
             </div>
           ) : (
-            <div className="dashboard-card animate-fadeSlideIn">
-              <h3 className="card-title text-lg font-semibold mb-2">Total Messages</h3>
-              <p className="card-value text-2xl">{userProfile?.messageCount?.toLocaleString() || 0}</p>
-            </div>
+            // Data loaded successfully
+            <>
+              <div className="dashboard-card animate-fadeSlideIn">
+                <h3 className="card-title text-lg font-semibold mb-2">Total Messages</h3>
+                <p className="card-value text-2xl">{userProfile?.messageCount?.toLocaleString() || 0}</p>
+              </div>
+              <div className="dashboard-card animate-fadeSlideIn">
+                <h3 className="card-title text-lg font-semibold mb-2">Messages Today</h3>
+                <p className="card-value text-2xl">{userProfile?.messagesToday?.toLocaleString() || 0}</p>
+              </div>
+              <div className="dashboard-card animate-fadeSlideIn">
+                <h3 className="card-title text-lg font-semibold mb-2">Messages This Week</h3>
+                <p className="card-value text-2xl">{userProfile?.messagesThisWeek?.toLocaleString() || 0}</p>
+              </div>
+              <div className="dashboard-card animate-fadeSlideIn">
+                <h3 className="card-title text-lg font-semibold mb-2">Messages - 2 Weeks</h3>
+                <p className="card-value text-2xl">{userProfile?.messagesThisTwoWeeks?.toLocaleString() || 0}</p>
+              </div>
+            </>
           )}
         </div>
       </section>

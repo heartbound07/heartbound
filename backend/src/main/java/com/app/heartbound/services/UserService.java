@@ -308,6 +308,9 @@ public class UserService {
                 .level(user.getLevel())
                 .experience(user.getExperience())
                 .messageCount(user.getMessageCount()) // Add the message count field
+                .messagesToday(user.getMessagesToday()) // Add time-based message counts
+                .messagesThisWeek(user.getMessagesThisWeek())
+                .messagesThisTwoWeeks(user.getMessagesThisTwoWeeks())
                 .equippedUserColorId(user.getEquippedUserColorId())
                 .equippedListingId(user.getEquippedListingId())
                 .equippedAccentId(user.getEquippedAccentId())

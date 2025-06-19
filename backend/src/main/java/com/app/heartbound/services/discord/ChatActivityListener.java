@@ -19,6 +19,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.awt.Color;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -117,6 +118,71 @@ public class ChatActivityListener extends ListenerAdapter {
     
     private void cleanupStaleActivity() {
         // Implementation of cleanupStaleActivity method
+    }
+    
+    /**
+     * Increments the time-based message counters for a user.
+     * Handles resetting counters if the time periods have elapsed.
+     */
+    private void incrementTimeBasedCounters(User user) {
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Handle daily counter
+        if (shouldResetDailyCounter(user, now)) {
+            user.setMessagesToday(0);
+            user.setLastDailyReset(now);
+        }
+        user.setMessagesToday((user.getMessagesToday() != null ? user.getMessagesToday() : 0) + 1);
+        
+        // Handle weekly counter
+        if (shouldResetWeeklyCounter(user, now)) {
+            user.setMessagesThisWeek(0);
+            user.setLastWeeklyReset(now);
+        }
+        user.setMessagesThisWeek((user.getMessagesThisWeek() != null ? user.getMessagesThisWeek() : 0) + 1);
+        
+        // Handle bi-weekly counter
+        if (shouldResetBiWeeklyCounter(user, now)) {
+            user.setMessagesThisTwoWeeks(0);
+            user.setLastBiWeeklyReset(now);
+        }
+        user.setMessagesThisTwoWeeks((user.getMessagesThisTwoWeeks() != null ? user.getMessagesThisTwoWeeks() : 0) + 1);
+    }
+    
+    /**
+     * Check if daily counter should be reset (new day)
+     */
+    private boolean shouldResetDailyCounter(User user, LocalDateTime now) {
+        if (user.getLastDailyReset() == null) {
+            return true; // First time, needs initialization
+        }
+        return !user.getLastDailyReset().toLocalDate().equals(now.toLocalDate());
+    }
+    
+    /**
+     * Check if weekly counter should be reset (new week - Monday)
+     */
+    private boolean shouldResetWeeklyCounter(User user, LocalDateTime now) {
+        if (user.getLastWeeklyReset() == null) {
+            return true; // First time, needs initialization
+        }
+        
+        // Get the start of this week (Monday)
+        LocalDateTime startOfThisWeek = now.with(java.time.DayOfWeek.MONDAY).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        return user.getLastWeeklyReset().isBefore(startOfThisWeek);
+    }
+    
+    /**
+     * Check if bi-weekly counter should be reset (every 2 weeks from a fixed start date)
+     */
+    private boolean shouldResetBiWeeklyCounter(User user, LocalDateTime now) {
+        if (user.getLastBiWeeklyReset() == null) {
+            return true; // First time, needs initialization
+        }
+        
+        // Reset every 14 days from the last reset
+        return user.getLastBiWeeklyReset().plusDays(14).isBefore(now) || 
+               user.getLastBiWeeklyReset().plusDays(14).toLocalDate().equals(now.toLocalDate());
     }
     
     private int calculateRequiredXp(int level) {
@@ -364,6 +430,10 @@ public class ChatActivityListener extends ListenerAdapter {
             userUpdated = true; // Mark user for update
             log.debug("[MESSAGE COUNT DEBUG] Incremented message count for user {}. New count: {}", userId, user.getMessageCount());
             
+            // Increment time-based message counts
+            incrementTimeBasedCounters(user);
+            userUpdated = true; // Ensure user is marked for update
+            
             int awardedXp = 0;
             int initialLevel = (user.getLevel() != null) ? user.getLevel() : 1;
             
@@ -405,9 +475,13 @@ public class ChatActivityListener extends ListenerAdapter {
                     notificationEmbed.setFooter(String.format("%d/%d XP to next level", 
                             currentXpAfterAward, requiredXpForNextLevel));
                     
-                    // Queue the embed send
+                    // Queue the embed send and delete after 5 seconds
                     achievementChannel.sendMessageEmbeds(notificationEmbed.build()).queue(
-                        success -> log.debug("Sent XP notification to user {}", userId),
+                        message -> {
+                            log.debug("Sent XP notification to user {}", userId);
+                            // Delete the message after 5 seconds
+                            message.delete().queueAfter(5, TimeUnit.SECONDS);
+                        },
                         failure -> log.error("Failed to send XP notification to user {}: {}", userId, failure.getMessage())
                     );
                 }

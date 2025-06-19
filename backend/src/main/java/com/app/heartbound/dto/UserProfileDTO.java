@@ -41,6 +41,11 @@ public class UserProfileDTO {
     // Add message count field
     private Long messageCount;
     
+    // Add time-based message count fields
+    private Integer messagesToday;
+    private Integer messagesThisWeek;
+    private Integer messagesThisTwoWeeks;
+    
     // Update the fields for equipped items to match the specific categories
     private UUID equippedUserColorId;
     private UUID equippedListingId;
