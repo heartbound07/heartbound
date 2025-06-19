@@ -10,7 +10,7 @@ import { MdDashboard, MdAdminPanelSettings } from "react-icons/md"
 import { IoSettingsSharp } from "react-icons/io5"
 import { FaCoins, FaTrophy, FaShoppingCart, FaBoxOpen } from "react-icons/fa"
 import { useState, useRef, useEffect } from "react"
-import { ChevronRight, Menu, LogOut, Users } from "lucide-react"
+import { ChevronRight, Menu, LogOut, Users, Star } from "lucide-react"
 import { ProfilePreview } from "@/components/ui/profile/ProfilePreview"
 import ReactDOM from "react-dom"
 import valorantLogo from "@/assets/images/valorant-logo.png"
@@ -353,9 +353,20 @@ export function DashboardNavigation({ theme = "default", onCollapseChange }: Das
             </div>
           )}
 
-          <div className={`credits-badge ${isCollapsed ? "collapsed" : ""}`}>
-            <FaCoins size={12} />
-            {!isCollapsed && <span>{user?.credits || 0}</span>}
+          <div className="profile-badges">
+            <div className={`credits-badge ${isCollapsed ? "collapsed" : ""}`}>
+              <FaCoins size={12} />
+              {!isCollapsed && <span>{user?.credits || 0}</span>}
+            </div>
+            <div className={`level-badge ${isCollapsed ? "collapsed" : ""}`}>
+              <Star size={12} />
+              {!isCollapsed && (
+                <span>
+                  {user?.level || 0}
+                  <span className="level-xp">({user?.experience || 0} XP)</span>
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
