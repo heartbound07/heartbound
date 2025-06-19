@@ -299,7 +299,7 @@ export function DashboardNavigation({ theme = "default", onCollapseChange }: Das
         className={`sidebar ${isCollapsed ? "collapsed" : "expanded"} ${isMobileOpen ? "mobile-open" : ""} theme-${effectiveTheme}`}
         aria-label="Main navigation"
         animate={{
-          width: isCollapsed ? 72 : 280,
+          width: isCollapsed ? 78 : 280,
         }}
         transition={{
           duration: 0.25,
