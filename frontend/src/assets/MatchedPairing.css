@@ -57,56 +57,11 @@
   width: 100%;
 }
 
-/* Subtle top accent line */
-.matched-pairing-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
-  opacity: 0.5;
-}
+/* Top accent line removed */
 
 /* =============================================================================
-   ANIMATED HEADER - 5 SECOND DISPLAY WITH ENHANCED ANIMATIONS
+   HEADER SECTION REMOVED
 ============================================================================= */
-
-.matched-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--glass-border);
-  background: linear-gradient(135deg, rgba(255, 70, 85, 0.02), transparent);
-}
-
-.matched-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-  text-align: center;
-}
-
-.matched-icon-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-subtle);
-}
-
-.matched-icon {
-  width: 18px;
-  height: 18px;
-  color: white;
-}
 
 /* =============================================================================
    CONTENT LAYOUT - OPTIMIZED FOR DYNAMIC WIDTH
@@ -173,7 +128,7 @@
 }
 
 .partner-avatar-fallback {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: linear-gradient(135deg, var(--text-secondary), var(--text-tertiary));
   color: white;
   font-size: 24px;
   font-weight: 600;
@@ -557,7 +512,7 @@
 }
 
 .breakup-button:focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid rgba(255, 255, 255, 0.3);
   outline-offset: 2px;
 }
 
@@ -568,7 +523,7 @@
 }
 
 .partner-avatar-container:focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid rgba(255, 255, 255, 0.3);
   outline-offset: 2px;
   border-radius: 50%;
 }
@@ -579,3 +534,5 @@
 .detail-item {
   backface-visibility: hidden;
 }
+
+

@@ -23,6 +23,41 @@ const getRankIcon = (rank: number) => {
   return null
 }
 
+// Optimized animation variants defined outside component to prevent recreation
+const MODAL_VARIANTS = {
+  overlay: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 },
+    transition: { duration: 0.2, ease: "easeOut" }
+  },
+  container: {
+    initial: { scale: 0.95, opacity: 0 },
+    animate: { scale: 1, opacity: 1 },
+    exit: { scale: 0.95, opacity: 0 },
+    transition: { duration: 0.25, ease: "easeOut" }
+  },
+  list: {
+    visible: { 
+      transition: { 
+        staggerChildren: 0.02, // Reduced stagger for better performance
+        delayChildren: 0.1 
+      } 
+    }
+  },
+  row: {
+    hidden: { opacity: 0, y: 10 }, // Reduced movement for smoother animation
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { 
+        duration: 0.25, 
+        ease: "easeOut" 
+      }
+    }
+  }
+}
+
 const AllMatchesModalRow = React.memo(
   ({
     pairing,
@@ -50,10 +85,8 @@ const AllMatchesModalRow = React.memo(
     return (
       <motion.div
         className="all-matches-row"
-        variants={{
-          hidden: { opacity: 0, y: 20 },
-          visible: { opacity: 1, y: 0 },
-        }}
+        variants={MODAL_VARIANTS.row}
+        style={{ willChange: 'transform, opacity' }} // Optimize for animations
       >
         <div className="all-matches-rank">
           <span className="rank-number">{rank + 1}</span>
@@ -95,30 +128,50 @@ const AllMatchesModalRow = React.memo(
   },
 )
 
-export const AllMatchesModal = ({ isOpen, onClose, pairings, userProfiles, onUserClick }: AllMatchesModalProps) => {
+AllMatchesModalRow.displayName = 'AllMatchesModalRow'
+
+export const AllMatchesModal = React.memo(({ isOpen, onClose, pairings, userProfiles, onUserClick }: AllMatchesModalProps) => {
   const sortedPairings = useMemo(() => {
     return [...pairings].sort((a, b) => b.activeDays - a.activeDays)
   }, [pairings])
 
+  // Memoize close handler to prevent unnecessary re-renders
+  const handleClose = useCallback(() => {
+    onClose()
+  }, [onClose])
+
+  const handleOverlayClick = useCallback((e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      handleClose()
+    }
+  }, [handleClose])
+
+  const handleContainerClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+  }, [])
+
   if (!isOpen) return null
 
   return createPortal(
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       <motion.div
         key="all-matches-modal"
         className="all-matches-overlay"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
+        variants={MODAL_VARIANTS.overlay}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        onClick={handleOverlayClick}
+        style={{ willChange: 'opacity' }} // Optimize for fade animations
       >
         <motion.div
           className="all-matches-container"
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-          onClick={e => e.stopPropagation()}
+          variants={MODAL_VARIANTS.container}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          onClick={handleContainerClick}
+          style={{ willChange: 'transform, opacity' }} // Optimize for scale animations
         >
           <div className="all-matches-header">
             <h2 className="all-matches-title">Current Matches Leaderboard</h2>
@@ -126,9 +179,7 @@ export const AllMatchesModal = ({ isOpen, onClose, pairings, userProfiles, onUse
           </div>
           <motion.div
             className="all-matches-list"
-            variants={{
-              visible: { transition: { staggerChildren: 0.05 } },
-            }}
+            variants={MODAL_VARIANTS.list}
             initial="hidden"
             animate="visible"
           >
@@ -154,4 +205,6 @@ export const AllMatchesModal = ({ isOpen, onClose, pairings, userProfiles, onUse
     </AnimatePresence>,
     document.body,
   )
-} 
+})
+
+AllMatchesModal.displayName = 'AllMatchesModal' 

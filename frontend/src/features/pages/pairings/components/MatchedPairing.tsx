@@ -1,12 +1,11 @@
 "use client"
 
 import type React from "react"
-import { memo, useMemo, useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { memo, useMemo } from "react"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
 import {
-  UserCheck,
   User,
   Users,
   MapPin,
@@ -17,7 +16,7 @@ import {
   AlertCircle,
   ExternalLink,
 } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import type { PairingDTO } from "@/config/pairingService"
 import type { UserProfileDTO } from "@/config/userService"
 
@@ -67,18 +66,6 @@ interface MatchedPairingProps {
 
 export const MatchedPairing = memo(
   ({ currentPairing, pairedUser, user, actionLoading, onUserClick, onBreakup, formatDate }: MatchedPairingProps) => {
-    // State for controlling "You're Matched!" text visibility
-    const [showMatchedText, setShowMatchedText] = useState(true)
-
-    // Timer effect for "You're Matched!" text - 5 seconds
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        setShowMatchedText(false)
-      }, 5000)
-
-      return () => clearTimeout(timer)
-    }, [])
-
     // Get partner ID - preserved business logic
     const partnerId = useMemo(() => {
       return currentPairing?.user1Id === user?.id ? currentPairing?.user2Id : currentPairing?.user1Id
@@ -119,41 +106,6 @@ export const MatchedPairing = memo(
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
         <Card className="matched-pairing-card">
-          {/* Animated Header with 5-second display */}
-          <AnimatePresence>
-            {showMatchedText && (
-              <motion.div
-                initial={{ opacity: 0, y: -30, scale: 0.8 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -30, scale: 0.8 }}
-                transition={{
-                  duration: 0.8,
-                  ease: [0.4, 0, 0.2, 1],
-                }}
-              >
-                <CardHeader className="matched-header">
-                  <CardTitle className="matched-title">
-                    <motion.div
-                      className="matched-icon-container"
-                      initial={{ rotate: -180, scale: 0 }}
-                      animate={{ rotate: 0, scale: 1 }}
-                      transition={{ delay: 0.3, duration: 0.6, ease: "backOut" }}
-                    >
-                      <UserCheck className="matched-icon" />
-                    </motion.div>
-                    <motion.span
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.5, duration: 0.5 }}
-                    >
-                      You're Matched!
-                    </motion.span>
-                  </CardTitle>
-                </CardHeader>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           <CardContent className="matched-content">
             {/* Partner Profile Section */}
             <motion.div
