@@ -307,6 +307,7 @@ public class UserService {
                 .credits(user.getCredits())
                 .level(user.getLevel())
                 .experience(user.getExperience())
+                .messageCount(user.getMessageCount()) // Add the message count field
                 .equippedUserColorId(user.getEquippedUserColorId())
                 .equippedListingId(user.getEquippedListingId())
                 .equippedAccentId(user.getEquippedAccentId())

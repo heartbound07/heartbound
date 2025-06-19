@@ -69,7 +69,18 @@
 
 /* Grid layout for stats cards */
 .stats-grid {
-  @apply grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto;
+  @apply grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto;
+}
+
+/* For single stat card, center it with a reasonable max-width */
+.stats-grid .dashboard-card:only-child {
+  max-width: 300px;
+  justify-self: center;
+}
+
+/* Center the stats section on the page */
+.stats-section {
+  @apply flex flex-col items-center justify-center min-h-[60vh];
 }
 
 /* Updated games section styling with better responsiveness */

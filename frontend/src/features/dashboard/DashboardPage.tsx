@@ -1,147 +1,70 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { GameCard } from '@/components/ui/GameCard';
-import { SkeletonGameCard } from '@/components/ui/SkeletonUI';
+import { getCurrentUserProfile, UserProfileDTO } from '@/config/userService';
 import '@/assets/dashboard.css';
 import '@/assets/animations.css';
-
-// Import images for game cards
-import valorantImage from '@/assets/images/valorant.jpg';
-import valorantLogo from '@/assets/images/valorant-logo.png';
-
-import leagueImage from '@/assets/images/league.jpg';
-import leagueLogo from '@/assets/images/league-logo.jpg';
-
-import fortniteImage from '@/assets/images/fortnite.jpg';
-import fortniteLogo from '@/assets/images/fortnite-logo.png';
-
-import dotaImage from '@/assets/images/dota.jpg';
-import dotaLogo from '@/assets/images/dota-logo.png';
-
-interface Game {
-  id: string;
-  title: string;
-  image: string;
-  logo: string;
-  alt: string;
-}
 
 /**
  * DashboardPage
  *
- * This page features a prominent greeting header,
- * refined grid layouts for game cards and statistic cards,
- * and updated styles.
- * 
- * With this update, the background is provided by the DashboardLayout,
+ * This page displays user statistics including message count.
+ * The background is provided by the DashboardLayout,
  * which uses the same gradient theme as LoginPage.
  */
 export function DashboardPage() {
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
   const [error] = useState<string | null>(null);
   
-  // Show loading skeleton for 1 second for visual effect
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, []);
+  // State for user profile data
+  const [userProfile, setUserProfile] = useState<UserProfileDTO | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
   
-  // Static array of games to be displayed
-  const games: Game[] = [
-    {
-      id: 'valorant',
-      title: 'Valorant',
-      image: valorantImage,
-      logo: valorantLogo,
-      alt: 'Valorant game'
-    },
-    {
-      id: 'league',
-      title: 'League of Legends',
-      image: leagueImage,
-      logo: leagueLogo,
-      alt: 'League of Legends game'
-    },
-    {
-      id: 'fortnite',
-      title: 'Fortnite',
-      image: fortniteImage,
-      logo: fortniteLogo,
-      alt: 'Fortnite game'
-    },
-    {
-      id: 'dota',
-      title: 'Dota 2',
-      image: dotaImage,
-      logo: dotaLogo,
-      alt: 'Dota 2 game'
-    }
-  ];
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        setStatsLoading(true);
+        setStatsError(null);
+        const profile = await getCurrentUserProfile();
+        setUserProfile(profile);
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        setStatsError('Failed to load user statistics');
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   return (
     <>
-      <section className="games-section">
-        <h2
-          className="games-title animate-fadeSlideIn mb-8"
-          style={{ 
-            fontFamily: "Grandstander, cursive", 
-            textShadow: "0px 2px 6px rgba(0,0,0,0.4)",
-            letterSpacing: "0.03em"
-          }}
-        >
-          Choose Your Game
-        </h2>
-        <div className="games-grid">
-          {isLoading ? (
-            // Render skeleton placeholders when loading
-            Array(4).fill(0).map((_, index) => (
-              <div 
-                key={`skeleton-${index}`} 
-                className="flex justify-center p-3"
-                style={{
-                  opacity: 0,
-                  animation: `fadeSlideIn 0.5s ease-out ${index * 0.1}s forwards`
-                }}
-              >
-                <SkeletonGameCard theme="dashboard" />
+      {/* User Stats Section */}
+      <section className="stats-section mb-12">
+        <div className="stats-grid">
+          {statsLoading ? (
+            <div className="dashboard-card animate-fadeSlideIn">
+              <div className="animate-pulse">
+                <div className="h-4 bg-white/20 rounded mb-2 w-1/2"></div>
+                <div className="h-8 bg-white/20 rounded w-1/3"></div>
               </div>
-            ))
+            </div>
+          ) : statsError ? (
+            <div className="dashboard-card animate-fadeSlideIn">
+              <h3 className="card-title text-lg font-semibold mb-2 text-red-400">Error</h3>
+              <p className="text-sm text-red-300">{statsError}</p>
+            </div>
           ) : (
-            // Render actual game cards once data is loaded
-            games.map((game, index) => (
-              <div
-                key={game.id}
-                onClick={() => {
-                  if (game.id === 'valorant') {
-                    navigate('/valorant');
-                  }
-                }}
-                className="flex justify-center p-3"
-                style={{
-                  opacity: 0,
-                  animation: `fadeSlideIn 0.5s ease-out ${index * 0.1}s forwards`
-                }}
-              >
-                <GameCard
-                  title={game.title}
-                  image={game.image}
-                  logo={game.logo}
-                  alt={game.alt}
-                  isClickable={game.id === 'valorant'}
-                  isAvailable={game.id === 'valorant'}
-                />
-              </div>
-            ))
+            <div className="dashboard-card animate-fadeSlideIn">
+              <h3 className="card-title text-lg font-semibold mb-2">Total Messages</h3>
+              <p className="card-value text-2xl">{userProfile?.messageCount?.toLocaleString() || 0}</p>
+            </div>
           )}
         </div>
       </section>
 
       {/* Display error if any */}
-      {error && !isLoading && (
+      {error && (
         <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-center animate-fadeIn">
           {error}
         </div>
