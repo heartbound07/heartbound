@@ -58,7 +58,17 @@ export const usePairings = () => {
       if (pairing.status === 'fulfilled') {
         setCurrentPairing(pairing.value);
       } else {
-        console.error('Failed to fetch current pairing:', pairing.reason);
+        const pairingError = pairing.reason as any;
+        if (pairingError?.response?.status !== 404) {
+          console.error("Failed to fetch current pairing:", pairingError)
+          const errorMessage = pairingError?.response?.data?.message || pairingError?.message || "An unknown error occurred"
+          setError(`Failed to load pairing status: ${errorMessage}`)
+        } else {
+          // It's a 404, which is expected if the user has no pairing.
+          // We shouldn't set an error state for this.
+          setCurrentPairing(null)
+          setError(null) // Clear any previous errors
+        }
       }
 
       if (history.status === 'fulfilled') {
