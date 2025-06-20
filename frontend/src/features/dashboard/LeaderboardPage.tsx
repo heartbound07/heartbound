@@ -20,11 +20,6 @@ const ANIMATION_VARIANTS = {
     animate: { scale: 1, opacity: 1 },
     transition: { delay: 0.2, duration: 0.5, ease: "easeOut" }
   },
-  toggleContainer: {
-    initial: { opacity: 0 },
-    animate: { opacity: 1 },
-    transition: { delay: 0.3, duration: 0.4 }
-  },
   leaderboard: {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
@@ -48,21 +43,12 @@ export function LeaderboardPage() {
   const [users, setUsers] = useState<UserProfileDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [leaderboardType, setLeaderboardType] = useState<'credits' | 'level'>('credits');
+  const [leaderboardType, setLeaderboardType] = useState<'credits' | 'level' | 'messages'>('credits');
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfileDTO | null>(null);
   const [highlightedUserId, setHighlightedUserId] = useState<string | null>(null);
   
   // Get authenticated user from auth context
   const { user, isAuthenticated } = useAuth();
-
-  // Memoized toggle handlers to prevent unnecessary re-renders
-  const handleLevelToggle = useCallback(() => {
-    setLeaderboardType('level');
-  }, []);
-
-  const handleCreditsToggle = useCallback(() => {
-    setLeaderboardType('credits');
-  }, []);
 
   // Handle UserRankCard click navigation
   const handleUserRankCardClick = useCallback((userData: UserProfileDTO) => {
@@ -127,7 +113,7 @@ export function LeaderboardPage() {
   return (
     <div className="bg-theme-gradient min-h-screen">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-      {/* Hero Section - Reduced motion complexity */}
+      {/* Hero Section */}
       <motion.div
         {...ANIMATION_VARIANTS.hero}
         className="text-center mb-12"
@@ -138,38 +124,6 @@ export function LeaderboardPage() {
         >
           Leaderboard
         </motion.h1>
-        
-        {/* Toggle Controls - Simplified animations */}
-        <motion.div 
-          className="flex justify-center mt-6"
-          {...ANIMATION_VARIANTS.toggleContainer}
-        >
-          <div className="leaderboard-toggle-container">
-            <button
-              type="button"
-              className={`leaderboard-toggle-button ${
-                leaderboardType === 'level' 
-                  ? 'leaderboard-toggle-active' 
-                  : 'leaderboard-toggle-inactive'
-              }`}
-              onClick={handleLevelToggle}
-            >
-              Levels
-            </button>
-            
-            <button
-              type="button"
-              className={`leaderboard-toggle-button ${
-                leaderboardType === 'credits' 
-                  ? 'leaderboard-toggle-active' 
-                  : 'leaderboard-toggle-inactive'
-              }`}
-              onClick={handleCreditsToggle}
-            >
-              Credits
-            </button>
-          </div>
-        </motion.div>
       </motion.div>
 
       {/* Main Leaderboard - Conditional animation based on loading state */}
@@ -181,10 +135,11 @@ export function LeaderboardPage() {
           users={users}
           isLoading={isLoading}
           error={error}
-          showHeader={false}
+          showHeader={true}
           className="leaderboard-main-card"
           limit={100}
           leaderboardType={leaderboardType}
+          onLeaderboardTypeChange={setLeaderboardType}
           itemsPerPage={9}
           highlightUserId={highlightedUserId}
           onGoToPage={handleGoToPage}

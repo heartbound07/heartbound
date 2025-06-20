@@ -514,9 +514,9 @@ public class UserService {
     }
 
     /**
-     * Get users for the leaderboard, sorted by credits or level/experience
+     * Get users for the leaderboard, sorted by credits, level, or messages
      * 
-     * @param sortBy Sorting criterion: "credits" or "level"
+     * @param sortBy Sorting criterion: "credits", "level", or "messages"
      * @return List of sorted user profiles
      */
     public List<UserProfileDTO> getLeaderboardUsers(String sortBy) {
@@ -540,6 +540,13 @@ public class UserService {
                     Integer xpB = b.getExperience() != null ? b.getExperience() : 0;
                     return xpB.compareTo(xpA); // Descending order
                 })
+                .map(this::mapToProfileDTO)
+                .collect(Collectors.toList());
+        } else if ("messages".equalsIgnoreCase(sortBy)) {
+            // Sort by message count descending
+            return users.stream()
+                .sorted(Comparator.comparing(user -> user.getMessageCount() != null ? user.getMessageCount() : 0, 
+                        Comparator.reverseOrder()))
                 .map(this::mapToProfileDTO)
                 .collect(Collectors.toList());
         } else {

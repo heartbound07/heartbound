@@ -1,13 +1,14 @@
 import React, { useMemo } from 'react';
 import { UserProfileDTO } from '@/config/userService';
 import { FaCoins, FaStar, FaTrophy, FaCrown, FaMedal } from 'react-icons/fa';
+import { MessageSquare } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { motion } from 'framer-motion';
 
 interface UserRankCardProps {
   currentUser: UserProfileDTO | null;
   leaderboardUsers: UserProfileDTO[];
-  leaderboardType: 'credits' | 'level';
+  leaderboardType: 'credits' | 'level' | 'messages';
   onClick?: (userData: UserProfileDTO) => void;
 }
 
@@ -80,6 +81,45 @@ export const UserRankCard = React.memo(function UserRankCard({
     }
   };
 
+  // Render appropriate stats based on leaderboard type
+  const renderStats = () => {
+    switch (leaderboardType) {
+      case 'credits':
+        return (
+          <>
+            <FaCoins className="text-yellow-400 mr-1 text-xs" />
+            <span className="font-bold text-[var(--color-text-primary)]">{currentUser!.credits || 0}</span>
+          </>
+        );
+      case 'level':
+        return (
+          <>
+            <FaStar className={themeStyles.levelIconColor + " mr-1 text-xs"} />
+            <span className="font-bold text-[var(--color-text-primary)]">
+              Lvl {currentUser!.level || 1}
+              <span className="text-[10px] text-[var(--color-text-secondary)] ml-1">
+                ({currentUser!.experience || 0} XP)
+              </span>
+            </span>
+          </>
+        );
+      case 'messages':
+        return (
+          <>
+            <MessageSquare className="text-green-400 mr-1" size={12} />
+            <span className="font-bold text-[var(--color-text-primary)]">{currentUser!.messageCount || 0}</span>
+          </>
+        );
+      default:
+        return (
+          <>
+            <FaCoins className="text-yellow-400 mr-1 text-xs" />
+            <span className="font-bold text-[var(--color-text-primary)]">{currentUser!.credits || 0}</span>
+          </>
+        );
+    }
+  };
+
   if (!userData) return null;
 
   const { rank, rankIcon } = userData;
@@ -122,22 +162,7 @@ export const UserRankCard = React.memo(function UserRankCard({
               
               <div className="flex items-center gap-2 mt-0.5">
                 <div className="flex items-center bg-[var(--color-button-bg)] rounded-full px-2 py-0.5 text-xs">
-                  {leaderboardType === 'credits' ? (
-                    <>
-                      <FaCoins className="text-yellow-400 mr-1 text-xs" />
-                      <span className="font-bold text-[var(--color-text-primary)]">{currentUser!.credits || 0}</span>
-                    </>
-                  ) : (
-                    <>
-                      <FaStar className={themeStyles.levelIconColor + " mr-1 text-xs"} />
-                      <span className="font-bold text-[var(--color-text-primary)]">
-                        Lvl {currentUser!.level || 1}
-                        <span className="text-[10px] text-[var(--color-text-secondary)] ml-1">
-                          ({currentUser!.experience || 0} XP)
-                        </span>
-                      </span>
-                    </>
-                  )}
+                  {renderStats()}
                 </div>
                 
                 <div className="flex items-center bg-[var(--color-button-bg)] rounded-full px-2 py-0.5 text-xs">

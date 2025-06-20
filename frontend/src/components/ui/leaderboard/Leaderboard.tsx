@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { UserProfileDTO } from '@/config/userService';
 import { FaCoins, FaCrown, FaTrophy, FaMedal, FaStar } from 'react-icons/fa';
+import { ChevronDown, MessageSquare } from 'lucide-react';
 import '@/assets/leaderboard.css';
 import { UserProfileModal } from '@/components/modals/UserProfileModal';
 import { createPortal } from 'react-dom';
@@ -17,11 +18,38 @@ interface LeaderboardProps {
   showHeader?: boolean;
   compact?: boolean;
   className?: string;
-  leaderboardType?: 'credits' | 'level';
+  leaderboardType?: 'credits' | 'level' | 'messages';
+  onLeaderboardTypeChange?: (type: 'credits' | 'level' | 'messages') => void;
   itemsPerPage?: number;
   highlightUserId?: string | null;
   onGoToPage?: (page: number) => void;
 }
+
+// Dropdown option interface
+interface DropdownOption {
+  value: 'credits' | 'level' | 'messages';
+  label: string;
+  icon: React.ReactNode;
+}
+
+// Dropdown options configuration
+const DROPDOWN_OPTIONS: DropdownOption[] = [
+  {
+    value: 'credits',
+    label: 'Credits',
+    icon: <FaCoins className="text-yellow-400" size={16} />
+  },
+  {
+    value: 'level',
+    label: 'Levels',
+    icon: <FaStar className="text-blue-400" size={16} />
+  },
+  {
+    value: 'messages',
+    label: 'Messages',
+    icon: <MessageSquare className="text-green-400" size={16} />
+  }
+];
 
 // Optimized animation variants defined outside component
 const CONTAINER_VARIANTS = {
@@ -46,6 +74,79 @@ const ROW_VARIANTS = {
   }
 };
 
+// Memoized Dropdown Component
+const LeaderboardDropdown = React.memo(({ 
+  currentType, 
+  onTypeChange 
+}: {
+  currentType: 'credits' | 'level' | 'messages';
+  onTypeChange: (type: 'credits' | 'level' | 'messages') => void;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  const currentOption = DROPDOWN_OPTIONS.find(option => option.value === currentType);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+  
+  const handleOptionSelect = useCallback((option: DropdownOption) => {
+    onTypeChange(option.value);
+    setIsOpen(false);
+  }, [onTypeChange]);
+  
+  return (
+    <div className="leaderboard-dropdown" ref={dropdownRef}>
+      <button
+        className="leaderboard-dropdown-trigger"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+      >
+        <span className="leaderboard-dropdown-label">Sort by:</span>
+        <div className="leaderboard-dropdown-current">
+          {currentOption?.icon}
+          <span>{currentOption?.label}</span>
+        </div>
+        <ChevronDown 
+          size={16} 
+          className={`leaderboard-dropdown-icon ${isOpen ? 'rotated' : ''}`} 
+        />
+      </button>
+      
+      {isOpen && (
+        <div className="leaderboard-dropdown-menu" role="listbox">
+          {DROPDOWN_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              className={`leaderboard-dropdown-option ${
+                option.value === currentType ? 'active' : ''
+              }`}
+              onClick={() => handleOptionSelect(option)}
+              role="option"
+              aria-selected={option.value === currentType}
+            >
+              {option.icon}
+              <span>{option.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});
+
+LeaderboardDropdown.displayName = 'LeaderboardDropdown';
+
 // Memoized components for better performance
 const LeaderboardRow = React.memo(({ 
   user, 
@@ -60,7 +161,7 @@ const LeaderboardRow = React.memo(({
   user: UserProfileDTO;
   index: number;
   actualIndex: number;
-  leaderboardType: 'credits' | 'level';
+  leaderboardType: 'credits' | 'level' | 'messages';
   compact: boolean;
   onClick: (user: UserProfileDTO, event: React.MouseEvent) => void;
   positionDetails: { icon: React.ReactNode; className: string };
@@ -71,6 +172,47 @@ const LeaderboardRow = React.memo(({
   }, [user, onClick]);
 
   const highlightClassName = isHighlighted ? "highlighted" : "";
+
+  // Render the appropriate value and icon based on leaderboard type
+  const renderValueColumn = () => {
+    switch (leaderboardType) {
+      case 'credits':
+        return (
+          <>
+            <FaCoins className="text-yellow-400" />
+            <span>{user.credits || 0}</span>
+          </>
+        );
+      case 'level':
+        return (
+          <>
+            <FaStar className="text-blue-400" />
+            <span>
+              {user.level || 1}
+              {!compact && (
+                <span className="text-xs text-gray-400 ml-1">
+                  ({user.experience || 0} XP)
+                </span>
+              )}
+            </span>
+          </>
+        );
+      case 'messages':
+        return (
+          <>
+            <MessageSquare className="text-green-400" />
+            <span>{user.messageCount || 0}</span>
+          </>
+        );
+      default:
+        return (
+          <>
+            <FaCoins className="text-yellow-400" />
+            <span>{user.credits || 0}</span>
+          </>
+        );
+    }
+  };
 
   return (
     <motion.div
@@ -108,24 +250,7 @@ const LeaderboardRow = React.memo(({
         </div>
       </div>
       <div className="leaderboard-credits">
-        {leaderboardType === 'credits' ? (
-          <>
-            <FaCoins className="text-yellow-400" />
-            <span>{user.credits || 0}</span>
-          </>
-        ) : (
-          <>
-            <FaStar className="text-blue-400" />
-            <span>
-              {user.level || 1}
-              {!compact && (
-                <span className="text-xs text-gray-400 ml-1">
-                  ({user.experience || 0} XP)
-                </span>
-              )}
-            </span>
-          </>
-        )}
+        {renderValueColumn()}
       </div>
     </motion.div>
   );
@@ -214,6 +339,7 @@ export const Leaderboard = React.memo(function Leaderboard({
   compact = false,
   className = "",
   leaderboardType = 'credits',
+  onLeaderboardTypeChange,
   itemsPerPage = 9,
   highlightUserId,
   onGoToPage,
@@ -301,6 +427,20 @@ export const Leaderboard = React.memo(function Leaderboard({
     setModalOpen(false);
   }, []);
 
+  // Get column header text based on leaderboard type
+  const getColumnHeader = () => {
+    switch (leaderboardType) {
+      case 'credits':
+        return 'Credits';
+      case 'level':
+        return 'Level';
+      case 'messages':
+        return 'Messages';
+      default:
+        return 'Credits';
+    }
+  };
+
   // Reset to first page when leaderboard type or users change
   useEffect(() => {
     setCurrentPage(1);
@@ -335,6 +475,12 @@ export const Leaderboard = React.memo(function Leaderboard({
             transition={{ duration: 0.4 }}
           >
             <h2 className="leaderboard-title">{title}</h2>
+            {onLeaderboardTypeChange && (
+              <LeaderboardDropdown
+                currentType={leaderboardType}
+                onTypeChange={onLeaderboardTypeChange}
+              />
+            )}
           </motion.div>
         )}
 
@@ -366,7 +512,7 @@ export const Leaderboard = React.memo(function Leaderboard({
                 <div className="leaderboard-header-rank">Rank</div>
                 <div className="leaderboard-header-user">User</div>
                 <div className="leaderboard-header-credits">
-                  {leaderboardType === 'credits' ? 'Credits' : 'Level'}
+                  {getColumnHeader()}
                 </div>
               </div>
               <div className="leaderboard-body">
