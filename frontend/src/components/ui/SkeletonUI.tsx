@@ -616,3 +616,364 @@ export function SkeletonLeaderboard({
     </div>
   );
 }
+
+/**
+ * Dashboard Stats Skeleton for loading states in the main stats grid
+ * Matches the three-section layout of DashboardPage: Message Stats, Messages, Voice Activity
+ */
+export function SkeletonDashboardStats({ 
+  className,
+  theme = "dashboard"
+}: { 
+  className?: string;
+  theme?: "valorant" | "dashboard";
+}) {
+  // Inject styles once
+  React.useEffect(() => {
+    injectStyles();
+  }, []);
+
+  return (
+    <div className={cn("grid grid-cols-1 lg:grid-cols-3 gap-6", className)}>
+      {/* Message Stats Section */}
+      <div className="p-4 rounded-lg bg-[rgba(31,39,49,0.3)] border border-[rgba(255,255,255,0.05)] backdrop-blur-sm">
+        {/* Section header */}
+        <div className="flex items-center gap-2 mb-4">
+          <Skeleton
+            variant="circular"
+            width="20px"
+            height="20px"
+            theme={theme}
+          />
+          <Skeleton
+            width="100px"
+            height="20px"
+            borderRadius="4px"
+            theme={theme}
+          />
+        </div>
+        
+        {/* Rank card */}
+        <div className="p-4 rounded-lg bg-[rgba(30,41,59,0.5)] border border-[rgba(148,163,184,0.2)] backdrop-blur-sm">
+          <Skeleton
+            width="80px"
+            height="16px"
+            borderRadius="4px"
+            theme={theme}
+            className="mb-2"
+          />
+          <Skeleton
+            width="60px"
+            height="24px"
+            borderRadius="4px"
+            theme={theme}
+          />
+        </div>
+      </div>
+      
+      {/* Messages Section */}
+      <div className="p-4 rounded-lg bg-[rgba(31,39,49,0.3)] border border-[rgba(255,255,255,0.05)] backdrop-blur-sm">
+        {/* Section header */}
+        <div className="flex items-center gap-2 mb-4">
+          <Skeleton
+            variant="circular"
+            width="20px"
+            height="20px"
+            theme={theme}
+          />
+          <Skeleton
+            width="80px"
+            height="20px"
+            borderRadius="4px"
+            theme={theme}
+          />
+        </div>
+        
+        {/* Time period cards */}
+        <div className="space-y-3">
+          {['1d', '7d', '14d'].map((period) => (
+            <div key={period} className="p-4 rounded-lg bg-[rgba(30,41,59,0.5)] border border-[rgba(148,163,184,0.2)] backdrop-blur-sm flex items-center justify-between">
+              <Skeleton
+                width="24px"
+                height="24px"
+                borderRadius="4px"
+                theme={theme}
+              />
+              <div className="flex flex-col items-end gap-1">
+                <Skeleton
+                  width="60px"
+                  height="16px"
+                  borderRadius="4px"
+                  theme={theme}
+                />
+                <Skeleton
+                  width="40px"
+                  height="12px"
+                  borderRadius="4px"
+                  theme={theme}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Voice Activity Section */}
+      <div className="p-4 rounded-lg bg-[rgba(31,39,49,0.3)] border border-[rgba(255,255,255,0.05)] backdrop-blur-sm">
+        {/* Section header */}
+        <div className="flex items-center gap-2 mb-4">
+          <Skeleton
+            variant="circular"
+            width="20px"
+            height="20px"
+            theme={theme}
+          />
+          <Skeleton
+            width="100px"
+            height="20px"
+            borderRadius="4px"
+            theme={theme}
+          />
+        </div>
+        
+        {/* Time period cards */}
+        <div className="space-y-3">
+          {['1d', '7d', '14d'].map((period) => (
+            <div key={period} className="p-4 rounded-lg bg-[rgba(30,41,59,0.5)] border border-[rgba(148,163,184,0.2)] backdrop-blur-sm flex items-center justify-between">
+              <Skeleton
+                width="24px"
+                height="24px"
+                borderRadius="4px"
+                theme={theme}
+              />
+              <div className="flex flex-col items-end gap-1">
+                <Skeleton
+                  width="50px"
+                  height="16px"
+                  borderRadius="4px"
+                  theme={theme}
+                />
+                <Skeleton
+                  width="30px"
+                  height="12px"
+                  borderRadius="4px"
+                  theme={theme}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Dashboard Activity Skeleton for loading states in the activity overview section
+ */
+export function SkeletonDashboardActivity({ 
+  className,
+  theme = "dashboard"
+}: { 
+  className?: string;
+  theme?: "valorant" | "dashboard";
+}) {
+  return (
+    <div className={cn("p-4 rounded-lg bg-[rgba(31,39,49,0.3)] border border-[rgba(255,255,255,0.05)] backdrop-blur-sm", className)}>
+      {/* Section header */}
+      <div className="flex items-center gap-2 mb-4">
+        <Skeleton
+          variant="circular"
+          width="20px"
+          height="20px"
+          theme={theme}
+        />
+        <Skeleton
+          width="130px"
+          height="20px"
+          borderRadius="4px"
+          theme={theme}
+        />
+      </div>
+      
+      {/* Activity summary */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-[rgba(30,41,59,0.5)] border border-[rgba(148,163,184,0.2)] backdrop-blur-sm">
+          <Skeleton
+            variant="circular"
+            width="16px"
+            height="16px"
+            theme={theme}
+          />
+          <Skeleton
+            width="100px"
+            height="16px"
+            borderRadius="4px"
+            theme={theme}
+            className="flex-1"
+          />
+          <Skeleton
+            width="80px"
+            height="16px"
+            borderRadius="4px"
+            theme={theme}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Dashboard Chart Skeleton for loading states in the charts section
+ */
+export function SkeletonDashboardChart({ 
+  className,
+  theme = "dashboard"
+}: { 
+  className?: string;
+  theme?: "valorant" | "dashboard";
+}) {
+  return (
+    <div className={cn("p-4 rounded-lg bg-[rgba(31,39,49,0.3)] border border-[rgba(255,255,255,0.05)] backdrop-blur-sm", className)}>
+      {/* Charts section header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Skeleton
+            variant="circular"
+            width="20px"
+            height="20px"
+            theme={theme}
+          />
+          <Skeleton
+            width="60px"
+            height="20px"
+            borderRadius="4px"
+            theme={theme}
+          />
+        </div>
+        
+        {/* Chart legend */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Skeleton
+              variant="circular"
+              width="12px"
+              height="12px"
+              theme={theme}
+            />
+            <Skeleton
+              width="50px"
+              height="14px"
+              borderRadius="4px"
+              theme={theme}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton
+              variant="circular"
+              width="12px"
+              height="12px"
+              theme={theme}
+            />
+            <Skeleton
+              width="40px"
+              height="14px"
+              borderRadius="4px"
+              theme={theme}
+            />
+          </div>
+        </div>
+      </div>
+      
+      {/* Chart container */}
+      <div className="mt-4 rounded-lg overflow-hidden bg-[rgba(30,41,59,0.5)] border border-[rgba(148,163,184,0.2)] backdrop-blur-sm" style={{ height: '250px' }}>
+        <Skeleton
+          width="100%"
+          height="100%"
+          theme={theme}
+          animate={true}
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Complete Dashboard Page Skeleton combining all sections
+ * Matches the exact structure of DashboardPage.tsx
+ */
+export function SkeletonDashboardPage({ 
+  className,
+  theme = "dashboard"
+}: { 
+  className?: string;
+  theme?: "valorant" | "dashboard";
+}) {
+  // Inject styles once
+  React.useEffect(() => {
+    injectStyles();
+  }, []);
+
+  return (
+    <div className={cn("bg-theme-gradient min-h-screen", className)}>
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Refresh Button - Top Right Corner */}
+        <div className="absolute top-4 right-4 z-10">
+          <Skeleton
+            width="40px"
+            height="32px"
+            borderRadius="6px"
+            theme={theme}
+          />
+        </div>
+
+        {/* Hero Section */}
+        <div className="section-header mb-12 text-center">
+          <Skeleton
+            width="200px"
+            height="48px"
+            borderRadius="8px"
+            theme={theme}
+            className="mx-auto mb-6"
+          />
+          <Skeleton
+            width="300px"
+            height="24px"
+            borderRadius="6px"
+            theme={theme}
+            className="mx-auto"
+          />
+        </div>
+
+        {/* Dashboard Content Wrapper */}
+        <div className="discord-dashboard">
+          {/* Main Stats Grid */}
+          <div className="mb-6">
+            <SkeletonDashboardStats theme={theme} />
+          </div>
+
+          {/* Bottom Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Activity Overview */}
+            <SkeletonDashboardActivity theme={theme} />
+            
+            {/* Charts Section */}
+            <SkeletonDashboardChart theme={theme} />
+          </div>
+
+          {/* Footer */}
+          <div className="text-center text-sm py-4">
+            <Skeleton
+              width="200px"
+              height="16px"
+              borderRadius="4px"
+              theme={theme}
+              className="mx-auto"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -11,6 +11,11 @@ import {
 } from "@/config/userService"
 import { DailyActivityChart } from "./components/DailyActivityChart"
 import { Button } from "@/components/ui/button"
+import { 
+  SkeletonDashboardStats, 
+  SkeletonDashboardActivity, 
+  SkeletonDashboardChart 
+} from "@/components/ui/SkeletonUI"
 
 /**
  * DashboardPage - Discord-style card layout inspired design
@@ -31,8 +36,14 @@ export function DashboardPage() {
   const [activityLoading, setActivityLoading] = useState(true)
   const [activityError, setActivityError] = useState<string | null>(null)
 
+  // Minimum loading time in milliseconds (same pattern as ShopPage)
+  const MIN_LOADING_TIME = 800
+
   // Fetch user profile data
   const fetchUserProfile = async () => {
+    // Record the start time (same pattern as ShopPage)
+    const startTime = Date.now()
+    
     try {
       setStatsLoading(true)
       setStatsError(null)
@@ -42,7 +53,16 @@ export function DashboardPage() {
       console.error("Error fetching user profile:", error)
       setStatsError("Failed to load user statistics")
     } finally {
-      setStatsLoading(false)
+      // Calculate elapsed time and ensure minimum loading time
+      const elapsedTime = Date.now() - startTime
+      
+      if (elapsedTime < MIN_LOADING_TIME) {
+        setTimeout(() => {
+          setStatsLoading(false)
+        }, MIN_LOADING_TIME - elapsedTime)
+      } else {
+        setStatsLoading(false)
+      }
     }
   }
 
@@ -52,6 +72,9 @@ export function DashboardPage() {
 
   // Fetch daily activity data
   const fetchActivityData = async () => {
+    // Record the start time (same pattern as ShopPage)
+    const startTime = Date.now()
+    
     try {
       setActivityLoading(true)
       setActivityError(null)
@@ -61,7 +84,16 @@ export function DashboardPage() {
       console.error("Error fetching daily activity:", error)
       setActivityError("Failed to load activity data")
     } finally {
-      setActivityLoading(false)
+      // Calculate elapsed time and ensure minimum loading time
+      const elapsedTime = Date.now() - startTime
+      
+      if (elapsedTime < MIN_LOADING_TIME) {
+        setTimeout(() => {
+          setActivityLoading(false)
+        }, MIN_LOADING_TIME - elapsedTime)
+      } else {
+        setActivityLoading(false)
+      }
     }
   }
 
@@ -130,140 +162,137 @@ export function DashboardPage() {
         {/* Dashboard Content Wrapper */}
         <div className="discord-dashboard">
           {/* Main Stats Grid */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="stats-container"
-          >
-            {/* Server Ranks Section */}
-            <div className="stats-section">
-              <div className="section-header">
-                <MessageSquare className="h-5 w-5" />
-                <h2>Message Stats</h2>
+          {statsLoading ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="mb-6"
+            >
+              <SkeletonDashboardStats theme="dashboard" />
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="stats-container"
+            >
+              {/* Server Ranks Section */}
+              <div className="stats-section">
+                <div className="section-header">
+                  <MessageSquare className="h-5 w-5" />
+                  <h2>Message Stats</h2>
+                </div>
+                <div className="rank-cards">
+                  <AnimatePresence mode="wait">
+                    {statsError ? (
+                      <div className="rank-card error">
+                        <div className="rank-label">Error</div>
+                        <div className="rank-value">--</div>
+                      </div>
+                    ) : (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="rank-card"
+                      >
+                        <div className="rank-label">Total Messages</div>
+                        <div className="rank-value">#{formatNumber(userProfile?.messageCount || 0)}</div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
-              <div className="rank-cards">
-                <AnimatePresence mode="wait">
-                  {statsLoading ? (
-                    <div className="rank-card loading">
-                      <div className="rank-label loading-shimmer"></div>
-                      <div className="rank-value loading-shimmer"></div>
-                    </div>
-                  ) : statsError ? (
-                    <div className="rank-card error">
-                      <div className="rank-label">Error</div>
-                      <div className="rank-value">--</div>
-                    </div>
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="rank-card"
-                    >
-                      <div className="rank-label">Total Messages</div>
-                      <div className="rank-value">#{formatNumber(userProfile?.messageCount || 0)}</div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
 
-            {/* Messages Section */}
-            <div className="stats-section">
-              <div className="section-header">
-                <Hash className="h-5 w-5" />
-                <h2>Messages</h2>
+              {/* Messages Section */}
+              <div className="stats-section">
+                <div className="section-header">
+                  <Hash className="h-5 w-5" />
+                  <h2>Messages</h2>
+                </div>
+                <div className="time-period-cards">
+                  <AnimatePresence mode="wait">
+                    {statsError ? (
+                      <>
+                        {["1d", "7d", "14d"].map((period) => (
+                          <div key={period} className="time-card error">
+                            <div className="time-period">{period}</div>
+                            <div className="time-value">-- messages</div>
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      <>
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.1 }}
+                          className="time-card"
+                        >
+                          <div className="time-period">1d</div>
+                          <div className="time-value">
+                            {formatNumber(userProfile?.messagesToday || 0)} <span>messages</span>
+                          </div>
+                        </motion.div>
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.2 }}
+                          className="time-card"
+                        >
+                          <div className="time-period">7d</div>
+                          <div className="time-value">
+                            {formatNumber(userProfile?.messagesThisWeek || 0)} <span>messages</span>
+                          </div>
+                        </motion.div>
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.3 }}
+                          className="time-card"
+                        >
+                          <div className="time-period">14d</div>
+                          <div className="time-value">
+                            {formatNumber(userProfile?.messagesThisTwoWeeks || 0)} <span>messages</span>
+                          </div>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
-              <div className="time-period-cards">
-                <AnimatePresence mode="wait">
-                  {statsLoading ? (
-                    <>
-                      {["1d", "7d", "14d"].map((period) => (
-                        <div key={period} className="time-card loading">
-                          <div className="time-period loading-shimmer">{period}</div>
-                          <div className="time-value loading-shimmer"></div>
-                        </div>
-                      ))}
-                    </>
-                  ) : statsError ? (
-                    <>
-                      {["1d", "7d", "14d"].map((period) => (
-                        <div key={period} className="time-card error">
-                          <div className="time-period">{period}</div>
-                          <div className="time-value">-- messages</div>
-                        </div>
-                      ))}
-                    </>
-                  ) : (
-                    <>
-                      <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="time-card"
-                      >
-                        <div className="time-period">1d</div>
-                        <div className="time-value">
-                          {formatNumber(userProfile?.messagesToday || 0)} <span>messages</span>
-                        </div>
-                      </motion.div>
-                      <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="time-card"
-                      >
-                        <div className="time-period">7d</div>
-                        <div className="time-value">
-                          {formatNumber(userProfile?.messagesThisWeek || 0)} <span>messages</span>
-                        </div>
-                      </motion.div>
-                      <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 }}
-                        className="time-card"
-                      >
-                        <div className="time-period">14d</div>
-                        <div className="time-value">
-                          {formatNumber(userProfile?.messagesThisTwoWeeks || 0)} <span>messages</span>
-                        </div>
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
 
-            {/* Voice Activity Section */}
-            <div className="stats-section">
-              <div className="section-header">
-                <Volume2 className="h-5 w-5" />
-                <h2>Voice Activity</h2>
+              {/* Voice Activity Section */}
+              <div className="stats-section">
+                <div className="section-header">
+                  <Volume2 className="h-5 w-5" />
+                  <h2>Voice Activity</h2>
+                </div>
+                <div className="time-period-cards">
+                  {/* Placeholder voice activity data */}
+                  <div className="time-card">
+                    <div className="time-period">1d</div>
+                    <div className="time-value">
+                      0 <span>hours</span>
+                    </div>
+                  </div>
+                  <div className="time-card">
+                    <div className="time-period">7d</div>
+                    <div className="time-value">
+                      0 <span>hours</span>
+                    </div>
+                  </div>
+                  <div className="time-card">
+                    <div className="time-period">14d</div>
+                    <div className="time-value">
+                      0 <span>hours</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="time-period-cards">
-                {/* Placeholder voice activity data */}
-                <div className="time-card">
-                  <div className="time-period">1d</div>
-                  <div className="time-value">
-                    0 <span>hours</span>
-                  </div>
-                </div>
-                <div className="time-card">
-                  <div className="time-period">7d</div>
-                  <div className="time-value">
-                    0 <span>hours</span>
-                  </div>
-                </div>
-                <div className="time-card">
-                  <div className="time-period">14d</div>
-                  <div className="time-value">
-                    0 <span>hours</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          )}
 
           {/* Bottom Section */}
           <motion.div
@@ -273,42 +302,50 @@ export function DashboardPage() {
             className="bottom-section"
           >
             {/* Activity Overview */}
-            <div className="activity-overview">
-              <div className="section-header">
-                <BarChart3 className="h-5 w-5" />
-                <h2>Activity Overview</h2>
-              </div>
-              <div className="activity-summary">
-                <div className="activity-item">
-                  <Hash className="h-4 w-4" />
-                  <span className="activity-label">Daily Messages</span>
-                  <span className="activity-value">{formatNumber(userProfile?.messagesToday || 0)} messages</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Charts Section */}
-            <div className="charts-section">
-              <div className="charts-section-header">
+            {statsLoading ? (
+              <SkeletonDashboardActivity theme="dashboard" />
+            ) : (
+              <div className="activity-overview">
                 <div className="section-header">
                   <BarChart3 className="h-5 w-5" />
-                  <h2>Charts</h2>
+                  <h2>Activity Overview</h2>
                 </div>
-                <div className="chart-legend">
-                  <div className="legend-item">
-                    <div className="legend-dot message"></div>
-                    <span>Message</span>
-                  </div>
-                  <div className="legend-item">
-                    <div className="legend-dot voice"></div>
-                    <span>Voice</span>
+                <div className="activity-summary">
+                  <div className="activity-item">
+                    <Hash className="h-4 w-4" />
+                    <span className="activity-label">Daily Messages</span>
+                    <span className="activity-value">{formatNumber(userProfile?.messagesToday || 0)} messages</span>
                   </div>
                 </div>
               </div>
-              <div className="chart-container">
-                <DailyActivityChart data={activityData} loading={activityLoading} error={activityError} />
+            )}
+
+            {/* Charts Section */}
+            {activityLoading ? (
+              <SkeletonDashboardChart theme="dashboard" />
+            ) : (
+              <div className="charts-section">
+                <div className="charts-section-header">
+                  <div className="section-header">
+                    <BarChart3 className="h-5 w-5" />
+                    <h2>Charts</h2>
+                  </div>
+                  <div className="chart-legend">
+                    <div className="legend-item">
+                      <div className="legend-dot message"></div>
+                      <span>Message</span>
+                    </div>
+                    <div className="legend-item">
+                      <div className="legend-dot voice"></div>
+                      <span>Voice</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="chart-container">
+                  <DailyActivityChart data={activityData} loading={activityLoading} error={activityError} />
+                </div>
               </div>
-            </div>
+            )}
           </motion.div>
 
           {/* Footer */}
