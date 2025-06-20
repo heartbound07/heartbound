@@ -60,11 +60,7 @@
   transition: all 0.3s ease;
 }
 
-.refresh-btn:hover {
-  background: rgba(31, 39, 49, 0.8);
-  border-color: rgba(255, 255, 255, 0.05);
-  transform: translateY(-1px);
-}
+
 
 .refresh-btn:disabled {
   opacity: 0.6;
@@ -226,10 +222,7 @@
   transition: all 0.3s ease;
 }
 
-.discord-dashboard .rank-card:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--border-color);
-}
+
 
 .discord-dashboard .rank-card.loading {
   @apply animate-pulse;
@@ -262,10 +255,7 @@
   transition: all 0.3s ease;
 }
 
-.discord-dashboard .time-card:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--border-color);
-}
+
 
 .discord-dashboard .time-card.loading {
   @apply animate-pulse;

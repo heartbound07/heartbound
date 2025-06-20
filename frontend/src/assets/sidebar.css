@@ -29,7 +29,6 @@
   flex-direction: column;
   z-index: 900;
   overflow: hidden;
-  font-family: 'gg sans', sans-serif;
   /* Remove fixed width - let framer-motion handle it */
 }
 
@@ -144,11 +143,9 @@
 .sidebar .sidebar-profile .profile-info {
   flex: 1;
   min-width: 0;
-  font-family: 'gg sans', sans-serif !important;
 }
 
 .sidebar .sidebar-profile .profile-name {
-  font-family: 'gg sans', sans-serif !important;
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--text-primary);
