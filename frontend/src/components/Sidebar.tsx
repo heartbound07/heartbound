@@ -197,14 +197,10 @@ export function DashboardNavigation({ theme = "default", onCollapseChange }: Das
     }
   }, [showProfilePreview])
 
-  // Determine if we're on the main dashboard page
-  const isMainDashboard = location.pathname === "/dashboard" || location.pathname === "/dashboard/"
 
   // Determine if we're on the discover page
   const isDiscoverPage = location.pathname === "/discover" || location.pathname === "/discover/"
 
-  // Determine if we're on a specific game page
-  const onGamePage = gameItems.some((game) => location.pathname.includes(game.id))
 
   // Check if we're on the profile page
   const isProfilePage = location.pathname === "/profile"
