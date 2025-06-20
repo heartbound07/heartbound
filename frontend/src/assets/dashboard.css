@@ -347,8 +347,10 @@
 }
 
 .discord-dashboard .chart-container {
-  @apply mt-4 h-48 rounded-lg overflow-hidden;
+  @apply mt-4 rounded-lg overflow-hidden;
   background-color: var(--bg-tertiary);
+  height: 250px; /* Fixed height for better chart display */
+  padding: 0; /* Remove padding to allow full chart coverage */
 }
 
 /* Footer - Dashboard specific */
