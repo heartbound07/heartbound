@@ -11,10 +11,17 @@ import {
 } from 'recharts';
 import { CombinedDailyActivityDTO } from '@/config/userService';
 
+// Legend state interface
+interface LegendState {
+  messages: boolean;
+  voiceMinutes: boolean;
+}
+
 interface DailyActivityChartProps {
   data: CombinedDailyActivityDTO[];
   loading: boolean;
   error: string | null;
+  activeLegend: LegendState;
 }
 
 // Custom tooltip component - styled for dashboard theme
@@ -74,7 +81,7 @@ const formatXAxisLabel = (tickItem: string, index: number, totalTicks: number) =
   });
 };
 
-export const DailyActivityChart: React.FC<DailyActivityChartProps> = ({ data, loading, error }) => {
+export const DailyActivityChart: React.FC<DailyActivityChartProps> = ({ data, loading, error, activeLegend }) => {
   if (loading) {
     return (
       <div className="w-full h-full flex items-center justify-center p-4">
@@ -156,34 +163,40 @@ export const DailyActivityChart: React.FC<DailyActivityChartProps> = ({ data, lo
             width={30}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Line
-            type="monotone"
-            dataKey="messages"
-            stroke="#57f287"
-            strokeWidth={2.5}
-            dot={false}
-            activeDot={{
-              r: 5,
-              fill: '#57f287',
-              stroke: '#ffffff',
-              strokeWidth: 2
-            }}
-            connectNulls={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="voiceMinutes"
-            stroke="#eb459e"
-            strokeWidth={2.5}
-            dot={false}
-            activeDot={{
-              r: 5,
-              fill: '#eb459e',
-              stroke: '#ffffff',
-              strokeWidth: 2
-            }}
-            connectNulls={false}
-          />
+          
+          {/* Conditionally render Line components based on legend state */}
+          {activeLegend.messages && (
+            <Line
+              type="monotone"
+              dataKey="messages"
+              stroke="#57f287"
+              strokeWidth={2.5}
+              dot={false}
+              activeDot={{
+                r: 5,
+                fill: '#57f287',
+                stroke: '#ffffff',
+                strokeWidth: 2
+              }}
+              connectNulls={false}
+            />
+          )}
+          {activeLegend.voiceMinutes && (
+            <Line
+              type="monotone"
+              dataKey="voiceMinutes"
+              stroke="#eb459e"
+              strokeWidth={2.5}
+              dot={false}
+              activeDot={{
+                r: 5,
+                fill: '#eb459e',
+                stroke: '#ffffff',
+                strokeWidth: 2
+              }}
+              connectNulls={false}
+            />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>

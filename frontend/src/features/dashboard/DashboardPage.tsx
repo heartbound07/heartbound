@@ -17,6 +17,12 @@ import {
   SkeletonDashboardChart 
 } from "@/components/ui/SkeletonUI"
 
+// Legend state interface
+interface LegendState {
+  messages: boolean;
+  voiceMinutes: boolean;
+}
+
 /**
  * DashboardPage - Discord-style card layout inspired design
  *
@@ -35,6 +41,20 @@ export function DashboardPage() {
   const [activityData, setActivityData] = useState<CombinedDailyActivityDTO[]>([])
   const [activityLoading, setActivityLoading] = useState(true)
   const [activityError, setActivityError] = useState<string | null>(null)
+
+  // Legend state management for chart
+  const [activeLegend, setActiveLegend] = useState<LegendState>({
+    messages: true,
+    voiceMinutes: true
+  });
+
+  // Toggle legend item visibility
+  const toggleLegendItem = (key: keyof LegendState) => {
+    setActiveLegend(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
 
   // Minimum loading time in milliseconds (same pattern as ShopPage)
   const MIN_LOADING_TIME = 800
@@ -435,18 +455,33 @@ export function DashboardPage() {
                     <h2>Charts</h2>
                   </div>
                   <div className="chart-legend">
-                    <div className="legend-item">
+                    <div 
+                      className={`legend-item cursor-pointer transition-opacity duration-200 ${
+                        activeLegend.messages ? 'opacity-100' : 'opacity-50'
+                      }`}
+                      onClick={() => toggleLegendItem('messages')}
+                    >
                       <div className="legend-dot message"></div>
                       <span>Message</span>
                     </div>
-                    <div className="legend-item">
+                    <div 
+                      className={`legend-item cursor-pointer transition-opacity duration-200 ${
+                        activeLegend.voiceMinutes ? 'opacity-100' : 'opacity-50'
+                      }`}
+                      onClick={() => toggleLegendItem('voiceMinutes')}
+                    >
                       <div className="legend-dot voice"></div>
                       <span>Voice</span>
                     </div>
                   </div>
                 </div>
                 <div className="chart-container">
-                  <DailyActivityChart data={activityData} loading={activityLoading} error={activityError} />
+                  <DailyActivityChart 
+                    data={activityData} 
+                    loading={activityLoading} 
+                    error={activityError} 
+                    activeLegend={activeLegend}
+                  />
                 </div>
               </div>
             )}
