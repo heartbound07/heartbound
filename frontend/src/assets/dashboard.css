@@ -50,19 +50,19 @@
   }
 }
 
-/* Refresh Button Positioning - Updated for new container structure */
+/* Refresh Button Positioning - Updated to match XPCard theme */
 .refresh-btn {
   @apply px-3 py-2 rounded-lg border;
-  background-color: rgba(43, 53, 68, 0.8);
-  border-color: rgba(51, 65, 85, 0.5);
+  background: rgba(30, 41, 59, 0.5);
+  border-color: rgba(148, 163, 184, 0.2);
   color: var(--text-primary, #ffffff);
   backdrop-filter: blur(8px);
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .refresh-btn:hover {
-  background-color: rgba(51, 65, 85, 0.9);
-  border-color: rgba(71, 85, 105, 0.7);
+  background: rgba(31, 39, 49, 0.8);
+  border-color: rgba(255, 255, 255, 0.05);
   transform: translateY(-1px);
 }
 
@@ -71,22 +71,24 @@
   cursor: not-allowed;
 }
 
-/* Dashboard-specific variables - scoped to dashboard pages only */
+/* Dashboard-specific variables - scoped to dashboard pages only - Updated to match XPCard theme */
 .discord-dashboard {
-  /* Background colors for dashboard */
-  --bg-primary: #0f1923;
-  --bg-secondary: #1a2332;
-  --bg-tertiary: #243142;
-  --bg-card: #2b3544;
-  --bg-card-hover: #334155;
+  /* Background colors matching XPCard theme */
+  --bg-primary: #0F1923;
+  --bg-secondary: #1F2731;
+  --bg-tertiary: rgba(30, 41, 59, 0.5);
+  --bg-card: rgba(31, 39, 49, 0.6);
+  --bg-card-hover: rgba(31, 39, 49, 0.8);
+  --bg-glass: rgba(31, 39, 49, 0.3);
 
-  /* Text colors */
+  /* Text colors matching XPCard */
   --text-primary: #ffffff;
-  --text-secondary: #b9bbbe;
-  --text-muted: #72767d;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.5);
 
-  /* Border and accent colors */
-  --border-color: #202225;
+  /* Border and accent colors matching XPCard */
+  --border-color: rgba(255, 255, 255, 0.05);
+  --border-secondary: rgba(148, 163, 184, 0.2);
   --accent-green: #57f287;
   --accent-pink: #eb459e;
   --accent-blue: #5865f2;
@@ -189,11 +191,13 @@
   @apply grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6;
 }
 
-/* Stats Section - Dashboard specific */
+/* Stats Section - Dashboard specific - Updated to match XPCard glass morphism */
 .discord-dashboard .stats-section {
   @apply p-4 rounded-lg;
-  background-color: var(--bg-card);
+  background: var(--bg-glass);
   border: 1px solid var(--border-color);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
 }
 
 .discord-dashboard .section-header {
@@ -209,20 +213,22 @@
   color: var(--text-secondary);
 }
 
-/* Rank Cards - Dashboard specific */
+/* Rank Cards - Dashboard specific - Updated to match XPCard theme */
 .discord-dashboard .rank-cards {
   @apply space-y-3;
 }
 
 .discord-dashboard .rank-card {
   @apply p-4 rounded-lg flex items-center justify-between;
-  background-color: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  transition: all 0.2s ease;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
 }
 
 .discord-dashboard .rank-card:hover {
-  background-color: var(--bg-card-hover);
+  background: var(--bg-card-hover);
+  border-color: var(--border-color);
 }
 
 .discord-dashboard .rank-card.loading {
@@ -243,20 +249,22 @@
   color: var(--text-primary);
 }
 
-/* Time Period Cards - Dashboard specific */
+/* Time Period Cards - Dashboard specific - Updated to match XPCard theme */
 .discord-dashboard .time-period-cards {
   @apply space-y-3;
 }
 
 .discord-dashboard .time-card {
   @apply p-4 rounded-lg flex items-center justify-between;
-  background-color: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  transition: all 0.2s ease;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
 }
 
 .discord-dashboard .time-card:hover {
-  background-color: var(--bg-card-hover);
+  background: var(--bg-card-hover);
+  border-color: var(--border-color);
 }
 
 .discord-dashboard .time-card.loading {
@@ -288,11 +296,13 @@
   @apply grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6;
 }
 
-/* Activity Overview - Dashboard specific */
+/* Activity Overview - Dashboard specific - Updated to match XPCard theme */
 .discord-dashboard .activity-overview {
   @apply p-4 rounded-lg;
-  background-color: var(--bg-card);
+  background: var(--bg-glass);
   border: 1px solid var(--border-color);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
 }
 
 .discord-dashboard .activity-summary {
@@ -301,7 +311,10 @@
 
 .discord-dashboard .activity-item {
   @apply flex items-center gap-3 p-3 rounded-lg;
-  background-color: var(--bg-tertiary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
 }
 
 .discord-dashboard .activity-label {
@@ -314,11 +327,13 @@
   color: var(--text-primary);
 }
 
-/* Charts Section - Dashboard specific */
+/* Charts Section - Dashboard specific - Updated to match XPCard theme */
 .discord-dashboard .charts-section {
   @apply p-4 rounded-lg;
-  background-color: var(--bg-card);
+  background: var(--bg-glass);
   border: 1px solid var(--border-color);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
 }
 
 .discord-dashboard .charts-section-header {
@@ -352,7 +367,9 @@
 
 .discord-dashboard .chart-container {
   @apply mt-4 rounded-lg overflow-hidden;
-  background-color: var(--bg-tertiary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  backdrop-filter: blur(8px);
   height: 250px; /* Fixed height for better chart display */
   padding: 0; /* Remove padding to allow full chart coverage */
 }

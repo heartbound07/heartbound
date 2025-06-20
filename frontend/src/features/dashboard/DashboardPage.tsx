@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { MessageSquare, Volume2, BarChart3, Hash, User, RefreshCw, AlertCircle } from "lucide-react"
+import { MessageSquare, Volume2, BarChart3, Hash, RefreshCw, AlertCircle } from "lucide-react"
 import {
   getCurrentUserProfile,
   type UserProfileDTO,
