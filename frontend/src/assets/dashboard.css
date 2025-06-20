@@ -50,6 +50,27 @@
   }
 }
 
+/* Refresh Button Positioning - Updated for new container structure */
+.refresh-btn {
+  @apply px-3 py-2 rounded-lg border;
+  background-color: rgba(43, 53, 68, 0.8);
+  border-color: rgba(51, 65, 85, 0.5);
+  color: var(--text-primary, #ffffff);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.refresh-btn:hover {
+  background-color: rgba(51, 65, 85, 0.9);
+  border-color: rgba(71, 85, 105, 0.7);
+  transform: translateY(-1px);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Dashboard-specific variables - scoped to dashboard pages only */
 .discord-dashboard {
   /* Background colors for dashboard */
@@ -71,11 +92,12 @@
   --accent-blue: #5865f2;
 }
 
-/* Main Dashboard Container - scoped to dashboard only */
+/* Main Dashboard Container - Updated to work within new structure */
 .discord-dashboard {
-  @apply w-full p-6;
+  @apply w-full;
   color: var(--text-primary);
   font-family: "Whitney", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* Removed padding since it's now handled by parent container */
 }
 
 /* Override mobile responsiveness section to fix conflicts */
@@ -160,17 +182,6 @@
 .discord-dashboard .date-value {
   @apply block text-sm font-medium;
   color: var(--text-primary);
-}
-
-.discord-dashboard .refresh-btn {
-  @apply px-3 py-2 rounded-lg border;
-  background-color: var(--bg-tertiary);
-  border-color: var(--border-color);
-  color: var(--text-primary);
-}
-
-.discord-dashboard .refresh-btn:hover {
-  background-color: var(--bg-card-hover);
 }
 
 /* Main Stats Container - Dashboard specific */
