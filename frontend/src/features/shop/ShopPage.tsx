@@ -422,7 +422,8 @@ export function ShopPage() {
   };
   
   return (
-    <div className="container mx-auto px-4 py-8 shop-container">
+    <div className="bg-theme-gradient min-h-screen">
+      <div className="container mx-auto px-4 py-8 shop-container">
       <div className="flex flex-col space-y-8">
         {/* Toast notifications */}
         <div className="fixed top-4 right-4 z-50 flex flex-col space-y-2">
@@ -578,6 +579,7 @@ export function ShopPage() {
           )}
         </motion.div>
       </div>
+    </div>
     </div>
   );
 }

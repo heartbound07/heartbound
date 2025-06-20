@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { GameCard } from '@/components/ui/GameCard';
-import './DiscoverPage.css';
 import '@/assets/dashboard.css';
 import '@/assets/animations.css';
 import '@/assets/styles/fonts.css';
 import { motion } from 'framer-motion';
+import '@/assets/DiscoverPage.css';
 
 // Import game assets
 import valorantImage from '@/assets/images/valorant.jpg';
@@ -52,7 +52,8 @@ export function DiscoverPage() {
   ];
 
   return (
-    <div className="discover-container">
+    <div className="bg-theme-gradient min-h-screen">
+      <div className="discover-container">
       {/* Hero Section with framer motion animation */}
       <motion.div className="section-header mb-12 text-center">
         <motion.h1 
@@ -109,6 +110,7 @@ export function DiscoverPage() {
           </motion.div>
         ))}
       </motion.div>
+    </div>
     </div>
   );
 } 

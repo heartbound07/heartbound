@@ -310,7 +310,8 @@ export function InventoryPage() {
   const badgeItems = items.filter(item => item.category === 'BADGE');
   
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="bg-theme-gradient min-h-screen">
+      <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="inventory-title">My Inventory</h1>
         <p className="inventory-subtitle">
@@ -616,6 +617,7 @@ export function InventoryPage() {
           )}
         </motion.div>
       </div>
+    </div>
     </div>
   );
 }

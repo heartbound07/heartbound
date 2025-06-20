@@ -125,7 +125,8 @@ export function LeaderboardPage() {
   }, [memoizedCurrentUserProfile]);
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="bg-theme-gradient min-h-screen">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
       {/* Hero Section - Reduced motion complexity */}
       <motion.div
         {...ANIMATION_VARIANTS.hero}
@@ -207,6 +208,7 @@ export function LeaderboardPage() {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
     </div>
   );
 }

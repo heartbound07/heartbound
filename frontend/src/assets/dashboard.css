@@ -1,334 +1,435 @@
-/* Import Tailwind directives first */
+/* Discord-Style Dashboard - Inspired by XPCard Dark Theme */
 @tailwind utilities;
 
-/* Updated dashboard styles for a modern, aesthetic, and responsive design */
-
-/* Navigation-specific styles have been removed.
-   See dashboard-navigation.css for .dashboard-nav, .nav-item, .logout-button, etc. */
-
-/* Root variables for consistent styling */
+/* CSS Variables matching XPCard theme */
 :root {
-  --primary-bg: #ffffff;
-  --secondary-bg: rgba(255, 255, 255, 0.15);
-  --text-primary: #ffffff;
-  --text-secondary: #888888;
-  --hover-bg: rgba(255, 255, 255, 0.3);
-  --border-color: rgba(255, 255, 255, 0.3);
+  /* Sidebar integration variables */
   --sidebar-width: 280px;
-  --sidebar-collapsed-width: 80px;
-  --header-height: 70px;
-  --transition-speed: 0.3s;
-  --card-border-radius: 16px;
-  --shadow-color: rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 25px -5px var(--shadow-color);
+  --sidebar-collapsed-width: 78px;
+  
+  /* Spacing and sizing */
+  --border-radius: 8px;
+  --card-padding: 16px;
+  --section-gap: 20px;
 }
 
-/* Container for the entire dashboard */
+/* Dashboard Layout Container - Handles overall layout structure */
 .dashboard-container {
-  @apply min-h-screen w-full relative;
+  @apply min-h-screen;
   display: flex;
-  /* Remove this default background gradient */
-  /* background: linear-gradient(...); */
+  position: relative;
+  overflow-x: hidden;
 }
 
-/* Update selectors to match how classes are actually applied in the component */
-.dashboard-container.theme-default {
-  background: linear-gradient(to bottom right, var(--color-bg-gradient-from, #6B5BE6), var(--color-bg-gradient-to, #8878f0));
-}
-
-.dashboard-container.theme-dark {
-  background: linear-gradient(to bottom right, var(--color-bg-gradient-from, #0F1923), var(--color-bg-gradient-to, #1F2731));
-}
-
-/* Content section for the dashboard - updated to handle collapsed sidebar */
+/* Dashboard Content Area - Main content area that accounts for sidebar */
 .dashboard-content {
-  @apply p-4 flex-1 overflow-y-auto;
-  transition: margin-left var(--transition-speed), width var(--transition-speed);
+  @apply flex-1 transition-all duration-300 ease-in-out;
   margin-left: var(--sidebar-width);
   min-height: 100vh;
   width: calc(100% - var(--sidebar-width));
+  position: relative;
+  z-index: 1; /* Ensure content stays below sidebar (z-index: 900) */
 }
 
-/* Adjust content when sidebar is collapsed */
+/* Collapsed sidebar state */
 .dashboard-content.sidebar-collapsed {
   margin-left: var(--sidebar-collapsed-width);
   width: calc(100% - var(--sidebar-collapsed-width));
 }
 
-/* Loader style for dashboard loading state */
-.dashboard-loading {
-  @apply text-xl font-semibold flex items-center justify-center h-[50vh];
-}
-
-/* Card styling for stats and other cards */
-.dashboard-card {
-  @apply bg-white/20 backdrop-blur-xl rounded-xl p-6 shadow-xl 
-         transition-all duration-300 hover:scale-[1.02] hover:bg-white/25
-         border border-white/15 hover:border-white/25;
-}
-
-/* Grid layout for stats cards */
-.stats-grid {
-  @apply grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto;
-}
-
-/* For single stat card, center it with a reasonable max-width */
-.stats-grid .dashboard-card:only-child {
-  max-width: 300px;
-  justify-self: center;
-}
-
-/* Center the stats section on the page */
-.stats-section {
-  @apply flex flex-col items-center justify-center min-h-[60vh];
-}
-
-/* Updated games section styling with better responsiveness */
-.games-section {
-  @apply flex flex-col items-center justify-center;
-  width: 100%;
-  max-width: 1200px; /* Limit maximum width */
-  margin: 0 auto; /* Center horizontally */
-  min-height: calc(100vh - 120px); /* Use min-height instead of fixed height */
-  padding: 2rem 2rem 4rem 2rem; /* Increased bottom padding for scrolling space */
-}
-
-.games-title {
-  @apply text-3xl md:text-4xl lg:text-5xl font-bold text-white text-center;
-  /* removed mb-8 as it's now handled by the container */
-}
-
-/* Better responsive grid with improved spacing and smaller minimum size */
-.games-grid {
-  @apply grid gap-6 w-full place-items-center;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  max-width: 1100px; /* Limit the maximum width of the grid */
-  margin: 0 auto; /* Center the grid */
-}
-
-/* Card title for GameCard */
-.card-title {
-  @apply text-white font-medium transition-all duration-300;
-}
-
-/* New animation for mobile tap hint */
-@keyframes tapHint {
-  0% { opacity: 0; transform: scale(0.8); }
-  20% { opacity: 0.8; transform: scale(1.1); }
-  60% { opacity: 0.5; transform: scale(0.9); }
-  100% { opacity: 0; transform: scale(1); }
-}
-
-.animate-tapHint {
-  animation: tapHint 2s ease-out forwards;
-  will-change: opacity, transform;
-}
-
-/* Responsive adjustments - refined for better scaling */
-@media (max-width: 1280px) {
-  .games-grid {
-    @apply grid-cols-2 gap-5;
-    max-width: 800px;
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .dashboard-content {
+    margin-left: 0;
+    width: 100%;
   }
   
-  .games-section {
-    padding: 1.5rem 1.5rem 3rem;
+  .dashboard-content.sidebar-collapsed {
+    margin-left: 0;
+    width: 100%;
   }
 }
 
+/* Dashboard-specific variables - scoped to dashboard pages only */
+.discord-dashboard {
+  /* Background colors for dashboard */
+  --bg-primary: #0f1923;
+  --bg-secondary: #1a2332;
+  --bg-tertiary: #243142;
+  --bg-card: #2b3544;
+  --bg-card-hover: #334155;
+
+  /* Text colors */
+  --text-primary: #ffffff;
+  --text-secondary: #b9bbbe;
+  --text-muted: #72767d;
+
+  /* Border and accent colors */
+  --border-color: #202225;
+  --accent-green: #57f287;
+  --accent-pink: #eb459e;
+  --accent-blue: #5865f2;
+}
+
+/* Main Dashboard Container - scoped to dashboard only */
+.discord-dashboard {
+  @apply w-full p-6;
+  color: var(--text-primary);
+  font-family: "Whitney", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* Override mobile responsiveness section to fix conflicts */
 @media (max-width: 768px) {
-  .dashboard-content,
-  .dashboard-content.sidebar-collapsed {
+  /* Override dashboard content margins for mobile */
+  .dashboard-content {
     margin-left: 0 !important;
     width: 100% !important;
-    padding-top: calc(var(--header-height) + 1rem); /* Add space for fixed mobile header */
-    transition: none; /* Remove transition on mobile to prevent content shift */
   }
   
-  /* Container for the entire dashboard - ensure proper z-index layering */
-  .dashboard-container {
-    position: relative;
-    z-index: 1;
+  /* Dashboard-specific mobile styles */
+  .discord-dashboard {
+    @apply p-4;
   }
-  
-  .games-title {
-    @apply text-3xl;
+
+  .discord-dashboard .dashboard-header {
+    @apply flex-col gap-4 items-start;
   }
-  
-  .games-grid {
-    @apply grid-cols-2 gap-4;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+
+  .discord-dashboard .date-badges {
+    @apply w-full justify-between;
   }
-  
-  .games-section {
-    padding: 1rem 1rem 2.5rem;
-    min-height: calc(100vh - 100px);
+
+  .discord-dashboard .stats-container {
+    @apply gap-3;
+  }
+
+  .discord-dashboard .stats-section {
+    @apply p-3;
+  }
+
+  .discord-dashboard .time-card,
+  .discord-dashboard .rank-card {
+    @apply p-3;
+  }
+}
+
+/* Header Section - Dashboard specific */
+.discord-dashboard .dashboard-header {
+  @apply flex items-center justify-between mb-6 p-4 rounded-lg;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+.discord-dashboard .user-info {
+  @apply flex items-center gap-4;
+}
+
+.discord-dashboard .user-avatar {
+  @apply w-16 h-16 rounded-full flex items-center justify-center;
+  background-color: var(--bg-tertiary);
+}
+
+.discord-dashboard .user-details {
+  @apply flex flex-col;
+}
+
+.discord-dashboard .user-name {
+  @apply text-xl font-semibold;
+  color: var(--text-primary);
+}
+
+.discord-dashboard .user-handle {
+  @apply text-sm;
+  color: var(--text-secondary);
+}
+
+.discord-dashboard .date-badges {
+  @apply flex items-center gap-3;
+}
+
+.discord-dashboard .date-badge {
+  @apply px-4 py-2 rounded-lg;
+  background-color: var(--bg-tertiary);
+}
+
+.discord-dashboard .date-label {
+  @apply block text-xs;
+  color: var(--text-muted);
+}
+
+.discord-dashboard .date-value {
+  @apply block text-sm font-medium;
+  color: var(--text-primary);
+}
+
+.discord-dashboard .refresh-btn {
+  @apply px-3 py-2 rounded-lg border;
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.discord-dashboard .refresh-btn:hover {
+  background-color: var(--bg-card-hover);
+}
+
+/* Main Stats Container - Dashboard specific */
+.discord-dashboard .stats-container {
+  @apply grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6;
+}
+
+/* Stats Section - Dashboard specific */
+.discord-dashboard .stats-section {
+  @apply p-4 rounded-lg;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+.discord-dashboard .section-header {
+  @apply flex items-center gap-2 mb-4;
+}
+
+.discord-dashboard .section-header h2 {
+  @apply text-lg font-semibold;
+  color: var(--text-primary);
+}
+
+.discord-dashboard .section-header .lucide {
+  color: var(--text-secondary);
+}
+
+/* Rank Cards - Dashboard specific */
+.discord-dashboard .rank-cards {
+  @apply space-y-3;
+}
+
+.discord-dashboard .rank-card {
+  @apply p-4 rounded-lg flex items-center justify-between;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.discord-dashboard .rank-card:hover {
+  background-color: var(--bg-card-hover);
+}
+
+.discord-dashboard .rank-card.loading {
+  @apply animate-pulse;
+}
+
+.discord-dashboard .rank-card.error {
+  opacity: 0.5;
+}
+
+.discord-dashboard .rank-label {
+  @apply text-sm font-medium;
+  color: var(--text-secondary);
+}
+
+.discord-dashboard .rank-value {
+  @apply text-lg font-bold;
+  color: var(--text-primary);
+}
+
+/* Time Period Cards - Dashboard specific */
+.discord-dashboard .time-period-cards {
+  @apply space-y-3;
+}
+
+.discord-dashboard .time-card {
+  @apply p-4 rounded-lg flex items-center justify-between;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.discord-dashboard .time-card:hover {
+  background-color: var(--bg-card-hover);
+}
+
+.discord-dashboard .time-card.loading {
+  @apply animate-pulse;
+}
+
+.discord-dashboard .time-card.error {
+  opacity: 0.5;
+}
+
+.discord-dashboard .time-period {
+  @apply text-lg font-bold;
+  color: var(--text-primary);
+  min-width: 32px;
+}
+
+.discord-dashboard .time-value {
+  @apply text-sm font-medium;
+  color: var(--text-primary);
+}
+
+.discord-dashboard .time-value span {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Bottom Section - Dashboard specific */
+.discord-dashboard .bottom-section {
+  @apply grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6;
+}
+
+/* Activity Overview - Dashboard specific */
+.discord-dashboard .activity-overview {
+  @apply p-4 rounded-lg;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+.discord-dashboard .activity-summary {
+  @apply space-y-3;
+}
+
+.discord-dashboard .activity-item {
+  @apply flex items-center gap-3 p-3 rounded-lg;
+  background-color: var(--bg-tertiary);
+}
+
+.discord-dashboard .activity-label {
+  @apply flex-1 text-sm;
+  color: var(--text-secondary);
+}
+
+.discord-dashboard .activity-value {
+  @apply text-sm font-medium;
+  color: var(--text-primary);
+}
+
+/* Charts Section - Dashboard specific */
+.discord-dashboard .charts-section {
+  @apply p-4 rounded-lg;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+.discord-dashboard .charts-section .section-header {
+  @apply justify-between;
+}
+
+.discord-dashboard .chart-legend {
+  @apply flex items-center gap-4;
+}
+
+.discord-dashboard .legend-item {
+  @apply flex items-center gap-2 text-sm;
+  color: var(--text-secondary);
+}
+
+.discord-dashboard .legend-dot {
+  @apply w-3 h-3 rounded-full;
+}
+
+.discord-dashboard .legend-dot.message {
+  background-color: var(--accent-green);
+}
+
+.discord-dashboard .legend-dot.voice {
+  background-color: var(--accent-pink);
+}
+
+.discord-dashboard .chart-container {
+  @apply mt-4 h-48 rounded-lg overflow-hidden;
+  background-color: var(--bg-tertiary);
+}
+
+/* Footer - Dashboard specific */
+.discord-dashboard .dashboard-footer {
+  @apply text-center text-sm py-4;
+  color: var(--text-muted);
+}
+
+/* Loading Animation - Dashboard specific */
+.discord-dashboard .loading-shimmer {
+  @apply animate-pulse;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  height: 1rem;
+  border-radius: 4px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Global Error - Dashboard specific */
+.discord-dashboard .global-error {
+  @apply fixed bottom-4 right-4 p-4 rounded-lg border flex items-center;
+  background-color: rgba(237, 66, 69, 0.1);
+  border-color: rgba(237, 66, 69, 0.3);
+  color: #ed4245;
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+}
+
+/* Responsive Design - Dashboard specific */
+@media (max-width: 1024px) {
+  .discord-dashboard .stats-container {
+    @apply grid-cols-1 gap-4;
+  }
+
+  .discord-dashboard .bottom-section {
+    @apply grid-cols-1 gap-4;
   }
 }
 
 @media (max-width: 640px) {
-  .games-grid {
-    @apply grid-cols-1 gap-4;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    max-width: 400px;
+  .discord-dashboard .user-info {
+    @apply gap-3;
   }
-  
-  .games-section {
-    padding: 1rem 0.75rem 2rem;
+
+  .discord-dashboard .user-avatar {
+    @apply w-12 h-12;
   }
-  
-  .games-title {
-    @apply text-2xl;
-  }
-}
 
-@media (max-width: 480px) {
-  .games-grid {
-    grid-template-columns: 1fr; /* Single column for very small screens */
-    max-width: 280px;
-  }
-}
-
-/* Additional utility classes */
-.card-value {
-  @apply text-white text-2xl font-bold;
-}
-
-/* Error message styling */
-.dashboard-error {
-  @apply text-center text-red-300 mb-6 p-4 rounded-lg bg-red-500/10 backdrop-blur-sm;
-}
-
-/* Chart container and styling */
-.chart-container {
-  @apply bg-white/20 backdrop-blur-xl rounded-xl p-6 shadow-xl 
-         border border-white/15 transition-all duration-300
-         hover:bg-white/25 hover:border-white/25;
-  margin-top: 2rem;
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.chart-header {
-  @apply flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6;
-}
-
-.chart-title {
-  @apply text-xl md:text-2xl font-bold text-white mb-1;
-}
-
-.chart-subtitle {
-  @apply text-sm text-white/70;
-}
-
-.chart-stats {
-  @apply flex gap-4 mt-3 sm:mt-0;
-}
-
-.chart-stat {
-  @apply flex flex-col items-center text-center;
-}
-
-.chart-stat-value {
-  @apply text-lg font-bold text-white;
-}
-
-.chart-stat-label {
-  @apply text-xs text-white/60 uppercase tracking-wide;
-}
-
-.chart-content {
-  @apply w-full;
-}
-
-/* Chart loading state */
-.chart-loading {
-  @apply flex items-center justify-center min-h-[320px];
-}
-
-/* Chart error state */
-.chart-error {
-  @apply flex items-center justify-center min-h-[320px];
-}
-
-.error-content {
-  @apply text-center;
-}
-
-.error-icon {
-  @apply text-4xl mb-3;
-}
-
-.error-title {
-  @apply text-lg font-semibold text-white mb-2;
-}
-
-.error-message {
-  @apply text-sm text-white/70;
-}
-
-/* Chart empty state */
-.chart-empty {
-  @apply flex items-center justify-center min-h-[320px];
-}
-
-.empty-content {
-  @apply text-center;
-}
-
-.empty-icon {
-  @apply text-4xl mb-3;
-}
-
-.empty-title {
-  @apply text-lg font-semibold text-white mb-2;
-}
-
-.empty-message {
-  @apply text-sm text-white/70;
-}
-
-/* Custom tooltip styling */
-.chart-tooltip {
-  @apply bg-gray-900/95 backdrop-blur-sm rounded-lg p-3 shadow-xl border border-white/20;
-}
-
-.chart-tooltip-label {
-  @apply text-white font-medium text-sm mb-1;
-}
-
-.chart-tooltip-value {
-  @apply text-white/90 text-sm flex items-center gap-2;
-}
-
-.chart-tooltip-indicator {
-  @apply w-3 h-3 rounded-full bg-[#FF4655] inline-block;
-}
-
-/* Responsive chart adjustments */
-@media (max-width: 768px) {
-  .chart-container {
-    @apply p-4 mx-4;
-    margin-top: 1.5rem;
-  }
-  
-  .chart-header {
-    @apply flex-col items-start;
-  }
-  
-  .chart-stats {
-    @apply w-full justify-center mt-4;
-  }
-  
-  .chart-title {
+  .discord-dashboard .user-name {
     @apply text-lg;
   }
+
+  .discord-dashboard .chart-legend {
+    @apply gap-2;
+  }
+
+  .discord-dashboard .legend-item {
+    @apply text-xs;
+  }
 }
 
-/* Dashboard greeting animation enhancement */
-.dashboard-greeting {
-  @apply transform transition-all duration-500;
+/* Accessibility - Dashboard specific */
+@media (prefers-reduced-motion: reduce) {
+  .discord-dashboard .time-card,
+  .discord-dashboard .rank-card,
+  .discord-dashboard .loading-shimmer {
+    transition: none;
+    animation: none;
+  }
 }
 
-/* We can remove these custom utilities and use arbitrary values directly */
+/* Focus states - Dashboard specific */
+.discord-dashboard .refresh-btn:focus-visible,
+.discord-dashboard .time-card:focus-visible,
+.discord-dashboard .rank-card:focus-visible {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+  ring-offset-color: var(--bg-primary);
+}
+
+/* High contrast mode - Dashboard specific */
+@media (prefers-contrast: high) {
+  .discord-dashboard {
+    --border-color: #ffffff;
+    --text-secondary: #ffffff;
+  }
+}
