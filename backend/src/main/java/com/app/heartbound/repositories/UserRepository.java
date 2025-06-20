@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, String> {
@@ -30,6 +31,16 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     // Add this method to your existing UserRepository interface
     List<User> findByInventoryContaining(Shop item);
+
+    /**
+     * Calculate a user's rank based on message count using PostgreSQL window functions.
+     * Returns the rank where 1 = highest message count, 2 = second highest, etc.
+     * Uses PostgreSQL's RANK() function for optimal performance.
+     */
+    @Query(value = "SELECT RANK() OVER (ORDER BY message_count DESC NULLS LAST) " +
+                   "FROM users WHERE id = :userId", 
+           nativeQuery = true)
+    Optional<Integer> findMessageRankById(@Param("userId") String userId);
 
     // **OPTIMIZATION: Batch operations for QueueService performance**
     

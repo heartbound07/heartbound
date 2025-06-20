@@ -178,11 +178,11 @@ export function DashboardPage() {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="stats-container"
             >
-              {/* Server Ranks Section */}
+              {/* Server Ranking Section */}
               <div className="stats-section">
                 <div className="section-header">
                   <MessageSquare className="h-5 w-5" />
-                  <h2>Message Stats</h2>
+                  <h2>Server Ranking</h2>
                 </div>
                 <div className="rank-cards">
                   <AnimatePresence mode="wait">
@@ -197,8 +197,8 @@ export function DashboardPage() {
                         animate={{ opacity: 1, scale: 1 }}
                         className="rank-card"
                       >
-                        <div className="rank-label">Total Messages</div>
-                        <div className="rank-value">#{formatNumber(userProfile?.messageCount || 0)}</div>
+                        <div className="rank-label">Messages</div>
+                        <div className="rank-value">#{userProfile?.messageRank || '--'}</div>
                       </motion.div>
                     )}
                   </AnimatePresence>

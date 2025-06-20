@@ -304,6 +304,9 @@ public class UserService {
             }
         }
         
+        // Calculate user's message rank for server-wide ranking
+        Integer messageRank = userRepository.findMessageRankById(user.getId()).orElse(null);
+        
         // Build and return the DTO with all user profile data
         return UserProfileDTO.builder()
                 .id(user.getId())
@@ -319,6 +322,7 @@ public class UserService {
                 .level(user.getLevel())
                 .experience(user.getExperience())
                 .messageCount(user.getMessageCount()) // Add the message count field
+                .messageRank(messageRank) // Add the message rank field
                 .messagesToday(user.getMessagesToday()) // Add time-based message counts
                 .messagesThisWeek(user.getMessagesThisWeek())
                 .messagesThisTwoWeeks(user.getMessagesThisTwoWeeks())

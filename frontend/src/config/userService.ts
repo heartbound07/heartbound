@@ -15,6 +15,7 @@ export interface UserProfileDTO {
   level?: number;
   experience?: number;
   messageCount?: number;
+  messageRank?: number;
   messagesToday?: number;
   messagesThisWeek?: number;
   messagesThisTwoWeeks?: number;
