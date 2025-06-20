@@ -429,13 +429,23 @@ public class ChatActivityListener extends ListenerAdapter {
             // 📊 NEW: Track daily message stats for chart display
             userService.trackDailyMessageStat(userId);
             
+            // Initialize user level if null
+            if (user.getLevel() == null) {
+                user.setLevel(1);
+                userUpdated = true;
+            }
+            if (user.getExperience() == null) {
+                user.setExperience(0);
+                userUpdated = true;
+            }
+            
             int awardedXp = 0;
-            int initialLevel = (user.getLevel() != null) ? user.getLevel() : 1;
+            int initialLevel = user.getLevel(); // Safe to access now, guaranteed to be non-null
             
             if (levelingEnabled) {
                 log.debug("[XP DEBUG] About to award XP to {}: Current XP={}, Level={}, Adding {} XP",
                     userId, user.getExperience(), user.getLevel(), xpToAward);
-                int currentXp = user.getExperience() != null ? user.getExperience() : 0;
+                int currentXp = user.getExperience();
                 user.setExperience(currentXp + xpToAward);
                 userUpdated = true; // Mark user for update
                 awardedXp = xpToAward;
@@ -459,7 +469,7 @@ public class ChatActivityListener extends ListenerAdapter {
                 checkAndProcessLevelUp(user, userId, event.getChannel()); // Note: checkAndProcessLevelUp calls updateUser internally on level up
                 
                 // If user didn't level up, send contextual XP notification to original channel
-                if (initialLevel == user.getLevel()) {
+                if (initialLevel == user.getLevel().intValue()) {
                     EmbedBuilder notificationEmbed = new EmbedBuilder();
                     notificationEmbed.setDescription(String.format("<@%s>! You have gained %d xp!", 
                                                 userId, awardedXp));
@@ -503,7 +513,7 @@ public class ChatActivityListener extends ListenerAdapter {
             
             // Persist changes if user was updated (message count, XP, credits) but no level up happened
             // Level-up already saves changes internally in checkAndProcessLevelUp
-            if (userUpdated && initialLevel == user.getLevel()) {
+            if (userUpdated && initialLevel == user.getLevel().intValue()) {
                 try {
                     userService.updateUser(user);
                     log.debug("Persisted user {} state after activity processing.", userId);
