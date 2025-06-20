@@ -318,7 +318,14 @@ export function DashboardPage() {
             transition={{ duration: 0.6, delay: 0.5 }}
             className="dashboard-footer"
           >
-            <span>Dashboard Lookback: Last 30 days — Timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
+            <span>Last Refreshed: {new Date().toLocaleDateString('en-US', { 
+              weekday: 'long',
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}</span>
           </motion.div>
 
           {/* Global Error */}
