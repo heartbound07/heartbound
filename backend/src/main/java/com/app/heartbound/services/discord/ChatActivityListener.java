@@ -477,8 +477,8 @@ public class ChatActivityListener extends ListenerAdapter {
                         message -> {
                             log.debug("[XP NOTIFICATION] Sent contextual XP notification to user {} in channel {}", 
                                 userId, event.getChannel().getId());
-                            // Delete the message after 5 seconds for minimal disruption
-                            message.delete().queueAfter(5, TimeUnit.SECONDS);
+                            // Delete the message after 2 seconds for minimal disruption
+                            message.delete().queueAfter(2, TimeUnit.SECONDS);
                         },
                         failure -> log.error("[XP NOTIFICATION] Failed to send contextual XP notification to user {} in channel {}: {}", 
                             userId, event.getChannel().getId(), failure.getMessage())
