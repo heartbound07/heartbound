@@ -117,6 +117,9 @@ public class UserVoiceActivityService extends ListenerAdapter {
                     // Update voice time counters
                     userService.incrementVoiceTimeCounters(user, (int) sessionMinutes);
                     
+                    // 📊 Track daily voice activity for chart display
+                    userService.trackDailyVoiceActivityStat(userId, (int) sessionMinutes);
+                    
                     log.info("Ended voice session for user {} (duration: {} minutes)", 
                         userId, sessionMinutes);
                 } else {

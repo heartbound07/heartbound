@@ -122,12 +122,53 @@ export interface DailyActivityDataDTO {
   count: number;
 }
 
+export interface CombinedDailyActivityDTO {
+  date: string; // Format: YYYY-MM-DD
+  messages: number;
+  voiceMinutes: number;
+}
+
 export const getDailyMessageActivity = async (days: number = 30): Promise<DailyActivityDataDTO[]> => {
   try {
     const response = await httpClient.get(`/users/me/activity/daily-messages?days=${days}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching daily message activity:', error);
+    throw error;
+  }
+};
+
+export const getDailyVoiceActivity = async (days: number = 30): Promise<DailyActivityDataDTO[]> => {
+  try {
+    const response = await httpClient.get(`/users/me/activity/daily-voice?days=${days}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching daily voice activity:', error);
+    throw error;
+  }
+};
+
+export const getCombinedDailyActivity = async (days: number = 30): Promise<CombinedDailyActivityDTO[]> => {
+  try {
+    // Fetch both message and voice data in parallel
+    const [messageData, voiceData] = await Promise.all([
+      getDailyMessageActivity(days),
+      getDailyVoiceActivity(days)
+    ]);
+    
+    // Create a map of voice data for quick lookup
+    const voiceDataMap = new Map(voiceData.map(item => [item.date, item.count]));
+    
+    // Combine the data, using message data as the base since it should always exist
+    const combinedData: CombinedDailyActivityDTO[] = messageData.map(messageItem => ({
+      date: messageItem.date,
+      messages: messageItem.count,
+      voiceMinutes: voiceDataMap.get(messageItem.date) || 0
+    }));
+    
+    return combinedData;
+  } catch (error) {
+    console.error('Error fetching combined daily activity:', error);
     throw error;
   }
 };

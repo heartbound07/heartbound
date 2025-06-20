@@ -259,4 +259,22 @@ public class UserController {
         
         return ResponseEntity.ok(activityData);
     }
+
+    /**
+     * Endpoint to get the authenticated user's daily voice activity
+     */
+    @GetMapping("/me/activity/daily-voice")
+    public ResponseEntity<List<DailyActivityDataDTO>> getCurrentUserDailyVoiceActivity(
+            @RequestParam(defaultValue = "30") int days,
+            Authentication authentication) {
+        
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        String userId = authentication.getName();
+        List<DailyActivityDataDTO> voiceActivityData = userService.getUserDailyVoiceActivity(userId, days);
+        
+        return ResponseEntity.ok(voiceActivityData);
+    }
 }

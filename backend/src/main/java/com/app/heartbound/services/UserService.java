@@ -8,9 +8,11 @@ import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.entities.DailyMessageStat;
+import com.app.heartbound.entities.DailyVoiceActivityStat;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
 import com.app.heartbound.repositories.DailyMessageStatRepository;
+import com.app.heartbound.repositories.DailyVoiceActivityStatRepository;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import com.app.heartbound.config.CacheConfig;
@@ -44,6 +46,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final ShopRepository shopRepository;
     private final DailyMessageStatRepository dailyMessageStatRepository;
+    private final DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository;
     private final CacheConfig cacheConfig;
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
@@ -53,10 +56,11 @@ public class UserService {
 
     // Constructor-based dependency injection
     @Autowired
-    public UserService(UserRepository userRepository, ShopRepository shopRepository, DailyMessageStatRepository dailyMessageStatRepository, CacheConfig cacheConfig) {
+    public UserService(UserRepository userRepository, ShopRepository shopRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, CacheConfig cacheConfig) {
         this.userRepository = userRepository;
         this.shopRepository = shopRepository;
         this.dailyMessageStatRepository = dailyMessageStatRepository;
+        this.dailyVoiceActivityStatRepository = dailyVoiceActivityStatRepository;
         this.cacheConfig = cacheConfig;
     }
 
@@ -797,5 +801,93 @@ public class UserService {
         } catch (Exception e) {
             logger.error("Failed to track daily message stat for user {}: {}", userId, e.getMessage(), e);
         }
+    }
+
+    /**
+     * Track daily voice activity statistics for dashboard charts
+     * This method is transactional and handles the database upsert operation
+     * Also invalidates the user's daily activity cache to ensure fresh data
+     * 
+     * @param userId the Discord user ID
+     * @param voiceMinutes the minutes to add to today's voice activity
+     */
+    @Transactional
+    public void trackDailyVoiceActivityStat(String userId, int voiceMinutes) {
+        try {
+            LocalDate today = LocalDate.now();
+            
+            // Use the repository's optimized upsert query to increment daily voice minutes
+            dailyVoiceActivityStatRepository.incrementVoiceMinutes(userId, today, voiceMinutes);
+            
+            // Invalidate cache to ensure next request gets fresh data
+            cacheConfig.invalidateDailyMessageActivityCache(userId);
+            
+            logger.debug("[DAILY VOICE STATS] Incremented daily voice minutes for user {} by {} minutes on {} and invalidated cache", userId, voiceMinutes, today);
+        } catch (Exception e) {
+            logger.error("Failed to track daily voice activity stat for user {}: {}", userId, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Get daily voice activity for a user over the specified number of days
+     * Uses cache-aside strategy for improved performance
+     *
+     * @param userId the ID of the user
+     * @param days the number of days to fetch (starting from today going back)
+     * @return list of daily activity data
+     */
+    @SuppressWarnings("unchecked")
+    public List<DailyActivityDataDTO> getUserDailyVoiceActivity(String userId, int days) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return new ArrayList<>();
+        }
+
+        // Cache-aside strategy: Generate cache key
+        String cacheKey = "voice_activity_stats_" + userId;
+        
+        // Try to get data from cache first
+        List<Object> cachedData = cacheConfig.getDailyMessageActivityCache().getIfPresent(cacheKey);
+        if (cachedData != null) {
+            logger.debug("Cache hit for daily voice activity data: userId={}", userId);
+            // Cast cached objects back to DTOs
+            return cachedData.stream()
+                    .map(obj -> (DailyActivityDataDTO) obj)
+                    .collect(Collectors.toList());
+        }
+
+        logger.debug("Cache miss for daily voice activity data: userId={}, fetching from database", userId);
+        
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(days - 1);
+
+        // Get existing daily voice activity stats from database
+        List<DailyVoiceActivityStat> existingStats = dailyVoiceActivityStatRepository.findByUserAndDateBetweenOrderByDateAsc(
+            user, startDate, endDate);
+
+        // Create a map for quick lookup
+        Map<LocalDate, Long> statsMap = existingStats.stream()
+            .collect(Collectors.toMap(
+                DailyVoiceActivityStat::getDate,
+                DailyVoiceActivityStat::getVoiceMinutes
+            ));
+
+        // Generate complete date range with zeros for missing dates
+        List<DailyActivityDataDTO> result = new ArrayList<>();
+        LocalDate currentDate = startDate;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        while (!currentDate.isAfter(endDate)) {
+            Long count = statsMap.getOrDefault(currentDate, 0L);
+            result.add(new DailyActivityDataDTO(currentDate.format(formatter), count));
+            currentDate = currentDate.plusDays(1);
+        }
+
+        // Store result in cache for future requests
+        List<Object> cacheableData = new ArrayList<>(result);
+        cacheConfig.getDailyMessageActivityCache().put(cacheKey, cacheableData);
+        logger.debug("Cached daily voice activity data for userId={}", userId);
+
+        return result;
     }
 }

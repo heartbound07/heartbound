@@ -9,10 +9,10 @@ import {
   ResponsiveContainer,
   TooltipProps
 } from 'recharts';
-import { DailyActivityDataDTO } from '@/config/userService';
+import { CombinedDailyActivityDTO } from '@/config/userService';
 
 interface DailyActivityChartProps {
-  data: DailyActivityDataDTO[];
+  data: CombinedDailyActivityDTO[];
   loading: boolean;
   error: string | null;
 }
@@ -28,13 +28,31 @@ const CustomTooltip: React.FC<TooltipProps<number, string>> = ({ active, payload
       year: 'numeric'
     });
     
+    const formatVoiceTime = (minutes: number) => {
+      if (minutes === 0) return "0 mins"
+      const hours = Math.floor(minutes / 60)
+      const remainingMinutes = minutes % 60
+      if (hours === 0) {
+        return `${remainingMinutes} mins`
+      } else if (remainingMinutes === 0) {
+        return hours === 1 ? `${hours} hour` : `${hours} hours`
+      } else {
+        return `${hours}h ${remainingMinutes}m`
+      }
+    }
+    
     return (
       <div className="bg-gray-900/90 border border-gray-700 rounded-lg p-3 backdrop-blur-sm">
-        <p className="text-white text-sm font-medium mb-1">{formattedDate}</p>
-        <p className="text-white text-sm">
-          <span className="inline-block w-3 h-3 bg-[#57f287] rounded-full mr-2"></span>
-          Messages: {payload[0].value}
-        </p>
+        <p className="text-white text-sm font-medium mb-2">{formattedDate}</p>
+        {payload.map((entry, index) => (
+          <p key={index} className="text-white text-sm mb-1">
+            <span 
+              className="inline-block w-3 h-3 rounded-full mr-2" 
+              style={{ backgroundColor: entry.color }}
+            ></span>
+            {entry.dataKey === 'messages' ? `Messages: ${entry.value}` : `Voice: ${formatVoiceTime(Number(entry.value))}`}
+          </p>
+        ))}
       </div>
     );
   }
@@ -140,13 +158,27 @@ export const DailyActivityChart: React.FC<DailyActivityChartProps> = ({ data, lo
           <Tooltip content={<CustomTooltip />} />
           <Line
             type="monotone"
-            dataKey="count"
+            dataKey="messages"
             stroke="#57f287"
             strokeWidth={2.5}
             dot={false}
             activeDot={{
               r: 5,
               fill: '#57f287',
+              stroke: '#ffffff',
+              strokeWidth: 2
+            }}
+            connectNulls={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="voiceMinutes"
+            stroke="#eb459e"
+            strokeWidth={2.5}
+            dot={false}
+            activeDot={{
+              r: 5,
+              fill: '#eb459e',
               stroke: '#ffffff',
               strokeWidth: 2
             }}

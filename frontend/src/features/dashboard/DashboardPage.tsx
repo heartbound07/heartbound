@@ -6,8 +6,8 @@ import { Volume2, BarChart3, Hash, RefreshCw, AlertCircle } from "lucide-react"
 import {
   getCurrentUserProfile,
   type UserProfileDTO,
-  getDailyMessageActivity,
-  type DailyActivityDataDTO,
+  getCombinedDailyActivity,
+  type CombinedDailyActivityDTO,
 } from "@/config/userService"
 import { DailyActivityChart } from "./components/DailyActivityChart"
 import { Button } from "@/components/ui/button"
@@ -32,7 +32,7 @@ export function DashboardPage() {
   const [statsError, setStatsError] = useState<string | null>(null)
 
   // State for daily activity chart data
-  const [activityData, setActivityData] = useState<DailyActivityDataDTO[]>([])
+  const [activityData, setActivityData] = useState<CombinedDailyActivityDTO[]>([])
   const [activityLoading, setActivityLoading] = useState(true)
   const [activityError, setActivityError] = useState<string | null>(null)
 
@@ -78,7 +78,7 @@ export function DashboardPage() {
     try {
       setActivityLoading(true)
       setActivityError(null)
-      const data = await getDailyMessageActivity(30) // Last 30 days
+      const data = await getCombinedDailyActivity(30) // Last 30 days
       setActivityData(data)
     } catch (error) {
       console.error("Error fetching daily activity:", error)
