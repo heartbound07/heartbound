@@ -819,8 +819,8 @@ public class UserService {
             // Use the repository's optimized upsert query to increment daily voice minutes
             dailyVoiceActivityStatRepository.incrementVoiceMinutes(userId, today, voiceMinutes);
             
-            // Invalidate cache to ensure next request gets fresh data
-            cacheConfig.invalidateDailyMessageActivityCache(userId);
+            // Invalidate voice activity cache to ensure next request gets fresh data
+            cacheConfig.invalidateDailyVoiceActivityCache(userId);
             
             logger.debug("[DAILY VOICE STATS] Incremented daily voice minutes for user {} by {} minutes on {} and invalidated cache", userId, voiceMinutes, today);
         } catch (Exception e) {

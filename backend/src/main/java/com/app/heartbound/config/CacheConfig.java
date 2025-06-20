@@ -251,6 +251,17 @@ public class CacheConfig {
     }
 
     /**
+     * Invalidates daily voice activity cache for a specific user.
+     * Use when a user's daily voice statistics are updated.
+     */
+    public void invalidateDailyVoiceActivityCache(String userId) {
+        if (userId != null) {
+            dailyMessageActivityCache.invalidate("voice_activity_stats_" + userId);
+            log.debug("Daily voice activity cache invalidated for user: {}", userId);
+        }
+    }
+
+    /**
      * Invalidates all caches. Use with caution - only for scenarios like
      * system maintenance or emergency cache refresh.
      */

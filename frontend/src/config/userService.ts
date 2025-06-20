@@ -119,7 +119,7 @@ export const getCurrentUserProfile = async (): Promise<UserProfileDTO> => {
 
 export interface DailyActivityDataDTO {
   date: string; // Format: YYYY-MM-DD
-  count: number;
+  count: number; // Note: Backend returns Long, we convert to number
 }
 
 export interface CombinedDailyActivityDTO {
@@ -157,12 +157,12 @@ export const getCombinedDailyActivity = async (days: number = 30): Promise<Combi
     ]);
     
     // Create a map of voice data for quick lookup
-    const voiceDataMap = new Map(voiceData.map(item => [item.date, item.count]));
+    const voiceDataMap = new Map(voiceData.map(item => [item.date, Number(item.count)]));
     
     // Combine the data, using message data as the base since it should always exist
     const combinedData: CombinedDailyActivityDTO[] = messageData.map(messageItem => ({
       date: messageItem.date,
-      messages: messageItem.count,
+      messages: Number(messageItem.count),
       voiceMinutes: voiceDataMap.get(messageItem.date) || 0
     }));
     
