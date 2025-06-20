@@ -32,14 +32,16 @@ public interface DailyMessageStatRepository extends JpaRepository<DailyMessageSt
     /**
      * Increment message count for a user on a specific date
      * If the record doesn't exist, it will be created with count 1
+     * PostgreSQL version using ON CONFLICT instead of ON DUPLICATE KEY UPDATE
      */
     @Modifying
     @Query(value = """
         INSERT INTO daily_message_stats (user_id, date, message_count, created_at, updated_at)
         VALUES (:userId, :date, 1, NOW(), NOW())
-        ON DUPLICATE KEY UPDATE 
-        message_count = message_count + 1,
-        updated_at = NOW()
+        ON CONFLICT (user_id, date) 
+        DO UPDATE SET 
+            message_count = daily_message_stats.message_count + 1,
+            updated_at = NOW()
         """, nativeQuery = true)
     int incrementMessageCount(@Param("userId") String userId, @Param("date") LocalDate date);
     

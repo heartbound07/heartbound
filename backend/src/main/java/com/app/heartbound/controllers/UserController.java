@@ -2,6 +2,7 @@ package com.app.heartbound.controllers;
 
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.dto.UpdateProfileDTO;
+import com.app.heartbound.dto.DailyActivityDataDTO;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
@@ -239,5 +240,23 @@ public class UserController {
         }
         
         return ResponseEntity.ok(userService.mapToProfileDTO(user));
+    }
+    
+    /**
+     * Endpoint to get the authenticated user's daily message activity
+     */
+    @GetMapping("/me/activity/daily-messages")
+    public ResponseEntity<List<DailyActivityDataDTO>> getCurrentUserDailyActivity(
+            @RequestParam(defaultValue = "30") int days,
+            Authentication authentication) {
+        
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        String userId = authentication.getName();
+        List<DailyActivityDataDTO> activityData = userService.getUserDailyActivity(userId, days);
+        
+        return ResponseEntity.ok(activityData);
     }
 }

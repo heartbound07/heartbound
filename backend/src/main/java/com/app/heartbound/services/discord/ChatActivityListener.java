@@ -434,6 +434,9 @@ public class ChatActivityListener extends ListenerAdapter {
             incrementTimeBasedCounters(user);
             userUpdated = true; // Ensure user is marked for update
             
+            // 📊 NEW: Track daily message stats for chart display
+            userService.trackDailyMessageStat(userId);
+            
             int awardedXp = 0;
             int initialLevel = (user.getLevel() != null) ? user.getLevel() : 1;
             

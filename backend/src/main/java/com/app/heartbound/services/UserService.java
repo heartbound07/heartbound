@@ -3,11 +3,14 @@ package com.app.heartbound.services;
 import com.app.heartbound.dto.UserDTO;
 import com.app.heartbound.dto.UpdateProfileDTO;
 import com.app.heartbound.dto.UserProfileDTO;
+import com.app.heartbound.dto.DailyActivityDataDTO;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.entities.Shop;
+import com.app.heartbound.entities.DailyMessageStat;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
+import com.app.heartbound.repositories.DailyMessageStatRepository;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import org.slf4j.Logger;
@@ -19,7 +22,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -35,17 +41,19 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final ShopRepository shopRepository;
+    private final DailyMessageStatRepository dailyMessageStatRepository;
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     // Read admin Discord ID from environment variables
     @Value("${admin.discord.id}")
     private String adminDiscordId;
 
-    // Constructor-based dependency injection for UserRepository and ShopRepository
+    // Constructor-based dependency injection
     @Autowired
-    public UserService(UserRepository userRepository, ShopRepository shopRepository) {
+    public UserService(UserRepository userRepository, ShopRepository shopRepository, DailyMessageStatRepository dailyMessageStatRepository) {
         this.userRepository = userRepository;
         this.shopRepository = shopRepository;
+        this.dailyMessageStatRepository = dailyMessageStatRepository;
     }
 
     /**
@@ -561,6 +569,63 @@ public class UserService {
 
     /**
      * Maps a User entity to a UserProfileDTO.
-     * Used for public profile views.
+     * Get daily message activity for a user over the specified number of days
+     *
+     * @param userId the ID of the user
+     * @param days the number of days to fetch (starting from today going back)
+     * @return list of daily activity data
      */
+    public List<DailyActivityDataDTO> getUserDailyActivity(String userId, int days) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return new ArrayList<>();
+        }
+
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(days - 1);
+
+        // Get existing daily message stats from database
+        List<DailyMessageStat> existingStats = dailyMessageStatRepository.findByUserAndDateBetweenOrderByDateAsc(
+            user, startDate, endDate);
+
+        // Create a map for quick lookup
+        Map<LocalDate, Long> statsMap = existingStats.stream()
+            .collect(Collectors.toMap(
+                DailyMessageStat::getDate,
+                DailyMessageStat::getMessageCount
+            ));
+
+        // Generate complete date range with zeros for missing dates
+        List<DailyActivityDataDTO> result = new ArrayList<>();
+        LocalDate currentDate = startDate;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        while (!currentDate.isAfter(endDate)) {
+            Long count = statsMap.getOrDefault(currentDate, 0L);
+            result.add(new DailyActivityDataDTO(currentDate.format(formatter), count));
+            currentDate = currentDate.plusDays(1);
+        }
+
+        return result;
+    }
+
+    /**
+     * Track daily message statistics for dashboard charts
+     * This method is transactional and handles the database upsert operation
+     * 
+     * @param userId the Discord user ID
+     */
+    @Transactional
+    public void trackDailyMessageStat(String userId) {
+        try {
+            LocalDate today = LocalDate.now();
+            
+            // Use the repository's optimized upsert query to increment daily count
+            dailyMessageStatRepository.incrementMessageCount(userId, today);
+            
+            logger.debug("[DAILY STATS] Incremented daily message count for user {} on {}", userId, today);
+        } catch (Exception e) {
+            logger.error("Failed to track daily message stat for user {}: {}", userId, e.getMessage(), e);
+        }
+    }
 }
