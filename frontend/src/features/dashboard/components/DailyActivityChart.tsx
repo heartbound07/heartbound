@@ -102,10 +102,10 @@ export const DailyActivityChart: React.FC<DailyActivityChartProps> = ({ data, lo
         <LineChart
           data={data}
           margin={{
-            top: 10,
+            top: 25,
             right: 15,
-            left: 10,
-            bottom: 25,
+            left: 3,
+            bottom: 10,
           }}
         >
           <CartesianGrid 
