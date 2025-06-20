@@ -32,7 +32,7 @@ const CustomTooltip: React.FC<TooltipProps<number, string>> = ({ active, payload
       <div className="bg-gray-900/90 border border-gray-700 rounded-lg p-3 backdrop-blur-sm">
         <p className="text-white text-sm font-medium mb-1">{formattedDate}</p>
         <p className="text-white text-sm">
-          <span className="inline-block w-3 h-3 bg-[#FF4655] rounded-full mr-2"></span>
+          <span className="inline-block w-3 h-3 bg-[#57f287] rounded-full mr-2"></span>
           Messages: {payload[0].value}
         </p>
       </div>
@@ -141,17 +141,12 @@ export const DailyActivityChart: React.FC<DailyActivityChartProps> = ({ data, lo
           <Line
             type="monotone"
             dataKey="count"
-            stroke="#FF4655"
+            stroke="#57f287"
             strokeWidth={2.5}
-            dot={{
-              fill: '#FF4655',
-              strokeWidth: 2,
-              stroke: '#ffffff',
-              r: 3
-            }}
+            dot={false}
             activeDot={{
               r: 5,
-              fill: '#FF4655',
+              fill: '#57f287',
               stroke: '#ffffff',
               strokeWidth: 2
             }}
