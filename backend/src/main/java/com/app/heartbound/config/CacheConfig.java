@@ -66,6 +66,13 @@ public class CacheConfig {
     @Value("${cache.batch-operations.expire-after-write-minutes:5}")
     private long batchOperationsCacheExpireMinutes;
 
+    // Daily Message Activity Cache Configuration
+    @Value("${cache.daily-activity.max-size:5000}")
+    private long dailyActivityCacheMaxSize;
+
+    @Value("${cache.daily-activity.expire-after-write-minutes:30}")
+    private long dailyActivityCacheExpireMinutes;
+
     // Cache instances
     private Cache<Long, Object> pairLevelCache;
     private Cache<String, List<Object>> achievementListCache;
@@ -74,6 +81,7 @@ public class CacheConfig {
     private Cache<String, List<Object>> voiceStreakListCache;
     private Cache<String, Object> userProfileCache;
     private Cache<String, Map<String, Object>> batchOperationsCache;
+    private Cache<String, List<Object>> dailyMessageActivityCache;
 
     @PostConstruct
     public void initializeCaches() {
@@ -163,17 +171,31 @@ public class CacheConfig {
                 .recordStats()
                 .build();
 
+        // Daily Message Activity Cache - stores daily activity statistics
+        this.dailyMessageActivityCache = Caffeine.newBuilder()
+                .maximumSize(dailyActivityCacheMaxSize)
+                .expireAfterWrite(dailyActivityCacheExpireMinutes, TimeUnit.MINUTES)
+                .removalListener((RemovalListener<String, List<Object>>) (key, value, cause) -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Daily message activity cache entry removed: key={}, cause={}", key, cause);
+                    }
+                })
+                .recordStats()
+                .build();
+
         log.info("Pairing System Performance Caches initialized successfully - " +
                 "PairLevel: {}/{} entries/minutes, " +
                 "Achievement: {}/{} entries/minutes, " +
                 "VoiceStreak: {}/{} entries/minutes, " +
                 "UserProfile: {}/{} entries/minutes, " +
-                "BatchOps: {}/{} entries/minutes",
+                "BatchOps: {}/{} entries/minutes, " +
+                "DailyActivity: {}/{} entries/minutes",
                 pairLevelCacheMaxSize, pairLevelCacheExpireMinutes,
                 achievementCacheMaxSize, achievementCacheExpireMinutes,
                 voiceStreakCacheMaxSize, voiceStreakCacheExpireMinutes,
                 userProfileCacheMaxSize, userProfileCacheExpireMinutes,
-                batchOperationsCacheMaxSize, batchOperationsCacheExpireMinutes);
+                batchOperationsCacheMaxSize, batchOperationsCacheExpireMinutes,
+                dailyActivityCacheMaxSize, dailyActivityCacheExpireMinutes);
     }
 
     /**
@@ -218,6 +240,17 @@ public class CacheConfig {
     }
 
     /**
+     * Invalidates daily message activity cache for a specific user.
+     * Use when a user's daily message statistics are updated.
+     */
+    public void invalidateDailyMessageActivityCache(String userId) {
+        if (userId != null) {
+            dailyMessageActivityCache.invalidate("activity_stats_" + userId);
+            log.debug("Daily message activity cache invalidated for user: {}", userId);
+        }
+    }
+
+    /**
      * Invalidates all caches. Use with caution - only for scenarios like
      * system maintenance or emergency cache refresh.
      */
@@ -230,6 +263,7 @@ public class CacheConfig {
         voiceStreakListCache.invalidateAll();
         userProfileCache.invalidateAll();
         batchOperationsCache.invalidateAll();
+        dailyMessageActivityCache.invalidateAll();
         log.info("All pairing system caches invalidated successfully");
     }
 
@@ -252,6 +286,8 @@ public class CacheConfig {
                 .userProfileSize(userProfileCache.estimatedSize())
                 .batchOperationsHitRate(batchOperationsCache.stats().hitRate())
                 .batchOperationsSize(batchOperationsCache.estimatedSize())
+                .dailyMessageActivityHitRate(dailyMessageActivityCache.stats().hitRate())
+                .dailyMessageActivitySize(dailyMessageActivityCache.estimatedSize())
                 .build();
     }
 
@@ -268,6 +304,7 @@ public class CacheConfig {
         voiceStreakListCache.cleanUp();
         userProfileCache.cleanUp();
         batchOperationsCache.cleanUp();
+        dailyMessageActivityCache.cleanUp();
         log.debug("Pairing cache maintenance completed");
     }
 
@@ -291,5 +328,7 @@ public class CacheConfig {
         private final long userProfileSize;
         private final double batchOperationsHitRate;
         private final long batchOperationsSize;
+        private final double dailyMessageActivityHitRate;
+        private final long dailyMessageActivitySize;
     }
 } 

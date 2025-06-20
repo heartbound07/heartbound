@@ -13,6 +13,7 @@ import com.app.heartbound.repositories.shop.ShopRepository;
 import com.app.heartbound.repositories.DailyMessageStatRepository;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
+import com.app.heartbound.config.CacheConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +43,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final ShopRepository shopRepository;
     private final DailyMessageStatRepository dailyMessageStatRepository;
+    private final CacheConfig cacheConfig;
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     // Read admin Discord ID from environment variables
@@ -50,10 +52,11 @@ public class UserService {
 
     // Constructor-based dependency injection
     @Autowired
-    public UserService(UserRepository userRepository, ShopRepository shopRepository, DailyMessageStatRepository dailyMessageStatRepository) {
+    public UserService(UserRepository userRepository, ShopRepository shopRepository, DailyMessageStatRepository dailyMessageStatRepository, CacheConfig cacheConfig) {
         this.userRepository = userRepository;
         this.shopRepository = shopRepository;
         this.dailyMessageStatRepository = dailyMessageStatRepository;
+        this.cacheConfig = cacheConfig;
     }
 
     /**
@@ -568,19 +571,35 @@ public class UserService {
     }
 
     /**
-     * Maps a User entity to a UserProfileDTO.
      * Get daily message activity for a user over the specified number of days
+     * Uses cache-aside strategy for improved performance
      *
      * @param userId the ID of the user
      * @param days the number of days to fetch (starting from today going back)
      * @return list of daily activity data
      */
+    @SuppressWarnings("unchecked")
     public List<DailyActivityDataDTO> getUserDailyActivity(String userId, int days) {
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
             return new ArrayList<>();
         }
 
+        // Cache-aside strategy: Generate cache key
+        String cacheKey = "activity_stats_" + userId;
+        
+        // Try to get data from cache first
+        List<Object> cachedData = cacheConfig.getDailyMessageActivityCache().getIfPresent(cacheKey);
+        if (cachedData != null) {
+            logger.debug("Cache hit for daily activity data: userId={}", userId);
+            // Cast cached objects back to DTOs
+            return cachedData.stream()
+                    .map(obj -> (DailyActivityDataDTO) obj)
+                    .collect(Collectors.toList());
+        }
+
+        logger.debug("Cache miss for daily activity data: userId={}, fetching from database", userId);
+        
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(days - 1);
 
@@ -606,12 +625,18 @@ public class UserService {
             currentDate = currentDate.plusDays(1);
         }
 
+        // Store result in cache for future requests
+        List<Object> cacheableData = new ArrayList<>(result);
+        cacheConfig.getDailyMessageActivityCache().put(cacheKey, cacheableData);
+        logger.debug("Cached daily activity data for userId={}", userId);
+
         return result;
     }
 
     /**
      * Track daily message statistics for dashboard charts
      * This method is transactional and handles the database upsert operation
+     * Also invalidates the user's daily activity cache to ensure fresh data
      * 
      * @param userId the Discord user ID
      */
@@ -623,7 +648,10 @@ public class UserService {
             // Use the repository's optimized upsert query to increment daily count
             dailyMessageStatRepository.incrementMessageCount(userId, today);
             
-            logger.debug("[DAILY STATS] Incremented daily message count for user {} on {}", userId, today);
+            // Invalidate cache to ensure next request gets fresh data
+            cacheConfig.invalidateDailyMessageActivityCache(userId);
+            
+            logger.debug("[DAILY STATS] Incremented daily message count for user {} on {} and invalidated cache", userId, today);
         } catch (Exception e) {
             logger.error("Failed to track daily message stat for user {}: {}", userId, e.getMessage(), e);
         }
