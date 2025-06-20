@@ -73,6 +73,18 @@ public class User {
     private LocalDateTime lastWeeklyReset;
     private LocalDateTime lastBiWeeklyReset;
     
+    // Add voice activity tracking fields
+    private Integer voiceTimeMinutesTotal = 0;
+    private Integer voiceTimeMinutesToday = 0;
+    private Integer voiceTimeMinutesThisWeek = 0;
+    private Integer voiceTimeMinutesThisTwoWeeks = 0;
+    private Integer voiceRank;
+    
+    // Add voice activity timestamp fields for tracking when to reset counters
+    private LocalDateTime lastVoiceDailyReset;
+    private LocalDateTime lastVoiceWeeklyReset;
+    private LocalDateTime lastVoiceBiWeeklyReset;
+    
     // Role-based security addition
     @ElementCollection(fetch = jakarta.persistence.FetchType.EAGER)
     @Enumerated(jakarta.persistence.EnumType.STRING)

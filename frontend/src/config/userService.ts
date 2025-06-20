@@ -19,6 +19,10 @@ export interface UserProfileDTO {
   messagesToday?: number;
   messagesThisWeek?: number;
   messagesThisTwoWeeks?: number;
+  voiceRank?: number;
+  voiceTimeMinutesToday?: number;
+  voiceTimeMinutesThisWeek?: number;
+  voiceTimeMinutesThisTwoWeeks?: number;
   equippedUserColorId?: string;
   equippedListingId?: string;
   equippedAccentId?: string;

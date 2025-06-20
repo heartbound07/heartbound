@@ -12,6 +12,7 @@ import com.app.heartbound.services.discord.StatsCommandListener;
 import com.app.heartbound.services.discord.BreakupCommandListener;
 import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
+import com.app.heartbound.services.discord.UserVoiceActivityService;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -81,6 +82,9 @@ public class DiscordConfig {
     @Autowired
     private DiscordVoiceTimeTrackerService discordVoiceTimeTrackerService;
 
+    @Autowired
+    private UserVoiceActivityService userVoiceActivityService;
+
     @Bean
     public JDA jda() {
         if (discordToken == null || discordToken.isBlank() || discordToken.equals("${DISCORD_BOT_TOKEN}")) {
@@ -118,7 +122,8 @@ public class DiscordConfig {
                     .addEventListeners(leaderboardCommandListener, chatActivityListener, 
                                       creditsCommandListener, welcomeListener, welcomeCommandListener,
                                       inventoryCommandListener, fishCommandListener,
-                                      discordMessageListenerService, discordVoiceTimeTrackerService)
+                                      discordMessageListenerService, discordVoiceTimeTrackerService,
+                                      userVoiceActivityService)
                     .build();
 
             // Waits until JDA is fully connected and ready

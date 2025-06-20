@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
@@ -326,6 +327,10 @@ public class UserService {
                 .messagesToday(user.getMessagesToday()) // Add time-based message counts
                 .messagesThisWeek(user.getMessagesThisWeek())
                 .messagesThisTwoWeeks(user.getMessagesThisTwoWeeks())
+                .voiceRank(user.getVoiceRank()) // Add voice rank
+                .voiceTimeMinutesToday(user.getVoiceTimeMinutesToday()) // Add voice time fields
+                .voiceTimeMinutesThisWeek(user.getVoiceTimeMinutesThisWeek())
+                .voiceTimeMinutesThisTwoWeeks(user.getVoiceTimeMinutesThisTwoWeeks())
                 .equippedUserColorId(user.getEquippedUserColorId())
                 .equippedListingId(user.getEquippedListingId())
                 .equippedAccentId(user.getEquippedAccentId())
@@ -642,6 +647,132 @@ public class UserService {
         logger.debug("Cached daily activity data for userId={}", userId);
 
         return result;
+    }
+
+    /**
+     * Increments the time-based voice counters for a user.
+     * Handles resetting counters if the time periods have elapsed.
+     *
+     * @param user the user to update
+     * @param sessionMinutes the minutes to add to the voice time
+     */
+    public void incrementVoiceTimeCounters(User user, int sessionMinutes) {
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Update total voice time
+        int currentTotal = user.getVoiceTimeMinutesTotal() != null ? user.getVoiceTimeMinutesTotal() : 0;
+        user.setVoiceTimeMinutesTotal(currentTotal + sessionMinutes);
+        
+        // Handle daily voice counter
+        if (shouldResetVoiceDailyCounter(user, now)) {
+            user.setVoiceTimeMinutesToday(0);
+            user.setLastVoiceDailyReset(now);
+        }
+        int todayMinutes = user.getVoiceTimeMinutesToday() != null ? user.getVoiceTimeMinutesToday() : 0;
+        user.setVoiceTimeMinutesToday(todayMinutes + sessionMinutes);
+        
+        // Handle weekly voice counter
+        if (shouldResetVoiceWeeklyCounter(user, now)) {
+            user.setVoiceTimeMinutesThisWeek(0);
+            user.setLastVoiceWeeklyReset(now);
+        }
+        int weekMinutes = user.getVoiceTimeMinutesThisWeek() != null ? user.getVoiceTimeMinutesThisWeek() : 0;
+        user.setVoiceTimeMinutesThisWeek(weekMinutes + sessionMinutes);
+        
+        // Handle bi-weekly voice counter
+        if (shouldResetVoiceBiWeeklyCounter(user, now)) {
+            user.setVoiceTimeMinutesThisTwoWeeks(0);
+            user.setLastVoiceBiWeeklyReset(now);
+        }
+        int biWeekMinutes = user.getVoiceTimeMinutesThisTwoWeeks() != null ? user.getVoiceTimeMinutesThisTwoWeeks() : 0;
+        user.setVoiceTimeMinutesThisTwoWeeks(biWeekMinutes + sessionMinutes);
+        
+        // Save the updated user
+        try {
+            userRepository.save(user);
+            
+            // Invalidate user profile cache to ensure fresh data
+            cacheConfig.invalidateUserProfileCache(user.getId());
+            
+            logger.debug("Updated voice time for user {} - added {} minutes (total: {})", 
+                user.getId(), sessionMinutes, user.getVoiceTimeMinutesTotal());
+        } catch (Exception e) {
+            logger.error("Failed to save voice time update for user {}: {}", user.getId(), e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Check if voice daily counter should be reset (new day)
+     */
+    private boolean shouldResetVoiceDailyCounter(User user, LocalDateTime now) {
+        if (user.getLastVoiceDailyReset() == null) {
+            return true; // First time, needs initialization
+        }
+        return !user.getLastVoiceDailyReset().toLocalDate().equals(now.toLocalDate());
+    }
+    
+    /**
+     * Check if voice weekly counter should be reset (new week - Monday)
+     */
+    private boolean shouldResetVoiceWeeklyCounter(User user, LocalDateTime now) {
+        if (user.getLastVoiceWeeklyReset() == null) {
+            return true; // First time, needs initialization
+        }
+        
+        // Get the start of this week (Monday)
+        LocalDateTime startOfThisWeek = now.with(java.time.DayOfWeek.MONDAY).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        return user.getLastVoiceWeeklyReset().isBefore(startOfThisWeek);
+    }
+    
+    /**
+     * Check if voice bi-weekly counter should be reset (every 2 weeks from a fixed start date)
+     */
+    private boolean shouldResetVoiceBiWeeklyCounter(User user, LocalDateTime now) {
+        if (user.getLastVoiceBiWeeklyReset() == null) {
+            return true; // First time, needs initialization
+        }
+        
+        // Reset every 14 days from the last reset
+        return user.getLastVoiceBiWeeklyReset().plusDays(14).isBefore(now) || 
+               user.getLastVoiceBiWeeklyReset().plusDays(14).toLocalDate().equals(now.toLocalDate());
+    }
+
+    /**
+     * Updates voice ranks for all users based on total voice time
+     */
+    @Transactional
+    public void updateVoiceRanks() {
+        try {
+            logger.debug("Starting voice rank update for all users");
+            
+            List<User> users = userRepository.findAll();
+            
+            // Sort users by total voice time in descending order
+            users.sort((a, b) -> {
+                Integer voiceTimeA = a.getVoiceTimeMinutesTotal() != null ? a.getVoiceTimeMinutesTotal() : 0;
+                Integer voiceTimeB = b.getVoiceTimeMinutesTotal() != null ? b.getVoiceTimeMinutesTotal() : 0;
+                return voiceTimeB.compareTo(voiceTimeA); // Descending order
+            });
+            
+            // Assign ranks
+            for (int i = 0; i < users.size(); i++) {
+                User user = users.get(i);
+                Integer newRank = i + 1; // Rank starts from 1
+                
+                // Only update if rank has changed to avoid unnecessary database writes
+                if (!newRank.equals(user.getVoiceRank())) {
+                    user.setVoiceRank(newRank);
+                    userRepository.save(user);
+                    
+                    // Invalidate user profile cache
+                    cacheConfig.invalidateUserProfileCache(user.getId());
+                }
+            }
+            
+            logger.debug("Completed voice rank update for {} users", users.size());
+        } catch (Exception e) {
+            logger.error("Failed to update voice ranks: {}", e.getMessage(), e);
+        }
     }
 
     /**

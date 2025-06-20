@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { MessageSquare, Volume2, BarChart3, Hash, RefreshCw, AlertCircle } from "lucide-react"
+import { Volume2, BarChart3, Hash, RefreshCw, AlertCircle } from "lucide-react"
 import {
   getCurrentUserProfile,
   type UserProfileDTO,
@@ -117,6 +117,23 @@ export function DashboardPage() {
     return num.toString()
   }
 
+  // Format minutes to readable time format
+  const formatVoiceTime = (minutes: number) => {
+    if (minutes === 0) return "0 mins"
+    
+    const hours = Math.floor(minutes / 60)
+    const remainingMinutes = minutes % 60
+    
+    if (hours === 0) {
+      return `${remainingMinutes} mins`
+    } else if (remainingMinutes === 0) {
+      return hours === 1 ? `${hours} hour` : `${hours} hours`
+    } else {
+      const hourText = hours === 1 ? "hour" : "hours"
+      return `${hours}.${Math.round((remainingMinutes / 60) * 10)} ${hourText}`
+    }
+  }
+
   return (
     <div className="bg-theme-gradient min-h-screen">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -181,25 +198,42 @@ export function DashboardPage() {
               {/* Server Ranking Section */}
               <div className="stats-section">
                 <div className="section-header">
-                  <MessageSquare className="h-5 w-5" />
+                  <BarChart3 className="h-5 w-5" />
                   <h2>Server Ranking</h2>
                 </div>
                 <div className="rank-cards">
                   <AnimatePresence mode="wait">
                     {statsError ? (
-                      <div className="rank-card error">
-                        <div className="rank-label">Error</div>
-                        <div className="rank-value">--</div>
-                      </div>
+                      <>
+                        <div className="rank-card error">
+                          <div className="rank-label">Messages</div>
+                          <div className="rank-value">--</div>
+                        </div>
+                        <div className="rank-card error">
+                          <div className="rank-label">Voice Activity</div>
+                          <div className="rank-value">--</div>
+                        </div>
+                      </>
                     ) : (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="rank-card"
-                      >
-                        <div className="rank-label">Messages</div>
-                        <div className="rank-value">#{userProfile?.messageRank || '--'}</div>
-                      </motion.div>
+                      <>
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="rank-card"
+                        >
+                          <div className="rank-label">Messages</div>
+                          <div className="rank-value">#{userProfile?.messageRank || '--'}</div>
+                        </motion.div>
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.1 }}
+                          className="rank-card"
+                        >
+                          <div className="rank-label">Voice Activity</div>
+                          <div className="rank-value">#{userProfile?.voiceRank || '--'}</div>
+                        </motion.div>
+                      </>
                     )}
                   </AnimatePresence>
                 </div>
@@ -270,25 +304,54 @@ export function DashboardPage() {
                   <h2>Voice Activity</h2>
                 </div>
                 <div className="time-period-cards">
-                  {/* Placeholder voice activity data */}
-                  <div className="time-card">
-                    <div className="time-period">1d</div>
-                    <div className="time-value">
-                      0 <span>hours</span>
-                    </div>
-                  </div>
-                  <div className="time-card">
-                    <div className="time-period">7d</div>
-                    <div className="time-value">
-                      0 <span>hours</span>
-                    </div>
-                  </div>
-                  <div className="time-card">
-                    <div className="time-period">14d</div>
-                    <div className="time-value">
-                      0 <span>hours</span>
-                    </div>
-                  </div>
+                  <AnimatePresence mode="wait">
+                    {statsError ? (
+                      <>
+                        {["1d", "7d", "14d"].map((period) => (
+                          <div key={period} className="time-card error">
+                            <div className="time-period">{period}</div>
+                            <div className="time-value">-- hours</div>
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      <>
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.1 }}
+                          className="time-card"
+                        >
+                          <div className="time-period">1d</div>
+                          <div className="time-value">
+                            {formatVoiceTime(userProfile?.voiceTimeMinutesToday || 0)}
+                          </div>
+                        </motion.div>
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.2 }}
+                          className="time-card"
+                        >
+                          <div className="time-period">7d</div>
+                          <div className="time-value">
+                            {formatVoiceTime(userProfile?.voiceTimeMinutesThisWeek || 0)}
+                          </div>
+                        </motion.div>
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.3 }}
+                          className="time-card"
+                        >
+                          <div className="time-period">14d</div>
+                          <div className="time-value">
+                            {formatVoiceTime(userProfile?.voiceTimeMinutesThisTwoWeeks || 0)}
+                          </div>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
             </motion.div>
@@ -315,6 +378,11 @@ export function DashboardPage() {
                     <Hash className="h-4 w-4" />
                     <span className="activity-label">Daily Messages</span>
                     <span className="activity-value">{formatNumber(userProfile?.messagesToday || 0)} messages</span>
+                  </div>
+                  <div className="activity-item">
+                    <Volume2 className="h-4 w-4" />
+                    <span className="activity-label">Daily Voice Time</span>
+                    <span className="activity-value">{formatVoiceTime(userProfile?.voiceTimeMinutesToday || 0)}</span>
                   </div>
                 </div>
               </div>

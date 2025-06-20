@@ -49,6 +49,12 @@ public class UserProfileDTO {
     private Integer messagesThisWeek;
     private Integer messagesThisTwoWeeks;
     
+    // Add voice activity fields
+    private Integer voiceRank;
+    private Integer voiceTimeMinutesToday;
+    private Integer voiceTimeMinutesThisWeek;
+    private Integer voiceTimeMinutesThisTwoWeeks;
+    
     // Update the fields for equipped items to match the specific categories
     private UUID equippedUserColorId;
     private UUID equippedListingId;
