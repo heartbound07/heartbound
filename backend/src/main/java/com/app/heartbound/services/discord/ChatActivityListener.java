@@ -415,14 +415,6 @@ public class ChatActivityListener extends ListenerAdapter {
             }
             
             boolean userUpdated = false; // Flag to track if user needs saving
-            String achievementChannelId = "1304293304833146951";
-            MessageChannel achievementChannel = 
-                event.getJDA().getChannelById(MessageChannel.class, achievementChannelId);
-            
-            if (achievementChannel == null) {
-                log.warn("Achievement channel with ID {} not found", achievementChannelId);
-                return;
-            }
             
             // Increment user's global message count (tracks all valid messages)
             Long currentMessageCount = user.getMessageCount() != null ? user.getMessageCount() : 0L;
@@ -466,7 +458,7 @@ public class ChatActivityListener extends ListenerAdapter {
                     userId, user.getLevel(), user.getExperience());
                 checkAndProcessLevelUp(user, userId, event.getChannel()); // Note: checkAndProcessLevelUp calls updateUser internally on level up
                 
-                // If user didn't level up, send XP-only notification
+                // If user didn't level up, send contextual XP notification to original channel
                 if (initialLevel == user.getLevel()) {
                     EmbedBuilder notificationEmbed = new EmbedBuilder();
                     notificationEmbed.setDescription(String.format("<@%s>! You have gained %d xp!", 
@@ -478,14 +470,18 @@ public class ChatActivityListener extends ListenerAdapter {
                     notificationEmbed.setFooter(String.format("%d/%d XP to next level", 
                             currentXpAfterAward, requiredXpForNextLevel));
                     
-                    // Queue the embed send and delete after 5 seconds
-                    achievementChannel.sendMessageEmbeds(notificationEmbed.build()).queue(
+                    // Send contextual notification to the channel where user earned XP
+                    // Note: True ephemeral messages are not possible in MessageReceivedEvent context
+                    // Using original channel with auto-deletion as best alternative
+                    event.getChannel().sendMessageEmbeds(notificationEmbed.build()).queue(
                         message -> {
-                            log.debug("Sent XP notification to user {}", userId);
-                            // Delete the message after 5 seconds
+                            log.debug("[XP NOTIFICATION] Sent contextual XP notification to user {} in channel {}", 
+                                userId, event.getChannel().getId());
+                            // Delete the message after 5 seconds for minimal disruption
                             message.delete().queueAfter(5, TimeUnit.SECONDS);
                         },
-                        failure -> log.error("Failed to send XP notification to user {}: {}", userId, failure.getMessage())
+                        failure -> log.error("[XP NOTIFICATION] Failed to send contextual XP notification to user {} in channel {}: {}", 
+                            userId, event.getChannel().getId(), failure.getMessage())
                     );
                 }
             }

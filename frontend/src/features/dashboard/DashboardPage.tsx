@@ -172,28 +172,43 @@ export function DashboardPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.3 }}
           >
-            <motion.p 
-              initial={{ 
-                clipPath: "inset(0 100% 0 0)",
-              }}
-              animate={{ 
-                clipPath: [
-                  "inset(0 100% 0 0)",
-                  "inset(0 0% 0 0)",
-                  "inset(0 0% 0 0)",
-                  "inset(0 0% 0 100%)"
-                ],
-              }}
-              transition={{ 
-                delay: 0.7,
-                duration: 3.2,
-                times: [0, 0.4, 0.8, 1],
-                ease: ["easeOut", "linear", "easeIn"]
-              }}
-              className="whitespace-nowrap"
-            >
-              Hello, {userProfile?.displayName || userProfile?.username || "User"}!
-            </motion.p>
+            <div className="relative inline-block">
+              <motion.p 
+                initial={{ 
+                  clipPath: "inset(0 100% 0 0)",
+                }}
+                animate={{ 
+                  clipPath: [
+                    "inset(0 100% 0 0)",
+                    "inset(0 0% 0 0)",
+                    "inset(0 0% 0 0)",
+                    "inset(0 0% 0 100%)"
+                  ],
+                }}
+                transition={{ 
+                  delay: 0.8,
+                  duration: 5.5,
+                  times: [0, 0.45, 0.82, 1],
+                  ease: ["easeOut", "linear", "easeIn"]
+                }}
+                className="whitespace-nowrap inline-block"
+              >
+                Hello, {userProfile?.displayName || userProfile?.username || "User"}!
+              </motion.p>
+              <motion.span
+                initial={{ visibility: "hidden" }}
+                animate={{ 
+                  visibility: ["hidden", "visible", "visible", "hidden"]
+                }}
+                transition={{
+                  delay: 0.8,
+                  duration: 2.5,
+                  times: [0, 0.02, 0.98, 1],
+                  repeat: 0
+                }}
+                className="inline-block w-0.5 h-6 bg-theme-secondary ml-1 align-middle typewriter-cursor"
+              />
+            </div>
           </motion.div>
         </motion.div>
 
