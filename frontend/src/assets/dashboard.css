@@ -321,8 +321,12 @@
   border: 1px solid var(--border-color);
 }
 
-.discord-dashboard .charts-section .section-header {
-  @apply justify-between;
+.discord-dashboard .charts-section-header {
+  @apply flex items-center justify-between mb-4;
+}
+
+.discord-dashboard .charts-section-header .section-header {
+  @apply mb-0;
 }
 
 .discord-dashboard .chart-legend {

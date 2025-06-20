@@ -289,9 +289,11 @@ export function DashboardPage() {
 
             {/* Charts Section */}
             <div className="charts-section">
-              <div className="section-header">
-                <BarChart3 className="h-5 w-5" />
-                <h2>Charts</h2>
+              <div className="charts-section-header">
+                <div className="section-header">
+                  <BarChart3 className="h-5 w-5" />
+                  <h2>Charts</h2>
+                </div>
                 <div className="chart-legend">
                   <div className="legend-item">
                     <div className="legend-dot message"></div>
