@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { UserProfileDTO } from '@/config/userService';
 import { FaCoins, FaCrown, FaTrophy, FaMedal, FaStar } from 'react-icons/fa';
-import { ChevronDown, MessageSquare } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import '@/assets/leaderboard.css';
 import { UserProfileModal } from '@/components/modals/UserProfileModal';
 import { createPortal } from 'react-dom';
@@ -19,37 +19,10 @@ interface LeaderboardProps {
   compact?: boolean;
   className?: string;
   leaderboardType?: 'credits' | 'level' | 'messages';
-  onLeaderboardTypeChange?: (type: 'credits' | 'level' | 'messages') => void;
   itemsPerPage?: number;
   highlightUserId?: string | null;
   onGoToPage?: (page: number) => void;
 }
-
-// Dropdown option interface
-interface DropdownOption {
-  value: 'credits' | 'level' | 'messages';
-  label: string;
-  icon: React.ReactNode;
-}
-
-// Dropdown options configuration
-const DROPDOWN_OPTIONS: DropdownOption[] = [
-  {
-    value: 'credits',
-    label: 'Credits',
-    icon: <FaCoins className="text-yellow-400" size={16} />
-  },
-  {
-    value: 'level',
-    label: 'Levels',
-    icon: <FaStar className="text-blue-400" size={16} />
-  },
-  {
-    value: 'messages',
-    label: 'Messages',
-    icon: <MessageSquare className="text-green-400" size={16} />
-  }
-];
 
 // Optimized animation variants defined outside component
 const CONTAINER_VARIANTS = {
@@ -73,79 +46,6 @@ const ROW_VARIANTS = {
     }
   }
 };
-
-// Memoized Dropdown Component
-const LeaderboardDropdown = React.memo(({ 
-  currentType, 
-  onTypeChange 
-}: {
-  currentType: 'credits' | 'level' | 'messages';
-  onTypeChange: (type: 'credits' | 'level' | 'messages') => void;
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  
-  const currentOption = DROPDOWN_OPTIONS.find(option => option.value === currentType);
-  
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-  
-  const handleOptionSelect = useCallback((option: DropdownOption) => {
-    onTypeChange(option.value);
-    setIsOpen(false);
-  }, [onTypeChange]);
-  
-  return (
-    <div className="leaderboard-dropdown" ref={dropdownRef}>
-      <button
-        className="leaderboard-dropdown-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-      >
-        <span className="leaderboard-dropdown-label">Sort by:</span>
-        <div className="leaderboard-dropdown-current">
-          {currentOption?.icon}
-          <span>{currentOption?.label}</span>
-        </div>
-        <ChevronDown 
-          size={16} 
-          className={`leaderboard-dropdown-icon ${isOpen ? 'rotated' : ''}`} 
-        />
-      </button>
-      
-      {isOpen && (
-        <div className="leaderboard-dropdown-menu" role="listbox">
-          {DROPDOWN_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              className={`leaderboard-dropdown-option ${
-                option.value === currentType ? 'active' : ''
-              }`}
-              onClick={() => handleOptionSelect(option)}
-              role="option"
-              aria-selected={option.value === currentType}
-            >
-              {option.icon}
-              <span>{option.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-});
-
-LeaderboardDropdown.displayName = 'LeaderboardDropdown';
 
 // Memoized components for better performance
 const LeaderboardRow = React.memo(({ 
@@ -339,7 +239,6 @@ export const Leaderboard = React.memo(function Leaderboard({
   compact = false,
   className = "",
   leaderboardType = 'credits',
-  onLeaderboardTypeChange,
   itemsPerPage = 9,
   highlightUserId,
   onGoToPage,
@@ -475,12 +374,6 @@ export const Leaderboard = React.memo(function Leaderboard({
             transition={{ duration: 0.4 }}
           >
             <h2 className="leaderboard-title">{title}</h2>
-            {onLeaderboardTypeChange && (
-              <LeaderboardDropdown
-                currentType={leaderboardType}
-                onTypeChange={onLeaderboardTypeChange}
-              />
-            )}
           </motion.div>
         )}
 
