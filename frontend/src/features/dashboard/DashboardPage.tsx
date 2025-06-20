@@ -166,14 +166,35 @@ export function DashboardPage() {
             Dashboard
           </motion.h1>
           
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.4 }}
-            className="text-xl text-theme-secondary max-w-2xl mx-auto leading-relaxed"
+          <motion.div
+            className="text-xl text-theme-secondary max-w-2xl mx-auto leading-relaxed overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.3 }}
           >
-            Hello, {userProfile?.displayName || userProfile?.username || "User"}!
-          </motion.p>
+            <motion.p 
+              initial={{ 
+                clipPath: "inset(0 100% 0 0)",
+              }}
+              animate={{ 
+                clipPath: [
+                  "inset(0 100% 0 0)",
+                  "inset(0 0% 0 0)",
+                  "inset(0 0% 0 0)",
+                  "inset(0 0% 0 100%)"
+                ],
+              }}
+              transition={{ 
+                delay: 0.7,
+                duration: 3.2,
+                times: [0, 0.4, 0.8, 1],
+                ease: ["easeOut", "linear", "easeIn"]
+              }}
+              className="whitespace-nowrap"
+            >
+              Hello, {userProfile?.displayName || userProfile?.username || "User"}!
+            </motion.p>
+          </motion.div>
         </motion.div>
 
         {/* Dashboard Content Wrapper */}
