@@ -55,6 +55,9 @@ public class UserProfileDTO {
     private Integer voiceTimeMinutesThisWeek;
     private Integer voiceTimeMinutesThisTwoWeeks;
     
+    // Add total voice time field for lifetime statistics
+    private Integer voiceTimeMinutesTotal;
+    
     // Update the fields for equipped items to match the specific categories
     private UUID equippedUserColorId;
     private UUID equippedListingId;

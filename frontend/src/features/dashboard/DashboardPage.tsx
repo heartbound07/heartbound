@@ -376,13 +376,13 @@ export function DashboardPage() {
                 <div className="activity-summary">
                   <div className="activity-item">
                     <Hash className="h-4 w-4" />
-                    <span className="activity-label">Daily Messages</span>
-                    <span className="activity-value">{formatNumber(userProfile?.messagesToday || 0)} messages</span>
+                    <span className="activity-label">Total Messages</span>
+                    <span className="activity-value">{formatNumber(userProfile?.messageCount || 0)} messages</span>
                   </div>
                   <div className="activity-item">
                     <Volume2 className="h-4 w-4" />
-                    <span className="activity-label">Daily Voice Time</span>
-                    <span className="activity-value">{formatVoiceTime(userProfile?.voiceTimeMinutesToday || 0)}</span>
+                    <span className="activity-label">Total Voice Time</span>
+                    <span className="activity-value">{formatVoiceTime(userProfile?.voiceTimeMinutesTotal || 0)}</span>
                   </div>
                 </div>
               </div>

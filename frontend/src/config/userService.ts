@@ -23,6 +23,7 @@ export interface UserProfileDTO {
   voiceTimeMinutesToday?: number;
   voiceTimeMinutesThisWeek?: number;
   voiceTimeMinutesThisTwoWeeks?: number;
+  voiceTimeMinutesTotal?: number;
   equippedUserColorId?: string;
   equippedListingId?: string;
   equippedAccentId?: string;
@@ -95,7 +96,7 @@ export const updateUserProfile = async (userId: string, profile: UpdateProfileDT
   }
 };
 
-export const getLeaderboardUsers = async (sortBy: 'credits' | 'level' | 'messages' = 'credits'): Promise<UserProfileDTO[]> => {
+export const getLeaderboardUsers = async (sortBy: 'credits' | 'level' | 'messages' | 'voice' = 'credits'): Promise<UserProfileDTO[]> => {
   try {
     const response = await httpClient.get('/users/leaderboard', {
       params: { sortBy }

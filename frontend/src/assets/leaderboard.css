@@ -143,11 +143,6 @@
   border-color: rgba(148, 163, 184, 0.3);
 }
 
-.leaderboard-dropdown-trigger:focus {
-  outline: 2px solid var(--color-primary, #0284c7);
-  outline-offset: 2px;
-}
-
 .leaderboard-dropdown-label {
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.8rem;

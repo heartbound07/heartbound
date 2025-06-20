@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { UserProfileDTO } from '@/config/userService';
 import { FaCoins, FaCrown, FaTrophy, FaMedal, FaStar } from 'react-icons/fa';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Volume2 } from 'lucide-react';
 import '@/assets/leaderboard.css';
 import { UserProfileModal } from '@/components/modals/UserProfileModal';
 import { createPortal } from 'react-dom';
@@ -18,7 +18,7 @@ interface LeaderboardProps {
   showHeader?: boolean;
   compact?: boolean;
   className?: string;
-  leaderboardType?: 'credits' | 'level' | 'messages';
+  leaderboardType?: 'credits' | 'level' | 'messages' | 'voice';
   itemsPerPage?: number;
   highlightUserId?: string | null;
   onGoToPage?: (page: number) => void;
@@ -61,7 +61,7 @@ const LeaderboardRow = React.memo(({
   user: UserProfileDTO;
   index: number;
   actualIndex: number;
-  leaderboardType: 'credits' | 'level' | 'messages';
+  leaderboardType: 'credits' | 'level' | 'messages' | 'voice';
   compact: boolean;
   onClick: (user: UserProfileDTO, event: React.MouseEvent) => void;
   positionDetails: { icon: React.ReactNode; className: string };
@@ -72,6 +72,20 @@ const LeaderboardRow = React.memo(({
   }, [user, onClick]);
 
   const highlightClassName = isHighlighted ? "highlighted" : "";
+
+  // Format voice time to readable format
+  const formatVoiceTime = (minutes: number) => {
+    if (minutes === 0) return "0m";
+    if (minutes < 60) {
+      return `${minutes}m`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (remainingMinutes === 0) {
+      return `${hours}h`;
+    }
+    return `${hours}h ${remainingMinutes}m`;
+  };
 
   // Render the appropriate value and icon based on leaderboard type
   const renderValueColumn = () => {
@@ -102,6 +116,13 @@ const LeaderboardRow = React.memo(({
           <>
             <MessageSquare className="text-green-400" />
             <span>{user.messageCount || 0}</span>
+          </>
+        );
+      case 'voice':
+        return (
+          <>
+            <Volume2 className="text-purple-400" />
+            <span>{formatVoiceTime(user.voiceTimeMinutesTotal || 0)}</span>
           </>
         );
       default:
@@ -335,6 +356,8 @@ export const Leaderboard = React.memo(function Leaderboard({
         return 'Level';
       case 'messages':
         return 'Messages';
+      case 'voice':
+        return 'Voice Time';
       default:
         return 'Credits';
     }

@@ -8,11 +8,11 @@ import '@/assets/styles/fonts.css';
 import '@/assets/leaderboard.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaCoins, FaStar } from 'react-icons/fa';
-import { ChevronDown, MessageSquare } from 'lucide-react';
+import { ChevronDown, MessageSquare, Volume2 } from 'lucide-react';
 
 // Dropdown option interface
 interface DropdownOption {
-  value: 'credits' | 'level' | 'messages';
+  value: 'credits' | 'level' | 'messages' | 'voice';
   label: string;
   icon: React.ReactNode;
 }
@@ -33,6 +33,11 @@ const DROPDOWN_OPTIONS: DropdownOption[] = [
     value: 'messages',
     label: 'Messages',
     icon: <MessageSquare className="text-green-400" size={16} />
+  },
+  {
+    value: 'voice',
+    label: 'Voice Time',
+    icon: <Volume2 className="text-purple-400" size={16} />
   }
 ];
 
@@ -41,8 +46,8 @@ const LeaderboardDropdown = React.memo(({
   currentType, 
   onTypeChange 
 }: {
-  currentType: 'credits' | 'level' | 'messages';
-  onTypeChange: (type: 'credits' | 'level' | 'messages') => void;
+  currentType: 'credits' | 'level' | 'messages' | 'voice';
+  onTypeChange: (type: 'credits' | 'level' | 'messages' | 'voice') => void;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -149,7 +154,7 @@ export function LeaderboardPage() {
   const [users, setUsers] = useState<UserProfileDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [leaderboardType, setLeaderboardType] = useState<'credits' | 'level' | 'messages'>('credits');
+  const [leaderboardType, setLeaderboardType] = useState<'credits' | 'level' | 'messages' | 'voice'>('credits');
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfileDTO | null>(null);
   const [highlightedUserId, setHighlightedUserId] = useState<string | null>(null);
   

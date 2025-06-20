@@ -1,14 +1,14 @@
 import React, { useMemo } from 'react';
 import { UserProfileDTO } from '@/config/userService';
 import { FaCoins, FaStar, FaTrophy, FaCrown, FaMedal } from 'react-icons/fa';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Volume2 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { motion } from 'framer-motion';
 
 interface UserRankCardProps {
   currentUser: UserProfileDTO | null;
   leaderboardUsers: UserProfileDTO[];
-  leaderboardType: 'credits' | 'level' | 'messages';
+  leaderboardType: 'credits' | 'level' | 'messages' | 'voice';
   onClick?: (userData: UserProfileDTO) => void;
 }
 
@@ -81,6 +81,20 @@ export const UserRankCard = React.memo(function UserRankCard({
     }
   };
 
+  // Format voice time to readable format (compact version for rank card)
+  const formatVoiceTime = (minutes: number) => {
+    if (minutes === 0) return "0m";
+    if (minutes < 60) {
+      return `${minutes}m`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (remainingMinutes === 0) {
+      return `${hours}h`;
+    }
+    return `${hours}h ${remainingMinutes}m`;
+  };
+
   // Render appropriate stats based on leaderboard type
   const renderStats = () => {
     switch (leaderboardType) {
@@ -108,6 +122,13 @@ export const UserRankCard = React.memo(function UserRankCard({
           <>
             <MessageSquare className="text-green-400 mr-1" size={12} />
             <span className="font-bold text-[var(--color-text-primary)]">{currentUser!.messageCount || 0}</span>
+          </>
+        );
+      case 'voice':
+        return (
+          <>
+            <Volume2 className="text-purple-400 mr-1" size={12} />
+            <span className="font-bold text-[var(--color-text-primary)]">{formatVoiceTime(currentUser!.voiceTimeMinutesTotal || 0)}</span>
           </>
         );
       default:

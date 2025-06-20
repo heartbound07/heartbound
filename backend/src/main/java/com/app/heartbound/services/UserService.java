@@ -335,6 +335,7 @@ public class UserService {
                 .voiceTimeMinutesToday(user.getVoiceTimeMinutesToday()) // Add voice time fields
                 .voiceTimeMinutesThisWeek(user.getVoiceTimeMinutesThisWeek())
                 .voiceTimeMinutesThisTwoWeeks(user.getVoiceTimeMinutesThisTwoWeeks())
+                .voiceTimeMinutesTotal(user.getVoiceTimeMinutesTotal()) // Add total voice time
                 .equippedUserColorId(user.getEquippedUserColorId())
                 .equippedListingId(user.getEquippedListingId())
                 .equippedAccentId(user.getEquippedAccentId())
@@ -523,9 +524,9 @@ public class UserService {
     }
 
     /**
-     * Get users for the leaderboard, sorted by credits, level, or messages
+     * Get users for the leaderboard, sorted by credits, level, messages, or voice
      * 
-     * @param sortBy Sorting criterion: "credits", "level", or "messages"
+     * @param sortBy Sorting criterion: "credits", "level", "messages", or "voice"
      * @return List of sorted user profiles
      */
     public List<UserProfileDTO> getLeaderboardUsers(String sortBy) {
@@ -555,6 +556,13 @@ public class UserService {
             // Sort by message count descending
             return users.stream()
                 .sorted(Comparator.comparing(user -> user.getMessageCount() != null ? user.getMessageCount() : 0, 
+                        Comparator.reverseOrder()))
+                .map(this::mapToProfileDTO)
+                .collect(Collectors.toList());
+        } else if ("voice".equalsIgnoreCase(sortBy)) {
+            // Sort by total voice time descending with null-safe comparison
+            return users.stream()
+                .sorted(Comparator.comparing(user -> user.getVoiceTimeMinutesTotal() != null ? user.getVoiceTimeMinutesTotal() : 0, 
                         Comparator.reverseOrder()))
                 .map(this::mapToProfileDTO)
                 .collect(Collectors.toList());
