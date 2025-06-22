@@ -91,6 +91,8 @@ public class LevelCardCommandListener extends ListenerAdapter {
             payload.put("google_fonts", "Inter:wght@400;500;600;700;800");
             payload.put("device_scale", 2); // For high-quality images
             payload.put("ms_delay", 1000); // Wait for fonts to load
+            payload.put("viewport_width", 450); // Set exact width
+            payload.put("viewport_height", 300); // Set approximate height
             
             // Set up authentication headers
             String auth = htmlCssToImageUserId + ":" + htmlCssToImageApiKey;
@@ -263,16 +265,20 @@ public class LevelCardCommandListener extends ListenerAdapter {
                 box-sizing: border-box;
             }
             
-            body {
+            html, body {
                 margin: 0;
-                padding: 20px;
+                padding: 0;
+                width: 450px;
+                height: auto;
                 background: #0a0e13;
                 font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                overflow: hidden;
             }
             
             .level-card {
                 width: 450px;
-                margin: 0 auto;
+                height: auto;
+                margin: 0;
                 background: rgba(31, 39, 49, 0.3);
                 backdrop-filter: blur(8px);
                 border: 1px solid rgba(255, 255, 255, 0.05);
@@ -281,6 +287,7 @@ public class LevelCardCommandListener extends ListenerAdapter {
                 position: relative;
                 overflow: hidden;
                 color: white;
+                box-sizing: border-box;
             }
             
             .card-gradient {
