@@ -68,14 +68,42 @@
   }
   
   /* =============================================================================
-     USER HEADER SECTION
+     LEVEL DISPLAY SECTION WITH USER INFO
   ============================================================================= */
   
-  .user-header-section {
-    text-align: center;
+  .level-display-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  
+  .user-info-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .avatar {
+    position: relative;
+    flex-shrink: 0;
+  }
+  
+  .avatar img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.08);
+  }
+  
+  .user-text {
+    flex: 1;
+    min-width: 0;
   }
   
   .display-name {
@@ -91,21 +119,18 @@
   
   .username {
     font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.4);
     font-weight: 400;
   }
   
-  /* =============================================================================
-     LEVEL DISPLAY SECTION
-  ============================================================================= */
-  
-  .level-display-section {
+  .level-info-right {
     text-align: center;
-    margin-bottom: 1.5rem;
+    flex-shrink: 0;
+    margin-left: 0.5rem;
   }
   
   .level-number {
-    font-size: 4rem;
+    font-size: 3rem;
     font-weight: 800;
     color: white;
     line-height: 1;
@@ -114,7 +139,7 @@
   }
   
   .level-text {
-    font-size: 1rem;
+    font-size: 0.875rem;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.7);
     letter-spacing: 0.1em;
@@ -263,25 +288,23 @@
   .skeleton-display-name {
     width: 160px;
     height: 1.25rem;
-    margin: 0 auto 0.25rem auto;
+    margin-bottom: 0.25rem;
   }
   
   .skeleton-username {
     width: 100px;
     height: 0.875rem;
-    margin: 0 auto;
   }
   
   .skeleton-level-number {
-    width: 120px;
-    height: 4rem;
-    margin: 0 auto 0.25rem auto;
+    width: 80px;
+    height: 3rem;
+    margin-bottom: 0.25rem;
   }
   
   .skeleton-level-text {
-    width: 60px;
-    height: 1rem;
-    margin: 0 auto;
+    width: 50px;
+    height: 0.875rem;
   }
   
   .skeleton-progress-bar {
@@ -301,6 +324,21 @@
   .skeleton-stat {
     width: 60px;
     height: 0.875rem;
+  }
+  
+  .skeleton-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.05) 25%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+    flex-shrink: 0;
   }
   
   @keyframes shimmer {
@@ -340,8 +378,29 @@
       padding: 1.25rem;
     }
   
+    .level-display-section {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 1rem;
+    }
+  
+    .user-info-left {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+  
+    .level-info-right {
+      margin-left: 0;
+    }
+  
     .level-number {
-      font-size: 3rem;
+      font-size: 2.5rem;
+    }
+  
+    .avatar img {
+      width: 40px;
+      height: 40px;
     }
   
     .stats-grid-section {

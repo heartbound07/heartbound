@@ -51,13 +51,18 @@ export const LevelCard = React.memo(function LevelCard({ userProfile, loading, e
         className="level-card-wrapper"
       >
         <div className="level-card skeleton">
-          <div className="user-header-section">
-            <div className="skeleton-text skeleton-display-name"></div>
-            <div className="skeleton-text skeleton-username"></div>
-          </div>
           <div className="level-display-section">
-            <div className="skeleton-text skeleton-level-number"></div>
-            <div className="skeleton-text skeleton-level-text"></div>
+            <div className="user-info-left">
+              <div className="skeleton-avatar"></div>
+              <div className="user-text">
+                <div className="skeleton-text skeleton-display-name"></div>
+                <div className="skeleton-text skeleton-username"></div>
+              </div>
+            </div>
+            <div className="level-info-right">
+              <div className="skeleton-text skeleton-level-number"></div>
+              <div className="skeleton-text skeleton-level-text"></div>
+            </div>
           </div>
           <div className="progress-bars-section">
             <div className="progress-bar-item">
@@ -105,16 +110,28 @@ export const LevelCard = React.memo(function LevelCard({ userProfile, loading, e
       className="level-card-wrapper"
     >
       <div className="level-card">
-        {/* User Header */}
-        <div className="user-header-section">
-          <div className="display-name">{userProfile.displayName || userProfile.username || "User"}</div>
-          {userProfile.displayName && userProfile.username && <div className="username">@{userProfile.username}</div>}
-        </div>
-
-        {/* Level Display */}
+        {/* Level Display with User Info */}
         <div className="level-display-section">
-          <div className="level-number">{userProfile.level || 1}</div>
-          <div className="level-text">LEVEL</div>
+          <div className="user-info-left">
+            <div className="avatar">
+              <img
+                src={userProfile.avatar || "/default-avatar.png"}
+                alt={userProfile.displayName || userProfile.username || "User"}
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+            <div className="user-text">
+              <div className="display-name">{userProfile.displayName || userProfile.username || "User"}</div>
+              {userProfile.displayName && userProfile.username && (
+                <div className="username">@{userProfile.username}</div>
+              )}
+            </div>
+          </div>
+          <div className="level-info-right">
+            <div className="level-number">{userProfile.level || 1}</div>
+            <div className="level-text">LEVEL</div>
+          </div>
         </div>
 
         {/* Progress Bars */}
