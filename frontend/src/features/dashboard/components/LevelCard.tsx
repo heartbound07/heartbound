@@ -2,7 +2,8 @@
 
 import React from "react"
 import { motion } from "framer-motion"
-import { FaCoins, FaQuestion } from "react-icons/fa"
+import { FaCoins } from "react-icons/fa"
+import { MessageSquare, Volume2 } from "lucide-react"
 import type { UserProfileDTO } from "@/config/userService"
 import "./LevelCard.css"
 
@@ -41,6 +42,20 @@ export const LevelCard = React.memo(function LevelCard({ userProfile, loading, e
     }
     return num.toString()
   }
+
+  // Format voice time to readable format (same as Leaderboard)
+  const formatVoiceTime = (minutes: number) => {
+    if (minutes === 0) return "0m";
+    if (minutes < 60) {
+      return `${minutes}m`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (remainingMinutes === 0) {
+      return `${hours}h`;
+    }
+    return `${hours}h ${remainingMinutes}m`;
+  };
 
   if (loading) {
     return (
@@ -164,17 +179,17 @@ export const LevelCard = React.memo(function LevelCard({ userProfile, loading, e
           </div>
           <div className="stat-grid-item">
             <div className="stat-icon">
-              <img src={userProfile.avatar || "/default-avatar.png"} alt="Avatar" className="avatar-icon" />
+              <MessageSquare className="w-4 h-4" />
             </div>
-            <div className="stat-label">USR:</div>
-            <div className="stat-value">---</div>
+            <div className="stat-label">MSG:</div>
+            <div className="stat-value">{formatNumber(userProfile.messageCount || 0)}</div>
           </div>
-          <div className="stat-grid-item placeholder-stat">
+          <div className="stat-grid-item">
             <div className="stat-icon">
-              <FaQuestion />
+              <Volume2 className="w-4 h-4" />
             </div>
-            <div className="stat-label">TBD:</div>
-            <div className="stat-value">---</div>
+            <div className="stat-label">VT:</div>
+            <div className="stat-value">{formatVoiceTime(userProfile.voiceTimeMinutesTotal || 0)}</div>
           </div>
         </div>
       </div>
