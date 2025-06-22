@@ -1,650 +1,393 @@
 /* =============================================================================
-   LEVEL CARD COMPONENT - ISOLATED CSS
+   LEVEL CARD COMPONENT - GAME STATUS CARD DESIGN
    =============================================================================
    
-   This CSS file contains styles specific to the LevelCard component.
-   Uses .level-card-wrapper for namespace isolation to prevent conflicts.
-   Heavily inspired by XPCard.css for visual consistency.
-   
-   Key Features:
-   1. Glassmorphism card design matching XPCard styling
-   2. User identity display with avatar and names
-   3. Level and credits stats display
-   4. XP progress bar with animations
-   5. Loading skeleton states
+   Following the game-style status card layout from the reference image.
+   Maintaining existing color theme and functionality.
    
 ============================================================================= */
 
-/* Root variables for Level Card - matching XPCard theme */
+/* Root variables - maintaining existing theme */
 :root {
-  --level-card-accent: #FF4655;
-  --level-card-bg-primary: #0F1923;
-  --level-card-bg-secondary: #1F2731;
-  --level-card-border: rgba(255, 255, 255, 0.05);
-  --level-card-radius: 0.75rem;
-  --level-card-transition: all 0.3s ease;
-}
-
-/* =============================================================================
-   LEVEL CARD WRAPPER - CSS ISOLATION BOUNDARY
-============================================================================= */
-
-.level-card-wrapper {
-  /* Reset any inherited styles */
-  all: unset;
-  
-  /* Establish new stacking context */
-  position: relative;
-  z-index: 1;
-  
-  /* Fixed container behavior with reduced width */
-  display: block;
-  width: 600px;
-  max-width: 100%;
-  margin: 0 auto 1.5rem auto;
-  
-  /* Typography inheritance with dark theme enforcement */
-  font-family: inherit;
-  line-height: inherit;
-  color: white !important;
-}
-
-/* =============================================================================
-   LEVEL CARD TEXT COLOR OVERRIDES - DARK THEME ENFORCEMENT  
-============================================================================= */
-
-.level-card-wrapper * {
-  color: inherit;
-}
-
-.level-card-wrapper .text-white {
-  color: white !important;
-}
-
-.level-card-wrapper .text-theme-secondary {
-  color: rgba(255, 255, 255, 0.7) !important;
-}
-
-.level-card-wrapper .text-theme-tertiary {
-  color: rgba(255, 255, 255, 0.5) !important;
-}
-
-/* =============================================================================
-   LEVEL CARD CONTAINER
-============================================================================= */
-
-.level-card-wrapper .level-card {
-  background: rgba(31, 39, 49, 0.3) !important;
-  backdrop-filter: blur(8px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: var(--level-card-radius);
-  padding: 2rem;
-  transition: var(--level-card-transition);
-  transform-origin: top center;
-  will-change: transform, opacity;
-  color: white !important;
-  position: relative;
-  overflow: hidden;
-}
-
-.level-card-wrapper .level-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.level-card-wrapper .level-card > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* =============================================================================
-   CARD CONTENT LAYOUT
-============================================================================= */
-
-.level-card-wrapper .level-card-content {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-/* =============================================================================
-   USER IDENTITY SECTION
-============================================================================= */
-
-.level-card-wrapper .level-card-user {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  min-width: 0;
-}
-
-.level-card-wrapper .level-card-user-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex: 1;
-  min-width: 0;
-  max-width: calc(100% - 120px);
-}
-
-.level-card-wrapper .level-card-avatar {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.level-card-wrapper .level-card-avatar img {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  transition: none;
-}
-
-.level-card-wrapper .avatar-status-dot {
-  position: absolute;
-  bottom: 2px;
-  right: 2px;
-  width: 12px;
-  height: 12px;
-  background: #10b981;
-  border-radius: 50%;
-  border: 2px solid var(--level-card-bg-secondary);
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
-}
-
-.level-card-wrapper .level-card-identity {
-  flex: 1;
-  min-width: 0;
-}
-
-.level-card-wrapper .level-card-name {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: white;
-  margin: 0 0 0.25rem 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  letter-spacing: -0.025em;
-}
-
-.level-card-wrapper .level-card-username {
-  display: block;
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.6);
-  font-family: 'gg sans', sans-serif;
-  margin-bottom: 0.25rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.level-card-wrapper .level-card-pronouns {
-  display: inline-block;
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 0.125rem 0.5rem;
-  font-family: 'gg sans', sans-serif;
-}
-
-/* =============================================================================
-   STATS SECTION
-============================================================================= */
-
-.level-card-wrapper .level-card-stats {
-  display: flex;
-  gap: 1rem;
-  flex-shrink: 0;
-  min-width: 120px;
-}
-
-.level-card-wrapper .level-card-stat-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: rgba(31, 39, 49, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  transition: var(--level-card-transition);
-  min-width: 100px;
-}
-
-.level-card-wrapper .level-card-stat-item:hover {
-  background: rgba(31, 39, 49, 0.6);
-  border-color: rgba(255, 255, 255, 0.1);
-  transform: translateY(-1px);
-}
-
-.level-card-wrapper .level-card-stat-item.level .stat-icon {
-  color: #60a5fa;
-}
-
-.level-card-wrapper .level-card-stat-item.credits .stat-icon {
-  color: #fbbf24;
-}
-
-.level-card-wrapper .stat-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.125rem;
-  flex-shrink: 0;
-}
-
-.level-card-wrapper .stat-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  flex: 1;
-}
-
-.level-card-wrapper .stat-label {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-}
-
-.level-card-wrapper .stat-value {
-  font-size: 1rem;
-  font-weight: 700;
-  color: white;
-  white-space: nowrap;
-}
-
-/* Enhanced Level Stat Design */
-.level-card-wrapper .level-display {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.125rem;
-  text-align: center;
-  padding: 0.5rem 0.75rem;
-  flex-shrink: 0;
-  width: 60px;
-  min-width: 60px;
-}
-
-.level-card-wrapper .stat-level-number {
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: white;
-  line-height: 1;
-  letter-spacing: -0.025em;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.level-card-wrapper .stat-level-label {
-  font-size: 0.6875rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.6);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  line-height: 1;
-}
-
-/* Remove old level stat styles that are no longer needed */
-.level-card-wrapper .stat-content.level-stat {
-  display: none;
-}
-
-/* =============================================================================
-   XP PROGRESS SECTION
-============================================================================= */
-
-.level-card-wrapper .level-card-progress {
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding-top: 2rem;
-}
-
-.level-card-wrapper .progress-header {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.level-card-wrapper .progress-stats {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
-  font-family: 'gg sans', sans-serif;
-  font-weight: 500;
-}
-
-/* Level Progress Section Layout */
-.level-card-wrapper .level-progress-section {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-}
-
-.level-card-wrapper .level-indicator {
-  flex-shrink: 0;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-  white-space: nowrap;
-  min-width: 60px;
-  text-align: left;
-}
-
-.level-card-wrapper .progress-footer {
-  display: flex;
-  justify-content: center;
-  margin-top: 0.5rem;
-}
-
-.level-card-wrapper .progress-detail {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
-  font-family: 'gg sans', sans-serif;
-  font-weight: 500;
-}
-
-/* XP Progress Bar - White styling */
-.level-card-wrapper .xp-progress-container {
-  flex: 1;
-  padding: 1px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  border: 0.5px solid rgba(255, 255, 255, 0.08);
-}
-
-.level-card-wrapper .xp-progress-bar {
-  height: 12px;
-  background: rgba(31, 39, 49, 0.8);
-  border-radius: 6px;
-  overflow: hidden;
-  position: relative;
-  border: 0.5px solid rgba(255, 255, 255, 0.05);
-}
-
-.level-card-wrapper .xp-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.8) 50%, rgba(255, 255, 255, 0.7) 100%);
-  border-radius: 5px;
-  position: relative;
-  transition: width 0.5s ease-in-out;
-}
-
-.level-card-wrapper .xp-progress-fill::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
-  border-radius: 5px;
-}
-
-/* =============================================================================
-   SKELETON LOADING STATES
-============================================================================= */
-
-.level-card-wrapper .level-card.skeleton {
-  background: rgba(31, 39, 49, 0.2) !important;
-}
-
-.level-card-wrapper .skeleton-avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.05) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
-}
-
-.level-card-wrapper .skeleton-text {
-  height: 1rem;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.05) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
-  border-radius: 4px;
-}
-
-.level-card-wrapper .skeleton-name {
-  width: 150px;
-  height: 1.25rem;
-  margin-bottom: 0.5rem;
-}
-
-.level-card-wrapper .skeleton-username {
-  width: 100px;
-  height: 0.875rem;
-}
-
-.level-card-wrapper .skeleton-stat {
-  width: 80px;
-  height: 1rem;
-}
-
-.level-card-wrapper .skeleton-level-number {
-  width: 40px;
-  height: 1.75rem;
-  margin-bottom: 0.125rem;
-}
-
-.level-card-wrapper .skeleton-level-label {
-  width: 50px;
-  height: 0.6875rem;
-}
-
-.level-card-wrapper .skeleton-progress-label {
-  width: 120px;
-  height: 0.875rem;
-  margin-bottom: 0.75rem;
-}
-
-.level-card-wrapper .skeleton-level-indicator {
-  width: 60px;
-  height: 0.75rem;
-  flex-shrink: 0;
-}
-
-.level-card-wrapper .skeleton-progress-stats {
-  width: 100px;
-  height: 0.75rem;
-  margin: 0.5rem auto 0;
-}
-
-.level-card-wrapper .skeleton-progress-fill {
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
-  border-radius: 5px;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
+    --level-card-accent: #ff4655;
+    --level-card-bg-primary: #0f1923;
+    --level-card-bg-secondary: #1f2731;
+    --level-card-border: rgba(255, 255, 255, 0.05);
+    --level-card-radius: 0.75rem;
+    --level-card-transition: all 0.3s ease;
   }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-/* =============================================================================
-   ERROR STATES
-============================================================================= */
-
-.level-card-wrapper .level-card.error {
-  background: rgba(239, 68, 68, 0.05) !important;
-  border-color: rgba(239, 68, 68, 0.1) !important;
-}
-
-.level-card-wrapper .level-card-error {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.875rem;
-  text-align: center;
-}
-
-/* =============================================================================
-   RESPONSIVE DESIGN
-============================================================================= */
-
-@media (max-width: 768px) {
+  
+  /* =============================================================================
+     WRAPPER & CONTAINER
+  ============================================================================= */
+  
   .level-card-wrapper {
+    all: unset;
+    position: relative;
+    z-index: 1;
+    display: block;
     width: 100%;
-    margin: 0 0 1.5rem 0;
+    max-width: 400px;
+    margin: 0 auto;
+    font-family: inherit;
+    line-height: inherit;
+    color: white !important;
   }
   
-  .level-card-wrapper .level-card-content {
-    flex-direction: column;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-
-  .level-card-wrapper .level-card-user-info {
-    max-width: none;
+  .level-card-wrapper * {
+    color: inherit;
   }
   
-  .level-card-wrapper .level-card-stats {
-    align-self: stretch;
-    justify-content: space-between;
-    min-width: auto;
+  .level-card {
+    background: rgba(31, 39, 49, 0.3) !important;
+    backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-radius: var(--level-card-radius);
+    padding: 1.5rem;
+    transition: var(--level-card-transition);
+    position: relative;
+    overflow: hidden;
+    color: white !important;
   }
   
-  .level-card-wrapper .level-card-stat-item {
-    flex: 1;
-    min-width: 0;
+  .level-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
   }
   
-  .level-card-wrapper .level-card {
-    padding: 1rem;
+  .level-card > * {
+    position: relative;
+    z-index: 1;
   }
   
-  .level-card-wrapper .level-card-progress {
-    padding-top: 1rem;
-  }
-
-  .level-card-wrapper .level-progress-section {
-    gap: 0.75rem;
-  }
-
-  .level-card-wrapper .level-indicator {
-    font-size: 0.6875rem;
-    min-width: 50px;
-  }
-
-  .level-card-wrapper .level-display {
-    padding: 0.5rem 0.75rem;
-    width: 50px;
-    min-width: 50px;
-  }
-}
-
-@media (max-width: 480px) {
-  .level-card-wrapper .level-card-avatar img {
-    width: 48px;
-    height: 48px;
+  /* =============================================================================
+     USER HEADER SECTION
+  ============================================================================= */
+  
+  .user-header-section {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
   
-  .level-card-wrapper .avatar-status-dot {
-    width: 10px;
-    height: 10px;
-    bottom: 1px;
-    right: 1px;
+  .display-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
   }
   
-  .level-card-wrapper .level-card-name {
-    font-size: 1.125rem;
+  .username {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 400;
   }
   
-  .level-card-wrapper .level-card-stats {
-    gap: 0.5rem;
+  /* =============================================================================
+     LEVEL DISPLAY SECTION
+  ============================================================================= */
+  
+  .level-display-section {
+    text-align: center;
+    margin-bottom: 1.5rem;
   }
   
-  .level-card-wrapper .level-card-stat-item {
-    padding: 0.5rem 0.75rem;
-    min-width: 80px;
+  .level-number {
+    font-size: 4rem;
+    font-weight: 800;
+    color: white;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.25rem;
   }
-
-  .level-card-wrapper .level-display {
-    padding: 0.5rem 0.75rem;
+  
+  .level-text {
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
   }
-
-  .level-card-wrapper .stat-level-number {
-    font-size: 1.5rem;
+  
+  /* =============================================================================
+     PROGRESS BARS SECTION
+  ============================================================================= */
+  
+  .progress-bars-section {
+    margin-bottom: 1.5rem;
   }
-
-  .level-card-wrapper .stat-level-label {
-    font-size: 0.625rem;
-  }
-
-  .level-card-wrapper .level-progress-section {
-    gap: 0.5rem;
-  }
-
-  .level-card-wrapper .level-indicator {
-    font-size: 0.625rem;
-    min-width: 45px;
-  }
-
-  .level-card-wrapper .progress-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
+  
+  .progress-bar-item {
     margin-bottom: 0.75rem;
   }
-}
-
-/* =============================================================================
-   PERFORMANCE OPTIMIZATIONS
-============================================================================= */
-
-.level-card-wrapper [data-framer-motion-layout] {
-  transform-origin: top center;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-@supports (will-change: transform) {
-  .level-card-wrapper .level-card {
-    will-change: transform, opacity;
+  
+  .progress-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
   }
   
-  .level-card-wrapper .xp-progress-fill {
-    will-change: width;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .level-card-wrapper .level-card,
-  .level-card-wrapper .xp-progress-fill,
-  .level-card-wrapper .level-card-avatar img {
-    transition: none;
-    animation: none;
+  .progress-bar-track {
+    flex: 1;
+    height: 8px;
+    background: rgba(31, 39, 49, 0.8);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
   
-  .level-card-wrapper .skeleton-avatar,
-  .level-card-wrapper .skeleton-text,
-  .level-card-wrapper .skeleton-progress-fill {
-    animation: none;
-    background: rgba(255, 255, 255, 0.05);
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--level-card-accent) 0%, rgba(255, 70, 85, 0.8) 100%);
+    border-radius: 3px;
+    transition: width 0.5s ease-in-out;
   }
-} 
+  
+  .progress-bar-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+    min-width: 80px;
+    text-align: right;
+  }
+  
+  /* =============================================================================
+     STATS GRID SECTION
+  ============================================================================= */
+  
+  .stats-grid-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  
+  .stat-grid-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: rgba(31, 39, 49, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    transition: var(--level-card-transition);
+  }
+  
+  .stat-grid-item:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+  
+  .stat-grid-item.placeholder-stat {
+    background: rgba(31, 39, 49, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    opacity: 0.7;
+  }
+  
+  .stat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    font-size: 0.875rem;
+    color: #fbbf24;
+    flex-shrink: 0;
+  }
+  
+  .placeholder-stat .stat-icon {
+    color: rgba(255, 255, 255, 0.4);
+  }
+  
+  .avatar-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
+  .stat-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .placeholder-stat .stat-label {
+    color: rgba(255, 255, 255, 0.4);
+  }
+  
+  .stat-value {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: white;
+    margin-left: auto;
+  }
+  
+  .placeholder-stat .stat-value {
+    color: rgba(255, 255, 255, 0.3);
+    font-weight: 400;
+  }
+  
+  /* =============================================================================
+     SKELETON LOADING STATES
+  ============================================================================= */
+  
+  .level-card.skeleton {
+    background: rgba(31, 39, 49, 0.2) !important;
+  }
+  
+  .skeleton-text {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.05) 25%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+    border-radius: 4px;
+  }
+  
+  .skeleton-display-name {
+    width: 160px;
+    height: 1.25rem;
+    margin: 0 auto 0.25rem auto;
+  }
+  
+  .skeleton-username {
+    width: 100px;
+    height: 0.875rem;
+    margin: 0 auto;
+  }
+  
+  .skeleton-level-number {
+    width: 120px;
+    height: 4rem;
+    margin: 0 auto 0.25rem auto;
+  }
+  
+  .skeleton-level-text {
+    width: 60px;
+    height: 1rem;
+    margin: 0 auto;
+  }
+  
+  .skeleton-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.05) 25%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+    border-radius: 4px;
+  }
+  
+  .skeleton-stat {
+    width: 60px;
+    height: 0.875rem;
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  
+  /* =============================================================================
+     ERROR STATES
+  ============================================================================= */
+  
+  .level-card.error {
+    background: rgba(239, 68, 68, 0.05) !important;
+    border-color: rgba(239, 68, 68, 0.1) !important;
+  }
+  
+  .level-card-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+    text-align: center;
+  }
+  
+  /* =============================================================================
+     RESPONSIVE DESIGN
+  ============================================================================= */
+  
+  @media (max-width: 480px) {
+    .level-card {
+      padding: 1.25rem;
+    }
+  
+    .level-number {
+      font-size: 3rem;
+    }
+  
+    .stats-grid-section {
+      grid-template-columns: 1fr;
+    }
+  
+    .stat-grid-item:nth-child(3) {
+      grid-column: 1;
+    }
+  
+    .progress-bar-container {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+  
+    .progress-bar-label {
+      text-align: center;
+      min-width: auto;
+    }
+  }
+  
+  /* =============================================================================
+     PERFORMANCE OPTIMIZATIONS
+  ============================================================================= */
+  
+  @supports (will-change: transform) {
+    .level-card {
+      will-change: transform, opacity;
+    }
+  
+    .progress-bar-fill {
+      will-change: width;
+    }
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    .level-card,
+    .progress-bar-fill {
+      transition: none;
+      animation: none;
+    }
+  
+    .skeleton-text,
+    .skeleton-progress-bar {
+      animation: none;
+      background: rgba(255, 255, 255, 0.05);
+    }
+  }
+  
