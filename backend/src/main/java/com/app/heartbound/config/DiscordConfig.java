@@ -10,6 +10,7 @@ import com.app.heartbound.services.discord.InventoryCommandListener;
 import com.app.heartbound.services.discord.FishCommandListener;
 import com.app.heartbound.services.discord.StatsCommandListener;
 import com.app.heartbound.services.discord.BreakupCommandListener;
+import com.app.heartbound.services.discord.LevelCardCommandListener;
 import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
 import com.app.heartbound.services.discord.UserVoiceActivityService;
@@ -77,6 +78,9 @@ public class DiscordConfig {
     private BreakupCommandListener breakupCommandListener;
 
     @Autowired
+    private LevelCardCommandListener levelCardCommandListener;
+
+    @Autowired
     private DiscordMessageListenerService discordMessageListenerService;
 
     @Autowired
@@ -121,7 +125,7 @@ public class DiscordConfig {
                     // Register all listeners EXCEPT shopCommandListener and statsCommandListener (we'll register them manually)
                     .addEventListeners(leaderboardCommandListener, chatActivityListener, 
                                       creditsCommandListener, welcomeListener, welcomeCommandListener,
-                                      inventoryCommandListener, fishCommandListener,
+                                      inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService)
                     .build();
@@ -176,7 +180,8 @@ public class DiscordConfig {
                     Commands.slash("inventory", "Displays the items you currently own"),
                     Commands.slash("fish", "Go fishing for a chance to win or lose credits"),
                     Commands.slash("stats", "View your current pairing statistics"),
-                    Commands.slash("breakup", "End your current match/pairing")
+                    Commands.slash("breakup", "End your current match/pairing"),
+                    Commands.slash("me", "Displays your profile stats as a generated image card")
                 )
                 .queue(
                     cmds -> {
