@@ -126,7 +126,10 @@ export const LevelCard = React.memo(function LevelCard({ userProfile, loading, e
     >
       <div className="level-card">
         {/* Level Display with User Info */}
-        <div className="level-display-section">
+        <div 
+          className={`level-display-section${userProfile.bannerUrl ? ' has-banner' : ''}`}
+          style={userProfile.bannerUrl ? { backgroundImage: `url(${userProfile.bannerUrl})` } : undefined}
+        >
           <div className="user-info-left">
             <div className="avatar">
               <img

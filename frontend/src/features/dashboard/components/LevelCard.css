@@ -75,9 +75,40 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
+    margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--level-card-radius) var(--level-card-radius) 0 0;
+  }
+  
+  .level-display-section.has-banner {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  
+  .level-display-section.has-banner::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 0, 0, 0.7) 0%,
+      rgba(0, 0, 0, 0.5) 50%,
+      rgba(0, 0, 0, 0.6) 100%
+    );
+    z-index: 1;
+    pointer-events: none;
+  }
+  
+  .level-display-section > * {
+    position: relative;
+    z-index: 2;
   }
   
   .user-info-left {
