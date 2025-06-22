@@ -16,6 +16,7 @@ import {
   SkeletonDashboardActivity, 
   SkeletonDashboardChart 
 } from "@/components/ui/SkeletonUI"
+import { LevelCard } from "./components/LevelCard"
 
 // Legend state interface
 interface LegendState {
@@ -234,6 +235,13 @@ export function DashboardPage() {
 
         {/* Dashboard Content Wrapper */}
         <div className="discord-dashboard">
+          {/* Level Card - User Profile Header */}
+          <LevelCard 
+            userProfile={userProfile}
+            loading={statsLoading}
+            error={statsError}
+          />
+
           {/* Main Stats Grid */}
           {statsLoading ? (
             <motion.div
