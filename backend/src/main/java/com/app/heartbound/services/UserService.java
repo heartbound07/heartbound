@@ -338,6 +338,8 @@ public class UserService {
                 .equippedBadgeIds(badgeIds)
                 .badgeUrls(badgeUrls)
                 .badgeNames(badgeNames) // Add the badge names map
+                .dailyStreak(user.getDailyStreak()) // Add daily claim fields
+                .lastDailyClaim(user.getLastDailyClaim())
                 .build();
     }
 
