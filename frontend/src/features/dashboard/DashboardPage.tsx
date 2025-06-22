@@ -8,6 +8,7 @@ import {
   type UserProfileDTO,
   getCombinedDailyActivity,
   type CombinedDailyActivityDTO,
+  getLeaderboardUsers,
 } from "@/config/userService"
 import { DailyActivityChart } from "./components/DailyActivityChart"
 import { Button } from "@/components/ui/button"
@@ -16,6 +17,7 @@ import {
   SkeletonDashboardActivity, 
   SkeletonDashboardChart 
 } from "@/components/ui/SkeletonUI"
+import { LevelCard } from "./components/LevelCard"
 
 // Legend state interface
 interface LegendState {
@@ -41,6 +43,10 @@ export function DashboardPage() {
   const [activityData, setActivityData] = useState<CombinedDailyActivityDTO[]>([])
   const [activityLoading, setActivityLoading] = useState(true)
   const [activityError, setActivityError] = useState<string | null>(null)
+
+  // Add state for leaderboard data to calculate ranks
+  const [messageLeaderboard, setMessageLeaderboard] = useState<UserProfileDTO[]>([])
+  const [voiceLeaderboard, setVoiceLeaderboard] = useState<UserProfileDTO[]>([])
 
   // Legend state management for chart
   const [activeLegend, setActiveLegend] = useState<LegendState>({
@@ -86,8 +92,30 @@ export function DashboardPage() {
     }
   }
 
+  // Fetch leaderboard data for ranking calculations
+  const fetchLeaderboardData = async () => {
+    try {
+      // Fetch both message and voice leaderboards in parallel
+      const [messageUsers, voiceUsers] = await Promise.all([
+        getLeaderboardUsers('messages'),
+        getLeaderboardUsers('voice')
+      ])
+      
+      setMessageLeaderboard(messageUsers)
+      setVoiceLeaderboard(voiceUsers)
+    } catch (error) {
+      console.error("Error fetching leaderboard data:", error)
+      // Don't set error state since this is supplementary data for ranking
+    }
+  }
+
   useEffect(() => {
     fetchUserProfile()
+    fetchLeaderboardData()
+  }, [])
+
+  useEffect(() => {
+    fetchActivityData()
   }, [])
 
   // Fetch daily activity data
@@ -117,14 +145,26 @@ export function DashboardPage() {
     }
   }
 
-  useEffect(() => {
-    fetchActivityData()
-  }, [])
-
   const retryFetch = () => {
     fetchUserProfile()
     fetchActivityData()
+    fetchLeaderboardData()
   }
+
+  // Calculate user ranks using the same approach as UserRankCard
+  const calculateUserRanks = () => {
+    if (!userProfile) return { messageRank: null, voiceRank: null }
+    
+    const messageRank = messageLeaderboard.findIndex(user => user.id === userProfile.id) + 1
+    const voiceRank = voiceLeaderboard.findIndex(user => user.id === userProfile.id) + 1
+    
+    return {
+      messageRank: messageRank > 0 ? messageRank : null,
+      voiceRank: voiceRank > 0 ? voiceRank : null
+    }
+  }
+
+  const { messageRank, voiceRank } = calculateUserRanks()
 
   // Format large numbers (e.g., 1000 -> 1k)
   const formatNumber = (num: number) => {
@@ -234,6 +274,13 @@ export function DashboardPage() {
 
         {/* Dashboard Content Wrapper */}
         <div className="discord-dashboard">
+          {/* Level Card - User Profile Header */}
+          <LevelCard 
+            userProfile={userProfile}
+            loading={statsLoading}
+            error={statsError}
+          />
+
           {/* Main Stats Grid */}
           {statsLoading ? (
             <motion.div
@@ -278,7 +325,7 @@ export function DashboardPage() {
                           className="rank-card"
                         >
                           <div className="rank-label">Messages</div>
-                          <div className="rank-value">#{userProfile?.messageRank || '--'}</div>
+                          <div className="rank-value">#{messageRank || '--'}</div>
                         </motion.div>
                         <motion.div
                           initial={{ opacity: 0, scale: 0.9 }}
@@ -287,7 +334,7 @@ export function DashboardPage() {
                           className="rank-card"
                         >
                           <div className="rank-label">Voice Activity</div>
-                          <div className="rank-value">#{userProfile?.voiceRank || '--'}</div>
+                          <div className="rank-value">#{voiceRank || '--'}</div>
                         </motion.div>
                       </>
                     )}

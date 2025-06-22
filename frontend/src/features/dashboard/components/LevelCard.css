@@ -1,0 +1,485 @@
+/* =============================================================================
+   LEVEL CARD COMPONENT - GAME STATUS CARD DESIGN
+   =============================================================================
+   
+   Following the game-style status card layout from the reference image.
+   Maintaining existing color theme and functionality.
+   
+============================================================================= */
+
+/* Root variables - maintaining existing theme */
+:root {
+    --level-card-accent: #ff4655;
+    --level-card-bg-primary: #0f1923;
+    --level-card-bg-secondary: #1f2731;
+    --level-card-border: rgba(255, 255, 255, 0.05);
+    --level-card-radius: 0.75rem;
+    --level-card-transition: all 0.3s ease;
+  }
+  
+  /* =============================================================================
+     WRAPPER & CONTAINER
+  ============================================================================= */
+  
+  .level-card-wrapper {
+    all: unset;
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    max-width: 450px;
+    margin: 0 auto 1.5rem auto;
+    font-family: inherit;
+    line-height: inherit;
+    color: white !important;
+  }
+  
+  .level-card-wrapper * {
+    color: inherit;
+  }
+  
+  .level-card {
+    background: rgba(31, 39, 49, 0.3) !important;
+    backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-radius: var(--level-card-radius);
+    padding: 1.5rem;
+    transition: var(--level-card-transition);
+    position: relative;
+    overflow: hidden;
+    color: white !important;
+  }
+  
+  .level-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  .level-card > * {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* =============================================================================
+     LEVEL DISPLAY SECTION WITH USER INFO
+  ============================================================================= */
+  
+  .level-display-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--level-card-radius) var(--level-card-radius) 0 0;
+  }
+  
+  .level-display-section.has-banner {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  
+  .level-display-section.has-banner::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0px;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 0, 0, 0.4) 0%,
+      rgba(0, 0, 0, 0.3) 50%,
+      rgba(0, 0, 0, 0.5) 100%
+    );
+    z-index: 1;
+    pointer-events: none;
+  }
+  
+  .level-display-section > * {
+    position: relative;
+    z-index: 2;
+  }
+  
+  .user-info-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .avatar {
+    position: relative;
+    flex-shrink: 0;
+  }
+  
+  .avatar img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(0, 0, 0, 0.8);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+  
+  .user-text {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .display-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(0, 0, 0, 0.8), 1px -1px 2px rgba(0, 0, 0, 0.8), -1px 1px 2px rgba(0, 0, 0, 0.8);
+  }
+  
+  .username {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 400;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(0, 0, 0, 0.8), 1px -1px 2px rgba(0, 0, 0, 0.8), -1px 1px 2px rgba(0, 0, 0, 0.8);
+  }
+  
+  .level-info-right {
+    text-align: center;
+    flex-shrink: 0;
+    margin-left: 0.25rem;
+  }
+  
+  .level-number {
+    font-size: 3rem;
+    font-weight: 800;
+    color: white;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.25rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9), -2px -2px 4px rgba(0, 0, 0, 0.9), 2px -2px 4px rgba(0, 0, 0, 0.9), -2px 2px 4px rgba(0, 0, 0, 0.9);
+  }
+  
+  .level-text {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(0, 0, 0, 0.8), 1px -1px 2px rgba(0, 0, 0, 0.8), -1px 1px 2px rgba(0, 0, 0, 0.8);
+  }
+  
+  /* =============================================================================
+     PROGRESS BARS SECTION
+  ============================================================================= */
+  
+  .progress-bars-section {
+    margin-bottom: 1.5rem;
+  }
+  
+  .progress-bar-item {
+    margin-bottom: 0.75rem;
+  }
+  
+  .progress-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .progress-bar-track {
+    flex: 1;
+    height: 8px;
+    background: rgba(31, 39, 49, 0.8);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--level-card-accent) 0%, rgba(255, 70, 85, 0.8) 100%);
+    border-radius: 3px;
+    transition: width 0.5s ease-in-out;
+  }
+  
+  .progress-bar-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+    min-width: 80px;
+    text-align: right;
+  }
+  
+  /* =============================================================================
+     STATS GRID SECTION
+  ============================================================================= */
+  
+  .stats-grid-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.75rem;
+  }
+  
+  .stat-grid-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: rgba(31, 39, 49, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    transition: var(--level-card-transition);
+  }
+  
+  .stat-grid-item.placeholder-stat {
+    background: rgba(31, 39, 49, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    opacity: 0.7;
+  }
+  
+  .stat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    font-size: 0.875rem;
+    color: white;
+    flex-shrink: 0;
+  }
+  
+  .placeholder-stat .stat-icon {
+    color: rgba(255, 255, 255, 0.4);
+  }
+  
+  .avatar-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
+  .stat-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .placeholder-stat .stat-label {
+    color: rgba(255, 255, 255, 0.4);
+  }
+  
+  .stat-value {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: white;
+    margin-left: auto;
+  }
+  
+  .placeholder-stat .stat-value {
+    color: rgba(255, 255, 255, 0.3);
+    font-weight: 400;
+  }
+  
+  /* =============================================================================
+     SKELETON LOADING STATES
+  ============================================================================= */
+  
+  .level-card.skeleton {
+    background: rgba(31, 39, 49, 0.2) !important;
+  }
+  
+  .skeleton-text {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.05) 25%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+    border-radius: 4px;
+  }
+  
+  .skeleton-display-name {
+    width: 160px;
+    height: 1.25rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .skeleton-username {
+    width: 100px;
+    height: 0.875rem;
+  }
+  
+  .skeleton-level-number {
+    width: 80px;
+    height: 3rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .skeleton-level-text {
+    width: 50px;
+    height: 0.875rem;
+  }
+  
+  .skeleton-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.05) 25%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+    border-radius: 4px;
+  }
+  
+  .skeleton-stat {
+    width: 60px;
+    height: 0.875rem;
+  }
+  
+  .skeleton-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.05) 25%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+    flex-shrink: 0;
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  
+  /* =============================================================================
+     ERROR STATES
+  ============================================================================= */
+  
+  .level-card.error {
+    background: rgba(239, 68, 68, 0.05) !important;
+    border-color: rgba(239, 68, 68, 0.1) !important;
+  }
+  
+  .level-card-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+    text-align: center;
+  }
+  
+  /* =============================================================================
+     RESPONSIVE DESIGN
+  ============================================================================= */
+  
+  @media (max-width: 480px) {
+    .level-card {
+      padding: 1.25rem;
+    }
+  
+    .level-display-section {
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+    }
+  
+    .user-info-left {
+      gap: 0.75rem;
+    }
+  
+    .level-number {
+      font-size: 2.5rem;
+    }
+  
+    .display-name {
+      font-size: 1.125rem;
+    }
+  
+    .username {
+      font-size: 0.8125rem;
+    }
+  
+    .avatar img {
+      width: 40px;
+      height: 40px;
+    }
+  
+    .stats-grid-section {
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+    }
+  
+    .stat-grid-item {
+      padding: 0.625rem;
+    }
+  
+    .progress-bar-container {
+      gap: 0.5rem;
+    }
+  
+    .progress-bar-label {
+      font-size: 0.6875rem;
+      min-width: 70px;
+    }
+  }
+  
+  /* =============================================================================
+     PERFORMANCE OPTIMIZATIONS
+  ============================================================================= */
+  
+  @supports (will-change: transform) {
+    .level-card {
+      will-change: transform, opacity;
+    }
+  
+    .progress-bar-fill {
+      will-change: width;
+    }
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    .level-card,
+    .progress-bar-fill {
+      transition: none;
+      animation: none;
+    }
+  
+    .skeleton-text,
+    .skeleton-progress-bar {
+      animation: none;
+      background: rgba(255, 255, 255, 0.05);
+    }
+  }
+  

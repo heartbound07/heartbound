@@ -20,16 +20,6 @@ interface DropdownOption {
 // Dropdown options configuration
 const DROPDOWN_OPTIONS: DropdownOption[] = [
   {
-    value: 'credits',
-    label: 'Credits',
-    icon: <FaCoins className="text-yellow-400" size={16} />
-  },
-  {
-    value: 'level',
-    label: 'Levels',
-    icon: <FaStar className="text-blue-400" size={16} />
-  },
-  {
     value: 'messages',
     label: 'Messages',
     icon: <MessageSquare className="text-green-400" size={16} />
@@ -38,6 +28,16 @@ const DROPDOWN_OPTIONS: DropdownOption[] = [
     value: 'voice',
     label: 'Voice Time',
     icon: <Volume2 className="text-purple-400" size={16} />
+  },
+  {
+    value: 'level',
+    label: 'Levels',
+    icon: <FaStar className="text-blue-400" size={16} />
+  },
+  {
+    value: 'credits',
+    label: 'Credits',
+    icon: <FaCoins className="text-yellow-400" size={16} />
   }
 ];
 
@@ -154,7 +154,7 @@ export function LeaderboardPage() {
   const [users, setUsers] = useState<UserProfileDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [leaderboardType, setLeaderboardType] = useState<'credits' | 'level' | 'messages' | 'voice'>('credits');
+  const [leaderboardType, setLeaderboardType] = useState<'credits' | 'level' | 'messages' | 'voice'>('messages');
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfileDTO | null>(null);
   const [highlightedUserId, setHighlightedUserId] = useState<string | null>(null);
   
