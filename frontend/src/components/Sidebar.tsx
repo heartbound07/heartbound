@@ -4,7 +4,6 @@ import { useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "@/contexts/auth"
 import "@/assets/sidebar.css"
 import "@/assets/styles/fonts.css"
-import "@/assets/animations.css"
 import "@/assets/z-index-system.css"
 import { MdDashboard, MdAdminPanelSettings } from "react-icons/md"
 import { IoSettingsSharp } from "react-icons/io5"
@@ -14,7 +13,6 @@ import { ChevronRight, Menu, LogOut, Users, Star } from "lucide-react"
 import { ProfilePreview } from "@/components/ui/profile/ProfilePreview"
 import ReactDOM from "react-dom"
 import valorantLogo from "@/assets/images/valorant-logo.png"
-import { motion, AnimatePresence } from "framer-motion"
 
 /**
  * DashboardNavigation
@@ -294,16 +292,9 @@ export function DashboardNavigation({ theme = "default", onCollapseChange }: Das
   return (
     <>
       <MobileBackdrop />
-      <motion.aside
+      <aside
         className={`sidebar ${isCollapsed ? "collapsed" : "expanded"} ${isMobileOpen ? "mobile-open" : ""} theme-${effectiveTheme}`}
         aria-label="Main navigation"
-        animate={{
-          width: isCollapsed ? 78 : 280,
-        }}
-        transition={{
-          duration: 0.25,
-          ease: [0.25, 0.1, 0.25, 1],
-        }}
       >
         {/* Header */}
         <div className="sidebar-header">
@@ -315,20 +306,14 @@ export function DashboardNavigation({ theme = "default", onCollapseChange }: Das
             <Menu size={16} />
           </button>
 
-          <AnimatePresence>
-            {!isCollapsed && (
-              <motion.h1
-                className="sidebar-brand"
-                onClick={() => navigate("/dashboard")}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-              >
-                heartbound
-              </motion.h1>
-            )}
-          </AnimatePresence>
+          {!isCollapsed && (
+            <h1
+              className="sidebar-brand"
+              onClick={() => navigate("/dashboard")}
+            >
+              heartbound
+            </h1>
+          )}
         </div>
 
         {/* Profile Section */}
@@ -400,19 +385,11 @@ export function DashboardNavigation({ theme = "default", onCollapseChange }: Das
                     >
                       <div className="nav-icon">{item.icon}</div>
 
-                      <AnimatePresence>
-                        {!isCollapsed && (
-                          <motion.span
-                            className="nav-label"
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -10 }}
-                            transition={{ duration: 0.15 }}
-                          >
-                            {item.label}
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
+                      {!isCollapsed && (
+                        <span className="nav-label">
+                          {item.label}
+                        </span>
+                      )}
                     </button>
 
                     {item.hasSubmenu && !isCollapsed && (
@@ -460,41 +437,28 @@ export function DashboardNavigation({ theme = "default", onCollapseChange }: Das
         {/* Footer */}
         <div className="sidebar-footer">
           <div className="footer-section">
-            <AnimatePresence>
-              {!isCollapsed && (
-                <motion.button
-                  onClick={() => navigate("/settings")}
-                  className={`footer-item ${isSettingsPage ? "active" : ""}`}
-                  aria-current={isSettingsPage ? "page" : undefined}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <IoSettingsSharp size={16} />
-                  <span>Settings</span>
-                </motion.button>
-              )}
-            </AnimatePresence>
+            {!isCollapsed && (
+              <button
+                onClick={() => navigate("/settings")}
+                className={`footer-item ${isSettingsPage ? "active" : ""}`}
+                aria-current={isSettingsPage ? "page" : undefined}
+              >
+                <IoSettingsSharp size={16} />
+                <span>Settings</span>
+              </button>
+            )}
 
             <button onClick={handleLogout} className={`footer-item logout ${isCollapsed ? "collapsed" : ""}`}>
               <LogOut size={16} />
-              <AnimatePresence>
-                {!isCollapsed && (
-                  <motion.span
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -10 }}
-                    transition={{ duration: 0.15 }}
-                  >
-                    Logout
-                  </motion.span>
-                )}
-              </AnimatePresence>
+              {!isCollapsed && (
+                <span>
+                  Logout
+                </span>
+              )}
             </button>
           </div>
         </div>
-      </motion.aside>
+      </aside>
 
       {/* Mobile Toggle */}
       <button onClick={toggleMobileSidebar} className="mobile-toggle" aria-label="Toggle mobile menu">

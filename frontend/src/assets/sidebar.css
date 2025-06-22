@@ -29,7 +29,6 @@
   flex-direction: column;
   z-index: 900;
   overflow: hidden;
-  /* Remove fixed width - let framer-motion handle it */
 }
 
 /* Collapsed and Expanded states for CSS fallback */
@@ -84,10 +83,9 @@
   user-select: none;
   letter-spacing: -0.025em;
   position: absolute;
-  left: 28.5%;
+  left: 50%;
   transform: translateX(-50%);
-  top: 25%;
-  transform: translate(-50%, -50%);
+  pointer-events: auto;
 }
 
 /* Profile Section */
@@ -281,7 +279,6 @@
   font-size: 0.875rem;
   font-weight: 600;
   position: relative;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   background: transparent;
 }
@@ -299,7 +296,6 @@
   cursor: pointer;
   gap: 0.875rem;
   border-radius: 12px 0 0 12px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-item-chevron {
@@ -312,7 +308,6 @@
   color: var(--text-muted);
   cursor: pointer;
   border-radius: 0 12px 12px 0;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   margin-left: auto;
 }
 
@@ -332,7 +327,6 @@
 .nav-item:hover {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
-  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
@@ -372,7 +366,6 @@
 
 .nav-item.active:hover {
   background: var(--active);
-  transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
@@ -404,7 +397,6 @@
 .submenu-arrow {
   color: var(--text-muted);
   margin-left: auto;
-  transition: all 0.2s ease;
 }
 
 .submenu-arrow.expanded {
