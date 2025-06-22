@@ -95,6 +95,40 @@ public class JWTTokenProvider {
     public void setJwtCacheConfig(JWTCacheConfig jwtCacheConfig) {
         this.jwtCacheConfig = jwtCacheConfig;
         logger.debug("JWT Cache Configuration injected successfully");
+        
+        // **PERFORMANCE CRITICAL**: Verify cache is working properly
+        verifyCacheOperation();
+    }
+    
+    /**
+     * **PERFORMANCE CRITICAL**: Verify that caching is operational during startup.
+     * This prevents runtime discovery of cache issues during WebSocket connections.
+     */
+    private void verifyCacheOperation() {
+        if (cacheEnabled && jwtCacheConfig != null) {
+            try {
+                // Test cache operation with a dummy key
+                String testKey = "cache_test_" + System.currentTimeMillis();
+                jwtCacheConfig.getTokenValidationCache().put(testKey, true);
+                Boolean result = jwtCacheConfig.getTokenValidationCache().getIfPresent(testKey);
+                
+                if (result != null && result) {
+                    logger.info("JWT Cache verification successful - caching is operational");
+                } else {
+                    logger.error("JWT Cache verification failed - caching may not be working properly");
+                    // Don't fail startup but log the issue
+                }
+                
+                // Clean up test entry
+                jwtCacheConfig.getTokenValidationCache().invalidate(testKey);
+                
+            } catch (Exception e) {
+                logger.error("JWT Cache verification failed with exception: {}", e.getMessage());
+                // Don't fail startup but ensure we know about cache issues
+            }
+        } else {
+            logger.warn("JWT Caching is disabled or JWTCacheConfig not available - performance may be degraded");
+        }
     }
 
     @PreDestroy
@@ -634,13 +668,30 @@ public class JWTTokenProvider {
     public JWTUserDetails authenticateTokenOptimized(String token) throws InvalidTokenException {
         long startTime = System.nanoTime();
         
+        if (token == null || token.trim().isEmpty()) {
+            throw new InvalidTokenException("Token cannot be null or empty");
+        }
+        
         try {
+            // **CACHE VERIFICATION**: Check if caching is working as expected
+            boolean cacheWorking = (cacheEnabled && jwtCacheConfig != null);
+            if (!cacheWorking && logger.isWarnEnabled()) {
+                logger.warn("JWT caching not available - authentication will be slower");
+            }
+            
             // This method combines validation and details extraction efficiently
             JWTUserDetails userDetails = getUserDetailsOptimized(token);
             
             long duration = System.nanoTime() - startTime;
-            logger.debug("Token authentication completed in {} microseconds for user: {}", 
-                    duration / 1000, userDetails.getUserId());
+            
+            // **PERFORMANCE MONITORING**: Log slow authentication operations
+            if (duration > 50_000_000) { // 50ms threshold
+                logger.warn("Slow JWT authentication detected: {} ms for user: {} (caching: {})", 
+                        duration / 1_000_000, userDetails.getUserId(), cacheWorking);
+            } else {
+                logger.debug("Token authentication completed in {} microseconds for user: {} (cached: {})", 
+                        duration / 1000, userDetails.getUserId(), cacheWorking);
+            }
             
             return userDetails;
         } catch (InvalidTokenException e) {
