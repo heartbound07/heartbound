@@ -30,7 +30,7 @@ class WebSocketService {
   private subscriptions: Map<string, StompSubscription> = new Map();
 
   constructor(config?: Partial<WebSocketConfig>) {
-    // Default configuration
+    // Default configuration optimized for WebSocket authentication performance
     const defaultConfig: WebSocketConfig = {
       baseUrl: API_CONFIG.BASE_URL,
       heartbeatIncoming: 4000,
@@ -40,17 +40,23 @@ class WebSocketService {
 
     const finalConfig = { ...defaultConfig, ...config };
 
-        // Initialize the STOMP client with simplified configuration
+        // Initialize the STOMP client with optimized configuration for authentication
     const wsUrl = `${finalConfig.baseUrl}/ws`;
     console.info(`[WebSocket] Initializing STOMP client with URL: ${wsUrl}`);
     
     const clientConfig: any = {
       webSocketFactory: () => {
         console.info(`[WebSocket] Creating SockJS connection to: ${wsUrl}`);
-        return new SockJS(wsUrl);
+        return new SockJS(wsUrl, null, {
+          // **PERFORMANCE OPTIMIZATION**: Set shorter timeout for faster failure detection
+          timeout: 10000, // 10 seconds instead of default 30 seconds
+          transports: ['websocket', 'xhr-streaming', 'xhr-polling']
+        });
       },
       heartbeatIncoming: finalConfig.heartbeatIncoming,
       heartbeatOutgoing: finalConfig.heartbeatOutgoing,
+      // **PERFORMANCE OPTIMIZATION**: Add connection timeout to prevent hanging
+      connectionTimeout: 15000, // 15 seconds max for connection establishment
       // Note: No reconnectDelay - reconnection is handled by WebSocketProvider
       connectHeaders: {},
     };
@@ -62,7 +68,7 @@ class WebSocketService {
     
     this.client = new Client(clientConfig);
     
-    console.info('[WebSocket] STOMP client initialized successfully');
+    console.info('[WebSocket] STOMP client initialized with authentication optimizations');
   }
 
   /**
@@ -81,46 +87,62 @@ class WebSocketService {
     }
 
     this.connectionState = 'connecting';
-    console.info('[WebSocket] Connecting with token...');
+    console.info('[WebSocket] Connecting with authentication optimization...');
 
     return new Promise((resolve, reject) => {
-      // Add connection timeout
+      // **PERFORMANCE OPTIMIZATION**: Reduced timeout to match backend authentication timeout
       const connectionTimeout = setTimeout(() => {
-        console.error('[WebSocket] Connection timeout after 15 seconds');
+        console.error('[WebSocket] Connection timeout after 10 seconds - possible authentication issue');
         this.connectionState = 'error';
-        reject(new Error('WebSocket connection timeout'));
-      }, 15000);
+        reject(new Error('WebSocket connection timeout - authentication may be slow'));
+      }, 10000); // Reduced from 15 seconds to 10 seconds
 
       const cleanup = () => {
         clearTimeout(connectionTimeout);
       };
 
-      // Set authentication headers
+      // **PERFORMANCE OPTIMIZATION**: Set authentication headers with validation
+      if (!accessToken || accessToken.trim() === '') {
+        cleanup();
+        this.connectionState = 'error';
+        reject(new Error('Invalid access token provided'));
+        return;
+      }
+
       this.client.connectHeaders = {
         Authorization: `Bearer ${accessToken}`
       };
 
-      // Configure connection callbacks
+      // Configure connection callbacks with enhanced error reporting
       this.client.onConnect = () => {
-        console.info('[WebSocket] Connected successfully');
+        console.info('[WebSocket] Connected successfully - authentication completed');
         this.connectionState = 'connected';
         cleanup();
         resolve();
       };
 
       this.client.onStompError = (frame) => {
-        console.error('[STOMP] Broker reported error:', frame.headers['message']);
+        const errorMessage = frame.headers['message'] || 'Unknown STOMP error';
+        console.error('[STOMP] Authentication/broker error:', errorMessage);
         console.error('[STOMP] Error details:', frame.body);
         this.connectionState = 'error';
         cleanup();
-        reject(new Error(frame.body || 'STOMP authentication error'));
+        
+        // **PERFORMANCE OPTIMIZATION**: Provide specific error messages for authentication issues
+        if (errorMessage.toLowerCase().includes('auth') || 
+            errorMessage.toLowerCase().includes('token') ||
+            errorMessage.toLowerCase().includes('unauthorized')) {
+          reject(new Error(`Authentication failed: ${errorMessage}`));
+        } else {
+          reject(new Error(`STOMP error: ${errorMessage}`));
+        }
       };
 
       this.client.onWebSocketError = (event) => {
         console.error('[WebSocket] WebSocket error occurred:', event);
         this.connectionState = 'error';
         cleanup();
-        reject(new Error('WebSocket connection error'));
+        reject(new Error('WebSocket connection error - check network connectivity'));
       };
 
       this.client.onWebSocketClose = (event) => {
@@ -129,7 +151,13 @@ class WebSocketService {
           // Connection failed during initial connection attempt
           this.connectionState = 'error';
           cleanup();
-          reject(new Error(`WebSocket connection closed during connection attempt (Code: ${event.code})`));
+          
+          // **PERFORMANCE OPTIMIZATION**: Provide specific error messages based on close codes
+          if (event.code === 1006) {
+            reject(new Error(`WebSocket connection closed abnormally - possible authentication timeout (Code: ${event.code})`));
+          } else {
+            reject(new Error(`WebSocket connection closed during connection attempt (Code: ${event.code})`));
+          }
         } else {
           this.connectionState = 'disconnected';
           this.subscriptions.clear();
@@ -138,9 +166,9 @@ class WebSocketService {
 
       // Activate the connection
       try {
-        console.info('[WebSocket] Activating STOMP client...');
+        console.info('[WebSocket] Activating STOMP client with authentication...');
         this.client.activate();
-        console.info('[WebSocket] STOMP client activation initiated');
+        console.info('[WebSocket] STOMP client activation initiated - waiting for authentication');
       } catch (error) {
         console.error('[WebSocket] Error during client activation:', error);
         this.connectionState = 'error';
