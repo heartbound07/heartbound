@@ -45,6 +45,9 @@ export const LevelCard = React.memo(function LevelCard({
     return num.toString();
   };
 
+  // Calculate remaining XP for next level
+  const remainingXP = xpProgress.required - xpProgress.current;
+
   if (loading) {
     return (
       <motion.div
@@ -56,28 +59,34 @@ export const LevelCard = React.memo(function LevelCard({
         <div className="level-card skeleton">
           <div className="level-card-content">
             <div className="level-card-user">
-              <div className="level-card-avatar skeleton-avatar"></div>
-              <div className="level-card-identity">
-                <div className="skeleton-text skeleton-name"></div>
-                <div className="skeleton-text skeleton-username"></div>
+              <div className="level-card-user-info">
+                <div className="level-card-avatar skeleton-avatar"></div>
+                <div className="level-card-identity">
+                  <div className="skeleton-text skeleton-name"></div>
+                  <div className="skeleton-text skeleton-username"></div>
+                </div>
+                <div className="level-display skeleton">
+                  <div className="skeleton-text skeleton-level-number"></div>
+                  <div className="skeleton-text skeleton-level-label"></div>
+                </div>
               </div>
             </div>
             <div className="level-card-stats">
               <div className="level-card-stat-item">
                 <div className="skeleton-text skeleton-stat"></div>
               </div>
-              <div className="level-card-stat-item">
-                <div className="skeleton-text skeleton-stat"></div>
-              </div>
             </div>
           </div>
           <div className="level-card-progress">
-            <div className="skeleton-text skeleton-progress-label"></div>
-            <div className="xp-progress-container">
-              <div className="xp-progress-bar">
-                <div className="skeleton-progress-fill"></div>
+            <div className="level-progress-section">
+              <div className="skeleton-text skeleton-level-indicator"></div>
+              <div className="xp-progress-container">
+                <div className="xp-progress-bar">
+                  <div className="skeleton-progress-fill"></div>
+                </div>
               </div>
             </div>
+            <div className="skeleton-text skeleton-progress-stats"></div>
           </div>
         </div>
       </motion.div>
@@ -112,39 +121,36 @@ export const LevelCard = React.memo(function LevelCard({
         <div className="level-card-content">
           {/* User Identity Section */}
           <div className="level-card-user">
-            <div className="level-card-avatar">
-              <img 
-                src={userProfile.avatar || "/default-avatar.png"} 
-                alt={userProfile.displayName || userProfile.username || 'User'} 
-                loading="lazy"
-                decoding="async"
-              />
-              <div className="avatar-status-dot"></div>
-            </div>
-            <div className="level-card-identity">
-              <h2 className="level-card-name">
-                {userProfile.displayName || userProfile.username || 'User'}
-              </h2>
-              {userProfile.displayName && userProfile.username && (
-                <span className="level-card-username">@{userProfile.username}</span>
-              )}
-              {userProfile.pronouns && (
-                <span className="level-card-pronouns">{userProfile.pronouns}</span>
-              )}
+            <div className="level-card-user-info">
+              <div className="level-card-avatar">
+                <img 
+                  src={userProfile.avatar || "/default-avatar.png"} 
+                  alt={userProfile.displayName || userProfile.username || 'User'} 
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div className="avatar-status-dot"></div>
+              </div>
+              <div className="level-card-identity">
+                <h2 className="level-card-name">
+                  {userProfile.displayName || userProfile.username || 'User'}
+                </h2>
+                {userProfile.displayName && userProfile.username && (
+                  <span className="level-card-username">@{userProfile.username}</span>
+                )}
+                {userProfile.pronouns && (
+                  <span className="level-card-pronouns">{userProfile.pronouns}</span>
+                )}
+              </div>
+              <div className="level-display">
+                <span className="stat-level-number">{userProfile.level || 1}</span>
+                <span className="stat-level-label">Level</span>
+              </div>
             </div>
           </div>
 
           {/* Stats Section */}
           <div className="level-card-stats">
-            <div className="level-card-stat-item level">
-              <div className="stat-icon">
-                <FaStar />
-              </div>
-              <div className="stat-content">
-                <span className="stat-label">Level</span>
-                <span className="stat-value">{userProfile.level || 1}</span>
-              </div>
-            </div>
             <div className="level-card-stat-item credits">
               <div className="stat-icon">
                 <FaCoins />
@@ -160,20 +166,29 @@ export const LevelCard = React.memo(function LevelCard({
         {/* XP Progress Section */}
         <div className="level-card-progress">
           <div className="progress-header">
-            <span className="progress-label">Experience Progress</span>
             <span className="progress-stats">
-              {xpProgress.current} / {xpProgress.required} XP
+              XP to next level: {remainingXP}
             </span>
           </div>
-          <div className="xp-progress-container">
-            <div className="xp-progress-bar">
-              <motion.div 
-                className="xp-progress-fill"
-                initial={{ width: 0 }}
-                animate={{ width: `${xpProgress.percentage}%` }}
-                transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
-              />
+          <div className="level-progress-section">
+            <div className="level-indicator current-level">
+              Level {userProfile.level || 1}
             </div>
+            <div className="xp-progress-container">
+              <div className="xp-progress-bar">
+                <motion.div 
+                  className="xp-progress-fill"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${xpProgress.percentage}%` }}
+                  transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="progress-footer">
+            <span className="progress-detail">
+              {xpProgress.current} / {xpProgress.required} XP
+            </span>
           </div>
         </div>
       </div>

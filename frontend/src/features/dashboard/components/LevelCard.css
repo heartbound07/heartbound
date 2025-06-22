@@ -123,8 +123,17 @@
 .level-card-wrapper .level-card-user {
   display: flex;
   align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.level-card-wrapper .level-card-user-info {
+  display: flex;
+  align-items: center;
   gap: 1rem;
   flex: 1;
+  min-width: 0;
+  max-width: calc(100% - 120px);
 }
 
 .level-card-wrapper .level-card-avatar {
@@ -138,12 +147,7 @@
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid rgba(255, 255, 255, 0.1);
-  transition: var(--level-card-transition);
-}
-
-.level-card-wrapper .level-card-avatar:hover img {
-  border-color: rgba(255, 70, 85, 0.3);
-  transform: scale(1.02);
+  transition: none;
 }
 
 .level-card-wrapper .avatar-status-dot {
@@ -204,6 +208,7 @@
   display: flex;
   gap: 1rem;
   flex-shrink: 0;
+  min-width: 120px;
 }
 
 .level-card-wrapper .level-card-stat-item {
@@ -262,6 +267,42 @@
   white-space: nowrap;
 }
 
+/* Enhanced Level Stat Design */
+.level-card-wrapper .level-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  text-align: center;
+  padding: 0.5rem 0.75rem;
+  flex-shrink: 0;
+  width: 60px;
+  min-width: 60px;
+}
+
+.level-card-wrapper .stat-level-number {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: white;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.level-card-wrapper .stat-level-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+/* Remove old level stat styles that are no longer needed */
+.level-card-wrapper .stat-content.level-stat {
+  display: none;
+}
+
 /* =============================================================================
    XP PROGRESS SECTION
 ============================================================================= */
@@ -273,15 +314,9 @@
 
 .level-card-wrapper .progress-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-bottom: 1rem;
-}
-
-.level-card-wrapper .progress-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
 }
 
 .level-card-wrapper .progress-stats {
@@ -291,8 +326,42 @@
   font-weight: 500;
 }
 
-/* XP Progress Bar - Matching XPCard.css styling */
+/* Level Progress Section Layout */
+.level-card-wrapper .level-progress-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.level-card-wrapper .level-indicator {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  white-space: nowrap;
+  min-width: 60px;
+  text-align: left;
+}
+
+.level-card-wrapper .progress-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.level-card-wrapper .progress-detail {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: 'gg sans', sans-serif;
+  font-weight: 500;
+}
+
+/* XP Progress Bar - White styling */
 .level-card-wrapper .xp-progress-container {
+  flex: 1;
   padding: 1px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
@@ -310,7 +379,7 @@
 
 .level-card-wrapper .xp-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #FF4655 0%, #FF4655 50%, rgba(255, 70, 85, 0.8) 100%);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.8) 50%, rgba(255, 255, 255, 0.7) 100%);
   border-radius: 5px;
   position: relative;
   transition: width 0.5s ease-in-out;
@@ -323,7 +392,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
   border-radius: 5px;
 }
 
@@ -368,16 +437,39 @@
   height: 1rem;
 }
 
+.level-card-wrapper .skeleton-level-number {
+  width: 40px;
+  height: 1.75rem;
+  margin-bottom: 0.125rem;
+}
+
+.level-card-wrapper .skeleton-level-label {
+  width: 50px;
+  height: 0.6875rem;
+}
+
 .level-card-wrapper .skeleton-progress-label {
   width: 120px;
   height: 0.875rem;
   margin-bottom: 0.75rem;
 }
 
+.level-card-wrapper .skeleton-level-indicator {
+  width: 60px;
+  height: 0.75rem;
+  flex-shrink: 0;
+}
+
+.level-card-wrapper .skeleton-progress-stats {
+  width: 100px;
+  height: 0.75rem;
+  margin: 0.5rem auto 0;
+}
+
 .level-card-wrapper .skeleton-progress-fill {
   width: 60%;
   height: 100%;
-  background: linear-gradient(90deg, rgba(255, 70, 85, 0.2) 25%, rgba(255, 70, 85, 0.4) 50%, rgba(255, 70, 85, 0.2) 75%);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 75%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
   border-radius: 5px;
@@ -426,10 +518,15 @@
     gap: 1rem;
     margin-bottom: 1rem;
   }
+
+  .level-card-wrapper .level-card-user-info {
+    max-width: none;
+  }
   
   .level-card-wrapper .level-card-stats {
     align-self: stretch;
     justify-content: space-between;
+    min-width: auto;
   }
   
   .level-card-wrapper .level-card-stat-item {
@@ -443,6 +540,21 @@
   
   .level-card-wrapper .level-card-progress {
     padding-top: 1rem;
+  }
+
+  .level-card-wrapper .level-progress-section {
+    gap: 0.75rem;
+  }
+
+  .level-card-wrapper .level-indicator {
+    font-size: 0.6875rem;
+    min-width: 50px;
+  }
+
+  .level-card-wrapper .level-display {
+    padding: 0.5rem 0.75rem;
+    width: 50px;
+    min-width: 50px;
   }
 }
 
@@ -470,6 +582,34 @@
   .level-card-wrapper .level-card-stat-item {
     padding: 0.5rem 0.75rem;
     min-width: 80px;
+  }
+
+  .level-card-wrapper .level-display {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .level-card-wrapper .stat-level-number {
+    font-size: 1.5rem;
+  }
+
+  .level-card-wrapper .stat-level-label {
+    font-size: 0.625rem;
+  }
+
+  .level-card-wrapper .level-progress-section {
+    gap: 0.5rem;
+  }
+
+  .level-card-wrapper .level-indicator {
+    font-size: 0.625rem;
+    min-width: 45px;
+  }
+
+  .level-card-wrapper .progress-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
   }
 }
 
