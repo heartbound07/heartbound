@@ -116,7 +116,7 @@ public class StatsCommandListener extends ListenerAdapter {
                 logger.debug("User {} has no active pairing", discordUserId);
                 event.getHook().editOriginal("💔 **You are not currently matched with anyone**\n" +
                     "Use the web application to join the matching queue and find your perfect match!\n" +
-                    "Visit: " + frontendBaseUrl + "/dashboard/pairings").queue();
+                    "Visit: " + frontendBaseUrl + "/pairings").queue();
                 return;
             }
             
@@ -127,7 +127,7 @@ public class StatsCommandListener extends ListenerAdapter {
                 logger.warn("User {} has an inactive pairing for /stats command", discordUserId);
                 event.getHook().editOriginal("💔 **You are not currently matched with anyone**\n" +
                     "Your previous pairing has ended. Use the web application to find a new match!\n" +
-                    "Visit: " + frontendBaseUrl + "/dashboard/pairings").queue();
+                    "Visit: " + frontendBaseUrl + "/pairings").queue();
                 return;
             }
             
@@ -208,7 +208,7 @@ public class StatsCommandListener extends ListenerAdapter {
         embed.setDescription(description.toString());
         
         // Set footer as clickable link to pairings page
-        embed.setFooter("View more details on the website", frontendBaseUrl + "/dashboard/pairings");
+        embed.setFooter("View more details on the website", frontendBaseUrl + "/pairings");
         
         return embed.build();
     }

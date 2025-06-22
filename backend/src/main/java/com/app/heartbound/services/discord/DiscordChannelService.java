@@ -479,7 +479,7 @@ public class DiscordChannelService {
             MessageEmbed embed = createPartyAnnouncementEmbed(party);
             
             // Create a button to join the party
-            String partyUrl = frontendBaseUrl + "/dashboard/valorant/" + party.getId();
+            String partyUrl = frontendBaseUrl + "/valorant/" + party.getId();
             Button joinButton = Button.link(partyUrl, "Join Party");
             
             textChannel.sendMessageEmbeds(embed)
@@ -692,7 +692,7 @@ public class DiscordChannelService {
                     );
             } else {
                 // For open parties, update the embed and preserve the Join button
-                String partyUrl = frontendBaseUrl + "/dashboard/valorant/" + party.getId();
+                String partyUrl = frontendBaseUrl + "/valorant/" + party.getId();
                 Button joinButton = Button.link(partyUrl, "Join Party");
                 
                 textChannel.editMessageEmbedsById(messageId, newEmbed)

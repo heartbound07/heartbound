@@ -128,7 +128,7 @@ public class BreakupCommandListener extends ListenerAdapter {
                 logger.debug("User {} has no active pairing for breakup", discordUserId);
                 event.reply("💔 **You are not currently matched with anyone**\n" +
                     "You need to be in an active match to use this command.\n" +
-                    "Visit the web application to join the matchmaking queue: " + frontendBaseUrl + "/dashboard/pairings")
+                    "Visit the web application to join the matchmaking queue: " + frontendBaseUrl + "/pairings")
                     .setEphemeral(true).queue();
                 return;
             }
@@ -140,7 +140,7 @@ public class BreakupCommandListener extends ListenerAdapter {
                 logger.warn("User {} has an inactive pairing for /breakup command", discordUserId);
                 event.reply("💔 **You are not currently matched with anyone**\n" +
                     "Your previous pairing has ended. Use the web application to find a new match!\n" +
-                    "Visit: " + frontendBaseUrl + "/dashboard/pairings")
+                    "Visit: " + frontendBaseUrl + "/pairings")
                     .setEphemeral(true).queue();
                 return;
             }
@@ -161,7 +161,7 @@ public class BreakupCommandListener extends ListenerAdapter {
             try {
                 event.reply("❌ **Error Processing Request**\n" +
                     "An unexpected error occurred. Please try again later or use the web application.\n" +
-                    "Visit: " + frontendBaseUrl + "/dashboard/pairings")
+                    "Visit: " + frontendBaseUrl + "/pairings")
                     .setEphemeral(true).queue();
             } catch (Exception ignored) {
                 logger.error("Failed to send error message for breakup command", ignored);
@@ -252,7 +252,7 @@ public class BreakupCommandListener extends ListenerAdapter {
             try {
                 event.getHook().editOriginal("❌ **Error Processing Breakup**\n" +
                     "An unexpected error occurred while ending your match. Please try again later or use the web application.\n" +
-                    "Visit: " + frontendBaseUrl + "/dashboard/pairings").queue();
+                    "Visit: " + frontendBaseUrl + "/pairings").queue();
             } catch (Exception ignored) {
                 logger.error("Failed to send error message for breakup modal", ignored);
             }
@@ -284,7 +284,7 @@ public class BreakupCommandListener extends ListenerAdapter {
                 // Fallback to immediate reply if modal fails
                 event.reply("❌ **Error showing breakup form**\n" +
                     "Please try again or use the web application to end your match.\n" +
-                    "Visit: " + frontendBaseUrl + "/dashboard/pairings")
+                    "Visit: " + frontendBaseUrl + "/pairings")
                     .setEphemeral(true).queue();
             }
         );
@@ -359,7 +359,7 @@ public class BreakupCommandListener extends ListenerAdapter {
         embed.setDescription(description.toString());
         
         // Set footer with link to web app
-        embed.setFooter("Visit the web application to find a new match", frontendBaseUrl + "/dashboard/pairings");
+        embed.setFooter("Visit the web application to find a new match", frontendBaseUrl + "/pairings");
         
         // Add timestamp
         embed.setTimestamp(java.time.Instant.now());
