@@ -41,9 +41,6 @@ public class UserProfileDTO {
     // Add message count field
     private Long messageCount;
     
-    // Add message rank field for server-wide ranking
-    private Integer messageRank;
-    
     // Add time-based message count fields
     private Integer messagesToday;
     private Integer messagesThisWeek;
