@@ -85,6 +85,10 @@ public class User {
     private LocalDateTime lastVoiceWeeklyReset;
     private LocalDateTime lastVoiceBiWeeklyReset;
     
+    // Daily claim system fields
+    private Integer dailyStreak = 0;
+    private LocalDateTime lastDailyClaim;
+    
     // Role-based security addition
     @ElementCollection(fetch = jakarta.persistence.FetchType.EAGER)
     @Enumerated(jakarta.persistence.EnumType.STRING)

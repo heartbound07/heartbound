@@ -73,6 +73,13 @@ public class CacheConfig {
     @Value("${cache.daily-activity.expire-after-write-minutes:30}")
     private long dailyActivityCacheExpireMinutes;
 
+    // Daily Claim Cache Configuration
+    @Value("${cache.daily-claim.max-size:10000}")
+    private long dailyClaimCacheMaxSize;
+
+    @Value("${cache.daily-claim.expire-after-write-minutes:60}")
+    private long dailyClaimCacheExpireMinutes;
+
     // Cache instances
     private Cache<Long, Object> pairLevelCache;
     private Cache<String, List<Object>> achievementListCache;
@@ -82,6 +89,7 @@ public class CacheConfig {
     private Cache<String, Object> userProfileCache;
     private Cache<String, Map<String, Object>> batchOperationsCache;
     private Cache<String, List<Object>> dailyMessageActivityCache;
+    private Cache<String, Object> dailyClaimCache;
 
     @PostConstruct
     public void initializeCaches() {
@@ -183,19 +191,33 @@ public class CacheConfig {
                 .recordStats()
                 .build();
 
+        // Daily Claim Cache - stores user daily claim status
+        this.dailyClaimCache = Caffeine.newBuilder()
+                .maximumSize(dailyClaimCacheMaxSize)
+                .expireAfterWrite(dailyClaimCacheExpireMinutes, TimeUnit.MINUTES)
+                .removalListener((RemovalListener<String, Object>) (key, value, cause) -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Daily claim cache entry removed: userId={}, cause={}", key, cause);
+                    }
+                })
+                .recordStats()
+                .build();
+
         log.info("Pairing System Performance Caches initialized successfully - " +
                 "PairLevel: {}/{} entries/minutes, " +
                 "Achievement: {}/{} entries/minutes, " +
                 "VoiceStreak: {}/{} entries/minutes, " +
                 "UserProfile: {}/{} entries/minutes, " +
                 "BatchOps: {}/{} entries/minutes, " +
-                "DailyActivity: {}/{} entries/minutes",
+                "DailyActivity: {}/{} entries/minutes, " +
+                "DailyClaim: {}/{} entries/minutes",
                 pairLevelCacheMaxSize, pairLevelCacheExpireMinutes,
                 achievementCacheMaxSize, achievementCacheExpireMinutes,
                 voiceStreakCacheMaxSize, voiceStreakCacheExpireMinutes,
                 userProfileCacheMaxSize, userProfileCacheExpireMinutes,
                 batchOperationsCacheMaxSize, batchOperationsCacheExpireMinutes,
-                dailyActivityCacheMaxSize, dailyActivityCacheExpireMinutes);
+                dailyActivityCacheMaxSize, dailyActivityCacheExpireMinutes,
+                dailyClaimCacheMaxSize, dailyClaimCacheExpireMinutes);
     }
 
     /**
@@ -262,6 +284,17 @@ public class CacheConfig {
     }
 
     /**
+     * Invalidates daily claim cache for a specific user.
+     * Use when a user's daily claim status is updated.
+     */
+    public void invalidateDailyClaimCache(String userId) {
+        if (userId != null) {
+            dailyClaimCache.invalidate(userId);
+            log.debug("Daily claim cache invalidated for user: {}", userId);
+        }
+    }
+
+    /**
      * Invalidates all caches. Use with caution - only for scenarios like
      * system maintenance or emergency cache refresh.
      */
@@ -275,6 +308,7 @@ public class CacheConfig {
         userProfileCache.invalidateAll();
         batchOperationsCache.invalidateAll();
         dailyMessageActivityCache.invalidateAll();
+        dailyClaimCache.invalidateAll();
         log.info("All pairing system caches invalidated successfully");
     }
 
@@ -299,6 +333,8 @@ public class CacheConfig {
                 .batchOperationsSize(batchOperationsCache.estimatedSize())
                 .dailyMessageActivityHitRate(dailyMessageActivityCache.stats().hitRate())
                 .dailyMessageActivitySize(dailyMessageActivityCache.estimatedSize())
+                .dailyClaimHitRate(dailyClaimCache.stats().hitRate())
+                .dailyClaimSize(dailyClaimCache.estimatedSize())
                 .build();
     }
 
@@ -316,6 +352,7 @@ public class CacheConfig {
         userProfileCache.cleanUp();
         batchOperationsCache.cleanUp();
         dailyMessageActivityCache.cleanUp();
+        dailyClaimCache.cleanUp();
         log.debug("Pairing cache maintenance completed");
     }
 
@@ -341,5 +378,7 @@ public class CacheConfig {
         private final long batchOperationsSize;
         private final double dailyMessageActivityHitRate;
         private final long dailyMessageActivitySize;
+        private final double dailyClaimHitRate;
+        private final long dailyClaimSize;
     }
 } 

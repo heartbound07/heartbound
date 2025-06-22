@@ -68,4 +68,8 @@ public class UserProfileDTO {
     
     // Add this field to map badge IDs to their names
     private Map<String, String> badgeNames;
+    
+    // Daily claim system fields
+    private Integer dailyStreak;
+    private java.time.LocalDateTime lastDailyClaim;
 }
