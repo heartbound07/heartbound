@@ -43,7 +43,7 @@
 /* Header */
 .sidebar-header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   padding: 1.25rem var(--spacing);
   border-bottom: 1px solid var(--border);
   min-height: 72px;
@@ -84,6 +84,7 @@
   letter-spacing: -0.025em;
   position: absolute;
   left: 50%;
+  bottom: 1.55rem;
   transform: translateX(-50%);
   pointer-events: auto;
 }
