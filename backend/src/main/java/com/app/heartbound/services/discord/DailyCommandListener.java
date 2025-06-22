@@ -79,7 +79,7 @@ public class DailyCommandListener extends ListenerAdapter {
                 
                 if (timeSinceLastClaim.toHours() < 24) {
                     // Still in cooldown period
-                    sendCooldownEmbed(event, claimStatus.lastDailyClaim, event.getUser().getName());
+                    sendCooldownEmbed(event, claimStatus.lastDailyClaim, event.getUser().getEffectiveName());
                     return;
                 }
             }
@@ -109,7 +109,7 @@ public class DailyCommandListener extends ListenerAdapter {
             cacheConfig.invalidateUserProfileCache(userId);
             
             // Send success embed
-            sendSuccessEmbed(event, newStreak, creditsToAward, now, event.getUser().getName());
+            sendSuccessEmbed(event, newStreak, creditsToAward, now, event.getUser().getEffectiveName());
             
             logger.debug("Daily claim processed for user {}: {} credits awarded, streak: {}", userId, creditsToAward, newStreak);
             
