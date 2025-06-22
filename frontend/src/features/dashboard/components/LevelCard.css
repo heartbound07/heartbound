@@ -37,10 +37,11 @@
   position: relative;
   z-index: 1;
   
-  /* Full container behavior */
+  /* Fixed container behavior with reduced width */
   display: block;
-  width: 100%;
-  margin-bottom: 1.5rem;
+  width: 600px;
+  max-width: 100%;
+  margin: 0 auto 1.5rem auto;
   
   /* Typography inheritance with dark theme enforcement */
   font-family: inherit;
@@ -77,7 +78,7 @@
   backdrop-filter: blur(8px) !important;
   border: 1px solid rgba(255, 255, 255, 0.05) !important;
   border-radius: var(--level-card-radius);
-  padding: 1.5rem;
+  padding: 2rem;
   transition: var(--level-card-transition);
   transform-origin: top center;
   will-change: transform, opacity;
@@ -112,7 +113,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 1.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 /* =============================================================================
@@ -267,14 +268,14 @@
 
 .level-card-wrapper .level-card-progress {
   border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding-top: 1.5rem;
+  padding-top: 2rem;
 }
 
 .level-card-wrapper .progress-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .level-card-wrapper .progress-label {
@@ -415,6 +416,11 @@
 ============================================================================= */
 
 @media (max-width: 768px) {
+  .level-card-wrapper {
+    width: 100%;
+    margin: 0 0 1.5rem 0;
+  }
+  
   .level-card-wrapper .level-card-content {
     flex-direction: column;
     gap: 1rem;
