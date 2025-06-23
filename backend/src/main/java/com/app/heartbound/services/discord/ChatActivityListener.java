@@ -84,6 +84,7 @@ public class ChatActivityListener extends ListenerAdapter {
     private String level50RoleId = "1166539666674167888";
     private String level70RoleId = "1170429914185465906";
     private String level100RoleId = "1162628179043823657";
+    private String starterRoleId = "1303106353014771773";
     
     // Track user cooldowns - userId -> lastMessageTimestamp
     private final ConcurrentHashMap<String, Instant> userCooldowns = new ConcurrentHashMap<>();
@@ -392,6 +393,12 @@ public class ChatActivityListener extends ListenerAdapter {
                     if (allLevelRoleIds.contains(userRoleId) && !userRoleId.equals(roleIdString)) {
                         rolesToRemove.add(userRole);
                     }
+                    // SPECIAL CASE: Remove starter role when user reaches any level milestone
+                    if (starterRoleId != null && !starterRoleId.isEmpty() && userRoleId.equals(starterRoleId)) {
+                        rolesToRemove.add(userRole);
+                        log.debug("[ROLE DEBUG] Starter role {} will be removed from user {} as they've reached level {}", 
+                                 starterRoleId, userId, level);
+                    }
                 }
                 
                 // Remove old level roles first, then assign new role
@@ -637,7 +644,8 @@ public class ChatActivityListener extends ListenerAdapter {
             String level40RoleId,
             String level50RoleId,
             String level70RoleId,
-            String level100RoleId) {
+            String level100RoleId,
+            String starterRoleId) {
         
         if (activityEnabled != null) this.activityEnabled = activityEnabled;
         if (creditsToAward != null) this.creditsToAward = creditsToAward;
@@ -662,6 +670,7 @@ public class ChatActivityListener extends ListenerAdapter {
         if (level50RoleId != null) this.level50RoleId = level50RoleId;
         if (level70RoleId != null) this.level70RoleId = level70RoleId;
         if (level100RoleId != null) this.level100RoleId = level100RoleId;
+        if (starterRoleId != null) this.starterRoleId = starterRoleId;
         
         log.info("Discord bot activity, leveling and role settings updated at runtime");
         log.debug("Activity: enabled={}, credits={}, threshold={}, window={}, cooldown={}, minLength={}",
@@ -670,5 +679,6 @@ public class ChatActivityListener extends ListenerAdapter {
                  levelingEnabled, xpToAward, baseXp, levelMultiplier, levelExponent, levelFactor, creditsPerLevel);
         log.debug("Role IDs: level5={}, level15={}, level30={}, level40={}, level50={}, level70={}, level100={}",
                 level5RoleId, level15RoleId, level30RoleId, level40RoleId, level50RoleId, level70RoleId, level100RoleId);
+        log.debug("Starter Role ID: {}", starterRoleId);
     }
 } 

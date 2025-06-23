@@ -37,6 +37,9 @@ public class DiscordBotSettings {
     private String level70RoleId = "1170429914185465906";
     private String level100RoleId = "1162628179043823657";
 
+    // Starter role given to new users (removed when they reach first level milestone)
+    private String starterRoleId = "1303106353014771773";
+
     // Getters and setters
     public Long getId() {
         return id;
@@ -207,5 +210,13 @@ public class DiscordBotSettings {
 
     public void setLevel100RoleId(String level100RoleId) {
         this.level100RoleId = level100RoleId;
+    }
+
+    public String getStarterRoleId() {
+        return starterRoleId;
+    }
+
+    public void setStarterRoleId(String starterRoleId) {
+        this.starterRoleId = starterRoleId;
     }
 } 
