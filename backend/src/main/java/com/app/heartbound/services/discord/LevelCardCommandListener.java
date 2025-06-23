@@ -69,7 +69,6 @@ public class LevelCardCommandListener extends ListenerAdapter {
             
             // Send the image to Discord
             event.getHook().sendFiles(FileUpload.fromData(imageBytes, "level-card.png"))
-                .addContent("🎮 **" + userProfile.getDisplayName() + "'s Profile Card**")
                 .queue();
             
         } catch (Exception e) {

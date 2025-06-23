@@ -25,7 +25,7 @@ public class UserProfileService {
      * Retrieves a user profile by user ID.
      * 
      * @param userId the ID of the user to fetch
-     * @return the UserProfileDTO containing basic profile information
+     * @return the UserProfileDTO containing complete profile information
      */
     public UserProfileDTO getUserProfile(String userId) {
         User user = userService.getUserById(userId);
@@ -33,7 +33,8 @@ public class UserProfileService {
             return createDefaultProfile(userId);
         }
         
-        return mapToProfileDTO(user);
+        // Use UserService's complete mapToProfileDTO method which includes all fields
+        return userService.mapToProfileDTO(user);
     }
     
     /**
@@ -49,7 +50,8 @@ public class UserProfileService {
             for (String userId : userIds) {
                 User user = userService.getUserById(userId);
                 if (user != null) {
-                    profiles.put(userId, mapToProfileDTO(user));
+                    // Use UserService's complete mapToProfileDTO method
+                    profiles.put(userId, userService.mapToProfileDTO(user));
                 } else {
                     profiles.put(userId, createDefaultProfile(userId));
                 }
@@ -57,26 +59,6 @@ public class UserProfileService {
         }
         
         return profiles;
-    }
-    
-    /**
-     * Maps a User entity to a UserProfileDTO.
-     * 
-     * @param user the User entity
-     * @return the UserProfileDTO with basic profile information
-     */
-    private UserProfileDTO mapToProfileDTO(User user) {
-        return UserProfileDTO.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .avatar(user.getAvatar() != null ? user.getAvatar() : "/default-avatar.png")
-                .displayName(user.getDisplayName())
-                .pronouns(user.getPronouns())
-                .about(user.getAbout())
-                .bannerColor(user.getBannerColor())
-                .bannerUrl(user.getBannerUrl())
-                .credits(user.getCredits())
-                .build();
     }
     
     /**
@@ -91,6 +73,11 @@ public class UserProfileService {
                 .username("Unknown User")
                 .avatar("/default-avatar.png")
                 .credits(0) // Default credits for unknown users
+                .level(1) // Default level
+                .experience(0) // Default experience
+                .xpForNextLevel(100) // Default XP required for next level
+                .messageCount(0L) // Default message count
+                .voiceTimeMinutesTotal(0) // Default voice time
                 .build();
     }
 }
