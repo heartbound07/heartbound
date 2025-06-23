@@ -92,7 +92,7 @@ public class LevelCardCommandListener extends ListenerAdapter {
             payload.put("device_scale", 2); // For high-quality images
             payload.put("ms_delay", 1000); // Wait for fonts to load
             payload.put("viewport_width", 450); // Set exact width
-            payload.put("viewport_height", 300); // Set approximate height
+            payload.put("viewport_height", 200); // Set height to match content size better
             
             // Set up authentication headers
             String auth = htmlCssToImageUserId + ":" + htmlCssToImageApiKey;
@@ -106,7 +106,7 @@ public class LevelCardCommandListener extends ListenerAdapter {
             
             // Make the API call
             ResponseEntity<String> response = restTemplate.postForEntity(
-                "https://hcti.io/v1/image", entity, String.class);
+                "https://hcti.io/v1/image", entity, String.class);  
             
             if (response.getStatusCode() == HttpStatus.OK) {
                 JsonNode jsonResponse = objectMapper.readTree(response.getBody());
@@ -307,25 +307,29 @@ public class LevelCardCommandListener extends ListenerAdapter {
                 margin: 0;
                 padding: 0;
                 width: 450px;
-                height: auto;
+                height: fit-content;
+                min-height: fit-content;
+                max-height: fit-content;
                 background: #0a0e13;
                 font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
                 overflow: hidden;
             }
             
-            /* WRAPPER & CONTAINER */
-            .level-card-wrapper {
-                all: unset;
-                position: relative;
-                z-index: 1;
-                display: block;
-                width: 100%;
-                max-width: 450px;
-                margin: 0 auto 1.5rem auto;
-                font-family: inherit;
-                line-height: inherit;
-                color: white !important;
-            }
+                         /* WRAPPER & CONTAINER */
+             .level-card-wrapper {
+                 all: unset;
+                 position: relative;
+                 z-index: 1;
+                 display: block;
+                 width: 100%;
+                 max-width: 450px;
+                 margin: 0;
+                 padding: 0;
+                 font-family: inherit;
+                 line-height: inherit;
+                 color: white !important;
+                 height: fit-content;
+             }
             
             .level-card-wrapper * {
                 color: inherit;
