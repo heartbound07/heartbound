@@ -564,6 +564,33 @@ public class ChatActivityListener extends ListenerAdapter {
                 log.debug("[XP DEBUG] Checking for level up: User={}, Level={}, XP={}",
                     userId, user.getLevel(), user.getExperience());
                 checkAndProcessLevelUp(user, userId, event.getChannel()); // Note: checkAndProcessLevelUp calls updateUser internally on level up
+                
+                // If user didn't level up, send contextual XP notification to original channel
+                if (initialLevel == user.getLevel().intValue()) {
+                    EmbedBuilder notificationEmbed = new EmbedBuilder();
+                    notificationEmbed.setDescription(String.format("<@%s>! You have gained %d xp!", 
+                                                userId, awardedXp));
+                    notificationEmbed.setColor(new Color(75, 181, 67)); // Green color
+                    
+                    // Add footer showing XP progress
+                    int currentXpAfterAward = user.getExperience() != null ? user.getExperience() : 0;
+                    notificationEmbed.setFooter(String.format("%d/%d XP to next level", 
+                            currentXpAfterAward, requiredXpForNextLevel));
+                    
+                    // Send contextual notification to the channel where user earned XP
+                    // Note: True ephemeral messages are not possible in MessageReceivedEvent context
+                    // Using original channel with auto-deletion as best alternative
+                    event.getChannel().sendMessageEmbeds(notificationEmbed.build()).queue(
+                        message -> {
+                            log.debug("[XP NOTIFICATION] Sent contextual XP notification to user {} in channel {}", 
+                                userId, event.getChannel().getId());
+                            // Delete the message after 2 seconds for minimal disruption
+                            message.delete().queueAfter(2, TimeUnit.SECONDS);
+                        },
+                        failure -> log.error("[XP NOTIFICATION] Failed to send contextual XP notification to user {} in channel {}: {}", 
+                            userId, event.getChannel().getId(), failure.getMessage())
+                    );
+                }
             }
             
             // Track message in activity window (for stats purposes only, not for credits)

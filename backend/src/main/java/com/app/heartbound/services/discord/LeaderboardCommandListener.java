@@ -247,7 +247,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
         }
         
         // Create a clickable link to the web leaderboard
-        String leaderboardUrl = frontendBaseUrl + "/dashboard/leaderboard";
+        String leaderboardUrl = frontendBaseUrl + "/leaderboard";
         embed.setDescription("View the [online leaderboard](" + leaderboardUrl + ")");
         embed.setColor(EMBED_COLOR);
         
