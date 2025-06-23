@@ -447,7 +447,14 @@ export function PairingsPage() {
     const fetchUserProfiles = async () => {
       const userIds = new Set<string>()
 
+      // Add user IDs from current user's pairing history
       pairingHistory.forEach((pairing) => {
+        userIds.add(pairing.user1Id)
+        userIds.add(pairing.user2Id)
+      })
+
+      // Add user IDs from all active pairings (for "Current Matches" display)
+      allActivePairings?.forEach((pairing) => {
         userIds.add(pairing.user1Id)
         userIds.add(pairing.user2Id)
       })
@@ -462,10 +469,10 @@ export function PairingsPage() {
       }
     }
 
-    if (pairingHistory.length > 0) {
+    if (pairingHistory.length > 0 || allActivePairings?.length > 0) {
       fetchUserProfiles()
     }
-  }, [pairingHistory])
+  }, [pairingHistory, allActivePairings])
 
   // Handle initial loading with minimum loading time
   useEffect(() => {
