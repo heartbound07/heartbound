@@ -166,9 +166,11 @@ public class PairingController {
 
     @Operation(summary = "Get all active pairings", description = "Retrieve all currently active pairings")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Active pairings retrieved successfully")
+            @ApiResponse(responseCode = "200", description = "Active pairings retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Authentication required")
     })
     @GetMapping("/active")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<PairingDTO>> getAllActivePairings() {
         log.info("Getting all active pairings");
         

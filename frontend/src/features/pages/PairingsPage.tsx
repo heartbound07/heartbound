@@ -5,6 +5,7 @@ import type React from "react"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { usePairings } from "@/hooks/usePairings"
+import { useAllActivePairings } from "@/hooks/useAllActivePairings"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/valorant/badge"
@@ -78,6 +79,13 @@ export function PairingsPage() {
     clearInactiveHistory,
     breakupPairing
   } = usePairings()
+
+  // Hook for all active pairings to display in "Current Matches" section
+  const {
+    allActivePairings,
+    loading: allActivePairingsLoading,
+    error: allActivePairingsError
+  } = useAllActivePairings()
   const { isConnected } = useQueueUpdates()
   const { pairingUpdate, clearUpdate } = usePairingUpdates()
 
@@ -593,8 +601,9 @@ export function PairingsPage() {
 
   // Filter pairings into current matches and history
   const currentMatches = useMemo(() => {
-    return pairingHistory.filter(pairing => pairing.active)
-  }, [pairingHistory])
+    // Use all active pairings from the system, not just user-specific ones
+    return allActivePairings || []
+  }, [allActivePairings])
 
   const inactiveHistory = useMemo(() => {
     return pairingHistory.filter(pairing => !pairing.active)
@@ -1262,7 +1271,27 @@ export function PairingsPage() {
                         streakData={pairingStreaks}
                         levelData={pairingLevels}
                       />
-                      {currentMatches.length === 0 && !currentPairing && !queueStatus.inQueue && isQueueEnabled && (
+                      {allActivePairingsLoading && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-center"
+                        >
+                          <Skeleton width="100%" height="60px" theme="valorant" />
+                        </motion.div>
+                      )}
+                      {allActivePairingsError && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-center"
+                        >
+                          <p className="text-status-error text-sm">
+                            Failed to load active matches: {allActivePairingsError}
+                          </p>
+                        </motion.div>
+                      )}
+                      {!allActivePairingsLoading && !allActivePairingsError && currentMatches.length === 0 && !currentPairing && !queueStatus.inQueue && isQueueEnabled && (
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}

@@ -8,6 +8,7 @@ import com.app.heartbound.entities.User;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.pairing.BlacklistEntryRepository;
 import com.app.heartbound.repositories.pairing.MatchQueueUserRepository;
+import com.app.heartbound.config.CacheConfig;
 import com.app.heartbound.repositories.pairing.PairingRepository;
 import com.app.heartbound.services.discord.DiscordPairingChannelService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
@@ -45,6 +46,7 @@ public class PairingService {
     private final DiscordVoiceTimeTrackerService discordVoiceTimeTrackerService;
     private final DiscordLeaderboardService discordLeaderboardService;
     private final DiscordMessageListenerService discordMessageListenerService;
+    private final CacheConfig cacheConfig;
     
     // XP System Services
     private final PairLevelService pairLevelService;
@@ -289,14 +291,39 @@ public class PairingService {
     }
 
     /**
-     * Get all active pairings
+     * Get all active pairings with caching optimization
      */
     @Transactional(readOnly = true)
     public List<PairingDTO> getAllActivePairings() {
-        return pairingRepository.findByActiveTrue()
+        // Check cache first for performance optimization
+        @SuppressWarnings("unchecked")
+        Map<String, Object> cachedData = cacheConfig.getBatchOperationsCache()
+                .getIfPresent("all_active_pairings");
+        
+        if (cachedData != null && cachedData.containsKey("pairings")) {
+            @SuppressWarnings("unchecked")
+            List<PairingDTO> cachedPairings = (List<PairingDTO>) cachedData.get("pairings");
+            log.debug("All active pairings cache HIT - returning {} pairings", cachedPairings.size());
+            return cachedPairings;
+        }
+        
+        log.debug("All active pairings cache MISS - fetching from database");
+        
+        List<PairingDTO> activePairings = pairingRepository.findByActiveTrue()
                 .stream()
                 .map(this::mapToPairingDTO)
                 .toList();
+        
+        // Cache the result wrapped in a Map for type compatibility
+        Map<String, Object> cacheData = Map.of(
+                "pairings", activePairings,
+                "count", activePairings.size(),
+                "timestamp", System.currentTimeMillis()
+        );
+        cacheConfig.getBatchOperationsCache().put("all_active_pairings", cacheData);
+        
+        log.debug("Cached {} active pairings for improved performance", activePairings.size());
+        return activePairings;
     }
 
     /**
