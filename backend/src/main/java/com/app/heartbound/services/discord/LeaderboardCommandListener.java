@@ -45,6 +45,9 @@ public class LeaderboardCommandListener extends ListenerAdapter {
 
         logger.debug("Leaderboard command received from user: {}", event.getUser().getId());
         
+        // Get the user ID who executed the command for security validation
+        String commandUserId = event.getUser().getId();
+        
         // Get the leaderboard type (levels or credits)
         OptionMapping typeOption = event.getOption("type");
         String leaderboardType = typeOption == null ? "levels" : typeOption.getAsString();
@@ -100,12 +103,12 @@ public class LeaderboardCommandListener extends ListenerAdapter {
             // Build the initial embed for page 1
             MessageEmbed embed = buildLeaderboardEmbed(leaderboardUsers, currentPage, totalPages, leaderboardType);
             
-            // Create pagination buttons
-            Button prevButton = Button.secondary("leaderboard_prev:" + leaderboardType + ":1", "◀️")
+            // Create pagination buttons with user ID included for security
+            Button prevButton = Button.secondary("leaderboard_prev:" + leaderboardType + ":1:" + commandUserId, "◀️")
                                .withDisabled(true); // Disabled on page 1
             Button pageIndicator = Button.secondary("leaderboard_page_indicator", "1/" + totalPages)
                                .withDisabled(true); // Always disabled - just an indicator
-            Button nextButton = Button.secondary("leaderboard_next:" + leaderboardType + ":1", "▶️")
+            Button nextButton = Button.secondary("leaderboard_next:" + leaderboardType + ":1:" + commandUserId, "▶️")
                                .withDisabled(totalPages <= 1); // Disabled if only one page
             
             // Send the initial response with buttons
@@ -129,19 +132,32 @@ public class LeaderboardCommandListener extends ListenerAdapter {
             return; // Not our button
         }
         
-        // Acknowledge the button click immediately
-        event.deferEdit().queue();
-        
         try {
-            // Parse component ID: format is leaderboard_<direction>:<type>:<page>
+            // Parse component ID: format is leaderboard_<direction>:<type>:<page>:<userId>
             String[] parts = componentId.split(":");
-            if (parts.length != 3) {
+            if (parts.length != 4) {
                 logger.error("Invalid component ID format: {}", componentId);
                 return;
             }
             
             String leaderboardType = parts[1];
             int currentPage = Integer.parseInt(parts[2]);
+            String originalUserId = parts[3];
+            String interactorId = event.getUser().getId();
+            
+            // Security check: Only the user who initiated the command can interact with the buttons
+            if (!originalUserId.equals(interactorId)) {
+                event.reply("Only the user who initiated the command can change the leaderboard page.")
+                     .setEphemeral(true)
+                     .queue();
+                logger.debug("Unauthorized pagination attempt by user {} on command from user {}", 
+                           interactorId, originalUserId);
+                return;
+            }
+            
+            // User is authorized, acknowledge the button click
+            event.deferEdit().queue();
+            
             boolean isNext = componentId.startsWith("leaderboard_next:");
             
             // Calculate target page
@@ -200,12 +216,12 @@ public class LeaderboardCommandListener extends ListenerAdapter {
             // Build the new embed for the target page
             MessageEmbed embed = buildLeaderboardEmbed(leaderboardUsers, targetPage, totalPages, leaderboardType);
             
-            // Create updated pagination buttons
-            Button prevButton = Button.secondary("leaderboard_prev:" + leaderboardType + ":" + targetPage, "◀️")
+            // Create updated pagination buttons with user ID included for security
+            Button prevButton = Button.secondary("leaderboard_prev:" + leaderboardType + ":" + targetPage + ":" + originalUserId, "◀️")
                                .withDisabled(targetPage <= 1); // Disabled on page 1
             Button pageIndicator = Button.secondary("leaderboard_page_indicator", targetPage + "/" + totalPages)
                                .withDisabled(true); // Always disabled - just an indicator
-            Button nextButton = Button.secondary("leaderboard_next:" + leaderboardType + ":" + targetPage, "▶️")
+            Button nextButton = Button.secondary("leaderboard_next:" + leaderboardType + ":" + targetPage + ":" + originalUserId, "▶️")
                                .withDisabled(targetPage >= totalPages); // Disabled on last page
             
             // Update the original message
@@ -216,7 +232,12 @@ public class LeaderboardCommandListener extends ListenerAdapter {
             
         } catch (Exception e) {
             logger.error("Error processing leaderboard pagination", e);
-            // The interaction acknowledgment already happened, so just log the error
+            // If we haven't deferred yet, we need to respond to avoid timeout
+            if (!event.isAcknowledged()) {
+                event.reply("An error occurred while processing the pagination request.")
+                     .setEphemeral(true)
+                     .queue();
+            }
         }
     }
     
