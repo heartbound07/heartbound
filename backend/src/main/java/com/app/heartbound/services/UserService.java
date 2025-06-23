@@ -54,6 +54,19 @@ public class UserService {
     @Value("${admin.discord.id}")
     private String adminDiscordId;
 
+    // Leveling system configuration properties (copied from ChatActivityListener)
+    @Value("${discord.leveling.base-xp:100}")
+    private int baseXp;
+    
+    @Value("${discord.leveling.level-multiplier:50}")
+    private int levelMultiplier;
+    
+    @Value("${discord.leveling.level-exponent:2}")
+    private int levelExponent;
+    
+    @Value("${discord.leveling.level-factor:5}")
+    private int levelFactor;
+
     // Constructor-based dependency injection
     @Autowired
     public UserService(UserRepository userRepository, ShopRepository shopRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, CacheConfig cacheConfig) {
@@ -62,6 +75,17 @@ public class UserService {
         this.dailyMessageStatRepository = dailyMessageStatRepository;
         this.dailyVoiceActivityStatRepository = dailyVoiceActivityStatRepository;
         this.cacheConfig = cacheConfig;
+    }
+
+    /**
+     * Calculate the required XP for a given level using the same formula as ChatActivityListener.
+     * This ensures consistency across the application.
+     *
+     * @param level the level to calculate required XP for
+     * @return the required XP for the given level
+     */
+    private int calculateRequiredXp(int level) {
+        return baseXp + (levelFactor * (int)Math.pow(level, levelExponent)) + (levelMultiplier * level);
     }
 
     /**
@@ -309,6 +333,10 @@ public class UserService {
             }
         }
         
+        // Calculate required XP for next level
+        int currentLevel = user.getLevel() != null ? user.getLevel() : 1;
+        int requiredXp = calculateRequiredXp(currentLevel);
+
         // Build and return the DTO with all user profile data
         return UserProfileDTO.builder()
                 .id(user.getId())
@@ -321,8 +349,9 @@ public class UserService {
                 .bannerUrl(user.getBannerUrl())
                 .roles(user.getRoles())
                 .credits(user.getCredits())
-                .level(user.getLevel())
+                .level(currentLevel)
                 .experience(user.getExperience())
+                .xpForNextLevel(requiredXp) // Add the calculated required XP for next level
                 .messageCount(user.getMessageCount()) // Add the message count field
                 .messagesToday(user.getMessagesToday()) // Add time-based message counts
                 .messagesThisWeek(user.getMessagesThisWeek())
@@ -338,6 +367,8 @@ public class UserService {
                 .equippedBadgeIds(badgeIds)
                 .badgeUrls(badgeUrls)
                 .badgeNames(badgeNames) // Add the badge names map
+                .dailyStreak(user.getDailyStreak()) // Add daily claim fields
+                .lastDailyClaim(user.getLastDailyClaim())
                 .build();
     }
 

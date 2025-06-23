@@ -8,6 +8,7 @@ import com.app.heartbound.entities.User;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.pairing.BlacklistEntryRepository;
 import com.app.heartbound.repositories.pairing.MatchQueueUserRepository;
+import com.app.heartbound.config.CacheConfig;
 import com.app.heartbound.repositories.pairing.PairingRepository;
 import com.app.heartbound.services.discord.DiscordPairingChannelService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
@@ -45,6 +46,7 @@ public class PairingService {
     private final DiscordVoiceTimeTrackerService discordVoiceTimeTrackerService;
     private final DiscordLeaderboardService discordLeaderboardService;
     private final DiscordMessageListenerService discordMessageListenerService;
+    private final CacheConfig cacheConfig;
     
     // XP System Services
     private final PairLevelService pairLevelService;
@@ -289,13 +291,49 @@ public class PairingService {
     }
 
     /**
-     * Get all active pairings
+     * Get all active pairings with caching optimization
      */
     @Transactional(readOnly = true)
     public List<PairingDTO> getAllActivePairings() {
-        return pairingRepository.findByActiveTrue()
+        // Check cache first for performance optimization
+        @SuppressWarnings("unchecked")
+        Map<String, Object> cachedData = cacheConfig.getBatchOperationsCache()
+                .getIfPresent("all_active_pairings");
+        
+        if (cachedData != null && cachedData.containsKey("pairings")) {
+            @SuppressWarnings("unchecked")
+            List<PairingDTO> cachedPairings = (List<PairingDTO>) cachedData.get("pairings");
+            log.debug("All active pairings cache HIT - returning {} pairings", cachedPairings.size());
+            return cachedPairings;
+        }
+        
+        log.debug("All active pairings cache MISS - fetching from database");
+        
+        List<PairingDTO> activePairings = pairingRepository.findByActiveTrue()
                 .stream()
                 .map(this::mapToPairingDTO)
+                .toList();
+        
+        // Cache the result wrapped in a Map for type compatibility
+        Map<String, Object> cacheData = Map.of(
+                "pairings", activePairings,
+                "count", activePairings.size(),
+                "timestamp", System.currentTimeMillis()
+        );
+        cacheConfig.getBatchOperationsCache().put("all_active_pairings", cacheData);
+        
+        log.debug("Cached {} active pairings for improved performance", activePairings.size());
+        return activePairings;
+    }
+
+    /**
+     * Get all active pairings without sensitive user data (for public display)
+     */
+    @Transactional(readOnly = true)
+    public List<PublicPairingDTO> getAllActivePairingsPublic() {
+        return pairingRepository.findByActiveTrue()
+                .stream()
+                .map(this::mapToPublicPairingDTO)
                 .toList();
     }
 
@@ -308,6 +346,22 @@ public class PairingService {
                 .stream()
                 .map(this::mapToPairingDTO)
                 .toList();
+    }
+
+    /**
+     * Get all pairing history (admin function) - returns all inactive pairings
+     */
+    @Transactional(readOnly = true)
+    public List<PairingDTO> getAllPairingHistory() {
+        log.info("Fetching all inactive pairings for admin");
+        
+        List<PairingDTO> inactivePairings = pairingRepository.findByActiveFalse()
+                .stream()
+                .map(this::mapToPairingDTO)
+                .toList();
+        
+        log.info("Retrieved {} inactive pairings", inactivePairings.size());
+        return inactivePairings;
     }
 
     /**
@@ -592,6 +646,33 @@ public class PairingService {
         dto.setUser2Rank(pairing.getUser2Rank());
 
         return dto;
+    }
+
+    /**
+     * Map Pairing entity to PublicPairingDTO (without sensitive user data)
+     */
+    private PublicPairingDTO mapToPublicPairingDTO(Pairing pairing) {
+        return PublicPairingDTO.builder()
+                .id(pairing.getId())
+                .user1Id(pairing.getUser1Id())
+                .user2Id(pairing.getUser2Id())
+                .discordChannelName(pairing.getDiscordChannelName())
+                .matchedAt(pairing.getMatchedAt())
+                .messageCount(pairing.getMessageCount())
+                .user1MessageCount(pairing.getUser1MessageCount())
+                .user2MessageCount(pairing.getUser2MessageCount())
+                .voiceTimeMinutes(pairing.getVoiceTimeMinutes())
+                .wordCount(pairing.getWordCount())
+                .emojiCount(pairing.getEmojiCount())
+                .activeDays(pairing.getActiveDays())
+                .compatibilityScore(pairing.getCompatibilityScore())
+                .breakupInitiatorId(pairing.getBreakupInitiatorId())
+                .breakupReason(pairing.getBreakupReason())
+                .breakupTimestamp(pairing.getBreakupTimestamp())
+                .mutualBreakup(pairing.isMutualBreakup())
+                .active(pairing.isActive())
+                .blacklisted(pairing.isBlacklisted())
+                .build();
     }
 
     // Add input sanitization methods

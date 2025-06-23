@@ -3,6 +3,7 @@ package com.app.heartbound.services.discord;
 import com.app.heartbound.dto.discord.DiscordBotSettingsDTO;
 import com.app.heartbound.entities.DiscordBotSettings;
 import com.app.heartbound.repositories.DiscordBotSettingsRepository;
+import com.app.heartbound.config.CacheConfig;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ public class DiscordBotSettingsService {
     private final DiscordBotSettingsRepository repository;
     private final ChatActivityListener chatActivityListener;
     private final Environment environment;
+    private final CacheConfig cacheConfig;
     
     // Import default values from application.properties
     @Value("${discord.activity.enabled:true}")
@@ -60,6 +62,9 @@ public class DiscordBotSettingsService {
     @Value("${discord.leveling.credits-per-level:50}")
     private int defaultCreditsPerLevel;
     
+    @Value("${discord.leveling.starter-role-id:1303106353014771773}")
+    private String defaultStarterRoleId;
+    
     @PostConstruct
     public void init() {
         initializeSettings();
@@ -81,6 +86,9 @@ public class DiscordBotSettingsService {
             settings.setLevel70RoleId("1170429914185465906");
             settings.setLevel100RoleId("1162628179043823657");
             
+            // Set default starter role ID
+            settings.setStarterRoleId(defaultStarterRoleId);
+            
             repository.save(settings);
         }
         
@@ -90,8 +98,10 @@ public class DiscordBotSettingsService {
     
     @Transactional(readOnly = true)
     public DiscordBotSettingsDTO getCurrentSettings() {
-        DiscordBotSettings settings = repository.findById(1L)
-                .orElseThrow(() -> new RuntimeException("Discord bot settings not found"));
+        // Try to get from cache first
+        DiscordBotSettings settings = (DiscordBotSettings) cacheConfig.getDiscordBotSettingsCache()
+                .get(1L, key -> repository.findById(1L)
+                        .orElseThrow(() -> new RuntimeException("Discord bot settings not found")));
         
         DiscordBotSettingsDTO dto = new DiscordBotSettingsDTO();
         // Map entity to DTO (this would be cleaner with ModelMapper or MapStruct)
@@ -118,6 +128,7 @@ public class DiscordBotSettingsService {
         dto.setLevel50RoleId(settings.getLevel50RoleId());
         dto.setLevel70RoleId(settings.getLevel70RoleId());
         dto.setLevel100RoleId(settings.getLevel100RoleId());
+        dto.setStarterRoleId(settings.getStarterRoleId());
         
         return dto;
     }
@@ -151,8 +162,12 @@ public class DiscordBotSettingsService {
         settings.setLevel50RoleId(dto.getLevel50RoleId());
         settings.setLevel70RoleId(dto.getLevel70RoleId());
         settings.setLevel100RoleId(dto.getLevel100RoleId());
+        settings.setStarterRoleId(dto.getStarterRoleId());
         
         repository.save(settings);
+        
+        // Invalidate cache after updating settings
+        cacheConfig.invalidateDiscordBotSettingsCache();
         
         // Apply the updated settings to the ChatActivityListener
         chatActivityListener.updateSettings(
@@ -175,7 +190,8 @@ public class DiscordBotSettingsService {
             settings.getLevel40RoleId(),
             settings.getLevel50RoleId(),
             settings.getLevel70RoleId(),
-            settings.getLevel100RoleId()
+            settings.getLevel100RoleId(),
+            settings.getStarterRoleId()
         );
         
         log.info("Discord bot settings updated successfully");
@@ -207,7 +223,8 @@ public class DiscordBotSettingsService {
                     settings.getLevel40RoleId(),
                     settings.getLevel50RoleId(),
                     settings.getLevel70RoleId(),
-                    settings.getLevel100RoleId()
+                    settings.getLevel100RoleId(),
+                    settings.getStarterRoleId()
                 );
                 log.info("Applied Discord bot settings from database");
             }

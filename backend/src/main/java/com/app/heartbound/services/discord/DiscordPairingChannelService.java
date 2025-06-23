@@ -588,11 +588,13 @@ public class DiscordPairingChannelService {
         }
         
         // Discord channel names: lowercase, alphanumeric, hyphens, underscores only
-        return username.toLowerCase()
-                      .replaceAll("[^a-z0-9_-]", "")
-                      .replaceAll("^[^a-z0-9]+", "") // Remove leading non-alphanumeric
-                      .replaceAll("[^a-z0-9]+$", "") // Remove trailing non-alphanumeric
-                      .substring(0, Math.min(username.length(), 30)); // Limit individual username length
+        String processed = username.toLowerCase()
+                                  .replaceAll("[^a-z0-9_-]", "")
+                                  .replaceAll("^[^a-z0-9]+", "") // Remove leading non-alphanumeric
+                                  .replaceAll("[^a-z0-9]+$", ""); // Remove trailing non-alphanumeric
+        
+        // Use the processed string's length, not the original username length
+        return processed.substring(0, Math.min(processed.length(), 30)); // Limit individual username length
     }
     
     private TextChannel createTextChannelWithPermissions(Guild guild, String channelName, Category category, Member member1, Member member2) {

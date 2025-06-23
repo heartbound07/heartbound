@@ -184,20 +184,55 @@ export function AdminPairManagementModal({
     setError(null)
     
     try {
-      const [levelData, achievementsData, availableData, streaksData] = await Promise.all([
+      // Execute all API calls with individual error handling
+      const [levelResult, achievementsResult, availableResult, streaksResult] = await Promise.allSettled([
         getPairLevel(pairing.id),
         getPairingAchievements(pairing.id),
         getAvailableAchievements(pairing.id),
         getVoiceStreaks(pairing.id)
       ])
 
-      setPairLevel(levelData)
-      setAchievements(achievementsData)
-      setAvailableAchievements(availableData)
-      setVoiceStreaks(streaksData.recentStreaks)
-      setStreakStats(streaksData.statistics)
+      // Handle level data
+      if (levelResult.status === 'fulfilled') {
+        setPairLevel(levelResult.value)
+      } else {
+        console.error('Failed to load pair level:', levelResult.reason)
+      }
+
+      // Handle achievements data
+      if (achievementsResult.status === 'fulfilled') {
+        setAchievements(achievementsResult.value)
+      } else {
+        console.error('Failed to load achievements:', achievementsResult.reason)
+      }
+
+      // Handle available achievements
+      if (availableResult.status === 'fulfilled') {
+        setAvailableAchievements(availableResult.value)
+      } else {
+        console.error('Failed to load available achievements:', availableResult.reason)
+      }
+
+      // Handle voice streaks with specific error handling
+      if (streaksResult.status === 'fulfilled') {
+        setVoiceStreaks(streaksResult.value.recentStreaks)
+        setStreakStats(streaksResult.value.statistics)
+      } else {
+        console.error('Failed to load voice streaks:', streaksResult.reason)
+        // Set empty data instead of failing completely
+        setVoiceStreaks([])
+        setStreakStats(null)
+      }
+
+      // Only show error if ALL critical data failed to load
+      const criticalFailures = [levelResult, achievementsResult, availableResult].filter(r => r.status === 'rejected')
+      if (criticalFailures.length >= 2) {
+        setError('Some data could not be loaded. Please try refreshing the modal.')
+      }
+
     } catch (err: any) {
-      setError(err.message || 'Failed to load pair data')
+      console.error('Unexpected error loading pair data:', err)
+      setError('Failed to load pair data: ' + (err.message || 'Unknown error'))
     } finally {
       setLoading(false)
     }

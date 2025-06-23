@@ -14,6 +14,7 @@ export interface UserProfileDTO {
   credits?: number;
   level?: number;
   experience?: number;
+  xpForNextLevel?: number;
   messageCount?: number;
   messagesToday?: number;
   messagesThisWeek?: number;

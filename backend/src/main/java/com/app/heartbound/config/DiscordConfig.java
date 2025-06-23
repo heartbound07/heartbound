@@ -1,6 +1,7 @@
 package com.app.heartbound.config;
 
 import com.app.heartbound.services.discord.LeaderboardCommandListener;
+import com.app.heartbound.services.discord.LevelCardCommandListener;
 import com.app.heartbound.services.discord.ChatActivityListener;
 import com.app.heartbound.services.discord.CreditsCommandListener;
 import com.app.heartbound.services.discord.WelcomeListener;
@@ -10,7 +11,7 @@ import com.app.heartbound.services.discord.InventoryCommandListener;
 import com.app.heartbound.services.discord.FishCommandListener;
 import com.app.heartbound.services.discord.StatsCommandListener;
 import com.app.heartbound.services.discord.BreakupCommandListener;
-import com.app.heartbound.services.discord.LevelCardCommandListener;
+import com.app.heartbound.services.discord.DailyCommandListener;
 import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
 import com.app.heartbound.services.discord.UserVoiceActivityService;
@@ -52,6 +53,9 @@ public class DiscordConfig {
 
     @Autowired
     private CreditsCommandListener creditsCommandListener;
+
+    @Autowired
+    private DailyCommandListener dailyCommandListener;
 
     @Autowired
     private WelcomeListener welcomeListener;
@@ -124,8 +128,8 @@ public class DiscordConfig {
                     )
                     // Register all listeners EXCEPT shopCommandListener and statsCommandListener (we'll register them manually)
                     .addEventListeners(leaderboardCommandListener, chatActivityListener, 
-                                      creditsCommandListener, welcomeListener, welcomeCommandListener,
-                                      inventoryCommandListener, fishCommandListener, levelCardCommandListener,
+                                      creditsCommandListener, dailyCommandListener, welcomeListener, welcomeCommandListener,
+                                      inventoryCommandListener, fishCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService)
                     .build();
@@ -174,6 +178,7 @@ public class DiscordConfig {
                                 .addChoice("credits", "credits")
                         ),
                     Commands.slash("credits", "Check your current credit balance"),
+                    Commands.slash("daily", "Claim your daily credits reward with streak bonuses"),
                     Commands.slash("welcome", "Sends the verification welcome message")
                         .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR)),
                     Commands.slash("shop", "Displays items currently available in the shop"),

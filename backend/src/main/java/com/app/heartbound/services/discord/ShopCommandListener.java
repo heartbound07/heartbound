@@ -312,7 +312,7 @@ public class ShopCommandListener extends ListenerAdapter {
         embed.setColor(EMBED_COLOR);
         
         // Create clickable link to the web shop
-        String shopUrl = frontendBaseUrl + "/dashboard/shop";
+        String shopUrl = frontendBaseUrl + "/shop";
         embed.setDescription("Browse and purchase items in the [shop](" + shopUrl + ")");
         
         // Build a consolidated shop items list

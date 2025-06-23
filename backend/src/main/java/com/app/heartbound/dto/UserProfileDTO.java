@@ -38,6 +38,9 @@ public class UserProfileDTO {
     private Integer level;
     private Integer experience;
     
+    // Add XP required for next level
+    private Integer xpForNextLevel;
+    
     // Add message count field
     private Long messageCount;
     
@@ -68,4 +71,8 @@ public class UserProfileDTO {
     
     // Add this field to map badge IDs to their names
     private Map<String, String> badgeNames;
+    
+    // Daily claim system fields
+    private Integer dailyStreak;
+    private java.time.LocalDateTime lastDailyClaim;
 }

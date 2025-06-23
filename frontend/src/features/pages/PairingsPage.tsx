@@ -5,6 +5,7 @@ import type React from "react"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useAuth } from "@/contexts/auth/useAuth"
 import { usePairings } from "@/hooks/usePairings"
+import { useAllActivePairings } from "@/hooks/useAllActivePairings"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/valorant/badge"
@@ -34,6 +35,7 @@ import { PairingCardList } from "./PairingCard"
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary"
 import { XPCard } from "@/features/pages/XPCard"
 import { AllMatchesModal } from "@/components/modals/AllMatchesModal"
+import { useAllPairingHistory } from "@/hooks/useAllPairingHistory"
 
 // Import extracted components
 import { QueueJoinForm } from "@/features/pages/pairings/components/QueueJoinForm"
@@ -78,6 +80,13 @@ export function PairingsPage() {
     clearInactiveHistory,
     breakupPairing
   } = usePairings()
+
+  // Hook for all active pairings to display in "Current Matches" section
+  const {
+    allActivePairings,
+    loading: allActivePairingsLoading,
+    error: allActivePairingsError
+  } = useAllActivePairings()
   const { isConnected } = useQueueUpdates()
   const { pairingUpdate, clearUpdate } = usePairingUpdates()
 
@@ -86,6 +95,12 @@ export function PairingsPage() {
   
   // Use lightweight queue updates for real-time user count
   const { queueUpdate } = useQueueUpdates()
+
+  // Admin-specific pairing history hook - only fetch for admin users
+  const { 
+    allPairingHistory, 
+    refreshAllPairingHistory 
+  } = useAllPairingHistory(hasRole("ADMIN"))
 
   // Use optimized modal manager
   const modalManager = useModalManager()
@@ -338,12 +353,17 @@ export function PairingsPage() {
     // Refresh data after closing modal to show any updates
     refreshData()
     
+    // Refresh admin pairing history if user is admin
+    if (hasRole("ADMIN")) {
+      refreshAllPairingHistory()
+    }
+    
     // Invalidate XP cache to trigger fresh data fetch through useXPData hook
     if (pairingHistory.length > 0) {
       const pairingIds = pairingHistory.map(p => p.id)
       invalidateXPData(pairingIds)
     }
-  }, [refreshData, pairingHistory])
+  }, [refreshData, hasRole, refreshAllPairingHistory, pairingHistory])
 
   // Effect to handle real-time WebSocket updates
   useEffect(() => {
@@ -376,6 +396,12 @@ export function PairingsPage() {
           showPartnerUnmatched()
         }
         refreshData() // Update pairing data
+        
+        // Refresh admin pairing history if user is admin (new pairing became inactive)
+        if (hasRole("ADMIN")) {
+          refreshAllPairingHistory()
+        }
+        
         clearUpdate()
       } else if (pairingUpdate.eventType === "ACTIVITY_UPDATE") {
         console.log("[PairingsPage] Activity update received - handled by usePairings hook:", pairingUpdate)
@@ -384,7 +410,7 @@ export function PairingsPage() {
         // The hook already updates currentPairing state, which will trigger UI re-renders
       }
     }
-  }, [pairingUpdate, refreshData, clearUpdate, showMatchFound, showNoMatch, showQueueRemoved, showBreakupSuccess, showPartnerUnmatched])
+  }, [pairingUpdate, refreshData, hasRole, refreshAllPairingHistory, clearUpdate, showMatchFound, showNoMatch, showQueueRemoved, showBreakupSuccess, showPartnerUnmatched])
 
   // Effect to track current pairing in localStorage for offline breakup detection
   useEffect(() => {
@@ -421,10 +447,25 @@ export function PairingsPage() {
     const fetchUserProfiles = async () => {
       const userIds = new Set<string>()
 
+      // Add user IDs from current user's pairing history
       pairingHistory.forEach((pairing) => {
         userIds.add(pairing.user1Id)
         userIds.add(pairing.user2Id)
       })
+
+      // Add user IDs from all active pairings (for "Current Matches" display)
+      allActivePairings?.forEach((pairing) => {
+        userIds.add(pairing.user1Id)
+        userIds.add(pairing.user2Id)
+      })
+
+      // Add user IDs from admin pairing history (for "Match History" display)
+      if (hasRole("ADMIN") && allPairingHistory) {
+        allPairingHistory.forEach((pairing) => {
+          userIds.add(pairing.user1Id)
+          userIds.add(pairing.user2Id)
+        })
+      }
 
       if (userIds.size > 0) {
         try {
@@ -436,10 +477,10 @@ export function PairingsPage() {
       }
     }
 
-    if (pairingHistory.length > 0) {
+    if (pairingHistory.length > 0 || allActivePairings?.length > 0 || (hasRole("ADMIN") && allPairingHistory?.length > 0)) {
       fetchUserProfiles()
     }
-  }, [pairingHistory])
+  }, [pairingHistory, allActivePairings, hasRole, allPairingHistory])
 
   // Handle initial loading with minimum loading time
   useEffect(() => {
@@ -569,6 +610,12 @@ export function PairingsPage() {
     try {
       await deletePairing(pairingId);
       updateAdminState({ message: "Pairing record permanently deleted! Users can now match again." })
+      
+      // Refresh admin pairing history to reflect deletion
+      if (hasRole("ADMIN")) {
+        refreshAllPairingHistory()
+      }
+      
       setTimeout(() => updateAdminState({ message: null }), 5000)
     } catch (error: any) {
       updateAdminState({ message: `Failed to delete pairing: ${error.message}` })
@@ -584,6 +631,12 @@ export function PairingsPage() {
     try {
       const result = await clearInactiveHistory();
       updateAdminState({ message: `Successfully deleted ${result.deletedCount} inactive pairing record(s)! All users can now match again.` })
+      
+      // Refresh admin pairing history to reflect deletions
+      if (hasRole("ADMIN")) {
+        refreshAllPairingHistory()
+      }
+      
       setTimeout(() => updateAdminState({ message: null }), 5000)
     } catch (error: any) {
       updateAdminState({ message: `Failed to clear inactive history: ${error.message}` })
@@ -593,12 +646,18 @@ export function PairingsPage() {
 
   // Filter pairings into current matches and history
   const currentMatches = useMemo(() => {
-    return pairingHistory.filter(pairing => pairing.active)
-  }, [pairingHistory])
+    // Use all active pairings from the system, not just user-specific ones
+    return allActivePairings || []
+  }, [allActivePairings])
 
   const inactiveHistory = useMemo(() => {
-    return pairingHistory.filter(pairing => !pairing.active)
-  }, [pairingHistory])
+    // Admin users see all inactive pairings, regular users see only their own
+    if (hasRole("ADMIN")) {
+      return allPairingHistory || []
+    } else {
+      return pairingHistory.filter(pairing => !pairing.active)
+    }
+  }, [hasRole, allPairingHistory, pairingHistory])
 
   const handleCloseQueueRemovedModal = useCallback(() => {
     hideQueueRemoved()
@@ -1262,7 +1321,27 @@ export function PairingsPage() {
                         streakData={pairingStreaks}
                         levelData={pairingLevels}
                       />
-                      {currentMatches.length === 0 && !currentPairing && !queueStatus.inQueue && isQueueEnabled && (
+                      {allActivePairingsLoading && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-center"
+                        >
+                          <Skeleton width="100%" height="60px" theme="valorant" />
+                        </motion.div>
+                      )}
+                      {allActivePairingsError && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-center"
+                        >
+                          <p className="text-status-error text-sm">
+                            Failed to load active matches: {allActivePairingsError}
+                          </p>
+                        </motion.div>
+                      )}
+                      {!allActivePairingsLoading && !allActivePairingsError && currentMatches.length === 0 && !currentPairing && !queueStatus.inQueue && isQueueEnabled && (
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}

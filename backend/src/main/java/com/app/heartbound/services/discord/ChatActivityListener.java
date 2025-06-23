@@ -22,6 +22,8 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -82,6 +84,7 @@ public class ChatActivityListener extends ListenerAdapter {
     private String level50RoleId = "1166539666674167888";
     private String level70RoleId = "1170429914185465906";
     private String level100RoleId = "1162628179043823657";
+    private String starterRoleId = "1303106353014771773";
     
     // Track user cooldowns - userId -> lastMessageTimestamp
     private final ConcurrentHashMap<String, Instant> userCooldowns = new ConcurrentHashMap<>();
@@ -183,6 +186,38 @@ public class ChatActivityListener extends ListenerAdapter {
         // Reset every 14 days from the last reset
         return user.getLastBiWeeklyReset().plusDays(14).isBefore(now) || 
                user.getLastBiWeeklyReset().plusDays(14).toLocalDate().equals(now.toLocalDate());
+    }
+    
+    /**
+     * Collects all level-specific role IDs into a Set for easy comparison.
+     * This ensures we can identify which roles are managed by the level system.
+     */
+    private Set<String> getAllLevelRoleIds() {
+        Set<String> levelRoleIds = new HashSet<>();
+        
+        if (level5RoleId != null && !level5RoleId.isEmpty()) {
+            levelRoleIds.add(level5RoleId);
+        }
+        if (level15RoleId != null && !level15RoleId.isEmpty()) {
+            levelRoleIds.add(level15RoleId);
+        }
+        if (level30RoleId != null && !level30RoleId.isEmpty()) {
+            levelRoleIds.add(level30RoleId);
+        }
+        if (level40RoleId != null && !level40RoleId.isEmpty()) {
+            levelRoleIds.add(level40RoleId);
+        }
+        if (level50RoleId != null && !level50RoleId.isEmpty()) {
+            levelRoleIds.add(level50RoleId);
+        }
+        if (level70RoleId != null && !level70RoleId.isEmpty()) {
+            levelRoleIds.add(level70RoleId);
+        }
+        if (level100RoleId != null && !level100RoleId.isEmpty()) {
+            levelRoleIds.add(level100RoleId);
+        }
+        
+        return levelRoleIds;
     }
     
     private int calculateRequiredXp(int level) {
@@ -291,7 +326,7 @@ public class ChatActivityListener extends ListenerAdapter {
             return;
         }
         
-        String roleIdString = null;
+        final String roleIdString;
         
         // Determine which role to assign based on level
         if (level >= 100) {
@@ -308,6 +343,8 @@ public class ChatActivityListener extends ListenerAdapter {
             roleIdString = level15RoleId;
         } else if (level >= 5) {
             roleIdString = level5RoleId;
+        } else {
+            roleIdString = null;
         }
         
         // If no milestone reached or roleId not configured, return
@@ -331,41 +368,101 @@ public class ChatActivityListener extends ListenerAdapter {
             }
             
             Guild guild = textChannel.getGuild();
-            Role role = guild.getRoleById(roleId);
+            Role newRole = guild.getRoleById(roleId);
             
-            if (role == null) {
+            if (newRole == null) {
                 log.warn("[ROLE DEBUG] Role with ID {} not found in guild {}", roleId, guild.getId());
                 return;
             }
             
+            // Get all level-specific role IDs for comparison
+            Set<String> allLevelRoleIds = getAllLevelRoleIds();
+            
             guild.retrieveMemberById(userId).queue(member -> {
-                if (member.getRoles().contains(role)) {
-                    log.debug("[ROLE DEBUG] User {} already has role {} for level {}", userId, role.getName(), level);
+                // Check if user already has the new role
+                if (member.getRoles().contains(newRole)) {
+                    log.debug("[ROLE DEBUG] User {} already has role {} for level {}", userId, newRole.getName(), level);
                     return;
                 }
                 
-                guild.addRoleToMember(member, role).queue(
-                    success -> {
-                        log.info("[ROLE DEBUG] Successfully assigned role {} to user {} for reaching level {}", 
-                                 role.getName(), userId, level);
-                        // Optionally notify the user
-                        EmbedBuilder embed = new EmbedBuilder()
-                            .setTitle("🎖️ Level Up Role Reward!")
-                            .setDescription("Congratulations on reaching **Level " + level + "**! You've been awarded the " 
-                                          + role.getAsMention() + " role!")
-                            .setColor(Color.GREEN)
-                            .setTimestamp(Instant.now());
-                        
-                        textChannel.sendMessageEmbeds(embed.build()).queue();
-                    },
-                    error -> log.error("[ROLE DEBUG] Failed to assign role {} to user {} for level {}: {}", 
-                                     role.getName(), userId, level, error.getMessage(), error)
-                );
+                // CRITICAL FIX: Remove all other level-specific roles before assigning the new one
+                List<Role> rolesToRemove = new ArrayList<>();
+                for (Role userRole : member.getRoles()) {
+                    String userRoleId = userRole.getId();
+                    // If this role is a level role but not the new role we want to assign
+                    if (allLevelRoleIds.contains(userRoleId) && !userRoleId.equals(roleIdString)) {
+                        rolesToRemove.add(userRole);
+                    }
+                    // SPECIAL CASE: Remove starter role when user reaches any level milestone
+                    if (starterRoleId != null && !starterRoleId.isEmpty() && userRoleId.equals(starterRoleId)) {
+                        rolesToRemove.add(userRole);
+                        log.debug("[ROLE DEBUG] Starter role {} will be removed from user {} as they've reached level {}", 
+                                 starterRoleId, userId, level);
+                    }
+                }
+                
+                // Remove old level roles first, then assign new role
+                if (!rolesToRemove.isEmpty()) {
+                    log.info("[ROLE DEBUG] Removing {} old level roles from user {} before assigning new role for level {}", 
+                             rolesToRemove.size(), userId, level);
+                    
+                    // Remove all old level roles
+                    guild.modifyMemberRoles(member, null, rolesToRemove).queue(
+                        removeSuccess -> {
+                            log.info("[ROLE DEBUG] Successfully removed old level roles from user {}: {}", 
+                                     userId, rolesToRemove.stream().map(Role::getName).toList());
+                            
+                            // Now assign the new role
+                            assignNewLevelRole(guild, member, newRole, userId, level, textChannel);
+                        },
+                        removeError -> {
+                            log.error("[ROLE DEBUG] Failed to remove old level roles from user {}: {}", 
+                                     userId, removeError.getMessage(), removeError);
+                            // Try to assign new role anyway
+                            assignNewLevelRole(guild, member, newRole, userId, level, textChannel);
+                        }
+                    );
+                } else {
+                    // No old roles to remove, just assign the new role
+                    log.debug("[ROLE DEBUG] No old level roles found for user {}, proceeding with new role assignment", userId);
+                    assignNewLevelRole(guild, member, newRole, userId, level, textChannel);
+                }
+                
             }, error -> log.error("[ROLE DEBUG] Failed to retrieve member with ID {}: {}", userId, error.getMessage(), error));
             
         } catch (Exception e) {
-            log.error("[ROLE DEBUG] Error assigning role for level {} to user {}: {}", level, userId, e.getMessage(), e);
+            log.error("[ROLE DEBUG] Error processing role assignment for level {} to user {}: {}", level, userId, e.getMessage(), e);
         }
+    }
+    
+    /**
+     * Helper method to assign a new level role to a user.
+     * Extracted for reusability and cleaner code organization.
+     */
+    private void assignNewLevelRole(Guild guild, net.dv8tion.jda.api.entities.Member member, Role newRole, 
+                                   String userId, int level, TextChannel textChannel) {
+        guild.addRoleToMember(member, newRole).queue(
+            success -> {
+                log.info("[ROLE DEBUG] Successfully assigned role {} to user {} for reaching level {}", 
+                         newRole.getName(), userId, level);
+                
+                // Send role assignment notification
+                EmbedBuilder embed = new EmbedBuilder()
+                    .setTitle("🎖️ Level Up Role Reward!")
+                    .setDescription("Congratulations on reaching **Level " + level + "**! You've been awarded the " 
+                                  + newRole.getAsMention() + " role!")
+                    .setColor(Color.GREEN)
+                    .setTimestamp(Instant.now());
+                
+                textChannel.sendMessageEmbeds(embed.build()).queue(
+                    embedSuccess -> log.debug("[ROLE DEBUG] Sent role assignment notification for user {}", userId),
+                    embedError -> log.warn("[ROLE DEBUG] Failed to send role assignment notification for user {}: {}", 
+                                          userId, embedError.getMessage())
+                );
+            },
+            error -> log.error("[ROLE DEBUG] Failed to assign role {} to user {} for level {}: {}", 
+                             newRole.getName(), userId, level, error.getMessage(), error)
+        );
     }
     
     @Override
@@ -429,13 +526,23 @@ public class ChatActivityListener extends ListenerAdapter {
             // 📊 NEW: Track daily message stats for chart display
             userService.trackDailyMessageStat(userId);
             
+            // Initialize user level if null
+            if (user.getLevel() == null) {
+                user.setLevel(1);
+                userUpdated = true;
+            }
+            if (user.getExperience() == null) {
+                user.setExperience(0);
+                userUpdated = true;
+            }
+            
             int awardedXp = 0;
-            int initialLevel = (user.getLevel() != null) ? user.getLevel() : 1;
+            int initialLevel = user.getLevel(); // Safe to access now, guaranteed to be non-null
             
             if (levelingEnabled) {
                 log.debug("[XP DEBUG] About to award XP to {}: Current XP={}, Level={}, Adding {} XP",
                     userId, user.getExperience(), user.getLevel(), xpToAward);
-                int currentXp = user.getExperience() != null ? user.getExperience() : 0;
+                int currentXp = user.getExperience();
                 user.setExperience(currentXp + xpToAward);
                 userUpdated = true; // Mark user for update
                 awardedXp = xpToAward;
@@ -458,32 +565,7 @@ public class ChatActivityListener extends ListenerAdapter {
                     userId, user.getLevel(), user.getExperience());
                 checkAndProcessLevelUp(user, userId, event.getChannel()); // Note: checkAndProcessLevelUp calls updateUser internally on level up
                 
-                // If user didn't level up, send contextual XP notification to original channel
-                if (initialLevel == user.getLevel()) {
-                    EmbedBuilder notificationEmbed = new EmbedBuilder();
-                    notificationEmbed.setDescription(String.format("<@%s>! You have gained %d xp!", 
-                                                userId, awardedXp));
-                    notificationEmbed.setColor(new Color(75, 181, 67)); // Green color
-                    
-                    // Add footer showing XP progress
-                    int currentXpAfterAward = user.getExperience() != null ? user.getExperience() : 0;
-                    notificationEmbed.setFooter(String.format("%d/%d XP to next level", 
-                            currentXpAfterAward, requiredXpForNextLevel));
-                    
-                    // Send contextual notification to the channel where user earned XP
-                    // Note: True ephemeral messages are not possible in MessageReceivedEvent context
-                    // Using original channel with auto-deletion as best alternative
-                    event.getChannel().sendMessageEmbeds(notificationEmbed.build()).queue(
-                        message -> {
-                            log.debug("[XP NOTIFICATION] Sent contextual XP notification to user {} in channel {}", 
-                                userId, event.getChannel().getId());
-                            // Delete the message after 2 seconds for minimal disruption
-                            message.delete().queueAfter(2, TimeUnit.SECONDS);
-                        },
-                        failure -> log.error("[XP NOTIFICATION] Failed to send contextual XP notification to user {} in channel {}: {}", 
-                            userId, event.getChannel().getId(), failure.getMessage())
-                    );
-                }
+                // XP notifications removed to reduce chat spam - only level-up notifications are shown
             }
             
             // Track message in activity window (for stats purposes only, not for credits)
@@ -503,7 +585,7 @@ public class ChatActivityListener extends ListenerAdapter {
             
             // Persist changes if user was updated (message count, XP, credits) but no level up happened
             // Level-up already saves changes internally in checkAndProcessLevelUp
-            if (userUpdated && initialLevel == user.getLevel()) {
+            if (userUpdated && initialLevel == user.getLevel().intValue()) {
                 try {
                     userService.updateUser(user);
                     log.debug("Persisted user {} state after activity processing.", userId);
@@ -537,7 +619,8 @@ public class ChatActivityListener extends ListenerAdapter {
             String level40RoleId,
             String level50RoleId,
             String level70RoleId,
-            String level100RoleId) {
+            String level100RoleId,
+            String starterRoleId) {
         
         if (activityEnabled != null) this.activityEnabled = activityEnabled;
         if (creditsToAward != null) this.creditsToAward = creditsToAward;
@@ -562,6 +645,7 @@ public class ChatActivityListener extends ListenerAdapter {
         if (level50RoleId != null) this.level50RoleId = level50RoleId;
         if (level70RoleId != null) this.level70RoleId = level70RoleId;
         if (level100RoleId != null) this.level100RoleId = level100RoleId;
+        if (starterRoleId != null) this.starterRoleId = starterRoleId;
         
         log.info("Discord bot activity, leveling and role settings updated at runtime");
         log.debug("Activity: enabled={}, credits={}, threshold={}, window={}, cooldown={}, minLength={}",
@@ -570,5 +654,6 @@ public class ChatActivityListener extends ListenerAdapter {
                  levelingEnabled, xpToAward, baseXp, levelMultiplier, levelExponent, levelFactor, creditsPerLevel);
         log.debug("Role IDs: level5={}, level15={}, level30={}, level40={}, level50={}, level70={}, level100={}",
                 level5RoleId, level15RoleId, level30RoleId, level40RoleId, level50RoleId, level70RoleId, level100RoleId);
+        log.debug("Starter Role ID: {}", starterRoleId);
     }
 } 

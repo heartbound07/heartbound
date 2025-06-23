@@ -287,7 +287,7 @@ public class InventoryCommandListener extends ListenerAdapter {
         embed.setColor(EMBED_COLOR);
         
         // Add description with clickable link to web inventory
-        String inventoryUrl = frontendBaseUrl + "/dashboard/inventory";
+        String inventoryUrl = frontendBaseUrl + "/inventory";
         embed.setDescription("To equip an item go to your [inventory](" + inventoryUrl + ")");
         
         // Build inventory content

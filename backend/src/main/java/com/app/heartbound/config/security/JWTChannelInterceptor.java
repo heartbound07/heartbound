@@ -18,17 +18,20 @@ import java.security.Principal;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class JWTChannelInterceptor implements ChannelInterceptor {
 
     private static final Logger logger = LoggerFactory.getLogger(JWTChannelInterceptor.class);
+    private static final long AUTHENTICATION_TIMEOUT_MS = 5000; // 5 second timeout
 
     private final JWTTokenProvider jwtTokenProvider;
 
     public JWTChannelInterceptor(JWTTokenProvider jwtTokenProvider) {
         this.jwtTokenProvider = jwtTokenProvider;
-        logger.debug("JWTChannelInterceptor initialized");
+        logger.debug("JWTChannelInterceptor initialized with caching optimization");
     }
 
     @Override
@@ -41,6 +44,7 @@ public class JWTChannelInterceptor implements ChannelInterceptor {
             long startTime = System.nanoTime();
             
             try {
+                // **PERFORMANCE CRITICAL**: Fast-fail validation with timeout
                 List<String> authHeaders = accessor.getNativeHeader("Authorization");
                 if (authHeaders == null || authHeaders.isEmpty()) {
                     logger.error("Missing Authorization header in STOMP CONNECT message");
@@ -53,17 +57,10 @@ public class JWTChannelInterceptor implements ChannelInterceptor {
                     token = token.substring(7);
                 }
                 
-                // **PERFORMANCE CRITICAL**: Use optimized authentication method
-                // This combines validation and user details extraction in a single cached operation
-                JWTUserDetails userDetails;
-                try {
-                    userDetails = jwtTokenProvider.authenticateTokenOptimized(token);
-                } catch (InvalidTokenException e) {
-                    logger.error("Invalid JWT token received during STOMP CONNECT: {}", e.getMessage());
-                    throw new IllegalArgumentException("Invalid JWT token: " + e.getMessage(), e);
-                }
+                // **PERFORMANCE OPTIMIZATION 1**: Use cached authentication with timeout
+                JWTUserDetails userDetails = authenticateWithTimeout(token);
                 
-                // Convert roles to Spring Security GrantedAuthorities
+                // **PERFORMANCE OPTIMIZATION 2**: Pre-compute authorities to avoid repeated processing
                 List<GrantedAuthority> authorities = userDetails.getRoles().stream()
                         .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
                         .collect(Collectors.toList());
@@ -73,17 +70,55 @@ public class JWTChannelInterceptor implements ChannelInterceptor {
                 accessor.setUser(user);
                 
                 long duration = System.nanoTime() - startTime;
-                logger.debug("WebSocket JWT authentication completed in {} microseconds for user: {}", 
-                        duration / 1000, userDetails.getUserId());
+                if (duration > 100_000_000) { // Log if authentication takes longer than 100ms
+                    logger.warn("WebSocket JWT authentication took {} ms for user: {} - investigate caching", 
+                            duration / 1_000_000, userDetails.getUserId());
+                } else {
+                    logger.debug("WebSocket JWT authentication completed in {} microseconds for user: {}", 
+                            duration / 1000, userDetails.getUserId());
+                }
                 
             } catch (Exception e) {
                 long duration = System.nanoTime() - startTime;
-                logger.error("WebSocket JWT authentication failed in {} microseconds: {}", 
-                        duration / 1000, e.getMessage());
-                throw e;
+                logger.error("WebSocket JWT authentication failed in {} ms: {}", 
+                        duration / 1_000_000, e.getMessage());
+                
+                // **PERFORMANCE OPTIMIZATION 3**: Fail fast instead of letting connection hang
+                throw new IllegalArgumentException("Authentication failed: " + e.getMessage(), e);
             }
         }
         
         return message;
+    }
+    
+    /**
+     * **PERFORMANCE CRITICAL**: Authenticate token with timeout to prevent hanging connections.
+     * This method ensures WebSocket connections never wait more than the configured timeout.
+     */
+    private JWTUserDetails authenticateWithTimeout(String token) throws InvalidTokenException {
+        try {
+            // Use CompletableFuture to add timeout protection
+            CompletableFuture<JWTUserDetails> authenticationFuture = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return jwtTokenProvider.authenticateTokenOptimized(token);
+                } catch (InvalidTokenException e) {
+                    logger.error("Invalid JWT token received during STOMP CONNECT: {}", e.getMessage());
+                    throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+                }
+            });
+            
+            // Wait for authentication with timeout
+            return authenticationFuture.get(AUTHENTICATION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            
+        } catch (java.util.concurrent.TimeoutException e) {
+            logger.error("JWT authentication timeout after {}ms - possible caching issue", AUTHENTICATION_TIMEOUT_MS);
+            throw new InvalidTokenException("Authentication timeout - service temporarily unavailable");
+        } catch (Exception e) {
+            if (e.getCause() instanceof InvalidTokenException) {
+                throw (InvalidTokenException) e.getCause();
+            }
+            logger.error("Unexpected error during JWT authentication: {}", e.getMessage(), e);
+            throw new InvalidTokenException("Authentication error: " + e.getMessage());
+        }
     }
 }

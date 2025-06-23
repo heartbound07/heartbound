@@ -73,6 +73,20 @@ public class CacheConfig {
     @Value("${cache.daily-activity.expire-after-write-minutes:30}")
     private long dailyActivityCacheExpireMinutes;
 
+    // Daily Claim Cache Configuration
+    @Value("${cache.daily-claim.max-size:10000}")
+    private long dailyClaimCacheMaxSize;
+
+    @Value("${cache.daily-claim.expire-after-write-minutes:60}")
+    private long dailyClaimCacheExpireMinutes;
+
+    // Discord Bot Settings Cache Configuration
+    @Value("${cache.discord-bot-settings.max-size:1}")
+    private long discordBotSettingsCacheMaxSize;
+
+    @Value("${cache.discord-bot-settings.expire-after-write-minutes:30}")
+    private long discordBotSettingsCacheExpireMinutes;
+
     // Cache instances
     private Cache<Long, Object> pairLevelCache;
     private Cache<String, List<Object>> achievementListCache;
@@ -82,6 +96,8 @@ public class CacheConfig {
     private Cache<String, Object> userProfileCache;
     private Cache<String, Map<String, Object>> batchOperationsCache;
     private Cache<String, List<Object>> dailyMessageActivityCache;
+    private Cache<String, Object> dailyClaimCache;
+    private Cache<Long, Object> discordBotSettingsCache;
 
     @PostConstruct
     public void initializeCaches() {
@@ -183,19 +199,47 @@ public class CacheConfig {
                 .recordStats()
                 .build();
 
+        // Daily Claim Cache - stores user daily claim status
+        this.dailyClaimCache = Caffeine.newBuilder()
+                .maximumSize(dailyClaimCacheMaxSize)
+                .expireAfterWrite(dailyClaimCacheExpireMinutes, TimeUnit.MINUTES)
+                .removalListener((RemovalListener<String, Object>) (key, value, cause) -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Daily claim cache entry removed: userId={}, cause={}", key, cause);
+                    }
+                })
+                .recordStats()
+                .build();
+
+        // Discord Bot Settings Cache - stores Discord bot settings
+        this.discordBotSettingsCache = Caffeine.newBuilder()
+                .maximumSize(discordBotSettingsCacheMaxSize)
+                .expireAfterWrite(discordBotSettingsCacheExpireMinutes, TimeUnit.MINUTES)
+                .removalListener((RemovalListener<Long, Object>) (key, value, cause) -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Discord bot settings cache entry removed: key={}, cause={}", key, cause);
+                    }
+                })
+                .recordStats()
+                .build();
+
         log.info("Pairing System Performance Caches initialized successfully - " +
                 "PairLevel: {}/{} entries/minutes, " +
                 "Achievement: {}/{} entries/minutes, " +
                 "VoiceStreak: {}/{} entries/minutes, " +
                 "UserProfile: {}/{} entries/minutes, " +
                 "BatchOps: {}/{} entries/minutes, " +
-                "DailyActivity: {}/{} entries/minutes",
+                "DailyActivity: {}/{} entries/minutes, " +
+                "DailyClaim: {}/{} entries/minutes, " +
+                "DiscordBotSettings: {}/{} entries/minutes",
                 pairLevelCacheMaxSize, pairLevelCacheExpireMinutes,
                 achievementCacheMaxSize, achievementCacheExpireMinutes,
                 voiceStreakCacheMaxSize, voiceStreakCacheExpireMinutes,
                 userProfileCacheMaxSize, userProfileCacheExpireMinutes,
                 batchOperationsCacheMaxSize, batchOperationsCacheExpireMinutes,
-                dailyActivityCacheMaxSize, dailyActivityCacheExpireMinutes);
+                dailyActivityCacheMaxSize, dailyActivityCacheExpireMinutes,
+                dailyClaimCacheMaxSize, dailyClaimCacheExpireMinutes,
+                discordBotSettingsCacheMaxSize, discordBotSettingsCacheExpireMinutes);
     }
 
     /**
@@ -262,6 +306,26 @@ public class CacheConfig {
     }
 
     /**
+     * Invalidates daily claim cache for a specific user.
+     * Use when a user's daily claim status is updated.
+     */
+    public void invalidateDailyClaimCache(String userId) {
+        if (userId != null) {
+            dailyClaimCache.invalidate(userId);
+            log.debug("Daily claim cache invalidated for user: {}", userId);
+        }
+    }
+
+    /**
+     * Invalidates Discord bot settings cache.
+     * Use when Discord bot settings are updated.
+     */
+    public void invalidateDiscordBotSettingsCache() {
+        discordBotSettingsCache.invalidateAll();
+        log.debug("Discord bot settings cache invalidated");
+    }
+
+    /**
      * Invalidates all caches. Use with caution - only for scenarios like
      * system maintenance or emergency cache refresh.
      */
@@ -275,6 +339,8 @@ public class CacheConfig {
         userProfileCache.invalidateAll();
         batchOperationsCache.invalidateAll();
         dailyMessageActivityCache.invalidateAll();
+        dailyClaimCache.invalidateAll();
+        discordBotSettingsCache.invalidateAll();
         log.info("All pairing system caches invalidated successfully");
     }
 
@@ -299,6 +365,10 @@ public class CacheConfig {
                 .batchOperationsSize(batchOperationsCache.estimatedSize())
                 .dailyMessageActivityHitRate(dailyMessageActivityCache.stats().hitRate())
                 .dailyMessageActivitySize(dailyMessageActivityCache.estimatedSize())
+                .dailyClaimHitRate(dailyClaimCache.stats().hitRate())
+                .dailyClaimSize(dailyClaimCache.estimatedSize())
+                .discordBotSettingsHitRate(discordBotSettingsCache.stats().hitRate())
+                .discordBotSettingsSize(discordBotSettingsCache.estimatedSize())
                 .build();
     }
 
@@ -316,6 +386,8 @@ public class CacheConfig {
         userProfileCache.cleanUp();
         batchOperationsCache.cleanUp();
         dailyMessageActivityCache.cleanUp();
+        dailyClaimCache.cleanUp();
+        discordBotSettingsCache.cleanUp();
         log.debug("Pairing cache maintenance completed");
     }
 
@@ -341,5 +413,9 @@ public class CacheConfig {
         private final long batchOperationsSize;
         private final double dailyMessageActivityHitRate;
         private final long dailyMessageActivitySize;
+        private final double dailyClaimHitRate;
+        private final long dailyClaimSize;
+        private final double discordBotSettingsHitRate;
+        private final long discordBotSettingsSize;
     }
 } 

@@ -14,18 +14,20 @@ interface LevelCardProps {
 }
 
 export const LevelCard = React.memo(function LevelCard({ userProfile, loading, error }: LevelCardProps) {
-  // XP calculation logic: Assume 1000 XP per level
-  const XP_PER_LEVEL = 1000
-
   const calculateXPProgress = () => {
-    if (!userProfile?.experience) return { current: 0, required: XP_PER_LEVEL, percentage: 0 }
+    if (userProfile?.experience == null || userProfile.xpForNextLevel == null) {
+      return { current: 0, required: 0, percentage: 0 }
+    }
 
-    const currentLevelXP = userProfile.experience % XP_PER_LEVEL
-    const percentage = (currentLevelXP / XP_PER_LEVEL) * 100
+    const current = userProfile.experience
+    const required = userProfile.xpForNextLevel
+    
+    // Ensure required is not zero to avoid division by zero
+    const percentage = required > 0 ? (current / required) * 100 : 0
 
     return {
-      current: currentLevelXP,
-      required: XP_PER_LEVEL,
+      current,
+      required,
       percentage: Math.min(percentage, 100),
     }
   }
