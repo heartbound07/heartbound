@@ -65,6 +65,7 @@ export const usePairings = () => {
           setError(`Failed to load pairing status: ${errorMessage}`)
         } else {
           // It's a 404, which is expected if the user has no pairing.
+          // This is common for ADMIN users who manage pairings but aren't in one themselves.
           // We shouldn't set an error state for this.
           setCurrentPairing(null)
           setError(null) // Clear any previous errors
