@@ -327,6 +327,17 @@ public class PairingService {
     }
 
     /**
+     * Get all active pairings without sensitive user data (for public display)
+     */
+    @Transactional(readOnly = true)
+    public List<PublicPairingDTO> getAllActivePairingsPublic() {
+        return pairingRepository.findByActiveTrue()
+                .stream()
+                .map(this::mapToPublicPairingDTO)
+                .toList();
+    }
+
+    /**
      * Get pairing history for a user
      */
     @Transactional(readOnly = true)
@@ -619,6 +630,33 @@ public class PairingService {
         dto.setUser2Rank(pairing.getUser2Rank());
 
         return dto;
+    }
+
+    /**
+     * Map Pairing entity to PublicPairingDTO (without sensitive user data)
+     */
+    private PublicPairingDTO mapToPublicPairingDTO(Pairing pairing) {
+        return PublicPairingDTO.builder()
+                .id(pairing.getId())
+                .user1Id(pairing.getUser1Id())
+                .user2Id(pairing.getUser2Id())
+                .discordChannelName(pairing.getDiscordChannelName())
+                .matchedAt(pairing.getMatchedAt())
+                .messageCount(pairing.getMessageCount())
+                .user1MessageCount(pairing.getUser1MessageCount())
+                .user2MessageCount(pairing.getUser2MessageCount())
+                .voiceTimeMinutes(pairing.getVoiceTimeMinutes())
+                .wordCount(pairing.getWordCount())
+                .emojiCount(pairing.getEmojiCount())
+                .activeDays(pairing.getActiveDays())
+                .compatibilityScore(pairing.getCompatibilityScore())
+                .breakupInitiatorId(pairing.getBreakupInitiatorId())
+                .breakupReason(pairing.getBreakupReason())
+                .breakupTimestamp(pairing.getBreakupTimestamp())
+                .mutualBreakup(pairing.isMutualBreakup())
+                .active(pairing.isActive())
+                .blacklisted(pairing.isBlacklisted())
+                .build();
     }
 
     // Add input sanitization methods

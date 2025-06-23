@@ -171,10 +171,10 @@ public class PairingController {
     })
     @GetMapping("/active")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<List<PairingDTO>> getAllActivePairings() {
-        log.info("Getting all active pairings");
+    public ResponseEntity<List<PublicPairingDTO>> getAllActivePairings() {
+        log.info("Getting all active pairings (public data only)");
         
-        List<PairingDTO> activePairings = pairingService.getAllActivePairings();
+        List<PublicPairingDTO> activePairings = pairingService.getAllActivePairingsPublic();
         return ResponseEntity.ok(activePairings);
     }
 
