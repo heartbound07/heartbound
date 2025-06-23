@@ -4,7 +4,7 @@ import com.app.heartbound.dto.pairing.*;
 import com.app.heartbound.services.pairing.MatchmakingService;
 import com.app.heartbound.services.pairing.PairingService;
 import com.app.heartbound.services.pairing.QueueService;
-import com.app.heartbound.services.security.PairingSecurityService;
+import com.app.heartbound.services.pairing.PairingSecurityService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
