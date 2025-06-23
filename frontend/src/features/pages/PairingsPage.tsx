@@ -459,6 +459,14 @@ export function PairingsPage() {
         userIds.add(pairing.user2Id)
       })
 
+      // Add user IDs from admin pairing history (for "Match History" display)
+      if (hasRole("ADMIN") && allPairingHistory) {
+        allPairingHistory.forEach((pairing) => {
+          userIds.add(pairing.user1Id)
+          userIds.add(pairing.user2Id)
+        })
+      }
+
       if (userIds.size > 0) {
         try {
           const profiles = await getUserProfiles(Array.from(userIds))
@@ -469,10 +477,10 @@ export function PairingsPage() {
       }
     }
 
-    if (pairingHistory.length > 0 || allActivePairings?.length > 0) {
+    if (pairingHistory.length > 0 || allActivePairings?.length > 0 || (hasRole("ADMIN") && allPairingHistory?.length > 0)) {
       fetchUserProfiles()
     }
-  }, [pairingHistory, allActivePairings])
+  }, [pairingHistory, allActivePairings, hasRole, allPairingHistory])
 
   // Handle initial loading with minimum loading time
   useEffect(() => {
