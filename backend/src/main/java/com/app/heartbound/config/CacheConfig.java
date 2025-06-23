@@ -80,6 +80,13 @@ public class CacheConfig {
     @Value("${cache.daily-claim.expire-after-write-minutes:60}")
     private long dailyClaimCacheExpireMinutes;
 
+    // Discord Bot Settings Cache Configuration
+    @Value("${cache.discord-bot-settings.max-size:1}")
+    private long discordBotSettingsCacheMaxSize;
+
+    @Value("${cache.discord-bot-settings.expire-after-write-minutes:30}")
+    private long discordBotSettingsCacheExpireMinutes;
+
     // Cache instances
     private Cache<Long, Object> pairLevelCache;
     private Cache<String, List<Object>> achievementListCache;
@@ -90,6 +97,7 @@ public class CacheConfig {
     private Cache<String, Map<String, Object>> batchOperationsCache;
     private Cache<String, List<Object>> dailyMessageActivityCache;
     private Cache<String, Object> dailyClaimCache;
+    private Cache<Long, Object> discordBotSettingsCache;
 
     @PostConstruct
     public void initializeCaches() {
@@ -203,6 +211,18 @@ public class CacheConfig {
                 .recordStats()
                 .build();
 
+        // Discord Bot Settings Cache - stores Discord bot settings
+        this.discordBotSettingsCache = Caffeine.newBuilder()
+                .maximumSize(discordBotSettingsCacheMaxSize)
+                .expireAfterWrite(discordBotSettingsCacheExpireMinutes, TimeUnit.MINUTES)
+                .removalListener((RemovalListener<Long, Object>) (key, value, cause) -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Discord bot settings cache entry removed: key={}, cause={}", key, cause);
+                    }
+                })
+                .recordStats()
+                .build();
+
         log.info("Pairing System Performance Caches initialized successfully - " +
                 "PairLevel: {}/{} entries/minutes, " +
                 "Achievement: {}/{} entries/minutes, " +
@@ -210,14 +230,16 @@ public class CacheConfig {
                 "UserProfile: {}/{} entries/minutes, " +
                 "BatchOps: {}/{} entries/minutes, " +
                 "DailyActivity: {}/{} entries/minutes, " +
-                "DailyClaim: {}/{} entries/minutes",
+                "DailyClaim: {}/{} entries/minutes, " +
+                "DiscordBotSettings: {}/{} entries/minutes",
                 pairLevelCacheMaxSize, pairLevelCacheExpireMinutes,
                 achievementCacheMaxSize, achievementCacheExpireMinutes,
                 voiceStreakCacheMaxSize, voiceStreakCacheExpireMinutes,
                 userProfileCacheMaxSize, userProfileCacheExpireMinutes,
                 batchOperationsCacheMaxSize, batchOperationsCacheExpireMinutes,
                 dailyActivityCacheMaxSize, dailyActivityCacheExpireMinutes,
-                dailyClaimCacheMaxSize, dailyClaimCacheExpireMinutes);
+                dailyClaimCacheMaxSize, dailyClaimCacheExpireMinutes,
+                discordBotSettingsCacheMaxSize, discordBotSettingsCacheExpireMinutes);
     }
 
     /**
@@ -295,6 +317,15 @@ public class CacheConfig {
     }
 
     /**
+     * Invalidates Discord bot settings cache.
+     * Use when Discord bot settings are updated.
+     */
+    public void invalidateDiscordBotSettingsCache() {
+        discordBotSettingsCache.invalidateAll();
+        log.debug("Discord bot settings cache invalidated");
+    }
+
+    /**
      * Invalidates all caches. Use with caution - only for scenarios like
      * system maintenance or emergency cache refresh.
      */
@@ -309,6 +340,7 @@ public class CacheConfig {
         batchOperationsCache.invalidateAll();
         dailyMessageActivityCache.invalidateAll();
         dailyClaimCache.invalidateAll();
+        discordBotSettingsCache.invalidateAll();
         log.info("All pairing system caches invalidated successfully");
     }
 
@@ -335,6 +367,8 @@ public class CacheConfig {
                 .dailyMessageActivitySize(dailyMessageActivityCache.estimatedSize())
                 .dailyClaimHitRate(dailyClaimCache.stats().hitRate())
                 .dailyClaimSize(dailyClaimCache.estimatedSize())
+                .discordBotSettingsHitRate(discordBotSettingsCache.stats().hitRate())
+                .discordBotSettingsSize(discordBotSettingsCache.estimatedSize())
                 .build();
     }
 
@@ -353,6 +387,7 @@ public class CacheConfig {
         batchOperationsCache.cleanUp();
         dailyMessageActivityCache.cleanUp();
         dailyClaimCache.cleanUp();
+        discordBotSettingsCache.cleanUp();
         log.debug("Pairing cache maintenance completed");
     }
 
@@ -380,5 +415,7 @@ public class CacheConfig {
         private final long dailyMessageActivitySize;
         private final double dailyClaimHitRate;
         private final long dailyClaimSize;
+        private final double discordBotSettingsHitRate;
+        private final long discordBotSettingsSize;
     }
 } 

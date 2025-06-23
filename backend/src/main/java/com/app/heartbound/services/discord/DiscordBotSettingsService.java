@@ -3,6 +3,7 @@ package com.app.heartbound.services.discord;
 import com.app.heartbound.dto.discord.DiscordBotSettingsDTO;
 import com.app.heartbound.entities.DiscordBotSettings;
 import com.app.heartbound.repositories.DiscordBotSettingsRepository;
+import com.app.heartbound.config.CacheConfig;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ public class DiscordBotSettingsService {
     private final DiscordBotSettingsRepository repository;
     private final ChatActivityListener chatActivityListener;
     private final Environment environment;
+    private final CacheConfig cacheConfig;
     
     // Import default values from application.properties
     @Value("${discord.activity.enabled:true}")
@@ -90,8 +92,10 @@ public class DiscordBotSettingsService {
     
     @Transactional(readOnly = true)
     public DiscordBotSettingsDTO getCurrentSettings() {
-        DiscordBotSettings settings = repository.findById(1L)
-                .orElseThrow(() -> new RuntimeException("Discord bot settings not found"));
+        // Try to get from cache first
+        DiscordBotSettings settings = (DiscordBotSettings) cacheConfig.getDiscordBotSettingsCache()
+                .get(1L, key -> repository.findById(1L)
+                        .orElseThrow(() -> new RuntimeException("Discord bot settings not found")));
         
         DiscordBotSettingsDTO dto = new DiscordBotSettingsDTO();
         // Map entity to DTO (this would be cleaner with ModelMapper or MapStruct)
@@ -153,6 +157,9 @@ public class DiscordBotSettingsService {
         settings.setLevel100RoleId(dto.getLevel100RoleId());
         
         repository.save(settings);
+        
+        // Invalidate cache after updating settings
+        cacheConfig.invalidateDiscordBotSettingsCache();
         
         // Apply the updated settings to the ChatActivityListener
         chatActivityListener.updateSettings(
