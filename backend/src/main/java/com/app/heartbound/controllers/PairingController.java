@@ -166,13 +166,15 @@ public class PairingController {
 
     @Operation(summary = "Get all active pairings", description = "Retrieve all currently active pairings")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Active pairings retrieved successfully")
+            @ApiResponse(responseCode = "200", description = "Active pairings retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Authentication required")
     })
     @GetMapping("/active")
-    public ResponseEntity<List<PairingDTO>> getAllActivePairings() {
-        log.info("Getting all active pairings");
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<List<PublicPairingDTO>> getAllActivePairings() {
+        log.info("Getting all active pairings (public data only)");
         
-        List<PairingDTO> activePairings = pairingService.getAllActivePairings();
+        List<PublicPairingDTO> activePairings = pairingService.getAllActivePairingsPublic();
         return ResponseEntity.ok(activePairings);
     }
 
@@ -192,6 +194,26 @@ public class PairingController {
             return ResponseEntity.ok(history);
         } catch (Exception e) {
             log.error("Error getting pairing history for user {}: {}", userId, e.getMessage());
+            return ResponseEntity.ok(Collections.emptyList());
+        }
+    }
+
+    @Operation(summary = "Get all pairing history", description = "Admin endpoint to retrieve complete pairing history of all inactive pairings")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Complete pairing history retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Admin access required")
+    })
+    @GetMapping("/admin/history")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<PairingDTO>> getAllPairingHistory() {
+        log.info("Admin requesting complete pairing history");
+        
+        try {
+            List<PairingDTO> history = pairingService.getAllPairingHistory();
+            log.info("Successfully retrieved {} inactive pairings for admin", history.size());
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            log.error("Error getting complete pairing history: {}", e.getMessage());
             return ResponseEntity.ok(Collections.emptyList());
         }
     }
