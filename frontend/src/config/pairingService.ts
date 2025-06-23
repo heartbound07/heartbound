@@ -131,6 +131,19 @@ export const getPairingHistory = async (userId: string): Promise<PairingDTO[]> =
 };
 
 /**
+ * Get all pairing history (admin function) - returns all inactive pairings
+ */
+export const getAllPairingHistoryForAdmin = async (): Promise<PairingDTO[]> => {
+  try {
+    const response = await httpClient.get('/pairings/admin/history');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin pairing history:', error);
+    return [];
+  }
+};
+
+/**
  * Get all active pairings in the system
  */
 export const getAllActivePairings = async (): Promise<PairingDTO[]> => {

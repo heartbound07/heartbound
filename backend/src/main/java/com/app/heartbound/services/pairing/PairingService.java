@@ -349,6 +349,22 @@ public class PairingService {
     }
 
     /**
+     * Get all pairing history (admin function) - returns all inactive pairings
+     */
+    @Transactional(readOnly = true)
+    public List<PairingDTO> getAllPairingHistory() {
+        log.info("Fetching all inactive pairings for admin");
+        
+        List<PairingDTO> inactivePairings = pairingRepository.findByActiveFalse()
+                .stream()
+                .map(this::mapToPairingDTO)
+                .toList();
+        
+        log.info("Retrieved {} inactive pairings", inactivePairings.size());
+        return inactivePairings;
+    }
+
+    /**
      * Check if two users are blacklisted
      */
     @Transactional(readOnly = true)

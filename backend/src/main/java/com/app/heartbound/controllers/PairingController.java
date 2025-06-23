@@ -198,6 +198,26 @@ public class PairingController {
         }
     }
 
+    @Operation(summary = "Get all pairing history", description = "Admin endpoint to retrieve complete pairing history of all inactive pairings")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Complete pairing history retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Admin access required")
+    })
+    @GetMapping("/admin/history")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<PairingDTO>> getAllPairingHistory() {
+        log.info("Admin requesting complete pairing history");
+        
+        try {
+            List<PairingDTO> history = pairingService.getAllPairingHistory();
+            log.info("Successfully retrieved {} inactive pairings for admin", history.size());
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            log.error("Error getting complete pairing history: {}", e.getMessage());
+            return ResponseEntity.ok(Collections.emptyList());
+        }
+    }
+
     @Operation(summary = "Check if users are blacklisted", description = "Check if a pair of users is blacklisted from being matched")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Blacklist status checked successfully")

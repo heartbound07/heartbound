@@ -35,6 +35,7 @@ import { PairingCardList } from "./PairingCard"
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary"
 import { XPCard } from "@/features/pages/XPCard"
 import { AllMatchesModal } from "@/components/modals/AllMatchesModal"
+import { useAllPairingHistory } from "@/hooks/useAllPairingHistory"
 
 // Import extracted components
 import { QueueJoinForm } from "@/features/pages/pairings/components/QueueJoinForm"
@@ -94,6 +95,12 @@ export function PairingsPage() {
   
   // Use lightweight queue updates for real-time user count
   const { queueUpdate } = useQueueUpdates()
+
+  // Admin-specific pairing history hook - only fetch for admin users
+  const { 
+    allPairingHistory, 
+    refreshAllPairingHistory 
+  } = useAllPairingHistory(hasRole("ADMIN"))
 
   // Use optimized modal manager
   const modalManager = useModalManager()
@@ -346,12 +353,17 @@ export function PairingsPage() {
     // Refresh data after closing modal to show any updates
     refreshData()
     
+    // Refresh admin pairing history if user is admin
+    if (hasRole("ADMIN")) {
+      refreshAllPairingHistory()
+    }
+    
     // Invalidate XP cache to trigger fresh data fetch through useXPData hook
     if (pairingHistory.length > 0) {
       const pairingIds = pairingHistory.map(p => p.id)
       invalidateXPData(pairingIds)
     }
-  }, [refreshData, pairingHistory])
+  }, [refreshData, hasRole, refreshAllPairingHistory, pairingHistory])
 
   // Effect to handle real-time WebSocket updates
   useEffect(() => {
@@ -384,6 +396,12 @@ export function PairingsPage() {
           showPartnerUnmatched()
         }
         refreshData() // Update pairing data
+        
+        // Refresh admin pairing history if user is admin (new pairing became inactive)
+        if (hasRole("ADMIN")) {
+          refreshAllPairingHistory()
+        }
+        
         clearUpdate()
       } else if (pairingUpdate.eventType === "ACTIVITY_UPDATE") {
         console.log("[PairingsPage] Activity update received - handled by usePairings hook:", pairingUpdate)
@@ -392,7 +410,7 @@ export function PairingsPage() {
         // The hook already updates currentPairing state, which will trigger UI re-renders
       }
     }
-  }, [pairingUpdate, refreshData, clearUpdate, showMatchFound, showNoMatch, showQueueRemoved, showBreakupSuccess, showPartnerUnmatched])
+  }, [pairingUpdate, refreshData, hasRole, refreshAllPairingHistory, clearUpdate, showMatchFound, showNoMatch, showQueueRemoved, showBreakupSuccess, showPartnerUnmatched])
 
   // Effect to track current pairing in localStorage for offline breakup detection
   useEffect(() => {
@@ -577,6 +595,12 @@ export function PairingsPage() {
     try {
       await deletePairing(pairingId);
       updateAdminState({ message: "Pairing record permanently deleted! Users can now match again." })
+      
+      // Refresh admin pairing history to reflect deletion
+      if (hasRole("ADMIN")) {
+        refreshAllPairingHistory()
+      }
+      
       setTimeout(() => updateAdminState({ message: null }), 5000)
     } catch (error: any) {
       updateAdminState({ message: `Failed to delete pairing: ${error.message}` })
@@ -592,6 +616,12 @@ export function PairingsPage() {
     try {
       const result = await clearInactiveHistory();
       updateAdminState({ message: `Successfully deleted ${result.deletedCount} inactive pairing record(s)! All users can now match again.` })
+      
+      // Refresh admin pairing history to reflect deletions
+      if (hasRole("ADMIN")) {
+        refreshAllPairingHistory()
+      }
+      
       setTimeout(() => updateAdminState({ message: null }), 5000)
     } catch (error: any) {
       updateAdminState({ message: `Failed to clear inactive history: ${error.message}` })
@@ -606,8 +636,13 @@ export function PairingsPage() {
   }, [allActivePairings])
 
   const inactiveHistory = useMemo(() => {
-    return pairingHistory.filter(pairing => !pairing.active)
-  }, [pairingHistory])
+    // Admin users see all inactive pairings, regular users see only their own
+    if (hasRole("ADMIN")) {
+      return allPairingHistory || []
+    } else {
+      return pairingHistory.filter(pairing => !pairing.active)
+    }
+  }, [hasRole, allPairingHistory, pairingHistory])
 
   const handleCloseQueueRemovedModal = useCallback(() => {
     hideQueueRemoved()
