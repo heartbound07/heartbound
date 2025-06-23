@@ -139,15 +139,37 @@ public class LevelCardCommandListener extends ListenerAdapter {
     }
 
     /**
-     * Generates the HTML content for the level card based on LevelCard.tsx structure
+     * Generates the HTML content for the level card matching LevelCard.tsx structure exactly
      */
     private String generateCardHtml(UserProfileDTO profile) {
-        // Calculate level and progress
-        int level = profile.getLevel() != null ? profile.getLevel() : 1;
-        long currentXp = profile.getExperience() != null ? profile.getExperience() : 0;
-        long xpToNextLevel = calculateXpToNextLevel(level, currentXp);
-        double progressPercent = ((double) currentXp / (currentXp + xpToNextLevel)) * 100;
+        // Calculate XP progress exactly like the frontend
+        int current = profile.getExperience() != null ? profile.getExperience() : 0;
+        int required = profile.getXpForNextLevel() != null ? profile.getXpForNextLevel() : 0;
+        double percentage = required > 0 ? Math.min((current / (double) required) * 100, 100) : 0;
         
+        // Format numbers exactly like frontend formatNumber function
+        String formattedCredits = formatNumber(profile.getCredits() != null ? profile.getCredits() : 0);
+        String formattedMessages = formatNumber(profile.getMessageCount() != null ? profile.getMessageCount().intValue() : 0);
+        String formattedVoiceTime = formatVoiceTime(profile.getVoiceTimeMinutesTotal() != null ? profile.getVoiceTimeMinutesTotal() : 0);
+        
+        // Get user info
+        String displayName = profile.getDisplayName() != null ? profile.getDisplayName() : 
+                           (profile.getUsername() != null ? profile.getUsername() : "User");
+        String username = profile.getUsername() != null ? "@" + profile.getUsername() : "";
+        String avatarUrl = profile.getAvatar() != null ? profile.getAvatar() : "/default-avatar.png";
+        String bannerUrl = profile.getBannerUrl();
+        int level = profile.getLevel() != null ? profile.getLevel() : 1;
+        
+        // Create banner background style if banner exists
+        String bannerStyle = bannerUrl != null && !bannerUrl.isEmpty() ? 
+            String.format("background-image: url('%s');", bannerUrl) : "";
+        String bannerClass = bannerUrl != null && !bannerUrl.isEmpty() ? " has-banner" : "";
+        
+        // SVG Icons matching the frontend
+        String coinsIcon = "<svg viewBox='0 0 24 24' fill='currentColor' style='width: 16px; height: 16px;'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91 2.28.6 4.18 1.77 4.18 3.84 0 1.77-1.21 2.85-3.12 3.18z'/></svg>";
+        String messageIcon = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' style='width: 16px; height: 16px;'><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/></svg>";
+        String voiceIcon = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' style='width: 16px; height: 16px;'><path d='M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07'/></svg>";
+
         return String.format("""
             <!DOCTYPE html>
             <html>
@@ -158,70 +180,53 @@ public class LevelCardCommandListener extends ListenerAdapter {
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
             </head>
             <body>
-                <div class="level-card">
-                    <!-- Gradient Background -->
-                    <div class="card-gradient"></div>
-                    
-                    <!-- Card Content -->
-                    <div class="card-content">
-                        <!-- Header Section -->
-                        <div class="card-header">
-                            <div class="user-info">
+                <div class="level-card-wrapper">
+                    <div class="level-card">
+                        <!-- Level Display with User Info -->
+                        <div class="level-display-section%s" style="%s">
+                            <div class="user-info-left">
                                 <div class="avatar">
-                                    <div class="avatar-placeholder">%s</div>
+                                    <img src="%s" alt="%s" />
                                 </div>
-                                <div class="user-details">
-                                    <h2 class="display-name">%s</h2>
-                                    <p class="username">%s</p>
+                                <div class="user-text">
+                                    <div class="display-name">%s</div>
+                                    %s
                                 </div>
                             </div>
-                            <div class="level-badge">
-                                <span class="level-number">%d</span>
-                                <span class="level-text">LVL</span>
+                            <div class="level-info-right">
+                                <div class="level-number">%d</div>
+                                <div class="level-text">LEVEL</div>
                             </div>
                         </div>
-                        
-                        <!-- XP Progress Section -->
-                        <div class="xp-section">
-                            <div class="xp-info">
-                                <span class="xp-current">%,d XP</span>
-                                <span class="xp-next">%,d to next level</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: %.1f%%"></div>
-                                <div class="progress-glow" style="width: %.1f%%"></div>
+
+                        <!-- Progress Bars -->
+                        <div class="progress-bars-section">
+                            <div class="progress-bar-item">
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-track">
+                                        <div class="progress-bar-fill" style="width: %.1f%%"></div>
+                                    </div>
+                                    <div class="progress-bar-label">%d / %d</div>
+                                </div>
                             </div>
                         </div>
-                        
+
                         <!-- Stats Grid -->
-                        <div class="stats-grid">
-                            <div class="stat-item">
-                                <div class="stat-icon">💰</div>
-                                <div class="stat-content">
-                                    <span class="stat-value">%,d</span>
-                                    <span class="stat-label">Credits</span>
-                                </div>
+                        <div class="stats-grid-section">
+                            <div class="stat-grid-item">
+                                <div class="stat-icon">%s</div>
+                                <div class="stat-label">CRD:</div>
+                                <div class="stat-value">%s</div>
                             </div>
-                            <div class="stat-item">
-                                <div class="stat-icon">💬</div>
-                                <div class="stat-content">
-                                    <span class="stat-value">%,d</span>
-                                    <span class="stat-label">Messages</span>
-                                </div>
+                            <div class="stat-grid-item">
+                                <div class="stat-icon">%s</div>
+                                <div class="stat-label">MSG:</div>
+                                <div class="stat-value">%s</div>
                             </div>
-                            <div class="stat-item">
-                                <div class="stat-icon">🎤</div>
-                                <div class="stat-content">
-                                    <span class="stat-value">%sh</span>
-                                    <span class="stat-label">Voice Time</span>
-                                </div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-icon">🏆</div>
-                                <div class="stat-content">
-                                    <span class="stat-value">%,d</span>
-                                    <span class="stat-label">Achievements</span>
-                                </div>
+                            <div class="stat-grid-item">
+                                <div class="stat-icon">%s</div>
+                                <div class="stat-label">VT:</div>
+                                <div class="stat-value">%s</div>
                             </div>
                         </div>
                     </div>
@@ -229,36 +234,69 @@ public class LevelCardCommandListener extends ListenerAdapter {
             </body>
             </html>
             """,
-            profile.getDisplayName().substring(0, 1).toUpperCase(), // Avatar placeholder
-            profile.getDisplayName(),
-            "@" + profile.getDisplayName(),
+            bannerClass,
+            bannerStyle,
+            avatarUrl,
+            displayName,
+            displayName,
+            username.isEmpty() ? "" : String.format("<div class=\"username\">%s</div>", username),
             level,
-            currentXp,
-            xpToNextLevel,
-            progressPercent,
-            progressPercent,
-            profile.getCredits() != null ? profile.getCredits() : 0,
-            profile.getMessageCount() != null ? profile.getMessageCount() : 0,
-            profile.getVoiceTimeMinutesTotal() != null ? Math.round(profile.getVoiceTimeMinutesTotal() / 60.0) : 0,
-            0 // Achievements count - will be implemented later
+            percentage,
+            current,
+            required,
+            coinsIcon,
+            formattedCredits,
+            messageIcon,
+            formattedMessages,
+            voiceIcon,
+            formattedVoiceTime
         );
     }
 
     /**
-     * Calculates XP needed to reach the next level
+     * Format numbers exactly like the frontend formatNumber function
      */
-    private long calculateXpToNextLevel(int currentLevel, long currentXp) {
-        // Basic leveling formula - each level requires more XP
-        long xpForNextLevel = (long) (1000 * Math.pow(1.2, currentLevel));
-        long xpForCurrentLevel = currentLevel > 1 ? (long) (1000 * Math.pow(1.2, currentLevel - 1)) : 0;
-        return xpForNextLevel - currentXp;
+    private String formatNumber(int num) {
+        if (num >= 1000000) {
+            return String.format("%.1fM", num / 1000000.0);
+        }
+        if (num >= 1000) {
+            return String.format("%.1fk", num / 1000.0);
+        }
+        return String.valueOf(num);
     }
 
     /**
-     * Generates the CSS styles matching LevelCard.css
+     * Format voice time exactly like the frontend formatVoiceTime function
+     */
+    private String formatVoiceTime(int minutes) {
+        if (minutes == 0) return "0m";
+        if (minutes < 60) {
+            return minutes + "m";
+        }
+        int hours = minutes / 60;
+        int remainingMinutes = minutes % 60;
+        if (remainingMinutes == 0) {
+            return hours + "h";
+        }
+        return hours + "h " + remainingMinutes + "m";
+    }
+
+    /**
+     * Generates the CSS styles exactly matching LevelCard.css
      */
     private String generateCardCss() {
         return """
+            /* Root variables - maintaining existing theme */
+            :root {
+                --level-card-accent: #ff4655;
+                --level-card-bg-primary: #0f1923;
+                --level-card-bg-secondary: #1f2731;
+                --level-card-border: rgba(255, 255, 255, 0.05);
+                --level-card-radius: 0.75rem;
+                --level-card-transition: all 0.3s ease;
+            }
+            
             * {
                 margin: 0;
                 padding: 0;
@@ -275,218 +313,246 @@ public class LevelCardCommandListener extends ListenerAdapter {
                 overflow: hidden;
             }
             
-            .level-card {
-                width: 450px;
-                height: auto;
-                margin: 0;
-                background: rgba(31, 39, 49, 0.3);
-                backdrop-filter: blur(8px);
-                border: 1px solid rgba(255, 255, 255, 0.05);
-                border-radius: 12px;
-                padding: 24px;
+            /* WRAPPER & CONTAINER */
+            .level-card-wrapper {
+                all: unset;
                 position: relative;
-                overflow: hidden;
-                color: white;
-                box-sizing: border-box;
+                z-index: 1;
+                display: block;
+                width: 100%;
+                max-width: 450px;
+                margin: 0 auto 1.5rem auto;
+                font-family: inherit;
+                line-height: inherit;
+                color: white !important;
             }
             
-            .card-gradient {
+            .level-card-wrapper * {
+                color: inherit;
+            }
+            
+            .level-card {
+                background: rgba(31, 39, 49, 0.3) !important;
+                backdrop-filter: blur(8px) !important;
+                border: 1px solid rgba(255, 255, 255, 0.05) !important;
+                border-radius: var(--level-card-radius);
+                padding: 1.5rem;
+                transition: var(--level-card-transition);
+                position: relative;
+                overflow: hidden;
+                color: white !important;
+            }
+            
+            .level-card::before {
+                content: "";
                 position: absolute;
                 top: 0;
                 left: 0;
                 right: 0;
-                height: 120px;
-                background: linear-gradient(135deg, 
-                    rgba(139, 92, 246, 0.15) 0%, 
-                    rgba(59, 130, 246, 0.15) 50%, 
-                    rgba(16, 185, 129, 0.15) 100%);
+                bottom: 0;
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
                 pointer-events: none;
+                z-index: 0;
             }
             
-            .card-content {
+            .level-card > * {
                 position: relative;
                 z-index: 1;
             }
             
-            .card-header {
+            /* LEVEL DISPLAY SECTION WITH USER INFO */
+            .level-display-section {
                 display: flex;
+                align-items: center;
                 justify-content: space-between;
-                align-items: flex-start;
-                margin-bottom: 24px;
-            }
-            
-            .user-info {
-                display: flex;
-                align-items: center;
-                gap: 16px;
-            }
-            
-            .avatar {
-                width: 64px;
-                height: 64px;
-                border-radius: 50%;
-                background: linear-gradient(135deg, #8b5cf6, #3b82f6);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 24px;
-                font-weight: 700;
-                color: white;
-                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            }
-            
-            .avatar-placeholder {
-                font-size: 24px;
-                font-weight: 700;
-            }
-            
-            .user-details {
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-            }
-            
-            .display-name {
-                font-size: 20px;
-                font-weight: 700;
-                color: #f8fafc;
-                margin: 0;
-            }
-            
-            .username {
-                font-size: 14px;
-                color: #94a3b8;
-                margin: 0;
-            }
-            
-            .level-badge {
-                background: linear-gradient(135deg, #8b5cf6, #3b82f6);
-                border-radius: 12px;
-                padding: 8px 16px;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                min-width: 60px;
-                box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-            }
-            
-            .level-number {
-                font-size: 24px;
-                font-weight: 800;
-                color: white;
-                line-height: 1;
-            }
-            
-            .level-text {
-                font-size: 10px;
-                font-weight: 600;
-                color: rgba(255, 255, 255, 0.8);
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-            
-            .xp-section {
-                margin-bottom: 24px;
-            }
-            
-            .xp-info {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 8px;
-            }
-            
-            .xp-current {
-                font-size: 14px;
-                font-weight: 600;
-                color: #f8fafc;
-            }
-            
-            .xp-next {
-                font-size: 12px;
-                color: #94a3b8;
-            }
-            
-            .progress-bar {
-                height: 8px;
-                background: rgba(31, 39, 49, 0.5);
-                border-radius: 4px;
-                overflow: hidden;
+                margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+                padding: 1.5rem 1.5rem 1rem 1.5rem;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
                 position: relative;
+                overflow: hidden;
+                border-radius: var(--level-card-radius) var(--level-card-radius) 0 0;
             }
             
-            .progress-fill {
-                height: 100%;
-                background: linear-gradient(90deg, #8b5cf6, #3b82f6, #10b981);
-                border-radius: 4px;
-                transition: width 0.5s ease;
+            .level-display-section.has-banner {
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
             }
             
-            .progress-glow {
+            .level-display-section.has-banner::before {
+                content: "";
                 position: absolute;
                 top: 0;
                 left: 0;
-                height: 100%;
-                background: linear-gradient(90deg, 
-                    rgba(139, 92, 246, 0.5), 
-                    rgba(59, 130, 246, 0.5), 
-                    rgba(16, 185, 129, 0.5));
-                border-radius: 4px;
-                filter: blur(4px);
-                transition: width 0.5s ease;
+                right: 0;
+                bottom: 0px;
+                background: linear-gradient(
+                    135deg,
+                    rgba(0, 0, 0, 0.4) 0%,
+                    rgba(0, 0, 0, 0.3) 50%,
+                    rgba(0, 0, 0, 0.5) 100%
+                );
+                z-index: 1;
+                pointer-events: none;
             }
             
-            .stats-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 16px;
+            .level-display-section > * {
+                position: relative;
+                z-index: 2;
             }
             
-            .stat-item {
-                background: rgba(31, 39, 49, 0.3);
-                border: 1px solid rgba(255, 255, 255, 0.05);
-                border-radius: 8px;
-                padding: 16px;
+            .user-info-left {
                 display: flex;
                 align-items: center;
-                gap: 12px;
-                transition: all 0.2s ease;
+                gap: 1rem;
+                flex: 1;
+                min-width: 0;
             }
             
-            .stat-item:hover {
-                background: rgba(31, 39, 49, 0.5);
-                border-color: rgba(139, 92, 246, 0.3);
+            .avatar {
+                position: relative;
+                flex-shrink: 0;
+            }
+            
+            .avatar img {
+                width: 48px;
+                height: 48px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 2px solid rgba(0, 0, 0, 0.8);
+                box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+            }
+            
+            .user-text {
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .display-name {
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: white;
+                margin-bottom: 0.25rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                letter-spacing: -0.01em;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(0, 0, 0, 0.8), 1px -1px 2px rgba(0, 0, 0, 0.8), -1px 1px 2px rgba(0, 0, 0, 0.8);
+            }
+            
+            .username {
+                font-size: 0.875rem;
+                color: rgba(255, 255, 255, 0.4);
+                font-weight: 400;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(0, 0, 0, 0.8), 1px -1px 2px rgba(0, 0, 0, 0.8), -1px 1px 2px rgba(0, 0, 0, 0.8);
+            }
+            
+            .level-info-right {
+                text-align: center;
+                flex-shrink: 0;
+                margin-left: 0.25rem;
+            }
+            
+            .level-number {
+                font-size: 3rem;
+                font-weight: 800;
+                color: white;
+                line-height: 1;
+                letter-spacing: -0.02em;
+                margin-bottom: 0.25rem;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9), -2px -2px 4px rgba(0, 0, 0, 0.9), 2px -2px 4px rgba(0, 0, 0, 0.9), -2px 2px 4px rgba(0, 0, 0, 0.9);
+            }
+            
+            .level-text {
+                font-size: 0.875rem;
+                font-weight: 600;
+                color: rgba(255, 255, 255, 0.7);
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(0, 0, 0, 0.8), 1px -1px 2px rgba(0, 0, 0, 0.8), -1px 1px 2px rgba(0, 0, 0, 0.8);
+            }
+            
+            /* PROGRESS BARS SECTION */
+            .progress-bars-section {
+                margin-bottom: 1.5rem;
+            }
+            
+            .progress-bar-item {
+                margin-bottom: 0.75rem;
+            }
+            
+            .progress-bar-container {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+            
+            .progress-bar-track {
+                flex: 1;
+                height: 8px;
+                background: rgba(31, 39, 49, 0.8);
+                border-radius: 4px;
+                overflow: hidden;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .progress-bar-fill {
+                height: 100%;
+                background: linear-gradient(90deg, var(--level-card-accent) 0%, rgba(255, 70, 85, 0.8) 100%);
+                border-radius: 3px;
+                transition: width 0.5s ease-in-out;
+            }
+            
+            .progress-bar-label {
+                font-size: 0.75rem;
+                color: rgba(255, 255, 255, 0.7);
+                font-weight: 500;
+                min-width: 80px;
+                text-align: right;
+            }
+            
+            /* STATS GRID SECTION */
+            .stats-grid-section {
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 0.75rem;
+            }
+            
+            .stat-grid-item {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.75rem;
+                background: rgba(31, 39, 49, 0.4);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+                border-radius: 8px;
+                transition: var(--level-card-transition);
             }
             
             .stat-icon {
-                font-size: 20px;
-                width: 32px;
-                height: 32px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                background: rgba(139, 92, 246, 0.1);
-                border-radius: 6px;
-            }
-            
-            .stat-content {
-                display: flex;
-                flex-direction: column;
-                gap: 2px;
-            }
-            
-            .stat-value {
-                font-size: 18px;
-                font-weight: 700;
-                color: #f8fafc;
-                line-height: 1;
+                width: 20px;
+                height: 20px;
+                font-size: 0.875rem;
+                color: white;
+                flex-shrink: 0;
             }
             
             .stat-label {
-                font-size: 12px;
-                color: #94a3b8;
+                font-size: 0.75rem;
+                color: rgba(255, 255, 255, 0.6);
+                font-weight: 600;
                 text-transform: uppercase;
-                letter-spacing: 0.5px;
+                letter-spacing: 0.05em;
+            }
+            
+            .stat-value {
+                font-size: 0.875rem;
+                font-weight: 700;
+                color: white;
+                margin-left: auto;
             }
             """;
     }

@@ -129,7 +129,7 @@ public class DiscordConfig {
                     // Register all listeners EXCEPT shopCommandListener and statsCommandListener (we'll register them manually)
                     .addEventListeners(leaderboardCommandListener, chatActivityListener, 
                                       creditsCommandListener, dailyCommandListener, welcomeListener, welcomeCommandListener,
-                                      inventoryCommandListener, fishCommandListener,
+                                      inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService)
                     .build();
