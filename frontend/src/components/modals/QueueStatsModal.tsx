@@ -181,6 +181,16 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
     return colorMap[rank] || 'text-gray-400'
   }
 
+  const getGenderLabel = (gender: string) => {
+    const genderMap: Record<string, string> = {
+      'MALE': 'Male',
+      'FEMALE': 'Female',
+      'NON_BINARY': 'Non-Binary',
+      'PREFER_NOT_TO_SAY': 'Prefer not to say'
+    }
+    return genderMap[gender] || gender
+  }
+
   if (!isOpen) return null
 
   return (
@@ -545,6 +555,7 @@ export const QueueStatsModal: React.FC<QueueStatsModalProps> = ({
                                 
                                 <div className="flex items-center gap-4 text-sm text-theme-secondary">
                                   <span>Age: {user.age}</span>
+                                  <span>{getGenderLabel(user.gender)}</span>
                                   <span className={getRankColor(user.rank)}>{user.rank}</span>
                                   <span>{getRegionLabel(user.region)}</span>
                                 </div>
