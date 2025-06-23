@@ -38,6 +38,9 @@ public class UserProfileDTO {
     private Integer level;
     private Integer experience;
     
+    // Add XP required for next level
+    private Integer xpForNextLevel;
+    
     // Add message count field
     private Long messageCount;
     
