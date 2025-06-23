@@ -1,4 +1,4 @@
-package com.app.heartbound.services.security;
+package com.app.heartbound.services.pairing;
 
 import com.app.heartbound.entities.Pairing;
 import com.app.heartbound.repositories.UserRepository;
