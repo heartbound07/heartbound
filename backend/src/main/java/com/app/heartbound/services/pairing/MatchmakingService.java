@@ -267,34 +267,39 @@ public class MatchmakingService {
 
     /**
      * Check if two ages are compatible for matching based on safety rules
+     * NEW RULES: Minors (≤17) can ONLY match with other minors, adults (≥18) can ONLY match with other adults.
+     * Age difference must not exceed 2 years for any potential pair.
      */
     private boolean areAgesCompatible(int age1, int age2) {
         log.debug("Checking age compatibility: {} and {}", age1, age2);
         
-        // Both users must be 18+ for any pairing
-        if (age1 < 18 || age2 < 18) {
-            log.debug("AGE RESTRICTION: One or both users under 18 (Ages: {}, {})", age1, age2);
+        // Define age categories
+        boolean user1IsMinor = age1 <= 17;
+        boolean user2IsMinor = age2 <= 17;
+        boolean user1IsAdult = age1 >= 18;
+        boolean user2IsAdult = age2 >= 18;
+        
+        // STRICT SEGREGATION: Minors can ONLY match with other minors, adults can ONLY match with other adults
+        if (user1IsMinor && user2IsAdult) {
+            log.debug("AGE RESTRICTION: Minor-Adult pairing not allowed (Ages: {}, {})", age1, age2);
             return false;
         }
         
+        if (user1IsAdult && user2IsMinor) {
+            log.debug("AGE RESTRICTION: Adult-Minor pairing not allowed (Ages: {}, {})", age1, age2);
+            return false;
+        }
+        
+        // Calculate age difference
         int ageGap = Math.abs(age1 - age2);
         
-        // Strict age gap rules
-        if (ageGap > 5) {
-            log.debug("AGE RESTRICTION: Age gap too large (Gap: {} years)", ageGap);
+        // STRICT AGE GAP: Maximum 2 years difference for any pairing
+        if (ageGap > 2) {
+            log.debug("AGE RESTRICTION: Age gap too large (Gap: {} years, maximum allowed: 2)", ageGap);
             return false;
         }
         
-        // Special restrictions for users exactly 18
-        int minAge = Math.min(age1, age2);
-        int maxAge = Math.max(age1, age2);
-        
-        if (minAge == 18 && maxAge > 20) {
-            log.debug("AGE RESTRICTION: 18-year-old cannot be paired with user over 20 (Ages: {}, {})", age1, age2);
-            return false;
-        }
-        
-        log.debug("Age compatibility check passed: {} and {}", age1, age2);
+        log.debug("Age compatibility check passed: {} and {} (Gap: {} years)", age1, age2, ageGap);
         return true;
     }
 
@@ -360,17 +365,27 @@ public class MatchmakingService {
 
     /**
      * Calculate age proximity score for users who passed the hard age constraint
+     * ENHANCED: Prioritizes same-age minor matches to improve minor matchmaking
      */
     private int calculateAgeProximityScore(int age1, int age2) {
         int ageDifference = Math.abs(age1 - age2);
-        if (ageDifference <= 2) {
-            return 30; // Very close ages - highest score
-        } else if (ageDifference <= 5) {
-            return 20; // Close ages - good score
-        } else if (ageDifference <= 10) {
-            return 10; // Moderate age difference - lower score
+        
+        // Special prioritization for same-age minor matches
+        boolean bothAreMinors = age1 <= 17 && age2 <= 17;
+        if (bothAreMinors && ageDifference == 0) {
+            return 35; // HIGHEST priority for same-age minor matches
         }
-        return 0; // Large age difference - no points
+        
+        // Standard age proximity scoring
+        if (ageDifference == 0) {
+            return 30; // Same age - highest standard score
+        } else if (ageDifference <= 1) {
+            return 25; // Very close ages - high score
+        } else if (ageDifference <= 2) {
+            return 20; // Close ages within limit - good score
+        }
+        
+        return 0; // Should not reach here due to hard constraint, but safety fallback
     }
 
     // Private helper methods
