@@ -2,7 +2,13 @@ package com.app.heartbound.services.discord;
 
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.services.UserService;
+import com.app.heartbound.config.CacheConfig;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -13,11 +19,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PreDestroy;
 import java.awt.Color;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class LeaderboardCommandListener extends ListenerAdapter {
@@ -27,14 +36,66 @@ public class LeaderboardCommandListener extends ListenerAdapter {
     private static final Color EMBED_COLOR = new Color(88, 101, 242); // Discord Blurple
 
     private final UserService userService;
+    private final CacheConfig cacheConfig;
     
     @Value("${frontend.base.url}")
     private String frontendBaseUrl;
 
+    // Discord display name cache - short TTL since display names can change frequently
+    private final Cache<String, String> discordDisplayNameCache;
+    
+    // Add field to track registration status and JDA instance (like other listeners)
+    private boolean isRegistered = false;
+    private JDA jdaInstance;
+
     @Autowired
-    public LeaderboardCommandListener(UserService userService) {
+    public LeaderboardCommandListener(@Lazy UserService userService, CacheConfig cacheConfig) {
         this.userService = userService;
-        logger.info("LeaderboardCommandListener initialized");
+        this.cacheConfig = cacheConfig;
+        
+        // Initialize Discord display name cache with 5-minute TTL for performance
+        this.discordDisplayNameCache = Caffeine.newBuilder()
+                .maximumSize(10000)
+                .expireAfterWrite(5, TimeUnit.MINUTES)
+                .recordStats()
+                .build();
+                
+        logger.info("LeaderboardCommandListener initialized with Discord display name caching");
+    }
+    
+    /**
+     * Register this listener with the JDA instance.
+     * This method is called by DiscordConfig after JDA is initialized.
+     * 
+     * @param jda The JDA instance to register with
+     */
+    public void registerWithJDA(JDA jda) {
+        if (jda != null && !isRegistered) {
+            this.jdaInstance = jda;
+            jda.addEventListener(this);
+            this.isRegistered = true;
+            logger.debug("LeaderboardCommandListener registered with JDA");
+        }
+    }
+    
+    /**
+     * Clean up method called before bean destruction.
+     * Ensures this listener is removed from JDA to prevent events during shutdown.
+     */
+    @PreDestroy
+    public void cleanup() {
+        logger.debug("LeaderboardCommandListener cleanup started");
+        if (isRegistered && jdaInstance != null) {
+            try {
+                jdaInstance.removeEventListener(this);
+                logger.info("LeaderboardCommandListener successfully unregistered from JDA");
+            } catch (Exception e) {
+                logger.warn("Error while unregistering LeaderboardCommandListener: {}", e.getMessage());
+            }
+            isRegistered = false;
+            jdaInstance = null;
+        }
+        logger.debug("LeaderboardCommandListener cleanup completed");
     }
 
     @Override
@@ -51,6 +112,9 @@ public class LeaderboardCommandListener extends ListenerAdapter {
         // Get the leaderboard type (levels, credits, messages, or voice)
         OptionMapping typeOption = event.getOption("type");
         String leaderboardType = typeOption == null ? "levels" : typeOption.getAsString();
+        
+        // Get the guild for Discord display name resolution
+        Guild guild = event.getGuild();
         
         // Acknowledge the interaction quickly to prevent timeout
         event.deferReply().queue();
@@ -121,7 +185,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
             int currentPage = 1; // Start with page 1
             
             // Build the initial embed for page 1
-            MessageEmbed embed = buildLeaderboardEmbed(leaderboardUsers, currentPage, totalPages, leaderboardType);
+            MessageEmbed embed = buildLeaderboardEmbed(leaderboardUsers, currentPage, totalPages, leaderboardType, guild);
             
             // Create pagination buttons with user ID included for security
             Button prevButton = Button.secondary("leaderboard_prev:" + leaderboardType + ":1:" + commandUserId, "◀️")
@@ -174,6 +238,9 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                            interactorId, originalUserId);
                 return;
             }
+            
+            // Get the guild for Discord display name resolution
+            Guild guild = event.getGuild();
             
             // User is authorized, acknowledge the button click
             event.deferEdit().queue();
@@ -254,7 +321,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
             final int targetPage = tempTargetPage;
             
             // Build the new embed for the target page
-            MessageEmbed embed = buildLeaderboardEmbed(leaderboardUsers, targetPage, totalPages, leaderboardType);
+            MessageEmbed embed = buildLeaderboardEmbed(leaderboardUsers, targetPage, totalPages, leaderboardType, guild);
             
             // Create updated pagination buttons with user ID included for security
             Button prevButton = Button.secondary("leaderboard_prev:" + leaderboardType + ":" + targetPage + ":" + originalUserId, "◀️")
@@ -278,6 +345,67 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                      .setEphemeral(true)
                      .queue();
             }
+        }
+    }
+    
+    /**
+     * Retrieves the Discord display name for a user using JDA with caching.
+     * This method attempts to get the user's effective name from Discord,
+     * falling back to stored username if the user is not found in the server.
+     * 
+     * @param userId The Discord user ID
+     * @param storedUsername The stored username as fallback
+     * @param storedDisplayName The stored display name as fallback
+     * @param guild The Discord guild to search for the member
+     * @return The effective display name (Discord display name or fallback)
+     */
+    private String getDiscordDisplayName(String userId, String storedUsername, String storedDisplayName, Guild guild) {
+        if (userId == null || guild == null) {
+            // Fallback to stored data if we can't lookup Discord info
+            return (storedDisplayName != null && !storedDisplayName.isEmpty()) ? storedDisplayName : storedUsername;
+        }
+        
+        // Check cache first for performance
+        String cachedName = discordDisplayNameCache.getIfPresent(userId);
+        if (cachedName != null) {
+            return cachedName;
+        }
+        
+        try {
+            // Attempt to get the member from the guild
+            Member member = guild.getMemberById(userId);
+            
+            if (member != null) {
+                // Use Discord's effective name (display name if set, otherwise username)
+                String effectiveName = member.getEffectiveName();
+                
+                // Cache the result for future requests
+                discordDisplayNameCache.put(userId, effectiveName);
+                
+                logger.debug("Retrieved Discord display name for user {}: {}", userId, effectiveName);
+                return effectiveName;
+            } else {
+                // User not found in guild, use stored fallback and cache it
+                String fallbackName = (storedDisplayName != null && !storedDisplayName.isEmpty()) 
+                                    ? storedDisplayName : storedUsername;
+                
+                // Cache the fallback to avoid repeated failed lookups
+                discordDisplayNameCache.put(userId, fallbackName);
+                
+                logger.debug("User {} not found in Discord guild, using stored fallback: {}", userId, fallbackName);
+                return fallbackName;
+            }
+        } catch (Exception e) {
+            // Discord API error, use stored fallback and cache it
+            String fallbackName = (storedDisplayName != null && !storedDisplayName.isEmpty()) 
+                                ? storedDisplayName : storedUsername;
+            
+            // Cache the fallback to avoid repeated failed API calls
+            discordDisplayNameCache.put(userId, fallbackName);
+            
+            logger.warn("Error retrieving Discord display name for user {}: {}. Using fallback: {}", 
+                       userId, e.getMessage(), fallbackName);
+            return fallbackName;
         }
     }
     
@@ -306,14 +434,16 @@ public class LeaderboardCommandListener extends ListenerAdapter {
     
     /**
      * Builds a Discord embed for displaying a page of the leaderboard.
+     * Now uses Discord display names via JDA instead of stored username/displayName.
      *
      * @param users The full list of users sorted by the selected type
      * @param page The current page (1-based)
      * @param totalPages The total number of pages
      * @param type The leaderboard type (levels, credits, messages, or voice)
+     * @param guild The Discord guild for display name resolution
      * @return A MessageEmbed containing the formatted leaderboard
      */
-    private MessageEmbed buildLeaderboardEmbed(List<UserProfileDTO> users, int page, int totalPages, String type) {
+    private MessageEmbed buildLeaderboardEmbed(List<UserProfileDTO> users, int page, int totalPages, String type, Guild guild) {
         // Calculate start and end indices for the current page
         int startIndex = (page - 1) * PAGE_SIZE;
         int endIndex = Math.min(startIndex + PAGE_SIZE, users.size());
@@ -362,9 +492,13 @@ public class LeaderboardCommandListener extends ListenerAdapter {
             UserProfileDTO user = pageUsers.get(i);
             int rank = startIndex + i + 1; // Calculate the global rank
             
-            String displayName = user.getDisplayName() != null && !user.getDisplayName().isEmpty() 
-                               ? user.getDisplayName() 
-                               : user.getUsername();
+            // Use Discord display name instead of stored username/displayName
+            String displayName = getDiscordDisplayName(
+                user.getId(), 
+                user.getUsername(), 
+                user.getDisplayName(), 
+                guild
+            );
             
             // Format each entry with rank, name, and depending on the type, show appropriate value
             // Use medal emojis for top 3 ranks
