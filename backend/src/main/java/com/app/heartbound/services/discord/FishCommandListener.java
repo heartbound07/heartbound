@@ -22,7 +22,8 @@ public class FishCommandListener extends ListenerAdapter {
     private static final Logger logger = LoggerFactory.getLogger(FishCommandListener.class);
     private static final Random RANDOM = new Random();
     private static final int COOLDOWN_SECONDS = 5;
-    private static final double SUCCESS_CHANCE = 0.7; // 70% success rate
+    private static final double SUCCESS_CHANCE = 0.6; // 60% total success rate
+    private static final double RARE_FISH_CHANCE = 0.05; // 5% chance for rare fish
     
     // Fishing emojis with their Unicode representations
     private static final List<String> FISH_EMOJIS = Arrays.asList(
@@ -40,6 +41,14 @@ public class FishCommandListener extends ListenerAdapter {
             "🦈", // :shark:
             "🦦", // :otter:
             "🪼"  // :jellyfish:
+    );
+    
+    // Regular fish (excluding rare catches)
+    private static final List<String> REGULAR_FISH = Arrays.asList(
+            "🐟", // :fish:
+            "🐠", // :tropical_fish:
+            "🐡", // :blowfish:
+            "🦐"  // :shrimp:
     );
     
     // Track user cooldowns - userId -> lastFishingTimestamp
@@ -103,28 +112,30 @@ public class FishCommandListener extends ListenerAdapter {
             }
             
             // Determine success or failure
-            boolean isSuccess = RANDOM.nextDouble() <= SUCCESS_CHANCE;
+            double roll = RANDOM.nextDouble();
             
             StringBuilder message = new StringBuilder("🎣 | ");
             int creditChange;
             
-            if (isSuccess) {
-                // Select a random fish emoji
-                String fishEmoji = FISH_EMOJIS.get(RANDOM.nextInt(FISH_EMOJIS.size()));
+            if (roll <= RARE_FISH_CHANCE) {
+                // 5% chance: rare fish
+                String fishEmoji = RARE_CATCHES.get(RANDOM.nextInt(RARE_CATCHES.size()));
+                creditChange = 50 + RANDOM.nextInt(21); // 50-70 range for rare catches
                 
-                // Determine credit amount (1-20 for normal catches)
+                message.append("**WOW!** You caught a rare ").append(fishEmoji);
+                message.append("! +").append(creditChange).append(" 🪙");
+                
+                // Update user credits
+                user.setCredits(currentCredits + creditChange);
+                logger.debug("User {} fished successfully: +{} credits. New balance: {}", 
+                        userId, creditChange, user.getCredits());
+                
+            } else if (roll <= SUCCESS_CHANCE) {
+                // 55% chance: regular fish (60% - 5% = 55%)
+                String fishEmoji = REGULAR_FISH.get(RANDOM.nextInt(REGULAR_FISH.size()));
                 creditChange = RANDOM.nextInt(20) + 1;
                 
-                // Bonus for rare catches
-                if (RARE_CATCHES.contains(fishEmoji)) {
-                    // For rare catches, use 50-70 range
-                    creditChange = 50 + RANDOM.nextInt(21); // 50-70 range for rare catches
-                    
-                    message.append("**WOW!** You caught a rare ").append(fishEmoji);
-                } else {
-                    message.append("You caught ").append(fishEmoji);
-                }
-                
+                message.append("You caught ").append(fishEmoji);
                 message.append("! +").append(creditChange).append(" 🪙");
                 
                 // Update user credits
@@ -133,7 +144,7 @@ public class FishCommandListener extends ListenerAdapter {
                         userId, creditChange, user.getCredits());
                 
             } else {
-                // Failure - lose 1-50 credits
+                // 40% chance: failure - lose 1-50 credits
                 creditChange = RANDOM.nextInt(50) + 1;
                 
                 // Ensure credits don't go below 0
