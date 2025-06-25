@@ -179,16 +179,8 @@ public class DailyCommandListener extends ListenerAdapter {
                 .setTitle("💰 Daily Reward Claimed!");
         
         StringBuilder description = new StringBuilder();
-        description.append(String.format("💰 | %s, You got %d credits 🪙!\n", userName, creditsAwarded));
-        
-        if (currentDay < 7) {
-            int nextDay = currentDay + 1;
-            int nextDayCredits = DAILY_REWARDS[nextDay - 1];
-            description.append(String.format("📅 | This is Day %d. On Day %d you will receive %d credits.\n", 
-                currentDay, nextDay, nextDayCredits));
-        } else {
-            description.append(String.format("📅 | This is Day %d. Your streak will reset tomorrow.\n", currentDay));
-        }
+        description.append(String.format("💰 | %s, You got %d **credits** 🪙!\n", userName, creditsAwarded));
+        description.append(String.format("🔥 | You're on a **%d day streak!**\n", currentDay));
         
         // Calculate next claim time (24 hours from now)
         LocalDateTime nextClaim = claimTime.plusDays(1);
