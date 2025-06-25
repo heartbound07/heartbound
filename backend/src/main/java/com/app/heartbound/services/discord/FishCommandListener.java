@@ -21,7 +21,7 @@ public class FishCommandListener extends ListenerAdapter {
     
     private static final Logger logger = LoggerFactory.getLogger(FishCommandListener.class);
     private static final Random RANDOM = new Random();
-    private static final int COOLDOWN_SECONDS = 30;
+    private static final int COOLDOWN_SECONDS = 5;
     private static final double SUCCESS_CHANCE = 0.7; // 70% success rate
     
     // Fishing emojis with their Unicode representations
