@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -19,11 +20,16 @@ import java.io.IOException;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class LevelCardCommandListener extends ListenerAdapter {
     
     private static final Logger logger = LoggerFactory.getLogger(LevelCardCommandListener.class);
+    private static final long COOLDOWN_DURATION_MS = 30_000; // 30 seconds
+    
+    // Thread-safe storage for user cooldowns (userId -> timestamp)
+    private final ConcurrentHashMap<String, Long> userCooldowns = new ConcurrentHashMap<>();
     
     @Autowired
     private UserProfileService userProfileService;
@@ -46,19 +52,35 @@ public class LevelCardCommandListener extends ListenerAdapter {
             return;
         }
 
+        String userId = event.getUser().getId();
+        
+        // Check cooldown BEFORE deferring reply to avoid unnecessary processing
+        long remainingCooldown = checkCooldown(userId);
+        if (remainingCooldown > 0) {
+            long remainingSeconds = (remainingCooldown + 999) / 1000; // Round up to next second
+            event.reply("⏱️ Please wait **" + remainingSeconds + " seconds** before using this command again.")
+                .setEphemeral(true)
+                .queue();
+            logger.debug("User {} attempted to use /me command while on cooldown. Remaining: {}ms", userId, remainingCooldown);
+            return;
+        }
+
+        // Set cooldown for this user
+        setCooldown(userId);
+        logger.debug("Cooldown set for user {} using /me command", userId);
+
         // Immediately defer the reply to prevent timeout
         event.deferReply().queue();
 
         try {
             // Get user's Discord ID and fetch their profile
-            String userId = event.getUser().getId();
             UserProfileDTO userProfile = userProfileService.getUserProfile(userId);
             
-                    if (userProfile == null) {
-            event.getHook().sendMessage("You are not currently registered, make sure to register at " + frontendBaseUrl)
-                .setEphemeral(true).queue();
-            return;
-        }
+            if (userProfile == null) {
+                event.getHook().sendMessage("You are not currently registered, make sure to register at " + frontendBaseUrl)
+                    .setEphemeral(true).queue();
+                return;
+            }
 
             // Generate the HTML content
             String htmlContent = generateCardHtml(userProfile);
@@ -78,6 +100,59 @@ public class LevelCardCommandListener extends ListenerAdapter {
             logger.error("Error generating level card for user: " + event.getUser().getId(), e);
             event.getHook().sendMessage("❌ **Error generating your profile card!** Please try again later.")
                 .setEphemeral(true).queue();
+        }
+    }
+
+    /**
+     * Checks if the user is on cooldown for the /me command
+     * 
+     * @param userId The Discord user ID
+     * @return Remaining cooldown time in milliseconds, or 0 if not on cooldown
+     */
+    private long checkCooldown(String userId) {
+        Long lastUsed = userCooldowns.get(userId);
+        if (lastUsed == null) {
+            return 0; // No previous usage
+        }
+        
+        long currentTime = System.currentTimeMillis();
+        long timeSinceLastUse = currentTime - lastUsed;
+        
+        if (timeSinceLastUse >= COOLDOWN_DURATION_MS) {
+            // Cooldown expired, remove from map
+            userCooldowns.remove(userId);
+            return 0;
+        }
+        
+        return COOLDOWN_DURATION_MS - timeSinceLastUse;
+    }
+
+    /**
+     * Sets the cooldown for a user by recording the current timestamp
+     * 
+     * @param userId The Discord user ID
+     */
+    private void setCooldown(String userId) {
+        userCooldowns.put(userId, System.currentTimeMillis());
+    }
+
+    /**
+     * Scheduled task to clean up expired cooldown entries every 5 minutes
+     * This prevents memory leaks from accumulating old user entries
+     */
+    @Scheduled(fixedRate = 300_000) // 5 minutes = 300,000ms
+    private void cleanupExpiredCooldowns() {
+        long currentTime = System.currentTimeMillis();
+        int initialSize = userCooldowns.size();
+        
+        userCooldowns.entrySet().removeIf(entry -> 
+            currentTime - entry.getValue() >= COOLDOWN_DURATION_MS
+        );
+        
+        int removedEntries = initialSize - userCooldowns.size();
+        if (removedEntries > 0) {
+            logger.debug("Cleaned up {} expired cooldown entries. Current cooldown map size: {}", 
+                       removedEntries, userCooldowns.size());
         }
     }
 
