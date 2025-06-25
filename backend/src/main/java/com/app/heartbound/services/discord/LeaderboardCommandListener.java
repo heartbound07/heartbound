@@ -48,7 +48,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
         // Get the user ID who executed the command for security validation
         String commandUserId = event.getUser().getId();
         
-        // Get the leaderboard type (levels or credits)
+        // Get the leaderboard type (levels, credits, messages, or voice)
         OptionMapping typeOption = event.getOption("type");
         String leaderboardType = typeOption == null ? "levels" : typeOption.getAsString();
         
@@ -86,14 +86,34 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                            !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
                            !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getLevel() != null ? leaderboardUsers.get(0).getLevel() : 1) : 0,
                            !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getExperience() != null ? leaderboardUsers.get(0).getExperience() : 0) : 0);
-            } else {
+            } else if ("credits".equals(leaderboardType)) {
                 // Sort by credits descending (already done in the service, but let's ensure it)
                 leaderboardUsers.sort(
                     Comparator.comparing(UserProfileDTO::getCredits, Comparator.nullsFirst(Comparator.reverseOrder()))
                 );
-                logger.debug("[LEADERBOARD DEBUG] Sorted by 💰. Top user: {}({} 💰)", 
+                logger.debug("[LEADERBOARD DEBUG] Sorted by credits. Top user: {}({} credits)", 
                            !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
                            !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getCredits() : 0);
+            } else if ("messages".equals(leaderboardType)) {
+                // Sort by message count descending with null-safe comparison
+                leaderboardUsers.sort((a, b) -> {
+                    Long messagesA = a.getMessageCount() != null ? a.getMessageCount() : 0L;
+                    Long messagesB = b.getMessageCount() != null ? b.getMessageCount() : 0L;
+                    return messagesB.compareTo(messagesA); // Descending order
+                });
+                logger.debug("[LEADERBOARD DEBUG] Sorted by messages. Top user: {}({} messages)", 
+                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
+                           !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getMessageCount() != null ? leaderboardUsers.get(0).getMessageCount() : 0) : 0);
+            } else if ("voice".equals(leaderboardType)) {
+                // Sort by voice time descending with null-safe comparison
+                leaderboardUsers.sort((a, b) -> {
+                    Integer voiceA = a.getVoiceTimeMinutesTotal() != null ? a.getVoiceTimeMinutesTotal() : 0;
+                    Integer voiceB = b.getVoiceTimeMinutesTotal() != null ? b.getVoiceTimeMinutesTotal() : 0;
+                    return voiceB.compareTo(voiceA); // Descending order
+                });
+                logger.debug("[LEADERBOARD DEBUG] Sorted by voice time. Top user: {}({} minutes)", 
+                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
+                           !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getVoiceTimeMinutesTotal() != null ? leaderboardUsers.get(0).getVoiceTimeMinutesTotal() : 0) : 0);
             }
             
             // Calculate total pages
@@ -193,7 +213,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                            !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
                            !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getLevel() != null ? leaderboardUsers.get(0).getLevel() : 1) : 0,
                            !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getExperience() != null ? leaderboardUsers.get(0).getExperience() : 0) : 0);
-            } else {
+            } else if ("credits".equals(leaderboardType)) {
                 // Sort by credits descending
                 leaderboardUsers.sort(
                     Comparator.comparing(UserProfileDTO::getCredits, Comparator.nullsFirst(Comparator.reverseOrder()))
@@ -201,6 +221,26 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                 logger.debug("[LEADERBOARD DEBUG] Sorted by credits. Top user: {}({} credits)", 
                            !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
                            !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getCredits() : 0);
+            } else if ("messages".equals(leaderboardType)) {
+                // Sort by message count descending with null-safe comparison
+                leaderboardUsers.sort((a, b) -> {
+                    Long messagesA = a.getMessageCount() != null ? a.getMessageCount() : 0L;
+                    Long messagesB = b.getMessageCount() != null ? b.getMessageCount() : 0L;
+                    return messagesB.compareTo(messagesA); // Descending order
+                });
+                logger.debug("[LEADERBOARD DEBUG] Sorted by messages. Top user: {}({} messages)", 
+                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
+                           !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getMessageCount() != null ? leaderboardUsers.get(0).getMessageCount() : 0) : 0);
+            } else if ("voice".equals(leaderboardType)) {
+                // Sort by voice time descending with null-safe comparison
+                leaderboardUsers.sort((a, b) -> {
+                    Integer voiceA = a.getVoiceTimeMinutesTotal() != null ? a.getVoiceTimeMinutesTotal() : 0;
+                    Integer voiceB = b.getVoiceTimeMinutesTotal() != null ? b.getVoiceTimeMinutesTotal() : 0;
+                    return voiceB.compareTo(voiceA); // Descending order
+                });
+                logger.debug("[LEADERBOARD DEBUG] Sorted by voice time. Top user: {}({} minutes)", 
+                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
+                           !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getVoiceTimeMinutesTotal() != null ? leaderboardUsers.get(0).getVoiceTimeMinutesTotal() : 0) : 0);
             }
             
             // Calculate total pages
@@ -242,11 +282,35 @@ public class LeaderboardCommandListener extends ListenerAdapter {
     }
     
     /**
+     * Format voice time from minutes to readable format (e.g., "2h 30m", "45m")
+     * 
+     * @param minutes Total minutes of voice time
+     * @return Formatted string representation
+     */
+    private String formatVoiceTime(int minutes) {
+        if (minutes == 0) {
+            return "0m";
+        }
+        
+        int hours = minutes / 60;
+        int remainingMinutes = minutes % 60;
+        
+        if (hours > 0 && remainingMinutes > 0) {
+            return String.format("%dh %dm", hours, remainingMinutes);
+        } else if (hours > 0) {
+            return String.format("%dh", hours);
+        } else {
+            return String.format("%dm", remainingMinutes);
+        }
+    }
+    
+    /**
      * Builds a Discord embed for displaying a page of the leaderboard.
      *
-     * @param users The full list of users sorted by credits
+     * @param users The full list of users sorted by the selected type
      * @param page The current page (1-based)
      * @param totalPages The total number of pages
+     * @param type The leaderboard type (levels, credits, messages, or voice)
      * @return A MessageEmbed containing the formatted leaderboard
      */
     private MessageEmbed buildLeaderboardEmbed(List<UserProfileDTO> users, int page, int totalPages, String type) {
@@ -261,10 +325,22 @@ public class LeaderboardCommandListener extends ListenerAdapter {
         EmbedBuilder embed = new EmbedBuilder();
         
         // Set title based on leaderboard type
-        if ("levels".equals(type)) {
-            embed.setTitle("Level Leaderboard");
-        } else {
-            embed.setTitle("Credit Leaderboard");
+        switch (type) {
+            case "levels":
+                embed.setTitle("Level Leaderboard");
+                break;
+            case "credits":
+                embed.setTitle("Credit Leaderboard");
+                break;
+            case "messages":
+                embed.setTitle("Message Leaderboard");
+                break;
+            case "voice":
+                embed.setTitle("Voice Time Leaderboard");
+                break;
+            default:
+                embed.setTitle("Leaderboard");
+                break;
         }
         
         // Create a clickable link to the web leaderboard
@@ -290,7 +366,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                                ? user.getDisplayName() 
                                : user.getUsername();
             
-            // Format each entry with rank, name, and depending on the type, either level/xp or credits
+            // Format each entry with rank, name, and depending on the type, show appropriate value
             // Use medal emojis for top 3 ranks
             String rankDisplay;
             if (rank == 1) {
@@ -303,16 +379,33 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                 rankDisplay = "**#" + rank + "**";
             }
             
-            if ("levels".equals(type)) {
-                int level = user.getLevel() != null ? user.getLevel() : 1;
-                int xp = user.getExperience() != null ? user.getExperience() : 0;
-                content.append(String.format("%s | **%s** - Level %d (%d XP)\n", 
-                              rankDisplay, displayName, level, xp));
-            } else {
-                int credits = user.getCredits() != null ? user.getCredits() : 0;
-                content.append(String.format("%s | **%s** - %d 🪙\n", 
-                              rankDisplay, displayName, credits));
+            // Format the value display based on leaderboard type
+            String valueDisplay;
+            switch (type) {
+                case "levels":
+                    int level = user.getLevel() != null ? user.getLevel() : 1;
+                    int xp = user.getExperience() != null ? user.getExperience() : 0;
+                    valueDisplay = String.format("Level %d (%d XP)", level, xp);
+                    break;
+                case "credits":
+                    int credits = user.getCredits() != null ? user.getCredits() : 0;
+                    valueDisplay = String.format("%d 🪙", credits);
+                    break;
+                case "messages":
+                    long messageCount = user.getMessageCount() != null ? user.getMessageCount() : 0L;
+                    valueDisplay = String.format("%,d 📝", messageCount);
+                    break;
+                case "voice":
+                    int voiceMinutes = user.getVoiceTimeMinutesTotal() != null ? user.getVoiceTimeMinutesTotal() : 0;
+                    valueDisplay = String.format("%s 🎙️", formatVoiceTime(voiceMinutes));
+                    break;
+                default:
+                    valueDisplay = "N/A";
+                    break;
             }
+            
+            content.append(String.format("%s | **%s** - %s\n", 
+                          rankDisplay, displayName, valueDisplay));
         }
         
         embed.addField("Rankings", content.toString(), false);
