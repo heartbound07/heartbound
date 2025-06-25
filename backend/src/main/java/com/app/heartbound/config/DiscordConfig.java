@@ -46,6 +46,7 @@ public class DiscordConfig {
 
     private JDA jdaInstance;
     
+    @Lazy
     @Autowired
     private LeaderboardCommandListener leaderboardCommandListener;
 
@@ -130,8 +131,8 @@ public class DiscordConfig {
                             CacheFlag.ONLINE_STATUS,
                             CacheFlag.SCHEDULED_EVENTS
                     )
-                    // Register all listeners EXCEPT shopCommandListener and statsCommandListener (we'll register them manually)
-                    .addEventListeners(leaderboardCommandListener, chatActivityListener, 
+                    // Register all listeners EXCEPT shopCommandListener, statsCommandListener, breakupCommandListener, and leaderboardCommandListener (we'll register them manually)
+                    .addEventListeners(chatActivityListener, 
                                       creditsCommandListener, dailyCommandListener, coinflipCommandListener, welcomeListener, welcomeCommandListener,
                                       inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
@@ -150,6 +151,9 @@ public class DiscordConfig {
             
             // Register breakup command listener manually
             breakupCommandListener.registerWithJDA(jdaInstance);
+            
+            // Register leaderboard command listener manually
+            leaderboardCommandListener.registerWithJDA(jdaInstance);
             
             // Register slash commands
             registerSlashCommands();

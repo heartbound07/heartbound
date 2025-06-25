@@ -19,8 +19,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PreDestroy;
 import java.awt.Color;
 import java.util.Comparator;
 import java.util.List;
@@ -34,7 +36,6 @@ public class LeaderboardCommandListener extends ListenerAdapter {
     private static final Color EMBED_COLOR = new Color(88, 101, 242); // Discord Blurple
 
     private final UserService userService;
-    private final JDA jda;
     private final CacheConfig cacheConfig;
     
     @Value("${frontend.base.url}")
@@ -42,11 +43,14 @@ public class LeaderboardCommandListener extends ListenerAdapter {
 
     // Discord display name cache - short TTL since display names can change frequently
     private final Cache<String, String> discordDisplayNameCache;
+    
+    // Add field to track registration status and JDA instance (like other listeners)
+    private boolean isRegistered = false;
+    private JDA jdaInstance;
 
     @Autowired
-    public LeaderboardCommandListener(UserService userService, JDA jda, CacheConfig cacheConfig) {
+    public LeaderboardCommandListener(@Lazy UserService userService, CacheConfig cacheConfig) {
         this.userService = userService;
-        this.jda = jda;
         this.cacheConfig = cacheConfig;
         
         // Initialize Discord display name cache with 5-minute TTL for performance
@@ -57,6 +61,41 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                 .build();
                 
         logger.info("LeaderboardCommandListener initialized with Discord display name caching");
+    }
+    
+    /**
+     * Register this listener with the JDA instance.
+     * This method is called by DiscordConfig after JDA is initialized.
+     * 
+     * @param jda The JDA instance to register with
+     */
+    public void registerWithJDA(JDA jda) {
+        if (jda != null && !isRegistered) {
+            this.jdaInstance = jda;
+            jda.addEventListener(this);
+            this.isRegistered = true;
+            logger.debug("LeaderboardCommandListener registered with JDA");
+        }
+    }
+    
+    /**
+     * Clean up method called before bean destruction.
+     * Ensures this listener is removed from JDA to prevent events during shutdown.
+     */
+    @PreDestroy
+    public void cleanup() {
+        logger.debug("LeaderboardCommandListener cleanup started");
+        if (isRegistered && jdaInstance != null) {
+            try {
+                jdaInstance.removeEventListener(this);
+                logger.info("LeaderboardCommandListener successfully unregistered from JDA");
+            } catch (Exception e) {
+                logger.warn("Error while unregistering LeaderboardCommandListener: {}", e.getMessage());
+            }
+            isRegistered = false;
+            jdaInstance = null;
+        }
+        logger.debug("LeaderboardCommandListener cleanup completed");
     }
 
     @Override
