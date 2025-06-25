@@ -153,9 +153,15 @@ public class UserController {
      * This would typically be triggered after payment processing.
      */
     @PostMapping("/{userId}/upgrade-to-monarch")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<UserProfileDTO> upgradeToMonarch(
             @PathVariable String userId,
             Authentication authentication) {
+        
+        // Null safety check (though @PreAuthorize should prevent this)
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         
         // Security check - ensure the authenticated user is upgrading their own account
         // or is an admin
