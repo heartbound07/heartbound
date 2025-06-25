@@ -171,9 +171,11 @@ public class DiscordConfig {
             // This will overwrite all existing global commands with the new definitions
             jdaInstance.updateCommands()
                 .addCommands(
-                    Commands.slash("leaderboard", "Displays the user leaderboard by level or credits")
+                    Commands.slash("leaderboard", "Displays the user leaderboard by messages, voice time, levels, or credits")
                         .addOptions(
-                            new OptionData(OptionType.STRING, "type", "Sort leaderboard by 'levels' or 'credits'", false)
+                            new OptionData(OptionType.STRING, "type", "Sort leaderboard by 'messages', 'voice', 'levels', or 'credits'", false)
+                                .addChoice("messages", "messages")
+                                .addChoice("voice", "voice")
                                 .addChoice("levels", "levels")
                                 .addChoice("credits", "credits")
                         ),
