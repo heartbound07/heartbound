@@ -102,8 +102,8 @@ public class CoinflipCommandListener extends ListenerAdapter {
             // Send initial "flipping" embed
             EmbedBuilder initialEmbed = new EmbedBuilder()
                 .setColor(EMBED_COLOR)
-                .setTitle(String.format("%s, you chose %s", event.getUser().getName(), userGuess))
-                .setDescription("flipping the coin...");
+                .setTitle(String.format("%s, you chose %s", event.getUser().getEffectiveName(), userGuess))
+                .setDescription("🪙 flipping the coin...");
             
             event.getHook().editOriginalEmbeds(initialEmbed.build()).queue();
             
