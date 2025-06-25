@@ -13,6 +13,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Min;
 
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +39,7 @@ public class UserController {
      * @return the user profile data
      */
     @GetMapping("/{userId}/profile")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<UserProfileDTO> getUserProfile(@PathVariable String userId) {
         User user = userService.getUserById(userId);
         if (user == null) {
@@ -52,6 +56,7 @@ public class UserController {
      * @return map of user IDs to their profile data
      */
     @PostMapping("/profiles")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<Map<String, UserProfileDTO>> getUserProfiles(@RequestBody Map<String, List<String>> request) {
         List<String> userIds = request.get("userIds");
         Map<String, UserProfileDTO> profiles = new HashMap<>();
@@ -80,7 +85,7 @@ public class UserController {
     @PutMapping("/{userId}/profile")
     public ResponseEntity<UserProfileDTO> updateUserProfile(
             @PathVariable String userId,
-            @RequestBody UpdateProfileDTO profileDTO,
+            @RequestBody @Valid UpdateProfileDTO profileDTO,
             Authentication authentication) {
         
         // Security check - ensure the authenticated user is updating their own profile
@@ -182,8 +187,8 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<Page<UserProfileDTO>> getAllUsers(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) int size,
             @RequestParam(required = false) String search) {
         
         Page<UserProfileDTO> userProfiles = userService.getAllUsers(page, size, search);
@@ -247,7 +252,7 @@ public class UserController {
      */
     @GetMapping("/me/activity/daily-messages")
     public ResponseEntity<List<DailyActivityDataDTO>> getCurrentUserDailyActivity(
-            @RequestParam(defaultValue = "30") int days,
+            @RequestParam(defaultValue = "30") @Min(1) int days,
             Authentication authentication) {
         
         if (authentication == null || authentication.getName() == null) {
@@ -265,7 +270,7 @@ public class UserController {
      */
     @GetMapping("/me/activity/daily-voice")
     public ResponseEntity<List<DailyActivityDataDTO>> getCurrentUserDailyVoiceActivity(
-            @RequestParam(defaultValue = "30") int days,
+            @RequestParam(defaultValue = "30") @Min(1) int days,
             Authentication authentication) {
         
         if (authentication == null || authentication.getName() == null) {

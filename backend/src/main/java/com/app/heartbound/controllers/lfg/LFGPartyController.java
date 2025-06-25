@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -18,6 +19,7 @@ import java.util.HashSet;
 
 @RestController
 @RequestMapping("/lfg/parties")
+@PreAuthorize("hasRole('USER')")
 public class LFGPartyController {
 
     private final LFGPartyService partyService;

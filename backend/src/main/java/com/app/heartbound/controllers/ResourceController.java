@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.beans.factory.annotation.Value;
+import jakarta.validation.constraints.Pattern;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +25,8 @@ public class ResourceController {
     private String[] staticLocations;
     
     @GetMapping(value = "/images/ranks/{rank}.png", produces = MediaType.IMAGE_PNG_VALUE)
-    public ResponseEntity<byte[]> getRankImage(@PathVariable String rank) {
+    public ResponseEntity<byte[]> getRankImage(
+            @PathVariable @Pattern(regexp = "^[a-zA-Z0-9_-]+$", message = "Invalid rank format") String rank) {
         // First try loading from classpath
         String imagePath = "static/images/ranks/" + rank.toLowerCase() + ".png";
         logger.debug("Attempting to load image from classpath: {}", imagePath);

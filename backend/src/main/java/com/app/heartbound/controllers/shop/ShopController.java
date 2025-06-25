@@ -44,6 +44,7 @@ public class ShopController {
      * @return List of shop items
      */
     @GetMapping("/items")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<ShopDTO>> getShopItems(
         @RequestParam(required = false) String category,
         Authentication authentication
@@ -60,6 +61,7 @@ public class ShopController {
      * @return Shop item details
      */
     @GetMapping("/items/{itemId}")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ShopDTO> getShopItem(
         @PathVariable UUID itemId,
         Authentication authentication
@@ -168,6 +170,7 @@ public class ShopController {
      * @return List of category names as strings
      */
     @GetMapping("/categories")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<String>> getShopCategories() {
         try {
             // Option 1: Get categories from active items
