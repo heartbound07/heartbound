@@ -11,6 +11,7 @@ import com.app.heartbound.services.discord.InventoryCommandListener;
 import com.app.heartbound.services.discord.FishCommandListener;
 import com.app.heartbound.services.discord.StatsCommandListener;
 import com.app.heartbound.services.discord.BreakupCommandListener;
+import com.app.heartbound.services.discord.CoinflipCommandListener;
 import com.app.heartbound.services.discord.DailyCommandListener;
 import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
@@ -56,6 +57,9 @@ public class DiscordConfig {
 
     @Autowired
     private DailyCommandListener dailyCommandListener;
+
+    @Autowired
+    private CoinflipCommandListener coinflipCommandListener;
 
     @Autowired
     private WelcomeListener welcomeListener;
@@ -128,7 +132,7 @@ public class DiscordConfig {
                     )
                     // Register all listeners EXCEPT shopCommandListener and statsCommandListener (we'll register them manually)
                     .addEventListeners(leaderboardCommandListener, chatActivityListener, 
-                                      creditsCommandListener, dailyCommandListener, welcomeListener, welcomeCommandListener,
+                                      creditsCommandListener, dailyCommandListener, coinflipCommandListener, welcomeListener, welcomeCommandListener,
                                       inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService)
@@ -171,9 +175,11 @@ public class DiscordConfig {
             // This will overwrite all existing global commands with the new definitions
             jdaInstance.updateCommands()
                 .addCommands(
-                    Commands.slash("leaderboard", "Displays the user leaderboard by level or credits")
+                    Commands.slash("leaderboard", "Displays the user leaderboard by messages, voice time, levels, or credits")
                         .addOptions(
-                            new OptionData(OptionType.STRING, "type", "Sort leaderboard by 'levels' or 'credits'", false)
+                            new OptionData(OptionType.STRING, "type", "Sort leaderboard by 'messages', 'voice', 'levels', or 'credits'", false)
+                                .addChoice("messages", "messages")
+                                .addChoice("voice", "voice")
                                 .addChoice("levels", "levels")
                                 .addChoice("credits", "credits")
                         ),
@@ -184,6 +190,14 @@ public class DiscordConfig {
                     Commands.slash("shop", "Displays items currently available in the shop"),
                     Commands.slash("inventory", "Displays the items you currently own"),
                     Commands.slash("fish", "Go fishing for a chance to win or lose credits"),
+                    Commands.slash("coinflip", "Flip a coin and bet credits on heads or tails")
+                        .addOptions(
+                            new OptionData(OptionType.STRING, "guess", "Choose heads or tails", true)
+                                .addChoice("heads", "heads")
+                                .addChoice("tails", "tails"),
+                            new OptionData(OptionType.INTEGER, "bet", "Amount of credits to bet (minimum 1)", true)
+                                .setMinValue(1)
+                        ),
                     Commands.slash("stats", "View your current pairing statistics"),
                     Commands.slash("breakup", "End your current match/pairing"),
                     Commands.slash("me", "Displays your profile stats as a generated image card")
