@@ -34,6 +34,9 @@ public class LevelCardCommandListener extends ListenerAdapter {
     @Value("${htmlcsstoimage.api_key}")
     private String htmlCssToImageApiKey;
     
+    @Value("${frontend.base.url}")
+    private String frontendBaseUrl;
+    
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -51,11 +54,11 @@ public class LevelCardCommandListener extends ListenerAdapter {
             String userId = event.getUser().getId();
             UserProfileDTO userProfile = userProfileService.getUserProfile(userId);
             
-            if (userProfile == null) {
-                event.getHook().sendMessage("❌ **Profile not found!** You need to be registered in the Heartbound system first. Try participating in some activities!")
-                    .setEphemeral(true).queue();
-                return;
-            }
+                    if (userProfile == null) {
+            event.getHook().sendMessage("You are not currently registered, make sure to register at " + frontendBaseUrl)
+                .setEphemeral(true).queue();
+            return;
+        }
 
             // Generate the HTML content
             String htmlContent = generateCardHtml(userProfile);
