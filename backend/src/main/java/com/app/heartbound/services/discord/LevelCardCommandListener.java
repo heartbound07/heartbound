@@ -252,6 +252,9 @@ public class LevelCardCommandListener extends ListenerAdapter {
         String bannerUrl = profile.getBannerUrl();
         int level = profile.getLevel() != null ? profile.getLevel() : 1;
         
+        // Generate badges HTML
+        String badgesHtml = generateBadgesHtml(profile);
+        
         // Create banner background style if banner exists
         String bannerStyle = bannerUrl != null && !bannerUrl.isEmpty() ? 
             String.format("background-image: url('%s');", bannerUrl) : "";
@@ -281,7 +284,10 @@ public class LevelCardCommandListener extends ListenerAdapter {
                                     <img src="%s" alt="%s" />
                                 </div>
                                 <div class="user-text">
-                                    <div class="display-name">%s</div>
+                                    <div class="user-name-badges">
+                                        <div class="display-name">%s</div>
+                                        %s
+                                    </div>
                                     %s
                                 </div>
                             </div>
@@ -331,6 +337,7 @@ public class LevelCardCommandListener extends ListenerAdapter {
             avatarUrl,
             displayName,
             displayName,
+            badgesHtml,
             username.isEmpty() ? "" : String.format("<div class=\"username\">%s</div>", username),
             level,
             percentage,
@@ -343,6 +350,45 @@ public class LevelCardCommandListener extends ListenerAdapter {
             voiceIcon,
             formattedVoiceTime
         );
+    }
+
+    /**
+     * Generates the HTML for equipped badges with +X more indicator
+     */
+    private String generateBadgesHtml(UserProfileDTO profile) {
+        if (profile.getEquippedBadgeIds() == null || profile.getEquippedBadgeIds().isEmpty()) {
+            return "";
+        }
+        
+        final int MAX_VISIBLE_BADGES = 5;
+        java.util.List<java.util.UUID> visibleBadges = profile.getEquippedBadgeIds().stream()
+            .limit(MAX_VISIBLE_BADGES)
+            .collect(java.util.stream.Collectors.toList());
+        
+        int extraBadgesCount = Math.max(0, profile.getEquippedBadgeIds().size() - MAX_VISIBLE_BADGES);
+        
+        StringBuilder badgesHtml = new StringBuilder();
+        badgesHtml.append("<div class=\"equipped-badges\">");
+        
+        for (java.util.UUID badgeId : visibleBadges) {
+            String badgeUrl = profile.getBadgeUrls() != null ? profile.getBadgeUrls().get(badgeId.toString()) : null;
+            if (badgeUrl != null && !badgeUrl.isEmpty()) {
+                badgesHtml.append(String.format(
+                    "<div class=\"badge-wrapper\"><img src=\"%s\" alt=\"Badge\" class=\"badge-icon\" /></div>",
+                    badgeUrl.replace("\"", "&quot;")
+                ));
+            }
+        }
+        
+        if (extraBadgesCount > 0) {
+            badgesHtml.append(String.format(
+                "<div class=\"extra-badges-indicator\">+%d</div>",
+                extraBadgesCount
+            ));
+        }
+        
+        badgesHtml.append("</div>");
+        return badgesHtml.toString();
     }
 
     /**
@@ -524,16 +570,53 @@ public class LevelCardCommandListener extends ListenerAdapter {
                 min-width: 0;
             }
             
+            .user-name-badges {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-bottom: 0.25rem;
+            }
+            
             .display-name {
                 font-size: 1.25rem;
                 font-weight: 600;
                 color: white;
-                margin-bottom: 0.25rem;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 letter-spacing: -0.01em;
                 text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(0, 0, 0, 0.8), 1px -1px 2px rgba(0, 0, 0, 0.8), -1px 1px 2px rgba(0, 0, 0, 0.8);
+            }
+            
+            .equipped-badges {
+                display: flex;
+                align-items: center;
+                gap: 0.25rem;
+                flex-shrink: 0;
+            }
+            
+            .badge-wrapper {
+                position: relative;
+            }
+            
+            .badge-icon {
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                object-fit: cover;
+            }
+            
+            .extra-badges-indicator {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                font-size: 0.625rem;
+                font-weight: bold;
             }
             
             .username {
