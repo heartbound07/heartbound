@@ -1,7 +1,9 @@
 package com.app.heartbound.services.discord;
 
 import com.app.heartbound.dto.UserProfileDTO;
+import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserProfileService;
+import com.app.heartbound.services.UserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -26,13 +28,16 @@ import java.util.concurrent.ConcurrentHashMap;
 public class LevelCardCommandListener extends ListenerAdapter {
     
     private static final Logger logger = LoggerFactory.getLogger(LevelCardCommandListener.class);
-    private static final long COOLDOWN_DURATION_MS = 30_000; // 30 seconds
+    private static final long COOLDOWN_DURATION_MS = 60_000; // 60 seconds
     
     // Thread-safe storage for user cooldowns (userId -> timestamp)
     private final ConcurrentHashMap<String, Long> userCooldowns = new ConcurrentHashMap<>();
     
     @Autowired
     private UserProfileService userProfileService;
+    
+    @Autowired
+    private UserService userService;
     
     @Value("${htmlcsstoimage.user_id}")
     private String htmlCssToImageUserId;
@@ -73,11 +78,21 @@ public class LevelCardCommandListener extends ListenerAdapter {
         event.deferReply().queue();
 
         try {
+            // Fetch the user from the database
+            User user = userService.getUserById(userId);
+            
+            if (user == null) {
+                logger.warn("User {} not found in database when using /me command", userId);
+                event.getHook().sendMessage("Could not find your account. Please log in to the web application first.")
+                    .setEphemeral(true).queue();
+                return;
+            }
+            
             // Get user's Discord ID and fetch their profile
             UserProfileDTO userProfile = userProfileService.getUserProfile(userId);
             
             if (userProfile == null) {
-                event.getHook().sendMessage("You are not currently registered, make sure to register at " + frontendBaseUrl)
+                event.getHook().sendMessage("Could not find your account. Please log in to the web application first.")
                     .setEphemeral(true).queue();
                 return;
             }
