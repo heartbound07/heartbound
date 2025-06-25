@@ -22,7 +22,7 @@ public class FishCommandListener extends ListenerAdapter {
     private static final Logger logger = LoggerFactory.getLogger(FishCommandListener.class);
     private static final Random RANDOM = new Random();
     private static final int COOLDOWN_SECONDS = 5;
-    private static final double SUCCESS_CHANCE = 0.6; // 60% total success rate
+    private static final double SUCCESS_CHANCE = 0.7; // 70% total success rate
     private static final double RARE_FISH_CHANCE = 0.05; // 5% chance for rare fish
     
     // Fishing emojis with their Unicode representations
@@ -131,7 +131,7 @@ public class FishCommandListener extends ListenerAdapter {
                         userId, creditChange, user.getCredits());
                 
             } else if (roll <= SUCCESS_CHANCE) {
-                // 55% chance: regular fish (60% - 5% = 55%)
+                // 65% chance: regular fish (70% - 5% = 65%)
                 String fishEmoji = REGULAR_FISH.get(RANDOM.nextInt(REGULAR_FISH.size()));
                 creditChange = RANDOM.nextInt(20) + 1;
                 
@@ -144,7 +144,7 @@ public class FishCommandListener extends ListenerAdapter {
                         userId, creditChange, user.getCredits());
                 
             } else {
-                // 40% chance: failure - lose 1-50 credits
+                // 30% chance: failure - lose 1-50 credits
                 creditChange = RANDOM.nextInt(50) + 1;
                 
                 // Ensure credits don't go below 0
