@@ -182,6 +182,7 @@ public class DiscordPairingChannelService {
         StringBuilder levelUp = new StringBuilder();
         levelUp.append("**🏆 Level up together:**\n");
         levelUp.append("• Unlock **achievements** by hitting activity milestones\n");
+        levelUp.append("• Gain **XP points** for every interaction\n");
         levelUp.append("• Build **voice streaks** by chatting in voice channels daily\n");
         levelUp.append("• Check your progress on the [pairings page](").append(frontendBaseUrl).append("/pairings) anytime!\n");
         
@@ -350,13 +351,14 @@ public class DiscordPairingChannelService {
      * @param user2DiscordId Discord ID of second user
      * @param achievementName Name of the achievement unlocked
      * @param achievementDescription Description of the achievement
+     * @param xpAwarded XP points awarded for the achievement
      * @param achievementRarity Rarity level of the achievement (bronze, silver, gold, diamond)
      * @param progressValue The progress value when achievement was unlocked
      * @return CompletableFuture containing notification result
      */
     public CompletableFuture<Boolean> sendAchievementNotification(String channelId, String user1DiscordId, 
                                                                   String user2DiscordId, String achievementName,
-                                                                  String achievementDescription,
+                                                                  String achievementDescription, int xpAwarded,
                                                                   String achievementRarity, int progressValue) {
         if (!achievementNotificationsEnabled) {
             logger.debug("Achievement notifications are disabled, skipping notification");
@@ -407,7 +409,7 @@ public class DiscordPairingChannelService {
                 // Build achievement embed
                 EmbedBuilder embed = buildAchievementNotificationEmbed(
                     validUser1Id, validUser2Id, achievementName, achievementDescription, 
-                    achievementRarity, progressValue, guild);
+                    xpAwarded, achievementRarity, progressValue, guild);
                 
                 if (embed == null) {
                     logger.warn("Failed to build achievement embed for channel {}", channelId);
@@ -440,7 +442,7 @@ public class DiscordPairingChannelService {
      */
     private EmbedBuilder buildAchievementNotificationEmbed(String user1DiscordId, String user2DiscordId,
                                                            String achievementName, String achievementDescription,
-                                                           String achievementRarity, int progressValue,
+                                                           int xpAwarded, String achievementRarity, int progressValue,
                                                            Guild guild) {
         try {
             EmbedBuilder embed = new EmbedBuilder();
@@ -453,6 +455,9 @@ public class DiscordPairingChannelService {
             
             // Add main achievement information
             embed.addField("🏆 " + achievementName, achievementDescription, false);
+            
+            // Add XP reward information
+            embed.addField("✨ XP Reward", String.format("**+%,d XP**", xpAwarded), true);
             
             // Add rarity information with appropriate emoji
             String rarityDisplay = getRarityDisplayName(achievementRarity);
