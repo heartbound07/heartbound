@@ -16,6 +16,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.awt.Color;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class GiveCommandListener extends ListenerAdapter {
@@ -23,11 +26,15 @@ public class GiveCommandListener extends ListenerAdapter {
     private static final Logger logger = LoggerFactory.getLogger(GiveCommandListener.class);
     private static final Color SUCCESS_COLOR = new Color(34, 197, 94); // Green
     private static final Color ERROR_COLOR = new Color(239, 68, 68); // Red
+    private static final int COOLDOWN_SECONDS = 30; // 30 second cooldown
     
     // Discord role IDs for authorization (hardcoded as per existing pattern)
     private static final String ADMIN_ROLE_ID = "1173102438694264883";
     // Add other authorized role IDs here if needed (e.g., STAFF role)
     private static final String[] AUTHORIZED_ROLE_IDS = {ADMIN_ROLE_ID};
+    
+    // Track user cooldowns - userId -> lastGiveCommandTimestamp
+    private final ConcurrentHashMap<String, Instant> userCooldowns = new ConcurrentHashMap<>();
     
     private final UserService userService;
     private final CacheConfig cacheConfig;
@@ -51,10 +58,35 @@ public class GiveCommandListener extends ListenerAdapter {
         event.deferReply().queue();
         
         try {
+            String giverUserId = event.getUser().getId();
+            
+            // Check cooldown first
+            Instant now = Instant.now();
+            if (userCooldowns.containsKey(giverUserId)) {
+                Instant lastGiveTime = userCooldowns.get(giverUserId);
+                long secondsElapsed = ChronoUnit.SECONDS.between(lastGiveTime, now);
+                
+                if (secondsElapsed < COOLDOWN_SECONDS) {
+                    long timeRemaining = COOLDOWN_SECONDS - secondsElapsed;
+                    event.getHook().editOriginal("⏱️ You need to wait " + timeRemaining + " seconds before using /give again!")
+                            .queue();
+                    logger.debug("User {} attempted to use /give while on cooldown. Remaining: {}s", giverUserId, timeRemaining);
+                    return;
+                }
+            }
+            
             // Security check - verify permissions
             if (!hasPermission(event)) {
                 event.getHook().editOriginal("❌ You do not have permission to use this command. Only administrators can give credits to users.").queue();
-                logger.warn("User {} attempted to use /give without required permissions", event.getUser().getId());
+                logger.warn("User {} attempted to use /give without required permissions", giverUserId);
+                return;
+            }
+            
+            // Check if the command user is registered in the database
+            User giverUser = userService.getUserById(giverUserId);
+            if (giverUser == null) {
+                event.getHook().editOriginal("❌ Your account was not found in the database. Please log in to the web application first.").queue();
+                logger.warn("Command user {} not found in database when using /give", giverUserId);
                 return;
             }
             
@@ -71,7 +103,6 @@ public class GiveCommandListener extends ListenerAdapter {
             var targetDiscordUser = userOption.getAsUser();
             int amount = amountOption.getAsInt();
             String targetUserId = targetDiscordUser.getId();
-            String giverUserId = event.getUser().getId();
             
             // Validation checks
             if (amount <= 10) {
@@ -104,6 +135,9 @@ public class GiveCommandListener extends ListenerAdapter {
             
             // Invalidate the user's profile cache to ensure fresh data
             cacheConfig.invalidateUserProfileCache(targetUserId);
+            
+            // Update cooldown timestamp for successful command
+            userCooldowns.put(giverUserId, now);
             
             // Send success message with bold formatting
             String successMessage = String.format("You have successfully given **🪙 %d** credits to **%s**", 
