@@ -13,6 +13,7 @@ import com.app.heartbound.services.discord.StatsCommandListener;
 import com.app.heartbound.services.discord.BreakupCommandListener;
 import com.app.heartbound.services.discord.CoinflipCommandListener;
 import com.app.heartbound.services.discord.DailyCommandListener;
+import com.app.heartbound.services.discord.GiveCommandListener;
 import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
 import com.app.heartbound.services.discord.UserVoiceActivityService;
@@ -61,6 +62,9 @@ public class DiscordConfig {
 
     @Autowired
     private CoinflipCommandListener coinflipCommandListener;
+    
+    @Autowired
+    private GiveCommandListener giveCommandListener;
 
     @Autowired
     private WelcomeListener welcomeListener;
@@ -133,7 +137,7 @@ public class DiscordConfig {
                     )
                     // Register all listeners EXCEPT shopCommandListener, statsCommandListener, breakupCommandListener, and leaderboardCommandListener (we'll register them manually)
                     .addEventListeners(chatActivityListener, 
-                                      creditsCommandListener, dailyCommandListener, coinflipCommandListener, welcomeListener, welcomeCommandListener,
+                                      creditsCommandListener, dailyCommandListener, coinflipCommandListener, giveCommandListener, welcomeListener, welcomeCommandListener,
                                       inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService)
@@ -204,7 +208,14 @@ public class DiscordConfig {
                         ),
                     Commands.slash("stats", "View your current pairing statistics"),
                     Commands.slash("breakup", "End your current match/pairing"),
-                    Commands.slash("me", "Displays your profile stats as a generated image card")
+                    Commands.slash("me", "Displays your profile stats as a generated image card"),
+                    Commands.slash("give", "Gives a specified amount of credits to a user")
+                        .addOptions(
+                            new OptionData(OptionType.USER, "user", "The user to give credits to", true),
+                            new OptionData(OptionType.INTEGER, "amount", "The amount of credits to give (minimum 11)", true)
+                                .setMinValue(11)
+                        )
+                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
                 )
                 .queue(
                     cmds -> {
