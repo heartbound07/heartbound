@@ -291,12 +291,10 @@ public class BlackjackCommandListener extends ListenerAdapter {
                 
                 // Check if dealer busted
                 if (dealerHand.isBusted()) {
-                    // Dealer busted, end game after short delay
-                    scheduler.schedule(() -> {
-                        game.setGameEnded(true);
-                        handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
-                        scheduler.shutdown();
-                    }, 1500, java.util.concurrent.TimeUnit.MILLISECONDS);
+                    // Dealer busted, end game immediately
+                    game.setGameEnded(true);
+                    handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
+                    scheduler.shutdown();
                 } else {
                     // Continue dealer hitting after delay
                     scheduler.schedule(() -> {
@@ -304,12 +302,10 @@ public class BlackjackCommandListener extends ListenerAdapter {
                     }, 2500, java.util.concurrent.TimeUnit.MILLISECONDS); // 2.5 second delay between dealer hits
                 }
             } else {
-                // Dealer stands (17 or higher), end game after short delay
-                scheduler.schedule(() -> {
-                    game.setGameEnded(true);
-                    handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
-                    scheduler.shutdown();
-                }, 1500, java.util.concurrent.TimeUnit.MILLISECONDS);
+                // Dealer stands (17 or higher), end game immediately
+                game.setGameEnded(true);
+                handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
+                scheduler.shutdown();
             }
         } catch (Exception e) {
             logger.error("Error during dealer play sequence for user {}", game.getUserId(), e);
