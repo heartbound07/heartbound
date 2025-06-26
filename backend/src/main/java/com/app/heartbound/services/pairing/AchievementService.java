@@ -50,7 +50,7 @@ public class AchievementService {
     public interface AchievementNotificationCallback {
         void sendNotification(String channelId, String user1Id, String user2Id, 
                              String achievementName, String achievementDescription, 
-                             int xpAwarded, String achievementRarity, int progressValue);
+                             String achievementRarity, int progressValue);
     }
 
     /**
@@ -270,7 +270,6 @@ public class AchievementService {
                         pairing.getUser2Id(),
                         achievement.getName(),
                         achievement.getDescription(),
-                        pairAchievement.getXpAwarded(),
                         achievement.getRarity(),
                         pairAchievement.getProgressValue() != null ? pairAchievement.getProgressValue() : 0
                     );
@@ -462,7 +461,6 @@ public class AchievementService {
                     pairing.getUser2Id(),
                     achievement.getName(),
                     achievement.getDescription(),
-                    xpToAward,
                     achievement.getRarity(),
                     achievement.getRequirementValue()
                 );

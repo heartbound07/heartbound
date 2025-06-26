@@ -939,14 +939,14 @@ public class PairingService {
       */
      private void sendDiscordAchievementNotification(String channelId, String user1Id, String user2Id,
                                                      String achievementName, String achievementDescription,
-                                                     int xpAwarded, String achievementRarity, int progressValue) {
+                                                     String achievementRarity, int progressValue) {
          try {
              log.debug("Sending Discord achievement notification to channel {}: {}", channelId, achievementName);
              
              // Send Discord achievement notification asynchronously
              discordPairingChannelService.sendAchievementNotification(
                  channelId, user1Id, user2Id, achievementName, achievementDescription,
-                 xpAwarded, achievementRarity, progressValue
+                 achievementRarity, progressValue
              ).exceptionally(throwable -> {
                  log.warn("Failed to send Discord achievement notification to channel {}: {}", 
                          channelId, throwable.getMessage());
