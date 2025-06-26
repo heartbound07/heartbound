@@ -6,7 +6,6 @@ import com.app.heartbound.dto.DailyActivityDataDTO;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +13,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Min;
 
 import java.util.HashMap;
@@ -27,7 +25,6 @@ public class UserController {
     
     private final UserService userService;
     
-    @Autowired
     public UserController(UserService userService) {
         this.userService = userService;
     }
@@ -151,27 +148,14 @@ public class UserController {
     /**
      * Endpoint to upgrade a user to MONARCH (premium) status.
      * This would typically be triggered after payment processing.
+     * 
+     * ADMIN-ONLY ENDPOINT
      */
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{userId}/upgrade-to-monarch")
-    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<UserProfileDTO> upgradeToMonarch(
             @PathVariable String userId,
             Authentication authentication) {
-        
-        // Null safety check (though @PreAuthorize should prevent this)
-        if (authentication == null || authentication.getName() == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        
-        // Security check - ensure the authenticated user is upgrading their own account
-        // or is an admin
-        String authenticatedUserId = authentication.getName();
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        
-        if (!userId.equals(authenticatedUserId) && !isAdmin) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
         
         User upgradedUser = userService.upgradeToMonarch(userId);
         return ResponseEntity.ok(userService.mapToProfileDTO(upgradedUser));

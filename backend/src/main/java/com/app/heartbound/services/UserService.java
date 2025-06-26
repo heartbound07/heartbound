@@ -285,6 +285,10 @@ public class UserService {
         User updatedUser = userRepository.save(user);
         logger.info("Updated profile for user: {}", updatedUser.getUsername());
         
+        // Invalidate user profile cache to ensure fresh data is served
+        cacheConfig.invalidateUserProfileCache(userId);
+        logger.debug("Invalidated user profile cache for user: {}", userId);
+        
         // Convert to DTO and return
         return mapToProfileDTO(updatedUser);
     }

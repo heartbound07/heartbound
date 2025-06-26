@@ -195,8 +195,47 @@ export function ProfilePage() {
     setBannerColor(color);
   }
   
+  // Client-side validation helper functions
+  const isValidHexColor = (color: string): boolean => {
+    // Check for hex color format (#RRGGBB or #RRGGBBAA)
+    const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/;
+    return hexPattern.test(color);
+  }
+
+  const isValidTailwindColor = (color: string): boolean => {
+    // Check for Tailwind CSS background color classes
+    const tailwindPattern = new RegExp('^(bg-[a-z]+-[0-9]+(/[0-9]+)?|bg-white/[0-9]+)$');
+    return tailwindPattern.test(color);
+  }
+
+  const validateBannerColor = (color: string): boolean => {
+    if (!color) return true; // Empty is valid
+    return isValidHexColor(color) || isValidTailwindColor(color);
+  }
+
   const handleSaveProfile = async () => {
     try {
+      // Client-side validation for better UX
+      if (name && name.length > 50) {
+        toast.error("Display name cannot exceed 50 characters");
+        return;
+      }
+
+      if (pronouns && pronouns.length > 20) {
+        toast.error("Pronouns cannot exceed 20 characters");
+        return;
+      }
+
+      if (about && about.length > 200) {
+        toast.error("About section cannot exceed 200 characters");
+        return;
+      }
+
+      if (bannerColor && !validateBannerColor(bannerColor)) {
+        toast.error("Banner color must be a valid hex color (e.g., #FF0000) or Tailwind class (e.g., bg-blue-600)");
+        return;
+      }
+
       const profileUpdate: UpdateProfileDTO = {
         displayName: name,
         pronouns: pronouns,
@@ -211,8 +250,20 @@ export function ProfilePage() {
       toast.success("Profile updated successfully!")
     } catch (error) {
       console.error("Error saving profile:", error)
+      
+      // Check if it's a validation error from the server
+      if (error && typeof error === 'object' && 'response' in error) {
+        const errorResponse = (error as any).response;
+        if (errorResponse?.status === 400 && errorResponse?.data?.message) {
+          toast.error(`Validation error: ${errorResponse.data.message}`);
+        } else {
+          toast.error("Error updating profile. Please check your input and try again.");
+        }
+      } else {
+        toast.error("Error updating profile. Please try again.");
+      }
+      
       setSaveMessage("Error updating profile. Please try again.")
-      toast.error("Error updating profile")
     }
   }
 
