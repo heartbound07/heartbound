@@ -62,7 +62,7 @@ public class BlackjackCommandListener extends ListenerAdapter {
                     // Continue to create new game below
                 } else {
                     // Show current game state
-                    MessageEmbed embed = buildGameEmbed(existingGame, event.getUser().getName(), event.getUser().getEffectiveAvatarUrl(), false);
+                    MessageEmbed embed = buildGameEmbed(existingGame, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl(), false);
                     
                     Button hitButton = Button.success("blackjack_hit:" + userId, "Hit");
                     Button stayButton = Button.danger("blackjack_stay:" + userId, "Stay");
@@ -124,10 +124,10 @@ public class BlackjackCommandListener extends ListenerAdapter {
             if (game.getPlayerHand().isBlackjack()) {
                 // Player has blackjack, complete the game immediately
                 game.playerStand(); // This will trigger dealer play
-                handleGameEnd(event.getHook(), game, user, true);
+                handleGameEnd(event.getHook(), game, user, true, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
             } else {
                 // Send initial game embed with buttons
-                MessageEmbed embed = buildGameEmbed(game, event.getUser().getName(), event.getUser().getEffectiveAvatarUrl(), false);
+                MessageEmbed embed = buildGameEmbed(game, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl(), false);
                 
                 Button hitButton = Button.success("blackjack_hit:" + userId, "Hit");
                 Button stayButton = Button.danger("blackjack_stay:" + userId, "Stay");
@@ -201,7 +201,7 @@ public class BlackjackCommandListener extends ListenerAdapter {
             }
             
             if (action.equals("blackjack_hit")) {
-                handleHit(event, game, user);
+                                 handleHit(event, game, user);
             } else if (action.equals("blackjack_stay")) {
                 handleStay(event, game, user);
             }
@@ -229,11 +229,11 @@ public class BlackjackCommandListener extends ListenerAdapter {
         logger.debug("User {} hit and received: {}", game.getUserId(), dealtCard);
         
         // Update the embed
-        MessageEmbed embed = buildGameEmbed(game, event.getUser().getName(), event.getUser().getEffectiveAvatarUrl(), false);
+        MessageEmbed embed = buildGameEmbed(game, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl(), false);
         
         if (game.isGameEnded()) {
             // Player busted
-            handleGameEnd(event.getHook(), game, user, false);
+            handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
         } else {
             // Game continues, keep buttons
             Button hitButton = Button.success("blackjack_hit:" + game.getUserId(), "Hit");
@@ -258,10 +258,10 @@ public class BlackjackCommandListener extends ListenerAdapter {
         game.playerStand();
         logger.debug("User {} stood, dealer played automatically", game.getUserId());
         
-        handleGameEnd(event.getHook(), game, user, false);
+        handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
     }
     
-    private void handleGameEnd(Object hook, BlackjackGame game, User user, boolean isInitialBlackjack) {
+    private void handleGameEnd(Object hook, BlackjackGame game, User user, boolean isInitialBlackjack, String discordUserName, String discordAvatarUrl) {
         // Calculate payout
         int payout = game.calculatePayout();
         BlackjackGame.GameResult result = game.getResult();
@@ -289,8 +289,8 @@ public class BlackjackCommandListener extends ListenerAdapter {
         user.setCredits(newCredits);
         userService.updateUser(user);
         
-        // Build final embed
-        MessageEmbed embed = buildGameEndEmbed(game, user.getUsername(), user.getAvatar(), result, payout, isInitialBlackjack);
+        // Build final embed - use Discord avatar and username from event
+        MessageEmbed embed = buildGameEndEmbed(game, discordUserName, discordAvatarUrl, result, payout, isInitialBlackjack, newCredits);
         
         // Send final message without buttons
         if (hook instanceof net.dv8tion.jda.api.interactions.InteractionHook) {
@@ -309,11 +309,9 @@ public class BlackjackCommandListener extends ListenerAdapter {
     private MessageEmbed buildGameEmbed(BlackjackGame game, String userName, String userAvatarUrl, boolean gameEnded) {
         EmbedBuilder embed = new EmbedBuilder();
         
-        // Set author
-        embed.setAuthor(userName, null, userAvatarUrl);
+        // Set author with bet information
+        embed.setAuthor(userName + ", you have bet 🪙 " + game.getBetAmount() + " credits.", null, userAvatarUrl);
         
-        // Set title
-        embed.setTitle(userName + ", you have bet 🪙 " + game.getBetAmount() + " credits.");
         embed.setColor(EMBED_COLOR);
         
         // Dealer hand field
@@ -344,11 +342,8 @@ public class BlackjackCommandListener extends ListenerAdapter {
     }
     
     private MessageEmbed buildGameEndEmbed(BlackjackGame game, String userName, String userAvatarUrl, 
-                                          BlackjackGame.GameResult result, int payout, boolean isInitialBlackjack) {
+                                          BlackjackGame.GameResult result, int payout, boolean isInitialBlackjack, int currentCredits) {
         EmbedBuilder embed = new EmbedBuilder();
-        
-        // Set author
-        embed.setAuthor(userName, null, userAvatarUrl);
         
         // Set color based on result
         Color embedColor;
@@ -369,7 +364,7 @@ public class BlackjackCommandListener extends ListenerAdapter {
                 break;
             case PUSH:
                 embedColor = PUSH_COLOR;
-                resultText = "🤝 Push (tie)! ";
+                resultText = "🤝 Tie! ";
                 break;
             default:
                 embedColor = EMBED_COLOR;
@@ -377,14 +372,15 @@ public class BlackjackCommandListener extends ListenerAdapter {
                 break;
         }
         
-        // Add payout info
+        // Add payout info to result text
         if (payout > 0) {
-            resultText += "+🪙" + payout;
+            resultText += "🪙+" + payout;
         } else if (payout == 0 && result == BlackjackGame.GameResult.PUSH) {
             resultText += "Bet returned";
         }
         
-        embed.setTitle(resultText);
+        // Set author with result message
+        embed.setAuthor(resultText, null, userAvatarUrl);
         embed.setColor(embedColor);
         
         // Show final hands
@@ -403,6 +399,9 @@ public class BlackjackCommandListener extends ListenerAdapter {
             playerTitle += " - BLACKJACK!";
         }
         embed.addField(playerTitle, playerHand.getCardsUnicode(), true);
+        
+        // Add footer with current credits
+        embed.setFooter(userName + ", you now have " + currentCredits + " credits", null);
         
         return embed.build();
     }
