@@ -13,7 +13,7 @@ import { Heart, Users, Settings, AlertCircle, Zap, UserCheck, Activity, Trash2, 
 import { motion, AnimatePresence } from "framer-motion"
 import type { JoinQueueRequestDTO, PairingDTO } from "@/config/pairingService"
 import { useQueueUpdates } from "@/contexts/QueueUpdates"
-import { performMatchmaking, deleteAllPairings, enableQueue, disableQueue } from "@/config/pairingService"
+import { performMatchmaking, performGroupMatchmaking, deleteAllPairings, enableQueue, disableQueue } from "@/config/pairingService"
 import { usePairingUpdates } from "@/contexts/PairingUpdates"
 import { MatchFoundModal } from "@/components/modals/MatchFoundModal"
 import { UserProfileModal } from "@/components/modals/UserProfileModal"
@@ -301,16 +301,38 @@ export function PairingsPage() {
 
       const newPairings = await performMatchmaking()
       updateAdminState({ 
-        message: `Successfully created ${newPairings.length} new pairings! Notifications will be sent shortly...` 
+        message: `Successfully created ${newPairings.length} new individual pairings! Notifications will be sent shortly...` 
       })
     } catch (err: any) {
-      const errorMessage = err?.response?.data?.message || err?.message || "Matchmaking failed"
+      const errorMessage = err?.response?.data?.message || err?.message || "Individual matchmaking failed"
       updateAdminState({ message: `Error: ${errorMessage}` })
-      console.error("Admin matchmaking error:", err)
+      console.error("Admin individual matchmaking error:", err)
     } finally {
       updateAdminState({ actionLoading: false })
     }
   }, [updateAdminState])
+
+  // 🆕 NEW: Group matchmaking function
+  const handleAdminGroupMatchmaking = useCallback(async () => {
+    try {
+      updateAdminState({ actionLoading: true, message: null })
+
+      const result = await performGroupMatchmaking()
+      updateAdminState({ 
+        message: `Successfully created ${result.groupsCreated} group channels with ${result.usersMatched} users matched! Discord channels are being created...` 
+      })
+      
+      // Refresh data to show new groups
+      refreshData()
+      
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || err?.message || "Group matchmaking failed"
+      updateAdminState({ message: `Error: ${errorMessage}` })
+      console.error("Admin group matchmaking error:", err)
+    } finally {
+      updateAdminState({ actionLoading: false })
+    }
+  }, [updateAdminState, refreshData])
 
   const handleDeleteAllPairings = useCallback(async () => {
     if (!confirm("Are you sure you want to delete ALL active pairings? This action cannot be undone.")) {
@@ -1039,7 +1061,24 @@ export function PairingsPage() {
                             ) : (
                               <>
                                 <Zap className="h-4 w-4 mr-2" />
-                                Run Matchmaking
+                                Run Individual Matchmaking
+                              </>
+                            )}
+                          </Button>
+                        </div>
+
+                        <div>
+                          <Button
+                            onClick={handleAdminGroupMatchmaking}
+                            disabled={adminState.actionLoading}
+                            className="w-full h-12 valorant-button-secondary"
+                          >
+                            {adminState.actionLoading ? (
+                              <Skeleton width="100px" height="16px" theme="valorant" className="mx-auto" />
+                            ) : (
+                              <>
+                                <Users className="h-4 w-4 mr-2" />
+                                Run Group Matchmaking
                               </>
                             )}
                           </Button>
