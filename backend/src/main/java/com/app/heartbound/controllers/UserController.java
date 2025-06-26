@@ -146,21 +146,14 @@ public class UserController {
     /**
      * Endpoint to upgrade a user to MONARCH (premium) status.
      * This would typically be triggered after payment processing.
+     * 
+     * ADMIN-ONLY ENDPOINT
      */
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{userId}/upgrade-to-monarch")
     public ResponseEntity<UserProfileDTO> upgradeToMonarch(
             @PathVariable String userId,
             Authentication authentication) {
-        
-        // Security check - ensure the authenticated user is upgrading their own account
-        // or is an admin
-        String authenticatedUserId = authentication.getName();
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        
-        if (!userId.equals(authenticatedUserId) && !isAdmin) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
         
         User upgradedUser = userService.upgradeToMonarch(userId);
         return ResponseEntity.ok(userService.mapToProfileDTO(upgradedUser));
