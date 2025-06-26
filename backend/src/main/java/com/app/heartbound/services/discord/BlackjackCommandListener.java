@@ -1,0 +1,384 @@
+package com.app.heartbound.services.discord;
+
+import com.app.heartbound.entities.BlackjackGame;
+import com.app.heartbound.entities.BlackjackHand;
+import com.app.heartbound.entities.Card;
+import com.app.heartbound.entities.User;
+import com.app.heartbound.services.UserService;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import java.awt.Color;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Component
+public class BlackjackCommandListener extends ListenerAdapter {
+    
+    private static final Logger logger = LoggerFactory.getLogger(BlackjackCommandListener.class);
+    private static final Color EMBED_COLOR = new Color(88, 101, 242); // Discord Blurple
+    private static final Color WIN_COLOR = new Color(40, 167, 69); // Green
+    private static final Color LOSE_COLOR = new Color(220, 53, 69); // Red
+    private static final Color PUSH_COLOR = new Color(255, 193, 7); // Yellow
+    
+    // Track active games - userId -> BlackjackGame
+    private final ConcurrentHashMap<String, BlackjackGame> activeGames = new ConcurrentHashMap<>();
+    
+    private final UserService userService;
+    
+    @Autowired
+    public BlackjackCommandListener(UserService userService) {
+        this.userService = userService;
+        logger.info("BlackjackCommandListener initialized");
+    }
+    
+    @Override
+    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+        if (!event.getName().equals("blackjack")) {
+            return; // Not our command
+        }
+        
+        String userId = event.getUser().getId();
+        logger.info("User {} requested /blackjack", userId);
+        
+        // Check for active game first
+        if (activeGames.containsKey(userId)) {
+            event.reply("You cannot run this command again! You must complete the previous game first.")
+                    .setEphemeral(true)
+                    .queue();
+            return;
+        }
+        
+        // Acknowledge the interaction immediately
+        event.deferReply().queue();
+        
+        try {
+            // Get bet amount from command option
+            int betAmount = event.getOption("bet").getAsInt();
+            
+            // Fetch the user from the database
+            User user = userService.getUserById(userId);
+            
+            if (user == null) {
+                logger.warn("User {} not found in database when using /blackjack", userId);
+                event.getHook().sendMessage("Could not find your account. Please log in to the web application first.")
+                        .setEphemeral(true)
+                        .queue();
+                return;
+            }
+            
+            // Get current credits (handle null case)
+            Integer credits = user.getCredits();
+            int currentCredits = (credits == null) ? 0 : credits;
+            
+            logger.info("User {} current credits: {}, bet amount: {}", userId, currentCredits, betAmount);
+            
+            if (currentCredits < betAmount) {
+                event.getHook().sendMessage("You don't have enough credits! You have " + currentCredits + " credits but tried to bet " + betAmount + ".")
+                        .setEphemeral(true)
+                        .queue();
+                return;
+            }
+            
+            // Deduct the bet amount from user's credits
+            user.setCredits(currentCredits - betAmount);
+            userService.updateUser(user);
+            
+            // Create new game
+            BlackjackGame game = new BlackjackGame(userId, betAmount);
+            activeGames.put(userId, game);
+            
+            // Check for immediate blackjack
+            if (game.getPlayerHand().isBlackjack()) {
+                // Player has blackjack, complete the game immediately
+                game.playerStand(); // This will trigger dealer play
+                handleGameEnd(event.getHook(), game, user, true);
+            } else {
+                // Send initial game embed with buttons
+                MessageEmbed embed = buildGameEmbed(game, event.getUser().getName(), event.getUser().getEffectiveAvatarUrl(), false);
+                
+                Button hitButton = Button.success("blackjack_hit:" + userId, "Hit");
+                Button stayButton = Button.danger("blackjack_stay:" + userId, "Stay");
+                
+                event.getHook().sendMessageEmbeds(embed)
+                        .addActionRow(hitButton, stayButton)
+                        .queue();
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error processing /blackjack command for user {}", userId, e);
+            
+            // Remove the game from active games if it was added
+            activeGames.remove(userId);
+            
+            event.getHook().sendMessage("An error occurred while starting the blackjack game.")
+                    .setEphemeral(true)
+                    .queue();
+        }
+    }
+    
+    @Override
+    public void onButtonInteraction(ButtonInteractionEvent event) {
+        String componentId = event.getComponentId();
+        
+        if (!componentId.startsWith("blackjack_")) {
+            return; // Not our button
+        }
+        
+        // Parse the user ID from the component ID
+        String[] parts = componentId.split(":");
+        if (parts.length != 2) {
+            logger.warn("Invalid button component ID: {}", componentId);
+            return;
+        }
+        
+        String action = parts[0];
+        String gameUserId = parts[1];
+        String interactingUserId = event.getUser().getId();
+        
+        // Verify user
+        if (!interactingUserId.equals(gameUserId)) {
+            event.reply("This is not your game!")
+                    .setEphemeral(true)
+                    .queue();
+            return;
+        }
+        
+        // Get the active game
+        BlackjackGame game = activeGames.get(gameUserId);
+        if (game == null) {
+            event.reply("No active game found. Please start a new game with `/blackjack`.")
+                    .setEphemeral(true)
+                    .queue();
+            return;
+        }
+        
+        // Acknowledge the button interaction
+        event.deferEdit().queue();
+        
+        try {
+            // Get user for credit updates
+            User user = userService.getUserById(gameUserId);
+            if (user == null) {
+                logger.error("User {} not found when processing button interaction", gameUserId);
+                event.getHook().editOriginal("Error: User not found.")
+                        .setComponents() // Remove buttons
+                        .queue();
+                activeGames.remove(gameUserId);
+                return;
+            }
+            
+            if (action.equals("blackjack_hit")) {
+                handleHit(event, game, user);
+            } else if (action.equals("blackjack_stay")) {
+                handleStay(event, game, user);
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error processing blackjack button interaction for user {}", gameUserId, e);
+            event.getHook().editOriginal("An error occurred while processing your action.")
+                    .setComponents() // Remove buttons
+                    .queue();
+            activeGames.remove(gameUserId);
+        }
+    }
+    
+    private void handleHit(ButtonInteractionEvent event, BlackjackGame game, User user) {
+        if (game.isGameEnded()) {
+            event.getHook().editOriginal("Game has already ended.")
+                    .setComponents()
+                    .queue();
+            activeGames.remove(game.getUserId());
+            return;
+        }
+        
+        // Player hits
+        Card dealtCard = game.playerHit();
+        logger.debug("User {} hit and received: {}", game.getUserId(), dealtCard);
+        
+        // Update the embed
+        MessageEmbed embed = buildGameEmbed(game, event.getUser().getName(), event.getUser().getEffectiveAvatarUrl(), false);
+        
+        if (game.isGameEnded()) {
+            // Player busted
+            handleGameEnd(event.getHook(), game, user, false);
+        } else {
+            // Game continues, keep buttons
+            Button hitButton = Button.success("blackjack_hit:" + game.getUserId(), "Hit");
+            Button stayButton = Button.danger("blackjack_stay:" + game.getUserId(), "Stay");
+            
+            event.getHook().editOriginalEmbeds(embed)
+                    .setActionRow(hitButton, stayButton)
+                    .queue();
+        }
+    }
+    
+    private void handleStay(ButtonInteractionEvent event, BlackjackGame game, User user) {
+        if (game.isGameEnded()) {
+            event.getHook().editOriginal("Game has already ended.")
+                    .setComponents()
+                    .queue();
+            activeGames.remove(game.getUserId());
+            return;
+        }
+        
+        // Player stands, dealer plays
+        game.playerStand();
+        logger.debug("User {} stood, dealer played automatically", game.getUserId());
+        
+        handleGameEnd(event.getHook(), game, user, false);
+    }
+    
+    private void handleGameEnd(Object hook, BlackjackGame game, User user, boolean isInitialBlackjack) {
+        // Calculate payout
+        int payout = game.calculatePayout();
+        BlackjackGame.GameResult result = game.getResult();
+        
+        // Update user credits
+        Integer currentCredits = user.getCredits();
+        int creditChange = 0;
+        
+        switch (result) {
+            case PLAYER_BLACKJACK:
+                creditChange = game.getBetAmount() + payout; // Return bet + 1.5x bet
+                break;
+            case PLAYER_WIN:
+                creditChange = game.getBetAmount() + payout; // Return bet + 1x bet
+                break;
+            case PUSH:
+                creditChange = game.getBetAmount(); // Return bet only
+                break;
+            case DEALER_WIN:
+                creditChange = 0; // Bet already deducted, no return
+                break;
+        }
+        
+        int newCredits = (currentCredits == null ? 0 : currentCredits) + creditChange;
+        user.setCredits(newCredits);
+        userService.updateUser(user);
+        
+        // Build final embed
+        MessageEmbed embed = buildGameEndEmbed(game, user.getUsername(), user.getAvatar(), result, payout, isInitialBlackjack);
+        
+        // Send final message without buttons
+        if (hook instanceof net.dv8tion.jda.api.interactions.InteractionHook) {
+            ((net.dv8tion.jda.api.interactions.InteractionHook) hook).editOriginalEmbeds(embed)
+                    .setComponents() // Remove buttons
+                    .queue();
+        }
+        
+        // Remove game from active games
+        activeGames.remove(game.getUserId());
+        
+        logger.info("Blackjack game ended for user {}: result={}, credit change={}, new credits={}", 
+                game.getUserId(), result, creditChange, newCredits);
+    }
+    
+    private MessageEmbed buildGameEmbed(BlackjackGame game, String userName, String userAvatarUrl, boolean gameEnded) {
+        EmbedBuilder embed = new EmbedBuilder();
+        
+        // Set author
+        embed.setAuthor(userName, null, userAvatarUrl);
+        
+        // Set title
+        embed.setTitle(userName + ", you have bet 🪙 " + game.getBetAmount() + " credits.");
+        embed.setColor(EMBED_COLOR);
+        
+        // Dealer hand field
+        BlackjackHand dealerHand = game.getDealerHand();
+        String dealerTitle;
+        String dealerCards;
+        
+        if (gameEnded || game.isDealerTurn()) {
+            // Show all dealer cards
+            dealerTitle = "Dealer [" + dealerHand.getValue() + "]";
+            dealerCards = dealerHand.getCardsUnicode();
+        } else {
+            // Hide dealer's first card
+            dealerTitle = "Dealer [" + dealerHand.getFirstCardValue() + " + ?]";
+            dealerCards = dealerHand.getCardsUnicode(true);
+        }
+        
+        embed.addField(dealerTitle, dealerCards, true);
+        
+        // Player hand field
+        BlackjackHand playerHand = game.getPlayerHand();
+        String playerTitle = userName + " [" + playerHand.getValue() + "]";
+        String playerCards = playerHand.getCardsUnicode();
+        
+        embed.addField(playerTitle, playerCards, true);
+        
+        return embed.build();
+    }
+    
+    private MessageEmbed buildGameEndEmbed(BlackjackGame game, String userName, String userAvatarUrl, 
+                                          BlackjackGame.GameResult result, int payout, boolean isInitialBlackjack) {
+        EmbedBuilder embed = new EmbedBuilder();
+        
+        // Set author
+        embed.setAuthor(userName, null, userAvatarUrl);
+        
+        // Set color based on result
+        Color embedColor;
+        String resultText;
+        
+        switch (result) {
+            case PLAYER_WIN:
+                embedColor = WIN_COLOR;
+                resultText = "🎉 You win! ";
+                break;
+            case PLAYER_BLACKJACK:
+                embedColor = WIN_COLOR;
+                resultText = isInitialBlackjack ? "🎊 BLACKJACK! Natural 21! " : "🎉 You win with 21! ";
+                break;
+            case DEALER_WIN:
+                embedColor = LOSE_COLOR;
+                resultText = game.getPlayerHand().isBusted() ? "💥 You busted! " : "😞 Dealer wins! ";
+                break;
+            case PUSH:
+                embedColor = PUSH_COLOR;
+                resultText = "🤝 Push (tie)! ";
+                break;
+            default:
+                embedColor = EMBED_COLOR;
+                resultText = "Game ended. ";
+                break;
+        }
+        
+        // Add payout info
+        if (payout > 0) {
+            resultText += "+🪙" + payout;
+        } else if (payout == 0 && result == BlackjackGame.GameResult.PUSH) {
+            resultText += "Bet returned";
+        }
+        
+        embed.setTitle(resultText);
+        embed.setColor(embedColor);
+        
+        // Show final hands
+        BlackjackHand dealerHand = game.getDealerHand();
+        String dealerTitle = "Dealer [" + dealerHand.getValue() + "]";
+        if (dealerHand.isBusted()) {
+            dealerTitle += " - BUST!";
+        }
+        embed.addField(dealerTitle, dealerHand.getCardsUnicode(), true);
+        
+        BlackjackHand playerHand = game.getPlayerHand();
+        String playerTitle = userName + " [" + playerHand.getValue() + "]";
+        if (playerHand.isBusted()) {
+            playerTitle += " - BUST!";
+        } else if (playerHand.isBlackjack()) {
+            playerTitle += " - BLACKJACK!";
+        }
+        embed.addField(playerTitle, playerHand.getCardsUnicode(), true);
+        
+        return embed.build();
+    }
+} 

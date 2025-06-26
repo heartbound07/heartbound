@@ -14,6 +14,7 @@ import com.app.heartbound.services.discord.BreakupCommandListener;
 import com.app.heartbound.services.discord.CoinflipCommandListener;
 import com.app.heartbound.services.discord.DailyCommandListener;
 import com.app.heartbound.services.discord.GiveCommandListener;
+import com.app.heartbound.services.discord.BlackjackCommandListener;
 import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
 import com.app.heartbound.services.discord.UserVoiceActivityService;
@@ -65,6 +66,9 @@ public class DiscordConfig {
     
     @Autowired
     private GiveCommandListener giveCommandListener;
+
+    @Autowired
+    private BlackjackCommandListener blackjackCommandListener;
 
     @Autowired
     private WelcomeListener welcomeListener;
@@ -137,7 +141,7 @@ public class DiscordConfig {
                     )
                     // Register all listeners EXCEPT shopCommandListener, statsCommandListener, breakupCommandListener, and leaderboardCommandListener (we'll register them manually)
                     .addEventListeners(chatActivityListener, 
-                                      creditsCommandListener, dailyCommandListener, coinflipCommandListener, giveCommandListener, welcomeListener, welcomeCommandListener,
+                                      creditsCommandListener, dailyCommandListener, coinflipCommandListener, giveCommandListener, blackjackCommandListener, welcomeListener, welcomeCommandListener,
                                       inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService)
@@ -214,6 +218,11 @@ public class DiscordConfig {
                             new OptionData(OptionType.USER, "user", "The user to give credits to", true),
                             new OptionData(OptionType.INTEGER, "amount", "The amount of credits to give (minimum 11)", true)
                                 .setMinValue(11)
+                        ),
+                    Commands.slash("blackjack", "Play a game of blackjack and bet credits")
+                        .addOptions(
+                            new OptionData(OptionType.INTEGER, "bet", "The amount of credits you want to bet", true)
+                                .setMinValue(1)
                         )
                 )
                 .queue(
