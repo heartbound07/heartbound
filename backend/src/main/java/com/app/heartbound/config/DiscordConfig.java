@@ -209,13 +209,12 @@ public class DiscordConfig {
                     Commands.slash("stats", "View your current pairing statistics"),
                     Commands.slash("breakup", "End your current match/pairing"),
                     Commands.slash("me", "Displays your profile stats as a generated image card"),
-                    Commands.slash("give", "Gives a specified amount of credits to a user")
+                    Commands.slash("give", "Transfer credits to another user")
                         .addOptions(
                             new OptionData(OptionType.USER, "user", "The user to give credits to", true),
                             new OptionData(OptionType.INTEGER, "amount", "The amount of credits to give (minimum 11)", true)
                                 .setMinValue(11)
                         )
-                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
                 )
                 .queue(
                     cmds -> {

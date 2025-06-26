@@ -3,10 +3,6 @@ package com.app.heartbound.services.discord;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.config.CacheConfig;
-import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
@@ -27,11 +23,6 @@ public class GiveCommandListener extends ListenerAdapter {
     private static final Color SUCCESS_COLOR = new Color(34, 197, 94); // Green
     private static final Color ERROR_COLOR = new Color(239, 68, 68); // Red
     private static final int COOLDOWN_SECONDS = 30; // 30 second cooldown
-    
-    // Discord role IDs for authorization (hardcoded as per existing pattern)
-    private static final String ADMIN_ROLE_ID = "1173102438694264883";
-    // Add other authorized role IDs here if needed (e.g., STAFF role)
-    private static final String[] AUTHORIZED_ROLE_IDS = {ADMIN_ROLE_ID};
     
     // Track user cooldowns - userId -> lastGiveCommandTimestamp
     private final ConcurrentHashMap<String, Instant> userCooldowns = new ConcurrentHashMap<>();
@@ -73,13 +64,6 @@ public class GiveCommandListener extends ListenerAdapter {
                     logger.debug("User {} attempted to use /give while on cooldown. Remaining: {}s", giverUserId, timeRemaining);
                     return;
                 }
-            }
-            
-            // Security check - verify permissions
-            if (!hasPermission(event)) {
-                event.getHook().editOriginal("❌ You do not have permission to use this command. Only administrators can give credits to users.").queue();
-                logger.warn("User {} attempted to use /give without required permissions", giverUserId);
-                return;
             }
             
             // Check if the command user is registered in the database
@@ -168,28 +152,5 @@ public class GiveCommandListener extends ListenerAdapter {
             logger.error("Error processing /give command for user {}", event.getUser().getId(), e);
             event.getHook().editOriginal("❌ An error occurred while processing the credit transfer. Please try again later.").queue();
         }
-    }
-    
-    /**
-     * Check if the user has permission to use the give command.
-     * Only users with specific Discord roles (like ADMINISTRATOR) can use this command.
-     */
-    private boolean hasPermission(SlashCommandInteractionEvent event) {
-        Member member = event.getMember();
-        Guild guild = event.getGuild();
-        
-        if (guild == null || member == null) {
-            return false;
-        }
-        
-        // Check if user has any of the authorized roles
-        for (String roleId : AUTHORIZED_ROLE_IDS) {
-            Role requiredRole = guild.getRoleById(roleId);
-            if (requiredRole != null && member.getRoles().contains(requiredRole)) {
-                return true;
-            }
-        }
-        
-        return false;
     }
 } 
