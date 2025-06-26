@@ -12,18 +12,16 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Set;
 import com.app.heartbound.enums.Gender;
 import com.app.heartbound.enums.Region;
 import com.app.heartbound.enums.Rank;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * MatchmakingService
  * 
  * Service for handling automatic matchmaking logic.
- * Supports both group channel creation (10 users) and individual pairings.
+ * Calculates compatibility scores and creates optimal pairings.
  */
 @Service
 @RequiredArgsConstructor
@@ -35,239 +33,13 @@ public class MatchmakingService {
     private final QueueService queueService;
     private final SimpMessagingTemplate messagingTemplate;
     private final BlacklistEntryRepository blacklistEntryRepository;
-    private final ObjectMapper objectMapper;
 
     /**
-     * 🆕 NEW: Perform automatic group matchmaking for users in queue (creates groups of 10 users)
-     */
-    @Transactional
-    public List<PairingDTO> performGroupMatchmaking() {
-        log.info("Starting GROUP matchmaking process...");
-        
-        // Update last matchmaking run timestamp
-        queueService.updateLastMatchmakingRun();
-        
-        List<MatchQueueUser> eligibleUsers = queueService.getEligibleUsersForMatching();
-        log.info("Found {} eligible users for group matching", eligibleUsers.size());
-        
-        List<PairingDTO> newGroups = new ArrayList<>();
-        Set<String> matchedUserIds = new HashSet<>();
-        
-        // Group users by region and age compatibility for group formation
-        Map<String, List<MatchQueueUser>> regionalGroups = groupUsersByRegionAndAge(eligibleUsers);
-        
-        for (Map.Entry<String, List<MatchQueueUser>> entry : regionalGroups.entrySet()) {
-            String groupKey = entry.getKey();
-            List<MatchQueueUser> users = entry.getValue();
-            
-            log.info("Processing regional group: {} with {} users", groupKey, users.size());
-            
-            // Create groups of 10 users (5 males, 5 females) from this regional group
-            List<List<MatchQueueUser>> groups = createGroupsOfTen(users, matchedUserIds);
-            
-            for (List<MatchQueueUser> group : groups) {
-                try {
-                    PairingDTO groupChannel = createGroupChannel(group);
-                    newGroups.add(groupChannel);
-                    
-                    // Add all group members to matched users
-                    group.forEach(user -> matchedUserIds.add(user.getUserId()));
-                    
-                    log.info("Successfully created group channel with ID: {}", groupChannel.getId());
-                    
-                    // Broadcast group creation notifications
-                    broadcastGroupCreated(groupChannel, group);
-                    
-                } catch (Exception e) {
-                    log.error("Failed to create group channel for {} users: {}", group.size(), e.getMessage());
-                }
-            }
-        }
-        
-        // Notify unmatched users
-        notifyUnmatchedUsers(eligibleUsers, matchedUserIds);
-        
-        // Remove matched users from queue
-        if (!matchedUserIds.isEmpty()) {
-            List<String> matchedUserIdsList = new ArrayList<>(matchedUserIds);
-            queueService.removeMatchedUsersFromQueue(matchedUserIdsList);
-            log.info("Removed {} matched users from queue", matchedUserIdsList.size());
-        }
-        
-        if (!newGroups.isEmpty()) {
-            queueService.onMatchesCreated(newGroups.size());
-        }
-        
-        log.info("Group matchmaking completed. Created {} new group channels", newGroups.size());
-        return newGroups;
-    }
-
-    /**
-     * 🆕 NEW: Group users by region and age compatibility for group formation
-     */
-    private Map<String, List<MatchQueueUser>> groupUsersByRegionAndAge(List<MatchQueueUser> users) {
-        Map<String, List<MatchQueueUser>> groups = new HashMap<>();
-        
-        for (MatchQueueUser user : users) {
-            // Create group key: "REGION_AGE_BRACKET"
-            String ageGroup = user.getAge() >= 18 ? "18_PLUS" : "UNDER_18";
-            String groupKey = user.getRegion().toString() + "_" + ageGroup;
-            
-            groups.computeIfAbsent(groupKey, k -> new ArrayList<>()).add(user);
-        }
-        
-        return groups;
-    }
-
-    /**
-     * 🆕 NEW: Create groups of 10 users (5 males, 5 females) from a regional pool
-     */
-    private List<List<MatchQueueUser>> createGroupsOfTen(List<MatchQueueUser> users, Set<String> alreadyMatched) {
-        List<List<MatchQueueUser>> groups = new ArrayList<>();
-        
-        // Filter out already matched users
-        List<MatchQueueUser> availableUsers = users.stream()
-                .filter(user -> !alreadyMatched.contains(user.getUserId()))
-                .collect(Collectors.toList());
-        
-        // Separate by gender
-        List<MatchQueueUser> males = availableUsers.stream()
-                .filter(user -> user.getGender() == Gender.MALE)
-                .collect(Collectors.toList());
-        
-        List<MatchQueueUser> females = availableUsers.stream()
-                .filter(user -> user.getGender() == Gender.FEMALE)
-                .collect(Collectors.toList());
-        
-        log.info("Available for grouping: {} males, {} females", males.size(), females.size());
-        
-        // Create groups of 10 (5 males + 5 females)
-        int maxGroups = Math.min(males.size() / 5, females.size() / 5);
-        
-        for (int i = 0; i < maxGroups; i++) {
-            List<MatchQueueUser> group = new ArrayList<>();
-            
-            // Add 5 males
-            for (int j = 0; j < 5; j++) {
-                group.add(males.get(i * 5 + j));
-            }
-            
-            // Add 5 females
-            for (int j = 0; j < 5; j++) {
-                group.add(females.get(i * 5 + j));
-            }
-            
-            groups.add(group);
-            log.info("Created group {} with 10 users (5M + 5F)", i + 1);
-        }
-        
-        return groups;
-    }
-
-    /**
-     * 🆕 NEW: Create a group channel from a list of 10 users
-     */
-    private PairingDTO createGroupChannel(List<MatchQueueUser> groupUsers) throws JsonProcessingException {
-        if (groupUsers.size() != 10) {
-            throw new IllegalArgumentException("Group must have exactly 10 users, got " + groupUsers.size());
-        }
-        
-        // Validate group composition (5 males, 5 females, same region, compatible ages)
-        long maleCount = groupUsers.stream().filter(u -> u.getGender() == Gender.MALE).count();
-        long femaleCount = groupUsers.stream().filter(u -> u.getGender() == Gender.FEMALE).count();
-        
-        if (maleCount != 5 || femaleCount != 5) {
-            throw new IllegalArgumentException(String.format("Invalid group composition: %d males, %d females", maleCount, femaleCount));
-        }
-        
-        // Get common region
-        Region commonRegion = groupUsers.get(0).getRegion();
-        boolean sameRegion = groupUsers.stream().allMatch(u -> u.getRegion() == commonRegion);
-        if (!sameRegion) {
-            throw new IllegalArgumentException("All group members must have the same region");
-        }
-        
-        // Validate age compatibility
-        boolean hasMinor = groupUsers.stream().anyMatch(u -> u.getAge() < 18);
-        boolean hasAdult = groupUsers.stream().anyMatch(u -> u.getAge() >= 18);
-        if (hasMinor && hasAdult) {
-            throw new IllegalArgumentException("Cannot mix minors and adults in same group");
-        }
-        
-        // Create group member DTOs
-        List<CreatePairingRequestDTO.GroupMemberInfo> groupMembers = groupUsers.stream()
-                .map(user -> CreatePairingRequestDTO.GroupMemberInfo.builder()
-                        .userId(user.getUserId())
-                        .discordId(user.getUserId()) // Assuming user ID is Discord ID
-                        .age(user.getAge())
-                        .gender(user.getGender().toString())
-                        .region(user.getRegion().toString())
-                        .rank(user.getRank().toString())
-                        .build())
-                .collect(Collectors.toList());
-        
-        // Create group pairing request
-        CreatePairingRequestDTO groupRequest = CreatePairingRequestDTO.builder()
-                .isGroupChannel(true)
-                .groupChannelType("MIXED_GROUP")
-                .groupRegion(commonRegion.toString())
-                .groupUserIds(groupUsers.stream().map(MatchQueueUser::getUserId).collect(Collectors.toList()))
-                .groupDiscordIds(groupUsers.stream().map(MatchQueueUser::getUserId).collect(Collectors.toList()))
-                .groupMembers(groupMembers)
-                .compatibilityScore(100) // Default high score for successful group formation
-                // Legacy fields for backward compatibility (using first two users)
-                .user1Id(groupUsers.get(0).getUserId())
-                .user2Id(groupUsers.get(1).getUserId())
-                .user1DiscordId(groupUsers.get(0).getUserId())
-                .user2DiscordId(groupUsers.get(1).getUserId())
-                .user1Age(groupUsers.get(0).getAge())
-                .user1Gender(groupUsers.get(0).getGender().toString())
-                .user1Region(groupUsers.get(0).getRegion().toString())
-                .user1Rank(groupUsers.get(0).getRank().toString())
-                .user2Age(groupUsers.get(1).getAge())
-                .user2Gender(groupUsers.get(1).getGender().toString())
-                .user2Region(groupUsers.get(1).getRegion().toString())
-                .user2Rank(groupUsers.get(1).getRank().toString())
-                .build();
-        
-        return pairingService.createPairing(groupRequest);
-    }
-
-    /**
-     * 🆕 NEW: Broadcast group creation notification
-     */
-    private void broadcastGroupCreated(PairingDTO groupChannel, List<MatchQueueUser> groupUsers) {
-        try {
-            Map<String, Object> groupNotification = Map.of(
-                "eventType", "GROUP_CREATED",
-                "groupId", groupChannel.getId(),
-                "groupRegion", groupChannel.getGroupRegion(),
-                "totalMembers", groupUsers.size(),
-                "maleCount", groupUsers.stream().filter(u -> u.getGender() == Gender.MALE).count(),
-                "femaleCount", groupUsers.stream().filter(u -> u.getGender() == Gender.FEMALE).count(),
-                "discordChannelId", groupChannel.getDiscordChannelId(),
-                "discordChannelName", groupChannel.getDiscordChannelName(),
-                "timestamp", java.time.LocalDateTime.now().toString()
-            );
-            
-            // Send notification to all group members
-            for (MatchQueueUser user : groupUsers) {
-                messagingTemplate.convertAndSend("/user/" + user.getUserId() + "/topic/group-match", groupNotification);
-            }
-            
-            log.info("Broadcasted group creation notification for group {}", groupChannel.getId());
-            
-        } catch (Exception e) {
-            log.error("Failed to broadcast group creation notification: {}", e.getMessage());
-        }
-    }
-
-    /**
-     * LEGACY: Perform automatic individual matchmaking for users in queue (backward compatibility)
+     * Perform automatic matchmaking for users in queue
      */
     @Transactional
     public List<PairingDTO> performMatchmaking() {
-        log.info("Starting INDIVIDUAL matchmaking process...");
+        log.info("Starting matchmaking process...");
         
         // Update last matchmaking run timestamp
         queueService.updateLastMatchmakingRun();
@@ -334,7 +106,6 @@ public class MatchmakingService {
                 try {
                     // Create proper DTO for pairing creation (Discord channel will be created by PairingService)
                     CreatePairingRequestDTO pairingRequest = CreatePairingRequestDTO.builder()
-                            .isGroupChannel(false) // Individual pairing
                             .user1Id(currentUser.getUserId())
                             .user2Id(bestMatch.getUserId())
                             .user1DiscordId(currentUser.getUserId()) // Assuming user ID is Discord ID
@@ -359,6 +130,9 @@ public class MatchmakingService {
                     
                     // 🚀 BROADCAST MATCH FOUND NOTIFICATIONS
                     broadcastMatchFound(pairing, currentUser.getUserId(), bestMatch.getUserId());
+                    
+                    // **OPTIMIZATION: Trigger cache invalidation after successful match**
+                    // This ensures admin stats reflect the new pairing immediately
                     
                 } catch (Exception e) {
                     log.error("Failed to create pairing between {} and {}: {}", 

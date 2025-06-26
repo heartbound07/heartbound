@@ -1,18 +1,5 @@
 import httpClient from '@/lib/api/httpClient';
 
-export interface GroupMemberDTO {
-  userId: string;
-  discordId?: string;
-  age: number;
-  gender: string;
-  region: string;
-  rank: string;
-  displayName?: string;
-  avatar?: string;
-  messageCount?: number;
-  active?: boolean;
-}
-
 export interface PairingDTO {
   id: number;
   user1Id: string;
@@ -42,18 +29,6 @@ export interface PairingDTO {
   user2Gender?: string;
   user2Region?: string;
   user2Rank?: string;
-  
-  // 🆕 NEW: Group channel fields
-  isGroupChannel?: boolean;
-  groupChannelType?: string;
-  groupRegion?: string;
-  groupUserIds?: string[];
-  groupDiscordIds?: string[];
-  groupMembers?: GroupMemberDTO[];
-  totalGroupMembers?: number;
-  maleCount?: number;
-  femaleCount?: number;
-  groupCreatedAt?: string;
 }
 
 export interface MatchQueueUserDTO {
@@ -223,36 +198,16 @@ export const getQueueStatus = async (userId: string): Promise<QueueStatusDTO> =>
 };
 
 /**
- * Trigger manual individual matchmaking (admin function)
+ * Trigger manual matchmaking (admin function)
  */
 export const performMatchmaking = async (): Promise<PairingDTO[]> => {
-  console.log('Frontend: Calling individual matchmaking endpoint');
+  console.log('Frontend: Calling performMatchmaking endpoint');
   try {
-    const response = await httpClient.post('/matchmaking/admin/run-individual-matchmaking');
-    console.log('Frontend: Individual matchmaking response received', response.data);
-    return response.data.pairings || [];
+    const response = await httpClient.post('/pairings/matchmake');
+    console.log('Frontend: Matchmaking response received', response.data);
+    return response.data;
   } catch (error) {
-    console.error('Frontend: Individual matchmaking call failed', error);
-    throw error;
-  }
-};
-
-/**
- * 🆕 NEW: Trigger group matchmaking (admin function)
- */
-export const performGroupMatchmaking = async (): Promise<{ groups: PairingDTO[]; groupsCreated: number; usersMatched: number; message: string }> => {
-  console.log('Frontend: Calling group matchmaking endpoint');
-  try {
-    const response = await httpClient.post('/matchmaking/admin/run-group-matchmaking');
-    console.log('Frontend: Group matchmaking response received', response.data);
-    return {
-      groups: response.data.groups || [],
-      groupsCreated: response.data.groupsCreated || 0,
-      usersMatched: response.data.usersMatched || 0,
-      message: response.data.message || 'Group matchmaking completed'
-    };
-  } catch (error) {
-    console.error('Frontend: Group matchmaking call failed', error);
+    console.error('Frontend: Matchmaking call failed', error);
     throw error;
   }
 };

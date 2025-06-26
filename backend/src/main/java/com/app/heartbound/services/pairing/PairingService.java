@@ -20,13 +20,11 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.annotation.PostConstruct;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * PairingService
@@ -55,8 +53,6 @@ public class PairingService {
     private final AchievementService achievementService;
     private final VoiceStreakService voiceStreakService;
     
-    private final ObjectMapper objectMapper;
-    
     /**
      * Initialize callbacks to avoid circular dependencies
      */
@@ -75,95 +71,15 @@ public class PairingService {
     }
 
     /**
-     * Create a new pairing between two users or a group channel
+     * Create a new pairing between two users
      */
     @Transactional
     public PairingDTO createPairing(CreatePairingRequestDTO request) {
-        if (request.isGroupChannel()) {
-            return createGroupChannel(request);
-        } else {
-            return createIndividualPairing(request);
-        }
-    }
-
-    /**
-     * 🆕 NEW: Create a group channel with 10 users
-     */
-    @Transactional
-    public PairingDTO createGroupChannel(CreatePairingRequestDTO request) {
-        log.info("Creating group channel with {} users", request.getGroupUserIds().size());
-        
-        // Validate group request
-        validateGroupRequest(request);
-        
-        try {
-            // Create group pairing entity
-            Pairing groupPairing = Pairing.builder()
-                    .isGroupChannel(true)
-                    .groupChannelType(request.getGroupChannelType())
-                    .groupRegion(request.getGroupRegion())
-                    .groupUserIds(objectMapper.writeValueAsString(request.getGroupUserIds()))
-                    .groupDiscordIds(objectMapper.writeValueAsString(request.getGroupDiscordIds()))
-                    .groupMembersData(objectMapper.writeValueAsString(request.getGroupMembers()))
-                    .totalGroupMembers(request.getGroupUserIds().size())
-                    .maleCount((int) request.getGroupMembers().stream().filter(m -> "MALE".equals(m.getGender())).count())
-                    .femaleCount((int) request.getGroupMembers().stream().filter(m -> "FEMALE".equals(m.getGender())).count())
-                    .groupCreatedAt(LocalDateTime.now())
-                    .matchedAt(LocalDateTime.now())
-                    .compatibilityScore(request.getCompatibilityScore())
-                    // Legacy fields for backward compatibility (using first two users)
-                    .user1Id(request.getUser1Id())
-                    .user2Id(request.getUser2Id())
-                    .user1Age(request.getUser1Age())
-                    .user1Gender(request.getUser1Gender())
-                    .user1Region(request.getUser1Region())
-                    .user1Rank(request.getUser1Rank())
-                    .user2Age(request.getUser2Age())
-                    .user2Gender(request.getUser2Gender())
-                    .user2Region(request.getUser2Region())
-                    .user2Rank(request.getUser2Rank())
-                    .build();
-            
-            // Save group channel
-            Pairing savedGroupPairing = pairingRepository.save(groupPairing);
-            
-            // Create Discord channel for the group
-            createDiscordChannelForGroup(savedGroupPairing, request.getGroupDiscordIds());
-            
-            // Initialize XP system for group (using first two users for compatibility)
-            try {
-                pairLevelService.getOrCreatePairLevel(savedGroupPairing);
-                log.info("Initialized XP system for group channel {}", savedGroupPairing.getId());
-            } catch (Exception e) {
-                log.error("Failed to initialize XP system for group channel {}: {}", savedGroupPairing.getId(), e.getMessage());
-            }
-            
-            // Remove users from queue
-            removeUsersFromQueue(request.getGroupUserIds());
-            
-            // Add group to leaderboard
-            PairingDTO groupDTO = mapToPairingDTO(savedGroupPairing);
-            addPairingToLeaderboard(groupDTO);
-            
-            log.info("Successfully created group channel with ID: {}", savedGroupPairing.getId());
-            return groupDTO;
-            
-        } catch (Exception e) {
-            log.error("Failed to create group channel: {}", e.getMessage());
-            throw new RuntimeException("Failed to create group channel: " + e.getMessage());
-        }
-    }
-
-    /**
-     * LEGACY: Create individual pairing (backward compatibility)
-     */
-    @Transactional
-    public PairingDTO createIndividualPairing(CreatePairingRequestDTO request) {
         // Input sanitization and validation
         String sanitizedUser1Id = sanitizeUserId(request.getUser1Id());
         String sanitizedUser2Id = sanitizeUserId(request.getUser2Id());
         
-        log.info("Creating individual pairing between users {} and {}", sanitizedUser1Id, sanitizedUser2Id);
+        log.info("Creating pairing between users {} and {}", sanitizedUser1Id, sanitizedUser2Id);
 
         // Validate users exist
         validateUsersExist(sanitizedUser1Id, sanitizedUser2Id);
@@ -184,7 +100,6 @@ public class PairingService {
 
         // Create pairing entity with sanitized data (initially without Discord channel info)
         Pairing pairing = Pairing.builder()
-                .isGroupChannel(false)
                 .user1Id(sanitizedUser1Id)
                 .user2Id(sanitizedUser2Id)
                 .compatibilityScore(Math.max(0, Math.min(100, request.getCompatibilityScore())))
@@ -226,102 +141,6 @@ public class PairingService {
 
         log.info("Successfully created pairing with ID: {} and blacklisted users", savedPairing.getId());
         return pairingDTO;
-    }
-
-    /**
-     * 🆕 NEW: Validate group channel request
-     */
-    private void validateGroupRequest(CreatePairingRequestDTO request) {
-        if (request.getGroupUserIds() == null || request.getGroupUserIds().size() != 10) {
-            throw new IllegalArgumentException("Group must have exactly 10 users");
-        }
-        
-        if (request.getGroupMembers() == null || request.getGroupMembers().size() != 10) {
-            throw new IllegalArgumentException("Group members data must contain exactly 10 members");
-        }
-        
-        // Validate gender distribution (5 males, 5 females)
-        long maleCount = request.getGroupMembers().stream().filter(m -> "MALE".equals(m.getGender())).count();
-        long femaleCount = request.getGroupMembers().stream().filter(m -> "FEMALE".equals(m.getGender())).count();
-        
-        if (maleCount != 5 || femaleCount != 5) {
-            throw new IllegalArgumentException(String.format("Invalid gender distribution: %d males, %d females. Expected: 5 males, 5 females", maleCount, femaleCount));
-        }
-        
-        // Validate all users have same region
-        String commonRegion = request.getGroupRegion();
-        boolean allSameRegion = request.getGroupMembers().stream()
-                .allMatch(member -> commonRegion.equals(member.getRegion()));
-        
-        if (!allSameRegion) {
-            throw new IllegalArgumentException("All group members must have the same region: " + commonRegion);
-        }
-        
-        // Validate age compatibility (no mixing of minors and adults)
-        boolean hasMinor = request.getGroupMembers().stream().anyMatch(m -> m.getAge() < 18);
-        boolean hasAdult = request.getGroupMembers().stream().anyMatch(m -> m.getAge() >= 18);
-        
-        if (hasMinor && hasAdult) {
-            throw new IllegalArgumentException("Cannot mix minors and adults in the same group");
-        }
-        
-        log.info("Group request validation passed: 10 users, {} males, {} females, region: {}, age-compatible", 
-                maleCount, femaleCount, commonRegion);
-    }
-
-    /**
-     * 🆕 NEW: Create Discord channel for group
-     */
-    private void createDiscordChannelForGroup(Pairing groupPairing, List<String> groupDiscordIds) {
-        try {
-            log.info("Attempting to create Discord group channel for pairing {} with {} users", 
-                     groupPairing.getId(), groupDiscordIds.size());
-            
-            // Create Discord group channel asynchronously
-            discordPairingChannelService.createGroupChannel(groupDiscordIds, groupPairing.getId())
-                    .thenAccept(result -> {
-                        if (result.isSuccess()) {
-                            // Update pairing with Discord channel info
-                            try {
-                                groupPairing.setDiscordChannelId(Long.parseLong(result.getChannelId()));
-                                groupPairing.setDiscordChannelName(result.getChannelName());
-                                pairingRepository.save(groupPairing);
-                                
-                                log.info("Successfully created and linked Discord group channel '{}' (ID: {}) to pairing {}", 
-                                         result.getChannelName(), result.getChannelId(), groupPairing.getId());
-                            } catch (Exception e) {
-                                log.error("Failed to update group pairing {} with Discord channel info: {}", 
-                                         groupPairing.getId(), e.getMessage());
-                            }
-                        } else {
-                            log.warn("Discord group channel creation failed for pairing {}: {}", 
-                                    groupPairing.getId(), result.getErrorMessage());
-                        }
-                    })
-                    .exceptionally(throwable -> {
-                        log.error("Exception during Discord group channel creation for pairing {}: {}", 
-                                 groupPairing.getId(), throwable.getMessage());
-                        return null;
-                    });
-                    
-        } catch (Exception e) {
-            log.error("Failed to initiate Discord group channel creation for pairing {}: {}", 
-                     groupPairing.getId(), e.getMessage());
-        }
-    }
-
-    /**
-     * 🆕 NEW: Remove multiple users from queue
-     */
-    private void removeUsersFromQueue(List<String> userIds) {
-        for (String userId : userIds) {
-            matchQueueUserRepository.findByUserId(userId).ifPresent(queueUser -> {
-                queueUser.setInQueue(false);
-                matchQueueUserRepository.save(queueUser);
-                log.debug("Removed user {} from queue", userId);
-            });
-        }
-        log.info("Removed {} users from queue", userIds.size());
     }
 
     /**
@@ -793,7 +612,7 @@ public class PairingService {
     }
 
     private PairingDTO mapToPairingDTO(Pairing pairing) {
-        PairingDTO.PairingDTOBuilder builder = PairingDTO.builder()
+        PairingDTO dto = PairingDTO.builder()
                 .id(pairing.getId())
                 .user1Id(pairing.getUser1Id())
                 .user2Id(pairing.getUser2Id())
@@ -814,60 +633,19 @@ public class PairingService {
                 .mutualBreakup(pairing.isMutualBreakup())
                 .active(pairing.isActive())
                 .blacklisted(pairing.isBlacklisted())
-                .user1Age(pairing.getUser1Age())
-                .user1Gender(pairing.getUser1Gender())
-                .user1Region(pairing.getUser1Region())
-                .user1Rank(pairing.getUser1Rank())
-                .user2Age(pairing.getUser2Age())
-                .user2Gender(pairing.getUser2Gender())
-                .user2Region(pairing.getUser2Region())
-                .user2Rank(pairing.getUser2Rank());
+                .build();
 
-        // 🆕 NEW: Add group channel fields if this is a group
-        if (pairing.isGroupChannel()) {
-            try {
-                List<String> groupUserIds = objectMapper.readValue(pairing.getGroupUserIds(), List.class);
-                List<String> groupDiscordIds = objectMapper.readValue(pairing.getGroupDiscordIds(), List.class);
-                List<CreatePairingRequestDTO.GroupMemberInfo> groupMembersData = objectMapper.readValue(
-                    pairing.getGroupMembersData(), 
-                    objectMapper.getTypeFactory().constructCollectionType(List.class, CreatePairingRequestDTO.GroupMemberInfo.class)
-                );
+        dto.setUser1Age(pairing.getUser1Age());
+        dto.setUser1Gender(pairing.getUser1Gender());
+        dto.setUser1Region(pairing.getUser1Region());
+        dto.setUser1Rank(pairing.getUser1Rank());
+        
+        dto.setUser2Age(pairing.getUser2Age());
+        dto.setUser2Gender(pairing.getUser2Gender());
+        dto.setUser2Region(pairing.getUser2Region());
+        dto.setUser2Rank(pairing.getUser2Rank());
 
-                // Convert to GroupMemberDTO
-                List<PairingDTO.GroupMemberDTO> groupMembers = groupMembersData.stream()
-                        .map(member -> PairingDTO.GroupMemberDTO.builder()
-                                .userId(member.getUserId())
-                                .discordId(member.getDiscordId())
-                                .age(member.getAge())
-                                .gender(member.getGender())
-                                .region(member.getRegion())
-                                .rank(member.getRank())
-                                .messageCount(0) // TODO: Track individual message counts in groups
-                                .active(true)
-                                .build())
-                        .collect(Collectors.toList());
-
-                builder.isGroupChannel(true)
-                       .groupChannelType(pairing.getGroupChannelType())
-                       .groupRegion(pairing.getGroupRegion())
-                       .groupUserIds(groupUserIds)
-                       .groupDiscordIds(groupDiscordIds)
-                       .groupMembers(groupMembers)
-                       .totalGroupMembers(pairing.getTotalGroupMembers())
-                       .maleCount(pairing.getMaleCount())
-                       .femaleCount(pairing.getFemaleCount())
-                       .groupCreatedAt(pairing.getGroupCreatedAt());
-
-            } catch (Exception e) {
-                log.error("Failed to parse group data for pairing {}: {}", pairing.getId(), e.getMessage());
-                // Fallback - return as individual pairing
-                builder.isGroupChannel(false);
-            }
-        } else {
-            builder.isGroupChannel(false);
-        }
-
-        return builder.build();
+        return dto;
     }
 
     /**
