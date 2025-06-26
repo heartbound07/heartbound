@@ -175,6 +175,15 @@ public class BlackjackGame {
         return deck;
     }
 
+    // Add setter methods for dramatic effects
+    public void setDealerTurn(boolean dealerTurn) {
+        this.dealerTurn = dealerTurn;
+    }
+
+    public void setGameEnded(boolean gameEnded) {
+        this.gameEnded = gameEnded;
+    }
+
     /**
      * Enum representing possible game results.
      */

@@ -254,11 +254,70 @@ public class BlackjackCommandListener extends ListenerAdapter {
             return;
         }
         
-        // Player stands, dealer plays
-        game.playerStand();
-        logger.debug("User {} stood, dealer played automatically", game.getUserId());
+        // Player stands, start dealer reveal sequence
+        game.setDealerTurn(true); // Mark that it's dealer's turn
+        logger.debug("User {} stood, starting dealer reveal sequence", game.getUserId());
         
-        handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
+        // First, reveal dealer's hidden card
+        MessageEmbed embed = buildGameEmbed(game, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl(), false);
+        event.getHook().editOriginalEmbeds(embed)
+                .setComponents() // Remove buttons since player's turn is over
+                .queue();
+        
+        // Start the dramatic dealer sequence after a short delay
+        java.util.concurrent.ScheduledExecutorService scheduler = java.util.concurrent.Executors.newScheduledThreadPool(1);
+        
+        scheduler.schedule(() -> {
+            playDealerHandWithDelay(event, game, user, scheduler, 0);
+        }, 2, java.util.concurrent.TimeUnit.SECONDS); // 2 second delay before dealer starts hitting
+    }
+    
+    private void playDealerHandWithDelay(ButtonInteractionEvent event, BlackjackGame game, User user, 
+                                        java.util.concurrent.ScheduledExecutorService scheduler, int hitCount) {
+        try {
+            BlackjackHand dealerHand = game.getDealerHand();
+            
+            // Check if dealer needs to hit (less than 17)
+            if (dealerHand.getValue() < 17) {
+                // Dealer hits
+                Card newCard = game.getDeck().dealCard();
+                dealerHand.addCard(newCard);
+                
+                logger.debug("Dealer hit #{}: {}, new total: {}", hitCount + 1, newCard, dealerHand.getValue());
+                
+                // Update the embed to show the new card
+                MessageEmbed embed = buildGameEmbed(game, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl(), false);
+                event.getHook().editOriginalEmbeds(embed).queue();
+                
+                // Check if dealer busted
+                if (dealerHand.isBusted()) {
+                    // Dealer busted, end game after short delay
+                    scheduler.schedule(() -> {
+                        game.setGameEnded(true);
+                        handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
+                        scheduler.shutdown();
+                    }, 1500, java.util.concurrent.TimeUnit.MILLISECONDS);
+                } else {
+                    // Continue dealer hitting after delay
+                    scheduler.schedule(() -> {
+                        playDealerHandWithDelay(event, game, user, scheduler, hitCount + 1);
+                    }, 2500, java.util.concurrent.TimeUnit.MILLISECONDS); // 2.5 second delay between dealer hits
+                }
+            } else {
+                // Dealer stands (17 or higher), end game after short delay
+                scheduler.schedule(() -> {
+                    game.setGameEnded(true);
+                    handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
+                    scheduler.shutdown();
+                }, 1500, java.util.concurrent.TimeUnit.MILLISECONDS);
+            }
+        } catch (Exception e) {
+            logger.error("Error during dealer play sequence for user {}", game.getUserId(), e);
+            // Fallback: complete the game immediately
+            game.playerStand();
+            handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
+            scheduler.shutdown();
+        }
     }
     
     private void handleGameEnd(Object hook, BlackjackGame game, User user, boolean isInitialBlackjack, String discordUserName, String discordAvatarUrl) {
