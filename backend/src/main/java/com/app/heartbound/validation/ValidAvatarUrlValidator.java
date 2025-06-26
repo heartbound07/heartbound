@@ -5,7 +5,7 @@ import jakarta.validation.ConstraintValidatorContext;
 import org.springframework.util.StringUtils;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.regex.Pattern;
 
 /**
@@ -45,11 +45,12 @@ public class ValidAvatarUrlValidator implements ConstraintValidator<ValidAvatarU
             return false;
         }
 
-        // Additional URL validation
+        // Additional URL validation using modern URI.create().toURL() approach
+        // This replaces the deprecated URL(String) constructor
         try {
-            new URL(value);
+            URI.create(value).toURL();
             return true;
-        } catch (MalformedURLException e) {
+        } catch (MalformedURLException | IllegalArgumentException e) {
             return false;
         }
     }
