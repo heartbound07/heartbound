@@ -50,14 +50,39 @@ public class BlackjackCommandListener extends ListenerAdapter {
         
         // Check for active game first
         if (activeGames.containsKey(userId)) {
-            event.reply("You cannot run this command again! You must complete the previous game first.")
-                    .setEphemeral(true)
-                    .queue();
-            return;
+            // User has an active game, show current state
+            event.deferReply().queue();
+            
+            try {
+                BlackjackGame existingGame = activeGames.get(userId);
+                
+                if (existingGame.isGameEnded()) {
+                    // Game ended but wasn't cleaned up properly, remove it and start fresh
+                    activeGames.remove(userId);
+                    // Continue to create new game below
+                } else {
+                    // Show current game state
+                    MessageEmbed embed = buildGameEmbed(existingGame, event.getUser().getName(), event.getUser().getEffectiveAvatarUrl(), false);
+                    
+                    Button hitButton = Button.success("blackjack_hit:" + userId, "Hit");
+                    Button stayButton = Button.danger("blackjack_stay:" + userId, "Stay");
+                    
+                    event.getHook().sendMessageEmbeds(embed)
+                            .addActionRow(hitButton, stayButton)
+                            .queue();
+                    return;
+                }
+            } catch (Exception e) {
+                logger.error("Error showing existing game for user {}", userId, e);
+                // Remove the corrupted game and continue to create new game
+                activeGames.remove(userId);
+            }
         }
         
-        // Acknowledge the interaction immediately
-        event.deferReply().queue();
+        // Acknowledge the interaction immediately (if not already done above)
+        if (!activeGames.containsKey(userId)) {
+            event.deferReply().queue();
+        }
         
         try {
             // Get bet amount from command option
