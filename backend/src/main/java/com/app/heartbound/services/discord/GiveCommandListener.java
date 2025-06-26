@@ -125,15 +125,31 @@ public class GiveCommandListener extends ListenerAdapter {
                 return;
             }
             
-            // Update the recipient's credits
-            Integer currentCredits = recipientUser.getCredits();
-            int newCredits = (currentCredits != null ? currentCredits : 0) + amount;
-            recipientUser.setCredits(newCredits);
+            // Check if giver has enough credits
+            Integer giverCredits = giverUser.getCredits();
+            int currentGiverCredits = (giverCredits != null) ? giverCredits : 0;
             
-            // Save the updated user
+            if (currentGiverCredits < amount) {
+                event.getHook().editOriginal(String.format("❌ You don't have enough credits! You have **🪙 %d** credits but need **🪙 %d** to give.", currentGiverCredits, amount)).queue();
+                logger.debug("User {} attempted to give {} credits but only has {}", giverUserId, amount, currentGiverCredits);
+                return;
+            }
+            
+            // Deduct credits from giver
+            int newGiverCredits = currentGiverCredits - amount;
+            giverUser.setCredits(newGiverCredits);
+            
+            // Add credits to recipient
+            Integer currentRecipientCredits = recipientUser.getCredits();
+            int newRecipientCredits = (currentRecipientCredits != null ? currentRecipientCredits : 0) + amount;
+            recipientUser.setCredits(newRecipientCredits);
+            
+            // Save both users
+            userService.updateUser(giverUser);
             userService.updateUser(recipientUser);
             
-            // Invalidate the user's profile cache to ensure fresh data
+            // Invalidate both users' profile caches to ensure fresh data
+            cacheConfig.invalidateUserProfileCache(giverUserId);
             cacheConfig.invalidateUserProfileCache(targetUserId);
             
             // Update cooldown timestamp for successful command
@@ -145,8 +161,8 @@ public class GiveCommandListener extends ListenerAdapter {
             
             event.getHook().editOriginal(successMessage).queue();
             
-            logger.info("User {} successfully gave {} credits to user {}. New balance: {}", 
-                giverUserId, amount, targetUserId, newCredits);
+            logger.info("User {} successfully gave {} credits to user {}. Giver new balance: {}, Recipient new balance: {}", 
+                giverUserId, amount, targetUserId, newGiverCredits, newRecipientCredits);
             
         } catch (Exception e) {
             logger.error("Error processing /give command for user {}", event.getUser().getId(), e);
