@@ -34,6 +34,9 @@ public class PrisonCommandListener extends ListenerAdapter {
     
     private static final Logger logger = LoggerFactory.getLogger(PrisonCommandListener.class);
     private static final String PRISON_ROLE_ID = "1387934212216328202";
+    private static final String HEAD_MOD_ROLE_ID = "1161777177109483581";
+    private static final String MOD_ROLE_ID = "1161797355096518759";
+    private static final String JR_MOD_ROLE_ID = "1167669829117935666";
     
     private final CacheConfig cacheConfig;
     
@@ -60,11 +63,17 @@ public class PrisonCommandListener extends ListenerAdapter {
             return;
         }
         
-        // Check if the user has ADMINISTRATOR or MODERATE_MEMBERS permissions
-        if (!commandMember.hasPermission(Permission.ADMINISTRATOR) && 
-            !commandMember.hasPermission(Permission.MODERATE_MEMBERS)) {
+        // Check if the user has ADMINISTRATOR, MODERATE_MEMBERS permissions, or moderator roles
+        boolean hasPermission = commandMember.hasPermission(Permission.ADMINISTRATOR) || 
+                               commandMember.hasPermission(Permission.MODERATE_MEMBERS) ||
+                               commandMember.getRoles().stream().anyMatch(role -> 
+                                   role.getId().equals(HEAD_MOD_ROLE_ID) || 
+                                   role.getId().equals(MOD_ROLE_ID) || 
+                                   role.getId().equals(JR_MOD_ROLE_ID));
+        
+        if (!hasPermission) {
             logger.warn("User {} attempted to use /prison without required permissions", event.getUser().getId());
-            event.reply("You do not have permission to use this command. You need either Administrator or Moderate Members permission.").queue();
+            event.reply("You do not have permission to use this command. You need Administrator, Moderate Members permission, or a moderator role.").queue();
             return;
         }
         
