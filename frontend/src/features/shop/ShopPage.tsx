@@ -12,12 +12,14 @@ import '@/assets/shoppage.css';
 import React, { forwardRef } from 'react';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 import NameplatePreview from '@/components/NameplatePreview';
+import BadgePreview from '@/components/BadgePreview';
 
 // Add category mapping for special cases
 const categoryDisplayMapping: Record<string, string> = {
   'USER_COLOR': 'Nameplate',
   'LISTING': 'Listing Color',
-  'ACCENT': 'Profile Accent'
+  'ACCENT': 'Profile Accent',
+  'BADGE': 'Badge'
 };
 
 // Format category for display with custom mappings
@@ -32,6 +34,7 @@ interface ShopItem {
   price: number;
   category: string;
   imageUrl: string;
+  thumbnailUrl?: string;
   requiredRole: Role | null;
   owned: boolean;
   rarity: string;
@@ -90,7 +93,7 @@ const ShopItemCard = forwardRef(({
       className={`shop-item-card ${isRecentlyPurchased ? 'shop-item-recent-purchase' : ''}`}
       style={{ borderColor: 'transparent' }}
     >
-      {/* Item image or Discord preview for USER_COLOR */}
+      {/* Item image or Discord preview for USER_COLOR or BADGE preview */}
       {item.category === 'USER_COLOR' ? (
         <div className="shop-item-image discord-preview">
           <NameplatePreview
@@ -99,6 +102,34 @@ const ShopItemCard = forwardRef(({
             color={item.imageUrl}
             fallbackColor={rarityColor}
             message="This is the color for the Nameplate!"
+            className="h-full w-full rounded-t-lg"
+            size="md"
+          />
+          
+          {/* Status badges - Removed "Owned" badge, keeping only role requirement badge */}
+          {!item.owned && item.requiredRole && user?.roles && !user.roles.includes(item.requiredRole) && (
+            <div className="item-badge badge-required">
+              {item.requiredRole} Required
+            </div>
+          )}
+          
+          {/* Recent purchase effect */}
+          {isRecentlyPurchased && (
+            <motion.div 
+              initial={{ opacity: 0.8 }}
+              animate={{ opacity: 0 }}
+              transition={{ duration: 2 }}
+              className="absolute inset-0 bg-green-500/20 rounded-t-lg z-10"
+            />
+          )}
+        </div>
+      ) : item.category === 'BADGE' ? (
+        <div className="shop-item-image discord-preview">
+          <BadgePreview
+            username={user?.username || "Username"}
+            avatar={user?.avatar || "/default-avatar.png"}
+            badgeUrl={item.thumbnailUrl || item.imageUrl}
+            message="This is how the badge will appear!"
             className="h-full w-full rounded-t-lg"
             size="md"
           />
