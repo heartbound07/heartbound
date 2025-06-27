@@ -73,10 +73,6 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
             src={badgeUrl} 
             alt="Badge"
             className={`${badgeSizes[size]} rounded-full object-cover flex-shrink-0`}
-            style={{
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              background: 'rgba(0, 0, 0, 0.1)'
-            }}
           />
         </div>
         
