@@ -10,6 +10,7 @@ import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rar
 import { formatDisplayText } from '@/utils/formatters';
 import { Skeleton } from '@/components/ui/SkeletonUI';
 import NameplatePreview from '@/components/NameplatePreview';
+import BadgePreview from '@/components/BadgePreview';
 import BadgeGallery from '@/components/ui/shop/BadgeGallery';
 
 export interface ShopItem {
@@ -505,7 +506,7 @@ export function InventoryPage() {
                               borderColor: item.equipped ? 'var(--color-primary, #0088cc)' : rarityColor
                             }}
                           >
-                            {/* Item image or nameplate preview */}
+                            {/* Item image, nameplate preview, or badge preview */}
                             <div className="inventory-item-image">
                               {item.category === 'USER_COLOR' ? (
                                 <NameplatePreview
@@ -514,6 +515,15 @@ export function InventoryPage() {
                                   color={item.imageUrl}
                                   fallbackColor={getRarityColor(item.rarity)}
                                   message="Your equipped nameplate color"
+                                  className="h-full w-full"
+                                  size="sm"
+                                />
+                              ) : item.category === 'BADGE' ? (
+                                <BadgePreview
+                                  username={user?.username || "Username"}
+                                  avatar={user?.avatar || "/default-avatar.png"}
+                                  badgeUrl={item.thumbnailUrl || item.imageUrl}
+                                  message="Your badge"
                                   className="h-full w-full"
                                   size="sm"
                                 />
