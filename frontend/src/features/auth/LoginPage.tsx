@@ -23,7 +23,6 @@ import {
   UserCircle,
   Shield,
   Zap,
-  Star,
   GamepadIcon,
 } from "lucide-react"
 
