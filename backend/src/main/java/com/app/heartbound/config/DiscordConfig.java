@@ -232,7 +232,6 @@ public class DiscordConfig {
                         .addOptions(
                             new OptionData(OptionType.USER, "user", "The user to prison or release.", true)
                         )
-                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR, Permission.MODERATE_MEMBERS))
                 )
                 .queue(
                     cmds -> {
