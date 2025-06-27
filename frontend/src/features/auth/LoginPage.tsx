@@ -4,6 +4,9 @@ import { CloudBackground } from "@/components/backgrounds/CloudBackground"
 import { Navigation } from "@/components/ui/Navigation"
 import { DiscordLoginButton } from "@/components/ui/DiscordLoginButton"
 import { DiscordIcon } from "@/components/ui/DiscordIcon"
+import { PairingCard } from "@/features/pages/PairingCard"
+import type { PairingDTO } from "@/config/pairingService"
+import type { UserProfileDTO } from "@/config/userService"
 import { motion } from "framer-motion"
 import { useEffect, useState, useRef } from "react"
 
@@ -94,6 +97,44 @@ export function LoginPage() {
     const timer = setTimeout(() => setTitleComplete(true), 1550)
     return () => clearTimeout(timer)
   }, [])
+
+  // Mock data for PairingCard preview
+  const mockUser1Profile: UserProfileDTO = {
+    id: "demo-user-1",
+    username: "ValorantPro",
+    displayName: "Alex Chen",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
+  }
+
+  const mockUser2Profile: UserProfileDTO = {
+    id: "demo-user-2", 
+    username: "RankClimber",
+    displayName: "Sophie Martinez",
+    avatar: "https://images.unsplash.com/photo-1494790108755-2616b332c24b?w=150&h=150&fit=crop&crop=face"
+  }
+
+  const mockPairing: PairingDTO = {
+    id: 1,
+    user1Id: "demo-user-1",
+    user2Id: "demo-user-2",
+    discordChannelId: 1234567890,
+    discordChannelName: "alex-sophie-duo",
+    active: true,
+    blacklisted: false,
+    matchedAt: "2024-01-15T10:30:00Z",
+    messageCount: 847,
+    user1MessageCount: 423,
+    user2MessageCount: 424,
+    voiceTimeMinutes: 2340, // 39 hours
+    wordCount: 15623,
+    emojiCount: 234,
+    activeDays: 28,
+    compatibilityScore: 95.5,
+    mutualBreakup: false,
+    breakupReason: undefined,
+    breakupInitiatorId: undefined,
+    breakupTimestamp: undefined
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#6B5BE6] to-[#8878f0] relative overflow-hidden">
@@ -263,15 +304,137 @@ export function LoginPage() {
           transition={{ duration: 0.6 }}
           viewport={{ once: true, amount: 0.2 }}
         >
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
-            <div className="aspect-video bg-gradient-to-br from-[#6B5BE6]/30 via-[#8878f0]/20 to-[#B794F6]/30 rounded-2xl flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent"></div>
-              <div className="text-center p-8 relative z-10">
-                <Users size={64} className="mx-auto mb-4 text-white/80" />
-                <p className="text-white/60 text-sm">Advanced duo matching system</p>
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
+            <div className="bg-gradient-to-br from-[#6B5BE6]/20 via-[#8878f0]/10 to-[#B794F6]/20 rounded-2xl p-4 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent"></div>
+              <div className="relative z-10">
+                <p className="text-white/70 text-sm mb-4 text-center font-medium">Live Preview</p>
+                <div className="login-page-pairing-theme">
+                  <PairingCard
+                    pairing={mockPairing}
+                    index={0}
+                    user1Profile={mockUser1Profile}
+                    user2Profile={mockUser2Profile}
+                    isActive={true}
+                    onUserClick={() => {}}
+                    formatDate={() => "28 days ago"}
+                    hasAdminActions={false}
+                    currentStreak={7}
+                    currentLevel={12}
+                  />
+                </div>
               </div>
             </div>
           </div>
+
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
+                .login-page-pairing-theme .pairing-card {
+                  background: linear-gradient(135deg, rgba(107, 91, 230, 0.15) 0%, rgba(136, 120, 240, 0.1) 50%, rgba(183, 148, 246, 0.15) 100%) !important;
+                  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+                  backdrop-filter: blur(16px) !important;
+                  color: white !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__header {
+                  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__status-text {
+                  color: rgba(255, 255, 255, 0.8) !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__status-dot--active {
+                  background: linear-gradient(45deg, #10B981, #34D399) !important;
+                  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4) !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__username {
+                  color: rgba(255, 255, 255, 0.9) !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__heart {
+                  color: #F472B6 !important;
+                  filter: drop-shadow(0 0 6px rgba(244, 114, 182, 0.3)) !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__metric-value {
+                  color: rgba(255, 255, 255, 0.9) !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__metric-icon--level {
+                  color: #FBBF24 !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__metric-icon--messages {
+                  color: #8B5CF6 !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__metric-icon--voice {
+                  color: #06B6D4 !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__metric-icon--streak {
+                  color: #F97316 !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__duration {
+                  color: rgba(255, 255, 255, 0.7) !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__chevron {
+                  color: rgba(255, 255, 255, 0.4) !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card:hover {
+                  background: linear-gradient(135deg, rgba(107, 91, 230, 0.2) 0%, rgba(136, 120, 240, 0.15) 50%, rgba(183, 148, 246, 0.2) 100%) !important;
+                  border-color: rgba(255, 255, 255, 0.2) !important;
+                  transform: translateY(-2px) !important;
+                  box-shadow: 0 8px 32px rgba(107, 91, 230, 0.2) !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__avatar-fallback {
+                  background: linear-gradient(135deg, #6B5BE6, #8878f0) !important;
+                  color: white !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__user {
+                  background: rgba(255, 255, 255, 0.05) !important;
+                  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                  border-radius: 12px !important;
+                  padding: 8px 12px !important;
+                  transition: all 0.2s ease !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__user:hover {
+                  background: rgba(255, 255, 255, 0.1) !important;
+                  border-color: rgba(255, 255, 255, 0.2) !important;
+                  transform: translateY(-1px) !important;
+                  box-shadow: 0 4px 16px rgba(107, 91, 230, 0.2) !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__metric {
+                  background: rgba(255, 255, 255, 0.05) !important;
+                  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                  border-radius: 8px !important;
+                  padding: 6px 10px !important;
+                  transition: all 0.2s ease !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__metric:hover {
+                  background: rgba(255, 255, 255, 0.08) !important;
+                  border-color: rgba(255, 255, 255, 0.15) !important;
+                  transform: translateY(-1px) !important;
+                }
+                
+                .login-page-pairing-theme .pairing-card__footer {
+                  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+                  background: rgba(255, 255, 255, 0.02) !important;
+                }
+              `,
+            }}
+          />
 
           <div>
             <div className="inline-flex items-center bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 mb-6">
@@ -389,7 +552,7 @@ export function LoginPage() {
               <span className="text-sm font-medium text-white/90">Getting Started</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 font-grandstander">
-              Simple Steps to Success
+              Simple Steps
             </h2>
             <p className="text-white/70 text-lg max-w-2xl mx-auto leading-relaxed">
               Get matched with your perfect gaming partner in three easy steps
@@ -407,7 +570,7 @@ export function LoginPage() {
               },
               {
                 title: "Set Preferences",
-                description: "Tell us your games, schedule, and what kind of teammate you're looking for",
+                description: "Tell us your Gender, Age, Rank, Region, and what kind of teammate you're looking for",
                 icon: UserCircle,
                 delay: 0.2,
                 step: "02",
