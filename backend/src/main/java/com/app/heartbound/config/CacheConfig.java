@@ -87,6 +87,13 @@ public class CacheConfig {
     @Value("${cache.discord-bot-settings.expire-after-write-minutes:30}")
     private long discordBotSettingsCacheExpireMinutes;
 
+    // Prison Cache Configuration
+    @Value("${cache.prison.max-size:1000}")
+    private long prisonCacheMaxSize;
+
+    @Value("${cache.prison.expire-after-write-hours:72}")
+    private long prisonCacheExpireHours;
+
     // Cache instances
     private Cache<Long, Object> pairLevelCache;
     private Cache<String, List<Object>> achievementListCache;
@@ -98,6 +105,7 @@ public class CacheConfig {
     private Cache<String, List<Object>> dailyMessageActivityCache;
     private Cache<String, Object> dailyClaimCache;
     private Cache<Long, Object> discordBotSettingsCache;
+    private Cache<String, List<String>> prisonCache;
 
     @PostConstruct
     public void initializeCaches() {
@@ -223,6 +231,18 @@ public class CacheConfig {
                 .recordStats()
                 .build();
 
+        // Prison Cache - stores user role data for prison system
+        this.prisonCache = Caffeine.newBuilder()
+                .maximumSize(prisonCacheMaxSize)
+                .expireAfterWrite(prisonCacheExpireHours, TimeUnit.HOURS)
+                .removalListener((RemovalListener<String, List<String>>) (key, value, cause) -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Prison cache entry removed: userId={}, cause={}", key, cause);
+                    }
+                })
+                .recordStats()
+                .build();
+
         log.info("Pairing System Performance Caches initialized successfully - " +
                 "PairLevel: {}/{} entries/minutes, " +
                 "Achievement: {}/{} entries/minutes, " +
@@ -231,7 +251,8 @@ public class CacheConfig {
                 "BatchOps: {}/{} entries/minutes, " +
                 "DailyActivity: {}/{} entries/minutes, " +
                 "DailyClaim: {}/{} entries/minutes, " +
-                "DiscordBotSettings: {}/{} entries/minutes",
+                "DiscordBotSettings: {}/{} entries/minutes, " +
+                "Prison: {}/{} entries/hours",
                 pairLevelCacheMaxSize, pairLevelCacheExpireMinutes,
                 achievementCacheMaxSize, achievementCacheExpireMinutes,
                 voiceStreakCacheMaxSize, voiceStreakCacheExpireMinutes,
@@ -239,7 +260,8 @@ public class CacheConfig {
                 batchOperationsCacheMaxSize, batchOperationsCacheExpireMinutes,
                 dailyActivityCacheMaxSize, dailyActivityCacheExpireMinutes,
                 dailyClaimCacheMaxSize, dailyClaimCacheExpireMinutes,
-                discordBotSettingsCacheMaxSize, discordBotSettingsCacheExpireMinutes);
+                discordBotSettingsCacheMaxSize, discordBotSettingsCacheExpireMinutes,
+                prisonCacheMaxSize, prisonCacheExpireHours);
     }
 
     /**
@@ -326,6 +348,17 @@ public class CacheConfig {
     }
 
     /**
+     * Invalidates prison cache for a specific user.
+     * Use when a user's prison status is updated externally.
+     */
+    public void invalidatePrisonCache(String userId) {
+        if (userId != null) {
+            prisonCache.invalidate(userId);
+            log.debug("Prison cache invalidated for user: {}", userId);
+        }
+    }
+
+    /**
      * Invalidates all caches. Use with caution - only for scenarios like
      * system maintenance or emergency cache refresh.
      */
@@ -341,6 +374,7 @@ public class CacheConfig {
         dailyMessageActivityCache.invalidateAll();
         dailyClaimCache.invalidateAll();
         discordBotSettingsCache.invalidateAll();
+        prisonCache.invalidateAll();
         log.info("All pairing system caches invalidated successfully");
     }
 
@@ -369,6 +403,8 @@ public class CacheConfig {
                 .dailyClaimSize(dailyClaimCache.estimatedSize())
                 .discordBotSettingsHitRate(discordBotSettingsCache.stats().hitRate())
                 .discordBotSettingsSize(discordBotSettingsCache.estimatedSize())
+                .prisonHitRate(prisonCache.stats().hitRate())
+                .prisonSize(prisonCache.estimatedSize())
                 .build();
     }
 
@@ -388,6 +424,7 @@ public class CacheConfig {
         dailyMessageActivityCache.cleanUp();
         dailyClaimCache.cleanUp();
         discordBotSettingsCache.cleanUp();
+        prisonCache.cleanUp();
         log.debug("Pairing cache maintenance completed");
     }
 
@@ -417,5 +454,7 @@ public class CacheConfig {
         private final long dailyClaimSize;
         private final double discordBotSettingsHitRate;
         private final long discordBotSettingsSize;
+        private final double prisonHitRate;
+        private final long prisonSize;
     }
 } 

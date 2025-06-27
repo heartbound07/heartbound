@@ -15,6 +15,7 @@ import com.app.heartbound.services.discord.CoinflipCommandListener;
 import com.app.heartbound.services.discord.DailyCommandListener;
 import com.app.heartbound.services.discord.GiveCommandListener;
 import com.app.heartbound.services.discord.BlackjackCommandListener;
+import com.app.heartbound.services.discord.PrisonCommandListener;
 import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
 import com.app.heartbound.services.discord.UserVoiceActivityService;
@@ -106,6 +107,9 @@ public class DiscordConfig {
     @Autowired
     private UserVoiceActivityService userVoiceActivityService;
 
+    @Autowired
+    private PrisonCommandListener prisonCommandListener;
+
     @Bean
     public JDA jda() {
         if (discordToken == null || discordToken.isBlank() || discordToken.equals("${DISCORD_BOT_TOKEN}")) {
@@ -144,7 +148,7 @@ public class DiscordConfig {
                                       creditsCommandListener, dailyCommandListener, coinflipCommandListener, giveCommandListener, blackjackCommandListener, welcomeListener, welcomeCommandListener,
                                       inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
-                                      userVoiceActivityService)
+                                      userVoiceActivityService, prisonCommandListener)
                     .build();
 
             // Waits until JDA is fully connected and ready
@@ -223,7 +227,12 @@ public class DiscordConfig {
                         .addOptions(
                             new OptionData(OptionType.INTEGER, "bet", "The amount of credits you want to bet", true)
                                 .setMinValue(1)
+                        ),
+                    Commands.slash("prison", "Removes all roles from a user and assigns the prison role, or releases them.")
+                        .addOptions(
+                            new OptionData(OptionType.USER, "user", "The user to prison or release.", true)
                         )
+                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR, Permission.MODERATE_MEMBERS))
                 )
                 .queue(
                     cmds -> {
