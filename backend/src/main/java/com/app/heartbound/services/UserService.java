@@ -185,12 +185,10 @@ public class UserService {
         }
 
         // Update common fields for both new and existing users from DTO
-        // (Username, discriminator, email might change on Discord)
+        // (Username, discriminator might change on Discord)
         user.setUsername(username);
         user.setDiscriminator(discriminator);
-        if (email != null) { // Only update email if provided by Discord
-            user.setEmail(email);
-        }
+        // Note: Email is no longer requested from Discord OAuth, so it remains null
         
         // Ensure admin role for the configured admin ID (applies to existing users too if role was removed)
         if (id.equals(adminDiscordId)) {
@@ -488,8 +486,8 @@ public class UserService {
         Page<User> users;
         
         if (search != null && !search.trim().isEmpty()) {
-            // Search by username or email containing the search term
-            users = userRepository.findByUsernameContainingOrEmailContaining(search, search, pageable);
+            // Search by username containing the search term (email no longer available)
+            users = userRepository.findByUsernameContaining(search, pageable);
         } else {
             // Get all users without filtering
             users = userRepository.findAll(pageable);
@@ -621,7 +619,7 @@ public class UserService {
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
         dto.setDiscriminator(user.getDiscriminator()); // Include discriminator if needed in DTO
-        dto.setEmail(user.getEmail());
+        dto.setEmail(null); // Email is no longer available from Discord OAuth
         dto.setAvatar(user.getAvatar()); // Use the avatar from the User entity
         dto.setRoles(user.getRoles());
         dto.setCredits(user.getCredits());

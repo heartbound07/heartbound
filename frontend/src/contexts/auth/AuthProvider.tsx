@@ -66,7 +66,6 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       const userInfo: UserInfo = {
         id: userProfileData.id,
         username: userProfileData.username,
-        email: '', // Set email to empty string since it doesn't exist on UserProfileDTO
         avatar: userProfileData.avatar,
         roles: userProfileData.roles || [],
         credits: userProfileData.credits || 0,
@@ -153,7 +152,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
             refreshToken: newRefreshToken || refreshTokenValue,
             tokenType: response.data.token_type || response.data.tokenType || 'bearer',
             expiresIn: response.data.expires_in || response.data.expiresIn || 3600,
-            scope: response.data.scope || 'identify email'
+            scope: response.data.scope || 'identify'
           };
           
           updateTokens(tokenPair);
@@ -166,7 +165,6 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
               const userInfo: UserInfo = {
                 id: userProfileData.id,
                 username: userProfileData.username,
-                email: '', // Consistent with UserProfileDTO not having email
                 avatar: userProfileData.avatar,
                 roles: userProfileData.roles || [],
                 credits: userProfileData.credits || 0,
@@ -262,7 +260,6 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
             const userInfo: UserInfo = {
               id: userProfileData.id,
               username: userProfileData.username,
-              email: '', // Consistent with UserProfileDTO not having email
               avatar: userProfileData.avatar,
               roles: userProfileData.roles || [],
               credits: userProfileData.credits || 0,
@@ -354,7 +351,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         refreshToken: newRefreshTokenVal,
         expiresIn: typeof expiry === 'number' ? expiry : parseInt(expiry, 10),
         tokenType: responseData.tokenType || 'bearer',
-        scope: responseData.scope || 'identify email'
+        scope: responseData.scope || 'identify'
       };
       updateTokens(tokenPair);
       
@@ -367,7 +364,6 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       const userInfo: UserInfo = {
         id: userProfileData.id,
         username: userProfileData.username,
-        email: '', 
         avatar: userProfileData.avatar,
         roles: userProfileData.roles || [],
         credits: userProfileData.credits || 0,
@@ -445,7 +441,6 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         const userInfo: UserInfo = {
           id: userProfileData.id,
           username: userProfileData.username,
-          email: '',
           avatar: userProfileData.avatar,
           roles: userProfileData.roles || [],
           credits: userProfileData.credits || 0,

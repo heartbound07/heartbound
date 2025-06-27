@@ -26,8 +26,8 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Query("SELECT COUNT(u) > 0 FROM User u JOIN u.roles r WHERE u.id = :userId AND r = :role")
     boolean hasRole(String userId, Role role);
 
-    // Find users by username or email containing a search term
-    Page<User> findByUsernameContainingOrEmailContaining(String username, String email, Pageable pageable);
+    // Find users by username containing a search term (email no longer available)
+    Page<User> findByUsernameContaining(String username, Pageable pageable);
 
     // Add this method to your existing UserRepository interface
     List<User> findByInventoryContaining(Shop item);

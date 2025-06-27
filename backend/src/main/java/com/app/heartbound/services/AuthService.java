@@ -74,7 +74,7 @@ public class AuthService {
         String token = jwtTokenProvider.generateToken(
                 userDTO.getId(),
                 userDTO.getUsername(),
-                userDTO.getEmail(),
+                null, // Email no longer available from Discord OAuth
                 userDTO.getAvatar(),
                 roles,
                 credits

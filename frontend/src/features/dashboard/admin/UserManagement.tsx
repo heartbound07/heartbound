@@ -245,7 +245,7 @@ export function UserManagement() {
                 type="text"
                 value={searchTerm}
                 onChange={handleSearchChange}
-                placeholder="Search users by username or email..."
+                placeholder="Search users by username..."
                 className="w-full pl-10 pr-4 py-2 bg-slate-800/50 rounded-md border border-white/5 text-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-transparent"
               />
             </div>
@@ -270,7 +270,7 @@ export function UserManagement() {
             <thead className="text-xs text-slate-500 uppercase bg-slate-900/50">
               <tr>
                 <th scope="col" className="px-6 py-3">User</th>
-                <th scope="col" className="px-6 py-3">Email</th>
+                <th scope="col" className="px-6 py-3">User ID</th>
                 <th scope="col" className="px-6 py-3">Roles</th>
                 <th scope="col" className="px-6 py-3">Credits</th>
                 <th scope="col" className="px-6 py-3">Actions</th>

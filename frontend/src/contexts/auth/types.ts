@@ -6,7 +6,6 @@ export type Role = 'USER' | 'MONARCH' | 'MODERATOR' | 'ADMIN';
 export interface UserInfo {
   id: string;
   username: string;
-  email: string;
   discordId?: string;
   avatar?: string;
   roles?: Role[];
@@ -33,7 +32,6 @@ export interface LoginRequest {
 
 export interface RegisterRequest {
   username: string;
-  email: string;
   password: string;
 }
 
