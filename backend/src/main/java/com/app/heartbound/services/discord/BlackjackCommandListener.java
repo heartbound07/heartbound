@@ -380,7 +380,7 @@ public class BlackjackCommandListener extends ListenerAdapter {
             dealerCards = dealerHand.getCardsUnicode();
         } else {
             // Hide dealer's first card
-            dealerTitle = "Dealer [" + dealerHand.getFirstCardValue() + " + ?]";
+            dealerTitle = "Dealer [" + dealerHand.getSecondCardValue() + " + ?]";
             dealerCards = dealerHand.getCardsUnicode(true);
         }
         

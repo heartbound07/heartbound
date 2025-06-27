@@ -145,6 +145,17 @@ public class BlackjackHand {
     }
 
     /**
+     * Get the value of the second card (the visible card when first is hidden).
+     * @return the value of the second card, or 0 if not available
+     */
+    public int getSecondCardValue() {
+        if (cards.size() < 2) {
+            return 0;
+        }
+        return cards.get(1).getBlackjackValue();
+    }
+
+    /**
      * Clear all cards from the hand.
      */
     public void clear() {
