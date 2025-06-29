@@ -170,6 +170,18 @@ public class CountingGameService {
             return CountingResult.GAME_DISABLED;
         }
         
+        // Check if user exists in database (following pattern from FishCommandListener)
+        try {
+            User user = userService.getUserById(userId);
+            if (user == null) {
+                log.warn("User {} not found in database when attempting to count", userId);
+                return CountingResult.USER_NOT_FOUND;
+            }
+        } catch (Exception e) {
+            log.error("Error checking user existence for counting: {}", e.getMessage(), e);
+            return CountingResult.USER_NOT_FOUND;
+        }
+        
         // Check if user is timed out
         if (userDataRepository.isUserTimedOut(userId, LocalDateTime.now())) {
             return CountingResult.USER_TIMED_OUT;
@@ -479,12 +491,13 @@ public class CountingGameService {
         public static final CountingResult CORRECT = new CountingResult(Type.CORRECT, null, null, null, null);
         public static final CountingResult GAME_DISABLED = new CountingResult(Type.GAME_DISABLED, null, null, null, null);
         public static final CountingResult USER_TIMED_OUT = new CountingResult(Type.USER_TIMED_OUT, null, null, null, null);
+        public static final CountingResult USER_NOT_FOUND = new CountingResult(Type.USER_NOT_FOUND, null, null, null, null);
         public static final CountingResult WRONG_NUMBER = new CountingResult(Type.WRONG_NUMBER, null, null, null, null);
         public static final CountingResult CONSECUTIVE_COUNT = new CountingResult(Type.CONSECUTIVE_COUNT, null, null, null, null);
         public static final CountingResult WRONG_NUMBER_WARNING = new CountingResult(Type.WRONG_NUMBER_WARNING, null, null, null, null);
         
         public enum Type {
-            CORRECT, GAME_DISABLED, USER_TIMED_OUT, WRONG_NUMBER, CONSECUTIVE_COUNT, WRONG_NUMBER_WARNING
+            CORRECT, GAME_DISABLED, USER_TIMED_OUT, USER_NOT_FOUND, WRONG_NUMBER, CONSECUTIVE_COUNT, WRONG_NUMBER_WARNING
         }
         
         private final Type type;

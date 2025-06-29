@@ -115,6 +115,15 @@ public class CountingGameListener extends ListenerAdapter {
                 log.debug("Ignoring count attempt from timed out user: {}", userId);
                 break;
                 
+            case USER_NOT_FOUND:
+                // Send message following pattern from FishCommandListener
+                String userNotFoundMessage = String.format("<@%s> Could not find your account. Please log in to the web application first before participating in the counting game.", userId);
+                event.getChannel().sendMessage(userNotFoundMessage).queue(
+                    success -> log.debug("Sent user not found message to user {}", userId),
+                    error -> log.warn("Failed to send user not found message: {}", error.getMessage())
+                );
+                break;
+                
             case GAME_DISABLED:
                 // Game is disabled, ignore
                 log.debug("Counting game is disabled, ignoring count attempt");
