@@ -16,6 +16,7 @@ import com.app.heartbound.services.discord.DailyCommandListener;
 import com.app.heartbound.services.discord.GiveCommandListener;
 import com.app.heartbound.services.discord.BlackjackCommandListener;
 import com.app.heartbound.services.discord.PrisonCommandListener;
+import com.app.heartbound.services.discord.CountingGameListener;
 import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
 import com.app.heartbound.services.discord.UserVoiceActivityService;
@@ -110,6 +111,9 @@ public class DiscordConfig {
     @Autowired
     private PrisonCommandListener prisonCommandListener;
 
+    @Autowired
+    private CountingGameListener countingGameListener;
+
     @Bean
     public JDA jda() {
         if (discordToken == null || discordToken.isBlank() || discordToken.equals("${DISCORD_BOT_TOKEN}")) {
@@ -148,7 +152,7 @@ public class DiscordConfig {
                                       creditsCommandListener, dailyCommandListener, coinflipCommandListener, giveCommandListener, blackjackCommandListener, welcomeListener, welcomeCommandListener,
                                       inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
-                                      userVoiceActivityService, prisonCommandListener)
+                                      userVoiceActivityService, prisonCommandListener, countingGameListener)
                     .build();
 
             // Waits until JDA is fully connected and ready

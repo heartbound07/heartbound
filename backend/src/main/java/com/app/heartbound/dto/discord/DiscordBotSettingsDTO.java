@@ -85,4 +85,19 @@ public class DiscordBotSettingsDTO {
     
     @Pattern(regexp = "^\\d*$", message = "Channel ID must contain only digits")
     private String inactivityChannelId;
+    
+    // Counting Game Configuration
+    private Boolean countingGameEnabled;
+    
+    @Pattern(regexp = "^\\d*$", message = "Channel ID must contain only digits")
+    private String countingChannelId;
+    
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String countingTimeoutRoleId;
+    
+    @Min(1)
+    private Integer creditsPerCount;
+    
+    @Min(1)
+    private Integer countingLives;
 } 

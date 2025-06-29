@@ -94,6 +94,13 @@ public class CacheConfig {
     @Value("${cache.prison.expire-after-write-hours:72}")
     private long prisonCacheExpireHours;
 
+    // Counting Game Cache Configuration
+    @Value("${cache.counting-game.max-size:100}")
+    private long countingGameCacheMaxSize;
+
+    @Value("${cache.counting-game.expire-after-write-minutes:15}")
+    private long countingGameCacheExpireMinutes;
+
     // Cache instances
     private Cache<Long, Object> pairLevelCache;
     private Cache<String, List<Object>> achievementListCache;
@@ -106,6 +113,7 @@ public class CacheConfig {
     private Cache<String, Object> dailyClaimCache;
     private Cache<Long, Object> discordBotSettingsCache;
     private Cache<String, List<String>> prisonCache;
+    private Cache<String, Object> countingGameCache;
 
     @PostConstruct
     public void initializeCaches() {
@@ -243,6 +251,18 @@ public class CacheConfig {
                 .recordStats()
                 .build();
 
+        // Counting Game Cache - stores counting game state and user data
+        this.countingGameCache = Caffeine.newBuilder()
+                .maximumSize(countingGameCacheMaxSize)
+                .expireAfterWrite(countingGameCacheExpireMinutes, TimeUnit.MINUTES)
+                .removalListener((RemovalListener<String, Object>) (key, value, cause) -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Counting game cache entry removed: key={}, cause={}", key, cause);
+                    }
+                })
+                .recordStats()
+                .build();
+
         log.info("Pairing System Performance Caches initialized successfully - " +
                 "PairLevel: {}/{} entries/minutes, " +
                 "Achievement: {}/{} entries/minutes, " +
@@ -252,7 +272,8 @@ public class CacheConfig {
                 "DailyActivity: {}/{} entries/minutes, " +
                 "DailyClaim: {}/{} entries/minutes, " +
                 "DiscordBotSettings: {}/{} entries/minutes, " +
-                "Prison: {}/{} entries/hours",
+                "Prison: {}/{} entries/hours, " +
+                "CountingGame: {}/{} entries/minutes",
                 pairLevelCacheMaxSize, pairLevelCacheExpireMinutes,
                 achievementCacheMaxSize, achievementCacheExpireMinutes,
                 voiceStreakCacheMaxSize, voiceStreakCacheExpireMinutes,
@@ -261,7 +282,8 @@ public class CacheConfig {
                 dailyActivityCacheMaxSize, dailyActivityCacheExpireMinutes,
                 dailyClaimCacheMaxSize, dailyClaimCacheExpireMinutes,
                 discordBotSettingsCacheMaxSize, discordBotSettingsCacheExpireMinutes,
-                prisonCacheMaxSize, prisonCacheExpireHours);
+                prisonCacheMaxSize, prisonCacheExpireHours,
+                countingGameCacheMaxSize, countingGameCacheExpireMinutes);
     }
 
     /**
@@ -359,6 +381,26 @@ public class CacheConfig {
     }
 
     /**
+     * Invalidates counting game cache.
+     * Use when counting game state or user data is updated.
+     */
+    public void invalidateCountingGameCache() {
+        countingGameCache.invalidateAll();
+        log.debug("Counting game cache invalidated");
+    }
+
+    /**
+     * Invalidates specific counting game cache entry.
+     * Use when specific counting game data is updated.
+     */
+    public void invalidateCountingGameCache(String key) {
+        if (key != null) {
+            countingGameCache.invalidate(key);
+            log.debug("Counting game cache entry invalidated: {}", key);
+        }
+    }
+
+    /**
      * Invalidates all caches. Use with caution - only for scenarios like
      * system maintenance or emergency cache refresh.
      */
@@ -375,6 +417,7 @@ public class CacheConfig {
         dailyClaimCache.invalidateAll();
         discordBotSettingsCache.invalidateAll();
         prisonCache.invalidateAll();
+        countingGameCache.invalidateAll();
         log.info("All pairing system caches invalidated successfully");
     }
 
@@ -425,6 +468,7 @@ public class CacheConfig {
         dailyClaimCache.cleanUp();
         discordBotSettingsCache.cleanUp();
         prisonCache.cleanUp();
+        countingGameCache.cleanUp();
         log.debug("Pairing cache maintenance completed");
     }
 

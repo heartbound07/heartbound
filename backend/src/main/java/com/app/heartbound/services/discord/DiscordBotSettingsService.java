@@ -5,6 +5,7 @@ import com.app.heartbound.entities.DiscordBotSettings;
 import com.app.heartbound.repositories.DiscordBotSettingsRepository;
 import com.app.heartbound.config.CacheConfig;
 import com.app.heartbound.services.discord.UserVoiceActivityService;
+import com.app.heartbound.services.discord.CountingGameService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ public class DiscordBotSettingsService {
     private final DiscordBotSettingsRepository repository;
     private final ChatActivityListener chatActivityListener;
     private final UserVoiceActivityService userVoiceActivityService;
+    private final CountingGameService countingGameService;
     private final Environment environment;
     private final CacheConfig cacheConfig;
     
@@ -135,6 +137,13 @@ public class DiscordBotSettingsService {
         // Map inactivity channel ID
         dto.setInactivityChannelId(settings.getInactivityChannelId());
         
+        // Map counting game settings
+        dto.setCountingGameEnabled(settings.getCountingGameEnabled());
+        dto.setCountingChannelId(settings.getCountingChannelId());
+        dto.setCountingTimeoutRoleId(settings.getCountingTimeoutRoleId());
+        dto.setCreditsPerCount(settings.getCreditsPerCount());
+        dto.setCountingLives(settings.getCountingLives());
+        
         return dto;
     }
     
@@ -172,6 +181,13 @@ public class DiscordBotSettingsService {
         // Update inactivity channel ID
         settings.setInactivityChannelId(dto.getInactivityChannelId());
         
+        // Update counting game settings
+        settings.setCountingGameEnabled(dto.getCountingGameEnabled());
+        settings.setCountingChannelId(dto.getCountingChannelId());
+        settings.setCountingTimeoutRoleId(dto.getCountingTimeoutRoleId());
+        settings.setCreditsPerCount(dto.getCreditsPerCount());
+        settings.setCountingLives(dto.getCountingLives());
+        
         repository.save(settings);
         
         // Invalidate cache after updating settings
@@ -204,6 +220,16 @@ public class DiscordBotSettingsService {
         
         // Update voice activity service with inactivity channel setting
         userVoiceActivityService.updateSettings(settings.getInactivityChannelId());
+        
+        // Update counting game service with new settings
+        countingGameService.updateSettings(
+            System.getProperty("discord.server.id", ""), // Get from system property or environment
+            settings.getCountingChannelId(),
+            settings.getCountingTimeoutRoleId(),
+            settings.getCreditsPerCount(),
+            settings.getCountingLives(),
+            settings.getCountingGameEnabled() != null ? settings.getCountingGameEnabled() : false
+        );
         
         log.info("Discord bot settings updated successfully");
         return dto;
@@ -240,6 +266,16 @@ public class DiscordBotSettingsService {
                 
                 // Apply voice activity settings
                 userVoiceActivityService.updateSettings(settings.getInactivityChannelId());
+                
+                // Apply counting game settings
+                countingGameService.updateSettings(
+                    System.getProperty("discord.server.id", ""), // Get from system property or environment
+                    settings.getCountingChannelId(),
+                    settings.getCountingTimeoutRoleId(),
+                    settings.getCreditsPerCount(),
+                    settings.getCountingLives(),
+                    settings.getCountingGameEnabled() != null ? settings.getCountingGameEnabled() : false
+                );
                 
                 log.info("Applied Discord bot settings from database");
             }

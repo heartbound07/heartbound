@@ -43,6 +43,13 @@ public class DiscordBotSettings {
     // Inactivity channel where users don't accumulate voice time
     private String inactivityChannelId;
 
+    // Counting Game Configuration
+    private Boolean countingGameEnabled = false;
+    private String countingChannelId;
+    private String countingTimeoutRoleId;
+    private Integer creditsPerCount = 1;
+    private Integer countingLives = 3;
+
     // Getters and setters
     public Long getId() {
         return id;
@@ -229,5 +236,46 @@ public class DiscordBotSettings {
 
     public void setInactivityChannelId(String inactivityChannelId) {
         this.inactivityChannelId = inactivityChannelId;
+    }
+
+    // Counting Game getters and setters
+    public Boolean getCountingGameEnabled() {
+        return countingGameEnabled;
+    }
+
+    public void setCountingGameEnabled(Boolean countingGameEnabled) {
+        this.countingGameEnabled = countingGameEnabled;
+    }
+
+    public String getCountingChannelId() {
+        return countingChannelId;
+    }
+
+    public void setCountingChannelId(String countingChannelId) {
+        this.countingChannelId = countingChannelId;
+    }
+
+    public String getCountingTimeoutRoleId() {
+        return countingTimeoutRoleId;
+    }
+
+    public void setCountingTimeoutRoleId(String countingTimeoutRoleId) {
+        this.countingTimeoutRoleId = countingTimeoutRoleId;
+    }
+
+    public Integer getCreditsPerCount() {
+        return creditsPerCount;
+    }
+
+    public void setCreditsPerCount(Integer creditsPerCount) {
+        this.creditsPerCount = creditsPerCount;
+    }
+
+    public Integer getCountingLives() {
+        return countingLives;
+    }
+
+    public void setCountingLives(Integer countingLives) {
+        this.countingLives = countingLives;
     }
 } 
