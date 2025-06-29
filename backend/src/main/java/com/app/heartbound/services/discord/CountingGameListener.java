@@ -95,8 +95,9 @@ public class CountingGameListener extends ListenerAdapter {
             switch (result.getType()) {
                 case SUCCESS:
                     // Acknowledge button click and send success message
-                    event.reply(String.format("✅ <@%s> saved the count at **%d** for **%d** credits! You have **%d** credits remaining. Counting can now continue!",
-                            userId, result.getSavedCount(), result.getCostPaid(), result.getRemainingCredits()))
+                    int nextNumber = result.getSavedCount() + 1;
+                    event.reply(String.format("✅ <@%s> saved the count at **%d** for **%d** credits! The next number is **%d**.",
+                            userId, result.getSavedCount(), result.getCostPaid(), nextNumber))
                             .setEphemeral(false)
                             .queue();
                     
