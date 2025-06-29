@@ -94,6 +94,9 @@ public class CountingGameService {
                     .lastUserId(null)
                     .totalResets(0L)
                     .highestCount(0)
+                    .saveCost(200)
+                    .restartDelayUntil(null)
+                    .lastFailedCount(null)
                     .build();
             gameStateRepository.save(initialState);
             log.info("Initialized counting game state");
@@ -162,6 +165,44 @@ public class CountingGameService {
     }
     
     /**
+     * Check if counting is currently delayed after a failure
+     */
+    public boolean isRestartDelayed() {
+        CountingGameState gameState = getGameState();
+        return gameState.getRestartDelayUntil() != null && 
+               LocalDateTime.now().isBefore(gameState.getRestartDelayUntil());
+    }
+
+    /**
+     * Check if a user is currently timed out
+     */
+    public boolean isUserTimedOut(String userId) {
+        try {
+            return userDataRepository.isUserTimedOut(userId, LocalDateTime.now());
+        } catch (Exception e) {
+            log.debug("Error checking timeout status for user {}: {}", userId, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get remaining restart delay in seconds
+     */
+    public long getRestartDelaySeconds() {
+        CountingGameState gameState = getGameState();
+        if (gameState.getRestartDelayUntil() == null) {
+            return 0;
+        }
+        
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isAfter(gameState.getRestartDelayUntil())) {
+            return 0;
+        }
+        
+        return ChronoUnit.SECONDS.between(now, gameState.getRestartDelayUntil());
+    }
+    
+    /**
      * Process a counting attempt and return the result
      */
     @Transactional
@@ -170,16 +211,19 @@ public class CountingGameService {
             return CountingResult.GAME_DISABLED;
         }
         
-        // Check if user exists in database (following pattern from FishCommandListener)
+        // Check if restart is delayed
+        if (isRestartDelayed()) {
+            long remainingSeconds = getRestartDelaySeconds();
+            return CountingResult.RESTART_DELAYED.withDelayData(remainingSeconds);
+        }
+        
+        // Check if user exists in database - allow non-database users to participate but no credits
+        boolean isDatabaseUser = false;
         try {
             User user = userService.getUserById(userId);
-            if (user == null) {
-                log.warn("User {} not found in database when attempting to count", userId);
-                return CountingResult.USER_NOT_FOUND;
-            }
+            isDatabaseUser = user != null;
         } catch (Exception e) {
-            log.error("Error checking user existence for counting: {}", e.getMessage(), e);
-            return CountingResult.USER_NOT_FOUND;
+            log.debug("User {} not found in database, allowing participation without credits", userId);
         }
         
         // Check if user is timed out
@@ -192,7 +236,7 @@ public class CountingGameService {
         
         // Check if user is trying to count twice in a row
         if (userId.equals(gameState.getLastUserId())) {
-            return handleMistake(userData, gameState, attemptedNumber, CountingResult.CONSECUTIVE_COUNT);
+            return handleMistake(userData, gameState, attemptedNumber, CountingResult.CONSECUTIVE_COUNT, isDatabaseUser);
         }
         
         // Check if number is correct
@@ -202,77 +246,96 @@ public class CountingGameService {
             if (gameState.getCurrentCount() == 0 && expectedNumber == 1) {
                 return CountingResult.WRONG_NUMBER_WARNING.withWarningData(expectedNumber);
             }
-            return handleMistake(userData, gameState, attemptedNumber, CountingResult.WRONG_NUMBER);
+            return handleMistake(userData, gameState, attemptedNumber, CountingResult.WRONG_NUMBER, isDatabaseUser);
         }
         
         // Correct count!
-        return handleCorrectCount(userId, userData, gameState, attemptedNumber);
+        return handleCorrectCount(userId, userData, gameState, attemptedNumber, isDatabaseUser);
     }
     
     @Transactional
     protected CountingResult handleCorrectCount(String userId, CountingUserData userData, 
-                                               CountingGameState gameState, int number) {
+                                               CountingGameState gameState, int number, boolean isDatabaseUser) {
         // Update game state
         gameState.setCurrentCount(number);
         gameState.setLastUserId(userId);
         if (number > gameState.getHighestCount()) {
             gameState.setHighestCount(number);
         }
+        
+        // Reset save cost back to 200 on successful count and clear any failed count
+        gameState.setSaveCost(200);
+        gameState.setLastFailedCount(null);
         gameStateRepository.save(gameState);
         
-        // Update user stats
-        userData.setTotalCorrectCounts(userData.getTotalCorrectCounts() + 1);
-        if (number > userData.getBestCount()) {
-            userData.setBestCount(number);
+        // Update user stats only for database users
+        if (isDatabaseUser) {
+            userData.setTotalCorrectCounts(userData.getTotalCorrectCounts() + 1);
+            if (number > userData.getBestCount()) {
+                userData.setBestCount(number);
+            }
+            userDataRepository.save(userData);
+            
+            // Award credits
+            awardCredits(userId, creditsPerCount != null ? creditsPerCount : 1);
         }
-        userDataRepository.save(userData);
-        
-        // Award credits
-        awardCredits(userId, creditsPerCount != null ? creditsPerCount : 1);
         
         // Invalidate cache
         cacheConfig.invalidateCountingGameCache();
         
-        log.debug("User {} successfully counted {}", userId, number);
+        log.debug("User {} successfully counted {} (database user: {})", userId, number, isDatabaseUser);
         return CountingResult.CORRECT;
     }
     
     @Transactional
     protected CountingResult handleMistake(CountingUserData userData, CountingGameState gameState, 
-                                          int attemptedNumber, CountingResult mistakeType) {
-        // Update user stats
-        userData.setTotalMistakes(userData.getTotalMistakes() + 1);
-        userData.setLivesRemaining(userData.getLivesRemaining() - 1);
+                                          int attemptedNumber, CountingResult mistakeType, boolean isDatabaseUser) {
+        // Store the count that failed for save feature
+        int failedCount = gameState.getCurrentCount();
+        
+        // Set 5-second restart delay and remember the failed count
+        gameState.setRestartDelayUntil(LocalDateTime.now().plusSeconds(5));
+        gameState.setLastFailedCount(failedCount);
+        
+        // Update user stats only for database users
+        if (isDatabaseUser) {
+            userData.setTotalMistakes(userData.getTotalMistakes() + 1);
+            userData.setLivesRemaining(userData.getLivesRemaining() - 1);
+        }
         
         // Reset game state
-        int currentCount = gameState.getCurrentCount();
         gameState.setCurrentCount(0);
         gameState.setLastUserId(null);
         gameState.setTotalResets(gameState.getTotalResets() + 1);
         gameStateRepository.save(gameState);
         
-        // Check if user ran out of lives BEFORE applying timeout
-        boolean willBeTimedOut = userData.getLivesRemaining() <= 0;
+        // Handle timeout for database users only
+        boolean willBeTimedOut = false;
         int timeoutHours = 0;
+        int livesToShow = 0;
         
-        if (willBeTimedOut) {
-            // Calculate timeout hours before applying timeout (which will increment timeout level)
-            timeoutHours = (userData.getTimeoutLevel() + 1) * 24;
-            applyTimeout(userData);
+        if (isDatabaseUser) {
+            willBeTimedOut = userData.getLivesRemaining() <= 0;
+            
+            if (willBeTimedOut) {
+                // Calculate timeout hours before applying timeout (which will increment timeout level)
+                timeoutHours = (userData.getTimeoutLevel() + 1) * 24;
+                applyTimeout(userData);
+                livesToShow = 0;
+            } else {
+                livesToShow = userData.getLivesRemaining();
+            }
+            
+            userDataRepository.save(userData);
         }
-        
-        userDataRepository.save(userData);
         
         // Invalidate cache
         cacheConfig.invalidateCountingGameCache();
         
-        log.info("User {} made mistake at count {} (attempted {}), type: {}, lives remaining: {}", 
-                userData.getUserId(), currentCount, attemptedNumber, mistakeType, userData.getLivesRemaining());
+        log.info("User {} made mistake at count {} (attempted {}), type: {}, database user: {}, lives remaining: {}", 
+                userData.getUserId(), failedCount, attemptedNumber, mistakeType, isDatabaseUser, livesToShow);
         
-        // Determine what to show based on timeout status
-        int livesToShow = willBeTimedOut ? 0 : userData.getLivesRemaining();
-        
-        return mistakeType.withMistakeData(currentCount, livesToShow, timeoutHours);
+        return mistakeType.withMistakeData(failedCount, livesToShow, timeoutHours, gameState.getSaveCost());
     }
     
     protected void applyTimeout(CountingUserData userData) {
@@ -485,19 +548,89 @@ public class CountingGameService {
     }
     
     /**
+     * Save the current count for the specified cost
+     */
+    @Transactional
+    public SaveCountResult saveCount(String userId) {
+        if (!isGameActive()) {
+            return SaveCountResult.GAME_DISABLED;
+        }
+        
+        // Check if user exists in database
+        User user;
+        try {
+            user = userService.getUserById(userId);
+            if (user == null) {
+                return SaveCountResult.USER_NOT_FOUND;
+            }
+        } catch (Exception e) {
+            log.error("Error checking user existence for save count: {}", e.getMessage(), e);
+            return SaveCountResult.USER_NOT_FOUND;
+        }
+        
+        CountingGameState gameState = getGameState();
+        
+        // Check if there's actually something to save (must be at count 0 due to recent failure)
+        if (gameState.getCurrentCount() != 0) {
+            return SaveCountResult.NOTHING_TO_SAVE;
+        }
+        
+        // Check if there's a failed count to restore (this persists even after restart delay expires)
+        if (gameState.getLastFailedCount() == null) {
+            return SaveCountResult.NO_RECENT_FAILURE;
+        }
+        
+        int saveCost = gameState.getSaveCost();
+        
+        // Check if user has enough credits
+        if (user.getCredits() == null || user.getCredits() < saveCost) {
+            return SaveCountResult.INSUFFICIENT_CREDITS.withCreditData(user.getCredits() != null ? user.getCredits() : 0, saveCost);
+        }
+        
+        // Get the count that was lost
+        int savedCount = gameState.getLastFailedCount();
+        
+        // Deduct credits
+        user.setCredits(user.getCredits() - saveCost);
+        userService.updateUser(user);
+        
+        // Restore the count
+        gameState.setCurrentCount(savedCount);
+        gameState.setLastUserId(null); // Allow any user to continue
+        
+        // Double the save cost for next time
+        gameState.setSaveCost(saveCost * 2);
+        
+        // Clear restart delay and failed count
+        gameState.setRestartDelayUntil(null);
+        gameState.setLastFailedCount(null);
+        
+        gameStateRepository.save(gameState);
+        
+        // Invalidate cache
+        cacheConfig.invalidateCountingGameCache();
+        
+        log.info("User {} saved count at {} for {} credits (new save cost: {})", 
+                userId, savedCount, saveCost, gameState.getSaveCost());
+        
+        return SaveCountResult.SUCCESS.withSaveData(savedCount, saveCost, user.getCredits());
+    }
+    
+    /**
      * Result class for counting attempts
      */
     public static class CountingResult {
-        public static final CountingResult CORRECT = new CountingResult(Type.CORRECT, null, null, null, null);
-        public static final CountingResult GAME_DISABLED = new CountingResult(Type.GAME_DISABLED, null, null, null, null);
-        public static final CountingResult USER_TIMED_OUT = new CountingResult(Type.USER_TIMED_OUT, null, null, null, null);
-        public static final CountingResult USER_NOT_FOUND = new CountingResult(Type.USER_NOT_FOUND, null, null, null, null);
-        public static final CountingResult WRONG_NUMBER = new CountingResult(Type.WRONG_NUMBER, null, null, null, null);
-        public static final CountingResult CONSECUTIVE_COUNT = new CountingResult(Type.CONSECUTIVE_COUNT, null, null, null, null);
-        public static final CountingResult WRONG_NUMBER_WARNING = new CountingResult(Type.WRONG_NUMBER_WARNING, null, null, null, null);
+        public static final CountingResult CORRECT = new CountingResult(Type.CORRECT, null, null, null, null, null, null);
+        public static final CountingResult GAME_DISABLED = new CountingResult(Type.GAME_DISABLED, null, null, null, null, null, null);
+        public static final CountingResult USER_TIMED_OUT = new CountingResult(Type.USER_TIMED_OUT, null, null, null, null, null, null);
+        public static final CountingResult USER_NOT_FOUND = new CountingResult(Type.USER_NOT_FOUND, null, null, null, null, null, null);
+        public static final CountingResult WRONG_NUMBER = new CountingResult(Type.WRONG_NUMBER, null, null, null, null, null, null);
+        public static final CountingResult CONSECUTIVE_COUNT = new CountingResult(Type.CONSECUTIVE_COUNT, null, null, null, null, null, null);
+        public static final CountingResult WRONG_NUMBER_WARNING = new CountingResult(Type.WRONG_NUMBER_WARNING, null, null, null, null, null, null);
+        public static final CountingResult RESTART_DELAYED = new CountingResult(Type.RESTART_DELAYED, null, null, null, null, null, null);
         
         public enum Type {
-            CORRECT, GAME_DISABLED, USER_TIMED_OUT, USER_NOT_FOUND, WRONG_NUMBER, CONSECUTIVE_COUNT, WRONG_NUMBER_WARNING
+            CORRECT, GAME_DISABLED, USER_TIMED_OUT, USER_NOT_FOUND, WRONG_NUMBER, CONSECUTIVE_COUNT, WRONG_NUMBER_WARNING, RESTART_DELAYED
         }
         
         private final Type type;
@@ -505,21 +638,29 @@ public class CountingGameService {
         private final Integer expectedNumber;
         private final Integer livesRemaining;
         private final Integer timeoutHours;
+        private final Integer saveCost;
+        private final Long delaySeconds;
         
-        private CountingResult(Type type, Integer currentCount, Integer expectedNumber, Integer livesRemaining, Integer timeoutHours) {
+        private CountingResult(Type type, Integer currentCount, Integer expectedNumber, Integer livesRemaining, Integer timeoutHours, Integer saveCost, Long delaySeconds) {
             this.type = type;
             this.currentCount = currentCount;
             this.expectedNumber = expectedNumber;
             this.livesRemaining = livesRemaining;
             this.timeoutHours = timeoutHours;
+            this.saveCost = saveCost;
+            this.delaySeconds = delaySeconds;
         }
         
-        public CountingResult withMistakeData(int currentCount, int livesRemaining, int timeoutHours) {
-            return new CountingResult(this.type, currentCount, currentCount + 1, livesRemaining, timeoutHours);
+        public CountingResult withMistakeData(int currentCount, int livesRemaining, int timeoutHours, int saveCost) {
+            return new CountingResult(this.type, currentCount, currentCount + 1, livesRemaining, timeoutHours, saveCost, null);
         }
         
         public CountingResult withWarningData(int expectedNumber) {
-            return new CountingResult(this.type, 0, expectedNumber, null, null);
+            return new CountingResult(this.type, 0, expectedNumber, null, null, null, null);
+        }
+        
+        public CountingResult withDelayData(long delaySeconds) {
+            return new CountingResult(this.type, null, null, null, null, null, delaySeconds);
         }
         
         public Type getType() { return type; }
@@ -527,9 +668,60 @@ public class CountingGameService {
         public Integer getExpectedNumber() { return expectedNumber; }
         public Integer getLivesRemaining() { return livesRemaining; }
         public Integer getTimeoutHours() { return timeoutHours; }
+        public Integer getSaveCost() { return saveCost; }
+        public Long getDelaySeconds() { return delaySeconds; }
         
         public boolean isSuccess() { return type == Type.CORRECT; }
         public boolean isMistake() { return type == Type.WRONG_NUMBER || type == Type.CONSECUTIVE_COUNT; }
         public boolean isTimedOut() { return timeoutHours != null && timeoutHours > 0; }
+    }
+    
+    /**
+     * Result class for save count attempts
+     */
+    public static class SaveCountResult {
+        public static final SaveCountResult GAME_DISABLED = new SaveCountResult(SaveType.GAME_DISABLED, null, null, null, null, null);
+        public static final SaveCountResult USER_NOT_FOUND = new SaveCountResult(SaveType.USER_NOT_FOUND, null, null, null, null, null);
+        public static final SaveCountResult NOTHING_TO_SAVE = new SaveCountResult(SaveType.NOTHING_TO_SAVE, null, null, null, null, null);
+        public static final SaveCountResult NO_RECENT_FAILURE = new SaveCountResult(SaveType.NO_RECENT_FAILURE, null, null, null, null, null);
+        public static final SaveCountResult INSUFFICIENT_CREDITS = new SaveCountResult(SaveType.INSUFFICIENT_CREDITS, null, null, null, null, null);
+        public static final SaveCountResult SUCCESS = new SaveCountResult(SaveType.SUCCESS, null, null, null, null, null);
+        
+        public enum SaveType {
+            GAME_DISABLED, USER_NOT_FOUND, NOTHING_TO_SAVE, NO_RECENT_FAILURE, INSUFFICIENT_CREDITS, SUCCESS
+        }
+        
+        private final SaveType type;
+        private final Integer savedCount;
+        private final Integer costPaid;
+        private final Integer remainingCredits;
+        private final Integer userCredits;
+        private final Integer requiredCredits;
+        
+        private SaveCountResult(SaveType type, Integer savedCount, Integer costPaid, Integer remainingCredits, Integer userCredits, Integer requiredCredits) {
+            this.type = type;
+            this.savedCount = savedCount;
+            this.costPaid = costPaid;
+            this.remainingCredits = remainingCredits;
+            this.userCredits = userCredits;
+            this.requiredCredits = requiredCredits;
+        }
+        
+        public SaveCountResult withSaveData(int savedCount, int costPaid, int remainingCredits) {
+            return new SaveCountResult(this.type, savedCount, costPaid, remainingCredits, null, null);
+        }
+        
+        public SaveCountResult withCreditData(int userCredits, int requiredCredits) {
+            return new SaveCountResult(this.type, null, null, null, userCredits, requiredCredits);
+        }
+        
+        public SaveType getType() { return type; }
+        public Integer getSavedCount() { return savedCount; }
+        public Integer getCostPaid() { return costPaid; }
+        public Integer getRemainingCredits() { return remainingCredits; }
+        public Integer getUserCredits() { return userCredits; }
+        public Integer getRequiredCredits() { return requiredCredits; }
+        
+        public boolean isSuccess() { return type == SaveType.SUCCESS; }
     }
 } 

@@ -1,14 +1,18 @@
 package com.app.heartbound.services.discord;
 
 import com.app.heartbound.services.discord.CountingGameService.CountingResult;
+import com.app.heartbound.services.discord.CountingGameService.SaveCountResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.awt.Color;
@@ -20,6 +24,9 @@ public class CountingGameListener extends ListenerAdapter {
     
     private final CountingGameService countingGameService;
     
+    @Value("${frontend.base.url}")
+    private String frontendBaseUrl;
+    
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
         // Ignore bot messages
@@ -29,6 +36,15 @@ public class CountingGameListener extends ListenerAdapter {
         
         // Check if this is the counting channel
         if (!countingGameService.isCountingChannel(event.getChannel().getId())) {
+            return;
+        }
+        
+        // Check if user is timed out and delete their message
+        if (countingGameService.isUserTimedOut(event.getAuthor().getId())) {
+            event.getMessage().delete().queue(
+                success -> log.debug("Deleted message from timed out user: {}", event.getAuthor().getId()),
+                error -> log.warn("Failed to delete message from timed out user: {}", error.getMessage())
+            );
             return;
         }
         
@@ -58,6 +74,77 @@ public class CountingGameListener extends ListenerAdapter {
         }
     }
     
+    @Override
+    public void onButtonInteraction(ButtonInteractionEvent event) {
+        // Check if this is a save count button in the counting channel
+        if (!countingGameService.isCountingChannel(event.getChannel().getId())) {
+            return;
+        }
+        
+        if (event.getComponentId().equals("save_count")) {
+            handleSaveCountButton(event);
+        }
+    }
+    
+    private void handleSaveCountButton(ButtonInteractionEvent event) {
+        String userId = event.getUser().getId();
+        
+        try {
+            SaveCountResult result = countingGameService.saveCount(userId);
+            
+            switch (result.getType()) {
+                case SUCCESS:
+                    // Acknowledge button click and send success message
+                    event.reply(String.format("✅ <@%s> saved the count at **%d** for **%d** credits! You have **%d** credits remaining. Counting can now continue!",
+                            userId, result.getSavedCount(), result.getCostPaid(), result.getRemainingCredits()))
+                            .setEphemeral(false)
+                            .queue();
+                    
+                    // Disable the button since it was used
+                    event.editComponents().queue();
+                    
+                    log.info("User {} successfully saved count at {} for {} credits", userId, result.getSavedCount(), result.getCostPaid());
+                    break;
+                    
+                case USER_NOT_FOUND:
+                    event.reply(String.format("❌ You are not a current user with the bot! Please ensure you are signed up via %s", frontendBaseUrl))
+                            .setEphemeral(true)
+                            .queue();
+                    break;
+                    
+                case INSUFFICIENT_CREDITS:
+                    event.reply(String.format("❌ You need **%d** credits to save this count, but you only have **%d** credits.",
+                            result.getRequiredCredits(), result.getUserCredits()))
+                            .setEphemeral(true)
+                            .queue();
+                    break;
+                    
+                case NOTHING_TO_SAVE:
+                    event.reply("❌ There's nothing to save right now. The count is not at 0.")
+                            .setEphemeral(true)
+                            .queue();
+                    break;
+                    
+                case NO_RECENT_FAILURE:
+                    event.reply("❌ There's no recent failure to save. This save opportunity has expired.")
+                            .setEphemeral(true)
+                            .queue();
+                    break;
+                    
+                case GAME_DISABLED:
+                    event.reply("❌ The counting game is currently disabled.")
+                            .setEphemeral(true)
+                            .queue();
+                    break;
+            }
+        } catch (Exception e) {
+            log.error("Error handling save count button for user {}: {}", userId, e.getMessage(), e);
+            event.reply("❌ An error occurred while trying to save the count. Please try again.")
+                    .setEphemeral(true)
+                    .queue();
+        }
+    }
+    
     private void handleCountingResult(MessageReceivedEvent event, CountingResult result, 
                                      int attemptedNumber, String userId) {
         Message message = event.getMessage();
@@ -71,15 +158,31 @@ public class CountingGameListener extends ListenerAdapter {
                 );
                 break;
                 
+            case RESTART_DELAYED:
+                // React with clock emoji and inform about delay
+                message.addReaction(Emoji.fromUnicode("⏰")).queue();
+                
+                String delayMsg = String.format("⏰ Counting is paused for **%d** more seconds after the recent failure.", 
+                    result.getDelaySeconds());
+                
+                event.getChannel().sendMessage(delayMsg).queue(
+                    success -> log.debug("Sent restart delay message"),
+                    error -> log.warn("Failed to send restart delay message: {}", error.getMessage())
+                );
+                break;
+                
             case WRONG_NUMBER:
-                // React with X and send failure message
+                // React with X and send failure message with save button
                 message.addReaction(Emoji.fromUnicode("❌")).queue();
                 
                 String wrongNumberMsg = String.format("<@%s> RUINED IT AT %d!! The next number was %d.", 
                     userId, result.getCurrentCount(), result.getExpectedNumber());
                 
                 event.getChannel().sendMessage(wrongNumberMsg).queue(
-                    success -> sendLivesOrTimeoutEmbed(event, result),
+                    success -> {
+                        sendLivesOrTimeoutEmbed(event, result);
+                        sendSaveButton(event, result.getSaveCost());
+                    },
                     error -> log.warn("Failed to send wrong number message: {}", error.getMessage())
                 );
                 break;
@@ -98,30 +201,32 @@ public class CountingGameListener extends ListenerAdapter {
                 break;
                 
             case CONSECUTIVE_COUNT:
-                // React with X and send consecutive count failure message
+                // React with X and send consecutive count failure message with save button
                 message.addReaction(Emoji.fromUnicode("❌")).queue();
                 
                 String consecutiveMsg = String.format("<@%s> RUINED IT AT %d!! You cannot send two numbers in a row.", 
                     userId, result.getCurrentCount());
                 
                 event.getChannel().sendMessage(consecutiveMsg).queue(
-                    success -> sendLivesOrTimeoutEmbed(event, result),
+                    success -> {
+                        sendLivesOrTimeoutEmbed(event, result);
+                        sendSaveButton(event, result.getSaveCost());
+                    },
                     error -> log.warn("Failed to send consecutive count message: {}", error.getMessage())
                 );
                 break;
                 
             case USER_TIMED_OUT:
-                // Silently ignore - user is timed out
-                log.debug("Ignoring count attempt from timed out user: {}", userId);
+                // Delete the message and silently ignore - user is timed out
+                message.delete().queue(
+                    success -> log.debug("Deleted message from timed out user: {}", userId),
+                    error -> log.warn("Failed to delete message from timed out user: {}", error.getMessage())
+                );
                 break;
                 
             case USER_NOT_FOUND:
-                // Send message following pattern from FishCommandListener
-                String userNotFoundMessage = String.format("<@%s> Could not find your account. Please log in to the web application first before participating in the counting game.", userId);
-                event.getChannel().sendMessage(userNotFoundMessage).queue(
-                    success -> log.debug("Sent user not found message to user {}", userId),
-                    error -> log.warn("Failed to send user not found message: {}", error.getMessage())
-                );
+                // Allow non-database users to participate (this case should not occur now)
+                log.debug("Non-database user attempted to count (this should not reach this case): {}", userId);
                 break;
                 
             case GAME_DISABLED:
@@ -129,6 +234,28 @@ public class CountingGameListener extends ListenerAdapter {
                 log.debug("Counting game is disabled, ignoring count attempt");
                 break;
         }
+    }
+    
+    private void sendSaveButton(MessageReceivedEvent event, Integer saveCost) {
+        if (saveCost == null) {
+            return;
+        }
+        
+        Button saveButton = Button.primary("save_count", String.format("💰 Save This Count? (%d credits)", saveCost));
+        
+        EmbedBuilder embed = new EmbedBuilder();
+        embed.setColor(Color.CYAN);
+        embed.setTitle("💰 Save This Count?");
+        embed.setDescription(String.format("Anyone can click the button below to save this count for **%d** credits!\n\n" +
+                "⚠️ **Note**: You must be a registered user to save the count.", saveCost));
+        embed.setFooter("The save cost doubles each time it's used.");
+        
+        event.getChannel().sendMessageEmbeds(embed.build())
+                .setActionRow(saveButton)
+                .queue(
+                    success -> log.debug("Sent save count button with cost: {}", saveCost),
+                    error -> log.warn("Failed to send save count button: {}", error.getMessage())
+                );
     }
     
     private void sendLivesOrTimeoutEmbed(MessageReceivedEvent event, CountingGameService.CountingResult result) {
@@ -144,7 +271,7 @@ public class CountingGameListener extends ListenerAdapter {
             // User still has lives remaining
             Integer livesRemaining = result.getLivesRemaining();
             if (livesRemaining == null || livesRemaining <= 0) {
-                return; // No embed needed
+                return; // No embed needed for non-database users
             }
             
             embed.setColor(livesRemaining == 1 ? Color.ORANGE : Color.YELLOW);

@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @Entity
 @Table(name = "counting_game_state")
@@ -25,4 +27,9 @@ public class CountingGameState {
     // Reset tracking
     private Long totalResets = 0L;
     private Integer highestCount = 0;
+    
+    // Save This Count feature
+    private Integer saveCost = 200; // Cost to save count, starts at 200, doubles each save
+    private LocalDateTime restartDelayUntil; // When counting can restart after failure (5 second delay)
+    private Integer lastFailedCount; // The count that failed and can be saved
 } 
