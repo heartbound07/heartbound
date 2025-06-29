@@ -37,6 +37,7 @@ interface DiscordBotSettingsData {
   level50RoleId: string;
   level70RoleId: string;
   level100RoleId: string;
+  inactivityChannelId: string;
 }
 
 interface ToastNotification {
@@ -65,7 +66,8 @@ const initialSettings: DiscordBotSettingsData = {
   level40RoleId: "1162628114195697794",
   level50RoleId: "1166539666674167888",
   level70RoleId: "1170429914185465906",
-  level100RoleId: "1162628179043823657"
+  level100RoleId: "1162628179043823657",
+  inactivityChannelId: ""
 };
 
 const calculateRequiredXp = (level: number, baseXp: number, levelMultiplier: number, levelExponent: number, levelFactor: number): number => {
@@ -131,8 +133,8 @@ export function DiscordBotSettings() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
     
-    // Add validation for role ID fields
-    if (name.endsWith('RoleId')) {
+    // Add validation for role ID and channel ID fields
+    if (name.endsWith('RoleId') || name.endsWith('ChannelId')) {
       // Allow empty string or digits only
       if (value === '' || /^\d+$/.test(value)) {
         setSettings({
@@ -741,6 +743,48 @@ export function DiscordBotSettings() {
                       In Discord, enable Developer Mode in Settings → Advanced, then right-click on a role and select "Copy ID".
                     </p>
                   </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Voice Activity Settings Card */}
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 mb-8 transition-all duration-300 hover:shadow-xl">
+              <div className="flex items-center mb-4">
+                <FiActivity className="text-primary mr-3" size={24} />
+                <h2 className="text-xl font-semibold text-white">
+                  Voice Activity Settings
+                </h2>
+              </div>
+              
+              <p className="text-slate-300 mb-4">Configure voice channels where activity tracking should be disabled.</p>
+              
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="inactivityChannelId" className="block text-sm font-medium text-slate-300 mb-2">
+                    Inactivity Channel ID
+                  </label>
+                  <input
+                    type="text"
+                    id="inactivityChannelId"
+                    name="inactivityChannelId"
+                    value={settings.inactivityChannelId || ''}
+                    onChange={handleChange}
+                    className="w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                    placeholder="Enter Discord Voice Channel ID (optional)"
+                  />
+                  <p className="text-slate-400 text-sm mt-1">
+                    Users in this voice channel will not accumulate voice activity time. Leave empty to track all channels.
+                  </p>
+                </div>
+                
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-sm text-blue-200">
+                  <p className="font-medium flex items-center">
+                    <HiOutlineInformationCircle className="mr-1.5" size={16} />
+                    How to find Discord Voice Channel IDs
+                  </p>
+                  <p className="mt-1 text-blue-100/80">
+                    In Discord, enable Developer Mode in Settings → Advanced, then right-click on a voice channel and select "Copy ID".
+                  </p>
                 </div>
               </div>
             </div>

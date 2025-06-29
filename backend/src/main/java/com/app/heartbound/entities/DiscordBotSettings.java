@@ -40,6 +40,9 @@ public class DiscordBotSettings {
     // Starter role given to new users (removed when they reach first level milestone)
     private String starterRoleId = "1303106353014771773";
 
+    // Inactivity channel where users don't accumulate voice time
+    private String inactivityChannelId;
+
     // Getters and setters
     public Long getId() {
         return id;
@@ -218,5 +221,13 @@ public class DiscordBotSettings {
 
     public void setStarterRoleId(String starterRoleId) {
         this.starterRoleId = starterRoleId;
+    }
+
+    public String getInactivityChannelId() {
+        return inactivityChannelId;
+    }
+
+    public void setInactivityChannelId(String inactivityChannelId) {
+        this.inactivityChannelId = inactivityChannelId;
     }
 } 

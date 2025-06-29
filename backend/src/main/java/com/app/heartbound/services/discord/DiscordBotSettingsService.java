@@ -4,6 +4,7 @@ import com.app.heartbound.dto.discord.DiscordBotSettingsDTO;
 import com.app.heartbound.entities.DiscordBotSettings;
 import com.app.heartbound.repositories.DiscordBotSettingsRepository;
 import com.app.heartbound.config.CacheConfig;
+import com.app.heartbound.services.discord.UserVoiceActivityService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ public class DiscordBotSettingsService {
     
     private final DiscordBotSettingsRepository repository;
     private final ChatActivityListener chatActivityListener;
+    private final UserVoiceActivityService userVoiceActivityService;
     private final Environment environment;
     private final CacheConfig cacheConfig;
     
@@ -130,6 +132,9 @@ public class DiscordBotSettingsService {
         dto.setLevel100RoleId(settings.getLevel100RoleId());
         dto.setStarterRoleId(settings.getStarterRoleId());
         
+        // Map inactivity channel ID
+        dto.setInactivityChannelId(settings.getInactivityChannelId());
+        
         return dto;
     }
     
@@ -164,12 +169,15 @@ public class DiscordBotSettingsService {
         settings.setLevel100RoleId(dto.getLevel100RoleId());
         settings.setStarterRoleId(dto.getStarterRoleId());
         
+        // Update inactivity channel ID
+        settings.setInactivityChannelId(dto.getInactivityChannelId());
+        
         repository.save(settings);
         
         // Invalidate cache after updating settings
         cacheConfig.invalidateDiscordBotSettingsCache();
         
-        // Apply the updated settings to the ChatActivityListener
+        // Apply the updated settings to the ChatActivityListener and UserVoiceActivityService
         chatActivityListener.updateSettings(
             settings.getActivityEnabled(),
             settings.getCreditsToAward(),
@@ -193,6 +201,9 @@ public class DiscordBotSettingsService {
             settings.getLevel100RoleId(),
             settings.getStarterRoleId()
         );
+        
+        // Update voice activity service with inactivity channel setting
+        userVoiceActivityService.updateSettings(settings.getInactivityChannelId());
         
         log.info("Discord bot settings updated successfully");
         return dto;
@@ -226,6 +237,10 @@ public class DiscordBotSettingsService {
                     settings.getLevel100RoleId(),
                     settings.getStarterRoleId()
                 );
+                
+                // Apply voice activity settings
+                userVoiceActivityService.updateSettings(settings.getInactivityChannelId());
+                
                 log.info("Applied Discord bot settings from database");
             }
         } catch (Exception e) {

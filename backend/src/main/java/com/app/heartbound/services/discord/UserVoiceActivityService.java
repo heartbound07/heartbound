@@ -36,6 +36,9 @@ public class UserVoiceActivityService extends ListenerAdapter {
     // Track active voice sessions: userId -> sessionStartTime
     private final ConcurrentHashMap<String, LocalDateTime> activeUserSessions = new ConcurrentHashMap<>();
     
+    // Inactivity channel where users don't accumulate voice time
+    private volatile String inactivityChannelId;
+    
     private ScheduledExecutorService rankUpdateScheduler;
 
     @PostConstruct
@@ -81,7 +84,11 @@ public class UserVoiceActivityService extends ListenerAdapter {
 
             // Handle joining a channel
             if (joinedChannel != null) {
-                handleVoiceChannelJoined(userId);
+                if (inactivityChannelId != null && !inactivityChannelId.isBlank() && joinedChannel.getId().equals(inactivityChannelId)) {
+                    log.debug("User {} joined the designated inactivity channel. Voice session will not be started.", userId);
+                } else {
+                    handleVoiceChannelJoined(userId);
+                }
             }
 
         } catch (Exception e) {
@@ -181,5 +188,13 @@ public class UserVoiceActivityService extends ListenerAdapter {
      */
     public int getActiveSessionCount() {
         return activeUserSessions.size();
+    }
+
+    /**
+     * Updates the voice activity settings including the inactivity channel
+     */
+    public void updateSettings(String inactivityChannelId) {
+        this.inactivityChannelId = inactivityChannelId;
+        log.info("Updated inactivity channel ID to: {}", inactivityChannelId);
     }
 } 
