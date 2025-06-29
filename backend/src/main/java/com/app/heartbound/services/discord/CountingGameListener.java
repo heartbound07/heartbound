@@ -79,8 +79,21 @@ public class CountingGameListener extends ListenerAdapter {
                     userId, result.getCurrentCount(), result.getExpectedNumber());
                 
                 event.getChannel().sendMessage(wrongNumberMsg).queue(
-                    success -> sendLivesEmbed(event, result.getLivesRemaining()),
+                    success -> sendLivesOrTimeoutEmbed(event, result),
                     error -> log.warn("Failed to send wrong number message: {}", error.getMessage())
+                );
+                break;
+                
+            case WRONG_NUMBER_WARNING:
+                // React with warning emoji and send warning message (no penalty)
+                message.addReaction(Emoji.fromUnicode("⚠️")).queue();
+                
+                String warningMsg = String.format("<@%s>!! The next number should be %d.", 
+                    userId, result.getExpectedNumber());
+                
+                event.getChannel().sendMessage(warningMsg).queue(
+                    success -> log.debug("Sent warning message for count reset"),
+                    error -> log.warn("Failed to send warning message: {}", error.getMessage())
                 );
                 break;
                 
@@ -92,7 +105,7 @@ public class CountingGameListener extends ListenerAdapter {
                     userId, result.getCurrentCount());
                 
                 event.getChannel().sendMessage(consecutiveMsg).queue(
-                    success -> sendLivesEmbed(event, result.getLivesRemaining()),
+                    success -> sendLivesOrTimeoutEmbed(event, result),
                     error -> log.warn("Failed to send consecutive count message: {}", error.getMessage())
                 );
                 break;
@@ -109,18 +122,22 @@ public class CountingGameListener extends ListenerAdapter {
         }
     }
     
-    private void sendLivesEmbed(MessageReceivedEvent event, Integer livesRemaining) {
-        if (livesRemaining == null) {
-            return;
-        }
-        
+    private void sendLivesOrTimeoutEmbed(MessageReceivedEvent event, CountingGameService.CountingResult result) {
         EmbedBuilder embed = new EmbedBuilder();
         
-        if (livesRemaining <= 0) {
+        if (result.isTimedOut()) {
+            // User lost all lives and was timed out
             embed.setColor(Color.RED);
             embed.setTitle("💀 Game Over!");
-            embed.setDescription("You have been timed out from the counting game due to losing all your lives.");
+            embed.setDescription(String.format("You lost all your lives! You have lost access to counting for **%d hours**!", 
+                result.getTimeoutHours()));
         } else {
+            // User still has lives remaining
+            Integer livesRemaining = result.getLivesRemaining();
+            if (livesRemaining == null || livesRemaining <= 0) {
+                return; // No embed needed
+            }
+            
             embed.setColor(livesRemaining == 1 ? Color.ORANGE : Color.YELLOW);
             embed.setTitle("❤️ Lives Remaining");
             
@@ -132,8 +149,8 @@ public class CountingGameListener extends ListenerAdapter {
         }
         
         event.getChannel().sendMessageEmbeds(embed.build()).queue(
-            success -> log.debug("Sent lives embed for user with {} lives", livesRemaining),
-            error -> log.warn("Failed to send lives embed: {}", error.getMessage())
+            success -> log.debug("Sent lives/timeout embed"),
+            error -> log.warn("Failed to send lives/timeout embed: {}", error.getMessage())
         );
     }
 } 

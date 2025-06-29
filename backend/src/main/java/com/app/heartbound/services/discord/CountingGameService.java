@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
@@ -184,6 +186,10 @@ public class CountingGameService {
         // Check if number is correct
         int expectedNumber = gameState.getCurrentCount() + 1;
         if (attemptedNumber != expectedNumber) {
+            // Special case: if count is 0 and next should be 1, just give a warning instead of penalty
+            if (gameState.getCurrentCount() == 0 && expectedNumber == 1) {
+                return CountingResult.WRONG_NUMBER_WARNING.withWarningData(expectedNumber);
+            }
             return handleMistake(userData, gameState, attemptedNumber, CountingResult.WRONG_NUMBER);
         }
         
@@ -233,8 +239,13 @@ public class CountingGameService {
         gameState.setTotalResets(gameState.getTotalResets() + 1);
         gameStateRepository.save(gameState);
         
-        // Check if user ran out of lives
-        if (userData.getLivesRemaining() <= 0) {
+        // Check if user ran out of lives BEFORE applying timeout
+        boolean willBeTimedOut = userData.getLivesRemaining() <= 0;
+        int timeoutHours = 0;
+        
+        if (willBeTimedOut) {
+            // Calculate timeout hours before applying timeout (which will increment timeout level)
+            timeoutHours = (userData.getTimeoutLevel() + 1) * 24;
             applyTimeout(userData);
         }
         
@@ -246,7 +257,10 @@ public class CountingGameService {
         log.info("User {} made mistake at count {} (attempted {}), type: {}, lives remaining: {}", 
                 userData.getUserId(), currentCount, attemptedNumber, mistakeType, userData.getLivesRemaining());
         
-        return mistakeType.withMistakeData(currentCount, userData.getLivesRemaining());
+        // Determine what to show based on timeout status
+        int livesToShow = willBeTimedOut ? 0 : userData.getLivesRemaining();
+        
+        return mistakeType.withMistakeData(currentCount, livesToShow, timeoutHours);
     }
     
     protected void applyTimeout(CountingUserData userData) {
@@ -344,6 +358,105 @@ public class CountingGameService {
     }
     
     /**
+     * Get all currently timed out users with their details
+     */
+    @Transactional(readOnly = true)
+    public List<com.app.heartbound.dto.discord.TimedOutUserDTO> getTimedOutUsers() {
+        List<CountingUserData> timedOutUsers = userDataRepository.findActiveTimeouts(LocalDateTime.now());
+        
+        List<com.app.heartbound.dto.discord.TimedOutUserDTO> result = new ArrayList<>();
+        
+        for (CountingUserData userData : timedOutUsers) {
+            try {
+                // Get user details from UserService
+                User user = userService.getUserById(userData.getUserId());
+                String username = user != null ? user.getUsername() : "Unknown User";
+                String avatar = user != null ? user.getAvatar() : "";
+                
+                // Calculate remaining timeout duration
+                LocalDateTime now = LocalDateTime.now();
+                long hoursRemaining = ChronoUnit.HOURS.between(now, userData.getTimeoutExpiry());
+                String timeoutDuration = formatDuration(hoursRemaining);
+                
+                com.app.heartbound.dto.discord.TimedOutUserDTO dto = com.app.heartbound.dto.discord.TimedOutUserDTO.builder()
+                        .userId(userData.getUserId())
+                        .username(username)
+                        .avatar(avatar)
+                        .timeoutLevel(userData.getTimeoutLevel())
+                        .timeoutExpiry(userData.getTimeoutExpiry())
+                        .livesRemaining(userData.getLivesRemaining())
+                        .totalCorrectCounts(userData.getTotalCorrectCounts())
+                        .totalMistakes(userData.getTotalMistakes())
+                        .bestCount(userData.getBestCount())
+                        .timeoutHoursRemaining(hoursRemaining)
+                        .timeoutDuration(timeoutDuration)
+                        .build();
+                
+                result.add(dto);
+            } catch (Exception e) {
+                log.warn("Error processing timed out user {}: {}", userData.getUserId(), e.getMessage());
+            }
+        }
+        
+        // Sort by timeout expiry (soonest first)
+        result.sort((a, b) -> a.getTimeoutExpiry().compareTo(b.getTimeoutExpiry()));
+        
+        return result;
+    }
+    
+    /**
+     * Remove timeout for a specific user (admin action)
+     */
+    @Transactional
+    public boolean removeUserTimeout(String userId) {
+        try {
+            CountingUserData userData = userDataRepository.findById(userId).orElse(null);
+            
+            if (userData == null || userData.getTimeoutExpiry() == null) {
+                log.warn("User {} is not currently timed out", userId);
+                return false;
+            }
+            
+            // Remove Discord timeout role
+            removeDiscordTimeoutRole(userId);
+            
+            // Clear timeout expiry
+            userData.setTimeoutExpiry(null);
+            userDataRepository.save(userData);
+            
+            log.info("Admin removed timeout for user {}", userId);
+            return true;
+        } catch (Exception e) {
+            log.error("Error removing timeout for user {}: {}", userId, e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /**
+     * Format duration in hours to human-readable string
+     */
+    private String formatDuration(long hours) {
+        if (hours <= 0) {
+            return "Expired";
+        }
+        
+        long days = hours / 24;
+        long remainingHours = hours % 24;
+        
+        if (days > 0) {
+            if (remainingHours > 0) {
+                return String.format("%d day%s, %d hour%s", 
+                        days, days == 1 ? "" : "s", 
+                        remainingHours, remainingHours == 1 ? "" : "s");
+            } else {
+                return String.format("%d day%s", days, days == 1 ? "" : "s");
+            }
+        } else {
+            return String.format("%d hour%s", hours, hours == 1 ? "" : "s");
+        }
+    }
+    
+    /**
      * Check if a string represents a valid counting number
      */
     public static boolean isValidNumber(String content) {
@@ -363,38 +476,47 @@ public class CountingGameService {
      * Result class for counting attempts
      */
     public static class CountingResult {
-        public static final CountingResult CORRECT = new CountingResult(Type.CORRECT, null, null, null);
-        public static final CountingResult GAME_DISABLED = new CountingResult(Type.GAME_DISABLED, null, null, null);
-        public static final CountingResult USER_TIMED_OUT = new CountingResult(Type.USER_TIMED_OUT, null, null, null);
-        public static final CountingResult WRONG_NUMBER = new CountingResult(Type.WRONG_NUMBER, null, null, null);
-        public static final CountingResult CONSECUTIVE_COUNT = new CountingResult(Type.CONSECUTIVE_COUNT, null, null, null);
+        public static final CountingResult CORRECT = new CountingResult(Type.CORRECT, null, null, null, null);
+        public static final CountingResult GAME_DISABLED = new CountingResult(Type.GAME_DISABLED, null, null, null, null);
+        public static final CountingResult USER_TIMED_OUT = new CountingResult(Type.USER_TIMED_OUT, null, null, null, null);
+        public static final CountingResult WRONG_NUMBER = new CountingResult(Type.WRONG_NUMBER, null, null, null, null);
+        public static final CountingResult CONSECUTIVE_COUNT = new CountingResult(Type.CONSECUTIVE_COUNT, null, null, null, null);
+        public static final CountingResult WRONG_NUMBER_WARNING = new CountingResult(Type.WRONG_NUMBER_WARNING, null, null, null, null);
         
         public enum Type {
-            CORRECT, GAME_DISABLED, USER_TIMED_OUT, WRONG_NUMBER, CONSECUTIVE_COUNT
+            CORRECT, GAME_DISABLED, USER_TIMED_OUT, WRONG_NUMBER, CONSECUTIVE_COUNT, WRONG_NUMBER_WARNING
         }
         
         private final Type type;
         private final Integer currentCount;
         private final Integer expectedNumber;
         private final Integer livesRemaining;
+        private final Integer timeoutHours;
         
-        private CountingResult(Type type, Integer currentCount, Integer expectedNumber, Integer livesRemaining) {
+        private CountingResult(Type type, Integer currentCount, Integer expectedNumber, Integer livesRemaining, Integer timeoutHours) {
             this.type = type;
             this.currentCount = currentCount;
             this.expectedNumber = expectedNumber;
             this.livesRemaining = livesRemaining;
+            this.timeoutHours = timeoutHours;
         }
         
-        public CountingResult withMistakeData(int currentCount, int livesRemaining) {
-            return new CountingResult(this.type, currentCount, currentCount + 1, livesRemaining);
+        public CountingResult withMistakeData(int currentCount, int livesRemaining, int timeoutHours) {
+            return new CountingResult(this.type, currentCount, currentCount + 1, livesRemaining, timeoutHours);
+        }
+        
+        public CountingResult withWarningData(int expectedNumber) {
+            return new CountingResult(this.type, 0, expectedNumber, null, null);
         }
         
         public Type getType() { return type; }
         public Integer getCurrentCount() { return currentCount; }
         public Integer getExpectedNumber() { return expectedNumber; }
         public Integer getLivesRemaining() { return livesRemaining; }
+        public Integer getTimeoutHours() { return timeoutHours; }
         
         public boolean isSuccess() { return type == Type.CORRECT; }
         public boolean isMistake() { return type == Type.WRONG_NUMBER || type == Type.CONSECUTIVE_COUNT; }
+        public boolean isTimedOut() { return timeoutHours != null && timeoutHours > 0; }
     }
 } 
