@@ -118,10 +118,13 @@ public class GiveawayCommandListener extends ListenerAdapter {
             String winnersStr = event.getValue("giveaway-winners").getAsString();
             String duration = event.getValue("giveaway-duration").getAsString();
             String restrictionsStr = event.getValue("giveaway-restrictions").getAsString();
-            String maxEntriesStr = event.getValue("giveaway-max-entries") != null ? 
-                event.getValue("giveaway-max-entries").getAsString() : "";
-            String entryPriceStr = event.getValue("giveaway-entry-price") != null ? 
-                event.getValue("giveaway-entry-price").getAsString() : "0";
+            String entryConfigStr = event.getValue("giveaway-entry-config") != null ? 
+                event.getValue("giveaway-entry-config").getAsString() : "0";
+
+            // Parse the combined entry config field
+            String[] configParts = parseEntryConfig(entryConfigStr);
+            String entryPriceStr = configParts[0];
+            String maxEntriesStr = configParts[1];
 
             // Validate and parse inputs
             CreateGiveawayDTO dto = parseModalInputs(prize, winnersStr, duration, restrictionsStr, maxEntriesStr, entryPriceStr);
@@ -261,10 +264,10 @@ public class GiveawayCommandListener extends ListenerAdapter {
                 .setRequired(true)
                 .build();
 
-        TextInput entryPriceInput = TextInput.create("giveaway-entry-price", "Entry Price (Credits)", TextInputStyle.SHORT)
-                .setPlaceholder("Enter credits cost (0 for free)")
+        TextInput entryConfigInput = TextInput.create("giveaway-entry-config", "Entry Config (Price,MaxEntries)", TextInputStyle.SHORT)
+                .setPlaceholder("Examples: '0' (free), '50,3' (50 credits, max 3 entries)")
                 .setMinLength(1)
-                .setMaxLength(10)
+                .setMaxLength(20)
                 .setRequired(false)
                 .build();
 
@@ -275,7 +278,7 @@ public class GiveawayCommandListener extends ListenerAdapter {
                     ActionRow.of(winnersInput),
                     ActionRow.of(durationInput),
                     ActionRow.of(restrictionsInput),
-                    ActionRow.of(entryPriceInput)
+                    ActionRow.of(entryConfigInput)
                 )
                 .build();
 
@@ -346,8 +349,9 @@ public class GiveawayCommandListener extends ListenerAdapter {
         }
         
         // Parse entry price
+        int entryPrice;
         try {
-            int entryPrice = Integer.parseInt(entryPriceStr.trim());
+            entryPrice = Integer.parseInt(entryPriceStr.trim());
             if (entryPrice < 0) {
                 throw new IllegalArgumentException("Entry price cannot be negative");
             }
@@ -355,8 +359,44 @@ public class GiveawayCommandListener extends ListenerAdapter {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Invalid entry price: " + entryPriceStr);
         }
+
+        // Edge case: If entry price is 0 (free) and no max entries specified, set max entries to 1
+        if (entryPrice == 0 && (maxEntriesStr == null || maxEntriesStr.trim().isEmpty())) {
+            dto.setMaxEntriesPerUser(1);
+            logger.debug("Free giveaway detected - setting max entries to 1");
+        }
         
         return dto;
+    }
+
+    /**
+     * Parses the entry config string to extract price and max entries
+     * @param entryConfigStr The config string (e.g., "0", "50", "50,3")
+     * @return Array with [priceStr, maxEntriesStr]
+     */
+    private String[] parseEntryConfig(String entryConfigStr) {
+        if (entryConfigStr == null || entryConfigStr.trim().isEmpty()) {
+            return new String[]{"0", ""};
+        }
+        
+        String cleaned = entryConfigStr.trim();
+        
+        // Check if it contains a comma (price,maxentries format)
+        if (cleaned.contains(",")) {
+            String[] parts = cleaned.split(",", 2);
+            String priceStr = parts[0].trim();
+            String maxEntriesStr = parts.length > 1 ? parts[1].trim() : "";
+            
+            // Validate format
+            if (priceStr.isEmpty()) {
+                throw new IllegalArgumentException("Invalid entry config format. Use 'price' or 'price,maxentries' (e.g., '0', '50,3')");
+            }
+            
+            return new String[]{priceStr, maxEntriesStr};
+        } else {
+            // Only price provided, no max entries specified
+            return new String[]{cleaned, ""};
+        }
     }
 
     private MessageEmbed createGiveawayEmbed(Giveaway giveaway) {
