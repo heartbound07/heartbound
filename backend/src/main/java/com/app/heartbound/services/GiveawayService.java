@@ -117,7 +117,7 @@ public class GiveawayService {
         // Check and deduct credits
         if (giveaway.getEntryPrice() > 0) {
             if (user.getCredits() < giveaway.getEntryPrice()) {
-                throw new IllegalStateException("Insufficient credits for entry");
+                throw new IllegalStateException("You don't have enough credits to enter!");
             }
             user.setCredits(user.getCredits() - giveaway.getEntryPrice());
             userService.updateUser(user);
