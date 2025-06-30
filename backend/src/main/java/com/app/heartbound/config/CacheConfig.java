@@ -101,6 +101,13 @@ public class CacheConfig {
     @Value("${cache.counting-game.expire-after-write-minutes:15}")
     private long countingGameCacheExpireMinutes;
 
+    // Giveaway Cache Configuration
+    @Value("${cache.giveaway.max-size:200}")
+    private long giveawayCacheMaxSize;
+
+    @Value("${cache.giveaway.expire-after-write-minutes:10}")
+    private long giveawayCacheExpireMinutes;
+
     // Cache instances
     private Cache<Long, Object> pairLevelCache;
     private Cache<String, List<Object>> achievementListCache;
@@ -114,6 +121,7 @@ public class CacheConfig {
     private Cache<Long, Object> discordBotSettingsCache;
     private Cache<String, List<String>> prisonCache;
     private Cache<String, Object> countingGameCache;
+    private Cache<String, Object> giveawayCache;
 
     @PostConstruct
     public void initializeCaches() {
@@ -263,6 +271,18 @@ public class CacheConfig {
                 .recordStats()
                 .build();
 
+        // Giveaway Cache - stores active giveaway data and entry counts
+        this.giveawayCache = Caffeine.newBuilder()
+                .maximumSize(giveawayCacheMaxSize)
+                .expireAfterWrite(giveawayCacheExpireMinutes, TimeUnit.MINUTES)
+                .removalListener((RemovalListener<String, Object>) (key, value, cause) -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Giveaway cache entry removed: key={}, cause={}", key, cause);
+                    }
+                })
+                .recordStats()
+                .build();
+
         log.info("Pairing System Performance Caches initialized successfully - " +
                 "PairLevel: {}/{} entries/minutes, " +
                 "Achievement: {}/{} entries/minutes, " +
@@ -273,7 +293,8 @@ public class CacheConfig {
                 "DailyClaim: {}/{} entries/minutes, " +
                 "DiscordBotSettings: {}/{} entries/minutes, " +
                 "Prison: {}/{} entries/hours, " +
-                "CountingGame: {}/{} entries/minutes",
+                "CountingGame: {}/{} entries/minutes, " +
+                "Giveaway: {}/{} entries/minutes",
                 pairLevelCacheMaxSize, pairLevelCacheExpireMinutes,
                 achievementCacheMaxSize, achievementCacheExpireMinutes,
                 voiceStreakCacheMaxSize, voiceStreakCacheExpireMinutes,
@@ -283,7 +304,8 @@ public class CacheConfig {
                 dailyClaimCacheMaxSize, dailyClaimCacheExpireMinutes,
                 discordBotSettingsCacheMaxSize, discordBotSettingsCacheExpireMinutes,
                 prisonCacheMaxSize, prisonCacheExpireHours,
-                countingGameCacheMaxSize, countingGameCacheExpireMinutes);
+                countingGameCacheMaxSize, countingGameCacheExpireMinutes,
+                giveawayCacheMaxSize, giveawayCacheExpireMinutes);
     }
 
     /**
@@ -401,6 +423,26 @@ public class CacheConfig {
     }
 
     /**
+     * Invalidates giveaway cache.
+     * Use when giveaway data is updated.
+     */
+    public void invalidateGiveawayCache() {
+        giveawayCache.invalidateAll();
+        log.debug("Giveaway cache invalidated");
+    }
+
+    /**
+     * Invalidates specific giveaway cache entry.
+     * Use when specific giveaway data is updated.
+     */
+    public void invalidateGiveawayCache(String key) {
+        if (key != null) {
+            giveawayCache.invalidate(key);
+            log.debug("Giveaway cache entry invalidated: {}", key);
+        }
+    }
+
+    /**
      * Invalidates all caches. Use with caution - only for scenarios like
      * system maintenance or emergency cache refresh.
      */
@@ -418,6 +460,7 @@ public class CacheConfig {
         discordBotSettingsCache.invalidateAll();
         prisonCache.invalidateAll();
         countingGameCache.invalidateAll();
+        giveawayCache.invalidateAll();
         log.info("All pairing system caches invalidated successfully");
     }
 
@@ -448,6 +491,8 @@ public class CacheConfig {
                 .discordBotSettingsSize(discordBotSettingsCache.estimatedSize())
                 .prisonHitRate(prisonCache.stats().hitRate())
                 .prisonSize(prisonCache.estimatedSize())
+                .giveawayHitRate(giveawayCache.stats().hitRate())
+                .giveawaySize(giveawayCache.estimatedSize())
                 .build();
     }
 
@@ -469,6 +514,7 @@ public class CacheConfig {
         discordBotSettingsCache.cleanUp();
         prisonCache.cleanUp();
         countingGameCache.cleanUp();
+        giveawayCache.cleanUp();
         log.debug("Pairing cache maintenance completed");
     }
 
@@ -500,5 +546,7 @@ public class CacheConfig {
         private final long discordBotSettingsSize;
         private final double prisonHitRate;
         private final long prisonSize;
+        private final double giveawayHitRate;
+        private final long giveawaySize;
     }
 } 

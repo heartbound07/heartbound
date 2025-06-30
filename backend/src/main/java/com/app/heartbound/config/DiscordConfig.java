@@ -17,6 +17,7 @@ import com.app.heartbound.services.discord.GiveCommandListener;
 import com.app.heartbound.services.discord.BlackjackCommandListener;
 import com.app.heartbound.services.discord.PrisonCommandListener;
 import com.app.heartbound.services.discord.CountingGameListener;
+import com.app.heartbound.services.discord.GiveawayCommandListener;
 import com.app.heartbound.services.discord.AutoSlowmodeService;
 import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
@@ -115,6 +116,10 @@ public class DiscordConfig {
     @Autowired
     private CountingGameListener countingGameListener;
 
+    @Lazy
+    @Autowired
+    private GiveawayCommandListener giveawayCommandListener;
+
     @Autowired
     private AutoSlowmodeService autoSlowmodeService;
 
@@ -175,6 +180,9 @@ public class DiscordConfig {
             
             // Register leaderboard command listener manually
             leaderboardCommandListener.registerWithJDA(jdaInstance);
+            
+            // Register giveaway command listener manually
+            giveawayCommandListener.registerWithJDA(jdaInstance);
             
             // Register slash commands
             registerSlashCommands();
@@ -240,7 +248,9 @@ public class DiscordConfig {
                     Commands.slash("prison", "Removes all roles from a user and assigns the prison role, or releases them.")
                         .addOptions(
                             new OptionData(OptionType.USER, "user", "The user to prison or release.", true)
-                        )
+                        ),
+                    Commands.slash("gcreate", "Create a new giveaway with customizable settings")
+                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
                 )
                 .queue(
                     cmds -> {
