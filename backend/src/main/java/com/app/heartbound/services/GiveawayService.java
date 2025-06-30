@@ -873,7 +873,7 @@ public class GiveawayService {
         String timeElapsed = calculateTimeElapsed(giveaway.getEndDate(), giveaway.getCompletedAt());
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' hh:mm a");
         description.append("**Ended:** ").append(timeElapsed).append(" (").append(giveaway.getCompletedAt().format(formatter)).append(")\n");
-        description.append("**Hosted by:** ").append(giveaway.getHostUsername()).append("\n");
+        description.append("**Hosted by:** <@").append(giveaway.getHostUserId()).append(">\n");
         
         // Get total entries for completion display
         long totalEntries = getTotalEntries(giveaway);

@@ -501,7 +501,7 @@ public class GiveawayCommandListener extends ListenerAdapter {
         // End date information
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' hh:mm a");
         description.append("**Ends:** ").append(giveaway.getEndDate().format(formatter)).append("\n");
-        description.append("**Hosted by:** ").append(giveaway.getHostUsername()).append("\n");
+        description.append("**Hosted by:** <@").append(giveaway.getHostUserId()).append(">\n");
         description.append("**Entries:** ").append(entryCount).append("\n"); // Use the provided entry count
         description.append("**Winners:** ").append(giveaway.getNumberOfWinners()).append("\n\n");
         
@@ -649,8 +649,8 @@ public class GiveawayCommandListener extends ListenerAdapter {
             // Create deleted giveaway embed
             EmbedBuilder embedBuilder = new EmbedBuilder();
             embedBuilder.setTitle("❌ Giveaway Deleted");
-            embedBuilder.setDescription(String.format("**Prize:** %s\n**Hosted by:** %s\n\n*This giveaway has been deleted by the host.*", 
-                giveaway.getPrize(), giveaway.getHostUsername()));
+            embedBuilder.setDescription(String.format("**Prize:** %s\n**Hosted by:** <@%s>\n\n*This giveaway has been deleted by the host.*", 
+                giveaway.getPrize(), giveaway.getHostUserId()));
             embedBuilder.setColor(Color.decode("#dc3545")); // Bootstrap danger red
             
             MessageEmbed deletedEmbed = embedBuilder.build();
