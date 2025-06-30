@@ -50,6 +50,14 @@ public class DiscordBotSettings {
     private Integer creditsPerCount = 1;
     private Integer countingLives = 3;
 
+    // Auto Slowmode Configuration
+    private Boolean autoSlowmodeEnabled = false;
+    private String slowmodeChannelIds; // Comma-separated channel IDs
+    private Integer activityThreshold = 10; // Messages per time window
+    private Integer slowmodeTimeWindow = 5; // Minutes to monitor
+    private Integer slowmodeDuration = 30; // Seconds of slowmode to apply
+    private Integer slowmodeCooldown = 10; // Minutes before re-evaluation
+
     // Getters and setters
     public Long getId() {
         return id;
@@ -277,5 +285,54 @@ public class DiscordBotSettings {
 
     public void setCountingLives(Integer countingLives) {
         this.countingLives = countingLives;
+    }
+
+    // Auto Slowmode getters and setters
+    public Boolean getAutoSlowmodeEnabled() {
+        return autoSlowmodeEnabled;
+    }
+
+    public void setAutoSlowmodeEnabled(Boolean autoSlowmodeEnabled) {
+        this.autoSlowmodeEnabled = autoSlowmodeEnabled;
+    }
+
+    public String getSlowmodeChannelIds() {
+        return slowmodeChannelIds;
+    }
+
+    public void setSlowmodeChannelIds(String slowmodeChannelIds) {
+        this.slowmodeChannelIds = slowmodeChannelIds;
+    }
+
+    public Integer getActivityThreshold() {
+        return activityThreshold;
+    }
+
+    public void setActivityThreshold(Integer activityThreshold) {
+        this.activityThreshold = activityThreshold;
+    }
+
+    public Integer getSlowmodeTimeWindow() {
+        return slowmodeTimeWindow;
+    }
+
+    public void setSlowmodeTimeWindow(Integer slowmodeTimeWindow) {
+        this.slowmodeTimeWindow = slowmodeTimeWindow;
+    }
+
+    public Integer getSlowmodeDuration() {
+        return slowmodeDuration;
+    }
+
+    public void setSlowmodeDuration(Integer slowmodeDuration) {
+        this.slowmodeDuration = slowmodeDuration;
+    }
+
+    public Integer getSlowmodeCooldown() {
+        return slowmodeCooldown;
+    }
+
+    public void setSlowmodeCooldown(Integer slowmodeCooldown) {
+        this.slowmodeCooldown = slowmodeCooldown;
     }
 } 

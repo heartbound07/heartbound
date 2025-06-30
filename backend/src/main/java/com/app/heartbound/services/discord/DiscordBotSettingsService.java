@@ -144,6 +144,14 @@ public class DiscordBotSettingsService {
         dto.setCreditsPerCount(settings.getCreditsPerCount());
         dto.setCountingLives(settings.getCountingLives());
         
+        // Map auto slowmode settings
+        dto.setAutoSlowmodeEnabled(settings.getAutoSlowmodeEnabled());
+        dto.setSlowmodeChannelIds(settings.getSlowmodeChannelIds());
+        dto.setActivityThreshold(settings.getActivityThreshold());
+        dto.setSlowmodeTimeWindow(settings.getSlowmodeTimeWindow());
+        dto.setSlowmodeDuration(settings.getSlowmodeDuration());
+        dto.setSlowmodeCooldown(settings.getSlowmodeCooldown());
+        
         return dto;
     }
     
@@ -187,6 +195,14 @@ public class DiscordBotSettingsService {
         settings.setCountingTimeoutRoleId(dto.getCountingTimeoutRoleId());
         settings.setCreditsPerCount(dto.getCreditsPerCount());
         settings.setCountingLives(dto.getCountingLives());
+        
+        // Update auto slowmode settings
+        settings.setAutoSlowmodeEnabled(dto.getAutoSlowmodeEnabled());
+        settings.setSlowmodeChannelIds(dto.getSlowmodeChannelIds());
+        settings.setActivityThreshold(dto.getActivityThreshold());
+        settings.setSlowmodeTimeWindow(dto.getSlowmodeTimeWindow());
+        settings.setSlowmodeDuration(dto.getSlowmodeDuration());
+        settings.setSlowmodeCooldown(dto.getSlowmodeCooldown());
         
         repository.save(settings);
         

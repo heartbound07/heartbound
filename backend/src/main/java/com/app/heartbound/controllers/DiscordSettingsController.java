@@ -4,6 +4,7 @@ import com.app.heartbound.dto.discord.DiscordBotSettingsDTO;
 import com.app.heartbound.dto.discord.TimedOutUserDTO;
 import com.app.heartbound.services.discord.DiscordBotSettingsService;
 import com.app.heartbound.services.discord.CountingGameService;
+import com.app.heartbound.services.discord.AutoSlowmodeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -16,6 +17,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/admin/discord")
@@ -28,6 +30,7 @@ public class DiscordSettingsController {
 
     private final DiscordBotSettingsService discordBotSettingsService;
     private final CountingGameService countingGameService;
+    private final AutoSlowmodeService autoSlowmodeService;
 
     @GetMapping("/settings")
     @Operation(summary = "Get Discord bot settings", description = "Retrieves current Discord bot activity and leveling settings")
@@ -71,5 +74,33 @@ public class DiscordSettingsController {
         } else {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @GetMapping("/slowmode/status")
+    @Operation(summary = "Get auto slowmode status", description = "Retrieves current slowmode status for all monitored channels")
+    @ApiResponse(responseCode = "200", description = "Slowmode status retrieved successfully")
+    @ApiResponse(responseCode = "403", description = "Access denied")
+    public ResponseEntity<Map<String, Integer>> getSlowmodeStatus() {
+        log.info("GET request for auto slowmode status");
+        return ResponseEntity.ok(autoSlowmodeService.getCurrentSlowmodeStatus());
+    }
+
+    @GetMapping("/slowmode/activity/{timeWindow}")
+    @Operation(summary = "Get channel activity stats", description = "Retrieves recent activity statistics for monitored channels")
+    @ApiResponse(responseCode = "200", description = "Activity stats retrieved successfully")
+    @ApiResponse(responseCode = "403", description = "Access denied")
+    public ResponseEntity<Map<String, Integer>> getChannelActivityStats(@PathVariable int timeWindow) {
+        log.info("GET request for channel activity stats with time window {}", timeWindow);
+        return ResponseEntity.ok(autoSlowmodeService.getChannelActivityStats(timeWindow));
+    }
+
+    @DeleteMapping("/slowmode/{channelId}")
+    @Operation(summary = "Clear slowmode tracking", description = "Manually clears slowmode tracking for a specific channel")
+    @ApiResponse(responseCode = "200", description = "Slowmode tracking cleared successfully")
+    @ApiResponse(responseCode = "403", description = "Access denied")
+    public ResponseEntity<Void> clearSlowmode(@PathVariable String channelId) {
+        log.info("DELETE request to clear slowmode tracking for channel {}", channelId);
+        autoSlowmodeService.clearSlowmode(channelId);
+        return ResponseEntity.ok().build();
     }
 } 

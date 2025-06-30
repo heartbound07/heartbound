@@ -100,4 +100,21 @@ public class DiscordBotSettingsDTO {
     
     @Min(1)
     private Integer countingLives;
+    
+    // Auto Slowmode Configuration
+    private Boolean autoSlowmodeEnabled;
+    
+    private String slowmodeChannelIds; // Comma-separated channel IDs - will validate in service
+    
+    @Min(1)
+    private Integer activityThreshold;
+    
+    @Min(1)
+    private Integer slowmodeTimeWindow;
+    
+    @Min(0)
+    private Integer slowmodeDuration; // 0 to disable slowmode
+    
+    @Min(1)
+    private Integer slowmodeCooldown;
 } 
