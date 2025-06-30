@@ -200,13 +200,20 @@ public class GiveawayService {
         // Get user for validation and credit deduction
         User user = userService.getUserById(userId);
         if (user == null) {
-            throw new ResourceNotFoundException("User not found");
+            // Check if this is a paid entry - users must be in database for paid entries
+            if (giveaway.getEntryPrice() > 0) {
+                throw new UnauthorizedOperationException("not signed up with the bot");
+            }
+            // For free entries, we can proceed without a database user record
+            // We'll skip credit validation and just create the entry
         }
         
-        // Check if user meets restrictions
-        String eligibilityError = checkUserEligibility(giveaway, user);
-        if (eligibilityError != null) {
-            throw new UnauthorizedOperationException(eligibilityError);
+        // Check if user meets restrictions (only if user exists in database)
+        if (user != null) {
+            String eligibilityError = checkUserEligibility(giveaway, user);
+            if (eligibilityError != null) {
+                throw new UnauthorizedOperationException(eligibilityError);
+            }
         }
         
         // Check entry limits
@@ -215,8 +222,8 @@ public class GiveawayService {
             throw new IllegalStateException("Maximum entries per user reached");
         }
         
-        // Check and deduct credits
-        if (giveaway.getEntryPrice() > 0) {
+        // Check and deduct credits (only if user exists and entry has a cost)
+        if (giveaway.getEntryPrice() > 0 && user != null) {
             if (user.getCredits() < giveaway.getEntryPrice()) {
                 throw new IllegalStateException("You don't have enough credits to enter!");
             }

@@ -27,6 +27,7 @@ import net.dv8tion.jda.api.interactions.modals.Modal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
@@ -63,6 +64,9 @@ public class GiveawayCommandListener extends ListenerAdapter {
     private final UserService userService;
     private final DiscordBotSettingsService discordBotSettingsService;
     private JDA jda;
+
+    @Value("${frontend.base.url}")
+    private String frontendBaseUrl;
 
     @Autowired
     @Lazy
@@ -260,7 +264,13 @@ public class GiveawayCommandListener extends ListenerAdapter {
 
         } catch (com.app.heartbound.exceptions.UnauthorizedOperationException e) {
             // Handle eligibility errors with specific requirement message
-            event.getHook().editOriginal("You can't enter the giveaway! You must be " + e.getMessage()).queue();
+            if ("not signed up with the bot".equals(e.getMessage())) {
+                // Special handling for users not in database attempting paid entries
+                String signUpMessage = String.format("You are currently not signed up with the bot! Please login through the site to join the giveaway.\n%s", frontendBaseUrl);
+                event.getHook().editOriginal(signUpMessage).queue();
+            } else {
+                event.getHook().editOriginal("You can't enter the giveaway! You must be " + e.getMessage()).queue();
+            }
         } catch (IllegalStateException e) {
             // Handle business logic errors (max entries, insufficient credits, etc.)
             event.getHook().editOriginal("❌ **Entry Failed**\n" + e.getMessage()).queue();
