@@ -13,6 +13,8 @@ import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import com.app.heartbound.config.CacheConfig;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.EmbedBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,10 +28,12 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.stream.Collectors;
+import java.awt.Color;
 
 @Service
 public class GiveawayService {
@@ -316,6 +320,9 @@ public class GiveawayService {
         
         // Announce winners in Discord
         announceWinners(giveaway, winners);
+        
+        // Update the original giveaway embed to completion state
+        updateGiveawayEmbedForCompletion(giveaway, winners);
         
         logger.info("Completed giveaway {} with {} winners", giveawayId, winners.size());
         return winners;
@@ -807,5 +814,120 @@ public class GiveawayService {
         return (int) scheduledTasks.values().stream()
             .filter(task -> !task.isDone())
             .count();
+    }
+
+    /**
+     * Update the original giveaway embed to show completion status
+     * @param giveaway The completed giveaway
+     * @param winners List of winning entries
+     */
+    private void updateGiveawayEmbedForCompletion(Giveaway giveaway, List<GiveawayEntry> winners) {
+        try {
+            if (giveaway.getMessageId() == null || giveaway.getMessageId().equals("temp")) {
+                logger.debug("Cannot update giveaway embed for completion: messageId is null or temporary for giveaway {}", giveaway.getId());
+                return;
+            }
+
+            // Get the Discord channel
+            TextChannel channel = getDiscordChannel(giveaway.getChannelId());
+            if (channel == null) {
+                logger.warn("Cannot update giveaway embed for completion {}: Discord channel {} not accessible or JDA not ready", 
+                           giveaway.getId(), giveaway.getChannelId());
+                return;
+            }
+
+            // Create completion embed
+            MessageEmbed completionEmbed = createCompletionEmbed(giveaway, winners);
+            
+            // Update the embed and remove the button
+            channel.editMessageEmbedsById(giveaway.getMessageId(), completionEmbed)
+                .setComponents() // Remove all action rows (buttons)
+                .queue(
+                    success -> logger.info("Successfully updated giveaway embed to completion state for giveaway {} in channel {}", 
+                                          giveaway.getId(), giveaway.getChannelId()),
+                    error -> logger.error("Failed to update giveaway embed for completion of giveaway {} in channel {}: {}", 
+                                         giveaway.getId(), giveaway.getChannelId(), error.getMessage())
+                );
+
+        } catch (Exception e) {
+            logger.error("Error updating giveaway embed for completion of giveaway {}: {}", giveaway.getId(), e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Create a completion embed for a finished giveaway
+     * @param giveaway The completed giveaway
+     * @param winners List of winning entries
+     * @return MessageEmbed formatted for completion state
+     */
+    private MessageEmbed createCompletionEmbed(Giveaway giveaway, List<GiveawayEntry> winners) {
+        EmbedBuilder embedBuilder = new EmbedBuilder();
+        
+        // Set title to the prize (same as original)
+        embedBuilder.setTitle(giveaway.getPrize());
+        
+        // Build description for completion state
+        StringBuilder description = new StringBuilder();
+        
+        // Calculate and format time elapsed
+        String timeElapsed = calculateTimeElapsed(giveaway.getEndDate(), giveaway.getCompletedAt());
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' hh:mm a");
+        description.append("**Ended:** ").append(timeElapsed).append(" (").append(giveaway.getCompletedAt().format(formatter)).append(")\n");
+        description.append("**Hosted by:** ").append(giveaway.getHostUsername()).append("\n");
+        
+        // Get total entries for completion display
+        long totalEntries = getTotalEntries(giveaway);
+        description.append("**Entries:** ").append(totalEntries).append("\n");
+        
+        // Format winners
+        if (!winners.isEmpty()) {
+            String winnersFormatted = formatWinnersForEmbed(winners);
+            description.append("**Winners:** ").append(winnersFormatted);
+        } else {
+            description.append("**Winners:** No winners (no entries)");
+        }
+        
+        embedBuilder.setDescription(description.toString());
+        embedBuilder.setColor(Color.decode("#58b9ff")); // Preserve existing blue color
+        
+        return embedBuilder.build();
+    }
+
+    /**
+     * Calculate time elapsed between giveaway end date and completion
+     * @param endDate The giveaway's scheduled end date
+     * @param completedAt The actual completion time
+     * @return Formatted string showing days elapsed or same day completion
+     */
+    private String calculateTimeElapsed(LocalDateTime endDate, LocalDateTime completedAt) {
+        if (endDate == null || completedAt == null) {
+            return "0 days ago";
+        }
+        
+        // Calculate the difference between completion and end date
+        long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(endDate.toLocalDate(), completedAt.toLocalDate());
+        
+        if (daysBetween == 0) {
+            return "0 days ago";
+        } else if (daysBetween == 1) {
+            return "1 day ago";
+        } else {
+            return daysBetween + " days ago";
+        }
+    }
+
+    /**
+     * Format winners for embed display using Discord mentions
+     * @param winners List of winning entries
+     * @return Formatted string with Discord mentions
+     */
+    private String formatWinnersForEmbed(List<GiveawayEntry> winners) {
+        if (winners.isEmpty()) {
+            return "No winners";
+        }
+        
+        return winners.stream()
+            .map(winner -> "<@" + winner.getUserId() + ">")
+            .collect(Collectors.joining(" "));
     }
 } 
