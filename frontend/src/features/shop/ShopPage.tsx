@@ -19,7 +19,8 @@ const categoryDisplayMapping: Record<string, string> = {
   'USER_COLOR': 'Nameplate',
   'LISTING': 'Listing Color',
   'ACCENT': 'Profile Accent',
-  'BADGE': 'Badge'
+  'BADGE': 'Badge',
+  'CASE': 'Case'
 };
 
 // Format category for display with custom mappings
@@ -38,6 +39,8 @@ interface ShopItem {
   requiredRole: Role | null;
   owned: boolean;
   rarity: string;
+  isCase?: boolean;
+  caseContentsCount?: number;
 }
 
 interface ToastNotification {

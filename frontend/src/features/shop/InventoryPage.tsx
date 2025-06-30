@@ -36,7 +36,9 @@ interface ToastNotification {
 const categoryDisplayMapping: Record<string, string> = {
   'USER_COLOR': 'Nameplate',
   'LISTING': 'Listing Color',
-  'ACCENT': 'Profile Accent'
+  'ACCENT': 'Profile Accent',
+  'BADGE': 'Badge',
+  'CASE': 'Case'
 };
 
 // Format category for display with custom mappings

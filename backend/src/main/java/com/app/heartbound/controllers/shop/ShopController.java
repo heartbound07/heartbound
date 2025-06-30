@@ -4,6 +4,8 @@ import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.dto.shop.ShopDTO;
 import com.app.heartbound.dto.shop.UserInventoryDTO;
+import com.app.heartbound.dto.shop.CaseContentsDTO;
+import com.app.heartbound.dto.shop.CaseItemDTO;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
@@ -280,6 +282,116 @@ public class ShopController {
             logger.error("Error unequipping badge: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse("An error occurred while unequipping the badge"));
+        }
+    }
+    
+    // ===== CASE-SPECIFIC ENDPOINTS =====
+    
+    /**
+     * Get case contents
+     * @param caseId Case ID
+     * @return Case contents with drop rates
+     */
+    @GetMapping("/cases/{caseId}/contents")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<?> getCaseContents(@PathVariable UUID caseId) {
+        try {
+            CaseContentsDTO contents = shopService.getCaseContents(caseId);
+            return ResponseEntity.ok(contents);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error retrieving case contents for case {}: {}", caseId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An error occurred while retrieving case contents"));
+        }
+    }
+    
+    /**
+     * Admin endpoint to update case contents
+     * @param caseId Case ID
+     * @param caseItems List of items with drop rates
+     * @return Success response
+     */
+    @PostMapping("/admin/cases/{caseId}/contents")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateCaseContents(
+        @PathVariable UUID caseId,
+        @RequestBody List<CaseItemDTO> caseItems
+    ) {
+        try {
+            logger.debug("Updating case {} with {} items", caseId, caseItems.size());
+            shopService.updateCaseContents(caseId, caseItems);
+            return ResponseEntity.ok(new SuccessResponse("Case contents updated successfully"));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error updating case contents for case {}: {}", caseId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An error occurred while updating case contents"));
+        }
+    }
+    
+    /**
+     * Validate case contents
+     * @param caseId Case ID
+     * @return Validation result
+     */
+    @GetMapping("/admin/cases/{caseId}/validate")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> validateCaseContents(@PathVariable UUID caseId) {
+        try {
+            boolean isValid = shopService.validateCaseContents(caseId);
+            return ResponseEntity.ok(new ValidationResponse(isValid, 
+                isValid ? "Case contents are valid" : "Case contents are invalid - drop rates must total 100%"));
+        } catch (Exception e) {
+            logger.error("Error validating case contents for case {}: {}", caseId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An error occurred while validating case contents"));
+        }
+    }
+    
+    /**
+     * Simple success response class
+     */
+    private static class SuccessResponse {
+        private final String message;
+        
+        public SuccessResponse(String message) {
+            this.message = message;
+        }
+        
+        public String getMessage() {
+            return message;
+        }
+    }
+    
+    /**
+     * Validation response class
+     */
+    private static class ValidationResponse {
+        private final boolean valid;
+        private final String message;
+        
+        public ValidationResponse(boolean valid, String message) {
+            this.valid = valid;
+            this.message = message;
+        }
+        
+        public boolean isValid() {
+            return valid;
+        }
+        
+        public String getMessage() {
+            return message;
         }
     }
     

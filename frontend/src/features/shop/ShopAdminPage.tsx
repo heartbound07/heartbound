@@ -17,7 +17,9 @@ import {
   HiOutlineCalendar,
   HiOutlineTrash,
   HiOutlinePencil,
-  HiOutlineStar
+  HiOutlineStar,
+  HiOutlineX,
+  HiOutlinePlus
 } from 'react-icons/hi';
 import { BadgeUpload } from '@/components/ui/shop/BadgeUpload';
 
@@ -52,6 +54,17 @@ interface ShopFormData {
   rarity: string;
 }
 
+interface CaseItemData {
+  id?: string;
+  containedItem: ShopItem;
+  dropRate: number;
+}
+
+interface CaseContents {
+  items: CaseItemData[];
+  totalDropRate: number;
+}
+
 interface ToastNotification {
   id: string;
   message: string;
@@ -65,6 +78,11 @@ export function ShopAdminPage() {
   const [editingItem, setEditingItem] = useState<ShopItem | null>(null);
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Case-specific state
+  const [caseContents, setCaseContents] = useState<CaseContents>({ items: [], totalDropRate: 0 });
+  const [availableItems, setAvailableItems] = useState<ShopItem[]>([]);
+  const [loadingCaseContents, setLoadingCaseContents] = useState(false);
   
   const [formData, setFormData] = useState<ShopFormData>({
     name: '',
@@ -81,7 +99,7 @@ export function ShopAdminPage() {
   });
   
   // Available categories
-  const categories = ['USER_COLOR', 'LISTING', 'ACCENT', 'BADGE'];
+  const categories = ['USER_COLOR', 'LISTING', 'ACCENT', 'BADGE', 'CASE'];
   
   // Available roles for role-restricted items
   const roles = ['ADMIN', 'MODERATOR', 'MONARCH'];
@@ -114,6 +132,11 @@ export function ShopAdminPage() {
       
       // Use functional update to ensure we're working with the latest state
       setItems(response.data);
+      
+      // Also update available items for case management (exclude cases themselves)
+      const nonCaseItems = response.data.filter((item: ShopItem) => item.category !== 'CASE');
+      setAvailableItems(nonCaseItems);
+      
       return response.data; // Return the data for potential further processing
     } catch (error) {
       console.error('Error fetching shop items:', error);
@@ -124,8 +147,118 @@ export function ShopAdminPage() {
     } finally {
       setLoading(false);
     }
+    };
+
+  // Case contents management functions
+  const fetchCaseContents = async (caseId: string) => {
+    try {
+      setLoadingCaseContents(true);
+      const response = await httpClient.get(`/shop/cases/${caseId}/contents`);
+      const contents = response.data;
+      
+      setCaseContents({
+        items: contents.items || [],
+        totalDropRate: contents.totalDropRate || 0
+      });
+    } catch (error) {
+      console.error('Error fetching case contents:', error);
+      showToast('Failed to load case contents', 'error');
+    } finally {
+      setLoadingCaseContents(false);
+    }
   };
-  
+
+  const addCaseItem = () => {
+    if (availableItems.length === 0) {
+      showToast('No items available to add to case', 'error');
+      return;
+    }
+    
+    // Find first available item not already in case
+    const usedItemIds = caseContents.items.map(item => item.containedItem.id);
+    const availableItem = availableItems.find(item => !usedItemIds.includes(item.id));
+    
+    if (!availableItem) {
+      showToast('All available items are already in this case', 'error');
+      return;
+    }
+
+    const newCaseItem: CaseItemData = {
+      containedItem: availableItem,
+      dropRate: 1
+    };
+    
+    const newItems = [...caseContents.items, newCaseItem];
+    const newTotalDropRate = newItems.reduce((sum, item) => sum + item.dropRate, 0);
+    
+    setCaseContents({
+      items: newItems,
+      totalDropRate: newTotalDropRate
+    });
+  };
+
+  const removeCaseItem = (index: number) => {
+    const newItems = caseContents.items.filter((_, i) => i !== index);
+    const newTotalDropRate = newItems.reduce((sum, item) => sum + item.dropRate, 0);
+    
+    setCaseContents({
+      items: newItems,
+      totalDropRate: newTotalDropRate
+    });
+  };
+
+  const updateCaseItemDropRate = (index: number, dropRate: number) => {
+    const newItems = [...caseContents.items];
+    newItems[index] = { ...newItems[index], dropRate };
+    const newTotalDropRate = newItems.reduce((sum, item) => sum + item.dropRate, 0);
+    
+    setCaseContents({
+      items: newItems,
+      totalDropRate: newTotalDropRate
+    });
+  };
+
+  const updateCaseItemSelection = (index: number, selectedItemId: string) => {
+    const selectedItem = availableItems.find(item => item.id === selectedItemId);
+    if (!selectedItem) return;
+    
+    const newItems = [...caseContents.items];
+    newItems[index] = { ...newItems[index], containedItem: selectedItem };
+    
+    setCaseContents({
+      items: newItems,
+      totalDropRate: caseContents.totalDropRate
+    });
+  };
+
+  const saveCaseContents = async () => {
+    if (!editingItem || editingItem.category !== 'CASE') return;
+    
+    // Validate drop rates
+    if (caseContents.totalDropRate !== 100) {
+      showToast(`Drop rates must total 100%. Current total: ${caseContents.totalDropRate}%`, 'error');
+      return;
+    }
+    
+    if (caseContents.items.length === 0) {
+      showToast('Case must contain at least one item', 'error');
+      return;
+    }
+    
+    try {
+      const payload = caseContents.items.map(item => ({
+        containedItem: { id: item.containedItem.id },
+        dropRate: item.dropRate
+      }));
+      
+      await httpClient.post(`/shop/admin/cases/${editingItem.id}/contents`, payload);
+      showToast('Case contents updated successfully', 'success');
+    } catch (error) {
+      console.error('Error saving case contents:', error);
+      showToast('Failed to save case contents', 'error');
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
@@ -199,6 +332,14 @@ export function ShopAdminPage() {
       discordRoleId: item.discordRoleId || '',
       rarity: item.rarity || 'COMMON'
     });
+    
+    // Load case contents if this is a case
+    if (item.category === 'CASE') {
+      fetchCaseContents(item.id);
+    } else {
+      // Reset case contents for non-case items
+      setCaseContents({ items: [], totalDropRate: 0 });
+    }
   };
   
   const handleDelete = async (itemId: string) => {
@@ -251,6 +392,7 @@ export function ShopAdminPage() {
       rarity: 'COMMON'
     });
     setEditingItem(null);
+    setCaseContents({ items: [], totalDropRate: 0 });
   };
   
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -573,6 +715,149 @@ export function ShopAdminPage() {
                     ? "Enter the Discord role ID to be granted when this color is equipped. Leave empty for no role."
                     : "Enter the Discord role ID to be granted when this badge is equipped. Leave empty for no role."}
                 </p>
+              </div>
+            )}
+            
+            {/* Case Contents Management - Only show for CASE category */}
+            {formData.category === 'CASE' && (
+              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
+                <h3 className="text-md font-medium text-slate-200 mb-4 flex items-center">
+                  <HiOutlineCollection className="mr-2 text-primary" size={18} />
+                  Case Contents
+                  {editingItem && (
+                    <span className="ml-2 text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded">
+                      Editing Existing Case
+                    </span>
+                  )}
+                </h3>
+                
+                {!editingItem && (
+                  <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-md">
+                    <p className="text-yellow-200 text-sm">
+                      <strong>Note:</strong> Save the case item first, then edit it to configure contents.
+                      Case contents can only be managed for existing cases.
+                    </p>
+                  </div>
+                )}
+                
+                {editingItem && (
+                  <>
+                    {loadingCaseContents ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2"></div>
+                        <span className="text-slate-300">Loading case contents...</span>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Drop Rate Summary */}
+                        <div className="mb-4 p-3 rounded-md border" style={{
+                          backgroundColor: caseContents.totalDropRate === 100 ? 'rgb(34 197 94 / 0.1)' : 'rgb(239 68 68 / 0.1)',
+                          borderColor: caseContents.totalDropRate === 100 ? 'rgb(34 197 94 / 0.3)' : 'rgb(239 68 68 / 0.3)'
+                        }}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium" style={{
+                              color: caseContents.totalDropRate === 100 ? 'rgb(34 197 94)' : 'rgb(239 68 68)'
+                            }}>
+                              Total Drop Rate: {caseContents.totalDropRate}%
+                            </span>
+                            {caseContents.totalDropRate === 100 ? (
+                              <span className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded">Valid</span>
+                            ) : (
+                              <span className="text-xs bg-red-500/20 text-red-300 px-2 py-1 rounded">
+                                Must equal 100%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Case Items List */}
+                        <div className="space-y-3 mb-4">
+                          {caseContents.items.map((caseItem, index) => (
+                            <div key={index} className="bg-slate-900/50 border border-slate-600 rounded-md p-3">
+                              <div className="flex items-center space-x-3">
+                                {/* Item Selection */}
+                                <div className="flex-1">
+                                  <label className="block text-xs text-slate-400 mb-1">Item</label>
+                                  <select
+                                    value={caseItem.containedItem.id}
+                                    onChange={(e) => updateCaseItemSelection(index, e.target.value)}
+                                    className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary"
+                                  >
+                                    {availableItems.map(item => (
+                                      <option key={item.id} value={item.id}>
+                                        {item.name} ({item.category})
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                
+                                {/* Drop Rate Input */}
+                                <div className="w-24">
+                                  <label className="block text-xs text-slate-400 mb-1">Drop %</label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    value={caseItem.dropRate}
+                                    onChange={(e) => updateCaseItemDropRate(index, parseInt(e.target.value) || 1)}
+                                    className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary"
+                                  />
+                                </div>
+                                
+                                {/* Remove Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => removeCaseItem(index)}
+                                  className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
+                                  title="Remove item from case"
+                                >
+                                  <HiOutlineX size={16} />
+                                </button>
+                              </div>
+                              
+                              {/* Item Preview */}
+                              <div className="mt-2 flex items-center space-x-2 text-xs text-slate-400">
+                                <span>Price: {caseItem.containedItem.price} credits</span>
+                                <span>•</span>
+                                <span>Rarity: {caseItem.containedItem.rarity}</span>
+                              </div>
+                            </div>
+                          ))}
+                          
+                          {caseContents.items.length === 0 && (
+                            <div className="text-center py-8 text-slate-400">
+                              <p>No items in this case yet.</p>
+                              <p className="text-sm">Click "Add Item" to start building your case.</p>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Action Buttons */}
+                        <div className="flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={addCaseItem}
+                            disabled={caseContents.items.length >= availableItems.length}
+                            className="px-3 py-2 bg-primary/20 border border-primary/30 text-primary rounded hover:bg-primary/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm"
+                          >
+                            <HiOutlinePlus className="mr-1" size={14} />
+                            Add Item
+                          </button>
+                          
+                          <button
+                            type="button"
+                            onClick={saveCaseContents}
+                            disabled={caseContents.totalDropRate !== 100 || caseContents.items.length === 0}
+                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm"
+                          >
+                            <HiOutlineCheck className="mr-1" size={14} />
+                            Save Case Contents
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
               </div>
             )}
             
