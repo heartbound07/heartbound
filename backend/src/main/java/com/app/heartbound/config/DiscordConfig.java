@@ -250,6 +250,12 @@ public class DiscordConfig {
                             new OptionData(OptionType.USER, "user", "The user to prison or release.", true)
                         ),
                     Commands.slash("gcreate", "Create a new giveaway with customizable settings")
+                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR)),
+                    Commands.slash("gdelete", "Delete one of your giveaways")
+                        .addOptions(
+                            new OptionData(OptionType.STRING, "name", "The giveaway to delete", true)
+                                .setAutoComplete(true)
+                        )
                         .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
                 )
                 .queue(

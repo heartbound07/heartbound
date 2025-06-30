@@ -15,8 +15,10 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
@@ -33,17 +35,24 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * GiveawayCommandListener
  * 
  * Discord slash command listener for giveaway management.
- * Handles /gcreate command with modal interactions for creating giveaways.
+ * Handles /gcreate and /gdelete commands with proper authentication and validation.
  * 
- * Command: /gcreate (Admin only)
- * - Shows modal for giveaway configuration
- * - Creates giveaway embed with entry button
- * - Handles entry interactions and validation
+ * Commands (Admin only):
+ * - /gcreate: Shows modal for giveaway configuration, creates giveaway embed with entry button
+ * - /gdelete: Deletes user's own giveaways with autocomplete functionality, handles refunds for active giveaways
+ * 
+ * Features:
+ * - Modal interactions for giveaway creation
+ * - Entry button interactions and validation
+ * - Autocomplete for giveaway deletion
+ * - Real-time embed updates
+ * - Security validation (admin permissions, ownership checks)
  */
 @Component
 public class GiveawayCommandListener extends ListenerAdapter {
@@ -82,23 +91,48 @@ public class GiveawayCommandListener extends ListenerAdapter {
 
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
-        if (!event.getName().equals("gcreate")) {
+        String commandName = event.getName();
+        
+        if (commandName.equals("gcreate")) {
+            handleGcreateCommand(event);
+        } else if (commandName.equals("gdelete")) {
+            handleGdeleteCommand(event);
+        }
+    }
+
+    @Override
+    public void onCommandAutoCompleteInteraction(CommandAutoCompleteInteractionEvent event) {
+        if (!event.getName().equals("gdelete")) {
             return; // Not our command
         }
 
-        logger.debug("Giveaway create command received from user: {}", event.getUser().getId());
+        String userId = event.getUser().getId();
+        logger.debug("Autocomplete request for /gdelete from user: {}", userId);
 
-        // Check if user has administrator permissions
-        Member member = event.getMember();
-        if (member == null || !member.hasPermission(Permission.ADMINISTRATOR)) {
-            event.reply("❌ **Access Denied**\nYou need Administrator permissions to create giveaways.")
-                .setEphemeral(true).queue();
-            logger.warn("Non-admin user {} attempted to use /gcreate command", event.getUser().getId());
-            return;
+        try {
+            // Get user's giveaways for autocomplete (limit to 25 most recent)
+            List<Giveaway> userGiveaways = giveawayService.getGiveawaysByHostForAutocomplete(userId, 25);
+            
+            List<Command.Choice> choices = userGiveaways.stream()
+                    .map(giveaway -> {
+                        // Format: "Prize Name - Status (Created: Date)"
+                        String displayName = String.format("%s - %s (Created: %s)", 
+                            giveaway.getPrize().length() > 60 ? giveaway.getPrize().substring(0, 57) + "..." : giveaway.getPrize(),
+                            giveaway.getStatus().toString(),
+                            giveaway.getCreatedAt().format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
+                        );
+                        return new Command.Choice(displayName, giveaway.getId().toString());
+                    })
+                    .collect(Collectors.toList());
+
+            event.replyChoices(choices).queue(
+                success -> logger.debug("Sent {} autocomplete choices for /gdelete to user {}", choices.size(), userId),
+                error -> logger.error("Failed to send autocomplete choices for /gdelete: {}", error.getMessage())
+            );
+        } catch (Exception e) {
+            logger.error("Error processing autocomplete for /gdelete: {}", e.getMessage(), e);
+            event.replyChoices(List.of()).queue(); // Send empty choices on error
         }
-
-        // Show the giveaway creation modal
-        showGiveawayCreationModal(event);
     }
 
     @Override
@@ -523,5 +557,123 @@ public class GiveawayCommandListener extends ListenerAdapter {
         }
     }
 
+    /**
+     * Handle the /gcreate slash command
+     */
+    private void handleGcreateCommand(SlashCommandInteractionEvent event) {
+        logger.debug("Giveaway create command received from user: {}", event.getUser().getId());
+
+        // Check if user has administrator permissions
+        Member member = event.getMember();
+        if (member == null || !member.hasPermission(Permission.ADMINISTRATOR)) {
+            event.reply("❌ **Access Denied**\nYou need Administrator permissions to create giveaways.")
+                .setEphemeral(true).queue();
+            logger.warn("Non-admin user {} attempted to use /gcreate command", event.getUser().getId());
+            return;
+        }
+
+        // Show the giveaway creation modal
+        showGiveawayCreationModal(event);
+    }
+
+    /**
+     * Handle the /gdelete slash command
+     */
+    private void handleGdeleteCommand(SlashCommandInteractionEvent event) {
+        logger.debug("Giveaway delete command received from user: {}", event.getUser().getId());
+
+        // Check if user has administrator permissions
+        Member member = event.getMember();
+        if (member == null || !member.hasPermission(Permission.ADMINISTRATOR)) {
+            event.reply("❌ **Access Denied**\nYou need Administrator permissions to delete giveaways.")
+                .setEphemeral(true).queue();
+            logger.warn("Non-admin user {} attempted to use /gdelete command", event.getUser().getId());
+            return;
+        }
+
+        // Get the giveaway ID from the command option
+        String giveawayIdStr = event.getOption("name").getAsString();
+        
+        // Acknowledge the command immediately
+        event.deferReply(true).queue(); // Ephemeral response
+
+        try {
+            UUID giveawayId = UUID.fromString(giveawayIdStr);
+            String userId = event.getUser().getId();
+
+            // Verify the giveaway exists and get its details before deletion
+            Optional<Giveaway> giveawayOpt = giveawayService.getGiveawayById(giveawayId);
+            if (giveawayOpt.isEmpty()) {
+                event.getHook().editOriginal("❌ **Error**\nGiveaway not found.").queue();
+                return;
+            }
+
+            Giveaway giveaway = giveawayOpt.get();
+            
+            // Delete the giveaway (service handles validation and refunds)
+            giveawayService.deleteGiveaway(giveawayId, userId);
+
+            // Update the Discord message to show deletion status
+            updateGiveawayEmbedForDeletion(giveaway);
+
+            // Send success message
+            String successMessage = String.format("✅ **Giveaway Deleted**\nSuccessfully deleted giveaway: **%s**", 
+                giveaway.getPrize());
+            
+            if (giveaway.getStatus() == Giveaway.GiveawayStatus.ACTIVE) {
+                successMessage += "\nAll entries have been refunded.";
+            }
+
+            event.getHook().editOriginal(successMessage).queue();
+            logger.info("Giveaway {} successfully deleted by admin {}", giveawayId, userId);
+
+        } catch (IllegalArgumentException e) {
+            event.getHook().editOriginal("❌ **Error**\nInvalid giveaway ID.").queue();
+        } catch (com.app.heartbound.exceptions.UnauthorizedOperationException e) {
+            event.getHook().editOriginal("❌ **Access Denied**\n" + e.getMessage()).queue();
+        } catch (IllegalStateException e) {
+            event.getHook().editOriginal("❌ **Error**\n" + e.getMessage()).queue();
+        } catch (Exception e) {
+            logger.error("Error deleting giveaway: {}", e.getMessage(), e);
+            event.getHook().editOriginal("❌ **Error deleting giveaway**\nPlease try again later.").queue();
+        }
+    }
+
+    private void updateGiveawayEmbedForDeletion(Giveaway giveaway) {
+        try {
+            if (giveaway.getMessageId() == null || giveaway.getMessageId().equals("temp")) {
+                logger.debug("Cannot update giveaway embed for deletion: messageId is null or temporary for giveaway {}", giveaway.getId());
+                return;
+            }
+
+            // Create deleted giveaway embed
+            EmbedBuilder embedBuilder = new EmbedBuilder();
+            embedBuilder.setTitle("❌ Giveaway Deleted");
+            embedBuilder.setDescription(String.format("**Prize:** %s\n**Hosted by:** %s\n\n*This giveaway has been deleted by the host.*", 
+                giveaway.getPrize(), giveaway.getHostUsername()));
+            embedBuilder.setColor(Color.decode("#dc3545")); // Bootstrap danger red
+            
+            MessageEmbed deletedEmbed = embedBuilder.build();
+            
+            // Get the channel and update the message
+            if (jda != null) {
+                TextChannel channel = jda.getTextChannelById(giveaway.getChannelId());
+                if (channel != null) {
+                    // Update the embed and remove the button
+                    channel.editMessageEmbedsById(giveaway.getMessageId(), deletedEmbed)
+                        .setComponents() // Remove all action rows (buttons)
+                        .queue(
+                            success -> logger.debug("Updated giveaway embed to show deletion for giveaway {}", giveaway.getId()),
+                            error -> logger.error("Failed to update giveaway embed for deletion of giveaway {}: {}", 
+                                                 giveaway.getId(), error.getMessage())
+                        );
+                } else {
+                    logger.warn("Could not find channel {} to update deleted giveaway embed", giveaway.getChannelId());
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error updating giveaway embed for deletion of giveaway {}: {}", giveaway.getId(), e.getMessage(), e);
+        }
+    }
 
 } 

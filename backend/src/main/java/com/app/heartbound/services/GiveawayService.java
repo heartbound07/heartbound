@@ -9,6 +9,7 @@ import com.app.heartbound.repositories.GiveawayEntryRepository;
 import com.app.heartbound.services.discord.DiscordBotSettingsService;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
+import com.app.heartbound.config.CacheConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,16 +29,19 @@ public class GiveawayService {
     private final GiveawayEntryRepository giveawayEntryRepository;
     private final UserService userService;
     private final DiscordBotSettingsService discordBotSettingsService;
+    private final CacheConfig cacheConfig;
 
     @Autowired
     public GiveawayService(GiveawayRepository giveawayRepository,
                           GiveawayEntryRepository giveawayEntryRepository,
                           UserService userService,
-                          DiscordBotSettingsService discordBotSettingsService) {
+                          DiscordBotSettingsService discordBotSettingsService,
+                          CacheConfig cacheConfig) {
         this.giveawayRepository = giveawayRepository;
         this.giveawayEntryRepository = giveawayEntryRepository;
         this.userService = userService;
         this.discordBotSettingsService = discordBotSettingsService;
+        this.cacheConfig = cacheConfig;
     }
 
     /**
@@ -243,6 +247,9 @@ public class GiveawayService {
         giveaway.setCompletedAt(LocalDateTime.now());
         giveawayRepository.save(giveaway);
         
+        // Invalidate giveaway cache
+        cacheConfig.invalidateGiveawayCache();
+        
         logger.info("Cancelled giveaway {} by admin {}", giveawayId, adminUserId);
     }
 
@@ -262,6 +269,76 @@ public class GiveawayService {
         }
         
         return expiredGiveaways;
+    }
+
+    /**
+     * Delete a completed giveaway
+     */
+    @Transactional
+    public void deleteCompletedGiveaway(UUID giveawayId, String adminUserId) {
+        logger.debug("Admin {} deleting completed giveaway {}", adminUserId, giveawayId);
+        
+        Giveaway giveaway = giveawayRepository.findById(giveawayId)
+                .orElseThrow(() -> new ResourceNotFoundException("Giveaway not found"));
+        
+        if (giveaway.getStatus() != Giveaway.GiveawayStatus.COMPLETED) {
+            throw new IllegalStateException("Can only delete completed giveaways");
+        }
+        
+        // For completed giveaways, we can safely delete them as no refunds are needed
+        giveawayRepository.delete(giveaway);
+        
+        // Invalidate giveaway cache
+        cacheConfig.invalidateGiveawayCache();
+        
+        logger.info("Deleted completed giveaway {} by admin {}", giveawayId, adminUserId);
+    }
+
+    /**
+     * Delete any giveaway (handles both ACTIVE and COMPLETED)
+     */
+    @Transactional
+    public void deleteGiveaway(UUID giveawayId, String adminUserId) {
+        logger.debug("Admin {} deleting giveaway {}", adminUserId, giveawayId);
+        
+        Giveaway giveaway = giveawayRepository.findById(giveawayId)
+                .orElseThrow(() -> new ResourceNotFoundException("Giveaway not found"));
+        
+        // Validate that only the host can delete their own giveaway
+        if (!giveaway.getHostUserId().equals(adminUserId)) {
+            throw new UnauthorizedOperationException("You can only delete your own giveaways");
+        }
+        
+        // Cannot delete cancelled giveaways
+        if (giveaway.getStatus() == Giveaway.GiveawayStatus.CANCELLED) {
+            throw new IllegalStateException("Cannot delete cancelled giveaways");
+        }
+        
+        if (giveaway.getStatus() == Giveaway.GiveawayStatus.ACTIVE) {
+            // For active giveaways, cancel them first (includes refunds)
+            cancelGiveaway(giveawayId, adminUserId);
+        } else if (giveaway.getStatus() == Giveaway.GiveawayStatus.COMPLETED) {
+            // For completed giveaways, delete directly
+            deleteCompletedGiveaway(giveawayId, adminUserId);
+        }
+        
+        // Invalidate giveaway cache
+        cacheConfig.invalidateGiveawayCache();
+        
+        logger.info("Successfully deleted giveaway {} by admin {}", giveawayId, adminUserId);
+    }
+
+    /**
+     * Get giveaways by host for autocomplete (excludes CANCELLED)
+     */
+    public List<Giveaway> getGiveawaysByHostForAutocomplete(String hostUserId, int limit) {
+        List<Giveaway> allGiveaways = giveawayRepository.findByHostUserIdOrderByCreatedAtDesc(hostUserId);
+        
+        // Filter out cancelled giveaways and limit results
+        return allGiveaways.stream()
+                .filter(giveaway -> giveaway.getStatus() != Giveaway.GiveawayStatus.CANCELLED)
+                .limit(limit)
+                .collect(Collectors.toList());
     }
 
     // Private helper methods
