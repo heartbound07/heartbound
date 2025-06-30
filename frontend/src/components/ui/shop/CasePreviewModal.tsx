@@ -178,7 +178,7 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
                                   fallbackColor={rarityColor}
                                   message=""
                                   className="h-full w-full"
-                                  size="xs"
+                                  size="sm"
                                 />
                               ) : item.category === 'BADGE' ? (
                                 <BadgePreview
@@ -187,7 +187,7 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
                                   badgeUrl={item.thumbnailUrl || item.imageUrl}
                                   message=""
                                   className="h-full w-full"
-                                  size="xs"
+                                  size="sm"
                                 />
                               ) : item.imageUrl ? (
                                 <img 

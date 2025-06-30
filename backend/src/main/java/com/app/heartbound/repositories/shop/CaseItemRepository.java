@@ -3,6 +3,7 @@ package com.app.heartbound.repositories.shop;
 import com.app.heartbound.entities.CaseItem;
 import com.app.heartbound.entities.Shop;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -43,6 +44,7 @@ public interface CaseItemRepository extends JpaRepository<CaseItem, UUID> {
     /**
      * Delete all case items by case ID
      */
+    @Modifying
     @Query("DELETE FROM CaseItem ci WHERE ci.caseShopItem.id = :caseId")
     void deleteByCaseId(@Param("caseId") UUID caseId);
     
