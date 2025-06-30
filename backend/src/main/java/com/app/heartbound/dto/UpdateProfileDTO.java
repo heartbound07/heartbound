@@ -30,8 +30,8 @@ public class UpdateProfileDTO {
     private String about;
     
     @Schema(description = "The banner color selection", example = "bg-blue-600")
-    @Pattern(regexp = "^(#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})|bg-[a-z]+-[0-9]+(/[0-9]+)?|bg-white/[0-9]+)$", 
-             message = "Banner color must be a valid hex color (e.g., #RRGGBB, #RRGGBBAA) or a valid Tailwind CSS class (e.g., bg-blue-600, bg-white/10)")
+    @Pattern(regexp = "^$|^(#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})|bg-[a-z]+-[0-9]+(/[0-9]+)?|bg-white/[0-9]+)$", 
+             message = "Banner color must be empty, a valid hex color (e.g., #RRGGBB, #RRGGBBAA) or a valid Tailwind CSS class (e.g., bg-blue-600, bg-white/10)")
     private String bannerColor;
     
     @Schema(description = "The avatar image URL", example = "https://cloudinary.com/image.jpg")
