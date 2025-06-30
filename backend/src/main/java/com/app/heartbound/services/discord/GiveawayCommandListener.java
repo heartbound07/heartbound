@@ -211,11 +211,15 @@ public class GiveawayCommandListener extends ListenerAdapter {
             updateGiveawayEmbed(giveaway);
 
             // Send success message
-            String entryMessage = String.format("✅ **Successfully Entered!**\nYou are now entered in the giveaway (Entry #%d)", 
+            String entryMessage = String.format("✅ You are now entered in the giveaway! (Entry #%d)", 
                 entry.getEntryNumber());
             
             if (entry.getCreditsPaid() > 0) {
-                entryMessage += String.format("\n💰 %d credits have been deducted from your account.", entry.getCreditsPaid());
+                // Get user's current credits after deduction
+                var updatedUser = userService.getUserById(userId);
+                if (updatedUser != null) {
+                    entryMessage += String.format("\nYou now have 🪙 %d credits.", updatedUser.getCredits());
+                }
             }
 
             event.getHook().editOriginal(entryMessage).queue();
@@ -469,7 +473,7 @@ public class GiveawayCommandListener extends ListenerAdapter {
         
         // Entry cost only
         if (giveaway.getEntryPrice() > 0) {
-            description.append("**🪙 ").append(giveaway.getEntryPrice()).append(" entry fee!**\n");
+            description.append("**🪙 ").append(giveaway.getEntryPrice()).append(" credits entry fee!**\n");
         } else {
             description.append("**🪙 Free entry!**\n");
         }
