@@ -11,16 +11,24 @@ import com.app.heartbound.services.discord.DiscordService;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import com.app.heartbound.config.CacheConfig;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,6 +42,12 @@ public class GiveawayService {
     private final DiscordBotSettingsService discordBotSettingsService;
     private final CacheConfig cacheConfig;
     private final DiscordService discordService;
+    
+    // TaskScheduler for individual giveaway completion tasks
+    private final TaskScheduler taskScheduler;
+    
+    // Track scheduled tasks for cancellation when needed
+    private final Map<UUID, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
 
     @Autowired
     public GiveawayService(GiveawayRepository giveawayRepository,
@@ -48,6 +62,76 @@ public class GiveawayService {
         this.discordBotSettingsService = discordBotSettingsService;
         this.cacheConfig = cacheConfig;
         this.discordService = discordService;
+        
+        // Initialize TaskScheduler for precise giveaway completion scheduling
+        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+        scheduler.setPoolSize(2); // Small pool for giveaway completion tasks
+        scheduler.setThreadNamePrefix("giveaway-scheduler-");
+        scheduler.setWaitForTasksToCompleteOnShutdown(true);
+        scheduler.setAwaitTerminationSeconds(30);
+        scheduler.initialize();
+        this.taskScheduler = scheduler;
+        
+        logger.info("GiveawayService initialized with TaskScheduler for precise completion timing");
+    }
+
+    /**
+     * Initialize service after all dependencies are injected
+     * Schedule completion tasks for any existing active giveaways
+     */
+    @PostConstruct
+    public void initializeExistingGiveaways() {
+        try {
+            // Schedule completion tasks for any active giveaways that might have been running during restart
+            List<Giveaway> activeGiveaways = giveawayRepository.findActiveGiveaways(LocalDateTime.now());
+            
+            for (Giveaway giveaway : activeGiveaways) {
+                if (giveaway.getEndDate().isAfter(LocalDateTime.now())) {
+                    scheduleGiveawayCompletion(giveaway);
+                    logger.info("Rescheduled completion task for giveaway {} (Prize: {})", 
+                               giveaway.getId(), giveaway.getPrize());
+                } else {
+                    // Giveaway should have completed already, complete it now
+                    logger.info("Found expired giveaway {} during startup, completing immediately", giveaway.getId());
+                    try {
+                        completeGiveaway(giveaway.getId());
+                    } catch (Exception e) {
+                        logger.error("Error completing expired giveaway {} during startup: {}", 
+                                   giveaway.getId(), e.getMessage(), e);
+                    }
+                }
+            }
+            
+            logger.info("Initialized {} existing active giveaway tasks", activeGiveaways.size());
+        } catch (Exception e) {
+            logger.error("Error initializing existing giveaway tasks: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Cleanup method called before bean destruction
+     * Cancels all scheduled tasks and shuts down the task scheduler
+     */
+    @PreDestroy
+    public void cleanup() {
+        try {
+            // Cancel all scheduled tasks
+            scheduledTasks.values().forEach(task -> {
+                if (!task.isDone()) {
+                    task.cancel(false);
+                }
+            });
+            scheduledTasks.clear();
+            
+            // Shutdown the task scheduler
+            if (taskScheduler instanceof ThreadPoolTaskScheduler) {
+                ((ThreadPoolTaskScheduler) taskScheduler).shutdown();
+            }
+            
+            logger.info("GiveawayService cleanup completed - cancelled {} scheduled tasks", scheduledTasks.size());
+        } catch (Exception e) {
+            logger.error("Error during GiveawayService cleanup: {}", e.getMessage(), e);
+        }
     }
 
     /**
@@ -86,6 +170,9 @@ public class GiveawayService {
         
         Giveaway savedGiveaway = giveawayRepository.save(giveaway);
         logger.info("Created giveaway {} for prize: '{}'", savedGiveaway.getId(), dto.getPrize());
+        
+        // Schedule the completion task for this giveaway's end time
+        scheduleGiveawayCompletion(savedGiveaway);
         
         return savedGiveaway;
     }
@@ -224,6 +311,9 @@ public class GiveawayService {
         giveaway.setCompletedAt(LocalDateTime.now());
         giveawayRepository.save(giveaway);
         
+        // Cancel any scheduled completion task (in case this was manually completed)
+        cancelScheduledTask(giveawayId);
+        
         // Announce winners in Discord
         announceWinners(giveaway, winners);
         
@@ -256,6 +346,9 @@ public class GiveawayService {
         giveaway.setCompletedAt(LocalDateTime.now());
         giveawayRepository.save(giveaway);
         
+        // Cancel the scheduled completion task
+        cancelScheduledTask(giveawayId);
+        
         // Invalidate giveaway cache
         cacheConfig.invalidateGiveawayCache();
         
@@ -264,10 +357,18 @@ public class GiveawayService {
 
     /**
      * Find and process expired giveaways
+     * Note: This method is now primarily used for manual cleanup or emergency situations
+     * since TaskScheduler handles automatic completion
      */
     @Transactional
     public List<Giveaway> processExpiredGiveaways() {
         List<Giveaway> expiredGiveaways = giveawayRepository.findExpiredActiveGiveaways(LocalDateTime.now());
+        
+        if (!expiredGiveaways.isEmpty()) {
+            boolean discordReady = isDiscordReady();
+            logger.info("Processing {} expired giveaways (Discord ready: {}) - Note: These should have been handled by TaskScheduler", 
+                       expiredGiveaways.size(), discordReady);
+        }
         
         for (Giveaway giveaway : expiredGiveaways) {
             try {
@@ -296,6 +397,9 @@ public class GiveawayService {
         
         // For completed giveaways, we can safely delete them as no refunds are needed
         giveawayRepository.delete(giveaway);
+        
+        // Cancel any scheduled completion task (should already be done, but ensure cleanup)
+        cancelScheduledTask(giveawayId);
         
         // Invalidate giveaway cache
         cacheConfig.invalidateGiveawayCache();
@@ -330,6 +434,9 @@ public class GiveawayService {
             // For completed giveaways, delete directly
             deleteCompletedGiveaway(giveawayId, adminUserId);
         }
+        
+        // Cancel any scheduled completion task (in case it wasn't cancelled during cancel/delete)
+        cancelScheduledTask(giveawayId);
         
         // Invalidate giveaway cache
         cacheConfig.invalidateGiveawayCache();
@@ -549,7 +656,7 @@ public class GiveawayService {
             // Get the Discord channel
             TextChannel channel = getDiscordChannel(giveaway.getChannelId());
             if (channel == null) {
-                logger.warn("Cannot announce winners for giveaway {}: channel {} not found", 
+                logger.warn("Cannot announce winners for giveaway {}: Discord channel {} not accessible or JDA not ready", 
                            giveaway.getId(), giveaway.getChannelId());
                 return;
             }
@@ -578,14 +685,26 @@ public class GiveawayService {
      */
     private TextChannel getDiscordChannel(String channelId) {
         try {
-            return discordService.getJDA().getTextChannelById(channelId);
+            JDA jda = discordService.getJDA();
+            if (jda == null) {
+                logger.debug("JDA not available for channel access, skipping Discord operation");
+                return null;
+            }
+            
+            // Check if JDA is connected and ready to send messages
+            if (jda.getStatus() != JDA.Status.CONNECTED) {
+                logger.debug("JDA not connected (status: {}), skipping Discord operation", jda.getStatus());
+                return null;
+            }
+            
+            return jda.getTextChannelById(channelId);
         } catch (Exception e) {
             logger.error("Error getting Discord channel {}: {}", channelId, e.getMessage());
             return null;
         }
     }
 
-    /**
+        /**
      * Format the winner announcement message according to requirements
      * @param prize The giveaway prize
      * @param winners List of winning entries
@@ -605,5 +724,88 @@ public class GiveawayService {
             return String.format("Congratulations %s ! You have won %s, please make a ticket to collect your prize!", 
                                 winnerMentions, prize);
         }
+    }
+
+    /**
+     * Check if Discord service is ready for messaging operations
+     * @return true if Discord is ready, false otherwise
+     */
+    public boolean isDiscordReady() {
+        try {
+            JDA jda = discordService.getJDA();
+            return jda != null && jda.getStatus() == JDA.Status.CONNECTED;
+        } catch (Exception e) {
+            logger.debug("Error checking Discord readiness: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Schedule a giveaway completion task for the exact end time
+     * @param giveaway The giveaway to schedule completion for
+     */
+    private void scheduleGiveawayCompletion(Giveaway giveaway) {
+        try {
+            // Convert LocalDateTime to Instant for scheduling
+            java.time.Instant executionTime = giveaway.getEndDate()
+                .atZone(ZoneId.systemDefault())
+                .toInstant();
+            
+            // Only schedule if the end time is in the future
+            if (executionTime.isAfter(java.time.Instant.now())) {
+                ScheduledFuture<?> task = taskScheduler.schedule(() -> {
+                    try {
+                        logger.info("TaskScheduler executing completion for giveaway {} (Prize: {})", 
+                                   giveaway.getId(), giveaway.getPrize());
+                        completeGiveaway(giveaway.getId());
+                        
+                        // Remove from scheduled tasks map after completion
+                        scheduledTasks.remove(giveaway.getId());
+                    } catch (Exception e) {
+                        logger.error("Error in scheduled completion of giveaway {}: {}", 
+                                   giveaway.getId(), e.getMessage(), e);
+                    }
+                }, executionTime);
+                
+                // Store the scheduled task for potential cancellation
+                scheduledTasks.put(giveaway.getId(), task);
+                
+                logger.info("Scheduled completion task for giveaway {} at {}", 
+                           giveaway.getId(), giveaway.getEndDate());
+            } else {
+                logger.debug("Giveaway {} end time is in the past, not scheduling", giveaway.getId());
+            }
+        } catch (Exception e) {
+            logger.error("Error scheduling completion for giveaway {}: {}", giveaway.getId(), e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Cancel a scheduled completion task for a giveaway
+     * @param giveawayId The giveaway ID whose task should be cancelled
+     */
+    private void cancelScheduledTask(UUID giveawayId) {
+        try {
+            ScheduledFuture<?> task = scheduledTasks.remove(giveawayId);
+            if (task != null && !task.isDone()) {
+                boolean cancelled = task.cancel(false);
+                logger.info("Cancelled scheduled completion task for giveaway {} (success: {})", 
+                           giveawayId, cancelled);
+            } else {
+                logger.debug("No active scheduled task found for giveaway {}", giveawayId);
+            }
+        } catch (Exception e) {
+            logger.error("Error cancelling scheduled task for giveaway {}: {}", giveawayId, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Get the number of currently scheduled giveaway completion tasks
+     * @return Number of active scheduled tasks
+     */
+    public int getActiveScheduledTasksCount() {
+        return (int) scheduledTasks.values().stream()
+            .filter(task -> !task.isDone())
+            .count();
     }
 } 
