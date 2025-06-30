@@ -218,7 +218,7 @@ public class GiveawayCommandListener extends ListenerAdapter {
                 // Get user's current credits after deduction
                 var updatedUser = userService.getUserById(userId);
                 if (updatedUser != null) {
-                    entryMessage += String.format("\nYou now have 🪙 %d credits.", updatedUser.getCredits());
+                                         entryMessage += String.format("\nYou now have **🪙 %d credits.**", updatedUser.getCredits());
                 }
             }
 
