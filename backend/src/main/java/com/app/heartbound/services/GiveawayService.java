@@ -7,12 +7,15 @@ import com.app.heartbound.entities.User;
 import com.app.heartbound.repositories.GiveawayRepository;
 import com.app.heartbound.repositories.GiveawayEntryRepository;
 import com.app.heartbound.services.discord.DiscordBotSettingsService;
+import com.app.heartbound.services.discord.DiscordService;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import com.app.heartbound.config.CacheConfig;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,18 +33,21 @@ public class GiveawayService {
     private final UserService userService;
     private final DiscordBotSettingsService discordBotSettingsService;
     private final CacheConfig cacheConfig;
+    private final DiscordService discordService;
 
     @Autowired
     public GiveawayService(GiveawayRepository giveawayRepository,
                           GiveawayEntryRepository giveawayEntryRepository,
                           UserService userService,
                           DiscordBotSettingsService discordBotSettingsService,
-                          CacheConfig cacheConfig) {
+                          CacheConfig cacheConfig,
+                          @Lazy DiscordService discordService) {
         this.giveawayRepository = giveawayRepository;
         this.giveawayEntryRepository = giveawayEntryRepository;
         this.userService = userService;
         this.discordBotSettingsService = discordBotSettingsService;
         this.cacheConfig = cacheConfig;
+        this.discordService = discordService;
     }
 
     /**
@@ -217,6 +223,9 @@ public class GiveawayService {
         giveaway.setStatus(Giveaway.GiveawayStatus.COMPLETED);
         giveaway.setCompletedAt(LocalDateTime.now());
         giveawayRepository.save(giveaway);
+        
+        // Announce winners in Discord
+        announceWinners(giveaway, winners);
         
         logger.info("Completed giveaway {} with {} winners", giveawayId, winners.size());
         return winners;
@@ -522,6 +531,79 @@ public class GiveawayService {
                     logger.debug("Refunded {} credits to user {}", refundAmount, userId);
                 }
             }
+        }
+    }
+
+    /**
+     * Announce giveaway winners in Discord channel
+     * @param giveaway The completed giveaway
+     * @param winners List of winning entries
+     */
+    private void announceWinners(Giveaway giveaway, List<GiveawayEntry> winners) {
+        try {
+            if (winners.isEmpty()) {
+                logger.info("No winners to announce for giveaway {}", giveaway.getId());
+                return;
+            }
+
+            // Get the Discord channel
+            TextChannel channel = getDiscordChannel(giveaway.getChannelId());
+            if (channel == null) {
+                logger.warn("Cannot announce winners for giveaway {}: channel {} not found", 
+                           giveaway.getId(), giveaway.getChannelId());
+                return;
+            }
+
+            // Format the winner announcement message
+            String winnerMessage = formatWinnerMessage(giveaway.getPrize(), winners);
+            
+            // Send the announcement
+            channel.sendMessage(winnerMessage)
+                .queue(
+                    success -> logger.info("Successfully announced {} winners for giveaway {} in channel {}", 
+                                          winners.size(), giveaway.getId(), giveaway.getChannelId()),
+                    error -> logger.error("Failed to announce winners for giveaway {} in channel {}: {}", 
+                                         giveaway.getId(), giveaway.getChannelId(), error.getMessage())
+                );
+
+        } catch (Exception e) {
+            logger.error("Error announcing winners for giveaway {}: {}", giveaway.getId(), e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Get Discord text channel by ID
+     * @param channelId The Discord channel ID
+     * @return TextChannel or null if not found
+     */
+    private TextChannel getDiscordChannel(String channelId) {
+        try {
+            return discordService.getJDA().getTextChannelById(channelId);
+        } catch (Exception e) {
+            logger.error("Error getting Discord channel {}: {}", channelId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Format the winner announcement message according to requirements
+     * @param prize The giveaway prize
+     * @param winners List of winning entries
+     * @return Formatted message string
+     */
+    private String formatWinnerMessage(String prize, List<GiveawayEntry> winners) {
+        if (winners.size() == 1) {
+            // Single winner: "Congratulations {winner}! You have won {prize}, please make a ticket to collect your prize!"
+            return String.format("Congratulations <@%s>! You have won %s, please make a ticket to collect your prize!", 
+                                winners.get(0).getUserId(), prize);
+        } else {
+            // Multiple winners: "Congratulations @{winner1} @{winner2} @{winner3} ! You have won {prize}, please make a ticket to collect your prize!"
+            String winnerMentions = winners.stream()
+                .map(winner -> "<@" + winner.getUserId() + ">")
+                .collect(Collectors.joining(" "));
+            
+            return String.format("Congratulations %s ! You have won %s, please make a ticket to collect your prize!", 
+                                winnerMentions, prize);
         }
     }
 } 

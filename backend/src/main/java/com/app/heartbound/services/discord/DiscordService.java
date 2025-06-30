@@ -159,4 +159,12 @@ public class DiscordService {
                 operation, roleId, userId, error.getMessage());
         }
     }
+
+    /**
+     * Get the JDA instance for other services to use
+     * @return JDA instance
+     */
+    public JDA getJDA() {
+        return jda;
+    }
 } 
