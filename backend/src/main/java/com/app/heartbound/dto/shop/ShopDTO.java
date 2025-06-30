@@ -31,6 +31,10 @@ public class ShopDTO {
     private boolean expired = false;
     private boolean equipped;
     private String discordRoleId;
+    
+    // Case-specific fields
+    private boolean isCase = false;  // True if this is a case item
+    private Integer caseContentsCount = 0;  // Number of items in this case
 
     public boolean isEquipped() {
         return equipped;
@@ -38,5 +42,13 @@ public class ShopDTO {
 
     public void setEquipped(boolean equipped) {
         this.equipped = equipped;
+    }
+    
+    public boolean isCase() {
+        return isCase;
+    }
+    
+    public void setCase(boolean isCase) {
+        this.isCase = isCase;
     }
 }

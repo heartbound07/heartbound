@@ -221,6 +221,8 @@ public class User {
                 return getEquippedAccentId();
             case BADGE:
                 throw new UnsupportedOperationException("BADGE category supports multiple equipped items. Use getEquippedBadgeIds() instead.");
+            case CASE:
+                throw new UnsupportedOperationException("CASE category items cannot be equipped. Cases are purchased and stored in inventory.");
             default:
                 return null;
         }
@@ -240,6 +242,8 @@ public class User {
                 break;
             case BADGE:
                 throw new UnsupportedOperationException("BADGE category supports multiple equipped items. Use addEquippedBadge() or removeEquippedBadge() instead.");
+            case CASE:
+                throw new UnsupportedOperationException("CASE category items cannot be equipped. Cases are purchased and stored in inventory.");
             default:
                 break;
         }

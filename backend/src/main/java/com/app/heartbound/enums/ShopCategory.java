@@ -7,5 +7,6 @@ public enum ShopCategory {
     USER_COLOR,
     LISTING,
     ACCENT,
-    BADGE
+    BADGE,
+    CASE
 } 

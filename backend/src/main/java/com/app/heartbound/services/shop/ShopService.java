@@ -3,8 +3,11 @@ package com.app.heartbound.services.shop;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.dto.shop.ShopDTO;
 import com.app.heartbound.dto.shop.UserInventoryDTO;
+import com.app.heartbound.dto.shop.CaseContentsDTO;
+import com.app.heartbound.dto.shop.CaseItemDTO;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.entities.User;
+import com.app.heartbound.entities.CaseItem;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
@@ -14,6 +17,7 @@ import com.app.heartbound.exceptions.shop.ItemNotEquippableException;
 import com.app.heartbound.exceptions.shop.RoleRequirementNotMetException;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
+import com.app.heartbound.repositories.shop.CaseItemRepository;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.discord.DiscordService;
 
@@ -35,6 +39,7 @@ public class ShopService {
     private final UserRepository userRepository;
     private final UserService userService;
     private final DiscordService discordService;
+    private final CaseItemRepository caseItemRepository;
     private static final Logger logger = LoggerFactory.getLogger(ShopService.class);
     
     @Autowired
@@ -42,12 +47,14 @@ public class ShopService {
         ShopRepository shopRepository,
         UserRepository userRepository,
         UserService userService,
-        DiscordService discordService
+        DiscordService discordService,
+        CaseItemRepository caseItemRepository
     ) {
         this.shopRepository = shopRepository;
         this.userRepository = userRepository;
         this.userService = userService;
         this.discordService = discordService;
+        this.caseItemRepository = caseItemRepository;
     }
     
     /**
@@ -404,6 +411,13 @@ public class ShopService {
                 .anyMatch(item -> item.getId().equals(shop.getId()));
         }
         
+        // Check if this is a case and get contents count
+        boolean isCase = shop.getCategory() == ShopCategory.CASE;
+        Integer caseContentsCount = 0;
+        if (isCase) {
+            caseContentsCount = Math.toIntExact(caseItemRepository.countByCaseShopItem(shop));
+        }
+        
         return ShopDTO.builder()
             .id(shop.getId())
             .name(shop.getName())
@@ -411,11 +425,14 @@ public class ShopService {
             .price(shop.getPrice())
             .category(shop.getCategory())
             .imageUrl(shop.getImageUrl())
+            .thumbnailUrl(shop.getThumbnailUrl())
             .requiredRole(shop.getRequiredRole())
             .owned(owned)
             .expiresAt(shop.getExpiresAt())
             .discordRoleId(shop.getDiscordRoleId())
             .rarity(shop.getRarity() != null ? shop.getRarity() : ItemRarity.COMMON)
+            .isCase(isCase)
+            .caseContentsCount(caseContentsCount)
             .build();
     }
     
@@ -543,5 +560,118 @@ public class ShopService {
             .map(ShopCategory::name)  // Convert enum to string
             .sorted()  // Optional: sort categories alphabetically
             .collect(Collectors.toList());
+    }
+    
+    // ===== CASE-RELATED METHODS =====
+    
+    /**
+     * Get the contents of a case with drop rates
+     * @param caseId Case ID
+     * @return CaseContentsDTO with all possible items and their drop rates
+     */
+    @Transactional(readOnly = true)
+    public CaseContentsDTO getCaseContents(UUID caseId) {
+        logger.debug("Getting contents for case {}", caseId);
+        
+        Shop caseItem = shopRepository.findById(caseId)
+            .orElseThrow(() -> new ResourceNotFoundException("Case not found with ID: " + caseId));
+        
+        if (caseItem.getCategory() != ShopCategory.CASE) {
+            throw new IllegalArgumentException("Item is not a case");
+        }
+        
+        List<CaseItem> caseItems = caseItemRepository.findByCaseIdOrderByDropRateDesc(caseId);
+        
+        List<CaseItemDTO> itemDTOs = caseItems.stream()
+            .map(this::mapToCaseItemDTO)
+            .collect(Collectors.toList());
+        
+        Integer totalDropRate = caseItemRepository.sumDropRatesByCaseId(caseId);
+        
+        return CaseContentsDTO.builder()
+            .caseId(caseId)
+            .caseName(caseItem.getName())
+            .items(itemDTOs)
+            .totalDropRate(totalDropRate != null ? totalDropRate : 0)
+            .itemCount(itemDTOs.size())
+            .build();
+    }
+    
+    /**
+     * Update case contents (admin only)
+     * @param caseId Case ID
+     * @param caseItems List of items to include in the case with drop rates
+     */
+    @Transactional
+    public void updateCaseContents(UUID caseId, List<CaseItemDTO> caseItems) {
+        logger.debug("Updating contents for case {} with {} items", caseId, caseItems.size());
+        
+        Shop caseItem = shopRepository.findById(caseId)
+            .orElseThrow(() -> new ResourceNotFoundException("Case not found with ID: " + caseId));
+        
+        if (caseItem.getCategory() != ShopCategory.CASE) {
+            throw new IllegalArgumentException("Item is not a case");
+        }
+        
+        // Validate drop rates sum to 100
+        int totalDropRate = caseItems.stream()
+            .mapToInt(CaseItemDTO::getDropRate)
+            .sum();
+        
+        if (totalDropRate != 100) {
+            throw new IllegalArgumentException("Drop rates must sum to 100, current sum: " + totalDropRate);
+        }
+        
+        // Validate all contained items exist and are not cases themselves
+        for (CaseItemDTO dto : caseItems) {
+            Shop containedItem = shopRepository.findById(dto.getContainedItem().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Contained item not found: " + dto.getContainedItem().getId()));
+            
+            if (containedItem.getCategory() == ShopCategory.CASE) {
+                throw new IllegalArgumentException("Cases cannot contain other cases");
+            }
+        }
+        
+        // Remove existing case items
+        caseItemRepository.deleteByCaseId(caseId);
+        
+        // Add new case items
+        for (CaseItemDTO dto : caseItems) {
+            Shop containedItem = shopRepository.findById(dto.getContainedItem().getId()).get();
+            
+            CaseItem newCaseItem = CaseItem.builder()
+                .caseShopItem(caseItem)
+                .containedItem(containedItem)
+                .dropRate(dto.getDropRate())
+                .build();
+            
+            caseItemRepository.save(newCaseItem);
+        }
+        
+        logger.info("Updated case {} with {} items", caseId, caseItems.size());
+    }
+    
+    /**
+     * Validate case contents to ensure drop rates sum to 100
+     * @param caseId Case ID
+     * @return true if valid, false otherwise
+     */
+    public boolean validateCaseContents(UUID caseId) {
+        Integer totalDropRate = caseItemRepository.sumDropRatesByCaseId(caseId);
+        return totalDropRate != null && totalDropRate == 100;
+    }
+    
+    /**
+     * Map a CaseItem entity to a CaseItemDTO
+     * @param caseItem CaseItem entity
+     * @return CaseItemDTO
+     */
+    private CaseItemDTO mapToCaseItemDTO(CaseItem caseItem) {
+        return CaseItemDTO.builder()
+            .id(caseItem.getId())
+            .caseId(caseItem.getCaseShopItem().getId())
+            .containedItem(mapToShopDTO(caseItem.getContainedItem(), null))
+            .dropRate(caseItem.getDropRate())
+            .build();
     }
 }
