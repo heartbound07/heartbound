@@ -134,6 +134,10 @@ public class DiscordBotSettingsService {
         dto.setLevel100RoleId(settings.getLevel100RoleId());
         dto.setStarterRoleId(settings.getStarterRoleId());
         
+        // Map role multipliers
+        dto.setRoleMultipliers(settings.getRoleMultipliers());
+        dto.setRoleMultipliersEnabled(settings.getRoleMultipliersEnabled());
+        
         // Map inactivity channel ID
         dto.setInactivityChannelId(settings.getInactivityChannelId());
         
@@ -186,6 +190,10 @@ public class DiscordBotSettingsService {
         settings.setLevel100RoleId(dto.getLevel100RoleId());
         settings.setStarterRoleId(dto.getStarterRoleId());
         
+        // Update role multipliers
+        settings.setRoleMultipliers(dto.getRoleMultipliers());
+        settings.setRoleMultipliersEnabled(dto.getRoleMultipliersEnabled());
+        
         // Update inactivity channel ID
         settings.setInactivityChannelId(dto.getInactivityChannelId());
         
@@ -231,7 +239,9 @@ public class DiscordBotSettingsService {
             settings.getLevel50RoleId(),
             settings.getLevel70RoleId(),
             settings.getLevel100RoleId(),
-            settings.getStarterRoleId()
+            settings.getStarterRoleId(),
+            settings.getRoleMultipliers(),
+            settings.getRoleMultipliersEnabled()
         );
         
         // Update voice activity service with inactivity channel setting
@@ -277,7 +287,9 @@ public class DiscordBotSettingsService {
                     settings.getLevel50RoleId(),
                     settings.getLevel70RoleId(),
                     settings.getLevel100RoleId(),
-                    settings.getStarterRoleId()
+                    settings.getStarterRoleId(),
+                    settings.getRoleMultipliers(),
+                    settings.getRoleMultipliersEnabled()
                 );
                 
                 // Apply voice activity settings

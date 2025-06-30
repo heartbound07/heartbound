@@ -83,6 +83,10 @@ public class DiscordBotSettingsDTO {
     @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
     private String starterRoleId;
     
+    // Role Multipliers Configuration
+    private String roleMultipliers;
+    private Boolean roleMultipliersEnabled;
+    
     @Pattern(regexp = "^\\d*$", message = "Channel ID must contain only digits")
     private String inactivityChannelId;
     

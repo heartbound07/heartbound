@@ -8,11 +8,14 @@ import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
@@ -28,14 +31,19 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.Map;
+import java.util.HashMap;
 
 @Component
 @Slf4j
-@RequiredArgsConstructor
 public class ChatActivityListener extends ListenerAdapter {
     
     private final UserService userService;
     private final PairingRepository pairingRepository;
+    
+    @Autowired
+    @Lazy
+    private DiscordBotSettingsService discordBotSettingsService;
     
     @Value("${discord.activity.enabled:true}")
     private boolean activityEnabled;
@@ -93,6 +101,12 @@ public class ChatActivityListener extends ListenerAdapter {
     private final ConcurrentHashMap<String, List<Instant>> userActivity = new ConcurrentHashMap<>();
     
     private ScheduledExecutorService cleanupScheduler;
+    
+    // Constructor for non-circular dependencies
+    public ChatActivityListener(UserService userService, PairingRepository pairingRepository) {
+        this.userService = userService;
+        this.pairingRepository = pairingRepository;
+    }
     
     @PostConstruct
     public void init() {
@@ -224,7 +238,7 @@ public class ChatActivityListener extends ListenerAdapter {
         return baseXp + (levelFactor * (int)Math.pow(level, levelExponent)) + (levelMultiplier * level);
     }
     
-    private void checkAndProcessLevelUp(User user, String userId, MessageChannel channel) {
+    private void checkAndProcessLevelUp(User user, String userId, MessageChannel channel, double roleMultiplier) {
         if (!levelingEnabled) {
             return;
         }
@@ -245,9 +259,10 @@ public class ChatActivityListener extends ListenerAdapter {
             
             // Award credits for leveling up
             int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
-            user.setCredits(currentCredits + creditsPerLevel);
+            int multipliedCredits = (int) Math.round(creditsPerLevel * roleMultiplier);
+            user.setCredits(currentCredits + multipliedCredits);
             log.info("Awarded {} credits to user {} for leveling up to {}. New balance: {}",
-                        creditsPerLevel, userId, newLevel, user.getCredits());
+                        multipliedCredits, userId, newLevel, user.getCredits());
             
             try {
                 userService.updateUser(user);
@@ -265,7 +280,7 @@ public class ChatActivityListener extends ListenerAdapter {
                     EmbedBuilder embed = new EmbedBuilder();
                     embed.setTitle("Level Up Achievement!");
                     embed.setDescription(String.format("<@%s>! You advanced to level %d and earned %d credits!", 
-                                                          userId, newLevel, creditsPerLevel));
+                                                          userId, newLevel, multipliedCredits));
                     embed.setColor(new Color(75, 181, 67)); // Green color
                     embed.setTimestamp(java.time.Instant.now());
                     
@@ -274,7 +289,7 @@ public class ChatActivityListener extends ListenerAdapter {
                     embed.addField("Experience", String.format("%d/%d XP to next level", user.getExperience(), nextLevelXp), true);
                     
                     // Add credits information
-                    embed.addField("Credits Awarded", String.format("🪙 %d", creditsPerLevel), true);
+                    embed.addField("Credits Awarded", String.format("🪙 %d", multipliedCredits), true);
                     
                     // Get the user's avatar if possible
                     net.dv8tion.jda.api.entities.User discordUser = channel.getJDA().getUserById(userId);
@@ -292,14 +307,14 @@ public class ChatActivityListener extends ListenerAdapter {
                     
                     // Also send a simple notification in the original channel
                     String simpleNotification = String.format("🎉 <@%s> leveled up to **Level %d** and earned **%d credits**! Check out <#%s> for details!",
-                        userId, newLevel, creditsPerLevel, achievementChannelId);
+                        userId, newLevel, multipliedCredits, achievementChannelId);
                     channel.sendMessage(simpleNotification).queue();
                 } else {
                     // Fallback to the original channel if achievement channel not found
                     log.warn("[XP DEBUG] Achievement channel {} not found, sending to original channel", achievementChannelId);
                     
                     String levelUpMessage = String.format("Congratulations <@%s>! You've reached **Level %d** and earned **%d credits**!", 
-                                                        userId, newLevel, creditsPerLevel);
+                                                        userId, newLevel, multipliedCredits);
                     channel.sendMessage(levelUpMessage).queue(
                         success -> log.debug("[XP DEBUG] Level up message sent for user {}", userId),
                         error -> log.error("Failed to send level up message for user {}: {}", userId, error.getMessage())
@@ -307,11 +322,11 @@ public class ChatActivityListener extends ListenerAdapter {
                 }
                 
                 log.info("User {} leveled up to {} (XP: {} -> {}, Credits: +{})", 
-                           userId, newLevel, currentXp, user.getExperience(), creditsPerLevel);
+                           userId, newLevel, currentXp, user.getExperience(), multipliedCredits);
                 
                 // Check for additional level ups
                 log.debug("[XP DEBUG] Checking for additional level ups");
-                checkAndProcessLevelUp(user, userId, channel);
+                checkAndProcessLevelUp(user, userId, channel, roleMultiplier);
                 
             } catch (Exception e) {
                 log.error("Error updating user level for {}: {}", userId, e.getMessage(), e);
@@ -537,33 +552,37 @@ public class ChatActivityListener extends ListenerAdapter {
             }
             
             int awardedXp = 0;
+            int awardedCredits = 0;
             int initialLevel = user.getLevel(); // Safe to access now, guaranteed to be non-null
             
+            // Get role multiplier for this user
+            double roleMultiplier = getUserRoleMultiplier(userId, event);
+            
             if (levelingEnabled) {
-                log.debug("[XP DEBUG] About to award XP to {}: Current XP={}, Level={}, Adding {} XP",
-                    userId, user.getExperience(), user.getLevel(), xpToAward);
+                log.debug("[XP DEBUG] About to award XP to {}: Current XP={}, Level={}, Adding {} XP (base) with {}x multiplier",
+                    userId, user.getExperience(), user.getLevel(), xpToAward, roleMultiplier);
                 int currentXp = user.getExperience();
-                user.setExperience(currentXp + xpToAward);
+                int multipliedXp = (int) Math.round(xpToAward * roleMultiplier);
+                user.setExperience(currentXp + multipliedXp);
                 userUpdated = true; // Mark user for update
-                awardedXp = xpToAward;
-                log.debug("[XP DEBUG] Awarded {} XP to user {}. New XP: {}", xpToAward, userId, user.getExperience());
+                awardedXp = multipliedXp;
+                log.debug("[XP DEBUG] Awarded {} XP ({}x{}) to user {}. New XP: {}", multipliedXp, xpToAward, roleMultiplier, userId, user.getExperience());
                 
                 // Award credits alongside XP for each eligible message
                 if (activityEnabled && creditsToAward > 0) {
                     int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
-                    user.setCredits(currentCredits + creditsToAward);
-                    log.debug("[CREDITS DEBUG] Awarded {} credits to user {}. New balance: {}", 
-                        creditsToAward, userId, user.getCredits());
+                    int multipliedCredits = (int) Math.round(creditsToAward * roleMultiplier);
+                    user.setCredits(currentCredits + multipliedCredits);
+                    awardedCredits = multipliedCredits;
+                    log.debug("[CREDITS DEBUG] Awarded {} credits ({}x{}) to user {}. New balance: {}", 
+                        multipliedCredits, creditsToAward, roleMultiplier, userId, user.getCredits());
                     userUpdated = true; // Ensure user is marked for update
                 }
-                
-                // Save user's level before potential level-up for later comparison
-                int requiredXpForNextLevel = calculateRequiredXp(initialLevel);
                 
                 // Add right before calling checkAndProcessLevelUp method
                 log.debug("[XP DEBUG] Checking for level up: User={}, Level={}, XP={}",
                     userId, user.getLevel(), user.getExperience());
-                checkAndProcessLevelUp(user, userId, event.getChannel()); // Note: checkAndProcessLevelUp calls updateUser internally on level up
+                checkAndProcessLevelUp(user, userId, event.getChannel(), roleMultiplier); // Note: checkAndProcessLevelUp calls updateUser internally on level up
                 
                 // XP notifications removed to reduce chat spam - only level-up notifications are shown
             }
@@ -620,7 +639,9 @@ public class ChatActivityListener extends ListenerAdapter {
             String level50RoleId,
             String level70RoleId,
             String level100RoleId,
-            String starterRoleId) {
+            String starterRoleId,
+            String roleMultipliers,
+            Boolean roleMultipliersEnabled) {
         
         if (activityEnabled != null) this.activityEnabled = activityEnabled;
         if (creditsToAward != null) this.creditsToAward = creditsToAward;
@@ -655,5 +676,114 @@ public class ChatActivityListener extends ListenerAdapter {
         log.debug("Role IDs: level5={}, level15={}, level30={}, level40={}, level50={}, level70={}, level100={}",
                 level5RoleId, level15RoleId, level30RoleId, level40RoleId, level50RoleId, level70RoleId, level100RoleId);
         log.debug("Starter Role ID: {}", starterRoleId);
+    }
+    
+    /**
+     * Parse role multipliers configuration string into a map.
+     * Format: "roleId1:multiplier1,roleId2:multiplier2"
+     * 
+     * @param roleMultipliersConfig the configuration string
+     * @return map of role ID to multiplier value
+     */
+    private Map<String, Double> parseRoleMultipliers(String roleMultipliersConfig) {
+        Map<String, Double> multipliers = new HashMap<>();
+        
+        if (roleMultipliersConfig == null || roleMultipliersConfig.trim().isEmpty()) {
+            return multipliers;
+        }
+        
+        try {
+            String[] entries = roleMultipliersConfig.split(",");
+            for (String entry : entries) {
+                String[] parts = entry.trim().split(":");
+                if (parts.length == 2) {
+                    String roleId = parts[0].trim();
+                    double multiplier = Double.parseDouble(parts[1].trim());
+                    
+                    // Validate role ID format (should be numeric)
+                    if (roleId.matches("\\d+") && multiplier > 0) {
+                        multipliers.put(roleId, multiplier);
+                        log.debug("[ROLE MULTIPLIER] Parsed multiplier: roleId={}, multiplier={}", roleId, multiplier);
+                    } else {
+                        log.warn("[ROLE MULTIPLIER] Invalid entry format: roleId={}, multiplier={}", roleId, multiplier);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("[ROLE MULTIPLIER] Error parsing role multipliers configuration: {}", e.getMessage(), e);
+        }
+        
+        return multipliers;
+    }
+    
+    /**
+     * Get the highest role multiplier for a user based on their Discord roles.
+     * 
+     * @param userId the Discord user ID
+     * @param event the message event to get guild/member information
+     * @return the highest multiplier the user qualifies for, or 1.0 if none
+     */
+    private double getUserRoleMultiplier(String userId, MessageReceivedEvent event) {
+        try {
+            // Get Discord bot settings to check if role multipliers are enabled
+            var settings = discordBotSettingsService.getCurrentSettings();
+            if (!Boolean.TRUE.equals(settings.getRoleMultipliersEnabled()) || 
+                settings.getRoleMultipliers() == null || 
+                settings.getRoleMultipliers().trim().isEmpty()) {
+                return 1.0; // No multiplier if disabled or not configured
+            }
+            
+            // Parse role multipliers configuration
+            Map<String, Double> roleMultipliers = parseRoleMultipliers(settings.getRoleMultipliers());
+            if (roleMultipliers.isEmpty()) {
+                return 1.0; // No valid multipliers configured
+            }
+            
+            // Get the Discord guild and member
+            Guild guild = event.getGuild();
+            if (guild == null) {
+                log.debug("[ROLE MULTIPLIER] No guild found for message event");
+                return 1.0;
+            }
+            
+            // Retrieve the member asynchronously but wait for result
+            try {
+                Member member = guild.retrieveMemberById(userId).complete();
+                if (member == null) {
+                    log.debug("[ROLE MULTIPLIER] Member not found in guild: userId={}", userId);
+                    return 1.0;
+                }
+                
+                // Check user's roles for the highest multiplier
+                double highestMultiplier = 1.0;
+                List<Role> userRoles = member.getRoles();
+                
+                for (Role role : userRoles) {
+                    String roleId = role.getId();
+                    if (roleMultipliers.containsKey(roleId)) {
+                        double multiplier = roleMultipliers.get(roleId);
+                        if (multiplier > highestMultiplier) {
+                            highestMultiplier = multiplier;
+                            log.debug("[ROLE MULTIPLIER] User {} has qualifying role {} with multiplier {}", 
+                                     userId, roleId, multiplier);
+                        }
+                    }
+                }
+                
+                if (highestMultiplier > 1.0) {
+                    log.debug("[ROLE MULTIPLIER] User {} final multiplier: {}", userId, highestMultiplier);
+                }
+                
+                return highestMultiplier;
+                
+            } catch (Exception memberException) {
+                log.warn("[ROLE MULTIPLIER] Failed to retrieve member {}: {}", userId, memberException.getMessage());
+                return 1.0;
+            }
+            
+        } catch (Exception e) {
+            log.error("[ROLE MULTIPLIER] Error getting user role multiplier for user {}: {}", userId, e.getMessage(), e);
+            return 1.0;
+        }
     }
 } 

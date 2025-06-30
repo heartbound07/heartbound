@@ -40,6 +40,10 @@ public class DiscordBotSettings {
     // Starter role given to new users (removed when they reach first level milestone)
     private String starterRoleId = "1303106353014771773";
 
+    // Role Multipliers Configuration - format: "roleId1:multiplier1,roleId2:multiplier2"
+    private String roleMultipliers;
+    private Boolean roleMultipliersEnabled = false;
+
     // Inactivity channel where users don't accumulate voice time
     private String inactivityChannelId;
 
@@ -334,5 +338,22 @@ public class DiscordBotSettings {
 
     public void setSlowmodeCooldown(Integer slowmodeCooldown) {
         this.slowmodeCooldown = slowmodeCooldown;
+    }
+
+    // Role Multipliers getters and setters
+    public String getRoleMultipliers() {
+        return roleMultipliers;
+    }
+
+    public void setRoleMultipliers(String roleMultipliers) {
+        this.roleMultipliers = roleMultipliers;
+    }
+
+    public Boolean getRoleMultipliersEnabled() {
+        return roleMultipliersEnabled;
+    }
+
+    public void setRoleMultipliersEnabled(Boolean roleMultipliersEnabled) {
+        this.roleMultipliersEnabled = roleMultipliersEnabled;
     }
 } 
