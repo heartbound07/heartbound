@@ -382,6 +382,9 @@ public class ShopService {
                 if (item.getCategory() != null) {
                     if (item.getCategory() == ShopCategory.BADGE) {
                         dto.setEquipped(user.isBadgeEquipped(item.getId()));
+                    } else if (item.getCategory() == ShopCategory.CASE) {
+                        // Cases cannot be equipped, so always set to false
+                        dto.setEquipped(false);
                     } else {
                         UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
                         dto.setEquipped(equippedItemId != null && equippedItemId.equals(item.getId()));
