@@ -12,6 +12,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -203,6 +204,9 @@ public class GiveawayCommandListener extends ListenerAdapter {
             // Attempt to enter the giveaway
             GiveawayEntry entry = giveawayService.enterGiveaway(giveawayId, userId, username);
 
+            // Update the giveaway embed with new entry count
+            updateGiveawayEmbed(giveaway);
+
             // Send success message
             String entryMessage = String.format("✅ **Successfully Entered!**\nYou are now entered in the giveaway (Entry #%d)", 
                 entry.getEntryNumber());
@@ -356,6 +360,58 @@ public class GiveawayCommandListener extends ListenerAdapter {
     }
 
     private MessageEmbed createGiveawayEmbed(Giveaway giveaway) {
+        // Use the shared method with initial entry count of 0
+        return createGiveawayEmbedWithEntryCount(giveaway, 0);
+    }
+
+    /**
+     * Updates the giveaway embed with current entry count
+     * @param giveaway The giveaway to update the embed for
+     */
+    private void updateGiveawayEmbed(Giveaway giveaway) {
+        try {
+            if (giveaway.getMessageId() == null || giveaway.getMessageId().equals("temp")) {
+                logger.debug("Cannot update giveaway embed: messageId is null or temporary for giveaway {}", giveaway.getId());
+                return;
+            }
+
+            // Get current entry count
+            long currentEntries = giveawayService.getTotalEntries(giveaway);
+            
+            // Create updated embed with current entry count
+            MessageEmbed updatedEmbed = createGiveawayEmbedWithEntryCount(giveaway, currentEntries);
+            
+            // Get the channel and update the message
+            if (jda != null) {
+                TextChannel channel = jda.getTextChannelById(giveaway.getChannelId());
+                if (channel != null) {
+                    // Update the embed while preserving the button
+                    Button enterButton = Button.primary("giveaway-enter:" + giveaway.getId(), "🎉");
+                    
+                    channel.editMessageEmbedsById(giveaway.getMessageId(), updatedEmbed)
+                        .setActionRow(enterButton)
+                        .queue(
+                            success -> logger.debug("Updated giveaway embed for giveaway {} with {} entries", 
+                                                   giveaway.getId(), currentEntries),
+                            error -> logger.error("Failed to update giveaway embed for giveaway {}: {}", 
+                                                 giveaway.getId(), error.getMessage())
+                        );
+                } else {
+                    logger.warn("Could not find channel {} to update giveaway embed", giveaway.getChannelId());
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error updating giveaway embed for giveaway {}: {}", giveaway.getId(), e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Creates a giveaway embed with a specific entry count
+     * @param giveaway The giveaway
+     * @param entryCount The current entry count
+     * @return MessageEmbed with updated entry count
+     */
+    private MessageEmbed createGiveawayEmbedWithEntryCount(Giveaway giveaway, long entryCount) {
         EmbedBuilder embedBuilder = new EmbedBuilder();
         
         // Set title to the prize (without emoji)
@@ -368,7 +424,7 @@ public class GiveawayCommandListener extends ListenerAdapter {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' hh:mm a");
         description.append("**Ends:** ").append(giveaway.getEndDate().format(formatter)).append("\n");
         description.append("**Hosted by:** ").append(giveaway.getHostUsername()).append("\n");
-        description.append("**Entries:** ").append(giveaway.getTotalEntries()).append("\n");
+        description.append("**Entries:** ").append(entryCount).append("\n"); // Use the provided entry count
         description.append("**Winners:** ").append(giveaway.getNumberOfWinners()).append("\n\n");
         
         // Entry cost only
