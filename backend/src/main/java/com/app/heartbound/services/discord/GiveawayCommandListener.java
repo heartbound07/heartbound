@@ -469,14 +469,13 @@ public class GiveawayCommandListener extends ListenerAdapter {
         
         // Entry cost only
         if (giveaway.getEntryPrice() > 0) {
-            description.append("**Entry Cost:** ").append(giveaway.getEntryPrice()).append(" credits\n");
+            description.append("**🪙 ").append(giveaway.getEntryPrice()).append(" entry fee!**\n");
         } else {
-            description.append("**Entry Cost:** Free\n");
+            description.append("**🪙 Free entry!**\n");
         }
         
         embedBuilder.setDescription(description.toString());
-        embedBuilder.setColor(Color.YELLOW); // Use yellow/gold color for giveaways
-        embedBuilder.setFooter("Giveaway ends " + giveaway.getEndDate().format(formatter));
+        embedBuilder.setColor(Color.decode("#58b9ff")); // Use blue color for giveaways
         
         return embedBuilder.build();
     }
