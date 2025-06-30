@@ -171,7 +171,7 @@ export function DiscordBotSettings() {
       });
     }
   };
-
+  
   useEffect(() => {
     const fetchData = async () => {
       try {

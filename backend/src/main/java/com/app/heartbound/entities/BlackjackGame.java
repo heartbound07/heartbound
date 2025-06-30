@@ -89,7 +89,7 @@ public class BlackjackGame {
         int playerValue = playerHand.getValue();
         int dealerValue = dealerHand.getValue();
         
-        // Check for busts
+        // Check for busts first
         if (playerHand.isBusted()) {
             return GameResult.DEALER_WIN; // Player busted
         }
@@ -98,13 +98,30 @@ public class BlackjackGame {
             return GameResult.PLAYER_WIN; // Dealer busted
         }
         
-        // Check for blackjacks
+        // CRITICAL FIX: Handle all 21-21 scenarios explicitly first
+        if (playerValue == 21 && dealerValue == 21) {
+            boolean playerBlackjack = playerHand.isBlackjack();
+            boolean dealerBlackjack = dealerHand.isBlackjack();
+            
+            if (playerBlackjack && dealerBlackjack) {
+                return GameResult.PUSH; // Both have natural blackjack - tie
+            }
+            
+            if (playerBlackjack && !dealerBlackjack) {
+                return GameResult.PLAYER_BLACKJACK; // Player natural blackjack beats dealer 21
+            }
+            
+            if (!playerBlackjack && dealerBlackjack) {
+                return GameResult.DEALER_WIN; // Dealer natural blackjack beats player 21
+            }
+            
+            // Both have 21 but neither is natural blackjack - tie
+            return GameResult.PUSH;
+        }
+        
+        // Handle remaining blackjack scenarios (when values are not both 21)
         boolean playerBlackjack = playerHand.isBlackjack();
         boolean dealerBlackjack = dealerHand.isBlackjack();
-        
-        if (playerBlackjack && dealerBlackjack) {
-            return GameResult.PUSH; // Both have blackjack
-        }
         
         if (playerBlackjack) {
             return GameResult.PLAYER_BLACKJACK; // Player blackjack wins
@@ -114,7 +131,7 @@ public class BlackjackGame {
             return GameResult.DEALER_WIN; // Dealer blackjack wins
         }
         
-        // Compare values
+        // Compare values for all other scenarios
         if (playerValue > dealerValue) {
             return GameResult.PLAYER_WIN;
         } else if (dealerValue > playerValue) {
