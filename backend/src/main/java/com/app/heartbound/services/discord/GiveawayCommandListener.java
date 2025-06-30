@@ -509,7 +509,7 @@ public class GiveawayCommandListener extends ListenerAdapter {
         if (giveaway.getEntryPrice() > 0) {
             description.append("**🪙 ").append(giveaway.getEntryPrice()).append(" credits entry fee!**\n");
         } else {
-            description.append("**🪙 Free entry!**\n");
+            description.append("**Free entry!**\n");
         }
         
         embedBuilder.setDescription(description.toString());
