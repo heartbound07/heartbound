@@ -250,6 +250,26 @@
   transition: box-shadow 0.3s ease-in-out;
 }
 
+/* Case-specific inventory styles */
+.inventory-item-card:has(.case-preview-container) .rarity-glow {
+  animation-duration: 4s; /* Slower animation for cases */
+}
+
+.inventory-item-card .case-icon {
+  animation: case-pulse 3s ease-in-out infinite;
+}
+
+@keyframes case-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
 /* Sort controls styling */
 .sort-control-container {
   display: flex;

@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/SkeletonUI';
 import NameplatePreview from '@/components/NameplatePreview';
 import BadgePreview from '@/components/BadgePreview';
 import BadgeGallery from '@/components/ui/shop/BadgeGallery';
+import { CasePreviewModal } from '@/components/ui/shop/CasePreviewModal';
 
 export interface ShopItem {
   id: string;
@@ -24,6 +25,8 @@ export interface ShopItem {
   owned: boolean;
   equipped?: boolean;
   rarity: string;
+  isCase?: boolean;
+  caseContentsCount?: number;
 }
 
 interface ToastNotification {
@@ -112,6 +115,17 @@ export function InventoryPage() {
   // Update type to remove price-based options
   const [sortOrder, setSortOrder] = useState<'default' | 'rarity-asc' | 'rarity-desc'>('default');
   
+  // Case preview modal state
+  const [casePreviewModal, setCasePreviewModal] = useState<{
+    isOpen: boolean;
+    caseId: string;
+    caseName: string;
+  }>({
+    isOpen: false,
+    caseId: '',
+    caseName: ''
+  });
+  
   // Define rarity order for sorting
   const RARITY_ORDER: Record<string, number> = {
     'COMMON': 0,
@@ -129,6 +143,23 @@ export function InventoryPage() {
   
   const removeToast = (id: string) => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
+  };
+  
+  // Case preview modal functions
+  const openCasePreview = (caseId: string, caseName: string) => {
+    setCasePreviewModal({
+      isOpen: true,
+      caseId,
+      caseName
+    });
+  };
+  
+  const closeCasePreview = () => {
+    setCasePreviewModal({
+      isOpen: false,
+      caseId: '',
+      caseName: ''
+    });
   };
   
   // Simplified sort function without price sorting options
@@ -508,7 +539,7 @@ export function InventoryPage() {
                               borderColor: item.equipped ? 'var(--color-primary, #0088cc)' : rarityColor
                             }}
                           >
-                            {/* Item image, nameplate preview, or badge preview */}
+                            {/* Item image, nameplate preview, badge preview, or case preview */}
                             <div className="inventory-item-image">
                               {item.category === 'USER_COLOR' ? (
                                 <NameplatePreview
@@ -529,6 +560,72 @@ export function InventoryPage() {
                                   className="h-full w-full"
                                   size="sm"
                                 />
+                              ) : item.category === 'CASE' ? (
+                                <div className="h-full w-full bg-gradient-to-br from-slate-700 to-slate-800 flex flex-col items-center justify-center relative overflow-hidden">
+                                  {/* Case icon/visual */}
+                                  <div className="relative z-10">
+                                    {item.imageUrl ? (
+                                      <img 
+                                        src={item.imageUrl} 
+                                        alt={item.name}
+                                        className="h-12 w-12 object-cover rounded-lg border-2"
+                                        style={{ borderColor: rarityColor }}
+                                      />
+                                    ) : (
+                                      <div 
+                                        className="h-12 w-12 rounded-lg border-2 flex items-center justify-center case-icon"
+                                        style={{ 
+                                          borderColor: rarityColor,
+                                          backgroundColor: `${rarityColor}20`
+                                        }}
+                                      >
+                                        <svg 
+                                          className="w-6 h-6"
+                                          style={{ color: rarityColor }}
+                                          fill="none" 
+                                          viewBox="0 0 24 24" 
+                                          stroke="currentColor"
+                                        >
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                        </svg>
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Case contents count */}
+                                  {item.isCase && item.caseContentsCount && item.caseContentsCount > 0 && (
+                                    <div className="mt-1 text-xs text-slate-300 font-medium">
+                                      {item.caseContentsCount} items
+                                    </div>
+                                  )}
+                                  
+                                  {/* Mystical background effect */}
+                                  <div 
+                                    className="absolute inset-0 opacity-20 case-mystical-effect"
+                                    style={{
+                                      background: `radial-gradient(circle at center, ${rarityColor}40 0%, transparent 70%)`
+                                    }}
+                                  />
+                                  
+                                  {/* View Contents button overlay for cases */}
+                                  {item.isCase && item.caseContentsCount && item.caseContentsCount > 0 && (
+                                    <div className="absolute bottom-1 right-1">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openCasePreview(item.id, item.name);
+                                        }}
+                                        className="px-1 py-0.5 bg-primary/90 hover:bg-primary text-white text-xs rounded-md transition-colors flex items-center case-view-button"
+                                      >
+                                        <svg className="w-2.5 h-2.5 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        View
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
                               ) : item.imageUrl ? (
                                 <img 
                                   src={item.imageUrl} 
@@ -564,14 +661,44 @@ export function InventoryPage() {
                                 <p className="text-slate-300 text-sm mb-3">{item.description}</p>
                               )}
                               
+                              {/* Case-specific content information */}
+                              {item.isCase && item.caseContentsCount && item.caseContentsCount > 0 && (
+                                <div className="mb-3 p-2 bg-slate-800/30 border border-slate-700/50 rounded-md">
+                                  <div className="flex items-center justify-between text-xs mb-2">
+                                    <span className="text-slate-400">Case Contents:</span>
+                                    <span className="text-slate-300 font-medium">{item.caseContentsCount} items</span>
+                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openCasePreview(item.id, item.name);
+                                    }}
+                                    className="w-full py-1 text-xs text-primary hover:text-primary/80 transition-colors flex items-center justify-center"
+                                  >
+                                    <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    View Contents & Drop Rates
+                                  </button>
+                                </div>
+                              )}
+                              
                               <div className="flex justify-between items-center">
                                 {/* Always show Purchased badge regardless of price */}
                                 <div className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs flex items-center">
                                   Purchased
                                 </div>
                                 
-                                {/* Equip/Unequip button */}
-                                {item.category === 'BADGE' ? (
+                                {/* Equip/Unequip button or Case info */}
+                                {item.category === 'CASE' ? (
+                                  <div className="px-2 py-1 bg-blue-600/20 text-blue-300 rounded text-xs flex items-center">
+                                    <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                    </svg>
+                                    Unopened Case
+                                  </div>
+                                ) : item.category === 'BADGE' ? (
                                   item.equipped ? (
                                     <button
                                       onClick={() => handleUnequipBadge(item.id)}
@@ -630,6 +757,15 @@ export function InventoryPage() {
         </motion.div>
       </div>
     </div>
+    
+    {/* Case Preview Modal */}
+    <CasePreviewModal
+      isOpen={casePreviewModal.isOpen}
+      onClose={closeCasePreview}
+      caseId={casePreviewModal.caseId}
+      caseName={casePreviewModal.caseName}
+      user={user}
+    />
     </div>
   );
 }

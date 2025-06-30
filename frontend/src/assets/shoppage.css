@@ -352,3 +352,56 @@
   background-color: rgba(30, 41, 59, 0.8);
   outline: none;
 }
+
+/* Case-specific styles */
+.case-preview-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.case-preview-container:hover .case-mystical-effect {
+  opacity: 0.3;
+  transform: scale(1.1);
+}
+
+.case-mystical-effect {
+  transition: all 0.3s ease;
+}
+
+/* Case card enhancements */
+.shop-item-card:has(.case-preview-container):hover {
+  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.3);
+  transform: translateY(-8px);
+}
+
+/* Case icon animation */
+@keyframes case-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(var(--color-primary-rgb), 0.5);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(var(--color-primary-rgb), 0.8);
+  }
+}
+
+.case-preview-container .case-icon {
+  animation: case-glow 3s ease-in-out infinite;
+}
+
+/* Case badge styling */
+.case-badge {
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Case view button */
+.case-view-button {
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.case-view-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
