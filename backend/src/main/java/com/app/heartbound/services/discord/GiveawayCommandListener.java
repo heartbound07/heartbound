@@ -289,7 +289,7 @@ public class GiveawayCommandListener extends ListenerAdapter {
                 .build();
 
         TextInput durationInput = TextInput.create("giveaway-duration", "Duration", TextInputStyle.SHORT)
-                .setPlaceholder("e.g., '1 day', '1 week', '2 weeks'")
+                .setPlaceholder("e.g., '1d', '2 weeks', '30m', '45s'")
                 .setMinLength(1)
                 .setMaxLength(20)
                 .setRequired(true)
@@ -351,11 +351,11 @@ public class GiveawayCommandListener extends ListenerAdapter {
         
         // Validate and set duration
         String normalizedDuration = duration.trim().toLowerCase();
-        List<String> validDurations = List.of("1 day", "2 days", "3 days", "4 days", "5 days", "6 days", "1 week", "2 weeks");
-        if (!validDurations.contains(normalizedDuration)) {
-            throw new IllegalArgumentException("Invalid duration. Valid options: " + String.join(", ", validDurations));
+        if (!isValidDurationFormat(normalizedDuration)) {
+            throw new IllegalArgumentException("Invalid duration format. Supported formats: " +
+                "days (1d, 1 day), weeks (1w, 1 week), minutes (1m, 1 minute), seconds (10s, 10 seconds)");
         }
-        dto.setDuration(normalizedDuration);
+        dto.setDuration(duration.trim()); // Pass original format to service for parsing
         
         // Parse restrictions
         String normalizedRestrictions = restrictionsStr.trim().toLowerCase();
@@ -674,6 +674,29 @@ public class GiveawayCommandListener extends ListenerAdapter {
         } catch (Exception e) {
             logger.error("Error updating giveaway embed for deletion of giveaway {}: {}", giveaway.getId(), e.getMessage(), e);
         }
+    }
+
+    /**
+     * Validate if the duration format is supported
+     * @param normalizedDuration The duration string in lowercase
+     * @return true if the format is valid, false otherwise
+     */
+    private boolean isValidDurationFormat(String normalizedDuration) {
+        if (normalizedDuration == null || normalizedDuration.trim().isEmpty()) {
+            return false;
+        }
+        
+        // Regex patterns for different time formats (same as in GiveawayService)
+        java.util.regex.Pattern dayPattern = java.util.regex.Pattern.compile("^(\\d+)\\s*(?:d|day|days)$");
+        java.util.regex.Pattern weekPattern = java.util.regex.Pattern.compile("^(\\d+)\\s*(?:w|week|weeks)$");
+        java.util.regex.Pattern minutePattern = java.util.regex.Pattern.compile("^(\\d+)\\s*(?:m|minute|minutes)$");
+        java.util.regex.Pattern secondPattern = java.util.regex.Pattern.compile("^(\\d+)\\s*(?:s|second|seconds)$");
+        
+        // Check if any pattern matches
+        return dayPattern.matcher(normalizedDuration).matches() ||
+               weekPattern.matcher(normalizedDuration).matches() ||
+               minutePattern.matcher(normalizedDuration).matches() ||
+               secondPattern.matcher(normalizedDuration).matches();
     }
 
 } 

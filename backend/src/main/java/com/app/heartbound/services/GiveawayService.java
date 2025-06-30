@@ -344,27 +344,107 @@ public class GiveawayService {
     // Private helper methods
 
     private LocalDateTime parseDurationToEndDate(String duration) {
+        if (duration == null || duration.trim().isEmpty()) {
+            throw new IllegalArgumentException("Duration cannot be null or empty");
+        }
+        
+        String normalizedDuration = duration.trim().toLowerCase();
         LocalDateTime now = LocalDateTime.now();
         
-        switch (duration.toLowerCase()) {
-            case "1 day":
-                return now.plusDays(1);
-            case "2 days":
-                return now.plusDays(2);
-            case "3 days":
-                return now.plusDays(3);
-            case "4 days":
-                return now.plusDays(4);
-            case "5 days":
-                return now.plusDays(5);
-            case "6 days":
-                return now.plusDays(6);
-            case "1 week":
-                return now.plusWeeks(1);
-            case "2 weeks":
-                return now.plusWeeks(2);
-            default:
-                throw new IllegalArgumentException("Invalid duration: " + duration);
+        // Regex patterns for different time formats
+        // Days: 1d, 2d, 3d... OR 1 day, 2 days, 3 days...
+        java.util.regex.Pattern dayPattern = java.util.regex.Pattern.compile("^(\\d+)\\s*(?:d|day|days)$");
+        // Weeks: 1w, 2w, 3w... OR 1 week, 2 weeks, 3 weeks...
+        java.util.regex.Pattern weekPattern = java.util.regex.Pattern.compile("^(\\d+)\\s*(?:w|week|weeks)$");
+        // Minutes: 1m, 2m, 3m... OR 1 minute, 2 minutes, 3 minutes...
+        java.util.regex.Pattern minutePattern = java.util.regex.Pattern.compile("^(\\d+)\\s*(?:m|minute|minutes)$");
+        // Seconds: 10s, 20s, 30s... OR 10 seconds, 20 seconds, 30 seconds...
+        java.util.regex.Pattern secondPattern = java.util.regex.Pattern.compile("^(\\d+)\\s*(?:s|second|seconds)$");
+        
+        java.util.regex.Matcher matcher;
+        
+        // Try to match days pattern
+        matcher = dayPattern.matcher(normalizedDuration);
+        if (matcher.matches()) {
+            int days = Integer.parseInt(matcher.group(1));
+            validateDaysBounds(days);
+            return now.plusDays(days);
+        }
+        
+        // Try to match weeks pattern
+        matcher = weekPattern.matcher(normalizedDuration);
+        if (matcher.matches()) {
+            int weeks = Integer.parseInt(matcher.group(1));
+            validateWeeksBounds(weeks);
+            return now.plusWeeks(weeks);
+        }
+        
+        // Try to match minutes pattern
+        matcher = minutePattern.matcher(normalizedDuration);
+        if (matcher.matches()) {
+            int minutes = Integer.parseInt(matcher.group(1));
+            validateMinutesBounds(minutes);
+            return now.plusMinutes(minutes);
+        }
+        
+        // Try to match seconds pattern
+        matcher = secondPattern.matcher(normalizedDuration);
+        if (matcher.matches()) {
+            int seconds = Integer.parseInt(matcher.group(1));
+            validateSecondsBounds(seconds);
+            return now.plusSeconds(seconds);
+        }
+        
+        // If no pattern matches, throw an error with helpful message
+        throw new IllegalArgumentException("Invalid duration format: '" + duration + "'. " +
+            "Supported formats: days (1d, 1 day), weeks (1w, 1 week), minutes (1m, 1 minute), seconds (10s, 10 seconds)");
+    }
+    
+    /**
+     * Validate days are within reasonable bounds
+     */
+    private void validateDaysBounds(int days) {
+        if (days < 1) {
+            throw new IllegalArgumentException("Days must be at least 1");
+        }
+        if (days > 28) { // 4 weeks maximum
+            throw new IllegalArgumentException("Duration cannot exceed 4 weeks (28 days)");
+        }
+    }
+    
+    /**
+     * Validate weeks are within reasonable bounds
+     */
+    private void validateWeeksBounds(int weeks) {
+        if (weeks < 1) {
+            throw new IllegalArgumentException("Weeks must be at least 1");
+        }
+        if (weeks > 4) { // 4 weeks maximum
+            throw new IllegalArgumentException("Duration cannot exceed 4 weeks");
+        }
+    }
+    
+    /**
+     * Validate minutes are within reasonable bounds
+     */
+    private void validateMinutesBounds(int minutes) {
+        if (minutes < 1) {
+            throw new IllegalArgumentException("Minutes must be at least 1");
+        }
+        if (minutes > 40320) { // 4 weeks in minutes
+            throw new IllegalArgumentException("Duration cannot exceed 4 weeks (40,320 minutes)");
+        }
+    }
+    
+    /**
+     * Validate seconds are within reasonable bounds
+     */
+    private void validateSecondsBounds(int seconds) {
+        if (seconds < 10) {
+            throw new IllegalArgumentException("Seconds must be at least 10");
+        }
+        if (seconds > 2419200) { // 4 weeks in seconds
+            throw new IllegalArgumentException("Duration cannot exceed 4 weeks (2,419,200 seconds)");
         }
     }
 
