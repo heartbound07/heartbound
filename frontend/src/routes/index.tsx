@@ -64,7 +64,7 @@ function AdminShopRoute({ children }: { children: React.ReactNode }) {
 }
 
 // Create a maintenance route guard component for Valorant
-function ValorantMaintenanceGuard({ children }: { children: React.ReactNode }) {
+function ValorantMaintenanceGuard() {
   // Always redirect to dashboard when trying to access Valorant routes
   return <RouterNavigate to="/dashboard" replace />;
 }
@@ -199,7 +199,7 @@ export function AppRoutes() {
         </Route>
         
         {/* Valorant routes - currently under maintenance */}
-        <Route path="/valorant" element={<ValorantMaintenanceGuard><div /></ValorantMaintenanceGuard>}>
+        <Route path="/valorant" element={<ValorantMaintenanceGuard />}>
           <Route index element={<div />} />
           <Route path=":partyId" element={<div />} />
           <Route path="*" element={<div />} />

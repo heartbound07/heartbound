@@ -12,7 +12,8 @@ import { useState, useRef, useEffect } from "react"
 import { ChevronRight, Menu, LogOut, Users, Star } from "lucide-react"
 import { ProfilePreview } from "@/components/ui/profile/ProfilePreview"
 import ReactDOM from "react-dom"
-import valorantLogo from "@/assets/images/valorant-logo.png"
+// Valorant logo import removed due to maintenance
+// import valorantLogo from "@/assets/images/valorant-logo.png"
 
 /**
  * DashboardNavigation
