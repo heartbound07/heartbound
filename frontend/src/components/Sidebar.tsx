@@ -34,17 +34,21 @@ export function DashboardNavigation({ theme = "default", onCollapseChange }: Das
   const location = useLocation()
   const { user, profile, hasRole, logout } = useAuth()
 
-  // Add this to detect if we're on the Valorant page
+  // Add this to detect if we're on the Valorant page - disabled during maintenance
   const isValorantPage = () => {
-    return location.pathname.includes("/valorant")
+    // Always return false since Valorant is under maintenance
+    return false;
+    // return location.pathname.includes("/valorant")
   }
 
   // Use the detected page to override the theme if needed
   const effectiveTheme = isValorantPage() ? "default" : theme
 
   const [gamesExpanded, setGamesExpanded] = useState(() => {
+    // Don't auto-expand since Valorant is disabled
+    return false;
     // Auto-expand if we're on a game page
-    return location.pathname.includes("/valorant")
+    // return location.pathname.includes("/valorant")
   })
   const [showProfilePreview, setShowProfilePreview] = useState(false)
   const profileSectionRef = useRef<HTMLDivElement>(null)
@@ -93,14 +97,20 @@ export function DashboardNavigation({ theme = "default", onCollapseChange }: Das
     return () => window.removeEventListener("resize", handleResize)
   }, [])
 
-  // Define games submenu items
-  const gameItems = [
-    {
-      path: "/valorant",
-      label: "VALORANT",
-      logo: valorantLogo,
-      id: "valorant",
-    },
+  // Define games submenu items - Valorant removed due to maintenance
+  const gameItems: Array<{
+    path: string;
+    label: string;
+    logo: string;
+    id: string;
+  }> = [
+    // Valorant temporarily removed for maintenance
+    // {
+    //   path: "/valorant",
+    //   label: "VALORANT",
+    //   logo: valorantLogo,
+    //   id: "valorant",
+    // },
     // More games will be added here in the future
   ]
 

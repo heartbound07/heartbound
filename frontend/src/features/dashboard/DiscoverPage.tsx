@@ -25,7 +25,8 @@ export function DiscoverPage() {
       image: valorantImage,
       logo: valorantLogo,
       alt: 'Valorant',
-      isAvailable: true,
+      isAvailable: false,
+      maintenanceMessage: 'Under Maintenance',
       path: '/valorant',
     },
     {
@@ -106,6 +107,7 @@ export function DiscoverPage() {
               alt={game.alt}
               isAvailable={game.isAvailable}
               isClickable={game.isAvailable}
+              maintenanceMessage={game.maintenanceMessage}
             />
           </motion.div>
         ))}

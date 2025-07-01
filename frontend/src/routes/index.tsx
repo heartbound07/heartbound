@@ -3,7 +3,11 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { WebSocketProvider } from '@/contexts/WebSocketProvider';
 import PartyUpdatesProvider from '@/contexts/PartyUpdates';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
-import { ValorantPageLayout } from '@/components/valorant/ValorantPageLayout';
+import { PairingsPageLayout } from '@/features/pages/PairingsPageLayout';
+// Valorant imports commented out due to maintenance
+// import { ValorantPageLayout } from '@/components/valorant/ValorantPageLayout';
+// import ValorantPage from '@/features/valorant/ValorantPage';
+// import ValorantPartyDetails from '@/features/valorant/ValorantPartyDetails';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { AuthErrorPage } from '@/features/auth/AuthErrorPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
@@ -13,8 +17,6 @@ import { AdminPanel } from '@/features/dashboard/admin/AdminPanel';
 import { UserManagement } from '@/features/dashboard/admin/UserManagement';
 import { DiscordBotSettings } from '@/features/dashboard/admin/DiscordBotSettings';
 import { SystemStats } from '@/features/dashboard/admin/SystemStats';
-import ValorantPage from '@/features/valorant/ValorantPage';
-import ValorantPartyDetails from '@/features/valorant/ValorantPartyDetails';
 import { DiscordCallback } from '@/features/auth/DiscordCallback';
 import { useAuth } from '@/contexts/auth';
 import { Navigate as RouterNavigate } from 'react-router-dom';
@@ -59,6 +61,12 @@ function AdminShopRoute({ children }: { children: React.ReactNode }) {
   }
   
   return <>{children}</>;
+}
+
+// Create a maintenance route guard component for Valorant
+function ValorantMaintenanceGuard({ children }: { children: React.ReactNode }) {
+  // Always redirect to dashboard when trying to access Valorant routes
+  return <RouterNavigate to="/dashboard" replace />;
 }
 
 function ProtectedRoutes() {
@@ -186,16 +194,15 @@ export function AppRoutes() {
         </Route>
         
         {/* Pairings page */}
-        <Route path="/pairings" element={<ValorantPageLayout />}>
+        <Route path="/pairings" element={<PairingsPageLayout />}>
           <Route index element={<PairingsPage />} />
         </Route>
         
-        {/* Valorant routes with ValorantPageLayout */}
-        <Route path="/valorant" element={<ValorantPageLayout />}>
-          <Route index element={<ValorantPage />} />
-          <Route path=":partyId" element={<ValorantPartyDetails />} />
-          {/* Catch-all for non-existent valorant routes */}
-          <Route path="*" element={<NotFoundPage />} />
+        {/* Valorant routes - currently under maintenance */}
+        <Route path="/valorant" element={<ValorantMaintenanceGuard><div /></ValorantMaintenanceGuard>}>
+          <Route index element={<div />} />
+          <Route path=":partyId" element={<div />} />
+          <Route path="*" element={<div />} />
         </Route>
 
       </Route>

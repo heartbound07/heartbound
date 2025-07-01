@@ -11,6 +11,7 @@ interface GameCardProps {
   className?: string;
   isClickable?: boolean;
   isAvailable?: boolean;
+  maintenanceMessage?: string;
 }
 
 export function GameCard({ 
@@ -20,7 +21,8 @@ export function GameCard({
   alt, 
   className, 
   isClickable = false,
-  isAvailable = true
+  isAvailable = true,
+  maintenanceMessage
 }: GameCardProps) {
   const [isHovering, setIsHovering] = useState(false);
   
@@ -91,7 +93,7 @@ export function GameCard({
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
           <BiLockAlt className="text-white/90 text-4xl mb-2" />
           <p className="text-white/90 text-sm font-medium px-3 py-1.5 bg-black/40 rounded-full">
-            Coming Soon
+            {maintenanceMessage || "Coming Soon"}
           </p>
         </div>
       )}
