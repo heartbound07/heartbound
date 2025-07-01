@@ -5,6 +5,7 @@ import com.app.heartbound.dto.shop.ShopDTO;
 import com.app.heartbound.dto.shop.UserInventoryDTO;
 import com.app.heartbound.dto.shop.CaseContentsDTO;
 import com.app.heartbound.dto.shop.CaseItemDTO;
+import com.app.heartbound.dto.shop.RollResultDTO;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.entities.CaseItem;
@@ -15,6 +16,10 @@ import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
 import com.app.heartbound.exceptions.shop.ItemAlreadyOwnedException;
 import com.app.heartbound.exceptions.shop.ItemNotEquippableException;
 import com.app.heartbound.exceptions.shop.RoleRequirementNotMetException;
+import com.app.heartbound.exceptions.shop.CaseNotFoundException;
+import com.app.heartbound.exceptions.shop.CaseNotOwnedException;
+import com.app.heartbound.exceptions.shop.EmptyCaseException;
+import com.app.heartbound.exceptions.shop.InvalidCaseContentsException;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
 import com.app.heartbound.repositories.shop.CaseItemRepository;
@@ -31,6 +36,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.Objects;
 import java.time.LocalDateTime;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class ShopService {
@@ -566,6 +572,105 @@ public class ShopService {
     }
     
     // ===== CASE-RELATED METHODS =====
+    
+    /**
+     * Open a case and return a random item based on drop rates
+     * @param userId User ID
+     * @param caseId Case ID to open
+     * @return RollResultDTO with the won item and roll details
+     */
+    @Transactional
+    public RollResultDTO openCase(String userId, UUID caseId) {
+        logger.debug("Opening case {} for user {}", caseId, userId);
+        
+        // 1. Verify user exists
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // 2. Verify case exists and is actually a case
+        Shop caseItem = shopRepository.findById(caseId)
+            .orElseThrow(() -> new CaseNotFoundException("Case not found with ID: " + caseId));
+        
+        if (caseItem.getCategory() != ShopCategory.CASE) {
+            throw new IllegalArgumentException("Item is not a case");
+        }
+        
+        // 3. Verify user owns the case
+        if (!user.hasItem(caseId)) {
+            throw new CaseNotOwnedException("You do not own this case");
+        }
+        
+        // 4. Get case contents with drop rates and validate
+        List<CaseItem> caseItems = caseItemRepository.findByCaseIdOrderByDropRateDesc(caseId);
+        
+        if (caseItems.isEmpty()) {
+            throw new EmptyCaseException("Case has no contents to roll");
+        }
+        
+        // 5. Validate case contents (drop rates should sum to 100)
+        Integer totalDropRate = caseItemRepository.sumDropRatesByCaseId(caseId);
+        if (totalDropRate == null || totalDropRate != 100) {
+            throw new InvalidCaseContentsException(
+                "Invalid case contents - drop rates sum to " + totalDropRate + "% instead of 100%"
+            );
+        }
+        
+        // 6. Perform weighted random selection
+        Shop wonItem = selectItemByDropRate(caseItems);
+        int rollValue = ThreadLocalRandom.current().nextInt(100); // For future animation sync
+        
+        // 7. Check if user already owns the won item
+        boolean alreadyOwned = user.hasItem(wonItem.getId());
+        
+        // 8. Remove case from user inventory (consume it)
+        user.getInventory().removeIf(item -> item.getId().equals(caseId));
+        
+        // 9. Add won item to user inventory (only if not already owned)
+        if (!alreadyOwned) {
+            user.addItem(wonItem);
+        }
+        
+        // 10. Save user changes
+        userRepository.save(user);
+        
+        logger.info("User {} opened case {} and won item {} (already owned: {})", 
+                   userId, caseId, wonItem.getId(), alreadyOwned);
+        
+        // 11. Return result
+        return RollResultDTO.builder()
+            .caseId(caseId)
+            .caseName(caseItem.getName())
+            .wonItem(mapToShopDTO(wonItem, user))
+            .rollValue(rollValue)
+            .rolledAt(LocalDateTime.now())
+            .alreadyOwned(alreadyOwned)
+            .build();
+    }
+    
+    /**
+     * Perform weighted random selection based on drop rates
+     * @param caseItems List of case items with drop rates
+     * @return Selected shop item
+     */
+    private Shop selectItemByDropRate(List<CaseItem> caseItems) {
+        // Generate random number between 0 and 99 (inclusive)
+        int roll = ThreadLocalRandom.current().nextInt(100);
+        
+        // Use cumulative probability to select item
+        int cumulative = 0;
+        for (CaseItem caseItem : caseItems) {
+            cumulative += caseItem.getDropRate();
+            if (roll < cumulative) {
+                logger.debug("Roll {} selected item {} with cumulative threshold {}", 
+                           roll, caseItem.getContainedItem().getName(), cumulative);
+                return caseItem.getContainedItem();
+            }
+        }
+        
+        // Fallback to last item (should never happen with valid drop rates)
+        logger.warn("Roll {} fell through, selecting last item as fallback", roll);
+        return caseItems.get(caseItems.size() - 1).getContainedItem();
+    }
     
     /**
      * Get the contents of a case with drop rates

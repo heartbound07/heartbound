@@ -13,6 +13,7 @@ import NameplatePreview from '@/components/NameplatePreview';
 import BadgePreview from '@/components/BadgePreview';
 import BadgeGallery from '@/components/ui/shop/BadgeGallery';
 import { CasePreviewModal } from '@/components/ui/shop/CasePreviewModal';
+import { CaseRollModal } from '@/components/ui/shop/CaseRollModal';
 
 export interface ShopItem {
   id: string;
@@ -33,6 +34,25 @@ interface ToastNotification {
   id: string;
   message: string;
   type: 'success' | 'error' | 'info';
+}
+
+interface RollResult {
+  caseId: string;
+  caseName: string;
+  wonItem: {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    category: string;
+    imageUrl: string;
+    thumbnailUrl?: string;
+    rarity: string;
+    owned: boolean;
+  };
+  rollValue: number;
+  rolledAt: string;
+  alreadyOwned: boolean;
 }
 
 // Add category mapping for special cases
@@ -126,6 +146,17 @@ export function InventoryPage() {
     caseName: ''
   });
   
+  // Case roll modal state
+  const [caseRollModal, setCaseRollModal] = useState<{
+    isOpen: boolean;
+    caseId: string;
+    caseName: string;
+  }>({
+    isOpen: false,
+    caseId: '',
+    caseName: ''
+  });
+  
   // Define rarity order for sorting
   const RARITY_ORDER: Record<string, number> = {
     'COMMON': 0,
@@ -160,6 +191,34 @@ export function InventoryPage() {
       caseId: '',
       caseName: ''
     });
+  };
+  
+  // Case roll modal functions
+  const openCaseRoll = (caseId: string, caseName: string) => {
+    setCaseRollModal({
+      isOpen: true,
+      caseId,
+      caseName
+    });
+  };
+  
+  const closeCaseRoll = () => {
+    setCaseRollModal({
+      isOpen: false,
+      caseId: '',
+      caseName: ''
+    });
+  };
+  
+  const handleRollComplete = async (result: RollResult) => {
+    // Show success toast
+    showToast(
+      `Congratulations! You won ${result.wonItem.name}${result.alreadyOwned ? ' (already owned)' : ''}!`, 
+      'success'
+    );
+    
+    // Refresh inventory to show updated items
+    await fetchInventory();
   };
   
   // Simplified sort function without price sorting options
@@ -690,14 +749,20 @@ export function InventoryPage() {
                                   Purchased
                                 </div>
                                 
-                                {/* Equip/Unequip button or Case info */}
+                                {/* Equip/Unequip button or Case actions */}
                                 {item.category === 'CASE' ? (
-                                  <div className="px-2 py-1 bg-blue-600/20 text-blue-300 rounded text-xs flex items-center">
+                                  <button
+                                    onClick={() => openCaseRoll(item.id, item.name)}
+                                    disabled={actionInProgress !== null}
+                                    className={`item-action-button px-3 py-1 bg-primary hover:bg-primary/90 text-white rounded text-xs flex items-center transition-colors ${
+                                      actionInProgress !== null ? 'opacity-50 cursor-not-allowed' : ''
+                                    }`}
+                                  >
                                     <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                     </svg>
-                                    Unopened Case
-                                  </div>
+                                    Open Case
+                                  </button>
                                 ) : item.category === 'BADGE' ? (
                                   item.equipped ? (
                                     <button
@@ -764,6 +829,16 @@ export function InventoryPage() {
       onClose={closeCasePreview}
       caseId={casePreviewModal.caseId}
       caseName={casePreviewModal.caseName}
+      user={user}
+    />
+    
+    {/* Case Roll Modal */}
+    <CaseRollModal
+      isOpen={caseRollModal.isOpen}
+      onClose={closeCaseRoll}
+      caseId={caseRollModal.caseId}
+      caseName={caseRollModal.caseName}
+      onRollComplete={handleRollComplete}
       user={user}
     />
     </div>

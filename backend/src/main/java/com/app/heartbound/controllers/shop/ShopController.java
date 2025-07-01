@@ -6,12 +6,17 @@ import com.app.heartbound.dto.shop.ShopDTO;
 import com.app.heartbound.dto.shop.UserInventoryDTO;
 import com.app.heartbound.dto.shop.CaseContentsDTO;
 import com.app.heartbound.dto.shop.CaseItemDTO;
+import com.app.heartbound.dto.shop.RollResultDTO;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
 import com.app.heartbound.exceptions.shop.ItemAlreadyOwnedException;
 import com.app.heartbound.exceptions.shop.ItemNotEquippableException;
 import com.app.heartbound.exceptions.shop.RoleRequirementNotMetException;
+import com.app.heartbound.exceptions.shop.CaseNotFoundException;
+import com.app.heartbound.exceptions.shop.CaseNotOwnedException;
+import com.app.heartbound.exceptions.shop.EmptyCaseException;
+import com.app.heartbound.exceptions.shop.InvalidCaseContentsException;
 import com.app.heartbound.services.shop.ShopService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -308,6 +313,48 @@ public class ShopController {
             logger.error("Error retrieving case contents for case {}: {}", caseId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse("An error occurred while retrieving case contents"));
+        }
+    }
+    
+    /**
+     * Open a case and receive a random item
+     * @param caseId Case ID to open
+     * @param authentication Authentication containing user ID
+     * @return RollResultDTO with the won item details
+     */
+    @PostMapping("/cases/{caseId}/open")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> openCase(
+        @PathVariable UUID caseId,
+        Authentication authentication
+    ) {
+        String userId = authentication.getName();
+        
+        try {
+            RollResultDTO result = shopService.openCase(userId, caseId);
+            return ResponseEntity.ok(result);
+        } catch (CaseNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (CaseNotOwnedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (EmptyCaseException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (InvalidCaseContentsException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error opening case {} for user {}: {}", caseId, userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An error occurred while opening the case"));
         }
     }
     
