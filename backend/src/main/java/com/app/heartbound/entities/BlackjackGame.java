@@ -88,6 +88,8 @@ public class BlackjackGame {
         
         int playerValue = playerHand.getValue();
         int dealerValue = dealerHand.getValue();
+        boolean playerBlackjack = playerHand.isBlackjack();
+        boolean dealerBlackjack = dealerHand.isBlackjack();
         
         // Check for busts first
         if (playerHand.isBusted()) {
@@ -98,36 +100,33 @@ public class BlackjackGame {
             return GameResult.PLAYER_WIN; // Dealer busted
         }
         
-        // CRITICAL FIX: Handle all 21-21 scenarios explicitly first
+        // ENHANCED FIX: Handle all 21-21 scenarios with comprehensive logic
         if (playerValue == 21 && dealerValue == 21) {
-            boolean playerBlackjack = playerHand.isBlackjack();
-            boolean dealerBlackjack = dealerHand.isBlackjack();
-            
+            // Both have natural blackjack (21 with exactly 2 cards each) - PUSH
             if (playerBlackjack && dealerBlackjack) {
-                return GameResult.PUSH; // Both have natural blackjack - tie
+                return GameResult.PUSH;
             }
             
+            // Player has natural blackjack, dealer has 21 but not natural - Player wins
             if (playerBlackjack && !dealerBlackjack) {
-                return GameResult.PLAYER_BLACKJACK; // Player natural blackjack beats dealer 21
+                return GameResult.PLAYER_BLACKJACK;
             }
             
+            // Dealer has natural blackjack, player has 21 but not natural - Dealer wins
             if (!playerBlackjack && dealerBlackjack) {
-                return GameResult.DEALER_WIN; // Dealer natural blackjack beats player 21
+                return GameResult.DEALER_WIN;
             }
             
-            // Both have 21 but neither is natural blackjack - tie
+            // Both have 21 but neither is natural blackjack (both have >2 cards) - PUSH
             return GameResult.PUSH;
         }
         
-        // Handle remaining blackjack scenarios (when values are not both 21)
-        boolean playerBlackjack = playerHand.isBlackjack();
-        boolean dealerBlackjack = dealerHand.isBlackjack();
-        
-        if (playerBlackjack) {
+        // Handle blackjack scenarios when not both 21
+        if (playerBlackjack && dealerValue != 21) {
             return GameResult.PLAYER_BLACKJACK; // Player blackjack wins
         }
         
-        if (dealerBlackjack) {
+        if (dealerBlackjack && playerValue != 21) {
             return GameResult.DEALER_WIN; // Dealer blackjack wins
         }
         
@@ -137,7 +136,8 @@ public class BlackjackGame {
         } else if (dealerValue > playerValue) {
             return GameResult.DEALER_WIN;
         } else {
-            return GameResult.PUSH; // Tie
+            // Values are equal but not 21 (since 21-21 handled above)
+            return GameResult.PUSH;
         }
     }
 

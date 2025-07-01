@@ -302,16 +302,27 @@ public class BlackjackCommandListener extends ListenerAdapter {
                     }, 2500, java.util.concurrent.TimeUnit.MILLISECONDS); // 2.5 second delay between dealer hits
                 }
             } else {
-                // Dealer stands (17 or higher), end game immediately
+                // Dealer stands (17 or higher), end game properly
+                // CRITICAL FIX: Ensure game ends through proper game logic to maintain consistency
                 game.setGameEnded(true);
                 handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
                 scheduler.shutdown();
             }
         } catch (Exception e) {
             logger.error("Error during dealer play sequence for user {}", game.getUserId(), e);
-            // Fallback: complete the game immediately
-            game.playerStand();
-            handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
+            // Fallback: complete the game immediately using standard game logic
+            try {
+                // Ensure game state is consistent before calling playerStand
+                if (!game.isGameEnded()) {
+                    game.playerStand();
+                }
+                handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
+            } catch (Exception fallbackException) {
+                logger.error("Fallback game end also failed for user {}", game.getUserId(), fallbackException);
+                // Force end the game
+                game.setGameEnded(true);
+                handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
+            }
             scheduler.shutdown();
         }
     }
