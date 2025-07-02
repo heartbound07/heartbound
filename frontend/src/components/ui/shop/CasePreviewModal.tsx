@@ -167,28 +167,62 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
                             borderLeftWidth: '4px'
                           }}
                         >
-                          <div className="flex items-start space-x-3">
-                            {/* Item Preview - Updated to match CaseRollModal.tsx logic */}
-                            <div className="flex-shrink-0 w-16 h-16 relative">
-                              <div 
-                                className="w-full h-full rounded-lg border-2 overflow-hidden relative bg-slate-800"
-                                style={{ borderColor: rarityColor }}
-                              >
-                                {/* Item preview based on category - Exact logic from CaseRollModal.tsx */}
-                                {item.category === 'USER_COLOR' ? (
-                                  <NameplatePreview
-                                    username={user?.username || "User"}
-                                    avatar={user?.avatar || "/default-avatar.png"}
-                                    color={item.imageUrl}
-                                    fallbackColor={rarityColor}
-                                    message=""
-                                    className="h-full w-full"
-                                    size="sm"
+                          {item.category === 'USER_COLOR' ? (
+                            // USER_COLOR - Full NameplatePreview layout (matches CaseRollModal.tsx exactly)
+                            <div className="space-y-3">
+                              {/* Header with name and rarity */}
+                              <div className="flex items-center justify-center space-x-2 mb-2">
+                                <h3 className="font-medium text-white text-sm">{item.name}</h3>
+                                <span 
+                                  className="px-2 py-0.5 rounded text-xs font-semibold"
+                                  style={getRarityBadgeStyle(item.rarity)}
+                                >
+                                  {getRarityLabel(item.rarity)}
+                                </span>
+                              </div>
+                              
+                              {/* Full NameplatePreview */}
+                              <div className="flex justify-center py-2">
+                                <NameplatePreview
+                                  username={user?.username || "Preview"}
+                                  avatar={user?.avatar || "/default-avatar.png"}
+                                  color={item.imageUrl}
+                                  fallbackColor={rarityColor}
+                                  message="Preview of your nameplate color"
+                                  size="md"
+                                />
+                              </div>
+
+                              {/* Drop Rate */}
+                              <div className="flex items-center justify-center space-x-2">
+                                <span className="text-xs text-slate-300">Drop Rate</span>
+                                <div className="w-16 bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                                  <div 
+                                    className="h-full transition-all duration-300"
+                                    style={{ 
+                                      width: `${caseItem.dropRate}%`,
+                                      background: 'linear-gradient(90deg, #ff4655 0%, rgba(255, 70, 85, 0.8) 100%)'
+                                    }}
                                   />
-                                ) : item.category === 'BADGE' ? (
+                                </div>
+                                <span className="text-sm font-medium text-primary">
+                                  {caseItem.dropRate}%
+                                </span>
+                              </div>
+
+                              {item.description && (
+                                <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
+                              )}
+                            </div>
+                          ) : (
+                            // Other items - Horizontal layout (matches CaseRollModal.tsx exactly)
+                            <div className="flex items-start space-x-3">
+                              {/* Item Preview */}
+                              <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2" style={{ borderColor: rarityColor }}>
+                                {item.category === 'BADGE' ? (
                                   <BadgePreview
-                                    username={user?.username || "User"}
-                                    avatar={user?.avatar || "/default-avatar.png"}
+                                    username="Preview"
+                                    avatar="/default-avatar.png"
                                     badgeUrl={item.thumbnailUrl || item.imageUrl}
                                     message=""
                                     className="h-full w-full"
@@ -196,7 +230,7 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
                                   />
                                 ) : item.imageUrl ? (
                                   <img 
-                                    src={item.thumbnailUrl || item.imageUrl} 
+                                    src={item.imageUrl} 
                                     alt={item.name}
                                     className="h-full w-full object-cover"
                                   />
@@ -205,69 +239,52 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
                                     <span className="text-xs text-slate-400">No Image</span>
                                   </div>
                                 )}
-                                
-                                {/* Rarity glow effect - Added from CaseRollModal.tsx */}
-                                <div 
-                                  className="absolute inset-0 rounded-lg opacity-30"
-                                  style={{
-                                    boxShadow: `inset 0 0 10px ${rarityColor}`,
-                                  }}
-                                />
-                              </div>
-                              
-                              {/* Rarity indicator - Added from CaseRollModal.tsx */}
-                              <div 
-                                className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 px-1 py-0.5 rounded text-xs font-bold"
-                                style={{
-                                  backgroundColor: rarityColor,
-                                  color: 'white',
-                                  fontSize: '10px'
-                                }}
-                              >
-                                {getRarityLabel(item.rarity).charAt(0)}
-                              </div>
-                            </div>
-
-                            {/* Item Details */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between mb-1">
-                                <h3 className="font-medium text-white text-sm truncate pr-2">{item.name}</h3>
-                                <div className="flex-shrink-0">
-                                  <span 
-                                    className="px-2 py-0.5 rounded text-xs font-semibold"
-                                    style={getRarityBadgeStyle(item.rarity)}
-                                  >
-                                    {getRarityLabel(item.rarity)}
-                                  </span>
-                                </div>
-                              </div>
-                              
-                              <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                                <span>{formatDisplayText(item.category)}</span>
-                                <span>{item.price} credits</span>
                               </div>
 
-                              {/* Drop Rate */}
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-slate-300">Drop Rate</span>
-                                <div className="flex items-center space-x-2">
-                                  <div className="w-16 bg-slate-700 rounded-full h-1.5 overflow-hidden">
-                                    <div 
-                                      className="h-full bg-primary transition-all duration-300"
-                                      style={{ width: `${caseItem.dropRate}%` }}
-                                    />
+                              {/* Item Details */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between mb-1">
+                                  <h3 className="font-medium text-white text-sm truncate pr-2">{item.name}</h3>
+                                  <div className="flex-shrink-0">
+                                    <span 
+                                      className="px-2 py-0.5 rounded text-xs font-semibold"
+                                      style={getRarityBadgeStyle(item.rarity)}
+                                    >
+                                      {getRarityLabel(item.rarity)}
+                                    </span>
                                   </div>
-                                  <span className="text-sm font-medium text-primary">
-                                    {caseItem.dropRate}%
-                                  </span>
                                 </div>
-                              </div>
+                                
+                                <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
+                                  <span>{formatDisplayText(item.category)}</span>
+                                  <span>{item.price} credits</span>
+                                </div>
 
-                              {item.description && (
-                                <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
-                              )}
+                                {/* Drop Rate */}
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-slate-300">Drop Rate</span>
+                                  <div className="flex items-center space-x-2">
+                                    <div className="w-16 bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                                      <div 
+                                        className="h-full transition-all duration-300"
+                                        style={{ 
+                                          width: `${caseItem.dropRate}%`,
+                                          background: 'linear-gradient(90deg, #ff4655 0%, rgba(255, 70, 85, 0.8) 100%)'
+                                        }}
+                                      />
+                                    </div>
+                                    <span className="text-sm font-medium" style={{ color: '#ff4655' }}>
+                                      {caseItem.dropRate}%
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {item.description && (
+                                  <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
+                                )}
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </motion.div>
                       );
                     })
