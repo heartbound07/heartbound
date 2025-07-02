@@ -696,71 +696,48 @@ export function CaseRollModal({
                     </p>
                   </div>
                   
-                  {/* REMOVED: rarity-colored border around container */}
-                  <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="bg-slate-800/50 border border-slate-700 rounded-lg p-8 max-w-md mx-auto relative overflow-hidden"
-                  >
-                    {/* Animated background glow */}
-                    <motion.div
-                      animate={{
-                        opacity: [0.3, 0.6, 0.3],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
-                      className="absolute inset-0 rounded-lg"
-                      style={{
-                        background: `radial-gradient(circle at center, ${getRarityColor(rollResult.wonItem.rarity)}20 0%, transparent 70%)`
-                      }}
-                    />
-                    
-                    {/* Item Preview - MAINTAINED as-is */}
-                    <div className="relative z-10">
-                      <div className="flex justify-center">
-                        <motion.div 
-                          initial={{ scale: 0.5, rotateY: -180 }}
-                          animate={{ scale: 1, rotateY: 0 }}
-                          transition={{ delay: 0.4, type: "spring", damping: 15 }}
-                          className="w-32 h-32 rounded-lg overflow-hidden border-3" 
-                          style={{ borderColor: getRarityColor(rollResult.wonItem.rarity) }}
-                        >
-                          {rollResult.wonItem.category === 'USER_COLOR' ? (
-                            <NameplatePreview
-                              username={user?.username || "Username"}
-                              avatar={user?.avatar || "/default-avatar.png"}
-                              color={rollResult.wonItem.imageUrl}
-                              fallbackColor={getRarityColor(rollResult.wonItem.rarity)}
-                              message="Your new nameplate color"
-                              className="h-full w-full"
-                              size="md"
-                            />
-                          ) : rollResult.wonItem.category === 'BADGE' ? (
-                            <BadgePreview
-                              username={user?.username || "Username"}
-                              avatar={user?.avatar || "/default-avatar.png"}
-                              badgeUrl={rollResult.wonItem.thumbnailUrl || rollResult.wonItem.imageUrl}
-                              message="Your new badge"
-                              className="h-full w-full"
-                              size="md"
-                            />
-                          ) : rollResult.wonItem.imageUrl ? (
-                            <img 
-                              src={rollResult.wonItem.imageUrl} 
-                              alt={rollResult.wonItem.name}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="h-full w-full bg-slate-700 flex items-center justify-center">
-                              <span className="text-xs text-slate-400">No Image</span>
-                            </div>
-                          )}
-                        </motion.div>
-                      </div>
+                  {/* REMOVED: Container and background glow - now just the preview component */}
+                  <div className="flex justify-center">
+                    <motion.div 
+                      initial={{ scale: 0.5, rotateY: -180 }}
+                      animate={{ scale: 1, rotateY: 0 }}
+                      transition={{ delay: 0.4, type: "spring", damping: 15 }}
+                      className="max-w-md mx-auto"
+                    >
+                      {rollResult.wonItem.category === 'USER_COLOR' ? (
+                        <NameplatePreview
+                          username={user?.username || "Username"}
+                          avatar={user?.avatar || "/default-avatar.png"}
+                          color={rollResult.wonItem.imageUrl}
+                          fallbackColor={getRarityColor(rollResult.wonItem.rarity)}
+                          message="Your new nameplate color"
+                          className=""
+                          size="md"
+                        />
+                      ) : rollResult.wonItem.category === 'BADGE' ? (
+                        <BadgePreview
+                          username={user?.username || "Username"}
+                          avatar={user?.avatar || "/default-avatar.png"}
+                          badgeUrl={rollResult.wonItem.thumbnailUrl || rollResult.wonItem.imageUrl}
+                          message="Your new badge"
+                          className=""
+                          size="md"
+                        />
+                      ) : rollResult.wonItem.imageUrl ? (
+                        <div className="w-32 h-32 rounded-lg overflow-hidden border-3 mx-auto" 
+                             style={{ borderColor: getRarityColor(rollResult.wonItem.rarity) }}>
+                          <img 
+                            src={rollResult.wonItem.imageUrl} 
+                            alt={rollResult.wonItem.name}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-32 h-32 rounded-lg overflow-hidden border-3 mx-auto bg-slate-700 flex items-center justify-center" 
+                             style={{ borderColor: getRarityColor(rollResult.wonItem.rarity) }}>
+                          <span className="text-xs text-slate-400">No Image</span>
+                        </div>
+                      )}
 
                       {/* Item Description - kept for cases where description exists */}
                       {rollResult.wonItem.description && (
@@ -770,8 +747,8 @@ export function CaseRollModal({
                           </p>
                         </div>
                       )}
-                    </div>
-                  </motion.div>
+                    </motion.div>
+                  </div>
                 </div>
 
                 {/* Already Owned Notice */}
