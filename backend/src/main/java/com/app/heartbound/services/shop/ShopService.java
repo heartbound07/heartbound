@@ -1001,16 +1001,16 @@ public class ShopService {
         
         switch (rarity) {
             case LEGENDARY:
-                return 2500;
+                return 500;
             case EPIC:
-                return 1250;
-            case RARE:
-                return 650;
-            case UNCOMMON:
                 return 300;
+            case RARE:
+                return 150;
+            case UNCOMMON:
+                return 100;
             case COMMON:
             default:
-                return 100;
+                return 50;
         }
     }
     
@@ -1026,13 +1026,13 @@ public class ShopService {
         
         switch (rarity) {
             case LEGENDARY:
-                return 500;
+                return 350;
             case EPIC:
                 return 250;
             case RARE:
                 return 100;
             case UNCOMMON:
-                return 50;
+                return 25;
             case COMMON:
             default:
                 return 15;
