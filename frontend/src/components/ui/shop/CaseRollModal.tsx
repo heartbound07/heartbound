@@ -489,7 +489,7 @@ export function CaseRollModal({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="relative flex items-center p-6 border-b border-slate-700/50">
+          <div className={`relative flex p-6 border-b border-slate-700/50 ${animationState === 'reward' ? 'items-start' : 'items-center'}`}>
             {/* Left section - Icon (when needed) */}
             <div className="flex items-center">
               {animationState !== 'reward' && animationState !== 'idle' && (
@@ -499,15 +499,32 @@ export function CaseRollModal({
               )}
             </div>
             
-            {/* Center section - Title */}
-            <div className="absolute left-1/2 transform -translate-x-1/2">
-              <h2 className="text-xl font-bold text-white whitespace-nowrap">
-                {animationState === 'idle' && `Open ${caseName}`}
-                {animationState === 'loading' && 'Preparing Case...'}
-                {(animationState === 'rolling' || animationState === 'decelerating' || animationState === 'revealing') && ' '}
-                {/* REMOVED: 'Congratulations!' text for reward state */}
-                {animationState === 'reward' && ' '}
-              </h2>
+            {/* Center section - Title or Reward Info */}
+            <div className={`${animationState === 'reward' ? 'flex-1 flex justify-center py-2' : 'absolute left-1/2 transform -translate-x-1/2'}`}>
+              {animationState === 'reward' && rollResult ? (
+                <div className="text-center">
+                  <div className="flex items-center justify-center space-x-2 mb-2">
+                    <h2 className="text-xl font-bold text-white">
+                      {rollResult.wonItem.name}
+                    </h2>
+                    <span 
+                      className="px-2 py-1 rounded-full text-xs font-semibold"
+                      style={getRarityBadgeStyle(rollResult.wonItem.rarity)}
+                    >
+                      {getRarityLabel(rollResult.wonItem.rarity)}
+                    </span>
+                  </div>
+                  <p className="text-slate-300 text-sm">
+                    {formatDisplayText(rollResult.wonItem.category)}
+                  </p>
+                </div>
+              ) : (
+                <h2 className="text-xl font-bold text-white whitespace-nowrap">
+                  {animationState === 'idle' && `Open ${caseName}`}
+                  {animationState === 'loading' && 'Preparing Case...'}
+                  {(animationState === 'rolling' || animationState === 'decelerating' || animationState === 'revealing') && ' '}
+                </h2>
+              )}
             </div>
             
             {/* Right section - Action buttons */}
@@ -816,35 +833,11 @@ export function CaseRollModal({
               >
                 {/* Reward Display */}
                 <div className="text-center">
-                  {/* Restructured Header: Item name, rarity badge, and type - MOVED TO TOP */}
+                  {/* Preview Component */}
                   <motion.div 
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.2, duration: 0.6, ease: "easeOut" }}
-                    className="text-center mb-6"
-                  >
-                    <div className="flex items-center justify-center space-x-2 mb-2">
-                      <h4 className="text-2xl font-bold text-white">
-                        {rollResult.wonItem.name}
-                      </h4>
-                      <span 
-                        className="px-3 py-1 rounded-full text-sm font-semibold"
-                        style={getRarityBadgeStyle(rollResult.wonItem.rarity)}
-                      >
-                        {getRarityLabel(rollResult.wonItem.rarity)}
-                      </span>
-                    </div>
-                    
-                    <p className="text-slate-300 text-base">
-                      {formatDisplayText(rollResult.wonItem.category)}
-                    </p>
-                  </motion.div>
-                  
-                  {/* REMOVED: Container and background glow - now just the preview component */}
-                  <motion.div 
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.4, duration: 0.6, ease: "easeOut" }}
                     className="flex justify-center"
                   >
                     <div className="max-w-md mx-auto">
@@ -900,7 +893,7 @@ export function CaseRollModal({
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1 }}
+                    transition={{ delay: 0.6 }}
                     className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg"
                   >
                     <p className="text-blue-400 text-sm text-center">
@@ -913,7 +906,7 @@ export function CaseRollModal({
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.2 }}
+                  transition={{ delay: 0.8 }}
                   className="flex justify-center space-x-3"
                 >
                   <button
