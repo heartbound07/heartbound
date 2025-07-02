@@ -670,40 +670,37 @@ export function CaseRollModal({
                 {/* Reward Display */}
                 <div className="text-center">
                   {/* Restructured Header: Item name, rarity badge, and type - MOVED TO TOP */}
-                  <div className="text-center mb-6">
+                  <motion.div 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2, duration: 0.6, ease: "easeOut" }}
+                    className="text-center mb-6"
+                  >
                     <div className="flex items-center justify-center space-x-2 mb-2">
-                      <motion.h4 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.6 }}
-                        className="text-2xl font-bold text-white"
-                      >
+                      <h4 className="text-2xl font-bold text-white">
                         {rollResult.wonItem.name}
-                      </motion.h4>
-                      <motion.span 
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.8, type: "spring" }}
+                      </h4>
+                      <span 
                         className="px-3 py-1 rounded-full text-sm font-semibold"
                         style={getRarityBadgeStyle(rollResult.wonItem.rarity)}
                       >
                         {getRarityLabel(rollResult.wonItem.rarity)}
-                      </motion.span>
+                      </span>
                     </div>
                     
                     <p className="text-slate-300 text-base">
                       {formatDisplayText(rollResult.wonItem.category)}
                     </p>
-                  </div>
+                  </motion.div>
                   
                   {/* REMOVED: Container and background glow - now just the preview component */}
-                  <div className="flex justify-center">
-                    <motion.div 
-                      initial={{ scale: 0.5, rotateY: -180 }}
-                      animate={{ scale: 1, rotateY: 0 }}
-                      transition={{ delay: 0.4, type: "spring", damping: 15 }}
-                      className="max-w-md mx-auto"
-                    >
+                  <motion.div 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.4, duration: 0.6, ease: "easeOut" }}
+                    className="flex justify-center"
+                  >
+                    <div className="max-w-md mx-auto">
                       {rollResult.wonItem.category === 'USER_COLOR' ? (
                         <NameplatePreview
                           username={user?.username || "Username"}
@@ -747,8 +744,8 @@ export function CaseRollModal({
                           </p>
                         </div>
                       )}
-                    </motion.div>
-                  </div>
+                    </div>
+                  </motion.div>
                 </div>
 
                 {/* Already Owned Notice */}
