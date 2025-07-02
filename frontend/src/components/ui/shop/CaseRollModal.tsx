@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from 'framer-motion';
-import { FaTimes, FaDice, FaGift, FaForward } from 'react-icons/fa';
+import { FaTimes, FaGift, FaForward } from 'react-icons/fa';
 import httpClient from '@/lib/api/httpClient';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 import NameplatePreview from '@/components/NameplatePreview';
