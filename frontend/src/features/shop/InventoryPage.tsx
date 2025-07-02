@@ -768,15 +768,11 @@ export function InventoryPage() {
                                   <button
                                     onClick={() => openCaseRoll(item.id, item.name)}
                                     disabled={actionInProgress !== null || !item.quantity || item.quantity < 1}
-                                    className={`item-action-button px-3 py-1 bg-primary hover:bg-primary/90 text-white rounded text-xs flex items-center transition-colors ${
+                                    className={`item-action-button equip-button h-8 flex items-center ${
                                       actionInProgress !== null || !item.quantity || item.quantity < 1 ? 'opacity-50 cursor-not-allowed' : ''
                                     }`}
                                   >
-                                    <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                                    </svg>
-                                    {(!item.quantity || item.quantity < 1) ? 'No Cases' : 
-                                     (item.quantity > 1 ? `Open Case (${item.quantity} left)` : 'Open Case')}
+                                    {(!item.quantity || item.quantity < 1) ? 'No Cases' : 'Open Case'}
                                   </button>
                                 ) : item.category === 'BADGE' ? (
                                   item.equipped ? (
