@@ -205,7 +205,6 @@ export function CaseRollModal({
     
     // Define rolling constraints
     const rollingEndPosition = 0.7;
-    const minSafeDistance = 0.05;
     
     // Find which item corresponds to the rollValue based on cumulative drop rates
     let cumulative = 0;
@@ -286,27 +285,53 @@ export function CaseRollModal({
     const targetPosition = targetIndex * itemWidth - centerPosition;
     const calculatedProgress = targetPosition / totalWidth;
     
-    // Only apply minimum constraint if calculated position would be too close to rolling end
-    const minProgress = rollingEndPosition + minSafeDistance; // 0.75
+    // Calculate minimum safe position based on actual container size and rolling end
+    // Convert rolling end position to actual pixel position for this container
+    const rollingEndPixels = rollingEndPosition * totalWidth;
+    const minSafePixels = rollingEndPixels + (containerWidth * 0.15); // 15% of container width buffer
+    const minProgressForContainer = minSafePixels / totalWidth;
+    
     const maxProgress = 0.95; // Don't go too far to avoid running out of items
     
-    // Only enforce minimum if our calculation is too close to rolling end
-    const finalProgress = calculatedProgress < minProgress 
-      ? minProgress 
-      : Math.min(calculatedProgress, maxProgress);
+    // Only enforce minimum if our calculation is PAST the rolling end but too close to it
+    // If calculated position is BEFORE rolling end, use it as-is (no constraint needed)
+    let finalProgress;
+    if (calculatedProgress <= rollingEndPosition) {
+      // Item lands before/at rolling end - use exact calculation
+      finalProgress = Math.min(calculatedProgress, maxProgress);
+    } else if (calculatedProgress < minProgressForContainer) {
+      // Item lands after rolling end but too close - apply constraint
+      finalProgress = minProgressForContainer;
+    } else {
+      // Item lands after rolling end with sufficient buffer - use calculation
+      finalProgress = Math.min(calculatedProgress, maxProgress);
+    }
+    
+    // Determine which constraint case was applied
+    let constraintCase;
+    if (calculatedProgress <= rollingEndPosition) {
+      constraintCase = 'Before rolling end - no constraint';
+    } else if (calculatedProgress < minProgressForContainer) {
+      constraintCase = 'After rolling end but too close - constraint applied';
+    } else {
+      constraintCase = 'After rolling end with buffer - no constraint';
+    }
     
     console.log('🎲 Animation sequence calculated:', {
       rollValue,
       targetIndex,
-      calculatedProgress,
-      finalProgress,
-      constraintApplied: calculatedProgress < minProgress,
+      calculatedProgress: calculatedProgress.toFixed(4),
+      finalProgress: finalProgress.toFixed(4),
+      constraintCase,
       wonItem: wonItemFromRoll.name,
       itemWidth,
       totalWidth,
       targetPosition: targetIndex * itemWidth - centerPosition,
       containerWidth,
-      centerPosition
+      centerPosition,
+      rollingEndPosition,
+      minProgressForContainer: minProgressForContainer.toFixed(4),
+      screenSize: containerWidth > 600 ? 'Desktop' : 'Mobile'
     });
     
     // Verify which item will be at center when animation stops
@@ -346,24 +371,53 @@ export function CaseRollModal({
       setAnimationState('rolling');
       setCanSkip(true);
       
-      // Use Framer Motion's animate function for smooth rolling
-      const rollingAnimation = animate(scrollProgress, 0.7, {
-        duration: 6,
+      // Track timing for adaptive rolling duration
+      const startTime = Date.now();
+      
+      // Start API call in parallel to get the target position
+      const apiPromise = httpClient.post(`/shop/cases/${caseId}/open`);
+      
+      // Start a longer rolling animation that we can interrupt
+      const rollingAnimation = animate(scrollProgress, 0.9, {
+        duration: 8, // Longer duration so we can stop it early
         ease: "linear"
       });
       
-      // Start API call in parallel
-      const apiPromise = httpClient.post(`/shop/cases/${caseId}/open`);
-      
-      // Wait for rolling animation to complete
-      await rollingAnimation;
-      
-      // Get API response
+      // Wait for API response
       const apiResponse = await apiPromise;
+      
+      // Calculate where we should stop rolling based on the target
+      const targetProgress = caseContents 
+        ? generateAnimationSequenceFromRoll(apiResponse.data.rollValue, caseContents)
+        : generateAnimationSequence(apiResponse.data.wonItem);
+      
+      // Determine optimal rolling end point
+      // If target is early (< 0.7), stop just before it; if target is late, stop at reasonable point  
+      const safeBuffer = 0.05;
+      const rollingEndPoint = targetProgress < 0.7 
+        ? Math.max(targetProgress - safeBuffer, 0.3) // Don't go below 30%
+        : Math.min(0.8, targetProgress - safeBuffer); // Standard case
+      
+      console.log('🎯 Adaptive rolling:', {
+        targetProgress: targetProgress.toFixed(4),
+        rollingEndPoint: rollingEndPoint.toFixed(4),
+        direction: targetProgress > 0.7 ? 'Forward' : 'Backward-Safe',
+        elapsedTime: ((Date.now() - startTime) / 1000).toFixed(1) + 's'
+      });
+      
+      // Stop rolling animation early and animate to the calculated end point
+      rollingAnimation.stop();
+      const adjustedRollingAnimation = animate(scrollProgress, rollingEndPoint, {
+        duration: Math.max(1, 6 - (Date.now() - startTime) / 1000), // Adjust remaining time
+        ease: "linear"
+      });
+      
+      // Wait for adjusted rolling to complete
+      await adjustedRollingAnimation;
       setRollResult(apiResponse.data);
       
-      // Start deceleration using the rollValue from the API response
-      await handleDeceleration(apiResponse.data);
+      // Start deceleration using the rollValue from the API response  
+      await handleDeceleration(apiResponse.data, targetProgress);
       
     } catch (error: any) {
       console.error('Error opening case:', error);
@@ -372,7 +426,7 @@ export function CaseRollModal({
     }
   };
 
-  const handleDeceleration = async (rollResult: RollResult) => {
+  const handleDeceleration = async (rollResult: RollResult, targetProgress?: number) => {
     setAnimationState('decelerating');
     setCanSkip(false);
     audioHooks.onDecelerate?.();
@@ -386,10 +440,10 @@ export function CaseRollModal({
       }
     });
     
-    // Calculate final scroll progress using the rollValue from backend
-    const finalProgress = caseContents 
+    // Use pre-calculated target progress or calculate it
+    const finalProgress = targetProgress ?? (caseContents 
       ? generateAnimationSequenceFromRoll(rollResult.rollValue, caseContents)
-      : generateAnimationSequence(rollResult.wonItem); // Fallback to old method if no case contents
+      : generateAnimationSequence(rollResult.wonItem)); // Fallback to old method if no case contents
     
     console.log('🎲 Final scroll progress:', finalProgress);
     
