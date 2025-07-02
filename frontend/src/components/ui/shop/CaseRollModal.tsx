@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from 'framer-motion';
 import { FaTimes, FaDice, FaGift, FaForward, FaVolumeUp } from 'react-icons/fa';
 import httpClient from '@/lib/api/httpClient';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
@@ -87,28 +87,33 @@ export function CaseRollModal({
   const [animationItems, setAnimationItems] = useState<CaseItemDTO[]>([]);
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const scrollAnimation = useAnimation();
+  
+  // Use proper motion values following Framer Motion best practices
+  const scrollProgress = useMotionValue(0);
+  const smoothScrollProgress = useSpring(scrollProgress, {
+    damping: 25,
+    stiffness: 200,
+    mass: 0.5
+  });
+  
+  // Transform the smooth progress to actual pixel movement
+  const x = useTransform(smoothScrollProgress, [0, 1], [0, -2880]);
   
   // Audio hooks for future implementation
   const audioHooks: AudioHooks = {
     onInitiate: () => {
-      // Hook for case opening initiation sound
       console.log('🎵 Audio Hook: Initiate');
     },
     onRollingTick: () => {
-      // Hook for rolling tick sound
       console.log('🎵 Audio Hook: Rolling Tick');
     },
     onDecelerate: () => {
-      // Hook for deceleration sound
       console.log('🎵 Audio Hook: Decelerate');
     },
     onReveal: () => {
-      // Hook for item reveal sound
       console.log('🎵 Audio Hook: Reveal');
     },
     onRarityReveal: (rarity: string) => {
-      // Hook for rarity-specific reveal sound
       console.log(`🎵 Audio Hook: Rarity Reveal - ${rarity}`);
     }
   };
@@ -139,33 +144,38 @@ export function CaseRollModal({
   };
 
   const generateAnimationSequence = useCallback((winningItem: RollResult['wonItem']) => {
-    if (!animationItems.length) return 0;
+    if (!animationItems.length) return 0.85;
     
-    // Calculate the position where the winning item should stop (center of view)
+    // Calculate the final scroll progress to center the winning item
+    const itemWidth = 120;
     const containerWidth = scrollContainerRef.current?.offsetWidth || 800;
-    const itemWidth = 120; // Width of each item including margin (96px + 16px margin)
     const centerPosition = containerWidth / 2 - (itemWidth / 2);
     
-    // Find winning item in the animation items array (look for it in the later iterations for dramatic effect)
+    // Find winning item in the animation items array
     const uniqueItemsCount = animationItems.length / 8;
     const winningIndex = animationItems.findIndex(item => item.containedItem.id === winningItem.id);
     
-    // If found, use an instance from the later part of the array for better visual effect
     let targetIndex;
     if (winningIndex !== -1) {
-      // Find the item in the 5th or 6th repetition for dramatic timing
-      const repetitionOffset = Math.floor(uniqueItemsCount * 4.5); // Start from 5th repetition
+      // Ensure we target an item in the later repetitions to continue leftward motion
+      const repetitionOffset = Math.floor(uniqueItemsCount * 5.2); // Increased from 4.5 to 5.2
       const indexInRepetition = winningIndex % uniqueItemsCount;
       targetIndex = repetitionOffset + indexInRepetition;
     } else {
-      // Fallback to a position in the later part
-      targetIndex = Math.floor(animationItems.length * 0.6);
+      // Fallback to a position further along to maintain leftward direction
+      targetIndex = Math.floor(animationItems.length * 0.75); // Increased from 0.6 to 0.75
     }
     
-    // Calculate final scroll position to center the winning item
-    const finalScrollX = -(targetIndex * itemWidth - centerPosition);
+    // Convert to scroll progress (0 to 1)
+    const totalWidth = animationItems.length * itemWidth;
+    const targetPosition = targetIndex * itemWidth - centerPosition;
+    const calculatedProgress = targetPosition / totalWidth;
     
-    return finalScrollX;
+    // Ensure finalProgress is always greater than 0.7 to maintain leftward direction
+    const minProgress = 0.75; // Must be greater than rolling end position (0.7)
+    const maxProgress = 0.95; // Don't go too far to avoid running out of items
+    
+    return Math.min(Math.max(calculatedProgress, minProgress), maxProgress);
   }, [animationItems]);
 
   const handleOpenCase = async () => {
@@ -176,40 +186,33 @@ export function CaseRollModal({
     audioHooks.onInitiate?.();
 
     try {
-      // Reset animation to starting position
-      scrollAnimation.set({ x: 0 });
+      // Reset scroll progress
+      scrollProgress.set(0);
       
       // Start loading animation
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      // Start rolling animation immediately
+      // Start rolling animation
       setAnimationState('rolling');
       setCanSkip(true);
       
-      // Small delay to ensure DOM is ready, then start animation
-      await new Promise(resolve => setTimeout(resolve, 100));
-      startRollingAnimation();
+      // Use Framer Motion's animate function for smooth rolling
+      const rollingAnimation = animate(scrollProgress, 0.7, {
+        duration: 6,
+        ease: "linear"
+      });
       
-      const startTime = Date.now();
-      const minRollingTime = 8000; // Minimum 8 seconds of rolling for suspense
-      
-      // Start API call in parallel with animation
+      // Start API call in parallel
       const apiPromise = httpClient.post(`/shop/cases/${caseId}/open`);
       
-      // Get the API response
+      // Wait for rolling animation to complete
+      await rollingAnimation;
+      
+      // Get API response
       const apiResponse = await apiPromise;
       setRollResult(apiResponse.data);
       
-      // Calculate how long we've been rolling
-      const elapsedTime = Date.now() - startTime;
-      const remainingTime = Math.max(0, minRollingTime - elapsedTime);
-      
-      // Wait for minimum rolling time if needed
-      if (remainingTime > 0) {
-        await new Promise(resolve => setTimeout(resolve, remainingTime));
-      }
-      
-      // Now start deceleration with the correct item
+      // Start deceleration
       await handleDeceleration(apiResponse.data.wonItem);
       
     } catch (error: any) {
@@ -219,79 +222,38 @@ export function CaseRollModal({
     }
   };
 
-  const startRollingAnimation = () => {
-    console.log('🎰 Starting rolling animation...', {
-      animationItemsCount: animationItems.length,
-      animationState
-    });
-    
-    // Calculate the total width needed for smooth infinite scroll
-    const itemWidth = 120; // Width including margin (24 + 16 margin)
-    const totalItems = animationItems.length;
-    const oneLoopWidth = totalItems > 0 ? (totalItems / 8) * itemWidth : 800; // One set of unique items
-    
-    console.log('🎰 Animation parameters:', {
-      itemWidth,
-      totalItems,
-      oneLoopWidth,
-      scrollDistance: -oneLoopWidth * 6
-    });
-    
-    // Start continuous scrolling animation with infinite repeat
-    scrollAnimation.start({
-      x: -oneLoopWidth * 6, // Scroll through more loops for extended effect
-      transition: {
-        duration: 8, // 8 seconds per loop for smoother, longer rolling
-        ease: "linear",
-        repeat: Infinity
-      }
-    });
-    
-    console.log('🎰 Rolling animation started!');
-  };
-
   const handleDeceleration = async (winningItem: RollResult['wonItem']) => {
     setAnimationState('decelerating');
     setCanSkip(false);
     audioHooks.onDecelerate?.();
     
-    // Debug logging
-    console.log('🎲 Winning item from API:', {
+    console.log('🎲 Winning item:', {
       id: winningItem.id,
       name: winningItem.name,
-      rarity: winningItem.rarity,
-      category: winningItem.category
+      rarity: winningItem.rarity
     });
     
-    console.log('🎲 Available animation items:', animationItems.map(item => ({
-      id: item.containedItem.id,
-      name: item.containedItem.name,
-      rarity: item.containedItem.rarity,
-      category: item.containedItem.category
-    })));
+    // Calculate final scroll progress
+    const finalProgress = generateAnimationSequence(winningItem);
     
-    // Stop the infinite scroll and calculate final position
-    scrollAnimation.stop();
-    const finalPosition = generateAnimationSequence(winningItem);
+    console.log('🎲 Final scroll progress:', finalProgress);
     
-    console.log('🎲 Final scroll position:', finalPosition);
-    
-    // Decelerate to the winning item position with perfect timing
-    await scrollAnimation.start({
-      x: finalPosition,
-      transition: {
-        duration: 3.0, // 3 seconds for dramatic deceleration
-        ease: [0.25, 0.46, 0.45, 0.94] // Smooth deceleration curve
-      }
+    // Use Framer Motion's animate function for smooth deceleration
+    const decelerationAnimation = animate(scrollProgress, finalProgress, {
+      duration: 3,
+      ease: [0.25, 0.46, 0.45, 0.94] // Smooth deceleration curve
     });
     
-    // Reveal the winning item
+    // Wait for deceleration to complete
+    await decelerationAnimation;
+    
+    // Animation complete, reveal the item
     setAnimationState('revealing');
     audioHooks.onReveal?.();
     audioHooks.onRarityReveal?.(winningItem.rarity);
     
     // Wait for dramatic pause before showing final result
-    await new Promise(resolve => setTimeout(resolve, 1200)); // 1.2 seconds for perfect timing
+    await new Promise(resolve => setTimeout(resolve, 1200));
     
     setAnimationState('reward');
   };
@@ -299,7 +261,6 @@ export function CaseRollModal({
   const handleSkipAnimation = async () => {
     if (!canSkip || !rollResult) return;
     
-    scrollAnimation.stop();
     setAnimationState('reward');
     audioHooks.onRarityReveal?.(rollResult.wonItem.rarity);
   };
@@ -312,8 +273,7 @@ export function CaseRollModal({
   };
 
   const handleClose = () => {
-    scrollAnimation.stop();
-    scrollAnimation.set({ x: 0 }); // Reset position
+    scrollProgress.set(0);
     setAnimationState('idle');
     setRollResult(null);
     setError(null);
@@ -567,10 +527,9 @@ export function CaseRollModal({
                     className="relative h-32 overflow-hidden"
                   >
                     <motion.div
-                      animate={scrollAnimation}
                       className="flex items-center h-full py-4"
                       style={{ 
-                        x: 0,
+                        x,
                         width: 'max-content',
                         flexWrap: 'nowrap'
                       }}
