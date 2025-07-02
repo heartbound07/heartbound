@@ -2,6 +2,7 @@ package com.app.heartbound.services.discord;
 
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
+import com.app.heartbound.services.SecureRandomService;
 import com.app.heartbound.config.CacheConfig;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -13,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.awt.Color;
-import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -21,19 +21,20 @@ import java.util.concurrent.TimeUnit;
 public class CoinflipCommandListener extends ListenerAdapter {
     
     private static final Logger logger = LoggerFactory.getLogger(CoinflipCommandListener.class);
-    private static final Random RANDOM = new Random();
     private static final Color EMBED_COLOR = new Color(88, 101, 242); // Discord Blurple
     private static final Color SUCCESS_COLOR = new Color(40, 167, 69); // Bootstrap success green
     private static final Color FAILURE_COLOR = new Color(220, 53, 69); // Bootstrap danger red
     
     private final UserService userService;
     private final CacheConfig cacheConfig;
+    private final SecureRandomService secureRandomService;
     
     @Autowired
-    public CoinflipCommandListener(UserService userService, CacheConfig cacheConfig) {
+    public CoinflipCommandListener(UserService userService, CacheConfig cacheConfig, SecureRandomService secureRandomService) {
         this.userService = userService;
         this.cacheConfig = cacheConfig;
-        logger.info("CoinflipCommandListener initialized");
+        this.secureRandomService = secureRandomService;
+        logger.info("CoinflipCommandListener initialized with secure random");
     }
     
     @Override
@@ -111,7 +112,7 @@ public class CoinflipCommandListener extends ListenerAdapter {
             CompletableFuture.delayedExecutor(3500, TimeUnit.MILLISECONDS).execute(() -> {
                 try {
                     // Determine coin flip result with 45% user win rate / 55% user lose rate
-                    double outcomeRoll = RANDOM.nextDouble(); // 0.0 to 1.0
+                    double outcomeRoll = secureRandomService.getSecureDouble(); // 0.0 to 1.0 (cryptographically secure)
                     boolean userShouldWin = outcomeRoll <= 0.45; // 45% chance for user to win
                     
                     // Set coin result based on desired outcome

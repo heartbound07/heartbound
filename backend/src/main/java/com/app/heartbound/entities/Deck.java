@@ -2,6 +2,7 @@ package com.app.heartbound.entities;
 
 import com.app.heartbound.enums.CardRank;
 import com.app.heartbound.enums.Suit;
+import com.app.heartbound.services.SecureRandomService;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,12 +13,15 @@ import java.util.List;
  */
 public class Deck {
     private final List<Card> cards;
+    private final SecureRandomService secureRandomService;
 
     /**
-     * Creates a new standard 52-card deck.
+     * Creates a new standard 52-card deck with secure shuffling.
+     * @param secureRandomService The secure random service for shuffling
      */
-    public Deck() {
+    public Deck(SecureRandomService secureRandomService) {
         this.cards = new ArrayList<>();
+        this.secureRandomService = secureRandomService;
         initializeDeck();
     }
 
@@ -33,10 +37,17 @@ public class Deck {
     }
 
     /**
-     * Shuffle the deck randomly.
+     * Shuffle the deck using cryptographically secure randomness.
+     * Uses Fisher-Yates shuffle algorithm with SecureRandom.
      */
     public void shuffle() {
-        Collections.shuffle(cards);
+        // Fisher-Yates shuffle with secure random
+        for (int i = cards.size() - 1; i > 0; i--) {
+            int j = secureRandomService.getSecureInt(i + 1);
+            Card temp = cards.get(i);
+            cards.set(i, cards.get(j));
+            cards.set(j, temp);
+        }
     }
 
     /**

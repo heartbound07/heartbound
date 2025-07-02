@@ -2,6 +2,7 @@ package com.app.heartbound.services.discord;
 
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
+import com.app.heartbound.services.SecureRandomService;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
@@ -13,14 +14,12 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class FishCommandListener extends ListenerAdapter {
     
     private static final Logger logger = LoggerFactory.getLogger(FishCommandListener.class);
-    private static final Random RANDOM = new Random();
     private static final int COOLDOWN_SECONDS = 5;
     private static final double SUCCESS_CHANCE = 0.8; // 80% total success rate
     private static final double RARE_FISH_CHANCE = 0.05; // 5% chance for rare fish
@@ -55,11 +54,13 @@ public class FishCommandListener extends ListenerAdapter {
     private final ConcurrentHashMap<String, Instant> userCooldowns = new ConcurrentHashMap<>();
     
     private final UserService userService;
+    private final SecureRandomService secureRandomService;
     
     @Autowired
-    public FishCommandListener(UserService userService) {
+    public FishCommandListener(UserService userService, SecureRandomService secureRandomService) {
         this.userService = userService;
-        logger.info("FishCommandListener initialized");
+        this.secureRandomService = secureRandomService;
+        logger.info("FishCommandListener initialized with secure random");
     }
     
     @Override
@@ -112,15 +113,15 @@ public class FishCommandListener extends ListenerAdapter {
             }
             
             // Determine success or failure
-            double roll = RANDOM.nextDouble();
+            double roll = secureRandomService.getSecureDouble();
             
             StringBuilder message = new StringBuilder("🎣 | ");
             int creditChange;
             
             if (roll <= RARE_FISH_CHANCE) {
                 // 5% chance: rare fish
-                String fishEmoji = RARE_CATCHES.get(RANDOM.nextInt(RARE_CATCHES.size()));
-                creditChange = 50 + RANDOM.nextInt(21); // 50-70 range for rare catches
+                String fishEmoji = RARE_CATCHES.get(secureRandomService.getSecureInt(RARE_CATCHES.size()));
+                creditChange = 50 + secureRandomService.getSecureInt(21); // 50-70 range for rare catches
                 
                 message.append("**WOW!** You caught a rare ").append(fishEmoji);
                 message.append("! +").append(creditChange).append(" 🪙");
@@ -132,8 +133,8 @@ public class FishCommandListener extends ListenerAdapter {
                 
             } else if (roll <= SUCCESS_CHANCE) {
                 // 75% chance: regular fish (80% - 5% = 75%)
-                String fishEmoji = REGULAR_FISH.get(RANDOM.nextInt(REGULAR_FISH.size()));
-                creditChange = RANDOM.nextInt(20) + 1;
+                String fishEmoji = REGULAR_FISH.get(secureRandomService.getSecureInt(REGULAR_FISH.size()));
+                creditChange = secureRandomService.getSecureInt(20) + 1;
                 
                 message.append("You caught ").append(fishEmoji);
                 message.append("! +").append(creditChange).append(" 🪙");
@@ -145,7 +146,7 @@ public class FishCommandListener extends ListenerAdapter {
                 
             } else {
                 // 20% chance: failure - lose 1-50 credits
-                creditChange = RANDOM.nextInt(50) + 1;
+                creditChange = secureRandomService.getSecureInt(50) + 1;
                 
                 // Ensure credits don't go below 0
                 if (creditChange > currentCredits) {

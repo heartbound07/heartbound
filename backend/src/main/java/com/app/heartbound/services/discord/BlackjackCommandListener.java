@@ -5,6 +5,7 @@ import com.app.heartbound.entities.BlackjackHand;
 import com.app.heartbound.entities.Card;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
+import com.app.heartbound.services.SecureRandomService;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -32,11 +33,13 @@ public class BlackjackCommandListener extends ListenerAdapter {
     private final ConcurrentHashMap<String, BlackjackGame> activeGames = new ConcurrentHashMap<>();
     
     private final UserService userService;
+    private final SecureRandomService secureRandomService;
     
     @Autowired
-    public BlackjackCommandListener(UserService userService) {
+    public BlackjackCommandListener(UserService userService, SecureRandomService secureRandomService) {
         this.userService = userService;
-        logger.info("BlackjackCommandListener initialized");
+        this.secureRandomService = secureRandomService;
+        logger.info("BlackjackCommandListener initialized with secure random");
     }
     
     @Override
@@ -116,8 +119,8 @@ public class BlackjackCommandListener extends ListenerAdapter {
             user.setCredits(currentCredits - betAmount);
             userService.updateUser(user);
             
-            // Create new game
-            BlackjackGame game = new BlackjackGame(userId, betAmount);
+            // Create new game with secure random
+            BlackjackGame game = new BlackjackGame(userId, betAmount, secureRandomService);
             activeGames.put(userId, game);
             
             // Check for immediate blackjack

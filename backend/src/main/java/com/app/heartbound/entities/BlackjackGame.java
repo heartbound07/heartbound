@@ -1,5 +1,7 @@
 package com.app.heartbound.entities;
 
+import com.app.heartbound.services.SecureRandomService;
+
 /**
  * Represents a complete Blackjack game state for a single player.
  */
@@ -12,16 +14,16 @@ public class BlackjackGame {
     private boolean gameEnded;
     private boolean dealerTurn;
 
-    public BlackjackGame(String userId, int betAmount) {
+    public BlackjackGame(String userId, int betAmount, SecureRandomService secureRandomService) {
         this.userId = userId;
         this.betAmount = betAmount;
-        this.deck = new Deck();
+        this.deck = new Deck(secureRandomService);
         this.playerHand = new BlackjackHand();
         this.dealerHand = new BlackjackHand();
         this.gameEnded = false;
         this.dealerTurn = false;
         
-        // Initialize the game
+        // Initialize the game with secure shuffling
         deck.shuffle();
         dealInitialCards();
     }
