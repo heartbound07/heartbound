@@ -3,6 +3,14 @@ package com.app.heartbound.dto.shop;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.enums.ItemRarity;
+import com.app.heartbound.validation.NoScript;
+import com.app.heartbound.validation.SanitizedHtml;
+import com.app.heartbound.services.HtmlSanitizationService;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,8 +25,18 @@ import java.time.LocalDateTime;
 @Builder
 public class ShopDTO {
     private UUID id;
+    
+    @NotBlank(message = "Item name is required")
+    @NoScript(allowPunctuation = true)
+    @Size(min = 3, max = 100, message = "Item name must be between 3 and 100 characters")
     private String name;
+    
+    @SanitizedHtml(policy = HtmlSanitizationService.SanitizationPolicy.BASIC, maxLength = 500)
+    @Size(max = 500, message = "Description cannot exceed 500 characters")
     private String description;
+    
+    @NotNull(message = "Price is required")
+    @Min(value = 0, message = "Price cannot be negative")
     private Integer price;
     private ShopCategory category;
     private String imageUrl;

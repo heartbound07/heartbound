@@ -25,6 +25,7 @@ import com.app.heartbound.repositories.shop.ShopRepository;
 import com.app.heartbound.repositories.shop.CaseItemRepository;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.discord.DiscordService;
+import com.app.heartbound.services.HtmlSanitizationService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,7 @@ public class ShopService {
     private final UserService userService;
     private final DiscordService discordService;
     private final CaseItemRepository caseItemRepository;
+    private final HtmlSanitizationService htmlSanitizationService;
     private static final Logger logger = LoggerFactory.getLogger(ShopService.class);
     
     @Autowired
@@ -54,13 +56,15 @@ public class ShopService {
         UserRepository userRepository,
         UserService userService,
         DiscordService discordService,
-        CaseItemRepository caseItemRepository
+        CaseItemRepository caseItemRepository,
+        HtmlSanitizationService htmlSanitizationService
     ) {
         this.shopRepository = shopRepository;
         this.userRepository = userRepository;
         this.userService = userService;
         this.discordService = discordService;
         this.caseItemRepository = caseItemRepository;
+        this.htmlSanitizationService = htmlSanitizationService;
     }
     
     /**
@@ -454,21 +458,48 @@ public class ShopService {
     public Shop createShopItem(ShopDTO shopDTO) {
         logger.debug("Creating new shop item: {} with active status: {}", shopDTO.getName(), shopDTO.isActive());
         
+        // Sanitize input data before creating entity
+        String sanitizedName = htmlSanitizationService.sanitizeStrict(shopDTO.getName());
+        String sanitizedDescription = htmlSanitizationService.sanitizeBasic(shopDTO.getDescription());
+        String sanitizedImageUrl = htmlSanitizationService.sanitizeUrl(shopDTO.getImageUrl());
+        String sanitizedThumbnailUrl = htmlSanitizationService.sanitizeUrl(shopDTO.getThumbnailUrl());
+        
+        // Validate required fields after sanitization
+        if (sanitizedName == null || sanitizedName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Item name cannot be empty after sanitization");
+        }
+        
+        if (sanitizedName.length() > 100) {
+            throw new IllegalArgumentException("Item name exceeds maximum length of 100 characters after sanitization");
+        }
+        
+        if (sanitizedDescription != null && sanitizedDescription.length() > 500) {
+            throw new IllegalArgumentException("Description exceeds maximum length of 500 characters after sanitization");
+        }
+        
+        // Log sanitization if content was modified
+        if (!sanitizedName.equals(shopDTO.getName())) {
+            logger.info("Shop item name sanitized during creation: '{}' -> '{}'", shopDTO.getName(), sanitizedName);
+        }
+        if (shopDTO.getDescription() != null && !sanitizedDescription.equals(shopDTO.getDescription())) {
+            logger.info("Shop item description sanitized during creation");
+        }
+        
         Shop newItem = Shop.builder()
-            .name(shopDTO.getName())
-            .description(shopDTO.getDescription())
+            .name(sanitizedName)
+            .description(sanitizedDescription)
             .price(shopDTO.getPrice())
             .category(shopDTO.getCategory())
-            .imageUrl(shopDTO.getImageUrl())
+            .imageUrl(sanitizedImageUrl)
             .requiredRole(shopDTO.getRequiredRole())
             .isActive(shopDTO.isActive())
             .expiresAt(shopDTO.getExpiresAt())
             .discordRoleId(shopDTO.getDiscordRoleId())
             .rarity(shopDTO.getRarity() != null ? shopDTO.getRarity() : ItemRarity.COMMON)
-            .thumbnailUrl(shopDTO.getThumbnailUrl())
+            .thumbnailUrl(sanitizedThumbnailUrl)
             .build();
         
-        logger.debug("Creating new shop item with thumbnailUrl: {}", shopDTO.getThumbnailUrl());
+        logger.debug("Creating new shop item with sanitized content");
         
         return shopRepository.save(newItem);
     }
@@ -486,21 +517,47 @@ public class ShopService {
         Shop existingItem = shopRepository.findById(itemId)
             .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
         
-        // Update fields
-        existingItem.setName(shopDTO.getName());
-        existingItem.setDescription(shopDTO.getDescription());
+        // Sanitize input data before updating entity
+        String sanitizedName = htmlSanitizationService.sanitizeStrict(shopDTO.getName());
+        String sanitizedDescription = htmlSanitizationService.sanitizeBasic(shopDTO.getDescription());
+        String sanitizedImageUrl = htmlSanitizationService.sanitizeUrl(shopDTO.getImageUrl());
+        String sanitizedThumbnailUrl = htmlSanitizationService.sanitizeUrl(shopDTO.getThumbnailUrl());
+        
+        // Validate required fields after sanitization
+        if (sanitizedName == null || sanitizedName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Item name cannot be empty after sanitization");
+        }
+        
+        if (sanitizedName.length() > 100) {
+            throw new IllegalArgumentException("Item name exceeds maximum length of 100 characters after sanitization");
+        }
+        
+        if (sanitizedDescription != null && sanitizedDescription.length() > 500) {
+            throw new IllegalArgumentException("Description exceeds maximum length of 500 characters after sanitization");
+        }
+        
+        // Log sanitization if content was modified
+        if (!sanitizedName.equals(shopDTO.getName())) {
+            logger.info("Shop item name sanitized during update: '{}' -> '{}'", shopDTO.getName(), sanitizedName);
+        }
+        if (shopDTO.getDescription() != null && !sanitizedDescription.equals(shopDTO.getDescription())) {
+            logger.info("Shop item description sanitized during update");
+        }
+        
+        // Update fields with sanitized content
+        existingItem.setName(sanitizedName);
+        existingItem.setDescription(sanitizedDescription);
         existingItem.setPrice(shopDTO.getPrice());
         existingItem.setCategory(shopDTO.getCategory());
-        existingItem.setImageUrl(shopDTO.getImageUrl());
+        existingItem.setImageUrl(sanitizedImageUrl);
         existingItem.setRequiredRole(shopDTO.getRequiredRole());
         existingItem.setExpiresAt(shopDTO.getExpiresAt());
         existingItem.setIsActive(shopDTO.isActive());
         existingItem.setDiscordRoleId(shopDTO.getDiscordRoleId());
         existingItem.setRarity(shopDTO.getRarity() != null ? shopDTO.getRarity() : ItemRarity.COMMON);
-        existingItem.setThumbnailUrl(shopDTO.getThumbnailUrl());
+        existingItem.setThumbnailUrl(sanitizedThumbnailUrl);
         
-        logger.debug("Updating shop item with ID: {}, thumbnailUrl: {}", 
-                     existingItem.getId(), shopDTO.getThumbnailUrl());
+        logger.debug("Updating shop item with ID: {} with sanitized content", existingItem.getId());
         
         return shopRepository.save(existingItem);
     }

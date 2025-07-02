@@ -25,6 +25,9 @@ public class SecurityConfig {
     
     @Autowired
     private RateLimitingFilter rateLimitingFilter;
+    
+    @Autowired
+    private SecurityHeadersFilter securityHeadersFilter;
 
     @Value("${cors.allowed-origins}")
     private String allowedOrigins;
@@ -81,6 +84,8 @@ public class SecurityConfig {
                 // All other requests require authentication
                 .anyRequest().authenticated()
             )
+            // Add security headers filter first
+            .addFilterBefore(securityHeadersFilter, UsernamePasswordAuthenticationFilter.class)
             // Add rate limiting filter before JWT authentication filter
             .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             // Add JWT authentication filter

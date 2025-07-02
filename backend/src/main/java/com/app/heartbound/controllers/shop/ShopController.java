@@ -29,6 +29,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.Arrays;
 import java.util.List;
@@ -169,7 +170,7 @@ public class ShopController {
      */
     @PostMapping("/admin/items")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ShopDTO> createShopItem(@RequestBody ShopDTO shopDTO) {
+    public ResponseEntity<ShopDTO> createShopItem(@Valid @RequestBody ShopDTO shopDTO) {
         logger.debug("Received create shop item request with active status: {}", shopDTO.isActive());
         Shop newItem = shopService.createShopItem(shopDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -183,7 +184,7 @@ public class ShopController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ShopDTO> updateShopItem(
         @PathVariable UUID itemId,
-        @RequestBody ShopDTO shopDTO
+        @Valid @RequestBody ShopDTO shopDTO
     ) {
         logger.debug("Received update shop item request for ID {} with active status: {}", itemId, shopDTO.isActive());
         Shop updatedItem = shopService.updateShopItem(itemId, shopDTO);
