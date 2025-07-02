@@ -14,6 +14,8 @@ import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rar
 import NameplatePreview from '@/components/NameplatePreview';
 import BadgePreview from '@/components/BadgePreview';
 import { CasePreviewModal } from '@/components/ui/shop/CasePreviewModal';
+import { SafeText } from '@/components/SafeHtmlRenderer';
+import { useSanitizedContent } from '@/hooks/useSanitizedContent';
 
 // Add category mapping for special cases
 const categoryDisplayMapping: Record<string, string> = {
@@ -68,6 +70,10 @@ const ShopItemCard = forwardRef(({
 }, ref) => {
   // Get rarity color for border
   const rarityColor = getRarityColor(item.rarity);
+  
+  // Sanitize content for safe display
+  const nameContent = useSanitizedContent(item.name, { maxLength: 100, stripHtml: true });
+  const descriptionContent = useSanitizedContent(item.description, { maxLength: 500, stripHtml: true });
   
   // Add state to track insufficient credits message
   const [showInsufficientCredits, setShowInsufficientCredits] = useState(false);
@@ -166,7 +172,7 @@ const ShopItemCard = forwardRef(({
               {item.imageUrl ? (
                 <img 
                   src={item.imageUrl} 
-                  alt={item.name}
+                  alt={nameContent.sanitized}
                   className="h-16 w-16 object-cover rounded-lg border-2"
                   style={{ borderColor: rarityColor }}
                 />
@@ -227,7 +233,7 @@ const ShopItemCard = forwardRef(({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onViewCaseContents(item.id, item.name);
+                  onViewCaseContents(item.id, nameContent.sanitized);
                 }}
                 className="px-2 py-1 bg-primary/90 hover:bg-primary text-white text-xs rounded-md transition-colors flex items-center"
               >
@@ -262,7 +268,7 @@ const ShopItemCard = forwardRef(({
           {item.imageUrl ? (
             <img 
               src={item.imageUrl} 
-              alt={item.name}
+              alt={nameContent.sanitized}
               className="h-full w-full object-cover" 
             />
           ) : (
@@ -293,7 +299,13 @@ const ShopItemCard = forwardRef(({
       <div className="shop-item-content">
         <div className="flex justify-between items-center mb-2">
           <div className="flex items-center">
-            <h3 className="font-medium text-white text-lg mr-2">{item.name}</h3>
+            <SafeText 
+              text={nameContent.sanitized}
+              tag="h3"
+              className="font-medium text-white text-lg mr-2"
+              maxLength={100}
+              showTooltip={true}
+            />
             <div 
               className="px-2 py-0.5 rounded text-xs font-semibold"
               style={getRarityBadgeStyle(item.rarity)}
@@ -307,8 +319,14 @@ const ShopItemCard = forwardRef(({
           </div>
         </div>
         
-        {item.description && (
-          <p className="text-slate-300 text-sm mb-3 line-clamp-2">{item.description}</p>
+        {descriptionContent.sanitized && (
+          <SafeText 
+            text={descriptionContent.sanitized}
+            tag="p"
+            className="text-slate-300 text-sm mb-3 line-clamp-2"
+            maxLength={200}
+            showTooltip={true}
+          />
         )}
         
         {/* Case-specific content information */}
@@ -322,7 +340,7 @@ const ShopItemCard = forwardRef(({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onViewCaseContents(item.id, item.name);
+                  onViewCaseContents(item.id, nameContent.sanitized);
                 }}
                 className="mt-2 w-full py-1 text-xs text-primary hover:text-primary/80 transition-colors flex items-center justify-center"
               >

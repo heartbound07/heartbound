@@ -52,18 +52,14 @@ export const SafeHtmlRenderer: React.FC<SafeHtmlRendererProps> = ({
 /**
  * Get DOMPurify configuration based on sanitization policy
  */
-function getSanitizationConfig(policy: 'strict' | 'basic' | 'rich'): DOMPurify.Config {
+function getSanitizationConfig(policy: 'strict' | 'basic' | 'rich') {
   switch (policy) {
     case 'strict':
       // STRICT: Strip all HTML, text only
       return {
         ALLOWED_TAGS: [],
         ALLOWED_ATTR: [],
-        KEEP_CONTENT: true,
-        SANITIZE_DOM: true,
-        RETURN_DOM: false,
-        RETURN_DOM_FRAGMENT: false,
-        RETURN_TRUSTED_TYPE: false
+        KEEP_CONTENT: true
       };
 
     case 'basic':
@@ -71,11 +67,7 @@ function getSanitizationConfig(policy: 'strict' | 'basic' | 'rich'): DOMPurify.C
       return {
         ALLOWED_TAGS: ['br'], // Allow line breaks only
         ALLOWED_ATTR: [],
-        KEEP_CONTENT: true,
-        SANITIZE_DOM: true,
-        RETURN_DOM: false,
-        RETURN_DOM_FRAGMENT: false,
-        RETURN_TRUSTED_TYPE: false
+        KEEP_CONTENT: true
       };
 
     case 'rich':
@@ -85,10 +77,6 @@ function getSanitizationConfig(policy: 'strict' | 'basic' | 'rich'): DOMPurify.C
         ALLOWED_ATTR: ['class'],
         ALLOW_DATA_ATTR: false,
         KEEP_CONTENT: true,
-        SANITIZE_DOM: true,
-        RETURN_DOM: false,
-        RETURN_DOM_FRAGMENT: false,
-        RETURN_TRUSTED_TYPE: false,
         // Additional safety measures
         FORBID_TAGS: ['script', 'object', 'embed', 'link', 'style', 'iframe'],
         FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'style']
