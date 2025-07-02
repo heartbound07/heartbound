@@ -416,13 +416,11 @@ export function CaseRollModal({
               size="sm"
             />
           ) : containedItem.category === 'BADGE' ? (
-            <BadgePreview
-              username={user?.username || "User"}
-              avatar={user?.avatar || "/default-avatar.png"}
-              badgeUrl={containedItem.thumbnailUrl || containedItem.imageUrl}
-              message=""
-              className="h-full w-full"
-              size="sm"
+            <img 
+              src={containedItem.thumbnailUrl || containedItem.imageUrl} 
+              alt={containedItem.name}
+              className="h-full w-full object-cover rounded-full"
+              style={{ padding: '8px' }}
             />
           ) : containedItem.imageUrl ? (
             <img 
@@ -630,13 +628,11 @@ export function CaseRollModal({
                                   {/* Item Preview */}
                                   <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2" style={{ borderColor: rarityColor }}>
                                     {item.category === 'BADGE' ? (
-                                      <BadgePreview
-                                        username="Preview"
-                                        avatar="/default-avatar.png"
-                                        badgeUrl={item.thumbnailUrl || item.imageUrl}
-                                        message=""
-                                        className="h-full w-full"
-                                        size="sm"
+                                      <img 
+                                        src={item.thumbnailUrl || item.imageUrl} 
+                                        alt={item.name}
+                                        className="h-full w-full object-cover rounded-full"
+                                        style={{ padding: '8px' }}
                                       />
                                     ) : item.imageUrl ? (
                                       <img 
