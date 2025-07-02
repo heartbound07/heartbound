@@ -23,9 +23,13 @@ import com.app.heartbound.exceptions.shop.InvalidCaseContentsException;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
 import com.app.heartbound.repositories.shop.CaseItemRepository;
+import com.app.heartbound.repositories.RollAuditRepository;
+import com.app.heartbound.entities.RollAudit;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.discord.DiscordService;
 import com.app.heartbound.services.HtmlSanitizationService;
+import com.app.heartbound.services.SecureRandomService;
+import com.app.heartbound.services.RollVerificationService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +41,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.Objects;
 import java.time.LocalDateTime;
-import java.util.concurrent.ThreadLocalRandom;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 
 @Service
 public class ShopService {
@@ -48,6 +54,9 @@ public class ShopService {
     private final DiscordService discordService;
     private final CaseItemRepository caseItemRepository;
     private final HtmlSanitizationService htmlSanitizationService;
+    private final SecureRandomService secureRandomService;
+    private final RollAuditRepository rollAuditRepository;
+    private final RollVerificationService rollVerificationService;
     private static final Logger logger = LoggerFactory.getLogger(ShopService.class);
     
     @Autowired
@@ -57,7 +66,10 @@ public class ShopService {
         UserService userService,
         DiscordService discordService,
         CaseItemRepository caseItemRepository,
-        HtmlSanitizationService htmlSanitizationService
+        HtmlSanitizationService htmlSanitizationService,
+        SecureRandomService secureRandomService,
+        RollAuditRepository rollAuditRepository,
+        RollVerificationService rollVerificationService
     ) {
         this.shopRepository = shopRepository;
         this.userRepository = userRepository;
@@ -65,6 +77,9 @@ public class ShopService {
         this.discordService = discordService;
         this.caseItemRepository = caseItemRepository;
         this.htmlSanitizationService = htmlSanitizationService;
+        this.secureRandomService = secureRandomService;
+        this.rollAuditRepository = rollAuditRepository;
+        this.rollVerificationService = rollVerificationService;
     }
     
     /**
@@ -639,6 +654,7 @@ public class ShopService {
     @Transactional
     public RollResultDTO openCase(String userId, UUID caseId) {
         logger.debug("Opening case {} for user {}", caseId, userId);
+        long startTime = System.currentTimeMillis();
         
         // 1. Verify user exists
         User user = userRepository.findById(userId)
@@ -672,28 +688,63 @@ public class ShopService {
             );
         }
         
-        // 6. Perform weighted random selection
-        Shop wonItem = selectItemByDropRate(caseItems);
-        int rollValue = ThreadLocalRandom.current().nextInt(100); // For future animation sync
+        // 6. Generate secure random seed for this roll
+        String rollSeed = secureRandomService.generateRollSeed();
+        String rollSeedHash = generateSeedHash(rollSeed);
         
-        // 7. Check if user already owns the won item
+        // 7. Perform secure weighted random selection
+        Shop wonItem = selectItemByDropRateSecure(caseItems);
+        int rollValue = secureRandomService.getSecureInt(100); // Secure random for animation sync
+        
+        // 8. Find the drop rate for the won item
+        int wonItemDropRate = caseItems.stream()
+            .filter(item -> item.getContainedItem().getId().equals(wonItem.getId()))
+            .mapToInt(CaseItem::getDropRate)
+            .findFirst()
+            .orElse(0);
+        
+        // 9. Check if user already owns the won item
         boolean alreadyOwned = user.hasItem(wonItem.getId());
         
-        // 8. Remove case from user inventory (consume it)
+        // 10. Store credits before operation
+        int creditsBefore = user.getCredits();
+        
+        // 11. Remove case from user inventory (consume it)
         user.getInventory().removeIf(item -> item.getId().equals(caseId));
         
-        // 9. Add won item to user inventory (only if not already owned)
+        // 12. Add won item to user inventory (only if not already owned)
         if (!alreadyOwned) {
             user.addItem(wonItem);
         }
         
-        // 10. Save user changes
-        userRepository.save(user);
+        // 13. Save user changes
+        user = userRepository.save(user);
+        int creditsAfter = user.getCredits();
         
-        logger.info("User {} opened case {} and won item {} (already owned: {})", 
-                   userId, caseId, wonItem.getId(), alreadyOwned);
+        // 14. Calculate processing time
+        long processingTime = System.currentTimeMillis() - startTime;
         
-        // 11. Return result
+        // 15. Create audit record
+        RollAudit auditRecord = new RollAudit(
+            userId, caseId, caseItem.getName(), wonItem.getId(), wonItem.getName(),
+            rollValue, rollSeedHash, wonItemDropRate, totalDropRate, caseItems.size(),
+            alreadyOwned, getClientIp(), getUserAgent(), getSessionId(),
+            creditsBefore, creditsAfter
+        );
+        auditRecord.setProcessingTimeMs(processingTime);
+        
+        // Set timestamp manually before generating statistical hash
+        LocalDateTime now = LocalDateTime.now();
+        auditRecord.setRollTimestamp(now);
+        auditRecord.setStatisticalHash(rollVerificationService.generateStatisticalHash(auditRecord));
+        
+        // 16. Save audit record
+        rollAuditRepository.save(auditRecord);
+        
+        logger.info("User {} opened case {} and won item {} (already owned: {}) - Roll: {}, Seed: {}", 
+                   userId, caseId, wonItem.getId(), alreadyOwned, rollValue, rollSeedHash.substring(0, 8) + "...");
+        
+        // 17. Return result
         return RollResultDTO.builder()
             .caseId(caseId)
             .caseName(caseItem.getName())
@@ -705,28 +756,26 @@ public class ShopService {
     }
     
     /**
-     * Perform weighted random selection based on drop rates
+     * Perform secure weighted random selection based on drop rates
      * @param caseItems List of case items with drop rates
      * @return Selected shop item
      */
+    private Shop selectItemByDropRateSecure(List<CaseItem> caseItems) {
+        // Use secure random service for weighted selection
+        return secureRandomService.selectWeightedRandom(
+            caseItems,
+            100, // Total weight should always be 100 for drop rates
+            CaseItem::getDropRate
+        ).getContainedItem();
+    }
+    
+    /**
+     * Legacy method - kept for backward compatibility but using secure random
+     * @deprecated Use selectItemByDropRateSecure instead
+     */
+    @Deprecated
     private Shop selectItemByDropRate(List<CaseItem> caseItems) {
-        // Generate random number between 0 and 99 (inclusive)
-        int roll = ThreadLocalRandom.current().nextInt(100);
-        
-        // Use cumulative probability to select item
-        int cumulative = 0;
-        for (CaseItem caseItem : caseItems) {
-            cumulative += caseItem.getDropRate();
-            if (roll < cumulative) {
-                logger.debug("Roll {} selected item {} with cumulative threshold {}", 
-                           roll, caseItem.getContainedItem().getName(), cumulative);
-                return caseItem.getContainedItem();
-            }
-        }
-        
-        // Fallback to last item (should never happen with valid drop rates)
-        logger.warn("Roll {} fell through, selecting last item as fallback", roll);
-        return caseItems.get(caseItems.size() - 1).getContainedItem();
+        return selectItemByDropRateSecure(caseItems);
     }
     
     /**
@@ -838,5 +887,56 @@ public class ShopService {
             .containedItem(mapToShopDTO(caseItem.getContainedItem(), null))
             .dropRate(caseItem.getDropRate())
             .build();
+    }
+    
+    // ===== SECURITY HELPER METHODS =====
+    
+    /**
+     * Generate SHA-256 hash of the roll seed for audit trail
+     * @param seed The roll seed to hash
+     * @return SHA-256 hash of the seed
+     */
+    private String generateSeedHash(String seed) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(seed.getBytes());
+            return Base64.getEncoder().encodeToString(hash);
+        } catch (NoSuchAlgorithmException e) {
+            logger.error("Failed to generate seed hash: {}", e.getMessage());
+            return "";
+        }
+    }
+    
+    /**
+     * Get client IP address for audit trail
+     * TODO: Implement proper IP extraction from HTTP request
+     * @return Client IP address or "unknown"
+     */
+    private String getClientIp() {
+        // This would need to be injected from the controller layer
+        // For now, return a placeholder
+        return "unknown";
+    }
+    
+    /**
+     * Get user agent for audit trail
+     * TODO: Implement proper user agent extraction from HTTP request
+     * @return User agent string or "unknown"
+     */
+    private String getUserAgent() {
+        // This would need to be injected from the controller layer
+        // For now, return a placeholder
+        return "unknown";
+    }
+    
+    /**
+     * Get session ID for audit trail
+     * TODO: Implement proper session ID extraction
+     * @return Session ID or "unknown"
+     */
+    private String getSessionId() {
+        // This would need to be injected from the controller layer
+        // For now, return a placeholder
+        return "unknown";
     }
 }
