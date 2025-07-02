@@ -880,19 +880,13 @@ export function CaseRollModal({
                   </motion.div>
                 )}
 
-                {/* Action Buttons */}
+                {/* Action Button */}
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.8 }}
-                  className="flex justify-center space-x-3"
+                  className="flex justify-center"
                 >
-                  <button
-                    onClick={handleClose}
-                    className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
-                  >
-                    Close
-                  </button>
                   <button
                     onClick={handleClaimAndClose}
                     className="px-8 py-3 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors flex items-center space-x-2"
