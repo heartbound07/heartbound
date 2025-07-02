@@ -492,7 +492,8 @@ export function CaseRollModal({
           <div className="flex items-center justify-between p-6 border-b border-slate-700/50">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-primary/20 rounded-lg">
-                {animationState === 'reward' && (
+                {/* REMOVED: Present icon for reward state */}
+                {animationState !== 'reward' && animationState !== 'idle' && (
                   <FaGift className="text-primary" size={20} />
                 )}
               </div>
@@ -501,7 +502,8 @@ export function CaseRollModal({
                   {animationState === 'idle' && 'Open Case'}
                   {animationState === 'loading' && 'Preparing Case...'}
                   {(animationState === 'rolling' || animationState === 'decelerating' || animationState === 'revealing') && ' '}
-                  {animationState === 'reward' && 'Congratulations!'}
+                  {/* REMOVED: 'Congratulations!' text for reward state */}
+                  {animationState === 'reward' && ' '}
                 </h2>
               </div>
             </div>
@@ -667,23 +669,39 @@ export function CaseRollModal({
               >
                 {/* Reward Display */}
                 <div className="text-center">
-                  <motion.h3 
-                    initial={{ scale: 0.8 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", damping: 15 }}
-                    className="text-2xl font-bold text-white mb-6"
-                  >
-                  </motion.h3>
+                  {/* Restructured Header: Item name, rarity badge, and type - MOVED TO TOP */}
+                  <div className="text-center mb-6">
+                    <div className="flex items-center justify-center space-x-2 mb-2">
+                      <motion.h4 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.6 }}
+                        className="text-2xl font-bold text-white"
+                      >
+                        {rollResult.wonItem.name}
+                      </motion.h4>
+                      <motion.span 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.8, type: "spring" }}
+                        className="px-3 py-1 rounded-full text-sm font-semibold"
+                        style={getRarityBadgeStyle(rollResult.wonItem.rarity)}
+                      >
+                        {getRarityLabel(rollResult.wonItem.rarity)}
+                      </motion.span>
+                    </div>
+                    
+                    <p className="text-slate-300 text-base">
+                      {formatDisplayText(rollResult.wonItem.category)}
+                    </p>
+                  </div>
                   
+                  {/* REMOVED: rarity-colored border around container */}
                   <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-slate-800/50 border rounded-lg p-8 max-w-md mx-auto relative overflow-hidden"
-                    style={{ 
-                      borderColor: getRarityColor(rollResult.wonItem.rarity),
-                      borderWidth: '3px'
-                    }}
+                    className="bg-slate-800/50 border border-slate-700 rounded-lg p-8 max-w-md mx-auto relative overflow-hidden"
                   >
                     {/* Animated background glow */}
                     <motion.div
@@ -701,9 +719,9 @@ export function CaseRollModal({
                       }}
                     />
                     
-                    {/* Item Preview */}
+                    {/* Item Preview - MAINTAINED as-is */}
                     <div className="relative z-10">
-                      <div className="flex justify-center mb-6">
+                      <div className="flex justify-center">
                         <motion.div 
                           initial={{ scale: 0.5, rotateY: -180 }}
                           animate={{ scale: 1, rotateY: 0 }}
@@ -744,38 +762,14 @@ export function CaseRollModal({
                         </motion.div>
                       </div>
 
-                      {/* Item Details */}
-                      <div className="text-center">
-                        <div className="flex items-center justify-center space-x-2 mb-3">
-                          <motion.h4 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.6 }}
-                            className="text-xl font-bold text-white"
-                          >
-                            {rollResult.wonItem.name}
-                          </motion.h4>
-                          <motion.span 
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: 0.8, type: "spring" }}
-                            className="px-3 py-1 rounded-full text-sm font-semibold"
-                            style={getRarityBadgeStyle(rollResult.wonItem.rarity)}
-                          >
-                            {getRarityLabel(rollResult.wonItem.rarity)}
-                          </motion.span>
-                        </div>
-                        
-                        <p className="text-slate-300 text-sm mb-3">
-                          {formatDisplayText(rollResult.wonItem.category)}
-                        </p>
-                        
-                        {rollResult.wonItem.description && (
-                          <p className="text-slate-400 text-xs mb-4">
+                      {/* Item Description - kept for cases where description exists */}
+                      {rollResult.wonItem.description && (
+                        <div className="text-center mt-4">
+                          <p className="text-slate-400 text-xs">
                             {rollResult.wonItem.description}
                           </p>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 </div>
