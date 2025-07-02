@@ -4,7 +4,6 @@ import { FaTimes, FaDice } from 'react-icons/fa';
 import httpClient from '@/lib/api/httpClient';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 import NameplatePreview from '@/components/NameplatePreview';
-import BadgePreview from '@/components/BadgePreview';
 import { formatDisplayText } from '@/utils/formatters';
 
 interface CaseItem {
@@ -204,13 +203,11 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
                               {/* Item Preview */}
                               <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2" style={{ borderColor: rarityColor }}>
                                 {item.category === 'BADGE' ? (
-                                  <BadgePreview
-                                    username="Preview"
-                                    avatar="/default-avatar.png"
-                                    badgeUrl={item.thumbnailUrl || item.imageUrl}
-                                    message=""
-                                    className="h-full w-full"
-                                    size="sm"
+                                  <img 
+                                    src={item.thumbnailUrl || item.imageUrl} 
+                                    alt={item.name}
+                                    className="h-full w-full object-cover rounded-full"
+                                    style={{ padding: '8px' }}
                                   />
                                 ) : item.imageUrl ? (
                                   <img 
