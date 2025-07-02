@@ -323,7 +323,7 @@ const ShopItemCard = forwardRef(({
             <FaCoins className="text-yellow-400 mr-1" size={14} />
             <span className="text-yellow-400 font-medium">
               {item.category === 'CASE' && quantity > 1 
-                ? `${totalPrice} (${item.price} × ${quantity})` 
+                ? totalPrice 
                 : item.price
               }
             </span>
