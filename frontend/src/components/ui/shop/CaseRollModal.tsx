@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from 'framer-motion';
-import { FaTimes, FaDice, FaGift, FaForward, FaVolumeUp } from 'react-icons/fa';
+import { FaTimes, FaDice, FaGift, FaForward } from 'react-icons/fa';
 import httpClient from '@/lib/api/httpClient';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 import NameplatePreview from '@/components/NameplatePreview';
@@ -105,19 +105,19 @@ export function CaseRollModal({
   // Audio hooks for future implementation
   const audioHooks: AudioHooks = {
     onInitiate: () => {
-      console.log('🎵 Audio Hook: Initiate');
+      // TODO: Implement audio feedback
     },
     onRollingTick: () => {
-      console.log('🎵 Audio Hook: Rolling Tick');
+      // TODO: Implement rolling sound
     },
     onDecelerate: () => {
-      console.log('🎵 Audio Hook: Decelerate');
+      // TODO: Implement deceleration sound
     },
     onReveal: () => {
-      console.log('🎵 Audio Hook: Reveal');
+      // TODO: Implement reveal sound
     },
     onRarityReveal: (rarity: string) => {
-      console.log(`🎵 Audio Hook: Rarity Reveal - ${rarity}`);
+      // TODO: Implement rarity-specific sound
     }
   };
 
@@ -141,7 +141,6 @@ export function CaseRollModal({
         setAnimationItems(extendedItems);
       }
     } catch (error: any) {
-      console.error('Error fetching case contents:', error);
       setError('Failed to load case contents');
     }
   };
@@ -192,11 +191,6 @@ export function CaseRollModal({
   const generateAnimationSequenceFromRoll = useCallback((rollValue: number, caseContents: CaseContents) => {
     if (!animationItems.length || !caseContents?.items) return 0.85;
     
-    console.log('🎲 Generating animation sequence from roll value:', rollValue);
-    console.log('📦 Case contents order:', caseContents.items.map(item => 
-      `${item.containedItem.name} (${item.dropRate}%)`
-    ).join(', '));
-    
     // Calculate the final scroll progress based on the rollValue and drop rates
     // Item width: w-24 (96px) + mx-2 (8px each side = 16px) = 112px total spacing
     const itemWidth = 112;
@@ -210,50 +204,22 @@ export function CaseRollModal({
     let cumulative = 0;
     let wonItemFromRoll = null;
     
-    console.log('🎯 Drop rate ranges for rollValue', rollValue + ':');
     for (const caseItem of caseContents.items) {
-      const previousCumulative = cumulative;
       cumulative += caseItem.dropRate;
-      console.log(`  ${caseItem.containedItem.name}: ${previousCumulative}-${cumulative-1} (${caseItem.dropRate}%)`);
-      
       if (rollValue < cumulative) {
         wonItemFromRoll = caseItem.containedItem;
-        console.log(`  ✅ Selected: ${wonItemFromRoll.name} (rollValue ${rollValue} < cumulative ${cumulative})`);
         break;
       } 
     }
     
     if (!wonItemFromRoll) {
-      console.error('❌ Could not determine winning item from roll value!', {
-        rollValue,
-        totalCumulative: cumulative,
-        itemCount: caseContents.items.length,
-        dropRates: caseContents.items.map(item => ({
-          name: item.containedItem.name,
-          dropRate: item.dropRate
-        }))
-      });
+      console.error('Could not determine winning item from roll value');
       return 0.85;
     }
-    
-    console.log('🎲 Winning item from roll calculation:', {
-      rollValue,
-      cumulative,
-      itemId: wonItemFromRoll.id,
-      itemName: wonItemFromRoll.name
-    });
     
     // Find winning item in the animation items array
     const uniqueItemsCount = animationItems.length / 8;
     const winningIndex = animationItems.findIndex(item => item.containedItem.id === wonItemFromRoll.id);
-    
-    console.log('🔍 Animation item search:', {
-      wonItemId: wonItemFromRoll.id,
-      wonItemName: wonItemFromRoll.name,
-      winningIndex,
-      uniqueItemsCount,
-      totalAnimationItems: animationItems.length
-    });
     
     let targetIndex;
     if (winningIndex !== -1) {
@@ -267,17 +233,9 @@ export function CaseRollModal({
         // Fall back to 5th repetition if 6th would exceed bounds
         targetIndex = 5 * uniqueItemsCount + indexInRepetition;
       }
-      
-      console.log('🎯 Target calculation:', {
-        targetRepetition,
-        indexInRepetition,
-        targetIndex,
-        calculatedPosition: targetIndex * itemWidth - centerPosition
-      });
     } else {
       // Fallback to a position further along to maintain leftward direction
       targetIndex = Math.floor(animationItems.length * 0.75);
-      console.warn('Could not find winning item in animation items, using fallback position');
     }
     
     // Convert to scroll progress (0 to 1)
@@ -307,48 +265,9 @@ export function CaseRollModal({
       finalProgress = Math.min(calculatedProgress, maxProgress);
     }
     
-    // Determine which constraint case was applied
-    let constraintCase;
-    if (calculatedProgress <= rollingEndPosition) {
-      constraintCase = 'Before rolling end - no constraint';
-    } else if (calculatedProgress < minProgressForContainer) {
-      constraintCase = 'After rolling end but too close - constraint applied';
-    } else {
-      constraintCase = 'After rolling end with buffer - no constraint';
-    }
+
     
-    console.log('🎲 Animation sequence calculated:', {
-      rollValue,
-      targetIndex,
-      calculatedProgress: calculatedProgress.toFixed(4),
-      finalProgress: finalProgress.toFixed(4),
-      constraintCase,
-      wonItem: wonItemFromRoll.name,
-      itemWidth,
-      totalWidth,
-      targetPosition: targetIndex * itemWidth - centerPosition,
-      containerWidth,
-      centerPosition,
-      rollingEndPosition,
-      minProgressForContainer: minProgressForContainer.toFixed(4),
-      screenSize: containerWidth > 600 ? 'Desktop' : 'Mobile'
-    });
-    
-    // Verify which item will be at center when animation stops
-    const finalXPosition = finalProgress * totalWidth;
-    // Calculate which item will be at the center line: scroll position + center offset
-    const itemAtCenter = Math.floor((finalXPosition + centerPosition) / itemWidth);
-    const actualItemAtCenter = animationItems[itemAtCenter];
-    
-    console.log('🎯 Verification - Animation landing position:', {
-      expectedItem: wonItemFromRoll.name,
-      expectedIndex: targetIndex,
-      actualIndex: itemAtCenter,
-      actualItem: actualItemAtCenter ? actualItemAtCenter.containedItem.name : 'Not found',
-      match: actualItemAtCenter?.containedItem.id === wonItemFromRoll.id,
-      finalXPosition,
-      indexDifference: itemAtCenter - targetIndex
-    });
+
     
     return finalProgress;
   }, [animationItems]);
@@ -398,12 +317,7 @@ export function CaseRollModal({
         ? Math.max(targetProgress - safeBuffer, 0.3) // Don't go below 30%
         : Math.min(0.8, targetProgress - safeBuffer); // Standard case
       
-      console.log('🎯 Adaptive rolling:', {
-        targetProgress: targetProgress.toFixed(4),
-        rollingEndPoint: rollingEndPoint.toFixed(4),
-        direction: targetProgress > 0.7 ? 'Forward' : 'Backward-Safe',
-        elapsedTime: ((Date.now() - startTime) / 1000).toFixed(1) + 's'
-      });
+
       
       // Stop rolling animation early and animate to the calculated end point
       rollingAnimation.stop();
@@ -420,7 +334,6 @@ export function CaseRollModal({
       await handleDeceleration(apiResponse.data, targetProgress);
       
     } catch (error: any) {
-      console.error('Error opening case:', error);
       setError(error.response?.data?.message || 'Failed to open case');
       setAnimationState('idle');
     }
@@ -431,21 +344,10 @@ export function CaseRollModal({
     setCanSkip(false);
     audioHooks.onDecelerate?.();
     
-    console.log('🎲 Roll result:', {
-      rollValue: rollResult.rollValue,
-      wonItem: {
-        id: rollResult.wonItem.id,
-        name: rollResult.wonItem.name,
-        rarity: rollResult.wonItem.rarity
-      }
-    });
-    
     // Use pre-calculated target progress or calculate it
     const finalProgress = targetProgress ?? (caseContents 
       ? generateAnimationSequenceFromRoll(rollResult.rollValue, caseContents)
       : generateAnimationSequence(rollResult.wonItem)); // Fallback to old method if no case contents
-    
-    console.log('🎲 Final scroll progress:', finalProgress);
     
     // Use Framer Motion's animate function for smooth deceleration
     const decelerationAnimation = animate(scrollProgress, finalProgress, {
