@@ -114,6 +114,7 @@ public class ShopController {
      * Purchase an item
      * @param itemId Item ID
      * @param authentication Authentication containing user ID
+     * @param request Purchase request containing optional quantity
      * @return Updated user profile
      */
     @RateLimited(
@@ -127,12 +128,22 @@ public class ShopController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> purchaseItem(
         @PathVariable UUID itemId,
+        @RequestBody(required = false) PurchaseRequest request,
         Authentication authentication
     ) {
         String userId = authentication.getName();
         
+        // Extract quantity from request, default to 1
+        Integer quantity = (request != null && request.getQuantity() != null) ? request.getQuantity() : 1;
+        
+        // Validate quantity limits
+        if (quantity < 1 || quantity > 10) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("Quantity must be between 1 and 10"));
+        }
+        
         try {
-            UserProfileDTO updatedProfile = shopService.purchaseItem(userId, itemId);
+            UserProfileDTO updatedProfile = shopService.purchaseItem(userId, itemId, quantity);
             return ResponseEntity.ok(updatedProfile);
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -521,6 +532,21 @@ public class ShopController {
         
         public String getMessage() {
             return message;
+        }
+    }
+    
+    /**
+     * Purchase request DTO for quantity-based purchases
+     */
+    public static class PurchaseRequest {
+        private Integer quantity;
+        
+        public Integer getQuantity() {
+            return quantity;
+        }
+        
+        public void setQuantity(Integer quantity) {
+            this.quantity = quantity;
         }
     }
 }

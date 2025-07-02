@@ -153,7 +153,24 @@ public class ShopService {
      */
     @Transactional
     public UserProfileDTO purchaseItem(String userId, UUID itemId) {
-        logger.debug("Processing purchase of item {} for user {}", itemId, userId);
+        return purchaseItem(userId, itemId, 1);
+    }
+    
+    /**
+     * Purchase an item for a user with quantity
+     * @param userId User ID
+     * @param itemId Item ID
+     * @param quantity Quantity to purchase (for cases)
+     * @return Updated UserProfileDTO
+     */
+    @Transactional
+    public UserProfileDTO purchaseItem(String userId, UUID itemId, Integer quantity) {
+        logger.debug("Processing purchase of item {} for user {} with quantity {}", itemId, userId, quantity);
+        
+        // Validate quantity
+        if (quantity == null || quantity < 1 || quantity > 10) {
+            throw new IllegalArgumentException("Quantity must be between 1 and 10");
+        }
         
         // Get user and item
         User user = userRepository.findById(userId)
@@ -167,13 +184,22 @@ public class ShopService {
             throw new ResourceNotFoundException("Item is not available for purchase");
         }
         
-        if (user.hasItem(itemId)) {
+        // For non-case items, enforce ownership check
+        if (item.getCategory() != ShopCategory.CASE && user.hasItem(itemId)) {
             throw new ItemAlreadyOwnedException("User already owns this item");
         }
         
-        if (user.getCredits() < item.getPrice()) {
+        // For non-case items, enforce quantity = 1
+        if (item.getCategory() != ShopCategory.CASE && quantity > 1) {
+            throw new IllegalArgumentException("Non-case items can only be purchased with quantity 1");
+        }
+        
+        // Calculate total cost
+        int totalCost = item.getPrice() * quantity;
+        
+        if (user.getCredits() < totalCost) {
             throw new InsufficientCreditsException(
-                "Insufficient credits. Required: " + item.getPrice() + ", Available: " + user.getCredits()
+                "Insufficient credits. Required: " + totalCost + ", Available: " + user.getCredits()
             );
         }
         
@@ -184,11 +210,15 @@ public class ShopService {
         }
         
         // Process purchase
-        user.setCredits(user.getCredits() - item.getPrice());
-        user.addItem(item);
+        user.setCredits(user.getCredits() - totalCost);
+        
+        // Add items to inventory based on quantity
+        for (int i = 0; i < quantity; i++) {
+            user.addItem(item);
+        }
         
         User savedUser = userRepository.save(user);
-        logger.info("User {} successfully purchased item {}", userId, itemId);
+        logger.info("User {} successfully purchased {} x{} (total cost: {})", userId, itemId, quantity, totalCost);
         
         // Return updated user profile
         return userService.mapToProfileDTO(savedUser);
@@ -433,7 +463,9 @@ public class ShopService {
      */
     private ShopDTO mapToShopDTO(Shop shop, User user) {
         boolean owned = false;
-        if (user != null) {
+        
+        // For cases, never show as owned since they can be purchased multiple times
+        if (shop.getCategory() != ShopCategory.CASE && user != null) {
             // This accesses the lazy-loaded inventory, which works when inside @Transactional
             owned = user.getInventory().stream()
                 .anyMatch(item -> item.getId().equals(shop.getId()));
