@@ -130,23 +130,7 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
               </div>
             ) : caseContents ? (
               <>
-                {/* Case Summary */}
-                <div className="mb-6 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-slate-300">
-                      Contains {caseContents.itemCount} different items
-                    </span>
-                    <span className="text-sm text-slate-400">
-                      Total Drop Rate: {caseContents.totalDropRate}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-300"
-                      style={{ width: `${Math.min(caseContents.totalDropRate, 100)}%` }}
-                    />
-                  </div>
-                </div>
+
 
                 {/* Items Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
