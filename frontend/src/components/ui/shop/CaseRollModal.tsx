@@ -492,36 +492,31 @@ export function CaseRollModal({
           <div className="flex items-center justify-between p-6 border-b border-slate-700/50">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-primary/20 rounded-lg">
-                {animationState === 'reward' ? (
+                {animationState === 'reward' && (
                   <FaGift className="text-primary" size={20} />
-                ) : (
-                  <FaDice className="text-primary" size={20} />
                 )}
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">
                   {animationState === 'idle' && 'Open Case'}
                   {animationState === 'loading' && 'Preparing Case...'}
-                  {(animationState === 'rolling' || animationState === 'decelerating') && 'Opening Case...'}
-                  {animationState === 'revealing' && 'Revealing Item...'}
+                  {(animationState === 'rolling' || animationState === 'decelerating' || animationState === 'revealing') && ' '}
                   {animationState === 'reward' && 'Congratulations!'}
                 </h2>
-                <p className="text-slate-400 text-sm">{caseName}</p>
               </div>
             </div>
             
             <div className="flex items-center space-x-2">
-              {/* Skip Animation Button */}
+              {/* Skip Animation Button - Icon Only in Top Right */}
               {canSkip && (
                 <motion.button
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   onClick={handleSkipAnimation}
-                  className="p-2 bg-yellow-600/20 hover:bg-yellow-600/30 rounded-lg transition-colors text-yellow-400 hover:text-yellow-300 flex items-center space-x-1"
+                  className="p-2 bg-yellow-600/20 hover:bg-yellow-600/30 rounded-lg transition-colors text-yellow-400 hover:text-yellow-300"
                   title="Skip Animation"
                 >
-                  <FaForward size={14} />
-                  <span className="text-xs">Skip</span>
+                  <FaForward size={16} />
                 </motion.button>
               )}
               
@@ -577,7 +572,6 @@ export function CaseRollModal({
                     disabled={!caseContents}
                     className="px-6 py-3 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center space-x-2"
                   >
-                    <FaDice size={16} />
                     <span>Open Case</span>
                   </button>
                 </div>
@@ -603,7 +597,7 @@ export function CaseRollModal({
                   className="flex justify-center"
                 >
                   <div className="p-4 bg-primary/20 rounded-full">
-                    <FaDice className="text-primary" size={32} />
+                    <FaGift className="text-primary" size={32} />
                   </div>
                 </motion.div>
                 
@@ -662,20 +656,6 @@ export function CaseRollModal({
                   <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-slate-700/80 to-transparent pointer-events-none"></div>
                   <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-slate-700/80 to-transparent pointer-events-none"></div>
                 </div>
-                
-                {/* Status Text */}
-                <div className="text-center">
-                  <h3 className="text-xl font-bold text-white mb-2">
-                    {animationState === 'rolling' && 'Rolling for your item...'}
-                    {animationState === 'decelerating' && 'Almost there...'}
-                    {animationState === 'revealing' && 'You won...'}
-                  </h3>
-                  <p className="text-slate-300">
-                    {animationState === 'rolling' && 'Watch the items scroll by!'}
-                    {animationState === 'decelerating' && 'Slowing down to reveal your prize'}
-                    {animationState === 'revealing' && 'Drumroll please...'}
-                  </p>
-                </div>
               </motion.div>
             )}
 
@@ -693,7 +673,6 @@ export function CaseRollModal({
                     transition={{ type: "spring", damping: 15 }}
                     className="text-2xl font-bold text-white mb-6"
                   >
-                    🎉 You won! 🎉
                   </motion.h3>
                   
                   <motion.div
