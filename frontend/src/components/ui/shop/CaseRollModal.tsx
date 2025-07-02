@@ -489,26 +489,29 @@ export function CaseRollModal({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-slate-700/50">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-primary/20 rounded-lg">
-                {/* REMOVED: Present icon for reward state */}
-                {animationState !== 'reward' && animationState !== 'idle' && (
+          <div className="relative flex items-center p-6 border-b border-slate-700/50">
+            {/* Left section - Icon (when needed) */}
+            <div className="flex items-center">
+              {animationState !== 'reward' && animationState !== 'idle' && (
+                <div className="p-2 bg-primary/20 rounded-lg">
                   <FaGift className="text-primary" size={20} />
-                )}
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">
-                  {animationState === 'idle' && 'Open Case'}
-                  {animationState === 'loading' && 'Preparing Case...'}
-                  {(animationState === 'rolling' || animationState === 'decelerating' || animationState === 'revealing') && ' '}
-                  {/* REMOVED: 'Congratulations!' text for reward state */}
-                  {animationState === 'reward' && ' '}
-                </h2>
-              </div>
+                </div>
+              )}
             </div>
             
-            <div className="flex items-center space-x-2">
+            {/* Center section - Title */}
+            <div className="absolute left-1/2 transform -translate-x-1/2">
+              <h2 className="text-xl font-bold text-white whitespace-nowrap">
+                {animationState === 'idle' && `Open ${caseName}`}
+                {animationState === 'loading' && 'Preparing Case...'}
+                {(animationState === 'rolling' || animationState === 'decelerating' || animationState === 'revealing') && ' '}
+                {/* REMOVED: 'Congratulations!' text for reward state */}
+                {animationState === 'reward' && ' '}
+              </h2>
+            </div>
+            
+            {/* Right section - Action buttons */}
+            <div className="flex items-center space-x-2 ml-auto">
               {/* Skip Animation Button - Icon Only in Top Right */}
               {canSkip && (
                 <motion.button
