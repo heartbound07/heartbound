@@ -607,27 +607,19 @@ export function CaseRollModal({
                                       size="md"
                                     />
                                   </div>
-                                  
-                                  {/* Item details */}
-                                  <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                                    <span>{formatDisplayText(item.category)}</span>
-                                    <span>{item.price} credits</span>
-                                  </div>
 
                                   {/* Drop Rate */}
-                                  <div className="flex items-center justify-between">
+                                  <div className="flex items-center justify-center space-x-2">
                                     <span className="text-xs text-slate-300">Drop Rate</span>
-                                    <div className="flex items-center space-x-2">
-                                      <div className="w-16 bg-slate-700 rounded-full h-1.5 overflow-hidden">
-                                        <div 
-                                          className="h-full bg-primary transition-all duration-300"
-                                          style={{ width: `${caseItem.dropRate}%` }}
-                                        />
-                                      </div>
-                                      <span className="text-sm font-medium text-primary">
-                                        {caseItem.dropRate}%
-                                      </span>
+                                    <div className="w-16 bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                                      <div 
+                                        className="h-full bg-primary transition-all duration-300"
+                                        style={{ width: `${caseItem.dropRate}%` }}
+                                      />
                                     </div>
+                                    <span className="text-sm font-medium text-primary">
+                                      {caseItem.dropRate}%
+                                    </span>
                                   </div>
 
                                   {item.description && (
