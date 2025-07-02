@@ -868,30 +868,50 @@ export function CaseRollModal({
 
                 {/* Already Owned Notice with Compensation */}
                 {rollResult.alreadyOwned && rollResult.compensationAwarded && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                    className="flex justify-center items-center space-x-4"
-                  >
-                    {/* Credits */}
-                    <div className="flex items-center space-x-2 px-3 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                      <FaCoins size={14} style={{ color: '#fbbf24' }} />
-                      <div>
-                        <p className="font-bold text-base" style={{ color: '#fbbf24' }}>+{rollResult.compensatedCredits}</p>
-                        <p className="text-slate-400 text-xs">Credits</p>
+                  <div className="space-y-3">
+                    {/* Duplicate Notice */}
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ 
+                        opacity: [0, 1, 1, 0],
+                        y: [20, 0, 0, -10]
+                      }}
+                      transition={{ 
+                        duration: 3,
+                        times: [0, 0.3, 0.7, 1],
+                        delay: 0.4
+                      }}
+                      className="flex justify-center"
+                    >
+                      <span className="text-slate-300 text-sm font-medium">Duplicate!</span>
+                    </motion.div>
+
+                    {/* Compensation Display */}
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.8 }}
+                      className="flex justify-center items-center space-x-4"
+                    >
+                      {/* Credits */}
+                      <div className="flex items-center space-x-2 px-3 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                        <FaCoins size={14} style={{ color: '#fbbf24' }} />
+                        <div>
+                          <p className="font-bold text-base" style={{ color: '#fbbf24' }}>+{rollResult.compensatedCredits}</p>
+                          <p className="text-slate-400 text-xs">Credits</p>
+                        </div>
                       </div>
-                    </div>
-                    
-                    {/* XP */}
-                    <div className="flex items-center space-x-2 px-3 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                      <Star size={14} style={{ color: '#60a5fa' }} />
-                      <div>
-                        <p className="font-bold text-base" style={{ color: '#60a5fa' }}>+{rollResult.compensatedXp}</p>
-                        <p className="text-slate-400 text-xs">Experience</p>
+                      
+                      {/* XP */}
+                      <div className="flex items-center space-x-2 px-3 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                        <Star size={14} style={{ color: '#60a5fa' }} />
+                        <div>
+                          <p className="font-bold text-base" style={{ color: '#60a5fa' }}>+{rollResult.compensatedXp}</p>
+                          <p className="text-slate-400 text-xs">Experience</p>
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
+                    </motion.div>
+                  </div>
                 )}
 
                 {/* Simple already owned notice for non-compensated duplicates */}
