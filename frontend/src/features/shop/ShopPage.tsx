@@ -62,7 +62,7 @@ const ShopItemCard = forwardRef(({
   onViewCaseContents
 }: { 
   item: ShopItem; 
-  handlePurchase: (id: string) => void; 
+  handlePurchase: (id: string, quantity?: number) => void; 
   purchaseInProgress: boolean;
   user: any;
   isRecentlyPurchased?: boolean;
@@ -78,9 +78,15 @@ const ShopItemCard = forwardRef(({
   // Add state to track insufficient credits message
   const [showInsufficientCredits, setShowInsufficientCredits] = useState(false);
   
+  // Add quantity state for cases
+  const [quantity, setQuantity] = useState(1);
+  
+  // Calculate total price for cases
+  const totalPrice = item.category === 'CASE' ? item.price * quantity : item.price;
+  
   // Function to handle purchase attempt
   const handlePurchaseAttempt = () => {
-    if ((user?.credits ?? 0) < item.price) {
+    if ((user?.credits ?? 0) < totalPrice) {
       // Show insufficient credits message
       setShowInsufficientCredits(true);
       
@@ -90,7 +96,7 @@ const ShopItemCard = forwardRef(({
       }, 3000);
     } else {
       // Proceed with purchase
-      handlePurchase(item.id);
+      handlePurchase(item.id, item.category === 'CASE' ? quantity : undefined);
     }
   };
   
@@ -315,7 +321,12 @@ const ShopItemCard = forwardRef(({
           </div>
           <div className="flex items-center">
             <FaCoins className="text-yellow-400 mr-1" size={14} />
-            <span className="text-yellow-400 font-medium">{item.price}</span>
+            <span className="text-yellow-400 font-medium">
+              {item.category === 'CASE' && quantity > 1 
+                ? `${totalPrice} (${item.price} × ${quantity})` 
+                : item.price
+              }
+            </span>
           </div>
         </div>
         
@@ -354,8 +365,37 @@ const ShopItemCard = forwardRef(({
           </div>
         )}
         
-        {/* Enhanced purchase button */}
-        {item.owned ? (
+        {/* Quantity selector for cases */}
+        {item.category === 'CASE' && (
+          <div className="mb-3 p-2 bg-slate-800/30 border border-slate-700/50 rounded-md">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-slate-300">Quantity:</span>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  disabled={quantity <= 1}
+                  className="w-6 h-6 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded flex items-center justify-center text-white text-sm transition-colors"
+                >
+                  −
+                </button>
+                <span className="text-white font-medium min-w-[2rem] text-center">{quantity}</span>
+                <button
+                  onClick={() => setQuantity(Math.min(10, quantity + 1))}
+                  disabled={quantity >= 10}
+                  className="w-6 h-6 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded flex items-center justify-center text-white text-sm transition-colors"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <div className="mt-1 text-xs text-slate-400">
+              Max 10 cases per purchase
+            </div>
+          </div>
+        )}
+        
+        {/* Enhanced purchase button - Remove owned check for cases */}
+        {(item.owned && item.category !== 'CASE') ? (
           <button 
             disabled
             className="purchase-button purchase-button-owned"
@@ -403,7 +443,7 @@ const ShopItemCard = forwardRef(({
             ) : (
               <>
                 <FaCoins className="mr-2" size={14} />
-                Purchase
+                {item.category === 'CASE' && quantity > 1 ? `Purchase ${quantity}` : 'Purchase'}
               </>
             )}
           </button>
@@ -583,14 +623,19 @@ export function ShopPage() {
     fetchCategories();
   }, []);
   
-  const handlePurchase = async (itemId: string) => {
+  const handlePurchase = async (itemId: string, quantity?: number) => {
     if (purchaseInProgress) return;
     
     setPurchaseInProgress(true);
     try {
       // Store the purchase response which contains updated user profile
-      const purchaseResponse = await httpClient.post(`/shop/purchase/${itemId}`);
-      showToast('Item purchased successfully!', 'success');
+      const purchaseResponse = await httpClient.post(`/shop/purchase/${itemId}`, { quantity });
+      showToast(
+        quantity && quantity > 1 
+          ? `${quantity} items purchased successfully!` 
+          : 'Item purchased successfully!', 
+        'success'
+      );
       
       // Mark recent purchase for animation
       setRecentPurchases(prev => ({...prev, [itemId]: Date.now()}));
@@ -772,17 +817,17 @@ export function ShopPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 shop-item-grid">
               <AnimatePresence mode="popLayout">
-                                  {items.map((item) => (
-                    <ShopItemCard
-                      key={item.id}
-                      item={item}
-                      handlePurchase={handlePurchase}
-                      purchaseInProgress={purchaseInProgress}
-                      user={user}
-                      isRecentlyPurchased={!!recentPurchases[item.id] && (Date.now() - recentPurchases[item.id] < 5000)}
-                      onViewCaseContents={openCasePreview}
-                    />
-                  ))}
+                {items.map((item) => (
+                  <ShopItemCard
+                    key={item.id}
+                    item={item}
+                    handlePurchase={handlePurchase}
+                    purchaseInProgress={purchaseInProgress}
+                    user={user}
+                    isRecentlyPurchased={!!recentPurchases[item.id] && (Date.now() - recentPurchases[item.id] < 5000)}
+                    onViewCaseContents={openCasePreview}
+                  />
+                ))}
               </AnimatePresence>
             </div>
           )}

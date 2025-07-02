@@ -224,10 +224,15 @@ public class ShopService {
         user.setCredits(user.getCredits() - totalCost);
         
         try {
-            // Add items to inventory - temporarily use existing system for all items
-            logger.debug("Adding {} instances of item {} to user inventory", quantity, itemId);
-            for (int i = 0; i < quantity; i++) {
-                user.addItem(item);
+            // Add items to inventory - use quantity-based system for cases
+            if (item.getCategory() == ShopCategory.CASE) {
+                logger.debug("Adding {} cases to user inventory using quantity-based system", quantity);
+                user.addItemWithQuantity(item, quantity);
+            } else {
+                logger.debug("Adding {} instances of item {} to user inventory", quantity, itemId);
+                for (int i = 0; i < quantity; i++) {
+                    user.addItem(item);
+                }
             }
             
             // Save user with updated inventory
@@ -449,29 +454,26 @@ public class ShopService {
             .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         
         Set<Shop> inventory = user.getInventory();
-        
-        // Group items by ID to count quantities
-        Map<UUID, List<Shop>> itemGroups = inventory.stream()
-            .collect(Collectors.groupingBy(Shop::getId));
+        Set<UserInventoryItem> inventoryItems = user.getInventoryItems();
         
         Set<ShopDTO> itemDTOs = new HashSet<>();
         
-        // Process each unique item
+        // Process regular inventory items (non-cases)
+        Map<UUID, List<Shop>> itemGroups = inventory.stream()
+            .filter(item -> item.getCategory() != ShopCategory.CASE) // Exclude cases from regular inventory
+            .collect(Collectors.groupingBy(Shop::getId));
+        
         for (Map.Entry<UUID, List<Shop>> entry : itemGroups.entrySet()) {
-            Shop item = entry.getValue().get(0); // Get the first instance for item details
-            int quantity = entry.getValue().size(); // Count how many instances we have
+            Shop item = entry.getValue().get(0);
+            int quantity = entry.getValue().size();
             
             ShopDTO dto = mapToShopDTO(item, user);
-            
-            // Set quantity for display (especially useful for cases)
             dto.setQuantity(quantity);
             
-            // Add equipped status to each item
+            // Add equipped status
             if (item.getCategory() != null) {
                 if (item.getCategory() == ShopCategory.BADGE) {
                     dto.setEquipped(user.isBadgeEquipped(item.getId()));
-                } else if (item.getCategory() == ShopCategory.CASE) {
-                    dto.setEquipped(false); // Cases cannot be equipped
                 } else {
                     UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
                     dto.setEquipped(equippedItemId != null && equippedItemId.equals(item.getId()));
@@ -479,6 +481,20 @@ public class ShopService {
             }
             
             itemDTOs.add(dto);
+        }
+        
+        // Process quantity-based inventory items (cases)
+        if (inventoryItems != null) {
+            for (UserInventoryItem invItem : inventoryItems) {
+                if (invItem.getQuantity() > 0) {
+                    Shop item = invItem.getItem();
+                    ShopDTO dto = mapToShopDTO(item, user);
+                    dto.setQuantity(invItem.getQuantity());
+                    dto.setEquipped(false); // Cases cannot be equipped
+                    
+                    itemDTOs.add(dto);
+                }
+            }
         }
         
         return UserInventoryDTO.builder()
@@ -732,8 +748,14 @@ public class ShopService {
         }
         
         // 3. Verify user owns the case
-        if (!user.hasItem(caseId)) {
+        if (!user.hasItemWithQuantity(caseId)) {
             throw new CaseNotOwnedException("You do not own this case");
+        }
+        
+        // Check that user has at least one case to open
+        int caseQuantity = user.getItemQuantity(caseId);
+        if (caseQuantity < 1) {
+            throw new CaseNotOwnedException("You do not have any cases of this type to open");
         }
         
         // 4. Get case contents with drop rates and validate
@@ -773,7 +795,7 @@ public class ShopService {
         int creditsBefore = user.getCredits();
         
         // 11. Remove case from user inventory (consume it)
-        user.getInventory().removeIf(item -> item.getId().equals(caseId));
+        user.removeItemQuantity(caseId, 1);
         
         // 12. Add won item to user inventory (only if not already owned)
         if (!alreadyOwned) {

@@ -28,6 +28,7 @@ export interface ShopItem {
   rarity: string;
   isCase?: boolean;
   caseContentsCount?: number;
+  quantity?: number;
 }
 
 interface ToastNotification {
@@ -658,6 +659,13 @@ export function InventoryPage() {
                                     </div>
                                   )}
                                   
+                                  {/* Case quantity display */}
+                                  {item.category === 'CASE' && item.quantity && item.quantity > 1 && (
+                                    <div className="mt-1 text-xs text-primary font-bold">
+                                      x{item.quantity} Cases
+                                    </div>
+                                  )}
+                                  
                                   {/* Mystical background effect */}
                                   <div 
                                     className="absolute inset-0 opacity-20 case-mystical-effect"
@@ -727,6 +735,12 @@ export function InventoryPage() {
                                     <span className="text-slate-400">Case Contents:</span>
                                     <span className="text-slate-300 font-medium">{item.caseContentsCount} items</span>
                                   </div>
+                                  {item.quantity && item.quantity > 1 && (
+                                    <div className="flex items-center justify-between text-xs mb-2">
+                                      <span className="text-slate-400">Quantity Owned:</span>
+                                      <span className="text-primary font-medium">x{item.quantity}</span>
+                                    </div>
+                                  )}
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -753,15 +767,16 @@ export function InventoryPage() {
                                 {item.category === 'CASE' ? (
                                   <button
                                     onClick={() => openCaseRoll(item.id, item.name)}
-                                    disabled={actionInProgress !== null}
+                                    disabled={actionInProgress !== null || !item.quantity || item.quantity < 1}
                                     className={`item-action-button px-3 py-1 bg-primary hover:bg-primary/90 text-white rounded text-xs flex items-center transition-colors ${
-                                      actionInProgress !== null ? 'opacity-50 cursor-not-allowed' : ''
+                                      actionInProgress !== null || !item.quantity || item.quantity < 1 ? 'opacity-50 cursor-not-allowed' : ''
                                     }`}
                                   >
                                     <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                     </svg>
-                                    Open Case
+                                    {(!item.quantity || item.quantity < 1) ? 'No Cases' : 
+                                     (item.quantity > 1 ? `Open Case (${item.quantity} left)` : 'Open Case')}
                                   </button>
                                 ) : item.category === 'BADGE' ? (
                                   item.equipped ? (

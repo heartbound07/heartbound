@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useInputValidation, useCharacterCount } from '@/hooks/useSanitizedContent';
 import { sanitizeText, isContentSafe } from '@/components/SafeHtmlRenderer';
 

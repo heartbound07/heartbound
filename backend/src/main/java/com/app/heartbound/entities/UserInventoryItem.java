@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -20,7 +21,6 @@ import java.util.UUID;
  * This entity supports multiple instances of the same item (like cases)
  * while maintaining the existing shop system compatibility.
  */
-@Data
 @Entity
 @Table(name = "user_inventory_items",
        indexes = {
@@ -31,9 +31,11 @@ import java.util.UUID;
        uniqueConstraints = {
            @UniqueConstraint(name = "uk_user_inventory_user_item", columnNames = {"user_id", "item_id"})
        })
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@EqualsAndHashCode(exclude = {"user"})
 public class UserInventoryItem {
     
     @Id
