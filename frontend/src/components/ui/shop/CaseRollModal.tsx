@@ -115,9 +115,6 @@ export function CaseRollModal({
     },
     onReveal: () => {
       // TODO: Implement reveal sound
-    },
-    onRarityReveal: (rarity: string) => {
-      // TODO: Implement rarity-specific sound
     }
   };
 
