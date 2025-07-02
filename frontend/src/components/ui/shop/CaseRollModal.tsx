@@ -97,7 +97,10 @@ export function CaseRollModal({
   });
   
   // Transform the smooth progress to actual pixel movement
-  const x = useTransform(smoothScrollProgress, [0, 1], [0, -2880]);
+  // Calculate total width dynamically: itemCount × 8 repetitions × 112px spacing
+  // Use fallback of 3360 (30 items × 112px) if animationItems not loaded yet
+  const totalAnimationWidth = animationItems.length > 0 ? animationItems.length * 112 : 3360;
+  const x = useTransform(smoothScrollProgress, [0, 1], [0, -totalAnimationWidth]);
   
   // Audio hooks for future implementation
   const audioHooks: AudioHooks = {
@@ -147,7 +150,8 @@ export function CaseRollModal({
     if (!animationItems.length) return 0.85;
     
     // Calculate the final scroll progress to center the winning item
-    const itemWidth = 120;
+    // Item width: w-24 (96px) + mx-2 (8px each side = 16px) = 112px total spacing
+    const itemWidth = 112;
     const containerWidth = scrollContainerRef.current?.offsetWidth || 800;
     const centerPosition = containerWidth / 2 - (itemWidth / 2);
     
@@ -171,11 +175,157 @@ export function CaseRollModal({
     const targetPosition = targetIndex * itemWidth - centerPosition;
     const calculatedProgress = targetPosition / totalWidth;
     
-    // Ensure finalProgress is always greater than 0.7 to maintain leftward direction
-    const minProgress = 0.75; // Must be greater than rolling end position (0.7)
+    // Only apply minimum constraint if calculated position would be too close to rolling end
+    const rollingEndPosition = 0.7;
+    const minSafeDistance = 0.05; // 5% buffer from rolling end
+    const minProgress = rollingEndPosition + minSafeDistance; // 0.75
     const maxProgress = 0.95; // Don't go too far to avoid running out of items
     
-    return Math.min(Math.max(calculatedProgress, minProgress), maxProgress);
+    // Only enforce minimum if our calculation is too close to rolling end
+    const finalProgress = calculatedProgress < minProgress 
+      ? minProgress 
+      : Math.min(calculatedProgress, maxProgress);
+    
+    return finalProgress;
+  }, [animationItems]);
+
+  const generateAnimationSequenceFromRoll = useCallback((rollValue: number, caseContents: CaseContents) => {
+    if (!animationItems.length || !caseContents?.items) return 0.85;
+    
+    console.log('🎲 Generating animation sequence from roll value:', rollValue);
+    console.log('📦 Case contents order:', caseContents.items.map(item => 
+      `${item.containedItem.name} (${item.dropRate}%)`
+    ).join(', '));
+    
+    // Calculate the final scroll progress based on the rollValue and drop rates
+    // Item width: w-24 (96px) + mx-2 (8px each side = 16px) = 112px total spacing
+    const itemWidth = 112;
+    const containerWidth = scrollContainerRef.current?.offsetWidth || 800;
+    const centerPosition = containerWidth / 2 - (itemWidth / 2);
+    
+    // Define rolling constraints
+    const rollingEndPosition = 0.7;
+    const minSafeDistance = 0.05;
+    
+    // Find which item corresponds to the rollValue based on cumulative drop rates
+    let cumulative = 0;
+    let wonItemFromRoll = null;
+    
+    console.log('🎯 Drop rate ranges for rollValue', rollValue + ':');
+    for (const caseItem of caseContents.items) {
+      const previousCumulative = cumulative;
+      cumulative += caseItem.dropRate;
+      console.log(`  ${caseItem.containedItem.name}: ${previousCumulative}-${cumulative-1} (${caseItem.dropRate}%)`);
+      
+      if (rollValue < cumulative) {
+        wonItemFromRoll = caseItem.containedItem;
+        console.log(`  ✅ Selected: ${wonItemFromRoll.name} (rollValue ${rollValue} < cumulative ${cumulative})`);
+        break;
+      } 
+    }
+    
+    if (!wonItemFromRoll) {
+      console.error('❌ Could not determine winning item from roll value!', {
+        rollValue,
+        totalCumulative: cumulative,
+        itemCount: caseContents.items.length,
+        dropRates: caseContents.items.map(item => ({
+          name: item.containedItem.name,
+          dropRate: item.dropRate
+        }))
+      });
+      return 0.85;
+    }
+    
+    console.log('🎲 Winning item from roll calculation:', {
+      rollValue,
+      cumulative,
+      itemId: wonItemFromRoll.id,
+      itemName: wonItemFromRoll.name
+    });
+    
+    // Find winning item in the animation items array
+    const uniqueItemsCount = animationItems.length / 8;
+    const winningIndex = animationItems.findIndex(item => item.containedItem.id === wonItemFromRoll.id);
+    
+    console.log('🔍 Animation item search:', {
+      wonItemId: wonItemFromRoll.id,
+      wonItemName: wonItemFromRoll.name,
+      winningIndex,
+      uniqueItemsCount,
+      totalAnimationItems: animationItems.length
+    });
+    
+    let targetIndex;
+    if (winningIndex !== -1) {
+      // Calculate which repetition to target - use a consistent repetition (6th repetition)
+      const targetRepetition = 6; // This puts us well past the rolling end at ~75% through animation
+      const indexInRepetition = winningIndex % uniqueItemsCount;
+      targetIndex = targetRepetition * uniqueItemsCount + indexInRepetition;
+      
+      // Ensure we don't go beyond available items (we have 8 repetitions)
+      if (targetIndex >= animationItems.length) {
+        // Fall back to 5th repetition if 6th would exceed bounds
+        targetIndex = 5 * uniqueItemsCount + indexInRepetition;
+      }
+      
+      console.log('🎯 Target calculation:', {
+        targetRepetition,
+        indexInRepetition,
+        targetIndex,
+        calculatedPosition: targetIndex * itemWidth - centerPosition
+      });
+    } else {
+      // Fallback to a position further along to maintain leftward direction
+      targetIndex = Math.floor(animationItems.length * 0.75);
+      console.warn('Could not find winning item in animation items, using fallback position');
+    }
+    
+    // Convert to scroll progress (0 to 1)
+    const totalWidth = animationItems.length * itemWidth;
+    const targetPosition = targetIndex * itemWidth - centerPosition;
+    const calculatedProgress = targetPosition / totalWidth;
+    
+    // Only apply minimum constraint if calculated position would be too close to rolling end
+    const minProgress = rollingEndPosition + minSafeDistance; // 0.75
+    const maxProgress = 0.95; // Don't go too far to avoid running out of items
+    
+    // Only enforce minimum if our calculation is too close to rolling end
+    const finalProgress = calculatedProgress < minProgress 
+      ? minProgress 
+      : Math.min(calculatedProgress, maxProgress);
+    
+    console.log('🎲 Animation sequence calculated:', {
+      rollValue,
+      targetIndex,
+      calculatedProgress,
+      finalProgress,
+      constraintApplied: calculatedProgress < minProgress,
+      wonItem: wonItemFromRoll.name,
+      itemWidth,
+      totalWidth,
+      targetPosition: targetIndex * itemWidth - centerPosition,
+      containerWidth,
+      centerPosition
+    });
+    
+    // Verify which item will be at center when animation stops
+    const finalXPosition = finalProgress * totalWidth;
+    // Calculate which item will be at the center line: scroll position + center offset
+    const itemAtCenter = Math.floor((finalXPosition + centerPosition) / itemWidth);
+    const actualItemAtCenter = animationItems[itemAtCenter];
+    
+    console.log('🎯 Verification - Animation landing position:', {
+      expectedItem: wonItemFromRoll.name,
+      expectedIndex: targetIndex,
+      actualIndex: itemAtCenter,
+      actualItem: actualItemAtCenter ? actualItemAtCenter.containedItem.name : 'Not found',
+      match: actualItemAtCenter?.containedItem.id === wonItemFromRoll.id,
+      finalXPosition,
+      indexDifference: itemAtCenter - targetIndex
+    });
+    
+    return finalProgress;
   }, [animationItems]);
 
   const handleOpenCase = async () => {
@@ -212,8 +362,8 @@ export function CaseRollModal({
       const apiResponse = await apiPromise;
       setRollResult(apiResponse.data);
       
-      // Start deceleration
-      await handleDeceleration(apiResponse.data.wonItem);
+      // Start deceleration using the rollValue from the API response
+      await handleDeceleration(apiResponse.data);
       
     } catch (error: any) {
       console.error('Error opening case:', error);
@@ -222,19 +372,24 @@ export function CaseRollModal({
     }
   };
 
-  const handleDeceleration = async (winningItem: RollResult['wonItem']) => {
+  const handleDeceleration = async (rollResult: RollResult) => {
     setAnimationState('decelerating');
     setCanSkip(false);
     audioHooks.onDecelerate?.();
     
-    console.log('🎲 Winning item:', {
-      id: winningItem.id,
-      name: winningItem.name,
-      rarity: winningItem.rarity
+    console.log('🎲 Roll result:', {
+      rollValue: rollResult.rollValue,
+      wonItem: {
+        id: rollResult.wonItem.id,
+        name: rollResult.wonItem.name,
+        rarity: rollResult.wonItem.rarity
+      }
     });
     
-    // Calculate final scroll progress
-    const finalProgress = generateAnimationSequence(winningItem);
+    // Calculate final scroll progress using the rollValue from backend
+    const finalProgress = caseContents 
+      ? generateAnimationSequenceFromRoll(rollResult.rollValue, caseContents)
+      : generateAnimationSequence(rollResult.wonItem); // Fallback to old method if no case contents
     
     console.log('🎲 Final scroll progress:', finalProgress);
     
@@ -250,7 +405,7 @@ export function CaseRollModal({
     // Animation complete, reveal the item
     setAnimationState('revealing');
     audioHooks.onReveal?.();
-    audioHooks.onRarityReveal?.(winningItem.rarity);
+    audioHooks.onRarityReveal?.(rollResult.wonItem.rarity);
     
     // Wait for dramatic pause before showing final result
     await new Promise(resolve => setTimeout(resolve, 1200));

@@ -777,39 +777,41 @@ public class ShopService {
         String rollSeed = secureRandomService.generateRollSeed();
         String rollSeedHash = generateSeedHash(rollSeed);
         
-        // 7. Perform secure weighted random selection
-        Shop wonItem = selectItemByDropRateSecure(caseItems);
+        // 7. Generate secure roll value for animation sync (0-99)
         int rollValue = secureRandomService.getSecureInt(100); // Secure random for animation sync
         
-        // 8. Find the drop rate for the won item
+        // 8. Perform secure weighted random selection using the pre-generated roll value
+        Shop wonItem = selectItemByDropRateSecureWithRoll(caseItems, rollValue);
+        
+        // 9. Find the drop rate for the won item
         int wonItemDropRate = caseItems.stream()
             .filter(item -> item.getContainedItem().getId().equals(wonItem.getId()))
             .mapToInt(CaseItem::getDropRate)
             .findFirst()
             .orElse(0);
         
-        // 9. Check if user already owns the won item
+        // 10. Check if user already owns the won item
         boolean alreadyOwned = user.hasItem(wonItem.getId());
         
-        // 10. Store credits before operation
+        // 11. Store credits before operation
         int creditsBefore = user.getCredits();
         
-        // 11. Remove case from user inventory (consume it)
+        // 12. Remove case from user inventory (consume it)
         user.removeItemQuantity(caseId, 1);
         
-        // 12. Add won item to user inventory (only if not already owned)
+        // 13. Add won item to user inventory (only if not already owned)
         if (!alreadyOwned) {
             user.addItem(wonItem);
         }
         
-        // 13. Save user changes
+        // 14. Save user changes
         user = userRepository.save(user);
         int creditsAfter = user.getCredits();
         
-        // 14. Calculate processing time
+        // 15. Calculate processing time
         long processingTime = System.currentTimeMillis() - startTime;
         
-        // 15. Create audit record
+        // 16. Create audit record
         RollAudit auditRecord = new RollAudit(
             userId, caseId, caseItem.getName(), wonItem.getId(), wonItem.getName(),
             rollValue, rollSeedHash, wonItemDropRate, totalDropRate, caseItems.size(),
@@ -823,13 +825,13 @@ public class ShopService {
         auditRecord.setRollTimestamp(now);
         auditRecord.setStatisticalHash(rollVerificationService.generateStatisticalHash(auditRecord));
         
-        // 16. Save audit record
+        // 17. Save audit record
         rollAuditRepository.save(auditRecord);
         
         logger.info("User {} opened case {} and won item {} (already owned: {}) - Roll: {}, Seed: {}", 
                    userId, caseId, wonItem.getId(), alreadyOwned, rollValue, rollSeedHash.substring(0, 8) + "...");
         
-        // 17. Return result
+        // 18. Return result
         return RollResultDTO.builder()
             .caseId(caseId)
             .caseName(caseItem.getName())
@@ -850,6 +852,23 @@ public class ShopService {
         return secureRandomService.selectWeightedRandom(
             caseItems,
             100, // Total weight should always be 100 for drop rates
+            CaseItem::getDropRate
+        ).getContainedItem();
+    }
+    
+    /**
+     * Perform secure weighted random selection based on drop rates using a pre-generated roll value
+     * This method ensures animation synchronization by using the same roll value for both selection and animation
+     * @param caseItems List of case items with drop rates
+     * @param rollValue Pre-generated roll value (0-99)
+     * @return Selected shop item
+     */
+    private Shop selectItemByDropRateSecureWithRoll(List<CaseItem> caseItems, int rollValue) {
+        // Use secure random service for weighted selection with pre-generated roll value
+        return secureRandomService.selectWeightedRandom(
+            caseItems,
+            100, // Total weight should always be 100 for drop rates
+            rollValue, // Use the pre-generated roll value
             CaseItem::getDropRate
         ).getContainedItem();
     }

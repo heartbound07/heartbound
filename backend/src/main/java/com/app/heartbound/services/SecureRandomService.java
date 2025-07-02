@@ -146,6 +146,48 @@ public class SecureRandomService {
     }
     
     /**
+     * Perform weighted random selection from a list of items using a pre-generated roll value
+     * This overload is used for animation synchronization to ensure frontend and backend use the same roll
+     * @param items List of items with weights (must sum to totalWeight)
+     * @param totalWeight Total weight of all items
+     * @param rollValue Pre-generated roll value (0 to totalWeight-1)
+     * @param weightExtractor Function to extract weight from item
+     * @return Selected item
+     */
+    public <T> T selectWeightedRandom(List<T> items, int totalWeight, int rollValue,
+                                     java.util.function.ToIntFunction<T> weightExtractor) {
+        if (items == null || items.isEmpty()) {
+            throw new IllegalArgumentException("Items list cannot be null or empty");
+        }
+        
+        if (totalWeight <= 0) {
+            throw new IllegalArgumentException("Total weight must be positive");
+        }
+        
+        if (rollValue < 0 || rollValue >= totalWeight) {
+            throw new IllegalArgumentException("Roll value must be between 0 and " + (totalWeight - 1));
+        }
+        
+        operationsCount.incrementAndGet(); // Count this as a random operation for metrics
+        
+        int cumulative = 0;
+        
+        for (T item : items) {
+            cumulative += weightExtractor.applyAsInt(item);
+            if (rollValue < cumulative) {
+                logger.debug("Weighted selection with pre-generated roll: roll={}, cumulative={}, selected item", 
+                           rollValue, cumulative);
+                return item;
+            }
+        }
+        
+        // Fallback to last item (should never happen with valid weights)
+        logger.warn("Weighted selection with pre-generated roll fell through, returning last item. Roll: {}, Total: {}", 
+                   rollValue, totalWeight);
+        return items.get(items.size() - 1);
+    }
+    
+    /**
      * Generate a secure random seed for roll verification
      * @return Base64 encoded random seed
      */
