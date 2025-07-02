@@ -613,8 +613,11 @@ export function CaseRollModal({
                                     <span className="text-xs text-slate-300">Drop Rate</span>
                                     <div className="w-16 bg-slate-700 rounded-full h-1.5 overflow-hidden">
                                       <div 
-                                        className="h-full bg-primary transition-all duration-300"
-                                        style={{ width: `${caseItem.dropRate}%` }}
+                                        className="h-full transition-all duration-300"
+                                        style={{ 
+                                          width: `${caseItem.dropRate}%`,
+                                          background: 'linear-gradient(90deg, #ff4655 0%, rgba(255, 70, 85, 0.8) 100%)'
+                                        }}
                                       />
                                     </div>
                                     <span className="text-sm font-medium text-primary">
@@ -678,11 +681,14 @@ export function CaseRollModal({
                                       <div className="flex items-center space-x-2">
                                         <div className="w-16 bg-slate-700 rounded-full h-1.5 overflow-hidden">
                                           <div 
-                                            className="h-full bg-primary transition-all duration-300"
-                                            style={{ width: `${caseItem.dropRate}%` }}
+                                            className="h-full transition-all duration-300"
+                                            style={{ 
+                                              width: `${caseItem.dropRate}%`,
+                                              background: 'linear-gradient(90deg, #ff4655 0%, rgba(255, 70, 85, 0.8) 100%)'
+                                            }}
                                           />
                                         </div>
-                                        <span className="text-sm font-medium text-primary">
+                                        <span className="text-sm font-medium" style={{ color: '#ff4655' }}>
                                           {caseItem.dropRate}%
                                         </span>
                                       </div>
