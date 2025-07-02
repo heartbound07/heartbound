@@ -13,6 +13,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.JoinTable;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.CascadeType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -108,6 +110,10 @@ public class User {
     )
     private Set<Shop> inventory = new HashSet<>();
     
+    // Add new inventory relationship with quantity support
+    @OneToMany(mappedBy = "user", fetch = jakarta.persistence.FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<UserInventoryItem> inventoryItems = new HashSet<>();
+    
     // Add these fields to store equipped item IDs
     @Column(name = "equipped_user_color_id")
     private UUID equippedUserColorId;
@@ -157,6 +163,87 @@ public class User {
         return this.inventory != null && 
                this.inventory.stream()
                    .anyMatch(item -> item.getId().equals(itemId));
+    }
+    
+    // Helper methods for new quantity-based inventory management
+    public void addItemWithQuantity(Shop item, int quantity) {
+        if (this.inventoryItems == null) {
+            this.inventoryItems = new HashSet<>();
+        }
+        
+        // Check if the item already exists in the new inventory
+        UserInventoryItem existingItem = this.inventoryItems.stream()
+            .filter(invItem -> invItem.getItem().getId().equals(item.getId()))
+            .findFirst()
+            .orElse(null);
+        
+        if (existingItem != null) {
+            // Item exists, add to quantity
+            existingItem.addQuantity(quantity);
+        } else {
+            // Create new inventory item with proper bidirectional relationship
+            UserInventoryItem newInventoryItem = new UserInventoryItem();
+            newInventoryItem.setUser(this);
+            newInventoryItem.setItem(item);
+            newInventoryItem.setQuantity(quantity);
+            
+            // Add to the collection
+            this.inventoryItems.add(newInventoryItem);
+        }
+        
+        // Also add to old inventory for backwards compatibility
+        this.addItem(item);
+    }
+    
+    public boolean hasItemWithQuantity(UUID itemId) {
+        if (this.inventoryItems == null) {
+            return false;
+        }
+        
+        return this.inventoryItems.stream()
+            .anyMatch(invItem -> 
+                invItem.getItem().getId().equals(itemId) && 
+                invItem.hasQuantity()
+            );
+    }
+    
+    public int getItemQuantity(UUID itemId) {
+        if (this.inventoryItems == null) {
+            return 0;
+        }
+        
+        return this.inventoryItems.stream()
+            .filter(invItem -> invItem.getItem().getId().equals(itemId))
+            .mapToInt(UserInventoryItem::getQuantity)
+            .findFirst()
+            .orElse(0);
+    }
+    
+    public boolean removeItemQuantity(UUID itemId, int quantity) {
+        if (this.inventoryItems == null) {
+            return false;
+        }
+        
+        UserInventoryItem inventoryItem = this.inventoryItems.stream()
+            .filter(invItem -> invItem.getItem().getId().equals(itemId))
+            .findFirst()
+            .orElse(null);
+        
+        if (inventoryItem == null) {
+            return false;
+        }
+        
+        boolean stillHasQuantity = inventoryItem.removeQuantity(quantity);
+        
+        if (!stillHasQuantity) {
+            // Remove from new inventory if no quantity left
+            this.inventoryItems.remove(inventoryItem);
+            
+            // Remove from old inventory for backwards compatibility
+            this.inventory.removeIf(item -> item.getId().equals(itemId));
+        }
+        
+        return true;
     }
 
     // Add getter/setter methods for the new fields

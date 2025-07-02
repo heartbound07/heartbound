@@ -53,6 +53,9 @@ public class ShopDTO {
     // Case-specific fields
     private boolean isCase = false;  // True if this is a case item
     private Integer caseContentsCount = 0;  // Number of items in this case
+    
+    // Quantity field for inventory items (especially cases)
+    private Integer quantity = 1;  // Default to 1 for compatibility
 
     public boolean isEquipped() {
         return equipped;
@@ -68,5 +71,13 @@ public class ShopDTO {
     
     public void setCase(boolean isCase) {
         this.isCase = isCase;
+    }
+    
+    public Integer getQuantity() {
+        return quantity;
+    }
+    
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
     }
 }

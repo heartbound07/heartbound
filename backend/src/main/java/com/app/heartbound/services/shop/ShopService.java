@@ -9,6 +9,7 @@ import com.app.heartbound.dto.shop.RollResultDTO;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.entities.CaseItem;
+import com.app.heartbound.entities.UserInventoryItem;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
@@ -23,6 +24,7 @@ import com.app.heartbound.exceptions.shop.InvalidCaseContentsException;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
 import com.app.heartbound.repositories.shop.CaseItemRepository;
+import com.app.heartbound.repositories.UserInventoryItemRepository;
 import com.app.heartbound.repositories.RollAuditRepository;
 import com.app.heartbound.entities.RollAudit;
 import com.app.heartbound.services.UserService;
@@ -57,6 +59,7 @@ public class ShopService {
     private final SecureRandomService secureRandomService;
     private final RollAuditRepository rollAuditRepository;
     private final RollVerificationService rollVerificationService;
+    private final UserInventoryItemRepository userInventoryItemRepository;
     private static final Logger logger = LoggerFactory.getLogger(ShopService.class);
     
     @Autowired
@@ -69,7 +72,8 @@ public class ShopService {
         HtmlSanitizationService htmlSanitizationService,
         SecureRandomService secureRandomService,
         RollAuditRepository rollAuditRepository,
-        RollVerificationService rollVerificationService
+        RollVerificationService rollVerificationService,
+        UserInventoryItemRepository userInventoryItemRepository
     ) {
         this.shopRepository = shopRepository;
         this.userRepository = userRepository;
@@ -80,6 +84,7 @@ public class ShopService {
         this.secureRandomService = secureRandomService;
         this.rollAuditRepository = rollAuditRepository;
         this.rollVerificationService = rollVerificationService;
+        this.userInventoryItemRepository = userInventoryItemRepository;
     }
     
     /**
@@ -189,6 +194,12 @@ public class ShopService {
             throw new ItemAlreadyOwnedException("User already owns this item");
         }
         
+        // For cases, check quantity-based ownership for proper inventory management
+        if (item.getCategory() == ShopCategory.CASE) {
+            // Cases can be purchased multiple times, no ownership check needed
+            logger.debug("Purchasing {} cases for user {}", quantity, userId);
+        }
+        
         // For non-case items, enforce quantity = 1
         if (item.getCategory() != ShopCategory.CASE && quantity > 1) {
             throw new IllegalArgumentException("Non-case items can only be purchased with quantity 1");
@@ -212,16 +223,25 @@ public class ShopService {
         // Process purchase
         user.setCredits(user.getCredits() - totalCost);
         
-        // Add items to inventory based on quantity
-        for (int i = 0; i < quantity; i++) {
-            user.addItem(item);
+        try {
+            // Add items to inventory - temporarily use existing system for all items
+            logger.debug("Adding {} instances of item {} to user inventory", quantity, itemId);
+            for (int i = 0; i < quantity; i++) {
+                user.addItem(item);
+            }
+            
+            // Save user with updated inventory
+            logger.debug("Saving user {} with updated inventory", userId);
+            user = userRepository.save(user);
+            
+            logger.info("User {} successfully purchased {} x{} (total cost: {})", userId, itemId, quantity, totalCost);
+            
+            // Return updated profile
+            return userService.mapToProfileDTO(user);
+        } catch (Exception e) {
+            logger.error("Error during purchase process for user {} and item {}: {}", userId, itemId, e.getMessage(), e);
+            throw new RuntimeException("An error occurred while processing your purchase", e);
         }
-        
-        User savedUser = userRepository.save(user);
-        logger.info("User {} successfully purchased {} x{} (total cost: {})", userId, itemId, quantity, totalCost);
-        
-        // Return updated user profile
-        return userService.mapToProfileDTO(savedUser);
     }
     
     /**
@@ -429,26 +449,37 @@ public class ShopService {
             .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         
         Set<Shop> inventory = user.getInventory();
-        Set<ShopDTO> itemDTOs = inventory.stream()
-            .map(item -> {
-                ShopDTO dto = mapToShopDTO(item, user);
-                
-                // Add equipped status to each item
-                if (item.getCategory() != null) {
-                    if (item.getCategory() == ShopCategory.BADGE) {
-                        dto.setEquipped(user.isBadgeEquipped(item.getId()));
-                    } else if (item.getCategory() == ShopCategory.CASE) {
-                        // Cases cannot be equipped, so always set to false
-                        dto.setEquipped(false);
-                    } else {
-                        UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
-                        dto.setEquipped(equippedItemId != null && equippedItemId.equals(item.getId()));
-                    }
+        
+        // Group items by ID to count quantities
+        Map<UUID, List<Shop>> itemGroups = inventory.stream()
+            .collect(Collectors.groupingBy(Shop::getId));
+        
+        Set<ShopDTO> itemDTOs = new HashSet<>();
+        
+        // Process each unique item
+        for (Map.Entry<UUID, List<Shop>> entry : itemGroups.entrySet()) {
+            Shop item = entry.getValue().get(0); // Get the first instance for item details
+            int quantity = entry.getValue().size(); // Count how many instances we have
+            
+            ShopDTO dto = mapToShopDTO(item, user);
+            
+            // Set quantity for display (especially useful for cases)
+            dto.setQuantity(quantity);
+            
+            // Add equipped status to each item
+            if (item.getCategory() != null) {
+                if (item.getCategory() == ShopCategory.BADGE) {
+                    dto.setEquipped(user.isBadgeEquipped(item.getId()));
+                } else if (item.getCategory() == ShopCategory.CASE) {
+                    dto.setEquipped(false); // Cases cannot be equipped
+                } else {
+                    UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
+                    dto.setEquipped(equippedItemId != null && equippedItemId.equals(item.getId()));
                 }
-                
-                return dto;
-            })
-            .collect(Collectors.toSet());
+            }
+            
+            itemDTOs.add(dto);
+        }
         
         return UserInventoryDTO.builder()
             .items(itemDTOs)
