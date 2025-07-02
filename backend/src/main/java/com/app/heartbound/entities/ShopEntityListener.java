@@ -1,6 +1,7 @@
 package com.app.heartbound.entities;
 
 import com.app.heartbound.services.HtmlSanitizationService;
+import com.app.heartbound.enums.ShopCategory;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import org.slf4j.Logger;
@@ -79,10 +80,18 @@ public class ShopEntityListener {
                 }
             }
             
-            // Sanitize URLs for safety
+                    // Sanitize imageUrl based on category
             if (shop.getImageUrl() != null) {
                 String originalImageUrl = shop.getImageUrl();
-                String sanitizedImageUrl = htmlSanitizationService.sanitizeUrl(originalImageUrl);
+                String sanitizedImageUrl;
+                
+                if (shop.getCategory() == ShopCategory.USER_COLOR) {
+                    // For USER_COLOR items, imageUrl contains a hex color value, not a URL
+                    sanitizedImageUrl = sanitizeColorValue(originalImageUrl);
+                } else {
+                    // For other categories, treat as URL
+                    sanitizedImageUrl = htmlSanitizationService.sanitizeUrl(originalImageUrl);
+                }
                 
                 if (!originalImageUrl.equals(sanitizedImageUrl)) {
                     logger.warn("Shop imageUrl sanitized during {}: '{}' -> '{}'", 
@@ -117,6 +126,28 @@ public class ShopEntityListener {
                         shop.getId(), e.getMessage(), e);
             // Don't throw exception to avoid breaking the persistence operation
         }
+    }
+    
+    /**
+     * Sanitize and validate a hex color value for USER_COLOR items
+     * @param colorValue The color value to sanitize
+     * @return Sanitized color value or null if invalid
+     */
+    private String sanitizeColorValue(String colorValue) {
+        if (colorValue == null || colorValue.trim().isEmpty()) {
+            return null;
+        }
+        
+        String trimmed = colorValue.trim();
+        
+        // Check if it's a valid hex color format
+        if (trimmed.matches("^#[0-9A-Fa-f]{6}$")) {
+            return trimmed.toUpperCase(); // Normalize to uppercase
+        }
+        
+        // Log invalid color attempts for security monitoring
+        logger.warn("Invalid color value rejected for USER_COLOR item in entity listener: {}", trimmed);
+        return null;
     }
     
     /**

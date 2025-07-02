@@ -19,6 +19,8 @@ import com.app.heartbound.exceptions.shop.CaseNotFoundException;
 import com.app.heartbound.exceptions.shop.CaseNotOwnedException;
 import com.app.heartbound.exceptions.shop.EmptyCaseException;
 import com.app.heartbound.exceptions.shop.InvalidCaseContentsException;
+import com.app.heartbound.exceptions.shop.ItemDeletionException;
+import com.app.heartbound.exceptions.shop.ItemReferencedInCasesException;
 import com.app.heartbound.services.shop.ShopService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -207,9 +209,29 @@ public class ShopController {
      */
     @DeleteMapping("/admin/items/{itemId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteShopItem(@PathVariable UUID itemId) {
-        shopService.deleteShopItem(itemId);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> deleteShopItem(@PathVariable UUID itemId) {
+        try {
+            shopService.deleteShopItem(itemId);
+            return ResponseEntity.noContent().build();
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (ItemReferencedInCasesException e) {
+            // For now, we perform cascade deletion automatically
+            // In the future, this could be used to show a confirmation dialog
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new CascadeDeletionResponse(
+                    "Item was referenced in cases and has been removed from them during deletion",
+                    e.getReferencingCaseIds()
+                ));
+        } catch (ItemDeletionException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Unexpected error deleting shop item {}: {}", itemId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An unexpected error occurred while deleting the item"));
+        }
     }
     
     /**
@@ -538,15 +560,36 @@ public class ShopController {
     /**
      * Purchase request DTO for quantity-based purchases
      */
-    public static class PurchaseRequest {
+        public static class PurchaseRequest {
         private Integer quantity;
-        
+
         public Integer getQuantity() {
             return quantity;
         }
-        
+
         public void setQuantity(Integer quantity) {
             this.quantity = quantity;
+        }
+    }
+    
+    /**
+     * Response class for cascade deletion operations
+     */
+    public static class CascadeDeletionResponse {
+        private final String message;
+        private final List<UUID> affectedCaseIds;
+
+        public CascadeDeletionResponse(String message, List<UUID> affectedCaseIds) {
+            this.message = message;
+            this.affectedCaseIds = affectedCaseIds;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public List<UUID> getAffectedCaseIds() {
+            return affectedCaseIds;
         }
     }
 }

@@ -49,6 +49,11 @@ public interface CaseItemRepository extends JpaRepository<CaseItem, UUID> {
     void deleteByCaseId(@Param("caseId") UUID caseId);
     
     /**
+     * Delete all case items that contain a specific item
+     */
+    void deleteByContainedItem(Shop containedItem);
+    
+    /**
      * Check if a case has any items
      */
     boolean existsByCaseShopItem(Shop caseShopItem);

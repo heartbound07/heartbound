@@ -21,6 +21,8 @@ import com.app.heartbound.exceptions.shop.CaseNotFoundException;
 import com.app.heartbound.exceptions.shop.CaseNotOwnedException;
 import com.app.heartbound.exceptions.shop.EmptyCaseException;
 import com.app.heartbound.exceptions.shop.InvalidCaseContentsException;
+import com.app.heartbound.exceptions.shop.ItemDeletionException;
+import com.app.heartbound.exceptions.shop.ItemReferencedInCasesException;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
 import com.app.heartbound.repositories.shop.CaseItemRepository;
@@ -555,7 +557,17 @@ public class ShopService {
         // Sanitize input data before creating entity
         String sanitizedName = htmlSanitizationService.sanitizeStrict(shopDTO.getName());
         String sanitizedDescription = htmlSanitizationService.sanitizeBasic(shopDTO.getDescription());
-        String sanitizedImageUrl = htmlSanitizationService.sanitizeUrl(shopDTO.getImageUrl());
+        
+        // Handle imageUrl sanitization based on category
+        String sanitizedImageUrl;
+        if (shopDTO.getCategory() == ShopCategory.USER_COLOR) {
+            // For USER_COLOR items, imageUrl contains a hex color value, not a URL
+            sanitizedImageUrl = sanitizeColorValue(shopDTO.getImageUrl());
+        } else {
+            // For other categories, treat as URL
+            sanitizedImageUrl = htmlSanitizationService.sanitizeUrl(shopDTO.getImageUrl());
+        }
+        
         String sanitizedThumbnailUrl = htmlSanitizationService.sanitizeUrl(shopDTO.getThumbnailUrl());
         
         // Validate required fields after sanitization
@@ -614,7 +626,17 @@ public class ShopService {
         // Sanitize input data before updating entity
         String sanitizedName = htmlSanitizationService.sanitizeStrict(shopDTO.getName());
         String sanitizedDescription = htmlSanitizationService.sanitizeBasic(shopDTO.getDescription());
-        String sanitizedImageUrl = htmlSanitizationService.sanitizeUrl(shopDTO.getImageUrl());
+        
+        // Handle imageUrl sanitization based on category
+        String sanitizedImageUrl;
+        if (shopDTO.getCategory() == ShopCategory.USER_COLOR) {
+            // For USER_COLOR items, imageUrl contains a hex color value, not a URL
+            sanitizedImageUrl = sanitizeColorValue(shopDTO.getImageUrl());
+        } else {
+            // For other categories, treat as URL
+            sanitizedImageUrl = htmlSanitizationService.sanitizeUrl(shopDTO.getImageUrl());
+        }
+        
         String sanitizedThumbnailUrl = htmlSanitizationService.sanitizeUrl(shopDTO.getThumbnailUrl());
         
         // Validate required fields after sanitization
@@ -657,25 +679,125 @@ public class ShopService {
     }
     
     /**
-     * Delete a shop item completely (hard delete)
+     * Delete a shop item completely with cascade delete handling
      * @param itemId Item ID
+     * @throws ItemDeletionException if the item cannot be deleted
+     * @throws ItemReferencedInCasesException if the item is referenced in cases (with cascade info)
      */
     @Transactional
     public void deleteShopItem(UUID itemId) {
-        logger.debug("Hard deleting shop item {}", itemId);
+        logger.debug("Attempting to delete shop item {}", itemId);
         
         Shop item = shopRepository.findById(itemId)
             .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
         
-        // First, check if item is in any user's inventory and remove it
-        List<User> usersWithItem = userRepository.findByInventoryContaining(item);
-        for (User user : usersWithItem) {
-            user.getInventory().removeIf(i -> i.getId().equals(itemId));
-            userRepository.save(user);
+        try {
+            // Step 1: Check for case references and handle cascade deletion
+            handleCaseReferences(item);
+            
+            // Step 2: Remove from user inventories (both old and new inventory systems)
+            cleanupUserInventories(item);
+            
+            // Step 3: Perform the actual deletion
+            shopRepository.delete(item);
+            
+            logger.info("Successfully deleted shop item {} with cascade cleanup", itemId);
+            
+        } catch (Exception e) {
+            logger.error("Failed to delete shop item {}: {}", itemId, e.getMessage(), e);
+            
+            // If it's one of our custom exceptions, re-throw it
+            if (e instanceof ItemDeletionException) {
+                throw e;
+            }
+            
+            // For any other exceptions, wrap in our custom exception
+            throw new ItemDeletionException(
+                "Failed to delete item due to an unexpected error: " + e.getMessage(), e
+            );
+        }
+    }
+    
+    /**
+     * Handle case references during item deletion
+     * @param item The item being deleted
+     * @throws ItemReferencedInCasesException if the item has case references that need attention
+     */
+    private void handleCaseReferences(Shop item) {
+        logger.debug("Checking case references for item {}", item.getId());
+        
+        // Check if this item is a case itself
+        if (item.getCategory() == ShopCategory.CASE) {
+            List<CaseItem> caseContents = caseItemRepository.findByCaseShopItem(item);
+            if (!caseContents.isEmpty()) {
+                logger.info("Deleting {} case items for case {}", caseContents.size(), item.getId());
+                caseItemRepository.deleteByCaseShopItem(item);
+            }
         }
         
-        // Hard delete the item
-        shopRepository.delete(item);
+        // Check if this item is contained in any cases
+        List<CaseItem> containingCases = caseItemRepository.findByContainedItem(item);
+        if (!containingCases.isEmpty()) {
+            // Extract the case IDs for reporting
+            List<UUID> caseIds = containingCases.stream()
+                .map(caseItem -> caseItem.getCaseShopItem().getId())
+                .distinct()
+                .collect(Collectors.toList());
+                
+            logger.info("Item {} is contained in {} cases. Removing from cases: {}", 
+                       item.getId(), caseIds.size(), caseIds);
+            
+            // Remove the item from all cases that contain it
+            caseItemRepository.deleteByContainedItem(item);
+            
+            // Log the cascade operation for audit purposes
+            logger.warn("Cascade deletion: Removed item {} from {} cases during deletion. " +
+                       "This may affect case drop rates and should be reviewed.", 
+                       item.getId(), caseIds.size());
+        }
+    }
+    
+    /**
+     * Clean up user inventories for the item being deleted
+     * @param item The item being deleted
+     */
+    private void cleanupUserInventories(Shop item) {
+        logger.debug("Cleaning up user inventories for item {}", item.getId());
+        
+        // Clean up the new UserInventoryItem system
+        userInventoryItemRepository.deleteByItem(item);
+        
+        // Clean up the legacy User.inventory system (if still in use)
+        List<User> usersWithItem = userRepository.findByInventoryContaining(item);
+        if (!usersWithItem.isEmpty()) {
+            logger.info("Removing item {} from {} users' legacy inventory", item.getId(), usersWithItem.size());
+            for (User user : usersWithItem) {
+                user.getInventory().removeIf(i -> i.getId().equals(item.getId()));
+                userRepository.save(user);
+            }
+        }
+    }
+    
+    /**
+     * Sanitize and validate a hex color value for USER_COLOR items
+     * @param colorValue The color value to sanitize
+     * @return Sanitized color value or null if invalid
+     */
+    private String sanitizeColorValue(String colorValue) {
+        if (colorValue == null || colorValue.trim().isEmpty()) {
+            return null;
+        }
+        
+        String trimmed = colorValue.trim();
+        
+        // Check if it's a valid hex color format
+        if (trimmed.matches("^#[0-9A-Fa-f]{6}$")) {
+            return trimmed.toUpperCase(); // Normalize to uppercase
+        }
+        
+        // Log invalid color attempts for security monitoring
+        logger.warn("Invalid color value rejected for USER_COLOR item: {}", trimmed);
+        return null;
     }
     
     /**
