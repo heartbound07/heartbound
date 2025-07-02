@@ -26,21 +26,29 @@ interface RollResult {
   alreadyOwned: boolean;
 }
 
-interface CaseItem {
+interface CaseItemDTO {
   id: string;
-  name: string;
-  imageUrl: string;
-  thumbnailUrl?: string;
-  rarity: string;
-  category: string;
+  caseId: string;
+  containedItem: {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    category: string;
+    imageUrl: string;
+    thumbnailUrl?: string;
+    rarity: string;
+    owned: boolean;
+  };
   dropRate: number;
 }
 
 interface CaseContents {
   caseId: string;
   caseName: string;
-  items: CaseItem[];
+  items: CaseItemDTO[];
   totalDropRate: number;
+  itemCount: number;
 }
 
 interface CaseRollModalProps {
@@ -76,7 +84,7 @@ export function CaseRollModal({
   const [caseContents, setCaseContents] = useState<CaseContents | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [canSkip, setCanSkip] = useState(false);
-  const [animationItems, setAnimationItems] = useState<CaseItem[]>([]);
+  const [animationItems, setAnimationItems] = useState<CaseItemDTO[]>([]);
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollAnimation = useAnimation();
@@ -131,16 +139,28 @@ export function CaseRollModal({
   };
 
   const generateAnimationSequence = useCallback((winningItem: RollResult['wonItem']) => {
-    if (!animationItems.length) return;
+    if (!animationItems.length) return 0;
     
     // Calculate the position where the winning item should stop (center of view)
     const containerWidth = scrollContainerRef.current?.offsetWidth || 800;
-    const itemWidth = 120; // Width of each item including margin
+    const itemWidth = 120; // Width of each item including margin (96px + 16px margin)
     const centerPosition = containerWidth / 2 - (itemWidth / 2);
     
-    // Find winning item in the animation items array
-    const winningIndex = animationItems.findIndex(item => item.id === winningItem.id);
-    const targetIndex = winningIndex !== -1 ? winningIndex : Math.floor(animationItems.length * 0.6);
+    // Find winning item in the animation items array (look for it in the later iterations for dramatic effect)
+    const uniqueItemsCount = animationItems.length / 8;
+    const winningIndex = animationItems.findIndex(item => item.containedItem.id === winningItem.id);
+    
+    // If found, use an instance from the later part of the array for better visual effect
+    let targetIndex;
+    if (winningIndex !== -1) {
+      // Find the item in the 5th or 6th repetition for dramatic timing
+      const repetitionOffset = Math.floor(uniqueItemsCount * 4.5); // Start from 5th repetition
+      const indexInRepetition = winningIndex % uniqueItemsCount;
+      targetIndex = repetitionOffset + indexInRepetition;
+    } else {
+      // Fallback to a position in the later part
+      targetIndex = Math.floor(animationItems.length * 0.6);
+    }
     
     // Calculate final scroll position to center the winning item
     const finalScrollX = -(targetIndex * itemWidth - centerPosition);
@@ -156,6 +176,9 @@ export function CaseRollModal({
     audioHooks.onInitiate?.();
 
     try {
+      // Reset animation to starting position
+      scrollAnimation.set({ x: 0 });
+      
       // Start loading animation
       await new Promise(resolve => setTimeout(resolve, 500));
       
@@ -179,11 +202,16 @@ export function CaseRollModal({
     setAnimationState('rolling');
     setCanSkip(true);
     
+    // Calculate the total width needed for smooth infinite scroll
+    const itemWidth = 120; // Width including margin (24 + 16 margin)
+    const totalItems = animationItems.length;
+    const oneLoopWidth = totalItems > 0 ? (totalItems / 8) * itemWidth : 800; // One set of unique items
+    
     // Start continuous scrolling animation
     await scrollAnimation.start({
-      x: -2000, // Scroll left continuously
+      x: -oneLoopWidth * 3, // Scroll through multiple loops for smooth effect
       transition: {
-        duration: 3,
+        duration: 4,
         ease: "linear",
         repeat: Infinity
       }
@@ -195,9 +223,26 @@ export function CaseRollModal({
     setCanSkip(false);
     audioHooks.onDecelerate?.();
     
+    // Debug logging
+    console.log('🎲 Winning item from API:', {
+      id: winningItem.id,
+      name: winningItem.name,
+      rarity: winningItem.rarity,
+      category: winningItem.category
+    });
+    
+    console.log('🎲 Available animation items:', animationItems.map(item => ({
+      id: item.containedItem.id,
+      name: item.containedItem.name,
+      rarity: item.containedItem.rarity,
+      category: item.containedItem.category
+    })));
+    
     // Stop the infinite scroll and calculate final position
     scrollAnimation.stop();
     const finalPosition = generateAnimationSequence(winningItem);
+    
+    console.log('🎲 Final scroll position:', finalPosition);
     
     // Decelerate to the winning item position
     await scrollAnimation.start({
@@ -236,6 +281,7 @@ export function CaseRollModal({
 
   const handleClose = () => {
     scrollAnimation.stop();
+    scrollAnimation.set({ x: 0 }); // Reset position
     setAnimationState('idle');
     setRollResult(null);
     setError(null);
@@ -249,15 +295,17 @@ export function CaseRollModal({
     }
   };
 
-  const renderItemThumbnail = (item: CaseItem, index: number) => {
-    const rarityColor = getRarityColor(item.rarity);
+  const renderItemThumbnail = (item: CaseItemDTO, index: number) => {
+    const containedItem = item.containedItem;
+    const rarityColor = getRarityColor(containedItem.rarity);
     
     return (
       <motion.div
-        key={`${item.id}-${index}`}
+        key={`${containedItem.id}-${index}`}
         className="flex-shrink-0 w-24 h-24 mx-2 relative"
         style={{
           filter: animationState === 'revealing' ? 'blur(1px) brightness(0.7)' : 'none',
+          minWidth: '96px', // Ensure consistent width
         }}
         transition={{ duration: 0.3 }}
       >
@@ -266,29 +314,29 @@ export function CaseRollModal({
           style={{ borderColor: rarityColor }}
         >
           {/* Item preview based on category */}
-          {item.category === 'USER_COLOR' ? (
+          {containedItem.category === 'USER_COLOR' ? (
             <NameplatePreview
               username={user?.username || "User"}
               avatar={user?.avatar || "/default-avatar.png"}
-              color={item.imageUrl}
+              color={containedItem.imageUrl}
               fallbackColor={rarityColor}
               message=""
               className="h-full w-full"
               size="sm"
             />
-          ) : item.category === 'BADGE' ? (
+          ) : containedItem.category === 'BADGE' ? (
             <BadgePreview
               username={user?.username || "User"}
               avatar={user?.avatar || "/default-avatar.png"}
-              badgeUrl={item.thumbnailUrl || item.imageUrl}
+              badgeUrl={containedItem.thumbnailUrl || containedItem.imageUrl}
               message=""
               className="h-full w-full"
               size="sm"
             />
-          ) : item.imageUrl ? (
+          ) : containedItem.imageUrl ? (
             <img 
-              src={item.thumbnailUrl || item.imageUrl} 
-              alt={item.name}
+              src={containedItem.thumbnailUrl || containedItem.imageUrl} 
+              alt={containedItem.name}
               className="h-full w-full object-cover"
             />
           ) : (
@@ -315,7 +363,7 @@ export function CaseRollModal({
             fontSize: '10px'
           }}
         >
-          {getRarityLabel(item.rarity).charAt(0)}
+          {getRarityLabel(containedItem.rarity).charAt(0)}
         </div>
       </motion.div>
     );
@@ -489,7 +537,11 @@ export function CaseRollModal({
                     <motion.div
                       animate={scrollAnimation}
                       className="flex items-center h-full py-4"
-                      style={{ x: 0 }}
+                      style={{ 
+                        x: 0,
+                        width: 'max-content',
+                        flexWrap: 'nowrap'
+                      }}
                     >
                       {animationItems.map((item, index) => renderItemThumbnail(item, index))}
                     </motion.div>
