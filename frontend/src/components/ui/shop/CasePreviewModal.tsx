@@ -168,38 +168,64 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
                           }}
                         >
                           <div className="flex items-start space-x-3">
-                            {/* Item Preview */}
-                            <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2" style={{ borderColor: rarityColor }}>
-                              {item.category === 'USER_COLOR' ? (
-                                <NameplatePreview
-                                  username="Preview"
-                                  avatar="/default-avatar.png"
-                                  color={item.imageUrl}
-                                  fallbackColor={rarityColor}
-                                  message=""
-                                  className="h-full w-full"
-                                  size="sm"
+                            {/* Item Preview - Updated to match CaseRollModal.tsx logic */}
+                            <div className="flex-shrink-0 w-16 h-16 relative">
+                              <div 
+                                className="w-full h-full rounded-lg border-2 overflow-hidden relative bg-slate-800"
+                                style={{ borderColor: rarityColor }}
+                              >
+                                {/* Item preview based on category - Exact logic from CaseRollModal.tsx */}
+                                {item.category === 'USER_COLOR' ? (
+                                  <NameplatePreview
+                                    username={user?.username || "User"}
+                                    avatar={user?.avatar || "/default-avatar.png"}
+                                    color={item.imageUrl}
+                                    fallbackColor={rarityColor}
+                                    message=""
+                                    className="h-full w-full"
+                                    size="sm"
+                                  />
+                                ) : item.category === 'BADGE' ? (
+                                  <BadgePreview
+                                    username={user?.username || "User"}
+                                    avatar={user?.avatar || "/default-avatar.png"}
+                                    badgeUrl={item.thumbnailUrl || item.imageUrl}
+                                    message=""
+                                    className="h-full w-full"
+                                    size="sm"
+                                  />
+                                ) : item.imageUrl ? (
+                                  <img 
+                                    src={item.thumbnailUrl || item.imageUrl} 
+                                    alt={item.name}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="h-full w-full bg-slate-700 flex items-center justify-center">
+                                    <span className="text-xs text-slate-400">No Image</span>
+                                  </div>
+                                )}
+                                
+                                {/* Rarity glow effect - Added from CaseRollModal.tsx */}
+                                <div 
+                                  className="absolute inset-0 rounded-lg opacity-30"
+                                  style={{
+                                    boxShadow: `inset 0 0 10px ${rarityColor}`,
+                                  }}
                                 />
-                              ) : item.category === 'BADGE' ? (
-                                <BadgePreview
-                                  username="Preview"
-                                  avatar="/default-avatar.png"
-                                  badgeUrl={item.thumbnailUrl || item.imageUrl}
-                                  message=""
-                                  className="h-full w-full"
-                                  size="sm"
-                                />
-                              ) : item.imageUrl ? (
-                                <img 
-                                  src={item.imageUrl} 
-                                  alt={item.name}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div className="h-full w-full bg-slate-700 flex items-center justify-center">
-                                  <span className="text-xs text-slate-400">No Image</span>
-                                </div>
-                              )}
+                              </div>
+                              
+                              {/* Rarity indicator - Added from CaseRollModal.tsx */}
+                              <div 
+                                className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 px-1 py-0.5 rounded text-xs font-bold"
+                                style={{
+                                  backgroundColor: rarityColor,
+                                  color: 'white',
+                                  fontSize: '10px'
+                                }}
+                              >
+                                {getRarityLabel(item.rarity).charAt(0)}
+                              </div>
                             </div>
 
                             {/* Item Details */}
