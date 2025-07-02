@@ -114,11 +114,39 @@ httpClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle token refresh on 401 errors
+// Response interceptor to handle token refresh on 401 errors and CORS issues
 httpClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+    
+    // Handle CORS errors specifically
+    if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
+      console.error('CORS or Network Error detected:', {
+        message: error.message,
+        code: error.code,
+        url: originalRequest?.url,
+        method: originalRequest?.method
+      });
+      
+      // Add user-friendly error information
+      const corsError = new Error('Connection failed. Please check if the server is running and CORS is properly configured.');
+      corsError.name = 'CORSError';
+      return Promise.reject(corsError);
+    }
+    
+    // Handle CORS preflight failures (405 Method Not Allowed on OPTIONS)
+    if (error.response?.status === 405 && originalRequest?.method?.toUpperCase() === 'OPTIONS') {
+      console.error('CORS Preflight failed:', {
+        status: error.response.status,
+        url: originalRequest.url,
+        headers: error.response.headers
+      });
+      
+      const preflightError = new Error('CORS preflight request failed. Server may not be configured for cross-origin requests.');
+      preflightError.name = 'CORSPreflightError';
+      return Promise.reject(preflightError);
+    }
     
     // Only handle 401 errors that haven't been retried yet
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -139,6 +167,17 @@ httpClient.interceptors.response.use(
         console.error('Token refresh failed:', refreshError);
         return Promise.reject(refreshError);
       }
+    }
+    
+    // Log other HTTP errors for debugging
+    if (error.response) {
+      console.error('HTTP Error:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        url: originalRequest?.url,
+        method: originalRequest?.method,
+        data: error.response.data
+      });
     }
     
     return Promise.reject(error);

@@ -83,6 +83,9 @@ public class SecurityHeadersFilter implements Filter {
                 response.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
             }
             
+            // 8. CORS-specific security headers
+            addCorsSecurityHeaders(request, response);
+            
             logger.debug("Security headers added to response for: {}", request.getRequestURI());
             
         } catch (Exception e) {
@@ -187,5 +190,36 @@ public class SecurityHeadersFilter implements Filter {
               .append("autoplay=()");
         
         response.setHeader("Permissions-Policy", policy.toString());
+    }
+    
+    /**
+     * Add CORS-specific security headers for enhanced protection
+     */
+    private void addCorsSecurityHeaders(HttpServletRequest request, HttpServletResponse response) {
+        // Add Vary header for proper caching with CORS
+        String varyHeader = response.getHeader("Vary");
+        if (varyHeader == null) {
+            response.setHeader("Vary", "Origin, Access-Control-Request-Method, Access-Control-Request-Headers");
+        } else if (!varyHeader.contains("Origin")) {
+            response.setHeader("Vary", varyHeader + ", Origin, Access-Control-Request-Method");
+        }
+        
+        // Enhanced security for cross-origin requests
+        String origin = request.getHeader("Origin");
+        if (origin != null && !origin.isEmpty()) {
+            // Add additional security headers for CORS requests
+            response.setHeader("X-Permitted-Cross-Domain-Policies", "none");
+            
+            // Prevent CORS-based timing attacks
+            response.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+            response.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none");
+            
+            // Add cache control for CORS preflight requests
+            if ("OPTIONS".equals(request.getMethod())) {
+                response.setHeader("Access-Control-Max-Age", "3600");
+            }
+            
+            logger.debug("CORS security headers added for origin: {}", origin);
+        }
     }
 } 

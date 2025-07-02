@@ -12,13 +12,16 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 @Configuration
 @EnableMethodSecurity // Enable method-level security for @PreAuthorize annotations
 public class SecurityConfig {
+
+    private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
 
     @Autowired
     private JWTTokenProvider jwtTokenProvider;
@@ -28,22 +31,25 @@ public class SecurityConfig {
     
     @Autowired
     private SecurityHeadersFilter securityHeadersFilter;
-
-    @Value("${cors.allowed-origins}")
-    private String allowedOrigins;
+    
+    @Autowired
+    private CorsValidationFilter corsValidationFilter;
+    
+    @Autowired
+    private CorsConfigurationProvider corsConfigurationProvider;
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        // Allow requests only from trusted origins
-        configuration.setAllowedOrigins(List.of(allowedOrigins));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
-
+        // Use the enhanced CORS configuration from CorsConfigurationProvider
+        CorsConfiguration configuration = corsConfigurationProvider.createCorsConfiguration();
+        
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         // Apply this CORS configuration to all endpoints
         source.registerCorsConfiguration("/**", configuration);
+        
+        logger.info("CORS configuration source created with {} allowed origins", 
+                   configuration.getAllowedOrigins() != null ? configuration.getAllowedOrigins().size() : 0);
+        
         return source;
     }
 
@@ -86,6 +92,8 @@ public class SecurityConfig {
             )
             // Add security headers filter first
             .addFilterBefore(securityHeadersFilter, UsernamePasswordAuthenticationFilter.class)
+            // Add CORS validation filter after security headers
+            .addFilterBefore(corsValidationFilter, UsernamePasswordAuthenticationFilter.class)
             // Add rate limiting filter before JWT authentication filter
             .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             // Add JWT authentication filter
