@@ -915,25 +915,45 @@ public class ShopService {
         // 10. Check if user already owns the won item
         boolean alreadyOwned = user.hasItem(wonItem.getId());
         
-        // 11. Store credits before operation
+        // 11. Store credits and XP before operation
         int creditsBefore = user.getCredits();
+        int xpBefore = user.getExperience();
         
-        // 12. Remove case from user inventory (consume it)
+        // 12. Calculate and award compensation for duplicate items
+        boolean compensationAwarded = false;
+        int compensatedCredits = 0;
+        int compensatedXp = 0;
+        
+        if (alreadyOwned) {
+            // Calculate compensation based on item rarity
+            compensatedCredits = calculateCompensationCredits(wonItem.getRarity());
+            compensatedXp = calculateCompensationXp(wonItem.getRarity());
+            
+            // Award compensation
+            user.setCredits(user.getCredits() + compensatedCredits);
+            user.setExperience(user.getExperience() + compensatedXp);
+            compensationAwarded = true;
+            
+            logger.info("Awarded compensation for duplicate item {} to user {}: {} credits, {} XP", 
+                       wonItem.getId(), userId, compensatedCredits, compensatedXp);
+        }
+        
+        // 13. Remove case from user inventory (consume it)
         user.removeItemQuantity(caseId, 1);
         
-        // 13. Add won item to user inventory (only if not already owned)
+        // 14. Add won item to user inventory (only if not already owned)
         if (!alreadyOwned) {
             user.addItem(wonItem);
         }
         
-        // 14. Save user changes
+        // 15. Save user changes
         user = userRepository.save(user);
         int creditsAfter = user.getCredits();
         
-        // 15. Calculate processing time
+        // 16. Calculate processing time
         long processingTime = System.currentTimeMillis() - startTime;
         
-        // 16. Create audit record
+        // 17. Create audit record
         RollAudit auditRecord = new RollAudit(
             userId, caseId, caseItem.getName(), wonItem.getId(), wonItem.getName(),
             rollValue, rollSeedHash, wonItemDropRate, totalDropRate, caseItems.size(),
@@ -947,13 +967,15 @@ public class ShopService {
         auditRecord.setRollTimestamp(now);
         auditRecord.setStatisticalHash(rollVerificationService.generateStatisticalHash(auditRecord));
         
-        // 17. Save audit record
+        // 18. Save audit record
         rollAuditRepository.save(auditRecord);
         
-        logger.info("User {} opened case {} and won item {} (already owned: {}) - Roll: {}, Seed: {}", 
-                   userId, caseId, wonItem.getId(), alreadyOwned, rollValue, rollSeedHash.substring(0, 8) + "...");
+        logger.info("User {} opened case {} and won item {} (already owned: {}{}) - Roll: {}, Seed: {}", 
+                   userId, caseId, wonItem.getId(), alreadyOwned, 
+                   compensationAwarded ? ", compensation awarded: " + compensatedCredits + " credits, " + compensatedXp + " XP" : "",
+                   rollValue, rollSeedHash.substring(0, 8) + "...");
         
-        // 18. Return result
+        // 19. Return result
         return RollResultDTO.builder()
             .caseId(caseId)
             .caseName(caseItem.getName())
@@ -961,7 +983,60 @@ public class ShopService {
             .rollValue(rollValue)
             .rolledAt(LocalDateTime.now())
             .alreadyOwned(alreadyOwned)
+            .compensationAwarded(compensationAwarded)
+            .compensatedCredits(compensationAwarded ? compensatedCredits : null)
+            .compensatedXp(compensationAwarded ? compensatedXp : null)
             .build();
+    }
+    
+    /**
+     * Calculate credit compensation for duplicate items based on rarity
+     * @param rarity Item rarity
+     * @return Credit compensation amount
+     */
+    private int calculateCompensationCredits(ItemRarity rarity) {
+        if (rarity == null) {
+            rarity = ItemRarity.COMMON;
+        }
+        
+        switch (rarity) {
+            case LEGENDARY:
+                return 2500;
+            case EPIC:
+                return 1250;
+            case RARE:
+                return 650;
+            case UNCOMMON:
+                return 300;
+            case COMMON:
+            default:
+                return 100;
+        }
+    }
+    
+    /**
+     * Calculate XP compensation for duplicate items based on rarity
+     * @param rarity Item rarity
+     * @return XP compensation amount
+     */
+    private int calculateCompensationXp(ItemRarity rarity) {
+        if (rarity == null) {
+            rarity = ItemRarity.COMMON;
+        }
+        
+        switch (rarity) {
+            case LEGENDARY:
+                return 500;
+            case EPIC:
+                return 250;
+            case RARE:
+                return 100;
+            case UNCOMMON:
+                return 50;
+            case COMMON:
+            default:
+                return 15;
+        }
     }
     
     /**

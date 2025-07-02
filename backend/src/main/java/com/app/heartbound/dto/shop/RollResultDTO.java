@@ -25,4 +25,9 @@ public class RollResultDTO {
     private Integer rollValue;        // Roll value 0-100 for future animation sync
     private LocalDateTime rolledAt;
     private boolean alreadyOwned;     // If user already had this item
+    
+    // Duplicate compensation fields
+    private boolean compensationAwarded;  // Whether compensation was given for duplicate
+    private Integer compensatedCredits;   // Credits awarded for duplicate item
+    private Integer compensatedXp;        // XP awarded for duplicate item
 } 

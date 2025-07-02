@@ -54,6 +54,9 @@ interface RollResult {
   rollValue: number;
   rolledAt: string;
   alreadyOwned: boolean;
+  compensationAwarded?: boolean;
+  compensatedCredits?: number;
+  compensatedXp?: number;
 }
 
 // Add category mapping for special cases
@@ -212,11 +215,23 @@ export function InventoryPage() {
   };
   
   const handleRollComplete = async (result: RollResult) => {
-    // Show success toast
-    showToast(
-      `Congratulations! You won ${result.wonItem.name}${result.alreadyOwned ? ' (already owned)' : ''}!`, 
-      'success'
-    );
+    // Show enhanced success toast with compensation info
+    if (result.alreadyOwned && result.compensationAwarded) {
+      showToast(
+        `Congratulations! You won ${result.wonItem.name} (duplicate) and received ${result.compensatedCredits} credits + ${result.compensatedXp} XP as compensation!`, 
+        'success'
+      );
+    } else if (result.alreadyOwned) {
+      showToast(
+        `Congratulations! You won ${result.wonItem.name} (already owned)!`, 
+        'success'
+      );
+    } else {
+      showToast(
+        `Congratulations! You won ${result.wonItem.name}!`, 
+        'success'
+      );
+    }
     
     // Refresh inventory to show updated items
     await fetchInventory();
