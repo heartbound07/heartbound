@@ -104,7 +104,38 @@ public class GlobalExceptionHandler {
                 ex.getMessage(),
                 request.getRequestURI()
         );
-        return new ResponseEntity<>(response, HttpStatus.TOO_MANY_REQUESTS);
+        
+        // Extract retry-after time from the message if available
+        String retryAfterSeconds = extractRetryAfterFromMessage(ex.getMessage());
+        
+        ResponseEntity.BodyBuilder responseBuilder = ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("X-RateLimit-Limit", "Rate limit exceeded")
+                .header("X-RateLimit-Remaining", "0");
+        
+        if (retryAfterSeconds != null) {
+            responseBuilder.header("Retry-After", retryAfterSeconds);
+        }
+        
+        return responseBuilder.body(response);
+    }
+    
+    /**
+     * Extracts retry-after time from rate limit exception message
+     */
+    private String extractRetryAfterFromMessage(String message) {
+        try {
+            // Look for pattern "try again in X seconds"
+            if (message != null && message.contains("try again in")) {
+                String[] parts = message.split("try again in ");
+                if (parts.length > 1) {
+                    String secondsPart = parts[1].split(" ")[0];
+                    return secondsPart;
+                }
+            }
+        } catch (Exception e) {
+            // If parsing fails, don't add retry-after header
+        }
+        return null;
     }
 
     @ExceptionHandler(BadgeLimitException.class)

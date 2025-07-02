@@ -1,5 +1,6 @@
 package com.app.heartbound.controllers.shop;
 
+import com.app.heartbound.config.security.RateLimited;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.dto.shop.ShopDTO;
@@ -7,6 +8,7 @@ import com.app.heartbound.dto.shop.UserInventoryDTO;
 import com.app.heartbound.dto.shop.CaseContentsDTO;
 import com.app.heartbound.dto.shop.CaseItemDTO;
 import com.app.heartbound.dto.shop.RollResultDTO;
+import com.app.heartbound.enums.RateLimitKeyType;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
@@ -21,6 +23,7 @@ import com.app.heartbound.services.shop.ShopService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,6 +41,34 @@ public class ShopController {
     
     private final ShopService shopService;
     private static final Logger logger = LoggerFactory.getLogger(ShopController.class);
+    
+    // Rate limiting configuration values
+    @Value("${rate.limit.purchase.per-minute:5}")
+    private int purchaseRatePerMinute;
+    
+    @Value("${rate.limit.purchase.per-hour:20}")
+    private int purchaseRatePerHour;
+    
+    @Value("${rate.limit.purchase.burst-capacity:6}")
+    private int purchaseBurstCapacity;
+    
+    @Value("${rate.limit.case-open.per-minute:10}")
+    private int caseOpenRatePerMinute;
+    
+    @Value("${rate.limit.case-open.per-hour:50}")
+    private int caseOpenRatePerHour;
+    
+    @Value("${rate.limit.case-open.burst-capacity:12}")
+    private int caseOpenBurstCapacity;
+    
+    @Value("${rate.limit.equip.per-minute:30}")
+    private int equipRatePerMinute;
+    
+    @Value("${rate.limit.equip.per-hour:200}")
+    private int equipRatePerHour;
+    
+    @Value("${rate.limit.equip.burst-capacity:35}")
+    private int equipBurstCapacity;
         
     @Autowired
     public ShopController(ShopService shopService) {
@@ -84,6 +115,13 @@ public class ShopController {
      * @param authentication Authentication containing user ID
      * @return Updated user profile
      */
+    @RateLimited(
+        requestsPerMinute = 5,
+        requestsPerHour = 20,
+        keyType = RateLimitKeyType.USER,
+        keyPrefix = "purchase",
+        burstCapacity = 6
+    )
     @PostMapping("/purchase/{itemId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> purchaseItem(
@@ -205,6 +243,13 @@ public class ShopController {
      * @param authentication Authentication containing user ID
      * @return Updated user profile
      */
+    @RateLimited(
+        requestsPerMinute = 30,
+        requestsPerHour = 200,
+        keyType = RateLimitKeyType.USER,
+        keyPrefix = "equip",
+        burstCapacity = 35
+    )
     @PostMapping("/equip/{itemId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> equipItem(
@@ -237,6 +282,13 @@ public class ShopController {
      * @param authentication Authentication containing user ID
      * @return Updated user profile
      */
+    @RateLimited(
+        requestsPerMinute = 30,
+        requestsPerHour = 200,
+        keyType = RateLimitKeyType.USER,
+        keyPrefix = "unequip",
+        burstCapacity = 35
+    )
     @PostMapping("/unequip/{category}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> unequipItem(
@@ -263,6 +315,13 @@ public class ShopController {
      * @param authentication Authentication containing user ID
      * @return Updated user profile
      */
+    @RateLimited(
+        requestsPerMinute = 30,
+        requestsPerHour = 200,
+        keyType = RateLimitKeyType.USER,
+        keyPrefix = "unequip-badge",
+        burstCapacity = 35
+    )
     @PostMapping("/unequip/badge/{badgeId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> unequipBadge(
@@ -322,6 +381,13 @@ public class ShopController {
      * @param authentication Authentication containing user ID
      * @return RollResultDTO with the won item details
      */
+    @RateLimited(
+        requestsPerMinute = 10,
+        requestsPerHour = 50,
+        keyType = RateLimitKeyType.USER,
+        keyPrefix = "case-open",
+        burstCapacity = 12
+    )
     @PostMapping("/cases/{caseId}/open")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> openCase(

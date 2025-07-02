@@ -1,6 +1,8 @@
 package com.app.heartbound.config;
 
 import com.app.heartbound.config.security.RateLimitingFilter;
+import com.app.heartbound.services.RateLimitingService;
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -10,10 +12,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class RateLimitingConfig {
 
     private final RateLimitingFilter rateLimitingFilter;
+    private final RateLimitingService rateLimitingService;
 
-
-    public RateLimitingConfig(RateLimitingFilter rateLimitingFilter) {
+    public RateLimitingConfig(RateLimitingFilter rateLimitingFilter, RateLimitingService rateLimitingService) {
         this.rateLimitingFilter = rateLimitingFilter;
+        this.rateLimitingService = rateLimitingService;
     }
 
     /**
@@ -23,5 +26,14 @@ public class RateLimitingConfig {
     @Scheduled(fixedRateString = "${rate.limit.cleanup-interval-ms:3600000}")  // Default: once per hour
     public void cleanupBuckets() {
         rateLimitingFilter.cleanupBuckets();
+        rateLimitingService.cleanupCaches();
+    }
+    
+    /**
+     * Periodically clear rate limiting metrics to prevent memory accumulation
+     */
+    @Scheduled(fixedRateString = "${rate.limit.metrics-cleanup-interval-ms:7200000}")  // Default: every 2 hours
+    public void clearMetrics() {
+        rateLimitingService.clearMetrics();
     }
 } 
