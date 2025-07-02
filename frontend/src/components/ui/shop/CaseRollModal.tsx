@@ -582,55 +582,33 @@ export function CaseRollModal({
                                 borderLeftWidth: '4px'
                               }}
                             >
-                              <div className="flex items-start space-x-3">
-                                {/* Item Preview */}
-                                <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2" style={{ borderColor: rarityColor }}>
-                                  {item.category === 'USER_COLOR' ? (
-                                    <NameplatePreview
-                                      username="Preview"
-                                      avatar="/default-avatar.png"
-                                      color={item.imageUrl}
-                                      fallbackColor={rarityColor}
-                                      message=""
-                                      className="h-full w-full"
-                                      size="sm"
-                                    />
-                                  ) : item.category === 'BADGE' ? (
-                                    <BadgePreview
-                                      username="Preview"
-                                      avatar="/default-avatar.png"
-                                      badgeUrl={item.thumbnailUrl || item.imageUrl}
-                                      message=""
-                                      className="h-full w-full"
-                                      size="sm"
-                                    />
-                                  ) : item.imageUrl ? (
-                                    <img 
-                                      src={item.imageUrl} 
-                                      alt={item.name}
-                                      className="h-full w-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="h-full w-full bg-slate-700 flex items-center justify-center">
-                                      <span className="text-xs text-slate-400">No Image</span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Item Details */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-start justify-between mb-1">
-                                    <h3 className="font-medium text-white text-sm truncate pr-2">{item.name}</h3>
-                                    <div className="flex-shrink-0">
-                                      <span 
-                                        className="px-2 py-0.5 rounded text-xs font-semibold"
-                                        style={getRarityBadgeStyle(item.rarity)}
-                                      >
-                                        {getRarityLabel(item.rarity)}
-                                      </span>
-                                    </div>
+                              {item.category === 'USER_COLOR' ? (
+                                // USER_COLOR - Full NameplatePreview
+                                <div className="space-y-3">
+                                  {/* Header with name and rarity */}
+                                  <div className="flex items-center justify-center space-x-2 mb-2">
+                                    <h3 className="font-medium text-white text-sm">{item.name}</h3>
+                                    <span 
+                                      className="px-2 py-0.5 rounded text-xs font-semibold"
+                                      style={getRarityBadgeStyle(item.rarity)}
+                                    >
+                                      {getRarityLabel(item.rarity)}
+                                    </span>
                                   </div>
                                   
+                                  {/* Full NameplatePreview */}
+                                  <div className="flex justify-center py-2">
+                                    <NameplatePreview
+                                      username={user?.username || "Preview"}
+                                      avatar={user?.avatar || "/default-avatar.png"}
+                                      color={item.imageUrl}
+                                      fallbackColor={rarityColor}
+                                      message="Preview of your nameplate color"
+                                      size="md"
+                                    />
+                                  </div>
+                                  
+                                  {/* Item details */}
                                   <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
                                     <span>{formatDisplayText(item.category)}</span>
                                     <span>{item.price} credits</span>
@@ -656,7 +634,74 @@ export function CaseRollModal({
                                     <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
                                   )}
                                 </div>
-                              </div>
+                              ) : (
+                                // Other items - Keep existing layout
+                                <div className="flex items-start space-x-3">
+                                  {/* Item Preview */}
+                                  <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2" style={{ borderColor: rarityColor }}>
+                                    {item.category === 'BADGE' ? (
+                                      <BadgePreview
+                                        username="Preview"
+                                        avatar="/default-avatar.png"
+                                        badgeUrl={item.thumbnailUrl || item.imageUrl}
+                                        message=""
+                                        className="h-full w-full"
+                                        size="sm"
+                                      />
+                                    ) : item.imageUrl ? (
+                                      <img 
+                                        src={item.imageUrl} 
+                                        alt={item.name}
+                                        className="h-full w-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="h-full w-full bg-slate-700 flex items-center justify-center">
+                                        <span className="text-xs text-slate-400">No Image</span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Item Details */}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between mb-1">
+                                      <h3 className="font-medium text-white text-sm truncate pr-2">{item.name}</h3>
+                                      <div className="flex-shrink-0">
+                                        <span 
+                                          className="px-2 py-0.5 rounded text-xs font-semibold"
+                                          style={getRarityBadgeStyle(item.rarity)}
+                                        >
+                                          {getRarityLabel(item.rarity)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
+                                      <span>{formatDisplayText(item.category)}</span>
+                                      <span>{item.price} credits</span>
+                                    </div>
+
+                                    {/* Drop Rate */}
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs text-slate-300">Drop Rate</span>
+                                      <div className="flex items-center space-x-2">
+                                        <div className="w-16 bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                                          <div 
+                                            className="h-full bg-primary transition-all duration-300"
+                                            style={{ width: `${caseItem.dropRate}%` }}
+                                          />
+                                        </div>
+                                        <span className="text-sm font-medium text-primary">
+                                          {caseItem.dropRate}%
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {item.description && (
+                                      <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </motion.div>
                           );
                         })
