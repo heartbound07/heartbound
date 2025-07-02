@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth';
-import { FaCoins } from 'react-icons/fa';
+import { FaCoins, FaInfoCircle } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import httpClient from '@/lib/api/httpClient';
 import { Toast } from '@/components/Toast';
@@ -204,7 +204,7 @@ const ShopItemCard = forwardRef(({
             </div>
             
             {/* Case contents count */}
-            {item.isCase && item.caseContentsCount && item.caseContentsCount > 0 && (
+            {item.category === 'CASE' && item.caseContentsCount && item.caseContentsCount > 0 && (
               <div className="mt-2 text-xs text-slate-300 font-medium">
                 Contains {item.caseContentsCount} items
               </div>
@@ -233,21 +233,19 @@ const ShopItemCard = forwardRef(({
             </div>
           </div>
           
-          {/* View Contents button overlay */}
-          {item.isCase && item.caseContentsCount && item.caseContentsCount > 0 && onViewCaseContents && (
-            <div className="absolute bottom-2 right-2">
+          {/* Info icon in top right corner for cases */}
+          {item.category === 'CASE' && item.caseContentsCount && item.caseContentsCount > 0 && onViewCaseContents && (
+            <div className="absolute top-2 right-2">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onViewCaseContents(item.id, nameContent.sanitized);
                 }}
-                className="px-2 py-1 bg-primary/90 hover:bg-primary text-white text-xs rounded-md transition-colors flex items-center"
+                className="case-info-icon"
+                title="View case contents and drop rates"
+                aria-label="View case contents and drop rates"
               >
-                <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                View
+                <FaInfoCircle size={16} />
               </button>
             </div>
           )}
@@ -340,30 +338,7 @@ const ShopItemCard = forwardRef(({
           />
         )}
         
-        {/* Case-specific content information */}
-        {item.isCase && item.caseContentsCount && item.caseContentsCount > 0 && (
-          <div className="mb-3 p-2 bg-slate-800/30 border border-slate-700/50 rounded-md">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400">Case Contents:</span>
-              <span className="text-slate-300 font-medium">{item.caseContentsCount} items</span>
-            </div>
-            {onViewCaseContents && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onViewCaseContents(item.id, nameContent.sanitized);
-                }}
-                className="mt-2 w-full py-1 text-xs text-primary hover:text-primary/80 transition-colors flex items-center justify-center"
-              >
-                <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                View Contents & Drop Rates
-              </button>
-            )}
-          </div>
-        )}
+
         
         {/* Quantity selector for cases */}
         {item.category === 'CASE' && (
