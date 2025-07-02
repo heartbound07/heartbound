@@ -180,15 +180,36 @@ export function CaseRollModal({
       scrollAnimation.set({ x: 0 });
       
       // Start loading animation
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
       
-      // Initiate API call and rolling animation simultaneously
-      const [apiResponse] = await Promise.all([
-        httpClient.post(`/shop/cases/${caseId}/open`),
-        startRollingAnimation()
-      ]);
+      // Start rolling animation immediately
+      setAnimationState('rolling');
+      setCanSkip(true);
       
+      // Small delay to ensure DOM is ready, then start animation
+      await new Promise(resolve => setTimeout(resolve, 100));
+      startRollingAnimation();
+      
+      const startTime = Date.now();
+      const minRollingTime = 8000; // Minimum 8 seconds of rolling for suspense
+      
+      // Start API call in parallel with animation
+      const apiPromise = httpClient.post(`/shop/cases/${caseId}/open`);
+      
+      // Get the API response
+      const apiResponse = await apiPromise;
       setRollResult(apiResponse.data);
+      
+      // Calculate how long we've been rolling
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, minRollingTime - elapsedTime);
+      
+      // Wait for minimum rolling time if needed
+      if (remainingTime > 0) {
+        await new Promise(resolve => setTimeout(resolve, remainingTime));
+      }
+      
+      // Now start deceleration with the correct item
       await handleDeceleration(apiResponse.data.wonItem);
       
     } catch (error: any) {
@@ -198,24 +219,35 @@ export function CaseRollModal({
     }
   };
 
-  const startRollingAnimation = async () => {
-    setAnimationState('rolling');
-    setCanSkip(true);
+  const startRollingAnimation = () => {
+    console.log('🎰 Starting rolling animation...', {
+      animationItemsCount: animationItems.length,
+      animationState
+    });
     
     // Calculate the total width needed for smooth infinite scroll
     const itemWidth = 120; // Width including margin (24 + 16 margin)
     const totalItems = animationItems.length;
     const oneLoopWidth = totalItems > 0 ? (totalItems / 8) * itemWidth : 800; // One set of unique items
     
-    // Start continuous scrolling animation
-    await scrollAnimation.start({
-      x: -oneLoopWidth * 3, // Scroll through multiple loops for smooth effect
+    console.log('🎰 Animation parameters:', {
+      itemWidth,
+      totalItems,
+      oneLoopWidth,
+      scrollDistance: -oneLoopWidth * 6
+    });
+    
+    // Start continuous scrolling animation with infinite repeat
+    scrollAnimation.start({
+      x: -oneLoopWidth * 6, // Scroll through more loops for extended effect
       transition: {
-        duration: 4,
+        duration: 8, // 8 seconds per loop for smoother, longer rolling
         ease: "linear",
         repeat: Infinity
       }
     });
+    
+    console.log('🎰 Rolling animation started!');
   };
 
   const handleDeceleration = async (winningItem: RollResult['wonItem']) => {
@@ -244,12 +276,12 @@ export function CaseRollModal({
     
     console.log('🎲 Final scroll position:', finalPosition);
     
-    // Decelerate to the winning item position
+    // Decelerate to the winning item position with perfect timing
     await scrollAnimation.start({
       x: finalPosition,
       transition: {
-        duration: 1.5,
-        ease: [0.25, 0.46, 0.45, 0.94] // Custom ease-out curve
+        duration: 3.0, // 3 seconds for dramatic deceleration
+        ease: [0.25, 0.46, 0.45, 0.94] // Smooth deceleration curve
       }
     });
     
@@ -258,8 +290,8 @@ export function CaseRollModal({
     audioHooks.onReveal?.();
     audioHooks.onRarityReveal?.(winningItem.rarity);
     
-    // Wait for dramatic pause
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait for dramatic pause before showing final result
+    await new Promise(resolve => setTimeout(resolve, 1200)); // 1.2 seconds for perfect timing
     
     setAnimationState('reward');
   };
