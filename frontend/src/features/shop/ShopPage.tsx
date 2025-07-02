@@ -317,14 +317,38 @@ const ShopItemCard = forwardRef(({
               {getRarityLabel(item.rarity)}
             </div>
           </div>
-          <div className="flex items-center">
-            <FaCoins className="text-yellow-400 mr-1" size={14} />
-            <span className="text-yellow-400 font-medium">
-              {item.category === 'CASE' && quantity > 1 
-                ? totalPrice 
-                : item.price
-              }
-            </span>
+          <div className="flex items-center space-x-3">
+            {/* Quantity controls for cases */}
+            {item.category === 'CASE' && (
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  disabled={quantity <= 1}
+                  className="w-5 h-5 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded flex items-center justify-center text-white text-xs transition-colors"
+                >
+                  −
+                </button>
+                <span className="text-white font-medium min-w-[1.5rem] text-center text-sm">{quantity}</span>
+                <button
+                  onClick={() => setQuantity(Math.min(10, quantity + 1))}
+                  disabled={quantity >= 10}
+                  className="w-5 h-5 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded flex items-center justify-center text-white text-xs transition-colors"
+                >
+                  +
+                </button>
+              </div>
+            )}
+            
+            {/* Credits display */}
+            <div className="flex items-center">
+              <FaCoins className="text-yellow-400 mr-1" size={14} />
+              <span className="text-yellow-400 font-medium">
+                {item.category === 'CASE' && quantity > 1 
+                  ? totalPrice 
+                  : item.price
+                }
+              </span>
+            </div>
           </div>
         </div>
         
@@ -340,34 +364,7 @@ const ShopItemCard = forwardRef(({
         
 
         
-        {/* Quantity selector for cases */}
-        {item.category === 'CASE' && (
-          <div className="mb-3 p-2 bg-slate-800/30 border border-slate-700/50 rounded-md">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-300">Quantity:</span>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  disabled={quantity <= 1}
-                  className="w-6 h-6 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded flex items-center justify-center text-white text-sm transition-colors"
-                >
-                  −
-                </button>
-                <span className="text-white font-medium min-w-[2rem] text-center">{quantity}</span>
-                <button
-                  onClick={() => setQuantity(Math.min(10, quantity + 1))}
-                  disabled={quantity >= 10}
-                  className="w-6 h-6 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded flex items-center justify-center text-white text-sm transition-colors"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-            <div className="mt-1 text-xs text-slate-400">
-              Max 10 cases per purchase
-            </div>
-          </div>
-        )}
+
         
         {/* Enhanced purchase button - Remove owned check for cases */}
         {(item.owned && item.category !== 'CASE') ? (
