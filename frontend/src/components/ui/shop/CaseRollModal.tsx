@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from 'framer-motion';
-import { FaTimes, FaGift, FaForward } from 'react-icons/fa';
+import { FaTimes, FaGift } from 'react-icons/fa';
 import httpClient from '@/lib/api/httpClient';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 import NameplatePreview from '@/components/NameplatePreview';
@@ -83,7 +83,6 @@ export function CaseRollModal({
   const [rollResult, setRollResult] = useState<RollResult | null>(null);
   const [caseContents, setCaseContents] = useState<CaseContents | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [canSkip, setCanSkip] = useState(false);
   const [animationItems, setAnimationItems] = useState<CaseItemDTO[]>([]);
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -285,7 +284,6 @@ export function CaseRollModal({
       
       // Start rolling animation
       setAnimationState('rolling');
-      setCanSkip(true);
       
       // Track timing for adaptive rolling duration
       const startTime = Date.now();
@@ -338,7 +336,6 @@ export function CaseRollModal({
 
   const handleDeceleration = async (rollResult: RollResult, targetProgress?: number) => {
     setAnimationState('decelerating');
-    setCanSkip(false);
     audioHooks.onDecelerate?.();
     
     // Use pre-calculated target progress or calculate it
@@ -366,12 +363,7 @@ export function CaseRollModal({
     setAnimationState('reward');
   };
 
-  const handleSkipAnimation = async () => {
-    if (!canSkip || !rollResult) return;
-    
-    setAnimationState('reward');
-    audioHooks.onRarityReveal?.(rollResult.wonItem.rarity);
-  };
+
 
   const handleClaimAndClose = () => {
     if (rollResult) {
@@ -385,7 +377,6 @@ export function CaseRollModal({
     setAnimationState('idle');
     setRollResult(null);
     setError(null);
-    setCanSkip(false);
     onClose();
   };
 
@@ -529,19 +520,6 @@ export function CaseRollModal({
             
             {/* Right section - Action buttons */}
             <div className="flex items-center space-x-2 ml-auto">
-              {/* Skip Animation Button - Icon Only in Top Right */}
-              {canSkip && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  onClick={handleSkipAnimation}
-                  className="p-2 bg-yellow-600/20 hover:bg-yellow-600/30 rounded-lg transition-colors text-yellow-400 hover:text-yellow-300"
-                  title="Skip Animation"
-                >
-                  <FaForward size={16} />
-                </motion.button>
-              )}
-              
               {animationState === 'idle' && (
                 <button
                   onClick={handleClose}
@@ -840,7 +818,7 @@ export function CaseRollModal({
                     transition={{ delay: 0.2, duration: 0.6, ease: "easeOut" }}
                     className="flex justify-center"
                   >
-                    <div className="max-w-md mx-auto">
+                    <div className="max-w-sm mx-auto">
                       {rollResult.wonItem.category === 'USER_COLOR' ? (
                         <NameplatePreview
                           username={user?.username || "Username"}
