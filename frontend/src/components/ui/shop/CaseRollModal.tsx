@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from 'framer-motion';
-import { FaTimes, FaGift } from 'react-icons/fa';
+import { FaTimes, FaGift, FaCoins } from 'react-icons/fa';
+import { Star } from 'lucide-react';
 import httpClient from '@/lib/api/httpClient';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 import NameplatePreview from '@/components/NameplatePreview';
@@ -866,61 +867,44 @@ export function CaseRollModal({
                 </div>
 
                 {/* Already Owned Notice with Compensation */}
-                {rollResult.alreadyOwned && (
+                {rollResult.alreadyOwned && rollResult.compensationAwarded && (
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
-                    className={`p-4 border rounded-lg ${
-                      rollResult.compensationAwarded 
-                        ? 'bg-green-500/10 border-green-500/30' 
-                        : 'bg-blue-500/10 border-blue-500/30'
-                    }`}
+                    className="flex justify-center items-center space-x-4"
                   >
-                    {rollResult.compensationAwarded ? (
-                      <div className="text-center space-y-3">
-                        <p className="text-green-400 text-sm">
-                          🎉 <strong>Duplicate Item Compensation!</strong>
-                        </p>
-                        <p className="text-slate-300 text-xs">
-                          You already owned this item, but don't worry - you've been compensated!
-                        </p>
-                        
-                        {/* Compensation Display */}
-                        <div className="flex justify-center items-center space-x-6 p-3 bg-slate-800/50 rounded-lg">
-                          {/* Credits */}
-                          <div className="flex items-center space-x-2">
-                            <div className="w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                              <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.51-1.31c-.562-.649-1.413-1.076-2.353-1.253V5z" clipRule="evenodd"/>
-                              </svg>
-                            </div>
-                            <div>
-                              <p className="text-yellow-400 font-bold text-lg">+{rollResult.compensatedCredits}</p>
-                              <p className="text-slate-400 text-xs">Credits</p>
-                            </div>
-                          </div>
-                          
-                          {/* XP */}
-                          <div className="flex items-center space-x-2">
-                            <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center">
-                              <svg className="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clipRule="evenodd"/>
-                              </svg>
-                            </div>
-                            <div>
-                              <p className="text-purple-400 font-bold text-lg">+{rollResult.compensatedXp}</p>
-                              <p className="text-slate-400 text-xs">Experience</p>
-                            </div>
-                          </div>
-                        </div>
+                    {/* Credits */}
+                    <div className="flex items-center space-x-2 px-3 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                      <FaCoins size={14} style={{ color: '#fbbf24' }} />
+                      <div>
+                        <p className="font-bold text-base" style={{ color: '#fbbf24' }}>+{rollResult.compensatedCredits}</p>
+                        <p className="text-slate-400 text-xs">Credits</p>
                       </div>
-                    ) : (
-                      <p className="text-blue-400 text-sm text-center">
-                        💡 <strong>Note:</strong> You already owned this item, so no duplicate was added to your inventory.
-                      </p>
-                    )}
+                    </div>
+                    
+                    {/* XP */}
+                    <div className="flex items-center space-x-2 px-3 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                      <Star size={14} style={{ color: '#60a5fa' }} />
+                      <div>
+                        <p className="font-bold text-base" style={{ color: '#60a5fa' }}>+{rollResult.compensatedXp}</p>
+                        <p className="text-slate-400 text-xs">Experience</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Simple already owned notice for non-compensated duplicates */}
+                {rollResult.alreadyOwned && !rollResult.compensationAwarded && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="p-4 bg-slate-800/30 border border-slate-700/50 rounded-lg"
+                  >
+                    <p className="text-blue-400 text-sm text-center">
+                      💡 <strong>Note:</strong> You already owned this item, so no duplicate was added to your inventory.
+                    </p>
                   </motion.div>
                 )}
 
