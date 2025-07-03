@@ -335,6 +335,27 @@ public class UserService {
             }
         }
         
+        // Resolve equipped nameplate color
+        String nameplateColor = null;
+        UUID equippedUserColorId = user.getEquippedUserColorId();
+        if (equippedUserColorId != null) {
+            try {
+                shopRepository.findById(equippedUserColorId).ifPresent(userColorItem -> {
+                    // For USER_COLOR items, the imageUrl contains the hex color value
+                    if (userColorItem.getImageUrl() != null && !userColorItem.getImageUrl().isEmpty()) {
+                        // The imageUrl for USER_COLOR items should be a hex color like "#FF5733"
+                        logger.debug("Resolved nameplate color for user {}: {}", user.getId(), userColorItem.getImageUrl());
+                    }
+                });
+                // Use a more direct approach to get the color
+                nameplateColor = shopRepository.findById(equippedUserColorId)
+                    .map(item -> item.getImageUrl())
+                    .orElse(null);
+            } catch (Exception e) {
+                logger.warn("Failed to resolve nameplate color for user {}: {}", user.getId(), e.getMessage());
+            }
+        }
+        
         // Calculate required XP for next level
         int currentLevel = user.getLevel() != null ? user.getLevel() : 1;
         int requiredXp = calculateRequiredXp(currentLevel);
@@ -369,6 +390,7 @@ public class UserService {
                 .equippedBadgeIds(badgeIds)
                 .badgeUrls(badgeUrls)
                 .badgeNames(badgeNames) // Add the badge names map
+                .nameplateColor(nameplateColor) // Add resolved nameplate color
                 .dailyStreak(user.getDailyStreak()) // Add daily claim fields
                 .lastDailyClaim(user.getLastDailyClaim())
                 .build();

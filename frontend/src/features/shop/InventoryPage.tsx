@@ -10,7 +10,6 @@ import '@/assets/Inventory.css';
 import '@/assets/shoppage.css';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 import { formatDisplayText } from '@/utils/formatters';
-import { Skeleton } from '@/components/ui/SkeletonUI';
 import NameplatePreview from '@/components/NameplatePreview';
 import BadgePreview from '@/components/BadgePreview';
 import { CasePreviewModal } from '@/components/ui/shop/CasePreviewModal';
@@ -872,7 +871,7 @@ export function InventoryPage() {
                         handleUnequipBadge={handleUnequipBadge}
                         handleOpenCase={openCaseRoll}
                         actionInProgress={actionInProgress}
-                        user={user}
+                        user={profile || user}
                         isSelected={isItemSelected(item)}
                         onSelect={handleSelectItem}
                         onViewCaseContents={openCasePreview}
@@ -888,7 +887,7 @@ export function InventoryPage() {
           <div className="inventory-right-column">
             <ItemPreview
               selectedItems={selectedItems}
-              user={user}
+              user={profile || user}
               onEquip={handleEquipItem}
               onUnequip={handleUnequipItem}
               onUnequipBadge={handleUnequipBadge}
@@ -906,7 +905,7 @@ export function InventoryPage() {
       onClose={closeCasePreview}
       caseId={casePreviewModal.caseId}
       caseName={casePreviewModal.caseName}
-      user={user}
+      user={profile || user}
     />
     
     {/* Case Roll Modal */}
@@ -916,7 +915,7 @@ export function InventoryPage() {
       caseId={caseRollModal.caseId}
       caseName={caseRollModal.caseName}
       onRollComplete={handleRollComplete}
-      user={user}
+      user={profile || user}
     />
     </div>
   );

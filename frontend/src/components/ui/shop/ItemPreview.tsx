@@ -40,6 +40,10 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
     if (selectedItems.nameplate) {
       return selectedItems.nameplate.imageUrl;
     }
+    // Debug logging for development
+    if (import.meta.env.DEV && user?.nameplateColor) {
+      console.log('[ItemPreview] Using equipped nameplate color:', user.nameplateColor);
+    }
     // Fall back to user's equipped nameplate color or default (white instead of blue)
     return user?.nameplateColor || '#ffffff';
   };
@@ -49,8 +53,17 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
     if (selectedItems.badge) {
       return selectedItems.badge.thumbnailUrl || selectedItems.badge.imageUrl;
     }
-    // Could fall back to user's equipped badge if we have that data
+    // Fall back to user's first equipped badge if available
+    if (user?.badgeUrls && Object.keys(user.badgeUrls).length > 0) {
+      const firstBadgeId = Object.keys(user.badgeUrls)[0];
+      return user.badgeUrls[firstBadgeId];
+    }
     return null;
+  };
+
+  // Check if user has equipped badges for default state
+  const hasEquippedBadge = () => {
+    return user?.badgeUrls && Object.keys(user.badgeUrls).length > 0;
   };
 
   // Get the rarity color for the primary selected item (white when no items selected)
@@ -176,17 +189,29 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                 size="lg"
               />
             ) : (
-              // Default profile preview with white color
+              // Default profile preview - show equipped badge if available, otherwise nameplate
               <div className="item-preview-default-profile">
-                <NameplatePreview
-                  username={user?.username || "Username"}
-                  avatar={user?.avatar || "/default-avatar.png"}
-                  color={getNameplateColor()}
-                  fallbackColor="#ffffff"
-                  message="This is what your profile looks like"
-                  className="w-full"
-                  size="lg"
-                />
+                {hasEquippedBadge() ? (
+                  <BadgePreview
+                    username={user?.username || "Username"}
+                    avatar={user?.avatar || "/default-avatar.png"}
+                    badgeUrl={getBadgeUrl() || ''}
+                    message="This is what your profile looks like"
+                    className="w-full"
+                    size="lg"
+                    nameplateColor={getNameplateColor()} // Show both equipped badge and nameplate color
+                  />
+                ) : (
+                  <NameplatePreview
+                    username={user?.username || "Username"}
+                    avatar={user?.avatar || "/default-avatar.png"}
+                    color={getNameplateColor()}
+                    fallbackColor="#ffffff"
+                    message="This is what your profile looks like"
+                    className="w-full"
+                    size="lg"
+                  />
+                )}
               </div>
             )}
           </div>

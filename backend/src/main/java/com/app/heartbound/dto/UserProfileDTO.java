@@ -72,6 +72,9 @@ public class UserProfileDTO {
     // Add this field to map badge IDs to their names
     private Map<String, String> badgeNames;
     
+    // Add resolved nameplate color for frontend preview
+    private String nameplateColor;
+    
     // Daily claim system fields
     private Integer dailyStreak;
     private java.time.LocalDateTime lastDailyClaim;

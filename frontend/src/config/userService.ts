@@ -30,6 +30,7 @@ export interface UserProfileDTO {
   equippedBadgeIds?: string[];
   badgeUrls?: Record<string, string>;
   badgeNames?: Record<string, string>;
+  nameplateColor?: string; // Resolved hex color for equipped nameplate
 }
 
 export interface UpdateProfileDTO {
