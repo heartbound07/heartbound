@@ -86,7 +86,7 @@ public class DailyCommandListener extends ListenerAdapter {
             
             // Calculate new streak
             int newStreak = calculateNewStreak(claimStatus, now);
-            int creditsToAward = DAILY_REWARDS[newStreak - 1]; // Array is 0-indexed
+            int creditsToAward = DAILY_REWARDS[(newStreak - 1) % DAILY_REWARDS.length]; // Use modulo for cycling
             
             // Process the daily claim
             User user = userService.getUserById(userId);
@@ -156,13 +156,8 @@ public class DailyCommandListener extends ListenerAdapter {
         long hoursSinceLastClaim = timeSinceLastClaim.toHours();
         
         if (hoursSinceLastClaim <= 48) {
-            // Streak continues
-            int newStreak = claimStatus.dailyStreak + 1;
-            if (newStreak > 7) {
-                // Reset streak after day 7
-                return 1;
-            }
-            return newStreak;
+            // Streak continues indefinitely
+            return claimStatus.dailyStreak + 1;
         } else {
             // Streak broken (more than 48 hours)
             return 1;
