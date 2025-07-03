@@ -2,6 +2,7 @@
 .shop-container {
   max-width: 1200px;
   margin: 0 auto;
+  font-family: 'gg sans', sans-serif;
 }
 
 /* Remove featured banner related styles */
@@ -77,6 +78,15 @@
   }
 }
 
+/* Section headers styling */
+.featured-section h2,
+.daily-section h2 {
+  font-family: 'Grandstander', sans-serif;
+  font-weight: bold;
+  letter-spacing: 0.3px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
 /* Credit balance positioning */
 .credit-balance-container {
   display: flex;
@@ -117,6 +127,7 @@
   font-weight: 600;
   padding: 0.25rem 0.5rem;
   border-radius: 9999px;
+  font-family: 'gg sans', sans-serif;
 }
 
 .badge-owned {
@@ -131,6 +142,7 @@
 
 .shop-item-content {
   padding: 1rem;
+  font-family: 'gg sans', sans-serif;
 }
 
 .credit-balance {
@@ -141,6 +153,7 @@
   border-radius: 0.5rem;
   padding: 0.5rem 1rem;
   font-weight: 600;
+  font-family: 'gg sans', sans-serif;
 }
 
 .credit-balance-icon {
@@ -168,6 +181,7 @@
   justify-content: center;
   font-size: 0.95rem;
   letter-spacing: 0.01em;
+  font-family: 'gg sans', sans-serif;
 }
 
 .purchase-button-active {
@@ -331,6 +345,7 @@
 .case-badge {
   backdrop-filter: blur(8px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  font-family: 'gg sans', sans-serif;
 }
 
 /* Case view button */
