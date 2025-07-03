@@ -40,8 +40,8 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
     if (selectedItems.nameplate) {
       return selectedItems.nameplate.imageUrl;
     }
-    // Fall back to user's equipped nameplate color or default
-    return user?.nameplateColor || '#0088cc';
+    // Fall back to user's equipped nameplate color or default (white instead of blue)
+    return user?.nameplateColor || '#ffffff';
   };
 
   // Get selected badge or fall back to equipped badge
@@ -53,8 +53,8 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
     return null;
   };
 
-  // Get the rarity color for the primary selected item
-  const rarityColor = primaryItem ? getRarityColor(primaryItem.rarity) : '#0088cc';
+  // Get the rarity color for the primary selected item (white when no items selected)
+  const rarityColor = primaryItem ? getRarityColor(primaryItem.rarity) : '#ffffff';
 
   const handleAction = (item: ShopItem) => {
     if (!onEquip || !onUnequip || !onUnequipBadge || !onOpenCase) return;
@@ -105,14 +105,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <h2 className="item-preview-title">Profile Preview</h2>
-            {primaryItem && (
-              <div 
-                className="px-3 py-1 rounded-lg text-sm font-semibold"
-                style={getRarityBadgeStyle(primaryItem.rarity)}
-              >
-                {getRarityLabel(primaryItem.rarity)}
-              </div>
-            )}
+            {/* Removed rarity badge - no longer showing rarity information */}
           </div>
           
           {primaryItem?.equipped && (
@@ -130,9 +123,13 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
       <div className="item-preview-main">
         <div 
           className="item-preview-visual"
-          style={{ borderColor: primaryItem?.equipped ? 'var(--color-primary, #0088cc)' : rarityColor }}
+          style={{ 
+            borderColor: primaryItem?.equipped 
+              ? 'var(--color-primary, #0088cc)' 
+              : 'transparent' // Always transparent - no rarity outline
+          }}
         >
-          {/* Rarity glow effect */}
+          {/* Rarity glow effect - only show when an item is selected */}
           {primaryItem && (
             <motion.div
               className="item-preview-glow"
@@ -178,13 +175,13 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                 size="lg"
               />
             ) : (
-              // Default profile preview
+              // Default profile preview with white color
               <div className="item-preview-default-profile">
                 <NameplatePreview
                   username={user?.username || "Username"}
                   avatar={user?.avatar || "/default-avatar.png"}
                   color={getNameplateColor()}
-                  fallbackColor="#0088cc"
+                  fallbackColor="#ffffff"
                   message="This is what your profile looks like"
                   className="w-full"
                   size="lg"
