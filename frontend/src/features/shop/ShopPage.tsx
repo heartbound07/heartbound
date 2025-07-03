@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import httpClient from '@/lib/api/httpClient';
 import { Toast } from '@/components/Toast';
 import { Role } from '@/contexts/auth/types';
-import { formatDisplayText } from '@/utils/formatters';
 import '@/assets/dashboard.css';
 import '@/assets/styles/fonts.css';
 import '@/assets/shoppage.css';
@@ -16,20 +15,6 @@ import BadgePreview from '@/components/BadgePreview';
 import { CasePreviewModal } from '@/components/ui/shop/CasePreviewModal';
 import { SafeText } from '@/components/SafeHtmlRenderer';
 import { useSanitizedContent } from '@/hooks/useSanitizedContent';
-
-// Add category mapping for special cases
-const categoryDisplayMapping: Record<string, string> = {
-  'USER_COLOR': 'Nameplate',
-  'LISTING': 'Listing Color',
-  'ACCENT': 'Profile Accent',
-  'BADGE': 'Badge',
-  'CASE': 'Case'
-};
-
-// Format category for display with custom mappings
-const formatCategoryDisplay = (category: string): string => {
-  return categoryDisplayMapping[category] || formatDisplayText(category);
-};
 
 interface ShopItem {
   id: string;
