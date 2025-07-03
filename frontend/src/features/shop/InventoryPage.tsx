@@ -401,7 +401,11 @@ export function InventoryPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'default' | 'rarity-asc' | 'rarity-desc'>('default');
-  const [selectedItem, setSelectedItem] = useState<ShopItem | null>(null);
+  const [selectedItems, setSelectedItems] = useState<{
+    nameplate?: ShopItem | null;
+    badge?: ShopItem | null;
+    [key: string]: ShopItem | null | undefined;
+  }>({});
   
   // Case preview modal state
   const [casePreviewModal, setCasePreviewModal] = useState<{
@@ -679,6 +683,37 @@ export function InventoryPage() {
     }
   };
   
+  // Handle item selection for preview
+  const handleSelectItem = (item: ShopItem) => {
+    setSelectedItems(prev => {
+      const newSelected = { ...prev };
+      
+      if (item.category === 'USER_COLOR') {
+        newSelected.nameplate = newSelected.nameplate?.id === item.id ? null : item;
+      } else if (item.category === 'BADGE') {
+        newSelected.badge = newSelected.badge?.id === item.id ? null : item;
+      } else {
+        // For other categories, use the category as the key
+        const categoryKey = item.category.toLowerCase();
+        newSelected[categoryKey] = newSelected[categoryKey]?.id === item.id ? null : item;
+      }
+      
+      return newSelected;
+    });
+  };
+  
+  // Check if an item is selected
+  const isItemSelected = (item: ShopItem) => {
+    if (item.category === 'USER_COLOR') {
+      return selectedItems.nameplate?.id === item.id;
+    } else if (item.category === 'BADGE') {
+      return selectedItems.badge?.id === item.id;
+    } else {
+      const categoryKey = item.category.toLowerCase();
+      return selectedItems[categoryKey]?.id === item.id;
+    }
+  };
+  
   return (
     <div className="bg-theme-gradient min-h-screen">
       <div className="container mx-auto px-4 py-8 inventory-page-container">
@@ -838,8 +873,8 @@ export function InventoryPage() {
                         handleOpenCase={openCaseRoll}
                         actionInProgress={actionInProgress}
                         user={user}
-                        isSelected={selectedItem?.id === item.id}
-                        onSelect={setSelectedItem}
+                        isSelected={isItemSelected(item)}
+                        onSelect={handleSelectItem}
                         onViewCaseContents={openCasePreview}
                       />
                     ))}
@@ -852,7 +887,7 @@ export function InventoryPage() {
           {/* Right Column - Item Preview Panel */}
           <div className="inventory-right-column">
             <ItemPreview
-              item={selectedItem}
+              selectedItems={selectedItems}
               user={user}
               onEquip={handleEquipItem}
               onUnequip={handleUnequipItem}
