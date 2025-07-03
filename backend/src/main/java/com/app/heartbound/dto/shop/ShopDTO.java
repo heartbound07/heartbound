@@ -50,6 +50,10 @@ public class ShopDTO {
     private boolean equipped;
     private String discordRoleId;
     
+    // Visibility flags for layout sections
+    private boolean isFeatured = false;
+    private boolean isDaily = false;
+    
     // Case-specific fields
     private boolean isCase = false;  // True if this is a case item
     private Integer caseContentsCount = 0;  // Number of items in this case
@@ -79,5 +83,21 @@ public class ShopDTO {
     
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
+    }
+    
+    public boolean getIsFeatured() {
+        return isFeatured;
+    }
+    
+    public void setIsFeatured(boolean isFeatured) {
+        this.isFeatured = isFeatured;
+    }
+    
+    public boolean getIsDaily() {
+        return isDaily;
+    }
+    
+    public void setIsDaily(boolean isDaily) {
+        this.isDaily = isDaily;
     }
 }

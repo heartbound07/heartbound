@@ -61,6 +61,12 @@ public class Shop {
     @Enumerated(EnumType.STRING)
     private Role requiredRole;
     
+    @NotNull
+    private Boolean isFeatured = false;
+    
+    @NotNull
+    private Boolean isDaily = false;
+    
     @CreationTimestamp
     private LocalDateTime createdAt;
     

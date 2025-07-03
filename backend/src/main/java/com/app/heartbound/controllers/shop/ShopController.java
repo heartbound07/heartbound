@@ -96,6 +96,28 @@ public class ShopController {
     }
     
     /**
+     * Get shop layout with featured and daily items in a single call
+     * @param authentication Authentication containing user ID
+     * @return Shop layout with featured and daily items
+     */
+    @GetMapping("/layout")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ShopLayoutResponse> getShopLayout(Authentication authentication) {
+        String userId = authentication.getName();
+        
+        try {
+            List<ShopDTO> featuredItems = shopService.getFeaturedItems(userId);
+            List<ShopDTO> dailyItems = shopService.getDailyItems(userId);
+            
+            ShopLayoutResponse response = new ShopLayoutResponse(featuredItems, dailyItems);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error retrieving shop layout for user {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    /**
      * Get a specific shop item by ID
      * @param itemId Item ID
      * @param authentication Optional authentication for checking item ownership
@@ -590,6 +612,27 @@ public class ShopController {
 
         public List<UUID> getAffectedCaseIds() {
             return affectedCaseIds;
+        }
+    }
+    
+    /**
+     * Response class for shop layout containing featured and daily items
+     */
+    public static class ShopLayoutResponse {
+        private final List<ShopDTO> featuredItems;
+        private final List<ShopDTO> dailyItems;
+
+        public ShopLayoutResponse(List<ShopDTO> featuredItems, List<ShopDTO> dailyItems) {
+            this.featuredItems = featuredItems;
+            this.dailyItems = dailyItems;
+        }
+
+        public List<ShopDTO> getFeaturedItems() {
+            return featuredItems;
+        }
+
+        public List<ShopDTO> getDailyItems() {
+            return dailyItems;
         }
     }
 }

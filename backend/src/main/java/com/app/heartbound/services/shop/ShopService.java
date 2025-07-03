@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -123,6 +124,66 @@ public class ShopService {
         }
         
         // Convert to DTOs and check ownership if userId is provided
+        User user = null;
+        if (userId != null) {
+            user = userRepository.findById(userId).orElse(null);
+        }
+        
+        final User finalUser = user;
+        return items.stream()
+            .map(item -> mapToShopDTO(item, finalUser))
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get featured shop items for the main layout
+     * @param userId User ID to check ownership status
+     * @return List of featured shop items
+     */
+    @Transactional(readOnly = true)
+    @Cacheable(value = "featuredItems", key = "#userId")
+    public List<ShopDTO> getFeaturedItems(String userId) {
+        logger.debug("Getting featured items for user {}", userId);
+        
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Get featured items that are active and not expired
+        List<Shop> items = shopRepository.findByIsFeaturedTrueAndIsActiveTrueOrderByCreatedAtDesc()
+            .stream()
+            .filter(item -> item.getExpiresAt() == null || item.getExpiresAt().isAfter(now))
+            .collect(Collectors.toList());
+        
+        // Get user for ownership checking
+        User user = null;
+        if (userId != null) {
+            user = userRepository.findById(userId).orElse(null);
+        }
+        
+        final User finalUser = user;
+        return items.stream()
+            .map(item -> mapToShopDTO(item, finalUser))
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get daily shop items for the main layout
+     * @param userId User ID to check ownership status
+     * @return List of daily shop items
+     */
+    @Transactional(readOnly = true)
+    @Cacheable(value = "dailyItems", key = "#userId")
+    public List<ShopDTO> getDailyItems(String userId) {
+        logger.debug("Getting daily items for user {}", userId);
+        
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Get daily items that are active and not expired
+        List<Shop> items = shopRepository.findByIsDailyTrueAndIsActiveTrueOrderByCreatedAtDesc()
+            .stream()
+            .filter(item -> item.getExpiresAt() == null || item.getExpiresAt().isAfter(now))
+            .collect(Collectors.toList());
+        
+        // Get user for ownership checking
         User user = null;
         if (userId != null) {
             user = userRepository.findById(userId).orElse(null);
@@ -542,6 +603,8 @@ public class ShopService {
             .rarity(shop.getRarity() != null ? shop.getRarity() : ItemRarity.COMMON)
             .isCase(isCase)
             .caseContentsCount(caseContentsCount)
+            .isFeatured(shop.getIsFeatured())
+            .isDaily(shop.getIsDaily())
             .build();
     }
     
@@ -603,6 +666,8 @@ public class ShopService {
             .discordRoleId(shopDTO.getDiscordRoleId())
             .rarity(shopDTO.getRarity() != null ? shopDTO.getRarity() : ItemRarity.COMMON)
             .thumbnailUrl(sanitizedThumbnailUrl)
+            .isFeatured(shopDTO.getIsFeatured())
+            .isDaily(shopDTO.getIsDaily())
             .build();
         
         logger.debug("Creating new shop item with sanitized content");
@@ -672,6 +737,8 @@ public class ShopService {
         existingItem.setDiscordRoleId(shopDTO.getDiscordRoleId());
         existingItem.setRarity(shopDTO.getRarity() != null ? shopDTO.getRarity() : ItemRarity.COMMON);
         existingItem.setThumbnailUrl(sanitizedThumbnailUrl);
+        existingItem.setIsFeatured(shopDTO.getIsFeatured());
+        existingItem.setIsDaily(shopDTO.getIsDaily());
         
         logger.debug("Updating shop item with ID: {} with sanitized content", existingItem.getId());
         

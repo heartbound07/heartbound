@@ -108,6 +108,13 @@ public class CacheConfig {
     @Value("${cache.giveaway.expire-after-write-minutes:10}")
     private long giveawayCacheExpireMinutes;
 
+    // Shop Layout Cache Configuration
+    @Value("${cache.shop-layout.max-size:100}")
+    private long shopLayoutCacheMaxSize;
+
+    @Value("${cache.shop-layout.expire-after-write-minutes:15}")
+    private long shopLayoutCacheExpireMinutes;
+
     // Cache instances
     private Cache<Long, Object> pairLevelCache;
     private Cache<String, List<Object>> achievementListCache;
@@ -122,6 +129,8 @@ public class CacheConfig {
     private Cache<String, List<String>> prisonCache;
     private Cache<String, Object> countingGameCache;
     private Cache<String, Object> giveawayCache;
+    private Cache<String, List<Object>> featuredItemsCache;
+    private Cache<String, List<Object>> dailyItemsCache;
 
     @PostConstruct
     public void initializeCaches() {
@@ -283,6 +292,30 @@ public class CacheConfig {
                 .recordStats()
                 .build();
 
+        // Featured Items Cache - stores featured shop items
+        this.featuredItemsCache = Caffeine.newBuilder()
+                .maximumSize(shopLayoutCacheMaxSize)
+                .expireAfterWrite(shopLayoutCacheExpireMinutes, TimeUnit.MINUTES)
+                .removalListener((RemovalListener<String, List<Object>>) (key, value, cause) -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Featured items cache entry removed: key={}, cause={}", key, cause);
+                    }
+                })
+                .recordStats()
+                .build();
+
+        // Daily Items Cache - stores daily shop items
+        this.dailyItemsCache = Caffeine.newBuilder()
+                .maximumSize(shopLayoutCacheMaxSize)
+                .expireAfterWrite(shopLayoutCacheExpireMinutes, TimeUnit.MINUTES)
+                .removalListener((RemovalListener<String, List<Object>>) (key, value, cause) -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Daily items cache entry removed: key={}, cause={}", key, cause);
+                    }
+                })
+                .recordStats()
+                .build();
+
         log.info("Pairing System Performance Caches initialized successfully - " +
                 "PairLevel: {}/{} entries/minutes, " +
                 "Achievement: {}/{} entries/minutes, " +
@@ -294,7 +327,8 @@ public class CacheConfig {
                 "DiscordBotSettings: {}/{} entries/minutes, " +
                 "Prison: {}/{} entries/hours, " +
                 "CountingGame: {}/{} entries/minutes, " +
-                "Giveaway: {}/{} entries/minutes",
+                "Giveaway: {}/{} entries/minutes, " +
+                "ShopLayout: {}/{} entries/minutes",
                 pairLevelCacheMaxSize, pairLevelCacheExpireMinutes,
                 achievementCacheMaxSize, achievementCacheExpireMinutes,
                 voiceStreakCacheMaxSize, voiceStreakCacheExpireMinutes,
@@ -305,7 +339,8 @@ public class CacheConfig {
                 discordBotSettingsCacheMaxSize, discordBotSettingsCacheExpireMinutes,
                 prisonCacheMaxSize, prisonCacheExpireHours,
                 countingGameCacheMaxSize, countingGameCacheExpireMinutes,
-                giveawayCacheMaxSize, giveawayCacheExpireMinutes);
+                giveawayCacheMaxSize, giveawayCacheExpireMinutes,
+                shopLayoutCacheMaxSize, shopLayoutCacheExpireMinutes);
     }
 
     /**
@@ -443,6 +478,28 @@ public class CacheConfig {
     }
 
     /**
+     * Invalidates shop layout caches.
+     * Use when shop items are updated (featured/daily status changes).
+     */
+    public void invalidateShopLayoutCaches() {
+        featuredItemsCache.invalidateAll();
+        dailyItemsCache.invalidateAll();
+        log.debug("Shop layout caches invalidated");
+    }
+
+    /**
+     * Invalidates specific shop layout cache entry.
+     * Use when specific user's shop layout data is updated.
+     */
+    public void invalidateShopLayoutCache(String userId) {
+        if (userId != null) {
+            featuredItemsCache.invalidate(userId);
+            dailyItemsCache.invalidate(userId);
+            log.debug("Shop layout cache invalidated for user: {}", userId);
+        }
+    }
+
+    /**
      * Invalidates all caches. Use with caution - only for scenarios like
      * system maintenance or emergency cache refresh.
      */
@@ -461,6 +518,8 @@ public class CacheConfig {
         prisonCache.invalidateAll();
         countingGameCache.invalidateAll();
         giveawayCache.invalidateAll();
+        featuredItemsCache.invalidateAll();
+        dailyItemsCache.invalidateAll();
         log.info("All pairing system caches invalidated successfully");
     }
 
@@ -515,6 +574,8 @@ public class CacheConfig {
         prisonCache.cleanUp();
         countingGameCache.cleanUp();
         giveawayCache.cleanUp();
+        featuredItemsCache.cleanUp();
+        dailyItemsCache.cleanUp();
         log.debug("Pairing cache maintenance completed");
     }
 

@@ -38,6 +38,8 @@ interface ShopItem {
   isDeleting?: boolean;
   discordRoleId?: string;
   rarity: string;
+  isFeatured: boolean;
+  isDaily: boolean;
 }
 
 interface ShopFormData {
@@ -52,6 +54,8 @@ interface ShopFormData {
   active: boolean;
   discordRoleId?: string;
   rarity: string;
+  isFeatured: boolean;
+  isDaily: boolean;
 }
 
 interface CaseItemData {
@@ -95,7 +99,9 @@ export function ShopAdminPage() {
     expiresAt: null,
     active: true,
     discordRoleId: '',
-    rarity: 'COMMON'
+    rarity: 'COMMON',
+    isFeatured: false,
+    isDaily: false
   });
   
   // Available categories
@@ -330,7 +336,9 @@ export function ShopAdminPage() {
       expiresAt: item.expiresAt,
       active: item.active,
       discordRoleId: item.discordRoleId || '',
-      rarity: item.rarity || 'COMMON'
+      rarity: item.rarity || 'COMMON',
+      isFeatured: item.isFeatured,
+      isDaily: item.isDaily
     });
     
     // Load case contents if this is a case
@@ -389,7 +397,9 @@ export function ShopAdminPage() {
       expiresAt: null,
       active: true,
       discordRoleId: '',
-      rarity: 'COMMON'
+      rarity: 'COMMON',
+      isFeatured: false,
+      isDaily: false
     });
     setEditingItem(null);
     setCaseContents({ items: [], totalDropRate: 0 });
@@ -586,6 +596,48 @@ export function ShopAdminPage() {
                     "Inactive items won't be visible in the shop."
                   }
                 </p>
+              </div>
+            </div>
+            
+            {/* Visibility Section */}
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
+              <h3 className="text-md font-medium text-slate-200 mb-4 flex items-center">
+                <HiOutlineStar className="mr-2 text-primary" size={18} />
+                Visibility Settings
+              </h3>
+              
+              <div className="space-y-3">
+                <div>
+                  <label className="flex items-center space-x-2 text-sm font-medium text-slate-300">
+                    <input
+                      type="checkbox"
+                      name="isFeatured"
+                      checked={formData.isFeatured}
+                      onChange={handleCheckboxChange}
+                      className="w-4 h-4 rounded text-primary focus:ring-primary bg-slate-800 border-slate-600"
+                    />
+                    <span>Featured Item</span>
+                  </label>
+                  <p className="text-xs text-slate-400 mt-1 ml-6">
+                    Featured items appear in the left section of the shop page (max 3 items shown vertically).
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="flex items-center space-x-2 text-sm font-medium text-slate-300">
+                    <input
+                      type="checkbox"
+                      name="isDaily"
+                      checked={formData.isDaily}
+                      onChange={handleCheckboxChange}
+                      className="w-4 h-4 rounded text-primary focus:ring-primary bg-slate-800 border-slate-600"
+                    />
+                    <span>Daily Item</span>
+                  </label>
+                  <p className="text-xs text-slate-400 mt-1 ml-6">
+                    Daily items appear in the right section of the shop page with horizontal scrolling.
+                  </p>
+                </div>
               </div>
             </div>
             
@@ -927,6 +979,7 @@ export function ShopAdminPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Category</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Price</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Rarity</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Visibility</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Actions</th>
               </tr>
@@ -997,6 +1050,27 @@ export function ShopAdminPage() {
                         <HiOutlineStar className="mr-1" size={14} />
                         {item.rarity.charAt(0) + item.rarity.slice(1).toLowerCase()}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col space-y-1">
+                        {item.isFeatured && (
+                          <span className="px-2 py-1 inline-flex items-center text-xs leading-5 font-semibold rounded-full bg-blue-900/30 text-blue-400 border border-blue-700">
+                            <HiOutlineStar className="mr-1" size={12} />
+                            Featured
+                          </span>
+                        )}
+                        {item.isDaily && (
+                          <span className="px-2 py-1 inline-flex items-center text-xs leading-5 font-semibold rounded-full bg-purple-900/30 text-purple-400 border border-purple-700">
+                            <HiOutlineClock className="mr-1" size={12} />
+                            Daily
+                          </span>
+                        )}
+                        {!item.isFeatured && !item.isDaily && (
+                          <span className="px-2 py-1 inline-flex items-center text-xs leading-5 font-semibold rounded-full bg-slate-700/50 text-slate-400 border border-slate-600">
+                            Regular
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {item.expired ? (

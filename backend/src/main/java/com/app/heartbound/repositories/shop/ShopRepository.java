@@ -22,4 +22,9 @@ public interface ShopRepository extends JpaRepository<Shop, UUID> {
     List<Shop> findByIsActiveTrueAndExpiresAtBeforeAndExpiresAtIsNotNull(LocalDateTime dateTime);
     
     List<Shop> findAllByIdIn(Collection<UUID> ids);
+    
+    // Featured and Daily items queries
+    List<Shop> findByIsFeaturedTrueAndIsActiveTrueOrderByCreatedAtDesc();
+    
+    List<Shop> findByIsDailyTrueAndIsActiveTrueOrderByCreatedAtDesc();
 }

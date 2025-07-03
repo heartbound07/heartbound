@@ -44,12 +44,19 @@ interface ShopItem {
   rarity: string;
   isCase?: boolean;
   caseContentsCount?: number;
+  isFeatured?: boolean;
+  isDaily?: boolean;
 }
 
 interface ToastNotification {
   id: string;
   message: string;
   type: 'success' | 'error' | 'info';
+}
+
+interface ShopLayoutResponse {
+  featuredItems: ShopItem[];
+  dailyItems: ShopItem[];
 }
 
 // Shop Item Card Component
@@ -445,13 +452,11 @@ const ShopItemSkeleton = () => {
 export function ShopPage() {
   const { user, profile, updateUserProfile } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [items, setItems] = useState<ShopItem[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [featuredItems, setFeaturedItems] = useState<ShopItem[]>([]);
+  const [dailyItems, setDailyItems] = useState<ShopItem[]>([]);
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
   const [purchaseInProgress, setPurchaseInProgress] = useState(false);
   const [recentPurchases, setRecentPurchases] = useState<Record<string, number>>({});
-  const [sortOrder, setSortOrder] = useState<'default' | 'rarity-asc' | 'rarity-desc' | 'price-asc' | 'price-desc'>('default');
   
   // Case preview modal state
   const [casePreviewModal, setCasePreviewModal] = useState<{
@@ -463,15 +468,6 @@ export function ShopPage() {
     caseId: '',
     caseName: ''
   });
-  
-  // Define rarity order for sorting
-  const RARITY_ORDER: Record<string, number> = {
-    'COMMON': 0,
-    'UNCOMMON': 1,
-    'RARE': 2,
-    'EPIC': 3,
-    'LEGENDARY': 4
-  };
   
   // Minimum loading time in milliseconds
   const MIN_LOADING_TIME = 800;
@@ -503,64 +499,21 @@ export function ShopPage() {
     });
   };
   
-  // Combined sort function for shop items
-  const sortItems = (itemsToSort: ShopItem[]): ShopItem[] => {
-    // Make a copy of the array to avoid mutating the original
-    let result = [...itemsToSort];
-    
-    // Apply sorting based on selected option
-    switch (sortOrder) {
-      case 'price-asc': // Low to High
-        return result.sort((a, b) => a.price - b.price);
-        
-      case 'price-desc': // High to Low
-        return result.sort((a, b) => b.price - a.price);
-        
-      case 'rarity-asc': // Common to Legendary
-        return result.sort((a, b) => {
-          // Primary sort: not owned items first
-          if (a.owned !== b.owned) {
-            return a.owned ? 1 : -1;
-          }
-          // Secondary sort: by rarity
-          const rarityA = RARITY_ORDER[a.rarity] || 0;
-          const rarityB = RARITY_ORDER[b.rarity] || 0;
-          return rarityA - rarityB;
-        });
-        
-      case 'rarity-desc': // Legendary to Common
-        return result.sort((a, b) => {
-          // Primary sort: not owned items first
-          if (a.owned !== b.owned) {
-            return a.owned ? 1 : -1;
-          }
-          // Secondary sort: by rarity
-          const rarityA = RARITY_ORDER[a.rarity] || 0;
-          const rarityB = RARITY_ORDER[b.rarity] || 0;
-          return rarityB - rarityA;
-        });
-        
-      default: // Default sort (not owned first)
-        return result.sort((a) => a.owned ? 1 : -1);
-    }
-  };
-  
   useEffect(() => {
-    const fetchShopItems = async () => {
+    const fetchShopLayout = async () => {
       // Record the start time
       const startTime = Date.now();
       setLoading(true);
       
       try {
-        const response = await httpClient.get('/shop/items', {
-          params: selectedCategory ? { category: selectedCategory } : {}
-        });
+        const response = await httpClient.get('/shop/layout');
+        const data: ShopLayoutResponse = response.data;
         
-        // Apply sorting with all criteria
-        setItems(sortItems(response.data));
+        setFeaturedItems(data.featuredItems);
+        setDailyItems(data.dailyItems);
         
       } catch (error) {
-        console.error('Error fetching shop items:', error);
+        console.error('Error fetching shop layout:', error);
         showToast('Failed to load shop items', 'error');
       } finally {
         // Calculate elapsed time
@@ -577,22 +530,7 @@ export function ShopPage() {
       }
     };
     
-    fetchShopItems();
-  }, [selectedCategory, sortOrder]);
-  
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await httpClient.get('/shop/categories');
-        const fetchedCategories = response.data as string[];
-        setCategories(fetchedCategories);
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-        showToast('Failed to load categories', 'error');
-      }
-    };
-    
-    fetchCategories();
+    fetchShopLayout();
   }, []);
   
   const handlePurchase = async (itemId: string, quantity?: number) => {
@@ -613,10 +551,10 @@ export function ShopPage() {
       setRecentPurchases(prev => ({...prev, [itemId]: Date.now()}));
       
       // Refresh shop items
-      const response = await httpClient.get('/shop/items', {
-        params: selectedCategory ? { category: selectedCategory } : {}
-      });
-      setItems(response.data);
+      const response = await httpClient.get('/shop/layout');
+      const data: ShopLayoutResponse = response.data;
+      setFeaturedItems(data.featuredItems);
+      setDailyItems(data.dailyItems);
       
       // Update user profile to refresh credits while preserving other profile data
       if (purchaseResponse.data) {
@@ -689,118 +627,98 @@ export function ShopPage() {
           </motion.div>
         </motion.div>
         
-        {/* Categories */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-        >
-          <div className="category-filters">
-            <button 
-              onClick={() => setSelectedCategory(null)}
-              className={`category-button ${
-                selectedCategory === null 
-                  ? 'category-button-active' 
-                  : 'category-button-inactive'
-              }`}
-            >
-              All Items
-            </button>
-            
-            {categories.map((category) => (
-              <button 
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`category-button ${
-                  selectedCategory === category 
-                    ? 'category-button-active' 
-                    : 'category-button-inactive'
-                }`}
-              >
-                {formatCategoryDisplay(category)}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-        
-        {/* Shop items */}
+        {/* Shop Layout - Featured Left, Daily Right */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
+          className="shop-layout-container"
         >
-          <div className="flex flex-wrap items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-white">
-              {selectedCategory 
-                ? `${formatCategoryDisplay(selectedCategory)} Items` 
-                : 'All Items'}
-            </h2>
-            
-            {/* Single consolidated sort dropdown */}
-            {!loading && items.length > 0 && (
-              <motion.div 
-                className="sort-control-container"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.4 }}
-              >
-                <span className="text-sm text-slate-300 mr-2">Sort by:</span>
-                <motion.select
-                  value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value as 'default' | 'rarity-asc' | 'rarity-desc' | 'price-asc' | 'price-desc')}
-                  className="inventory-sort-dropdown"
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                >
-                  <option value="default">Default</option>
-                  <option value="rarity-desc">Legendary to Common</option>
-                  <option value="rarity-asc">Common to Legendary</option>
-                  <option value="price-asc">Low to High</option>
-                  <option value="price-desc">High to Low</option>
-                </motion.select>
-              </motion.div>
-            )}
-          </div>
-          
           {loading ? (
-            // Display skeleton loaders while loading
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 shop-item-grid">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <ShopItemSkeleton key={index} />
-              ))}
-            </div>
-          ) : items.length === 0 ? (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12 rounded-lg border border-slate-700/50 bg-slate-800/20"
-            >
-              <div className="text-slate-400 mb-2">
-                No items available in this category.
+            // Loading state for both sections
+            <div className="shop-loading-layout">
+              <div className="featured-section">
+                <h2 className="text-2xl font-bold text-white mb-6">Featured Items</h2>
+                <div className="featured-grid">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <ShopItemSkeleton key={index} />
+                  ))}
+                </div>
               </div>
-              <button 
-                onClick={() => setSelectedCategory(null)}
-                className="px-4 py-2 bg-primary/80 hover:bg-primary text-white rounded-lg transition-colors"
-              >
-                View All Items
-              </button>
-            </motion.div>
+              <div className="daily-section">
+                <h2 className="text-2xl font-bold text-white mb-6">Daily Items</h2>
+                <div className="daily-grid">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <ShopItemSkeleton key={index} />
+                  ))}
+                </div>
+              </div>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 shop-item-grid">
-              <AnimatePresence mode="popLayout">
-                {items.map((item) => (
-                  <ShopItemCard
-                    key={item.id}
-                    item={item}
-                    handlePurchase={handlePurchase}
-                    purchaseInProgress={purchaseInProgress}
-                    user={user}
-                    isRecentlyPurchased={!!recentPurchases[item.id] && (Date.now() - recentPurchases[item.id] < 5000)}
-                    onViewCaseContents={openCasePreview}
-                  />
-                ))}
-              </AnimatePresence>
+            <div className="shop-main-layout">
+              {/* Featured Items Section - Left Side */}
+              <div className="featured-section">
+                <h2 className="text-2xl font-bold text-white mb-6">Featured Items</h2>
+                {featuredItems.length === 0 ? (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-center py-12 rounded-lg border border-slate-700/50 bg-slate-800/20"
+                  >
+                    <div className="text-slate-400 mb-2">
+                      No featured items available.
+                    </div>
+                  </motion.div>
+                ) : (
+                  <div className="featured-grid">
+                    <AnimatePresence mode="popLayout">
+                      {featuredItems.slice(0, 3).map((item) => (
+                        <ShopItemCard
+                          key={item.id}
+                          item={item}
+                          handlePurchase={handlePurchase}
+                          purchaseInProgress={purchaseInProgress}
+                          user={user}
+                          isRecentlyPurchased={!!recentPurchases[item.id] && (Date.now() - recentPurchases[item.id] < 5000)}
+                          onViewCaseContents={openCasePreview}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
+              
+              {/* Daily Items Section - Right Side */}
+              <div className="daily-section">
+                <h2 className="text-2xl font-bold text-white mb-6">Daily Items</h2>
+                {dailyItems.length === 0 ? (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-center py-12 rounded-lg border border-slate-700/50 bg-slate-800/20"
+                  >
+                    <div className="text-slate-400 mb-2">
+                      No daily items available.
+                    </div>
+                  </motion.div>
+                ) : (
+                  <div className="daily-grid">
+                    <AnimatePresence mode="popLayout">
+                      {dailyItems.map((item) => (
+                        <ShopItemCard
+                          key={item.id}
+                          item={item}
+                          handlePurchase={handlePurchase}
+                          purchaseInProgress={purchaseInProgress}
+                          user={user}
+                          isRecentlyPurchased={!!recentPurchases[item.id] && (Date.now() - recentPurchases[item.id] < 5000)}
+                          onViewCaseContents={openCasePreview}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </motion.div>
