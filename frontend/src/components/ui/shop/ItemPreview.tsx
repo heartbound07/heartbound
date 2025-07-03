@@ -19,6 +19,7 @@ interface ItemPreviewProps {
   onUnequipBadge?: (badgeId: string) => void;
   onOpenCase?: (caseId: string, caseName: string) => void;
   onViewCaseContents?: (caseId: string, caseName: string) => void;
+  onEquipMultipleItems?: (itemIds: string[]) => void;
   actionInProgress?: string | null;
 }
 
@@ -30,10 +31,44 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
   onUnequipBadge,
   onOpenCase,
   onViewCaseContents,
+  onEquipMultipleItems,
   actionInProgress
 }) => {
   // Get the primary selected item (for action buttons)
   const primaryItem = Object.values(selectedItems).find(item => item !== null) || null;
+  
+  // Get all selected items (for batch operations)
+  const allSelectedItems = Object.values(selectedItems).filter(item => item !== null) as ShopItem[];
+  
+  // Determine if we have multiple items selected
+  const hasMultipleItems = allSelectedItems.length > 1;
+  
+  // Get unequipped items from selection (for batch equip)
+  const unequippedSelectedItems = allSelectedItems.filter(item => !item.equipped);
+  
+  // Determine what action is available
+  const getActionMode = () => {
+    if (hasMultipleItems) {
+      // Multiple items selected
+      if (unequippedSelectedItems.length > 0) {
+        return 'batch-equip'; // At least one unequipped item
+      } else {
+        return 'mixed-equipped'; // All selected items are equipped
+      }
+    } else if (primaryItem) {
+      // Single item selected
+      if (primaryItem.category === 'CASE') {
+        return 'case-open';
+      } else if (primaryItem.equipped) {
+        return 'unequip';
+      } else {
+        return 'equip';
+      }
+    }
+    return 'none';
+  };
+  
+  const actionMode = getActionMode();
   
   // Get selected nameplate or fall back to equipped/default
   const getNameplateColor = () => {
@@ -93,16 +128,44 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
     }
   };
 
-  const getActionButtonText = (item: ShopItem) => {
-    if (item.category === 'CASE') {
-      return (!item.quantity || item.quantity < 1) ? 'No Cases' : 'Open Case';
+  // Handle batch equip action
+  const handleBatchAction = () => {
+    if (actionMode === 'batch-equip' && onEquipMultipleItems && unequippedSelectedItems.length > 0) {
+      const itemIds = unequippedSelectedItems.map(item => item.id);
+      onEquipMultipleItems(itemIds);
+    } else if (actionMode === 'case-open' && primaryItem) {
+      handleAction(primaryItem);
+    } else if (actionMode === 'equip' && primaryItem) {
+      handleAction(primaryItem);
+    } else if (actionMode === 'unequip' && primaryItem) {
+      handleAction(primaryItem);
     }
-    return item.equipped ? 'Unequip' : 'Equip';
   };
 
-  const isActionDisabled = (item: ShopItem) => {
-    if (item.category === 'CASE') {
-      return !item.quantity || item.quantity < 1 || actionInProgress !== null;
+  const getActionButtonText = () => {
+    switch (actionMode) {
+      case 'batch-equip':
+        const count = unequippedSelectedItems.length;
+        return count === 1 ? 'Equip' : `Equip ${count} Items`;
+      case 'case-open':
+        return (!primaryItem?.quantity || primaryItem.quantity < 1) ? 'No Cases' : 'Open Case';
+      case 'equip':
+        return 'Equip';
+      case 'unequip':
+        return 'Unequip';
+      case 'mixed-equipped':
+        return 'All Equipped';
+      default:
+        return 'Select Items';
+    }
+  };
+
+  const isActionDisabled = () => {
+    if (actionMode === 'case-open' && primaryItem) {
+      return !primaryItem.quantity || primaryItem.quantity < 1 || actionInProgress !== null;
+    }
+    if (actionMode === 'mixed-equipped' || actionMode === 'none') {
+      return true;
     }
     return actionInProgress !== null;
   };
@@ -362,12 +425,16 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
         {primaryItem && (
           <div className="item-preview-actions mt-4">
             <button
-              onClick={() => handleAction(primaryItem)}
-              disabled={isActionDisabled(primaryItem)}
+              onClick={handleBatchAction}
+              disabled={isActionDisabled()}
               className={`item-preview-action-btn ${
-                primaryItem.category === 'CASE' ? 'case-action-btn' : 
-                primaryItem.equipped ? 'unequip-action-btn' : 'equip-action-btn'
-              } ${isActionDisabled(primaryItem) ? 'action-btn-disabled' : ''}`}
+                actionMode === 'batch-equip' ? 'batch-equip-action-btn' :
+                actionMode === 'case-open' ? 'case-action-btn' :
+                actionMode === 'equip' ? 'equip-action-btn' :
+                actionMode === 'unequip' ? 'unequip-action-btn' :
+                actionMode === 'mixed-equipped' ? 'mixed-equipped-action-btn' :
+                'action-btn-disabled'
+              } ${isActionDisabled() ? 'action-btn-disabled' : ''}`}
             >
               {actionInProgress !== null ? (
                 <>
@@ -379,18 +446,30 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                 </>
               ) : (
                 <>
-                  {primaryItem.category === 'CASE' ? (
+                  {actionMode === 'batch-equip' ? (
+                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : actionMode === 'case-open' ? (
                     <FaCoins className="mr-2" size={16} />
-                  ) : primaryItem.equipped ? (
+                  ) : actionMode === 'equip' ? (
+                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : actionMode === 'unequip' ? (
                     <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  ) : actionMode === 'mixed-equipped' ? (
+                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                   ) : (
                     <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   )}
-                  {getActionButtonText(primaryItem)}
+                  {getActionButtonText()}
                 </>
               )}
             </button>

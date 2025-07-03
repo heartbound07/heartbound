@@ -682,6 +682,63 @@ export function InventoryPage() {
     }
   };
   
+  // Handle equipping multiple items in a single batch operation
+  const handleEquipMultipleItems = async (itemIds: string[]) => {
+    if (actionInProgress !== null) return;
+    
+    if (!itemIds || itemIds.length === 0) {
+      showToast("No items selected for equipping", "error");
+      return;
+    }
+    
+    setActionInProgress("batch-equip");
+    
+    try {
+      const response = await httpClient.post('/shop/equip/batch', {
+        itemIds: itemIds
+      });
+      
+      if (response.data) {
+        // Update user profile with the updated profile from response
+        await updateUserProfile({
+          displayName: response.data.displayName || profile?.displayName || user?.username || '',
+          pronouns: response.data.pronouns || profile?.pronouns || '',
+          about: response.data.about || profile?.about || '',
+          bannerColor: response.data.bannerColor || profile?.bannerColor || '',
+          bannerUrl: response.data.bannerUrl || profile?.bannerUrl || '',
+          avatar: response.data.avatar || user?.avatar || ''
+        });
+        
+        // Show success message with count
+        const itemCount = itemIds.length;
+        showToast(
+          `Successfully equipped ${itemCount} item${itemCount > 1 ? 's' : ''}!`, 
+          'success'
+        );
+        
+        // Clear selected items after successful batch equip
+        setSelectedItems({});
+        
+        // Refresh inventory to show updated equipped status
+        await fetchInventory();
+      }
+    } catch (error: any) {
+      console.error('Error batch equipping items:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to equip selected items';
+      
+      // Special handling for batch-specific errors
+      if (errorMessage.includes('Maximum number of badges')) {
+        showToast('You\'ve reached the maximum number of equipped badges. Please unequip some badges first.', 'info');
+      } else if (errorMessage.includes('Cannot equip more than')) {
+        showToast('Too many items selected. Please select fewer items to equip at once.', 'info');
+      } else {
+        showToast(errorMessage, 'error');
+      }
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+  
   // Handle item selection for preview
   const handleSelectItem = (item: ShopItem) => {
     setSelectedItems(prev => {
@@ -894,6 +951,7 @@ export function InventoryPage() {
               onOpenCase={openCaseRoll}
               onViewCaseContents={openCasePreview}
               actionInProgress={actionInProgress}
+              onEquipMultipleItems={handleEquipMultipleItems}
             />
                           </div>
                         </motion.div>

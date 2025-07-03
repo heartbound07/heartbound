@@ -329,87 +329,180 @@ public class ShopService {
         Shop item = shopRepository.findById(itemId)
             .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
         
-        // Check if user owns the item
-        if (!user.hasItem(itemId)) {
-            throw new ItemAlreadyOwnedException("You don't own this item");
-        }
-        
-        // Set the item as equipped based on its category
-        ShopCategory category = item.getCategory();
-        if (category == null) {
-            throw new ItemNotEquippableException("This item cannot be equipped");
-        }
-        
-        // Special handling for BADGE category - allows multiple equipped items
-        if (category == ShopCategory.BADGE) {
-            // Check if badge is already equipped
-            if (user.isBadgeEquipped(itemId)) {
-                logger.debug("Badge {} is already equipped for user {}", itemId, userId);
-                return userService.mapToProfileDTO(user);
-            }
-            
-            // Add badge to equipped badges
-            user.addEquippedBadge(itemId);
-            logger.debug("Added badge {} to user {}'s equipped badges", itemId, userId);
-            
-            // Apply Discord role if applicable
-            if (item.getDiscordRoleId() != null && !item.getDiscordRoleId().isEmpty()) {
-                logger.debug("Adding Discord role {} for user {} for badge", 
-                           item.getDiscordRoleId(), userId);
-                boolean grantSuccess = discordService.grantRole(userId, item.getDiscordRoleId());
-                if (!grantSuccess) {
-                    logger.warn("Failed to grant Discord role {} to user {} for badge", 
-                              item.getDiscordRoleId(), userId);
-                }
-            }
-        } else if (category == ShopCategory.USER_COLOR) {
-            // Handle Discord role management for USER_COLOR items
-            // Check if there was a previously equipped item of the same category
-            UUID previousItemId = user.getEquippedItemIdByCategory(category);
-            if (previousItemId != null && !previousItemId.equals(itemId)) {
-                // Find the previous item to get its Discord role ID and handle removal synchronously
-                shopRepository.findById(previousItemId).ifPresent(previousItem -> {
-                    String previousRoleId = previousItem.getDiscordRoleId();
-                    if (previousRoleId != null && !previousRoleId.isEmpty()) {
-                        logger.debug("Removing previous Discord role {} from user {} before equipping new item", 
-                                previousRoleId, userId);
-                        
-                        // Ensure role removal occurs and log any failures
-                        boolean removalSuccess = discordService.removeRole(userId, previousRoleId);
-                        if (!removalSuccess) {
-                            // Log the issue but continue with equipping the new item
-                            logger.warn("Failed to remove previous Discord role {} from user {}. " +
-                                    "Continuing with equipping new item.", previousRoleId, userId);
-                        } else {
-                            logger.debug("Successfully removed previous Discord role {} from user {}", 
-                                    previousRoleId, userId);
-                        }
-                    }
-                });
-            }
-            
-            // Now unequip the previous item and set the new one
-            user.setEquippedItemIdByCategory(category, itemId);
-            
-            // Grant the new role if it has a discordRoleId
-            String newRoleId = item.getDiscordRoleId();
-            if (newRoleId != null && !newRoleId.isEmpty()) {
-                logger.debug("Granting Discord role {} to user {} for equipped item", newRoleId, userId);
-                boolean grantSuccess = discordService.grantRole(userId, newRoleId);
-                if (!grantSuccess) {
-                    logger.warn("Failed to grant Discord role {} to user {}", newRoleId, userId);
-                }
-            }
-        } else {
-            // For other categories, simply update the equipped item
-            user.setEquippedItemIdByCategory(category, itemId);
-        }
+        // Perform equip logic
+        performEquipItem(user, item);
         
         // Save user changes
         user = userRepository.save(user);
         
         // Return updated profile
         return userService.mapToProfileDTO(user);
+    }
+    
+    /**
+     * Equips multiple items for a user in a single atomic transaction
+     * @param userId User ID
+     * @param itemIds List of item IDs to equip
+     * @return Updated UserProfileDTO
+     */
+    @Transactional
+    public UserProfileDTO equipBatch(String userId, List<UUID> itemIds) {
+        logger.debug("Batch equipping {} items for user {}", itemIds.size(), userId);
+        
+        // Validate input
+        if (itemIds == null || itemIds.isEmpty()) {
+            throw new IllegalArgumentException("Item IDs list cannot be empty");
+        }
+        
+        // Remove duplicates while preserving order
+        List<UUID> uniqueItemIds = itemIds.stream()
+            .distinct()
+            .collect(Collectors.toList());
+            
+        if (uniqueItemIds.size() != itemIds.size()) {
+            logger.debug("Removed {} duplicate item IDs from batch equip request", 
+                        itemIds.size() - uniqueItemIds.size());
+        }
+        
+        // Get user
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // Fetch all items and validate them first
+        List<Shop> itemsToEquip = new ArrayList<>();
+        for (UUID itemId : uniqueItemIds) {
+            Shop item = shopRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
+            itemsToEquip.add(item);
+        }
+        
+        // Validate all items before equipping any
+        for (Shop item : itemsToEquip) {
+            validateItemForEquipping(user, item);
+        }
+        
+        // Perform equip operations for all items
+        for (Shop item : itemsToEquip) {
+            try {
+                performEquipItem(user, item);
+                logger.debug("Successfully equipped item {} for user {}", item.getId(), userId);
+            } catch (Exception e) {
+                logger.error("Failed to equip item {} for user {}: {}", item.getId(), userId, e.getMessage(), e);
+                throw new RuntimeException("Failed to equip item: " + item.getName(), e);
+            }
+        }
+        
+        // Save user changes once after all equips
+        user = userRepository.save(user);
+        
+        logger.info("Successfully batch equipped {} items for user {}", itemsToEquip.size(), userId);
+        
+        // Return updated profile
+        return userService.mapToProfileDTO(user);
+    }
+    
+    /**
+     * Validates that an item can be equipped by a user
+     * @param user User attempting to equip
+     * @param item Item to validate
+     * @throws ItemAlreadyOwnedException if user doesn't own the item
+     * @throws ItemNotEquippableException if item cannot be equipped
+     */
+    private void validateItemForEquipping(User user, Shop item) {
+        // Check if user owns the item
+        if (!user.hasItem(item.getId())) {
+            throw new ItemAlreadyOwnedException("You don't own this item: " + item.getName());
+        }
+        
+        // Check if item can be equipped
+        ShopCategory category = item.getCategory();
+        if (category == null) {
+            throw new ItemNotEquippableException("This item cannot be equipped: " + item.getName());
+        }
+        
+        // Cases cannot be equipped
+        if (category == ShopCategory.CASE) {
+            throw new ItemNotEquippableException("Cases cannot be equipped: " + item.getName());
+        }
+    }
+    
+    /**
+     * Performs the actual equip operation for a single item
+     * This method contains the core equip logic shared between single and batch operations
+     * @param user User to equip item for
+     * @param item Item to equip
+     */
+    private void performEquipItem(User user, Shop item) {
+        // Validate the item can be equipped
+        validateItemForEquipping(user, item);
+        
+        // Set the item as equipped based on its category
+        ShopCategory category = item.getCategory();
+        
+        // Special handling for BADGE category - allows multiple equipped items
+        if (category == ShopCategory.BADGE) {
+            // Check if badge is already equipped
+            if (user.isBadgeEquipped(item.getId())) {
+                logger.debug("Badge {} is already equipped for user {}", item.getId(), user.getId());
+                return; // Already equipped, nothing to do
+            }
+            
+            // Add badge to equipped badges
+            user.addEquippedBadge(item.getId());
+            logger.debug("Added badge {} to user {}'s equipped badges", item.getId(), user.getId());
+            
+            // Apply Discord role if applicable
+            if (item.getDiscordRoleId() != null && !item.getDiscordRoleId().isEmpty()) {
+                logger.debug("Adding Discord role {} for user {} for badge", 
+                           item.getDiscordRoleId(), user.getId());
+                boolean grantSuccess = discordService.grantRole(user.getId(), item.getDiscordRoleId());
+                if (!grantSuccess) {
+                    logger.warn("Failed to grant Discord role {} to user {} for badge", 
+                              item.getDiscordRoleId(), user.getId());
+                }
+            }
+        } else if (category == ShopCategory.USER_COLOR) {
+            // Handle Discord role management for USER_COLOR items
+            // Check if there was a previously equipped item of the same category
+            UUID previousItemId = user.getEquippedItemIdByCategory(category);
+            if (previousItemId != null && !previousItemId.equals(item.getId())) {
+                // Find the previous item to get its Discord role ID and handle removal synchronously
+                shopRepository.findById(previousItemId).ifPresent(previousItem -> {
+                    String previousRoleId = previousItem.getDiscordRoleId();
+                    if (previousRoleId != null && !previousRoleId.isEmpty()) {
+                        logger.debug("Removing previous Discord role {} from user {} before equipping new item", 
+                                previousRoleId, user.getId());
+                        
+                        // Ensure role removal occurs and log any failures
+                        boolean removalSuccess = discordService.removeRole(user.getId(), previousRoleId);
+                        if (!removalSuccess) {
+                            // Log the issue but continue with equipping the new item
+                            logger.warn("Failed to remove previous Discord role {} from user {}. " +
+                                    "Continuing with equipping new item.", previousRoleId, user.getId());
+                        } else {
+                            logger.debug("Successfully removed previous Discord role {} from user {}", 
+                                    previousRoleId, user.getId());
+                        }
+                    }
+                });
+            }
+            
+            // Now unequip the previous item and set the new one
+            user.setEquippedItemIdByCategory(category, item.getId());
+            
+            // Grant the new role if it has a discordRoleId
+            String newRoleId = item.getDiscordRoleId();
+            if (newRoleId != null && !newRoleId.isEmpty()) {
+                logger.debug("Granting Discord role {} to user {} for equipped item", newRoleId, user.getId());
+                boolean grantSuccess = discordService.grantRole(user.getId(), newRoleId);
+                if (!grantSuccess) {
+                    logger.warn("Failed to grant Discord role {} to user {}", newRoleId, user.getId());
+                }
+            }
+        } else {
+            // For other categories, simply update the equipped item
+            user.setEquippedItemIdByCategory(category, item.getId());
+        }
     }
     
     /**

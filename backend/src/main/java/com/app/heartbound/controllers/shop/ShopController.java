@@ -333,6 +333,61 @@ public class ShopController {
     }
     
     /**
+     * Equip multiple items in a single atomic transaction
+     * @param request Batch equip request containing list of item IDs
+     * @param authentication Authentication containing user ID
+     * @return Updated user profile
+     */
+    @RateLimited(
+        requestsPerMinute = 20,
+        requestsPerHour = 100,
+        keyType = RateLimitKeyType.USER,
+        keyPrefix = "batch-equip",
+        burstCapacity = 25
+    )
+    @PostMapping("/equip/batch")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> equipMultipleItems(
+        @RequestBody BatchEquipRequest request,
+        Authentication authentication
+    ) {
+        String userId = authentication.getName();
+        
+        try {
+            // Validate request
+            if (request == null || request.getItemIds() == null || request.getItemIds().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse("Item IDs list cannot be empty"));
+            }
+            
+            // Limit batch size to prevent abuse
+            if (request.getItemIds().size() > 10) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse("Cannot equip more than 10 items at once"));
+            }
+            
+            UserProfileDTO updatedProfile = shopService.equipBatch(userId, request.getItemIds());
+            return ResponseEntity.ok(updatedProfile);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (ItemAlreadyOwnedException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (ItemNotEquippableException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error batch equipping items for user {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An error occurred while equipping items"));
+        }
+    }
+    
+    /**
      * Unequip an item by category
      * @param category Category to unequip
      * @param authentication Authentication containing user ID
@@ -633,6 +688,21 @@ public class ShopController {
 
         public List<ShopDTO> getDailyItems() {
             return dailyItems;
+        }
+    }
+    
+    /**
+     * Request DTO for batch equipping items
+     */
+    public static class BatchEquipRequest {
+        private List<UUID> itemIds;
+
+        public List<UUID> getItemIds() {
+            return itemIds;
+        }
+
+        public void setItemIds(List<UUID> itemIds) {
+            this.itemIds = itemIds;
         }
     }
 }
