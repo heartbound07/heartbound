@@ -2,7 +2,7 @@ package com.app.heartbound.entities;
 
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.enums.ShopCategory;
-import com.app.heartbound.exceptions.shop.BadgeLimitException;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -36,7 +36,8 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(exclude = {"inventoryItems"})
 public class User {
     
-    private static final int MAX_BADGES = 5; // You can change this number as needed
+    // Remove the MAX_BADGES constant as it's no longer needed for single badge
+    // private static final int MAX_BADGES = 5; // Deprecated - now using single badge
     
     @Id
     private String id; // External (OAuth) user id
@@ -126,14 +127,9 @@ public class User {
     @Column(name = "equipped_accent_id")
     private UUID equippedAccentId;
     
-    // Add these fields to store multiple equipped badge IDs
-    @ElementCollection(fetch = jakarta.persistence.FetchType.EAGER)
-    @CollectionTable(
-        name = "user_equipped_badges", 
-        joinColumns = @JoinColumn(name = "user_id")
-    )
-    @Column(name = "badge_id")
-    private Set<UUID> equippedBadgeIds = new LinkedHashSet<>();
+    // Updated field to store single equipped badge ID instead of multiple
+    @Column(name = "equipped_badge_id")
+    private UUID equippedBadgeId;
     
     // Helper methods for role management
     public void addRole(Role role) {
@@ -273,30 +269,25 @@ public class User {
         this.equippedAccentId = equippedAccentId;
     }
 
-    // Helper methods for badge management
-    public void addEquippedBadge(UUID badgeId) {
-        if (this.equippedBadgeIds == null) {
-            this.equippedBadgeIds = new HashSet<>();
-        }
-        // Add configurable badge limit (e.g., from application properties)
-        if (this.equippedBadgeIds.size() >= MAX_BADGES) {
-            throw new BadgeLimitException("Maximum number of badges (" + MAX_BADGES + ") already equipped");
-        }
-        this.equippedBadgeIds.add(badgeId);
+    // Helper methods for badge management - updated for single badge
+    public void setEquippedBadge(UUID badgeId) {
+        this.equippedBadgeId = badgeId;
     }
 
-    public void removeEquippedBadge(UUID badgeId) {
-        if (this.equippedBadgeIds != null) {
-            this.equippedBadgeIds.remove(badgeId);
-        }
+    public void removeEquippedBadge() {
+        this.equippedBadgeId = null;
     }
 
-    public Set<UUID> getEquippedBadgeIds() {
-        return equippedBadgeIds != null ? equippedBadgeIds : new HashSet<>();
+    public UUID getEquippedBadgeId() {
+        return equippedBadgeId;
     }
 
     public boolean isBadgeEquipped(UUID badgeId) {
-        return this.equippedBadgeIds != null && this.equippedBadgeIds.contains(badgeId);
+        return this.equippedBadgeId != null && this.equippedBadgeId.equals(badgeId);
+    }
+
+    public boolean hasEquippedBadge() {
+        return this.equippedBadgeId != null;
     }
 
     // Helper method to get equipped item ID by category
@@ -309,7 +300,7 @@ public class User {
             case ACCENT:
                 return getEquippedAccentId();
             case BADGE:
-                throw new UnsupportedOperationException("BADGE category supports multiple equipped items. Use getEquippedBadgeIds() instead.");
+                return getEquippedBadgeId();
             case CASE:
                 throw new UnsupportedOperationException("CASE category items cannot be equipped. Cases are purchased and stored in inventory.");
             default:
@@ -330,7 +321,8 @@ public class User {
                 setEquippedAccentId(itemId);
                 break;
             case BADGE:
-                throw new UnsupportedOperationException("BADGE category supports multiple equipped items. Use addEquippedBadge() or removeEquippedBadge() instead.");
+                setEquippedBadge(itemId);
+                break;
             case CASE:
                 throw new UnsupportedOperationException("CASE category items cannot be equipped. Cases are purchased and stored in inventory.");
             default:

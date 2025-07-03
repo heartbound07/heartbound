@@ -39,6 +39,7 @@ import java.util.UUID;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Optional;
 
 @Service
 public class UserService {
@@ -316,22 +317,20 @@ public class UserService {
             logger.debug("Using custom avatar URL for user: {}: {}", user.getId(), avatarUrl);
         }
         
-        // Get the user's equipped badges if any
-        Set<UUID> badgeIds = user.getEquippedBadgeIds();
+        // Get the user's equipped badge if any
+        UUID badgeId = user.getEquippedBadgeId();
         
-        // Create maps for badge URLs and names
-        Map<String, String> badgeUrls = new HashMap<>();
-        Map<String, String> badgeNames = new HashMap<>();
+        // Variables for badge URL and name
+        String badgeUrl = null;
+        String badgeName = null;
         
-        // If user has equipped badges, fetch their details
-        if (badgeIds != null && !badgeIds.isEmpty()) {
-            List<Shop> badges = shopRepository.findAllByIdIn(badgeIds);
-            
-            // Populate both maps (URLs and names)
-            for (Shop badge : badges) {
-                String idStr = badge.getId().toString();
-                badgeUrls.put(idStr, badge.getThumbnailUrl());
-                badgeNames.put(idStr, badge.getName()); // Add the actual badge name
+        // If user has an equipped badge, fetch its details
+        if (badgeId != null) {
+            Optional<Shop> badgeOpt = shopRepository.findById(badgeId);
+            if (badgeOpt.isPresent()) {
+                Shop badge = badgeOpt.get();
+                badgeUrl = badge.getThumbnailUrl();
+                badgeName = badge.getName();
             }
         }
         
@@ -387,9 +386,9 @@ public class UserService {
                 .equippedUserColorId(user.getEquippedUserColorId())
                 .equippedListingId(user.getEquippedListingId())
                 .equippedAccentId(user.getEquippedAccentId())
-                .equippedBadgeIds(badgeIds)
-                .badgeUrls(badgeUrls)
-                .badgeNames(badgeNames) // Add the badge names map
+                .equippedBadgeId(badgeId)
+                .badgeUrl(badgeUrl)
+                .badgeName(badgeName) // Add the badge name
                 .nameplateColor(nameplateColor) // Add resolved nameplate color
                 .dailyStreak(user.getDailyStreak()) // Add daily claim fields
                 .lastDailyClaim(user.getLastDailyClaim())

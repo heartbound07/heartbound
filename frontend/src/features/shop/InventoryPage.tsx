@@ -691,6 +691,15 @@ export function InventoryPage() {
       return;
     }
     
+    // Check if multiple badges are being equipped (client-side validation)
+    const selectedItemsArray = Object.values(selectedItems).filter(item => item !== null) as ShopItem[];
+    const badgeItems = selectedItemsArray.filter(item => item.category === 'BADGE');
+    
+    if (badgeItems.length > 1) {
+      showToast("Only one badge can be equipped at a time. Please select only one badge.", "error");
+      return;
+    }
+    
     setActionInProgress("batch-equip");
     
     try {
@@ -727,8 +736,8 @@ export function InventoryPage() {
       const errorMessage = error.response?.data?.message || 'Failed to equip selected items';
       
       // Special handling for batch-specific errors
-      if (errorMessage.includes('Maximum number of badges')) {
-        showToast('You\'ve reached the maximum number of equipped badges. Please unequip some badges first.', 'info');
+      if (errorMessage.includes('one badge can be equipped')) {
+        showToast('Only one badge can be equipped at a time. Please select only one badge.', 'error');
       } else if (errorMessage.includes('Cannot equip more than')) {
         showToast('Too many items selected. Please select fewer items to equip at once.', 'info');
       } else {
@@ -747,6 +756,7 @@ export function InventoryPage() {
       if (item.category === 'USER_COLOR') {
         newSelected.nameplate = newSelected.nameplate?.id === item.id ? null : item;
       } else if (item.category === 'BADGE') {
+        // For badges, only allow one selection at a time - replace any existing badge selection
         newSelected.badge = newSelected.badge?.id === item.id ? null : item;
       } else {
         // For other categories, use the category as the key

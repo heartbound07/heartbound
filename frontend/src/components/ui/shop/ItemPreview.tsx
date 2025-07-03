@@ -88,17 +88,13 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
     if (selectedItems.badge) {
       return selectedItems.badge.thumbnailUrl || selectedItems.badge.imageUrl;
     }
-    // Fall back to user's first equipped badge if available
-    if (user?.badgeUrls && Object.keys(user.badgeUrls).length > 0) {
-      const firstBadgeId = Object.keys(user.badgeUrls)[0];
-      return user.badgeUrls[firstBadgeId];
-    }
-    return null;
+    // Fall back to user's equipped badge if available
+    return user?.badgeUrl || null;
   };
 
-  // Check if user has equipped badges for default state
+  // Check if user has equipped badge for default state
   const hasEquippedBadge = () => {
-    return user?.badgeUrls && Object.keys(user.badgeUrls).length > 0;
+    return user?.badgeUrl && user.badgeUrl.length > 0;
   };
 
   // Get the rarity color for the primary selected item (white when no items selected)
@@ -150,6 +146,10 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
       case 'case-open':
         return (!primaryItem?.quantity || primaryItem.quantity < 1) ? 'No Cases' : 'Open Case';
       case 'equip':
+        // Show more descriptive text for badge replacement
+        if (primaryItem?.category === 'BADGE' && user?.badgeUrl) {
+          return 'Replace Equipped Badge';
+        }
         return 'Equip';
       case 'unequip':
         return 'Unequip';

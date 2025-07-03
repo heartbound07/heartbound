@@ -27,9 +27,9 @@ export interface UserProfileDTO {
   equippedUserColorId?: string;
   equippedListingId?: string;
   equippedAccentId?: string;
-  equippedBadgeIds?: string[];
-  badgeUrls?: Record<string, string>;
-  badgeNames?: Record<string, string>;
+  equippedBadgeId?: string;
+  badgeUrl?: string; // URL of the single equipped badge
+  badgeName?: string; // Name of the single equipped badge
   nameplateColor?: string; // Resolved hex color for equipped nameplate
 }
 

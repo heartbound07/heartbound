@@ -370,10 +370,21 @@ public class ShopService {
         
         // Fetch all items and validate them first
         List<Shop> itemsToEquip = new ArrayList<>();
+        int badgeCount = 0;
         for (UUID itemId : uniqueItemIds) {
             Shop item = shopRepository.findById(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
             itemsToEquip.add(item);
+            
+            // Count badges to ensure only one badge is included in batch request
+            if (item.getCategory() == ShopCategory.BADGE) {
+                badgeCount++;
+            }
+        }
+        
+        // Validate that only one badge is included in the batch request
+        if (badgeCount > 1) {
+            throw new IllegalArgumentException("Only one badge can be equipped at a time. Please select only one badge for batch equipping.");
         }
         
         // Validate all items before equipping any
@@ -439,7 +450,7 @@ public class ShopService {
         // Set the item as equipped based on its category
         ShopCategory category = item.getCategory();
         
-        // Special handling for BADGE category - allows multiple equipped items
+        // Special handling for BADGE category - single badge only
         if (category == ShopCategory.BADGE) {
             // Check if badge is already equipped
             if (user.isBadgeEquipped(item.getId())) {
@@ -447,9 +458,31 @@ public class ShopService {
                 return; // Already equipped, nothing to do
             }
             
-            // Add badge to equipped badges
-            user.addEquippedBadge(item.getId());
-            logger.debug("Added badge {} to user {}'s equipped badges", item.getId(), user.getId());
+            // Handle Discord role management for previously equipped badge
+            UUID previousBadgeId = user.getEquippedBadgeId();
+            if (previousBadgeId != null && !previousBadgeId.equals(item.getId())) {
+                // Find the previous badge to get its Discord role ID and handle removal
+                shopRepository.findById(previousBadgeId).ifPresent(previousBadge -> {
+                    String previousRoleId = previousBadge.getDiscordRoleId();
+                    if (previousRoleId != null && !previousRoleId.isEmpty()) {
+                        logger.debug("Removing previous Discord role {} from user {} before equipping new badge", 
+                                previousRoleId, user.getId());
+                        
+                        boolean removalSuccess = discordService.removeRole(user.getId(), previousRoleId);
+                        if (!removalSuccess) {
+                            logger.warn("Failed to remove previous Discord role {} from user {}. " +
+                                    "Continuing with equipping new badge.", previousRoleId, user.getId());
+                        } else {
+                            logger.debug("Successfully removed previous Discord role {} from user {}", 
+                                    previousRoleId, user.getId());
+                        }
+                    }
+                });
+            }
+            
+            // Set the new badge as equipped (replaces any existing badge)
+            user.setEquippedBadge(item.getId());
+            logger.debug("Set badge {} as equipped for user {}", item.getId(), user.getId());
             
             // Apply Discord role if applicable
             if (item.getDiscordRoleId() != null && !item.getDiscordRoleId().isEmpty()) {
@@ -577,8 +610,8 @@ public class ShopService {
             throw new ItemNotEquippableException("Item is not a badge");
         }
         
-        // Remove the badge from equipped badges
-        user.removeEquippedBadge(badgeId);
+        // Remove the equipped badge
+        user.removeEquippedBadge();
         
         // Handle Discord role if applicable
         if (badge.getDiscordRoleId() != null && !badge.getDiscordRoleId().isEmpty()) {

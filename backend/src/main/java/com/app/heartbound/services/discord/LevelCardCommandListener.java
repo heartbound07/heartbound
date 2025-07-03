@@ -353,39 +353,21 @@ public class LevelCardCommandListener extends ListenerAdapter {
     }
 
     /**
-     * Generates the HTML for equipped badges with +X more indicator
+     * Generates the HTML for the equipped badge (single badge system)
      */
     private String generateBadgesHtml(UserProfileDTO profile) {
-        if (profile.getEquippedBadgeIds() == null || profile.getEquippedBadgeIds().isEmpty()) {
+        if (profile.getBadgeUrl() == null || profile.getBadgeUrl().isEmpty()) {
             return "";
         }
-        
-        final int MAX_VISIBLE_BADGES = 5;
-        java.util.List<java.util.UUID> visibleBadges = profile.getEquippedBadgeIds().stream()
-            .limit(MAX_VISIBLE_BADGES)
-            .collect(java.util.stream.Collectors.toList());
-        
-        int extraBadgesCount = Math.max(0, profile.getEquippedBadgeIds().size() - MAX_VISIBLE_BADGES);
         
         StringBuilder badgesHtml = new StringBuilder();
         badgesHtml.append("<div class=\"equipped-badges\">");
         
-        for (java.util.UUID badgeId : visibleBadges) {
-            String badgeUrl = profile.getBadgeUrls() != null ? profile.getBadgeUrls().get(badgeId.toString()) : null;
-            if (badgeUrl != null && !badgeUrl.isEmpty()) {
-                badgesHtml.append(String.format(
-                    "<div class=\"badge-wrapper\"><img src=\"%s\" alt=\"Badge\" class=\"badge-icon\" /></div>",
-                    badgeUrl.replace("\"", "&quot;")
-                ));
-            }
-        }
-        
-        if (extraBadgesCount > 0) {
-            badgesHtml.append(String.format(
-                "<div class=\"extra-badges-indicator\">+%d</div>",
-                extraBadgesCount
-            ));
-        }
+        // Display the single equipped badge
+        badgesHtml.append(String.format(
+            "<div class=\"badge-wrapper\"><img src=\"%s\" alt=\"Badge\" class=\"badge-icon\" /></div>",
+            profile.getBadgeUrl().replace("\"", "&quot;")
+        ));
         
         badgesHtml.append("</div>");
         return badgesHtml.toString();

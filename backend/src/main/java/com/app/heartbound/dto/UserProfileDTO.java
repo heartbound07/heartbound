@@ -63,14 +63,14 @@ public class UserProfileDTO {
     private UUID equippedListingId;
     private UUID equippedAccentId;
 
-    // Add this field for equipped badges
-    private Set<UUID> equippedBadgeIds;
+    // Add this field for single equipped badge
+    private UUID equippedBadgeId;
     
-    // Add this field to map badge IDs to their thumbnail URLs
-    private Map<String, String> badgeUrls;
+    // Add this field for the equipped badge's thumbnail URL
+    private String badgeUrl;
     
-    // Add this field to map badge IDs to their names
-    private Map<String, String> badgeNames;
+    // Add this field for the equipped badge's name
+    private String badgeName;
     
     // Add resolved nameplate color for frontend preview
     private String nameplateColor;
