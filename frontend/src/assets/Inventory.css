@@ -320,7 +320,12 @@
 .item-preview-header {
   padding: 1.5rem 1.5rem 1.5rem 1.5rem; /* Add bottom padding for better alignment */
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-  margin-bottom: 0; /* Remove margin-bottom to prevent spacing issues */
+  margin-bottom: 1.5rem; /* Add spacing between header and visual preview */
+  text-align: center; /* Center align the Profile Preview text */
+}
+
+.item-preview-header .flex {
+  justify-content: center !important; /* Override the space-between to center the content */
 }
 
 .item-preview-title {
@@ -330,6 +335,7 @@
   font-family: 'Grandstander', sans-serif;
   margin: 0; /* Ensure no default margins */
   line-height: 1.2; /* Better line height for alignment */
+  text-align: center; /* Ensure the title itself is centered */
 }
 
 .item-preview-equipped-badge {
