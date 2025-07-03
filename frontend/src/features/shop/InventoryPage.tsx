@@ -170,7 +170,7 @@ const InventoryItemCard = forwardRef(({
           {item.equipped && (
             <div className="item-badge badge-equipped">
               Equipped
-            </div>
+      </div>
           )}
         </div>
       ) : item.category === 'BADGE' ? (
@@ -245,9 +245,9 @@ const InventoryItemCard = forwardRef(({
               style={{
                 background: `radial-gradient(circle at center, ${rarityColor}40 0%, transparent 70%)`
               }}
-            />
-          </div>
-          
+          />
+        </div>
+        
           {/* Case-specific badges */}
           <div className="absolute top-2 left-2">
             <div 
@@ -370,7 +370,7 @@ const InventoryItemCard = forwardRef(({
             </>
           )}
         </button>
-      </div>
+        </div>
     </motion.div>
   );
 });
@@ -720,13 +720,13 @@ export function InventoryPage() {
         {/* Toast notifications */}
         <div className="fixed top-4 right-4 z-50 flex flex-col space-y-2">
           {toasts.map(toast => (
-            <Toast
-              key={toast.id}
-              message={toast.message}
-              type={toast.type}
-              onClose={() => removeToast(toast.id)}
-            />
-          ))}
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => removeToast(toast.id)}
+        />
+      ))}
         </div>
         
         {/* Page Header */}
@@ -751,95 +751,95 @@ export function InventoryPage() {
           {/* Left Column - Inventory Grid with Fixed Height and Scroll */}
           <div className="inventory-left-column">
             {/* Categories Filter */}
-            <motion.div 
-              className="inventory-categories"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
+        <motion.div 
+          className="inventory-categories"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+        >
+          <div className="inventory-categories-scroll-container">
+            <motion.button
+              key="all"
+              onClick={() => setSelectedCategory(null)}
+              className={`category-button ${
+                selectedCategory === null ? 'category-button-active' : 'category-button-inactive'
+              }`}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <div className="inventory-categories-scroll-container">
-                <motion.button
-                  key="all"
-                  onClick={() => setSelectedCategory(null)}
-                  className={`category-button ${
-                    selectedCategory === null ? 'category-button-active' : 'category-button-inactive'
-                  }`}
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                >
-                  All Items
-                </motion.button>
-                
-                {categories.map((category) => (
-                  <motion.button
-                    key={category}
-                    onClick={() => setSelectedCategory(category)}
-                    className={`category-button ${
-                      selectedCategory === category ? 'category-button-active' : 'category-button-inactive'
-                    }`}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                  >
-                    {formatCategoryDisplay(category)}
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-
+              All Items
+            </motion.button>
+            
+            {categories.map((category) => (
+              <motion.button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className={`category-button ${
+                  selectedCategory === category ? 'category-button-active' : 'category-button-inactive'
+                }`}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              >
+                {formatCategoryDisplay(category)}
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+        
             {/* Controls Row */}
             <div className="inventory-controls">
               <h2 className="text-xl font-bold text-white">
-                {selectedCategory ? `${formatCategoryDisplay(selectedCategory)} Items` : 'All Items'}
-              </h2>
-              
+              {selectedCategory ? `${formatCategoryDisplay(selectedCategory)} Items` : 'All Items'}
+            </h2>
+            
               {/* Sort controls */}
-              {!loading && items.length > 0 && (
+            {!loading && items.length > 0 && (
                 <div className="sort-control-container">
-                  <span className="text-sm text-slate-300 mr-2">Sort by:</span>
+                <span className="text-sm text-slate-300 mr-2">Sort by:</span>
                   <select
-                    value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value as 'default' | 'rarity-asc' | 'rarity-desc')}
-                    className="inventory-sort-dropdown"
-                  >
-                    <option value="default">Default (Equipped first)</option>
-                    <option value="rarity-desc">Legendary to Common</option>
-                    <option value="rarity-asc">Common to Legendary</option>
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as 'default' | 'rarity-asc' | 'rarity-desc')}
+                  className="inventory-sort-dropdown"
+                >
+                  <option value="default">Default (Equipped first)</option>
+                  <option value="rarity-desc">Legendary to Common</option>
+                  <option value="rarity-asc">Common to Legendary</option>
                   </select>
                 </div>
-              )}
-            </div>
-
+            )}
+          </div>
+          
             {/* Scrollable Inventory Grid */}
             <div className="inventory-grid-container">
-              {loading ? (
-                <div className="inventory-grid">
-                  {Array.from({ length: 6 }).map((_, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.3, delay: 0.1 * index }}
-                    >
-                      <InventoryItemSkeleton />
-                    </motion.div>
-                  ))}
-                </div>
-              ) : items.length === 0 ? (
-                <motion.div 
-                  className="empty-inventory"
+          {loading ? (
+            <div className="inventory-grid">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <motion.div
+                  key={index}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
+                  transition={{ duration: 0.3, delay: 0.1 * index }}
                 >
+                  <InventoryItemSkeleton />
+                </motion.div>
+              ))}
+            </div>
+          ) : items.length === 0 ? (
+            <motion.div 
+              className="empty-inventory"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
                   <div className="empty-inventory-icon">
                     <svg className="w-16 h-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
                   </div>
                   <h3 className="empty-inventory-title">
-                    {selectedCategory ? 
+                {selectedCategory ? 
                       `No ${formatCategoryDisplay(selectedCategory)} items` : 
                       "Your inventory is empty"
                     }
@@ -850,22 +850,22 @@ export function InventoryPage() {
                       "Start shopping to collect amazing items!"
                     }
                   </p>
-                  <motion.button 
-                    onClick={() => window.location.href = '/shop'}
-                    className="visit-shop-button"
+              <motion.button 
+                onClick={() => window.location.href = '/shop'}
+                className="visit-shop-button"
                     whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                  >
-                    Visit Shop
-                  </motion.button>
-                </motion.div>
-              ) : (
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              >
+                Visit Shop
+              </motion.button>
+            </motion.div>
+          ) : (
                 <div className="inventory-grid">
                   <AnimatePresence mode="popLayout">
                     {items.map((item) => (
                       <InventoryItemCard
-                        key={item.id}
+                          key={item.id}
                         item={item}
                         handleEquip={handleEquipItem}
                         handleUnequip={handleUnequipItem}
@@ -879,10 +879,10 @@ export function InventoryPage() {
                       />
                     ))}
                   </AnimatePresence>
-                </div>
-              )}
-            </div>
-          </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                    </div>
 
           {/* Right Column - Item Preview Panel */}
           <div className="inventory-right-column">
@@ -896,28 +896,28 @@ export function InventoryPage() {
               onViewCaseContents={openCasePreview}
               actionInProgress={actionInProgress}
             />
-          </div>
-        </motion.div>
-      </div>
-      
-      {/* Case Preview Modal */}
-      <CasePreviewModal
-        isOpen={casePreviewModal.isOpen}
-        onClose={closeCasePreview}
-        caseId={casePreviewModal.caseId}
-        caseName={casePreviewModal.caseName}
-        user={user}
-      />
-      
-      {/* Case Roll Modal */}
-      <CaseRollModal
-        isOpen={caseRollModal.isOpen}
-        onClose={closeCaseRoll}
-        caseId={caseRollModal.caseId}
-        caseName={caseRollModal.caseName}
-        onRollComplete={handleRollComplete}
-        user={user}
-      />
+                          </div>
+                        </motion.div>
+    </div>
+    
+    {/* Case Preview Modal */}
+    <CasePreviewModal
+      isOpen={casePreviewModal.isOpen}
+      onClose={closeCasePreview}
+      caseId={casePreviewModal.caseId}
+      caseName={casePreviewModal.caseName}
+      user={user}
+    />
+    
+    {/* Case Roll Modal */}
+    <CaseRollModal
+      isOpen={caseRollModal.isOpen}
+      onClose={closeCaseRoll}
+      caseId={caseRollModal.caseId}
+      caseName={caseRollModal.caseName}
+      onRollComplete={handleRollComplete}
+      user={user}
+    />
     </div>
   );
 }

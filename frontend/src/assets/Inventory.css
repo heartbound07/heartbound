@@ -161,8 +161,8 @@
   overflow-y: auto;
   padding-right: 0.5rem;
   scroll-behavior: smooth;
-  flex: 1;
   padding-bottom: 1rem;
+  align-content: start; /* Align items to the top instead of stretching */
 }
 
 /* Custom scrollbar for inventory grid */
