@@ -153,9 +153,9 @@ export function UserProfileModal({ isOpen, onClose, userProfile, position }: Use
               about={userProfile.about}
               pronouns={userProfile.pronouns}
               user={{ avatar: userProfile.avatar, username: userProfile.username }}
-              equippedBadgeIds={userProfile.equippedBadgeIds || []}
-              badgeMap={userProfile.badgeUrls || {}}
-              badgeNames={userProfile.badgeNames || {}}
+              equippedBadgeIds={userProfile.equippedBadgeId ? [userProfile.equippedBadgeId] : []}
+              badgeMap={userProfile.equippedBadgeId && userProfile.badgeUrl ? { [userProfile.equippedBadgeId]: userProfile.badgeUrl } : {}}
+              badgeNames={userProfile.equippedBadgeId && userProfile.badgeName ? { [userProfile.equippedBadgeId]: userProfile.badgeName } : {}}
               showEditButton={false}
             />
           </motion.div>

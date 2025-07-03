@@ -14,48 +14,24 @@ interface LevelCardProps {
 }
 
 const EquippedBadges = React.memo(function EquippedBadges({ userProfile }: { userProfile: UserProfileDTO }) {
-  const MAX_VISIBLE_BADGES = 5;
-  
-  if (!userProfile.equippedBadgeIds || userProfile.equippedBadgeIds.length === 0) {
+  // Since we now only support one badge, simplify the component
+  if (!userProfile.equippedBadgeId || !userProfile.badgeUrl) {
     return null;
   }
   
-  const visibleBadges = userProfile.equippedBadgeIds.slice(0, MAX_VISIBLE_BADGES);
-  const extraBadgesCount = Math.max(0, userProfile.equippedBadgeIds.length - MAX_VISIBLE_BADGES);
-  
   return (
     <div className="flex flex-row items-center gap-1 transition-all relative">
-      {visibleBadges.map((badgeId) => {
-        const badgeUrl = userProfile.badgeUrls?.[badgeId];
-        const badgeName = userProfile.badgeNames?.[badgeId] || "Badge";
-        
-        if (!badgeUrl) return null;
-        
-        return (
-          <div key={badgeId} className="relative">
-            <div title={badgeName} className="p-0 m-0 border-0 bg-transparent">
-              <img 
-                src={badgeUrl} 
-                alt={badgeName}
-                className="w-5 h-5 rounded-full object-cover"
-                loading="lazy"
-                decoding="async"
-              />
-            </div>
-          </div>
-        );
-      })}
-      
-      {extraBadgesCount > 0 && (
-        <div className="relative">
-          <div 
-            className="h-5 w-5 p-0 m-0 border-0 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold transition-colors"
-            title={`+${extraBadgesCount} more badges`}
-          >
-            +{extraBadgesCount}
-          </div>
+      <div className="relative">
+        <div title={userProfile.badgeName || "Badge"} className="p-0 m-0 border-0 bg-transparent">
+          <img 
+            src={userProfile.badgeUrl} 
+            alt={userProfile.badgeName || "Badge"}
+            className="w-5 h-5 rounded-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
         </div>
-      )}
+      </div>
     </div>
   );
 });

@@ -254,9 +254,9 @@ export function DashboardNavigation({ theme = "default", onCollapseChange }: Das
             navigate("/profile")
             setShowProfilePreview(false)
           }}
-          equippedBadgeIds={profile?.equippedBadgeIds || []}
-          badgeMap={profile?.badgeUrls || {}}
-          badgeNames={profile?.badgeNames || {}}
+          equippedBadgeIds={profile?.equippedBadgeId ? [profile.equippedBadgeId] : []}
+          badgeMap={profile?.equippedBadgeId && profile?.badgeUrl ? { [profile.equippedBadgeId]: profile.badgeUrl } : {}}
+          badgeNames={profile?.equippedBadgeId && profile?.badgeName ? { [profile.equippedBadgeId]: profile.badgeName } : {}}
         />
       </div>,
       document.body,
