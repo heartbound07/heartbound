@@ -7,6 +7,7 @@ interface BadgePreviewProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
   message?: string;
+  nameplateColor?: string; // Add nameplate color support
 }
 
 /**
@@ -19,7 +20,8 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
   badgeUrl,
   className = '',
   size = 'md',
-  message = 'This is how the badge will appear!'
+  message = 'This is how the badge will appear!',
+  nameplateColor // Add nameplate color prop
 }) => {
   // Set sizes based on the size prop
   const avatarSizes = {
@@ -59,10 +61,11 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
         {/* Username with badge next to it */}
         <div className="flex items-center gap-2">
           <span 
-            className={`font-medium text-white ${textSizes[size]}`} 
+            className={`font-medium ${textSizes[size]}`} 
             style={{ 
               fontWeight: 600,
-              fontFamily: '"gg sans", sans-serif'
+              fontFamily: '"gg sans", sans-serif',
+              color: nameplateColor || '#ffffff' // Use nameplate color or default to white
             }}
           >
             {username}

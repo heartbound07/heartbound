@@ -154,7 +154,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
           {/* Combined Profile Preview */}
           <div className="item-preview-combined">
             {selectedItems.badge ? (
-              // Show badge preview with nameplate
+              // Show badge preview with nameplate color
               <BadgePreview
                 username={user?.username || "Username"}
                 avatar={user?.avatar || "/default-avatar.png"}
@@ -162,6 +162,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                 message="This is what your profile looks like"
                 className="w-full"
                 size="lg"
+                nameplateColor={getNameplateColor()} // Pass the nameplate color
               />
             ) : selectedItems.nameplate ? (
               // Show nameplate preview only
