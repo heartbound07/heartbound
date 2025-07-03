@@ -49,7 +49,7 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
   };
   
   return (
-    <div className={`flex items-center justify-center w-full p-4 bg-slate-800 rounded-lg ${className}`}>
+    <div className={`flex items-center justify-center w-full p-4 rounded-lg ${className}`}>
       {/* User avatar */}
       <img 
         src={avatar} 
