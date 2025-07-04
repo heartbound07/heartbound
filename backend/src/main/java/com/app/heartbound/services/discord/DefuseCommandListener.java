@@ -28,6 +28,9 @@ import java.util.Random;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Executors;
 
 @Component
 public class DefuseCommandListener extends ListenerAdapter {
@@ -41,6 +44,7 @@ public class DefuseCommandListener extends ListenerAdapter {
     private final UserService userService;
     private final CacheConfig cacheConfig;
     private final Random random = new Random();
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
     
     // Wire colors and their emojis
     private static final List<String> WIRE_COLORS = Arrays.asList("red", "blue", "yellow", "green", "pink");
@@ -289,6 +293,13 @@ public class DefuseCommandListener extends ListenerAdapter {
         String currentPlayerName = currentPlayerId.equals(game.getChallengerUserId()) ? 
             game.getChallengerDisplayName() : game.getChallengedDisplayName();
         
+        logger.debug("=== WIRE CUTTING EMBED UPDATE ===");
+        logger.debug("Current player: {} ({})", currentPlayerId, currentPlayerName);
+        logger.debug("Is new turn: {}", isNewTurn);
+        logger.debug("Cut wires: {}", game.getCutWires());
+        logger.debug("Remaining wires: {}", WIRE_COLORS.stream().filter(w -> !game.getCutWires().contains(w)).toList());
+        logger.debug("Bomb wire: {}", game.getBombWire());
+        
         EmbedBuilder wireEmbed = new EmbedBuilder()
             .setColor(EMBED_COLOR)
             .setTitle("The bomb is ticking! 💣")
@@ -306,19 +317,30 @@ public class DefuseCommandListener extends ListenerAdapter {
             if (!game.getCutWires().contains(wire)) {
                 Button wireButton = Button.secondary("defuse_wire_" + wire + "_" + gameKey, emoji);
                 wireButtons.add(wireButton);
+                logger.debug("Created wire button: {} ({})", wire, emoji);
             }
         }
+        
+        logger.debug("Total wire buttons created: {}", wireButtons.size());
         
         // Generate unique turn identifier to prevent timer conflicts
         String turnId = currentPlayerId + "_" + System.currentTimeMillis();
         game.setCurrentTurnId(turnId);
         
+        logger.debug("Generated turn ID: {}", turnId);
+        
         // Set up 5-second countdown update (halfway point)
-        CompletableFuture.delayedExecutor(5, TimeUnit.SECONDS).execute(() -> {
+        ScheduledFuture<?> fiveSecFuture = scheduler.schedule(() -> {
+            logger.debug("=== 5-SECOND TIMER CHECKPOINT ===");
+            logger.debug("Turn ID: {}", turnId);
+            
             DefuseGame midwayGame = activeGames.get(gameKey);
             if (midwayGame != null && midwayGame.getState() == DefuseGame.GameState.ACTIVE && 
                 midwayGame.getCurrentPlayerId().equals(currentPlayerId) && 
                 turnId.equals(midwayGame.getCurrentTurnId())) {
+                
+                logger.debug("5-second countdown update triggered for player: {}", currentPlayerId);
+                
                 // Update footer to show 5 seconds remaining
                 EmbedBuilder urgentEmbed = new EmbedBuilder()
                     .setColor(EMBED_COLOR)
@@ -338,63 +360,126 @@ public class DefuseCommandListener extends ListenerAdapter {
                     }
                 }
                 
+                logger.debug("Updated wire buttons for 5-second countdown: {}", updatedWireButtons.size());
+                
                 event.getHook().editOriginalEmbeds(urgentEmbed.build())
                     .setComponents(ActionRow.of(updatedWireButtons))
-                    .queue();
+                    .queue(
+                        success -> logger.debug("5-second countdown update sent successfully"),
+                        error -> logger.error("Failed to send 5-second countdown update: {}", error.getMessage())
+                    );
+            } else {
+                logger.debug("5-second timer skipped - game state changed or different turn");
+                logger.debug("Game exists: {}, Game state: {}, Current player matches: {}, Turn ID matches: {}", 
+                    midwayGame != null, 
+                    midwayGame != null ? midwayGame.getState() : "null",
+                    midwayGame != null ? midwayGame.getCurrentPlayerId().equals(currentPlayerId) : "false",
+                    midwayGame != null ? turnId.equals(midwayGame.getCurrentTurnId()) : "false");
             }
-        });
+        }, 5, TimeUnit.SECONDS);
         
         // Set up wire cutting timeout (10 seconds total)
-        CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS).execute(() -> {
+        ScheduledFuture<?> tenSecFuture = scheduler.schedule(() -> {
+            logger.debug("=== 10-SECOND TIMEOUT CHECKPOINT ===");
+            logger.debug("Turn ID: {}", turnId);
+            
             DefuseGame timeoutGame = activeGames.get(gameKey);
             if (timeoutGame != null && timeoutGame.getState() == DefuseGame.GameState.ACTIVE && 
                 timeoutGame.getCurrentPlayerId().equals(currentPlayerId) && 
                 turnId.equals(timeoutGame.getCurrentTurnId())) {
+                
+                logger.debug("10-second timeout triggered for player: {}", currentPlayerId);
                 // Player timed out, they lose
                 handleWireTimeout(event, gameKey, timeoutGame, currentPlayerId);
+            } else {
+                logger.debug("10-second timer skipped - game state changed or different turn");
+                logger.debug("Game exists: {}, Game state: {}, Current player matches: {}, Turn ID matches: {}", 
+                    timeoutGame != null, 
+                    timeoutGame != null ? timeoutGame.getState() : "null",
+                    timeoutGame != null ? timeoutGame.getCurrentPlayerId().equals(currentPlayerId) : "false",
+                    timeoutGame != null ? turnId.equals(timeoutGame.getCurrentTurnId()) : "false");
             }
-        });
+        }, 10, TimeUnit.SECONDS);
+        
+        // Store the timer futures for potential cancellation
+        game.setFiveSecondTimer(fiveSecFuture);
+        game.setTenSecondTimer(tenSecFuture);
         
         // Use consistent message editing method
         if (isNewTurn) {
+            logger.debug("Using hook.editOriginalEmbeds for new turn");
             event.getHook().editOriginalEmbeds(wireEmbed.build())
                 .setComponents(ActionRow.of(wireButtons))
-                .queue();
+                .queue(
+                    success -> logger.debug("Wire cutting embed updated successfully (new turn)"),
+                    error -> logger.error("Failed to update wire cutting embed (new turn): {}", error.getMessage())
+                );
         } else {
+            logger.debug("Using event.editMessageEmbeds for initial turn");
             event.editMessageEmbeds(wireEmbed.build())
                 .setComponents(ActionRow.of(wireButtons))
-                .queue();
+                .queue(
+                    success -> logger.debug("Wire cutting embed updated successfully (initial turn)"),
+                    error -> logger.error("Failed to update wire cutting embed (initial turn): {}", error.getMessage())
+                );
         }
+        
+        logger.debug("=== WIRE CUTTING EMBED UPDATE COMPLETE ===");
     }
     
     private void handleWireTimeout(ButtonInteractionEvent event, String gameKey, DefuseGame game, String timedOutPlayerId) {
-        logger.debug("Wire cutting timed out for player: {} in game: {}", timedOutPlayerId, gameKey);
+        logger.debug("=== WIRE TIMEOUT HANDLER ===");
+        logger.debug("Game key: {}", gameKey);
+        logger.debug("Timed out player: {}", timedOutPlayerId);
+        logger.debug("Game state before timeout: {}", game.getState());
+        logger.debug("Current player before timeout: {}", game.getCurrentPlayerId());
+        logger.debug("Cut wires before timeout: {}", game.getCutWires());
+        logger.debug("Bomb wire: {}", game.getBombWire());
         
         // Remove game from active games
         activeGames.remove(gameKey);
+        logger.debug("Game removed from active games. Remaining games: {}", activeGames.keySet());
         
+        // Cancel any remaining timers
+        game.cancelActiveTimers();
+        logger.debug("Active timers cancelled for timed out game: {}", gameKey);
+        
+        // The other player wins by timeout
         String winnerId = timedOutPlayerId.equals(game.getChallengerUserId()) ? 
             game.getChallengedUserId() : game.getChallengerUserId();
-        String winnerName = winnerId.equals(game.getChallengerUserId()) ? 
+        String winnerDisplayName = winnerId.equals(game.getChallengerUserId()) ? 
             game.getChallengerDisplayName() : game.getChallengedDisplayName();
+        
+        logger.debug("Winner determined: {} ({})", winnerId, winnerDisplayName);
         
         EmbedBuilder timeoutEmbed = new EmbedBuilder()
             .setColor(FAILURE_COLOR)
             .setTitle("💥 BOOM!")
             .setDescription(String.format("<@%s> ran out of time!\n\n**The bomb exploded!**💣", timedOutPlayerId));
         
+        logger.debug("Sending timeout bomb explosion embed");
+        
         event.getHook().editOriginalEmbeds(timeoutEmbed.build())
             .setComponents() // Remove buttons
-            .queue();
+            .queue(
+                success -> {
+                    logger.debug("Timeout embed sent successfully");
+                    // Brief pause then show winner
+                    CompletableFuture.delayedExecutor(2, TimeUnit.SECONDS).execute(() -> {
+                        logger.debug("Triggering game result after timeout");
+                        showGameResult(event, gameKey, game, winnerId, "timeout");
+                    });
+                },
+                error -> logger.error("Failed to send timeout embed: {}", error.getMessage())
+            );
         
-        // Brief pause then show winner
-        CompletableFuture.delayedExecutor(2, TimeUnit.SECONDS).execute(() -> {
-            showGameResult(event, gameKey, game, winnerId, "timeout");
-        });
+        logger.debug("=== WIRE TIMEOUT HANDLER COMPLETE ===");
     }
     
     private void handleWireCut(ButtonInteractionEvent event, String buttonId, String userId) {
-        logger.debug("Handling wire cut: buttonId={}, userId={}", buttonId, userId);
+        logger.debug("=== WIRE CUT HANDLER ===");
+        logger.debug("Button ID: {}", buttonId);
+        logger.debug("User ID: {}", userId);
         
         String[] parts = buttonId.split("_");
         if (parts.length < 4) {
@@ -412,7 +497,8 @@ public class DefuseCommandListener extends ListenerAdapter {
         }
         String gameKey = gameKeyBuilder.toString();
         
-        logger.debug("Parsed wire: {}, gameKey: {}", wire, gameKey);
+        logger.debug("Parsed wire: {}", wire);
+        logger.debug("Parsed game key: {}", gameKey);
         logger.debug("Active games: {}", activeGames.keySet());
         
         DefuseGame game = activeGames.get(gameKey);
@@ -423,25 +509,32 @@ public class DefuseCommandListener extends ListenerAdapter {
             return;
         }
         
+        logger.debug("Game found - State: {}, Current player: {}", game.getState(), game.getCurrentPlayerId());
+        
         if (game.getState() != DefuseGame.GameState.ACTIVE) {
+            logger.warn("Game is not in active state: {}", game.getState());
             event.reply("This game is not in an active state.").setEphemeral(true).queue();
             return;
         }
         
         // Check if user is part of this game
         if (!userId.equals(game.getChallengerUserId()) && !userId.equals(game.getChallengedUserId())) {
+            logger.warn("User {} is not part of game with players {} and {}", 
+                userId, game.getChallengerUserId(), game.getChallengedUserId());
             event.reply("This is not your game!").setEphemeral(true).queue();
             return;
         }
         
         // Check if it's the user's turn
         if (!userId.equals(game.getCurrentPlayerId())) {
+            logger.warn("User {} tried to cut wire but it's {}'s turn", userId, game.getCurrentPlayerId());
             event.reply("It's not your turn!").setEphemeral(true).queue();
             return;
         }
         
         // Check if wire has already been cut
         if (game.getCutWires().contains(wire)) {
+            logger.warn("User {} tried to cut already cut wire: {}", userId, wire);
             event.reply("This wire has already been cut!").setEphemeral(true).queue();
             return;
         }
@@ -449,90 +542,168 @@ public class DefuseCommandListener extends ListenerAdapter {
         // Cut the wire
         game.cutWire(wire);
         
-        logger.debug("Wire {} cut by user {} in game {}", wire, userId, gameKey);
-        logger.debug("Cut wires: {}, Bomb wire: {}", game.getCutWires(), game.getBombWire());
+        logger.debug("Wire {} cut by user {} in game {}", wire, event.getUser().getId(), gameKey);
+        logger.debug("Cut wires after cutting: {}", game.getCutWires());
+        
+        // CRITICAL: Cancel active timers immediately to prevent race condition
+        game.cancelActiveTimers();
+        logger.debug("Active timers cancelled for game: {}", gameKey);
+        
+        // Check if it's the bomb wire
+        logger.debug("Bomb wire: {}", game.getBombWire());
+        boolean isBombWire = wire.equals(game.getBombWire());
+        logger.debug("Is bomb wire?: {}", isBombWire);
         
         // Show wire cut result
         showWireCutResult(event, gameKey, game, wire, userId);
+        
+        logger.debug("=== WIRE CUT HANDLER COMPLETE ===");
     }
     
     private void showWireCutResult(ButtonInteractionEvent event, String gameKey, DefuseGame game, String wire, String userId) {
+        logger.debug("=== WIRE CUT RESULT HANDLER ===");
+        logger.debug("Game key: {}", gameKey);
+        logger.debug("Wire cut: {}", wire);
+        logger.debug("User who cut: {}", userId);
+        logger.debug("Bomb wire: {}", game.getBombWire());
+        logger.debug("Is bomb wire?: {}", wire.equals(game.getBombWire()));
+        
         String playerName = userId.equals(game.getChallengerUserId()) ? 
             game.getChallengerDisplayName() : game.getChallengedDisplayName();
+        
+        logger.debug("Player display name: {}", playerName);
         
         // Get wire emoji
         String wireEmoji = WIRE_EMOJIS.get(WIRE_COLORS.indexOf(wire));
         String wireColor = wire.substring(0, 1).toUpperCase() + wire.substring(1);
+        
+        logger.debug("Wire emoji: {}, Wire color formatted: {}", wireEmoji, wireColor);
         
         EmbedBuilder cutEmbed = new EmbedBuilder()
             .setColor(EMBED_COLOR)
             .setTitle("💥 Wire Cut!")
             .setDescription(String.format("<@%s> cut the ```%s Wire...```", userId, wireColor));
         
+        logger.debug("Sending wire cut embed");
+        
         event.editMessageEmbeds(cutEmbed.build())
             .setComponents() // Remove buttons temporarily
-            .queue();
+            .queue(
+                success -> {
+                    logger.debug("Wire cut embed sent successfully");
+                    // Brief pause before showing result
+                    CompletableFuture.delayedExecutor(1500, TimeUnit.MILLISECONDS).execute(() -> {
+                        logger.debug("Processing wire cut result after delay");
+                        
+                        if (wire.equals(game.getBombWire())) {
+                            logger.debug("=== BOMB WIRE DETECTED ===");
+                            logger.debug("Player {} cut the bomb wire ({})", userId, wire);
+                            
+                            // Player cut the bomb wire - they lose!
+                            EmbedBuilder bombEmbed = new EmbedBuilder()
+                                .setColor(FAILURE_COLOR)
+                                .setTitle("💥 Wire Cut!")
+                                .setDescription(String.format("<@%s> cut the ```%s Wire...```\n\n**💥 It was the bomb!**", userId, wireColor));
+                            
+                            logger.debug("Sending bomb explosion embed");
+                            
+                            event.getHook().editOriginalEmbeds(bombEmbed.build())
+                                .setComponents() // Remove buttons
+                                .queue(
+                                    success2 -> {
+                                        logger.debug("Bomb explosion embed sent successfully");
+                                        
+                                        // Cancel any remaining timers
+                                        game.cancelActiveTimers();
+                                        logger.debug("Active timers cancelled for bomb explosion game: {}", gameKey);
+                                        
+                                        // Remove game from active games
+                                        activeGames.remove(gameKey);
+                                        logger.debug("Game removed from active games due to bomb. Remaining: {}", activeGames.keySet());
+                                        
+                                        // Determine winner (the other player)
+                                        String winnerId = userId.equals(game.getChallengerUserId()) ? 
+                                            game.getChallengedUserId() : game.getChallengerUserId();
+                                        
+                                        logger.debug("Winner determined: {} (other player)", winnerId);
+                                        
+                                        // Brief pause then show winner
+                                        CompletableFuture.delayedExecutor(2, TimeUnit.SECONDS).execute(() -> {
+                                            logger.debug("Triggering game result after bomb explosion");
+                                            showGameResult(event, gameKey, game, winnerId, "bomb");
+                                        });
+                                    },
+                                    error -> logger.error("Failed to send bomb explosion embed: {}", error.getMessage())
+                                );
+                            
+                        } else {
+                            logger.debug("=== SAFE WIRE DETECTED ===");
+                            logger.debug("Player {} cut a safe wire ({})", userId, wire);
+                            
+                            // Wire was safe - continue game
+                            EmbedBuilder safeEmbed = new EmbedBuilder()
+                                .setColor(SUCCESS_COLOR)
+                                .setTitle("💥 Wire Cut!")
+                                .setDescription(String.format("<@%s> cut the ```%s Wire...```\n\n**✅ It was safe!**", userId, wireColor));
+                            
+                            logger.debug("Sending safe wire embed");
+                            
+                            event.getHook().editOriginalEmbeds(safeEmbed.build())
+                                .setComponents() // Remove buttons
+                                .queue(
+                                    success2 -> {
+                                        logger.debug("Safe wire embed sent successfully");
+                                        // Switch to next player
+                                        String previousPlayer = game.getCurrentPlayerId();
+                                        game.switchPlayer();
+                                        String newPlayer = game.getCurrentPlayerId();
+                                        
+                                        logger.debug("Player switched from {} to {}", previousPlayer, newPlayer);
+                                        logger.debug("Remaining wires: {}", WIRE_COLORS.stream()
+                                            .filter(w -> !game.getCutWires().contains(w))
+                                            .toList());
+                                        
+                                        // Brief pause then continue with next player
+                                        CompletableFuture.delayedExecutor(2, TimeUnit.SECONDS).execute(() -> {
+                                            logger.debug("Continuing game with next player: {}", newPlayer);
+                                            updateWireCuttingEmbed(event, game, true);
+                                        });
+                                    },
+                                    error -> logger.error("Failed to send safe wire embed: {}", error.getMessage())
+                                );
+                        }
+                    });
+                },
+                error -> logger.error("Failed to send wire cut embed: {}", error.getMessage())
+            );
         
-        // Brief pause before showing result
-        CompletableFuture.delayedExecutor(1500, TimeUnit.MILLISECONDS).execute(() -> {
-            if (wire.equals(game.getBombWire())) {
-                // Player cut the bomb wire - they lose!
-                EmbedBuilder bombEmbed = new EmbedBuilder()
-                    .setColor(FAILURE_COLOR)
-                    .setTitle("💥 Wire Cut!")
-                    .setDescription(String.format("<@%s> cut the ```%s Wire...```\n\n**💥 It was the bomb!**", userId, wireColor));
-                
-                event.getHook().editOriginalEmbeds(bombEmbed.build())
-                    .setComponents() // Remove buttons
-                    .queue();
-                
-                // Remove game from active games
-                activeGames.remove(gameKey);
-                
-                // Determine winner (the other player)
-                String winnerId = userId.equals(game.getChallengerUserId()) ? 
-                    game.getChallengedUserId() : game.getChallengerUserId();
-                
-                // Brief pause then show winner
-                CompletableFuture.delayedExecutor(2, TimeUnit.SECONDS).execute(() -> {
-                    showGameResult(event, gameKey, game, winnerId, "bomb");
-                });
-                
-            } else {
-                // Wire was safe - continue game
-                EmbedBuilder safeEmbed = new EmbedBuilder()
-                    .setColor(SUCCESS_COLOR)
-                    .setTitle("💥 Wire Cut!")
-                    .setDescription(String.format("<@%s> cut the ```%s Wire...```\n\n**✅ It was safe!**", userId, wireColor));
-                
-                event.getHook().editOriginalEmbeds(safeEmbed.build())
-                    .setComponents() // Remove buttons
-                    .queue();
-                
-                // Switch to next player
-                game.switchPlayer();
-                
-                // Brief pause then continue with next player
-                CompletableFuture.delayedExecutor(2, TimeUnit.SECONDS).execute(() -> {
-                    updateWireCuttingEmbed(event, game, true);
-                });
-            }
-        });
+        logger.debug("=== WIRE CUT RESULT HANDLER COMPLETE ===");
     }
     
     @Transactional
     private void showGameResult(ButtonInteractionEvent event, String gameKey, DefuseGame game, String winnerId, String endReason) {
+        logger.debug("=== GAME RESULT HANDLER ===");
+        logger.debug("Game key: {}", gameKey);
+        logger.debug("Winner ID: {}", winnerId);
+        logger.debug("End reason: {}", endReason);
+        logger.debug("Bet amount: {}", game.getBetAmount());
+        logger.debug("Challenger: {}", game.getChallengerUserId());
+        logger.debug("Challenged: {}", game.getChallengedUserId());
+        
         try {
-            logger.debug("Showing game result: gameKey={}, winnerId={}, endReason={}", gameKey, winnerId, endReason);
-            
             // Process credit transfer
             User challenger = userService.getUserById(game.getChallengerUserId());
             User challenged = userService.getUserById(game.getChallengedUserId());
             
             if (challenger == null || challenged == null) {
                 logger.error("User not found during Defuse result processing");
+                logger.error("Challenger found: {}, Challenged found: {}", challenger != null, challenged != null);
                 return;
             }
+            
+            logger.debug("Users retrieved successfully");
+            logger.debug("Challenger credits before: {}", challenger.getCredits());
+            logger.debug("Challenged credits before: {}", challenged.getCredits());
             
             String loserId = winnerId.equals(game.getChallengerUserId()) ? 
                 game.getChallengedUserId() : game.getChallengerUserId();
@@ -540,36 +711,57 @@ public class DefuseCommandListener extends ListenerAdapter {
             User winnerUser = winnerId.equals(game.getChallengerUserId()) ? challenger : challenged;
             User loserUser = winnerId.equals(game.getChallengerUserId()) ? challenged : challenger;
             
+            logger.debug("Winner user: {} ({})", winnerUser.getId(), winnerUser.getUsername());
+            logger.debug("Loser user: {} ({})", loserUser.getId(), loserUser.getUsername());
+            
             // Update credits
             int winnerCredits = (winnerUser.getCredits() == null) ? 0 : winnerUser.getCredits();
             int loserCredits = (loserUser.getCredits() == null) ? 0 : loserUser.getCredits();
             
+            logger.debug("Winner credits before transaction: {}", winnerCredits);
+            logger.debug("Loser credits before transaction: {}", loserCredits);
+            
             winnerUser.setCredits(winnerCredits + game.getBetAmount());
             loserUser.setCredits(loserCredits - game.getBetAmount());
+            
+            logger.debug("Winner credits after transaction: {}", winnerUser.getCredits());
+            logger.debug("Loser credits after transaction: {}", loserUser.getCredits());
             
             // Save both users
             userService.updateUser(winnerUser);
             userService.updateUser(loserUser);
             
+            logger.debug("Users saved successfully");
+            
             // Invalidate caches
             cacheConfig.invalidateUserProfileCache(winnerId);
             cacheConfig.invalidateUserProfileCache(loserId);
             
+            logger.debug("Caches invalidated");
+            
             // Get winner display name
             String winnerName = winnerId.equals(game.getChallengerUserId()) ? 
                 game.getChallengerDisplayName() : game.getChallengedDisplayName();
+            
+            logger.debug("Winner display name: {}", winnerName);
             
             // Create result embed
             EmbedBuilder resultEmbed = new EmbedBuilder()
                 .setColor(SUCCESS_COLOR)
                 .setTitle(String.format("%s you won! 🪙+%d", winnerName, game.getBetAmount()));
             
+            logger.debug("Sending final result embed");
+            
             event.getHook().editOriginalEmbeds(resultEmbed.build())
                 .setComponents() // Remove all components
-                .queue();
-            
-            logger.info("Defuse game completed: {} won {} credits from {} (reason: {})", 
-                winnerId, game.getBetAmount(), loserId, endReason);
+                .queue(
+                    success -> {
+                        logger.debug("Final result embed sent successfully");
+                        logger.info("Defuse game completed: {} won {} credits from {} (reason: {})", 
+                            winnerId, game.getBetAmount(), loserId, endReason);
+                    },
+                    error -> logger.error("Failed to send final result embed: {}", error.getMessage())
+                );
             
         } catch (Exception e) {
             logger.error("Error processing Defuse game result: {}", e.getMessage(), e);
@@ -581,8 +773,13 @@ public class DefuseCommandListener extends ListenerAdapter {
             
             event.getHook().editOriginalEmbeds(errorEmbed.build())
                 .setComponents() // Remove all components
-                .queue();
+                .queue(
+                    success -> logger.debug("Error embed sent successfully"),
+                    error2 -> logger.error("Failed to send error embed: {}", error2.getMessage())
+                );
         }
+        
+        logger.debug("=== GAME RESULT HANDLER COMPLETE ===");
     }
     
     private String generateGameKey(String user1, String user2) {
@@ -877,6 +1074,10 @@ public class DefuseCommandListener extends ListenerAdapter {
         private String challengerDisplayName;
         private String challengedDisplayName;
         
+        // Timer futures for cancellation
+        private ScheduledFuture<?> fiveSecondTimer;
+        private ScheduledFuture<?> tenSecondTimer;
+        
         public DefuseGame(String challengerUserId, String challengedUserId, int betAmount) {
             this.challengerUserId = challengerUserId;
             this.challengedUserId = challengedUserId;
@@ -899,6 +1100,17 @@ public class DefuseCommandListener extends ListenerAdapter {
                 challengedUserId : challengerUserId;
         }
         
+        public void cancelActiveTimers() {
+            if (fiveSecondTimer != null && !fiveSecondTimer.isDone()) {
+                fiveSecondTimer.cancel(false);
+                fiveSecondTimer = null;
+            }
+            if (tenSecondTimer != null && !tenSecondTimer.isDone()) {
+                tenSecondTimer.cancel(false);
+                tenSecondTimer = null;
+            }
+        }
+        
         // Getters and setters
         public String getChallengerUserId() { return challengerUserId; }
         public String getChallengedUserId() { return challengedUserId; }
@@ -914,5 +1126,7 @@ public class DefuseCommandListener extends ListenerAdapter {
         public String getChallengedDisplayName() { return challengedDisplayName; }
         public void setChallengerDisplayName(String challengerDisplayName) { this.challengerDisplayName = challengerDisplayName; }
         public void setChallengedDisplayName(String challengedDisplayName) { this.challengedDisplayName = challengedDisplayName; }
+        public void setFiveSecondTimer(ScheduledFuture<?> fiveSecondTimer) { this.fiveSecondTimer = fiveSecondTimer; }
+        public void setTenSecondTimer(ScheduledFuture<?> tenSecondTimer) { this.tenSecondTimer = tenSecondTimer; }
     }
 } 
