@@ -162,7 +162,7 @@ const InventoryItemCard = forwardRef(({
             fallbackColor={rarityColor}
             message="Your nameplate color"
             className="h-full w-full rounded-t-lg"
-            size="sm"
+            size="md"
           />
           
           {/* Equipped badge */}
@@ -180,7 +180,7 @@ const InventoryItemCard = forwardRef(({
             badgeUrl={item.thumbnailUrl || item.imageUrl}
             message="Your badge"
             className="h-full w-full rounded-t-lg"
-            size="sm"
+            size="md"
           />
           
           {/* Equipped badge */}
