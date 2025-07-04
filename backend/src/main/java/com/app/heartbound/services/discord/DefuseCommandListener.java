@@ -281,6 +281,10 @@ public class DefuseCommandListener extends ListenerAdapter {
     }
     
     private void updateWireCuttingEmbed(ButtonInteractionEvent event, DefuseGame game) {
+        updateWireCuttingEmbed(event, game, false);
+    }
+    
+    private void updateWireCuttingEmbed(ButtonInteractionEvent event, DefuseGame game, boolean isNewTurn) {
         String currentPlayerId = game.getCurrentPlayerId();
         String currentPlayerName = currentPlayerId.equals(game.getChallengerUserId()) ? 
             game.getChallengerDisplayName() : game.getChallengedDisplayName();
@@ -289,7 +293,7 @@ public class DefuseCommandListener extends ListenerAdapter {
             .setColor(EMBED_COLOR)
             .setTitle("The bomb is ticking! 💣")
             .setDescription(String.format("Cut the right wire to stay alive!\nOne wire will explode. The rest are safe.\n\n<@%s>\n```Choose a wire below.```", currentPlayerId))
-            .setFooter("You have 5 seconds to cut a wire.");
+            .setFooter("You have 10 seconds to cut a wire.");
         
         // Create wire buttons for remaining wires
         List<Button> wireButtons = new ArrayList<>();
@@ -305,19 +309,62 @@ public class DefuseCommandListener extends ListenerAdapter {
             }
         }
         
-        // Set up wire cutting timeout
+        // Generate unique turn identifier to prevent timer conflicts
+        String turnId = currentPlayerId + "_" + System.currentTimeMillis();
+        game.setCurrentTurnId(turnId);
+        
+        // Set up 5-second countdown update (halfway point)
         CompletableFuture.delayedExecutor(5, TimeUnit.SECONDS).execute(() -> {
+            DefuseGame midwayGame = activeGames.get(gameKey);
+            if (midwayGame != null && midwayGame.getState() == DefuseGame.GameState.ACTIVE && 
+                midwayGame.getCurrentPlayerId().equals(currentPlayerId) && 
+                turnId.equals(midwayGame.getCurrentTurnId())) {
+                // Update footer to show 5 seconds remaining
+                EmbedBuilder urgentEmbed = new EmbedBuilder()
+                    .setColor(EMBED_COLOR)
+                    .setTitle("The bomb is ticking! 💣")
+                    .setDescription(String.format("Cut the right wire to stay alive!\nOne wire will explode. The rest are safe.\n\n<@%s>\n```Choose a wire below.```", currentPlayerId))
+                    .setFooter("You have 5 seconds to cut a wire.");
+                
+                // Recreate wire buttons for remaining wires
+                List<Button> updatedWireButtons = new ArrayList<>();
+                for (int i = 0; i < WIRE_COLORS.size(); i++) {
+                    String wire = WIRE_COLORS.get(i);
+                    String emoji = WIRE_EMOJIS.get(i);
+                    
+                    if (!midwayGame.getCutWires().contains(wire)) {
+                        Button wireButton = Button.secondary("defuse_wire_" + wire + "_" + gameKey, emoji);
+                        updatedWireButtons.add(wireButton);
+                    }
+                }
+                
+                event.getHook().editOriginalEmbeds(urgentEmbed.build())
+                    .setComponents(ActionRow.of(updatedWireButtons))
+                    .queue();
+            }
+        });
+        
+        // Set up wire cutting timeout (10 seconds total)
+        CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS).execute(() -> {
             DefuseGame timeoutGame = activeGames.get(gameKey);
             if (timeoutGame != null && timeoutGame.getState() == DefuseGame.GameState.ACTIVE && 
-                timeoutGame.getCurrentPlayerId().equals(currentPlayerId)) {
+                timeoutGame.getCurrentPlayerId().equals(currentPlayerId) && 
+                turnId.equals(timeoutGame.getCurrentTurnId())) {
                 // Player timed out, they lose
                 handleWireTimeout(event, gameKey, timeoutGame, currentPlayerId);
             }
         });
         
-        event.editMessageEmbeds(wireEmbed.build())
-            .setComponents(ActionRow.of(wireButtons))
-            .queue();
+        // Use consistent message editing method
+        if (isNewTurn) {
+            event.getHook().editOriginalEmbeds(wireEmbed.build())
+                .setComponents(ActionRow.of(wireButtons))
+                .queue();
+        } else {
+            event.editMessageEmbeds(wireEmbed.build())
+                .setComponents(ActionRow.of(wireButtons))
+                .queue();
+        }
     }
     
     private void handleWireTimeout(ButtonInteractionEvent event, String gameKey, DefuseGame game, String timedOutPlayerId) {
@@ -467,7 +514,7 @@ public class DefuseCommandListener extends ListenerAdapter {
                 
                 // Brief pause then continue with next player
                 CompletableFuture.delayedExecutor(2, TimeUnit.SECONDS).execute(() -> {
-                    updateWireCuttingEmbed(event, game);
+                    updateWireCuttingEmbed(event, game, true);
                 });
             }
         });
@@ -824,6 +871,7 @@ public class DefuseCommandListener extends ListenerAdapter {
         private final int betAmount;
         private GameState state;
         private String currentPlayerId; // whose turn it is
+        private String currentTurnId; // unique identifier for current turn to prevent timer conflicts
         private String bombWire; // which wire is the bomb
         private Set<String> cutWires; // which wires have been cut
         private String challengerDisplayName;
@@ -858,6 +906,8 @@ public class DefuseCommandListener extends ListenerAdapter {
         public GameState getState() { return state; }
         public void setState(GameState state) { this.state = state; }
         public String getCurrentPlayerId() { return currentPlayerId; }
+        public String getCurrentTurnId() { return currentTurnId; }
+        public void setCurrentTurnId(String currentTurnId) { this.currentTurnId = currentTurnId; }
         public String getBombWire() { return bombWire; }
         public Set<String> getCutWires() { return cutWires; }
         public String getChallengerDisplayName() { return challengerDisplayName; }
