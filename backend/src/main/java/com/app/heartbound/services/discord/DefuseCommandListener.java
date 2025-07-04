@@ -757,13 +757,8 @@ public class DefuseCommandListener extends ListenerAdapter {
             // Create result embed
             EmbedBuilder resultEmbed = new EmbedBuilder()
                 .setColor(SUCCESS_COLOR)
-                .setTitle(String.format("%s you won! 🪙+%d", winnerName, game.getBetAmount()));
-            
-            // Add description showing who cut the bomb wire
-            String loserName = loserId.equals(game.getChallengerUserId()) ? 
-                game.getChallengerDisplayName() : game.getChallengedDisplayName();
-            String bombWireColor = game.getBombWire().substring(0, 1).toUpperCase() + game.getBombWire().substring(1);
-            resultEmbed.setDescription(String.format("%s cut the ```%s Wire...```", loserName, bombWireColor));
+                .setTitle(String.format("%s you won! 🪙+%d", winnerName, game.getBetAmount()))
+                .setDescription(String.format("<@%s> cut the ```%s wire...```", loserId, game.getBombWire().substring(0, 1).toUpperCase() + game.getBombWire().substring(1)));
             
             logger.debug("Sending final result embed");
             
