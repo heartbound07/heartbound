@@ -46,6 +46,12 @@
   .inventory-layout-container {
     flex-direction: row-reverse;
   }
+  
+  /* Fixed height for desktop Profile Preview container */
+  .item-preview-container {
+    height: 400px; /* Fixed height for desktop instead of 100% */
+    max-height: 400px;
+  }
 }
 
 /* Left Column - Inventory Grid */
