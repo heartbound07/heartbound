@@ -226,8 +226,33 @@ public class CountingGameListener extends ListenerAdapter {
                 break;
                 
             case USER_NOT_FOUND:
-                // Allow non-database users to participate (this case should not occur now)
-                log.debug("Non-database user attempted to count (this should not reach this case): {}", userId);
+                // Delete the message from non-database user and send signup message
+                message.delete().queue(
+                    success -> {
+                        log.debug("Deleted message from non-database user: {}", userId);
+                        
+                        // Send signup message
+                        String signupMsg = String.format("<@%s> In order to participate in counting, you must sign up for the bot! %s", 
+                            userId, frontendBaseUrl);
+                        
+                        event.getChannel().sendMessage(signupMsg).queue(
+                            msgSuccess -> log.debug("Sent signup message to non-database user: {}", userId),
+                            msgError -> log.warn("Failed to send signup message to non-database user {}: {}", userId, msgError.getMessage())
+                        );
+                    },
+                    error -> {
+                        log.warn("Failed to delete message from non-database user {}: {}", userId, error.getMessage());
+                        
+                        // Still send signup message even if deletion failed
+                        String signupMsg = String.format("<@%s> In order to participate in counting, you must sign up for the bot! %s", 
+                            userId, frontendBaseUrl);
+                        
+                        event.getChannel().sendMessage(signupMsg).queue(
+                            msgSuccess -> log.debug("Sent signup message to non-database user: {}", userId),
+                            msgError -> log.warn("Failed to send signup message to non-database user {}: {}", userId, msgError.getMessage())
+                        );
+                    }
+                );
                 break;
                 
             case GAME_DISABLED:
