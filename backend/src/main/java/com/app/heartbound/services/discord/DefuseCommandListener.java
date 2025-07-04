@@ -2,6 +2,7 @@ package com.app.heartbound.services.discord;
 
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
+import com.app.heartbound.services.SecureRandomService;
 import com.app.heartbound.config.CacheConfig;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
@@ -24,7 +25,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.Set;
 import java.util.HashSet;
-import java.util.Random;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
@@ -43,7 +43,7 @@ public class DefuseCommandListener extends ListenerAdapter {
     
     private final UserService userService;
     private final CacheConfig cacheConfig;
-    private final Random random = new Random();
+    private final SecureRandomService secureRandomService;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
     
     // Wire colors and their emojis
@@ -53,10 +53,11 @@ public class DefuseCommandListener extends ListenerAdapter {
     // Store active games to prevent duplicates and manage state
     private final ConcurrentHashMap<String, DefuseGame> activeGames = new ConcurrentHashMap<>();
     
-    public DefuseCommandListener(UserService userService, CacheConfig cacheConfig) {
+    public DefuseCommandListener(UserService userService, CacheConfig cacheConfig, SecureRandomService secureRandomService) {
         this.userService = userService;
         this.cacheConfig = cacheConfig;
-        logger.info("DefuseCommandListener initialized");
+        this.secureRandomService = secureRandomService;
+        logger.info("DefuseCommandListener initialized with secure random service");
     }
     
     @Override
@@ -137,8 +138,8 @@ public class DefuseCommandListener extends ListenerAdapter {
                 return;
             }
             
-            // Create game state
-            DefuseGame game = new DefuseGame(challengerId, challengedUserId, betAmount);
+            // Create game state with secure random service
+            DefuseGame game = new DefuseGame(challengerId, challengedUserId, betAmount, secureRandomService);
             activeGames.put(gameKey1, game);
             
             logger.debug("Created new Defuse game: gameKey={}, challenger={}, challenged={}, bet={}", 
@@ -300,10 +301,20 @@ public class DefuseCommandListener extends ListenerAdapter {
         logger.debug("Remaining wires: {}", WIRE_COLORS.stream().filter(w -> !game.getCutWires().contains(w)).toList());
         logger.debug("Bomb wire: {}", game.getBombWire());
         
+        // Different description based on whether it's the first turn or a subsequent turn
+        String description;
+        if (isNewTurn) {
+            // After successful wire cut - simplified message
+            description = String.format("<@%s>\n```Choose a wire below.```", currentPlayerId);
+        } else {
+            // Initial turn - full instructions
+            description = String.format("Cut the right wire to stay alive!\nOne wire will explode. The rest are safe.\n\n<@%s>\n```Choose a wire below.```", currentPlayerId);
+        }
+        
         EmbedBuilder wireEmbed = new EmbedBuilder()
             .setColor(EMBED_COLOR)
             .setTitle("The bomb is ticking! 💣")
-            .setDescription(String.format("Cut the right wire to stay alive!\nOne wire will explode. The rest are safe.\n\n<@%s>\n```Choose a wire below.```", currentPlayerId))
+            .setDescription(description)
             .setFooter("You have 10 seconds to cut a wire.");
         
         // Create wire buttons for remaining wires
@@ -1078,7 +1089,7 @@ public class DefuseCommandListener extends ListenerAdapter {
         private ScheduledFuture<?> fiveSecondTimer;
         private ScheduledFuture<?> tenSecondTimer;
         
-        public DefuseGame(String challengerUserId, String challengedUserId, int betAmount) {
+        public DefuseGame(String challengerUserId, String challengedUserId, int betAmount, SecureRandomService secureRandomService) {
             this.challengerUserId = challengerUserId;
             this.challengedUserId = challengedUserId;
             this.betAmount = betAmount;
@@ -1086,9 +1097,19 @@ public class DefuseCommandListener extends ListenerAdapter {
             this.currentPlayerId = challengerUserId; // Challenger goes first
             this.cutWires = new HashSet<>();
             
-            // Randomly select bomb wire
-            Random random = new Random();
-            this.bombWire = WIRE_COLORS.get(random.nextInt(WIRE_COLORS.size()));
+            // Cryptographically secure bomb wire selection
+            try {
+                int bombWireIndex = secureRandomService.getSecureInt(WIRE_COLORS.size());
+                this.bombWire = WIRE_COLORS.get(bombWireIndex);
+                logger.info("Defuse game created with secure bomb wire selection - User: {}, Challenged: {}, Bet: {}", 
+                           challengerUserId, challengedUserId, betAmount);
+                logger.debug("Secure bomb wire selected for game: {} vs {} (wire index: {})", 
+                           challengerUserId, challengedUserId, bombWireIndex);
+            } catch (Exception e) {
+                logger.error("Failed to generate secure bomb wire for Defuse game, falling back to first wire: {}", e.getMessage());
+                // Fallback to first wire if secure random fails
+                this.bombWire = WIRE_COLORS.get(0);
+            }
         }
         
         public void cutWire(String wire) {
