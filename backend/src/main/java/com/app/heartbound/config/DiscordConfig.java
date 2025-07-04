@@ -13,6 +13,7 @@ import com.app.heartbound.services.discord.StatsCommandListener;
 import com.app.heartbound.services.discord.BreakupCommandListener;
 import com.app.heartbound.services.discord.CoinflipCommandListener;
 import com.app.heartbound.services.discord.RpsCommandListener;
+import com.app.heartbound.services.discord.DefuseCommandListener;
 import com.app.heartbound.services.discord.DailyCommandListener;
 import com.app.heartbound.services.discord.GiveCommandListener;
 import com.app.heartbound.services.discord.BlackjackCommandListener;
@@ -71,6 +72,9 @@ public class DiscordConfig {
     
     @Autowired
     private RpsCommandListener rpsCommandListener;
+    
+    @Autowired
+    private DefuseCommandListener defuseCommandListener;
     
     @Autowired
     private GiveCommandListener giveCommandListener;
@@ -162,7 +166,7 @@ public class DiscordConfig {
                     )
                     // Register all listeners EXCEPT shopCommandListener, statsCommandListener, breakupCommandListener, and leaderboardCommandListener (we'll register them manually)
                     .addEventListeners(chatActivityListener, 
-                                      creditsCommandListener, dailyCommandListener, coinflipCommandListener, rpsCommandListener, giveCommandListener, blackjackCommandListener, welcomeListener, welcomeCommandListener,
+                                      creditsCommandListener, dailyCommandListener, coinflipCommandListener, rpsCommandListener, defuseCommandListener, giveCommandListener, blackjackCommandListener, welcomeListener, welcomeCommandListener,
                                       inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService, prisonCommandListener, countingGameListener,
@@ -236,6 +240,12 @@ public class DiscordConfig {
                                 .setMinValue(1)
                         ),
                     Commands.slash("rps", "Challenge another user to Rock Paper Scissors and bet credits")
+                        .addOptions(
+                            new OptionData(OptionType.USER, "user", "The user to challenge", true),
+                            new OptionData(OptionType.INTEGER, "bet", "Amount of credits to bet (minimum 1)", true)
+                                .setMinValue(1)
+                        ),
+                    Commands.slash("defuse", "Challenge another user to a wire cutting defuse game and bet credits")
                         .addOptions(
                             new OptionData(OptionType.USER, "user", "The user to challenge", true),
                             new OptionData(OptionType.INTEGER, "bet", "Amount of credits to bet (minimum 1)", true)
