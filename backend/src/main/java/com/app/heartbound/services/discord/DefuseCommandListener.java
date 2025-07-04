@@ -613,8 +613,7 @@ public class DefuseCommandListener extends ListenerAdapter {
                             // Player cut the bomb wire - they lose!
                             EmbedBuilder bombEmbed = new EmbedBuilder()
                                 .setColor(FAILURE_COLOR)
-                                .setTitle("💥 Wire Cut!")
-                                .setDescription(String.format("<@%s> cut the ```%s Wire...```\n\n**💥 It was the bomb!**", userId, wireColor));
+                                .setTitle("💥BOOM!!");
                             
                             logger.debug("Sending bomb explosion embed");
                             
@@ -654,8 +653,7 @@ public class DefuseCommandListener extends ListenerAdapter {
                             // Wire was safe - continue game
                             EmbedBuilder safeEmbed = new EmbedBuilder()
                                 .setColor(SUCCESS_COLOR)
-                                .setTitle("💥 Wire Cut!")
-                                .setDescription(String.format("<@%s> cut the ```%s Wire...```\n\n**✅ It was safe!**", userId, wireColor));
+                                .setTitle("✅ It was safe!");
                             
                             logger.debug("Sending safe wire embed");
                             
@@ -760,6 +758,12 @@ public class DefuseCommandListener extends ListenerAdapter {
             EmbedBuilder resultEmbed = new EmbedBuilder()
                 .setColor(SUCCESS_COLOR)
                 .setTitle(String.format("%s you won! 🪙+%d", winnerName, game.getBetAmount()));
+            
+            // Add description showing who cut the bomb wire
+            String loserName = loserId.equals(game.getChallengerUserId()) ? 
+                game.getChallengerDisplayName() : game.getChallengedDisplayName();
+            String bombWireColor = game.getBombWire().substring(0, 1).toUpperCase() + game.getBombWire().substring(1);
+            resultEmbed.setDescription(String.format("%s cut the ```%s Wire...```", loserName, bombWireColor));
             
             logger.debug("Sending final result embed");
             
