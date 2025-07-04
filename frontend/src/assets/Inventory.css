@@ -297,8 +297,8 @@
     position: static; /* Remove sticky positioning on mobile */
     margin-bottom: 2rem; /* Add spacing between preview and category tabs */
     height: auto; /* Allow height to adjust to content */
-    max-height: 600px; /* Increase max height to prevent cutoff */
-    min-height: 400px; /* Ensure minimum height for content */
+    max-height: 700px; /* Increase max height to accommodate equip button */
+    min-height: 450px; /* Increase minimum height for better content display */
   }
 }
 
@@ -735,8 +735,8 @@
   
   .item-preview-container {
     margin-bottom: 1.5rem; /* Maintain spacing on tablet */
-    max-height: 550px; /* Generous height for tablet */
-    min-height: 350px; /* Ensure minimum height */
+    max-height: 650px; /* Increase height for tablet to accommodate equip button */
+    min-height: 400px; /* Increase minimum height */
   }
   
   /* Ensure header has proper spacing */
@@ -768,8 +768,8 @@
   
   .item-preview-container {
     margin-bottom: 1rem; /* Maintain margin on mobile */
-    max-height: 450px; /* More generous height for mobile phones */
-    min-height: 300px; /* Ensure minimum height for content */
+    max-height: 550px; /* Increase height for mobile phones to accommodate equip button */
+    min-height: 350px; /* Increase minimum height for content */
   }
   
   .item-preview-header {
@@ -1361,8 +1361,8 @@
   /* Very small screens - compact but with adequate spacing */
   .item-preview-container {
     margin-bottom: 0.75rem; /* Minimal but sufficient margin */
-    max-height: 400px; /* Compact but not restrictive for small phones */
-    min-height: 280px; /* Ensure content isn't squished */
+    max-height: 500px; /* Increase height for small phones to accommodate equip button */
+    min-height: 320px; /* Increase minimum height to prevent content squishing */
   }
   
   .item-preview-header {
@@ -1409,9 +1409,9 @@
 /* Mobile landscape orientation - optimize ItemPreview for wider but shorter screens */
 @media (max-width: 767px) and (orientation: landscape) {
   .item-preview-container {
-    max-height: 300px; /* Shorter height for landscape */
+    max-height: 400px; /* Increase height for landscape to accommodate equip button */
     margin-bottom: 0.5rem;
-    min-height: 250px; /* Ensure minimum height even in landscape */
+    min-height: 300px; /* Increase minimum height even in landscape */
   }
   
   .item-preview-header {
@@ -1434,7 +1434,7 @@
   
   .item-preview-details {
     padding: 0.5rem 0.75rem 0.625rem 0.75rem; /* Compact details for landscape */
-    max-height: 140px; /* Limit details height in landscape */
+    max-height: 180px; /* Increase details height in landscape for equip button */
     overflow-y: auto; /* Allow scrolling if needed */
     flex-grow: 1; /* Allow growth to fill available space in landscape */
   }
