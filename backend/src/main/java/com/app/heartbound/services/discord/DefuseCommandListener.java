@@ -352,11 +352,21 @@ public class DefuseCommandListener extends ListenerAdapter {
                 
                 logger.debug("5-second countdown update triggered for player: {}", currentPlayerId);
                 
+                // Use the same description logic as the initial embed
+                String urgentDescription;
+                if (isNewTurn) {
+                    // After successful wire cut - simplified message
+                    urgentDescription = String.format("<@%s>\n```Choose a wire below.```", currentPlayerId);
+                } else {
+                    // Initial turn - full instructions
+                    urgentDescription = String.format("Cut the right wire to stay alive!\nOne wire will explode. The rest are safe.\n\n<@%s>\n```Choose a wire below.```", currentPlayerId);
+                }
+                
                 // Update footer to show 5 seconds remaining
                 EmbedBuilder urgentEmbed = new EmbedBuilder()
                     .setColor(EMBED_COLOR)
                     .setTitle("The bomb is ticking! 💣")
-                    .setDescription(String.format("Cut the right wire to stay alive!\nOne wire will explode. The rest are safe.\n\n<@%s>\n```Choose a wire below.```", currentPlayerId))
+                    .setDescription(urgentDescription)
                     .setFooter("You have 5 seconds to cut a wire.");
                 
                 // Recreate wire buttons for remaining wires
