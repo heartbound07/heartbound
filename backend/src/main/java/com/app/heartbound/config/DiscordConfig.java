@@ -12,6 +12,7 @@ import com.app.heartbound.services.discord.FishCommandListener;
 import com.app.heartbound.services.discord.StatsCommandListener;
 import com.app.heartbound.services.discord.BreakupCommandListener;
 import com.app.heartbound.services.discord.CoinflipCommandListener;
+import com.app.heartbound.services.discord.RpsCommandListener;
 import com.app.heartbound.services.discord.DailyCommandListener;
 import com.app.heartbound.services.discord.GiveCommandListener;
 import com.app.heartbound.services.discord.BlackjackCommandListener;
@@ -67,6 +68,9 @@ public class DiscordConfig {
 
     @Autowired
     private CoinflipCommandListener coinflipCommandListener;
+    
+    @Autowired
+    private RpsCommandListener rpsCommandListener;
     
     @Autowired
     private GiveCommandListener giveCommandListener;
@@ -158,7 +162,7 @@ public class DiscordConfig {
                     )
                     // Register all listeners EXCEPT shopCommandListener, statsCommandListener, breakupCommandListener, and leaderboardCommandListener (we'll register them manually)
                     .addEventListeners(chatActivityListener, 
-                                      creditsCommandListener, dailyCommandListener, coinflipCommandListener, giveCommandListener, blackjackCommandListener, welcomeListener, welcomeCommandListener,
+                                      creditsCommandListener, dailyCommandListener, coinflipCommandListener, rpsCommandListener, giveCommandListener, blackjackCommandListener, welcomeListener, welcomeCommandListener,
                                       inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService, prisonCommandListener, countingGameListener,
@@ -228,6 +232,12 @@ public class DiscordConfig {
                             new OptionData(OptionType.STRING, "guess", "Choose heads or tails", true)
                                 .addChoice("heads", "heads")
                                 .addChoice("tails", "tails"),
+                            new OptionData(OptionType.INTEGER, "bet", "Amount of credits to bet (minimum 1)", true)
+                                .setMinValue(1)
+                        ),
+                    Commands.slash("rps", "Challenge another user to Rock Paper Scissors and bet credits")
+                        .addOptions(
+                            new OptionData(OptionType.USER, "user", "The user to challenge", true),
                             new OptionData(OptionType.INTEGER, "bet", "Amount of credits to bet (minimum 1)", true)
                                 .setMinValue(1)
                         ),
