@@ -338,7 +338,9 @@ public class RpsCommandListener extends ListenerAdapter {
     }
     
     private void startRevealSequence(ButtonInteractionEvent event, String gameKey, RpsGame game) {
-        // Remove buttons first
+        logger.debug("Starting reveal sequence for gameKey: {}", gameKey);
+        
+        // Remove buttons first by setting empty components
         event.editComponents().queue();
         
         // Animated reveal sequence: "Rock" → "Paper" → "Scissors.." → "Shoot!"
@@ -347,28 +349,36 @@ public class RpsCommandListener extends ListenerAdapter {
                 .setColor(EMBED_COLOR)
                 .setTitle("Rock");
             
-            event.getHook().editOriginalEmbeds(rockEmbed.build()).queue();
+            event.getHook().editOriginalEmbeds(rockEmbed.build())
+                .setComponents() // Explicitly remove all components
+                .queue();
             
             CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() -> {
                 EmbedBuilder paperEmbed = new EmbedBuilder()
                     .setColor(EMBED_COLOR)
                     .setTitle("Paper");
                 
-                event.getHook().editOriginalEmbeds(paperEmbed.build()).queue();
+                event.getHook().editOriginalEmbeds(paperEmbed.build())
+                    .setComponents() // Explicitly remove all components
+                    .queue();
                 
                 CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() -> {
                     EmbedBuilder scissorsEmbed = new EmbedBuilder()
                         .setColor(EMBED_COLOR)
                         .setTitle("Scissors..");
                     
-                    event.getHook().editOriginalEmbeds(scissorsEmbed.build()).queue();
+                    event.getHook().editOriginalEmbeds(scissorsEmbed.build())
+                        .setComponents() // Explicitly remove all components
+                        .queue();
                     
                     CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() -> {
                         EmbedBuilder shootEmbed = new EmbedBuilder()
                             .setColor(EMBED_COLOR)
                             .setTitle("Shoot!");
                         
-                        event.getHook().editOriginalEmbeds(shootEmbed.build()).queue();
+                        event.getHook().editOriginalEmbeds(shootEmbed.build())
+                            .setComponents() // Explicitly remove all components
+                            .queue();
                         
                         // Show final result after "Shoot!"
                         CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() -> {
@@ -404,7 +414,9 @@ public class RpsCommandListener extends ListenerAdapter {
                         game.getChallengerUserId(), challengerMove,
                         game.getChallengedUserId(), challengedMove));
                 
-                event.getHook().editOriginalEmbeds(tieEmbed.build()).queue();
+                event.getHook().editOriginalEmbeds(tieEmbed.build())
+                    .setComponents() // Explicitly remove all components
+                    .queue();
                 return;
             }
             
@@ -446,7 +458,9 @@ public class RpsCommandListener extends ListenerAdapter {
                     winnerId, winnerId.equals(game.getChallengerUserId()) ? challengerMove : challengedMove,
                     loserId, loserId.equals(game.getChallengerUserId()) ? challengerMove : challengedMove));
             
-            event.getHook().editOriginalEmbeds(resultEmbed.build()).queue();
+            event.getHook().editOriginalEmbeds(resultEmbed.build())
+                .setComponents() // Explicitly remove all components
+                .queue();
             
             logger.info("RPS game completed: {} won {} credits from {}", winnerId, game.getBetAmount(), loserId);
             
@@ -458,7 +472,9 @@ public class RpsCommandListener extends ListenerAdapter {
                 .setTitle("❌ Error")
                 .setDescription("An error occurred while processing the game result.");
             
-            event.getHook().editOriginalEmbeds(errorEmbed.build()).queue();
+            event.getHook().editOriginalEmbeds(errorEmbed.build())
+                .setComponents() // Explicitly remove all components
+                .queue();
         }
     }
     
