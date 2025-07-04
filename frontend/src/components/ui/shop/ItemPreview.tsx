@@ -356,7 +356,6 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
       <div className="item-preview-details">
         {/* Show selected items list */}
         <div className="item-preview-selected-items">
-          <h4 className="text-sm font-medium text-slate-300 mb-3">Selected Items</h4>
           <div className="space-y-2">
             {Object.entries(selectedItems).map(([category, item]) => {
               if (!item) return null;
@@ -394,12 +393,6 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                 </div>
               );
             })}
-            
-            {Object.values(selectedItems).every(item => !item) && (
-              <div className="text-sm text-slate-400 italic">
-                Click on items to preview them here
-              </div>
-            )}
           </div>
         </div>
 

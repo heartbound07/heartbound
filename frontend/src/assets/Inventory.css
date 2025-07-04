@@ -279,7 +279,7 @@
 
 /* Item Preview Component Styles */
 .item-preview-container {
-  background: rgba(30, 41, 59, 0.3);
+  background: transparent; /* Make background transparent */
   border: 1px solid rgba(148, 163, 184, 0.1);
   border-radius: 1rem;
   padding: 0;
@@ -297,7 +297,8 @@
     position: static; /* Remove sticky positioning on mobile */
     margin-bottom: 2rem; /* Add spacing between preview and category tabs */
     height: auto; /* Allow height to adjust to content */
-    max-height: 500px; /* Prevent it from being too tall on mobile */
+    max-height: 600px; /* Increase max height to prevent cutoff */
+    min-height: 400px; /* Ensure minimum height for content */
   }
 }
 
@@ -336,6 +337,7 @@
 /* Item Preview Header */
 .item-preview-header {
   padding: 1.5rem 1.5rem 1.5rem 1.5rem; /* Add bottom padding for better alignment */
+  background: rgba(30, 41, 59, 0.2);
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
   margin-bottom: 1.5rem; /* Add spacing between header and visual preview */
   text-align: center; /* Center align the Profile Preview text */
@@ -376,7 +378,7 @@
 
 .item-preview-visual {
   position: relative;
-  background: rgba(30, 41, 59, 0.5);
+  background: transparent; /* Make background transparent */
   border-radius: 0.75rem;
   border: 2px solid;
   overflow: hidden;
@@ -516,6 +518,8 @@
   border-top: 1px solid rgba(148, 163, 184, 0.1);
   overflow-y: auto; /* Allow scrolling if content overflows */
   flex-shrink: 0; /* Prevent shrinking */
+  display: flex;
+  flex-direction: column;
 }
 
 .item-preview-selected-items {
@@ -730,9 +734,26 @@
   }
   
   .item-preview-container {
-    height: 400px;
-    margin-bottom: 1.5rem; /* Reduce margin on smaller screens */
-    max-height: 400px; /* Smaller max height for tablet */
+    margin-bottom: 1.5rem; /* Maintain spacing on tablet */
+    max-height: 550px; /* Generous height for tablet */
+    min-height: 350px; /* Ensure minimum height */
+  }
+  
+  /* Ensure header has proper spacing */
+  .item-preview-header {
+    padding: 1.25rem 1.25rem 1rem 1.25rem; /* More generous header padding */
+  }
+  
+  /* Give main section more padding */
+  .item-preview-main {
+    padding: 0 1.25rem;
+    margin-bottom: 1rem; /* Add margin bottom for breathing room */
+  }
+  
+  /* Ensure details section has proper spacing */
+  .item-preview-details {
+    padding: 1rem 1.25rem 1.25rem 1.25rem; /* More generous details padding */
+    flex-grow: 1; /* Allow growth to fill available space on mobile */
   }
 }
 
@@ -746,24 +767,33 @@
   }
   
   .item-preview-container {
-    margin-bottom: 1rem; /* Smaller margin on mobile */
-    max-height: 350px; /* Even smaller for mobile phones */
+    margin-bottom: 1rem; /* Maintain margin on mobile */
+    max-height: 450px; /* More generous height for mobile phones */
+    min-height: 300px; /* Ensure minimum height for content */
   }
   
   .item-preview-header {
-    padding: 1rem 1rem 0.5rem 1rem; /* Reduce bottom padding */
+    padding: 1rem 1rem 0.75rem 1rem; /* Ensure header has adequate bottom padding */
+  }
+  
+  .item-preview-title {
+    font-size: 1.25rem; /* Keep title readable on mobile */
+    margin-bottom: 0.25rem; /* Add small margin for spacing */
   }
   
   .item-preview-main {
     padding: 0 1rem;
+    margin-bottom: 0.75rem; /* Ensure spacing between main and details */
   }
   
   .item-preview-details {
-    padding: 0 1rem 1rem 1rem;
+    padding: 0.75rem 1rem 1rem 1rem; /* Generous padding for details section */
+    flex-shrink: 0; /* Prevent details from being squished */
+    flex-grow: 1; /* Allow growth to fill available space on small phones */
   }
   
   .item-preview-visual {
-    min-height: 150px; /* Reduce min-height on mobile */
+    min-height: 140px; /* Reasonable visual area height */
   }
 }
 
@@ -1328,30 +1358,35 @@
     font-size: 0.8rem;
   }
   
-  /* Very small screens - ultra compact ItemPreview */
+  /* Very small screens - compact but with adequate spacing */
   .item-preview-container {
-    margin-bottom: 0.75rem; /* Minimal margin on very small screens */
-    max-height: 300px; /* Very compact for small phones */
+    margin-bottom: 0.75rem; /* Minimal but sufficient margin */
+    max-height: 400px; /* Compact but not restrictive for small phones */
+    min-height: 280px; /* Ensure content isn't squished */
   }
   
   .item-preview-header {
-    padding: 0.75rem 0.75rem 0.25rem 0.75rem; /* Very compact header */
+    padding: 0.875rem 0.75rem 0.625rem 0.75rem; /* Compact but adequate header padding */
   }
   
   .item-preview-title {
-    font-size: 1.1rem; /* Smaller title on mobile */
+    font-size: 1.125rem; /* Smaller but readable title on small phones */
+    margin-bottom: 0.25rem; /* Maintain spacing */
   }
   
   .item-preview-main {
     padding: 0 0.75rem;
+    margin-bottom: 0.5rem; /* Reduced but present spacing */
   }
   
   .item-preview-details {
-    padding: 0 0.75rem 0.75rem 0.75rem;
+    padding: 0.625rem 0.75rem 0.875rem 0.75rem; /* Compact but sufficient details padding */
+    flex-shrink: 0; /* Prevent content from being squished */
+    flex-grow: 1; /* Allow growth to fill available space on small phones */
   }
   
   .item-preview-visual {
-    min-height: 120px; /* Very compact visual area */
+    min-height: 120px; /* Compact visual area for small phones */
   }
 }
 
@@ -1374,20 +1409,22 @@
 /* Mobile landscape orientation - optimize ItemPreview for wider but shorter screens */
 @media (max-width: 767px) and (orientation: landscape) {
   .item-preview-container {
-    max-height: 250px; /* Shorter height for landscape */
+    max-height: 300px; /* Shorter height for landscape */
     margin-bottom: 0.5rem;
+    min-height: 250px; /* Ensure minimum height even in landscape */
   }
   
   .item-preview-header {
-    padding: 0.5rem 0.75rem 0.25rem 0.75rem;
+    padding: 0.625rem 0.75rem 0.5rem 0.75rem; /* Compact header for landscape */
   }
   
   .item-preview-title {
-    font-size: 1rem; /* Smaller title for landscape */
+    font-size: 1.125rem; /* Readable title for landscape */
+    margin-bottom: 0.125rem; /* Minimal margin for landscape */
   }
   
   .item-preview-visual {
-    min-height: 100px; /* Much shorter visual area for landscape */
+    min-height: 100px; /* Compact visual area for landscape */
   }
   
   .item-preview-main {
@@ -1396,8 +1433,10 @@
   }
   
   .item-preview-details {
-    padding: 0 0.75rem 0.5rem 0.75rem;
-    max-height: 120px; /* Limit details height in landscape */
+    padding: 0.5rem 0.75rem 0.625rem 0.75rem; /* Compact details for landscape */
+    max-height: 140px; /* Limit details height in landscape */
+    overflow-y: auto; /* Allow scrolling if needed */
+    flex-grow: 1; /* Allow growth to fill available space in landscape */
   }
 }
 
