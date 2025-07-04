@@ -355,7 +355,7 @@ public class DiscordMessageListenerService extends ListenerAdapter {
             // Check if level up occurred
             boolean leveledUp = updatedPairLevel.getCurrentLevel() > oldLevel;
             
-            // 🎨 DISCORD EMBED: Send XP notification embed if enabled
+            // 🎨 DISCORD EMBED: Send level up embed if enabled (regular XP embeds are skipped)
             if (showXpEmbeds && messageChannel != null) {
                 sendPairXPEmbed(pairing, authorId, updatedPairLevel, xpPerMessage, leveledUp, oldLevel, messageChannel);
             }
@@ -408,17 +408,10 @@ public class DiscordMessageListenerService extends ListenerAdapter {
                          pairing.getId(), oldLevel, pairLevel.getCurrentLevel());
                 
             } else {
-                // 💫 REGULAR XP GAIN EMBED - Similar to ChatActivityListener XP notification style
-                embed.setDescription(String.format("💕 <@%s> and <@%s>! Your pair gained **%d XP**!", 
-                                                   pairing.getUser1Id(), pairing.getUser2Id(), xpGained));
-                embed.setColor(new Color(75, 181, 67)); // Green color matching ChatActivityListener
-                
-                // Add XP progress footer - similar to ChatActivityListener format
-                embed.setFooter(String.format("%d/%d XP to next level", 
-                               pairLevel.getCurrentLevelXP(), pairLevel.getNextLevelXP()));
-                
-                log.debug("[PAIR XP EMBED] Sending XP notification embed for pairing {} (+{} XP)", 
+                // 💫 REGULAR XP GAIN - Skip embed for regular XP gains (reduce spam)
+                log.debug("[PAIR XP] Skipping XP notification embed for pairing {} (+{} XP) - only level ups show embeds", 
                          pairing.getId(), xpGained);
+                return; // Exit early without sending embed for regular XP gains
             }
             
             // Send the embed to the pairing channel
