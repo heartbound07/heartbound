@@ -764,11 +764,19 @@ public class DefuseCommandListener extends ListenerAdapter {
             
             logger.debug("Winner display name: {}", winnerName);
             
-            // Create result embed
+            // Create result embed with appropriate message based on end reason
+            String resultDescription;
+            if ("timeout".equals(endReason)) {
+                resultDescription = String.format("<@%s> ran out of time!", loserId);
+            } else {
+                // Default case for bomb wire cuts
+                resultDescription = String.format("<@%s> cut the ```%s wire...```", loserId, game.getBombWire().substring(0, 1).toUpperCase() + game.getBombWire().substring(1));
+            }
+            
             EmbedBuilder resultEmbed = new EmbedBuilder()
                 .setColor(SUCCESS_COLOR)
                 .setTitle(String.format("%s you won! 🪙+%d", winnerName, game.getBetAmount()))
-                .setDescription(String.format("<@%s> cut the ```%s wire...```", loserId, game.getBombWire().substring(0, 1).toUpperCase() + game.getBombWire().substring(1)));
+                .setDescription(resultDescription);
             
             logger.debug("Sending final result embed");
             
