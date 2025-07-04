@@ -356,7 +356,6 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
       <div className="item-preview-details">
         {/* Show selected items list */}
         <div className="item-preview-selected-items">
-          <h4 className="text-sm font-medium text-slate-300 mb-3">Selected Items</h4>
           <div className="space-y-2">
             {Object.entries(selectedItems).map(([category, item]) => {
               if (!item) return null;
@@ -394,32 +393,8 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                 </div>
               );
             })}
-            
-            {Object.values(selectedItems).every(item => !item) && (
-              <div className="text-sm text-slate-400 italic">
-                Click on items to preview them here
-              </div>
-            )}
           </div>
         </div>
-
-        {/* Primary item description */}
-        {primaryItem && (
-          <div className="item-preview-description mt-4">
-            <h4 className="text-sm font-medium text-slate-300 mb-2">Description</h4>
-            <SafeText 
-              text={(() => {
-                // Use direct sanitization instead of hook
-                const sanitizedDesc = sanitizeText(primaryItem.description || '');
-                return sanitizedDesc.length > 500 ? sanitizedDesc.substring(0, 500) : sanitizedDesc;
-              })()}
-              tag="p"
-              className="text-slate-400 text-sm leading-relaxed"
-              maxLength={500}
-              showTooltip={true}
-            />
-          </div>
-        )}
 
         {/* Action button for primary item */}
         {primaryItem && (

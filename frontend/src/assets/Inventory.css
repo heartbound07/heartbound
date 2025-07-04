@@ -41,6 +41,22 @@
   min-height: 600px;
 }
 
+/* Desktop Layout: Reverse order to maintain original layout (grid left, preview right) */
+@media (min-width: 1201px) {
+  .inventory-layout-container {
+    flex-direction: row-reverse;
+    max-width: 1400px; /* Limit max width for better centering */
+    margin: 0 auto; /* Center the entire layout */
+    padding: 0 2rem; /* Add padding from screen edges */
+  }
+  
+  /* Fixed height for desktop Profile Preview container */
+  .item-preview-container {
+    height: 400px; /* Fixed height for desktop instead of 100% */
+    max-height: 400px;
+  }
+}
+
 /* Left Column - Inventory Grid */
 .inventory-left-column {
   flex: 1;
@@ -272,7 +288,7 @@
 
 /* Item Preview Component Styles */
 .item-preview-container {
-  background: rgba(30, 41, 59, 0.3);
+  background: transparent; /* Make background transparent */
   border: 1px solid rgba(148, 163, 184, 0.1);
   border-radius: 1rem;
   padding: 0;
@@ -282,6 +298,17 @@
   flex-direction: column;
   position: sticky;
   top: 0;
+}
+
+/* Mobile fixes for item-preview-container */
+@media (max-width: 1200px) {
+  .item-preview-container {
+    position: static; /* Remove sticky positioning on mobile */
+    margin-bottom: 2rem; /* Add spacing between preview and category tabs */
+    height: auto; /* Allow height to adjust to content */
+    max-height: 700px; /* Increase max height to accommodate equip button */
+    min-height: 450px; /* Increase minimum height for better content display */
+  }
 }
 
 .item-preview-empty {
@@ -319,6 +346,7 @@
 /* Item Preview Header */
 .item-preview-header {
   padding: 1.5rem 1.5rem 1.5rem 1.5rem; /* Add bottom padding for better alignment */
+  background: rgba(30, 41, 59, 0.2);
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
   margin-bottom: 1.5rem; /* Add spacing between header and visual preview */
   text-align: center; /* Center align the Profile Preview text */
@@ -359,7 +387,7 @@
 
 .item-preview-visual {
   position: relative;
-  background: rgba(30, 41, 59, 0.5);
+  background: transparent; /* Make background transparent */
   border-radius: 0.75rem;
   border: 2px solid;
   overflow: hidden;
@@ -494,9 +522,13 @@
 
 /* Item Preview Details */
 .item-preview-details {
-  padding: 1.5rem 1.5rem 1.5rem 1.5rem; /* Consistent padding all around */
+  padding: 1.5rem;
+  background: rgba(30, 41, 59, 0.2);
   border-top: 1px solid rgba(148, 163, 184, 0.1);
-  margin-top: 0; /* Remove auto margin that was causing alignment issues */
+  overflow-y: auto; /* Allow scrolling if content overflows */
+  flex-shrink: 0; /* Prevent shrinking */
+  display: flex;
+  flex-direction: column;
 }
 
 .item-preview-selected-items {
@@ -504,20 +536,18 @@
 }
 
 .item-preview-selected-items h4 {
-  margin: 0 0 0.75rem 0; /* Reset margins and add consistent bottom margin */
-  line-height: 1.2; /* Better line height */
+  margin-bottom: 0.75rem;
 }
 
 .selected-item-row {
-  padding: 0.5rem 0.75rem;
-  background: rgba(30, 41, 59, 0.3);
-  border: 1px solid rgba(148, 163, 184, 0.1);
-  border-radius: 0.5rem;
-  margin-bottom: 0.5rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  word-break: break-word; /* Prevent text overflow on mobile */
+  overflow-wrap: anywhere; /* Ensure long item names wrap properly */
 }
 
 .selected-item-row:last-child {
-  margin-bottom: 0;
+  border-bottom: none;
 }
 
 .item-preview-combined {
@@ -713,7 +743,26 @@
   }
   
   .item-preview-container {
-    height: 400px;
+    margin-bottom: 1.5rem; /* Maintain spacing on tablet */
+    max-height: 650px; /* Increase height for tablet to accommodate equip button */
+    min-height: 400px; /* Increase minimum height */
+  }
+  
+  /* Ensure header has proper spacing */
+  .item-preview-header {
+    padding: 1.25rem 1.25rem 1rem 1.25rem; /* More generous header padding */
+  }
+  
+  /* Give main section more padding */
+  .item-preview-main {
+    padding: 0 1.25rem;
+    margin-bottom: 1rem; /* Add margin bottom for breathing room */
+  }
+  
+  /* Ensure details section has proper spacing */
+  .item-preview-details {
+    padding: 1rem 1.25rem 1.25rem 1.25rem; /* More generous details padding */
+    flex-grow: 1; /* Allow growth to fill available space on mobile */
   }
 }
 
@@ -723,19 +772,37 @@
   }
   
   .inventory-right-column {
-    height: 350px;
+    height: auto; /* Remove fixed height on small screens */
+  }
+  
+  .item-preview-container {
+    margin-bottom: 1rem; /* Maintain margin on mobile */
+    max-height: 550px; /* Increase height for mobile phones to accommodate equip button */
+    min-height: 350px; /* Increase minimum height for content */
   }
   
   .item-preview-header {
-    padding: 1rem 1rem 0 1rem;
+    padding: 1rem 1rem 0.75rem 1rem; /* Ensure header has adequate bottom padding */
+  }
+  
+  .item-preview-title {
+    font-size: 1.25rem; /* Keep title readable on mobile */
+    margin-bottom: 0.25rem; /* Add small margin for spacing */
   }
   
   .item-preview-main {
     padding: 0 1rem;
+    margin-bottom: 0.75rem; /* Ensure spacing between main and details */
   }
   
   .item-preview-details {
-    padding: 0 1rem 1rem 1rem;
+    padding: 0.75rem 1rem 1rem 1rem; /* Generous padding for details section */
+    flex-shrink: 0; /* Prevent details from being squished */
+    flex-grow: 1; /* Allow growth to fill available space on small phones */
+  }
+  
+  .item-preview-visual {
+    min-height: 140px; /* Reasonable visual area height */
   }
 }
 
@@ -1281,24 +1348,54 @@
   
   /* Optimize filters and sort controls */
   .inventory-categories {
-    gap: 0.4rem;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1rem;
   }
   
   .category-button {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.9rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
   }
   
   .sort-control-container {
     flex-direction: column;
     align-items: flex-start;
-    margin-bottom: 1rem;
+    gap: 0.5rem;
   }
   
   .inventory-sort-dropdown {
     width: 100%;
-    margin-top: 0.5rem;
+    font-size: 0.8rem;
+  }
+  
+  /* Very small screens - compact but with adequate spacing */
+  .item-preview-container {
+    margin-bottom: 0.75rem; /* Minimal but sufficient margin */
+    max-height: 500px; /* Increase height for small phones to accommodate equip button */
+    min-height: 320px; /* Increase minimum height to prevent content squishing */
+  }
+  
+  .item-preview-header {
+    padding: 0.875rem 0.75rem 0.625rem 0.75rem; /* Compact but adequate header padding */
+  }
+  
+  .item-preview-title {
+    font-size: 1.125rem; /* Smaller but readable title on small phones */
+    margin-bottom: 0.25rem; /* Maintain spacing */
+  }
+  
+  .item-preview-main {
+    padding: 0 0.75rem;
+    margin-bottom: 0.5rem; /* Reduced but present spacing */
+  }
+  
+  .item-preview-details {
+    padding: 0.625rem 0.75rem 0.875rem 0.75rem; /* Compact but sufficient details padding */
+    flex-shrink: 0; /* Prevent content from being squished */
+    flex-grow: 1; /* Allow growth to fill available space on small phones */
+  }
+  
+  .item-preview-visual {
+    min-height: 120px; /* Compact visual area for small phones */
   }
 }
 
@@ -1312,9 +1409,43 @@
     padding: 0.25rem;
   }
   
-  /* Further increase touch targets */
   .badge-action-button {
-    min-height: 36px;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Mobile landscape orientation - optimize ItemPreview for wider but shorter screens */
+@media (max-width: 767px) and (orientation: landscape) {
+  .item-preview-container {
+    max-height: 400px; /* Increase height for landscape to accommodate equip button */
+    margin-bottom: 0.5rem;
+    min-height: 300px; /* Increase minimum height even in landscape */
+  }
+  
+  .item-preview-header {
+    padding: 0.625rem 0.75rem 0.5rem 0.75rem; /* Compact header for landscape */
+  }
+  
+  .item-preview-title {
+    font-size: 1.125rem; /* Readable title for landscape */
+    margin-bottom: 0.125rem; /* Minimal margin for landscape */
+  }
+  
+  .item-preview-visual {
+    min-height: 100px; /* Compact visual area for landscape */
+  }
+  
+  .item-preview-main {
+    padding: 0 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .item-preview-details {
+    padding: 0.5rem 0.75rem 0.625rem 0.75rem; /* Compact details for landscape */
+    max-height: 180px; /* Increase details height in landscape for equip button */
+    overflow-y: auto; /* Allow scrolling if needed */
+    flex-grow: 1; /* Allow growth to fill available space in landscape */
   }
 }
 
