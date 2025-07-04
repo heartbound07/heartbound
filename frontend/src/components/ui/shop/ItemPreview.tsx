@@ -396,24 +396,6 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
           </div>
         </div>
 
-        {/* Primary item description */}
-        {primaryItem && (
-          <div className="item-preview-description mt-4">
-            <h4 className="text-sm font-medium text-slate-300 mb-2">Description</h4>
-            <SafeText 
-              text={(() => {
-                // Use direct sanitization instead of hook
-                const sanitizedDesc = sanitizeText(primaryItem.description || '');
-                return sanitizedDesc.length > 500 ? sanitizedDesc.substring(0, 500) : sanitizedDesc;
-              })()}
-              tag="p"
-              className="text-slate-400 text-sm leading-relaxed"
-              maxLength={500}
-              showTooltip={true}
-            />
-          </div>
-        )}
-
         {/* Action button for primary item */}
         {primaryItem && (
           <div className="item-preview-actions mt-4">
