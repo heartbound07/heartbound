@@ -4,6 +4,8 @@ import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.config.CacheConfig;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -332,6 +334,14 @@ public class RpsCommandListener extends ListenerAdapter {
         
         // Check if both players have made their moves
         if (game.getChallengerMove() != null && game.getChallengedMove() != null) {
+            // Store display names before starting async sequence (while we have proper context)
+            String challengerName = getUserDisplayName(event, game.getChallengerUserId());
+            String challengedName = getUserDisplayName(event, game.getChallengedUserId());
+            game.setChallengerDisplayName(challengerName);
+            game.setChallengedDisplayName(challengedName);
+            
+            logger.debug("Stored display names: challenger={}, challenged={}", challengerName, challengedName);
+            
             // Both moves are in, start the reveal sequence
             startRevealSequence(event, gameKey, game);
         }
@@ -340,8 +350,8 @@ public class RpsCommandListener extends ListenerAdapter {
     private void startRevealSequence(ButtonInteractionEvent event, String gameKey, RpsGame game) {
         logger.debug("Starting reveal sequence for gameKey: {}", gameKey);
         
-        // Remove buttons first by setting empty components
-        event.editComponents().queue();
+        // Remove buttons first by setting empty components using the hook since interaction is already acknowledged
+        event.getHook().editOriginalComponents().queue();
         
         // Animated reveal sequence: "Rock" → "Paper" → "Scissors.." → "Shoot!"
         CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() -> {
@@ -402,6 +412,20 @@ public class RpsCommandListener extends ListenerAdapter {
             String challengerMove = game.getChallengerMove();
             String challengedMove = game.getChallengedMove();
             
+            // Use stored display names (retrieved when we had proper context)
+            String challengerName = game.getChallengerDisplayName();
+            String challengedName = game.getChallengedDisplayName();
+            
+            // Fallback if display names weren't stored for some reason
+            if (challengerName == null) {
+                challengerName = getUserDisplayName(event, game.getChallengerUserId());
+                logger.warn("Had to retrieve challenger display name in async context: {}", challengerName);
+            }
+            if (challengedName == null) {
+                challengedName = getUserDisplayName(event, game.getChallengedUserId());
+                logger.warn("Had to retrieve challenged display name in async context: {}", challengedName);
+            }
+            
             // Determine winner
             String winner = determineWinner(challengerMove, challengedMove);
             
@@ -410,9 +434,9 @@ public class RpsCommandListener extends ListenerAdapter {
                 EmbedBuilder tieEmbed = new EmbedBuilder()
                     .setColor(WARNING_COLOR)
                     .setTitle("It's a tie!")
-                    .setDescription(String.format("<@%s> **picked %s**\n<@%s> **picked %s**", 
-                        game.getChallengerUserId(), challengerMove,
-                        game.getChallengedUserId(), challengedMove));
+                    .setDescription(String.format("**%s** picked **%s**\n**%s** picked **%s**", 
+                        challengerName, challengerMove,
+                        challengedName, challengedMove));
                 
                 event.getHook().editOriginalEmbeds(tieEmbed.build())
                     .setComponents() // Explicitly remove all components
@@ -450,13 +474,17 @@ public class RpsCommandListener extends ListenerAdapter {
             cacheConfig.invalidateUserProfileCache(winnerId);
             cacheConfig.invalidateUserProfileCache(loserId);
             
+            // Get winner and loser display names from stored values
+            String winnerName = winnerId.equals(game.getChallengerUserId()) ? challengerName : challengedName;
+            String loserName = loserId.equals(game.getChallengerUserId()) ? challengerName : challengedName;
+            
             // Create result embed
             EmbedBuilder resultEmbed = new EmbedBuilder()
                 .setColor(SUCCESS_COLOR)
-                .setTitle(String.format("<@%s> you won! 🪙+%d", winnerId, game.getBetAmount()))
-                .setDescription(String.format("<@%s> **picked %s**\n<@%s> **picked %s**", 
-                    winnerId, winnerId.equals(game.getChallengerUserId()) ? challengerMove : challengedMove,
-                    loserId, loserId.equals(game.getChallengerUserId()) ? challengerMove : challengedMove));
+                .setTitle(String.format("%s you won! 🪙+%d", winnerName, game.getBetAmount()))
+                .setDescription(String.format("**%s** picked **%s**\n**%s** picked **%s**", 
+                    winnerName, winnerId.equals(game.getChallengerUserId()) ? challengerMove : challengedMove,
+                    loserName, loserId.equals(game.getChallengerUserId()) ? challengerMove : challengedMove));
             
             event.getHook().editOriginalEmbeds(resultEmbed.build())
                 .setComponents() // Explicitly remove all components
@@ -500,6 +528,157 @@ public class RpsCommandListener extends ListenerAdapter {
         return gameKey;
     }
     
+    /**
+     * Get a user's display name, handling special characters and fallbacks
+     * @param event The button interaction event to get guild context
+     * @param userId The Discord user ID
+     * @return The user's effective name (display name if available, otherwise username)
+     */
+    private String getUserDisplayName(ButtonInteractionEvent event, String userId) {
+        try {
+            logger.debug("Attempting to retrieve display name for user ID: {}", userId);
+            
+            // Try to get the user from the guild first (for nickname support)
+            Guild guild = event.getGuild();
+            if (guild != null) {
+                logger.debug("Guild found: {}, attempting to get member for user: {}", guild.getName(), userId);
+                Member member = guild.getMemberById(userId);
+                if (member != null) {
+                    logger.debug("Member found in guild for user: {}", userId);
+                    // getEffectiveName() returns nickname > global name > username in that priority
+                    String effectiveName = member.getEffectiveName();
+                    logger.debug("Member effective name: '{}'", effectiveName);
+                    if (effectiveName != null && !effectiveName.trim().isEmpty()) {
+                        // Handle special characters by escaping Discord markdown
+                        String sanitized = sanitizeDisplayName(effectiveName);
+                        logger.debug("Successfully retrieved member name: '{}' -> '{}'", effectiveName, sanitized);
+                        return sanitized;
+                    }
+                } else {
+                    logger.debug("Member not found in guild for user: {}", userId);
+                }
+            } else {
+                logger.debug("No guild context available for user: {}", userId);
+            }
+            
+            // Fallback to getting user directly from JDA
+            logger.debug("Attempting direct user lookup for user: {}", userId);
+            net.dv8tion.jda.api.entities.User user = event.getJDA().getUserById(userId);
+            if (user != null) {
+                logger.debug("User found via direct lookup for user: {}", userId);
+                // getEffectiveName() returns global name if available, otherwise username
+                String effectiveName = user.getEffectiveName();
+                logger.debug("User effective name: '{}'", effectiveName);
+                if (effectiveName != null && !effectiveName.trim().isEmpty()) {
+                    String sanitized = sanitizeDisplayName(effectiveName);
+                    logger.debug("Successfully retrieved user effective name: '{}' -> '{}'", effectiveName, sanitized);
+                    return sanitized;
+                }
+                
+                // Final fallback to username
+                String username = user.getName();
+                logger.debug("User username: '{}'", username);
+                if (username != null && !username.trim().isEmpty()) {
+                    String sanitized = sanitizeDisplayName(username);
+                    logger.debug("Successfully retrieved username: '{}' -> '{}'", username, sanitized);
+                    return sanitized;
+                }
+            } else {
+                logger.debug("User not found via direct lookup for user: {}", userId);
+            }
+            
+            // Try getting user info from the interaction itself if it's one of the participants
+            logger.debug("Attempting to get user from interaction context for user: {}", userId);
+            net.dv8tion.jda.api.entities.User interactionUser = event.getUser();
+            if (interactionUser != null && userId.equals(interactionUser.getId())) {
+                logger.debug("User matches interaction user: {}", userId);
+                String effectiveName = interactionUser.getEffectiveName();
+                logger.debug("Interaction user effective name: '{}'", effectiveName);
+                if (effectiveName != null && !effectiveName.trim().isEmpty()) {
+                    String sanitized = sanitizeDisplayName(effectiveName);
+                    logger.debug("Successfully retrieved interaction user name: '{}' -> '{}'", effectiveName, sanitized);
+                    return sanitized;
+                }
+                
+                String username = interactionUser.getName();
+                logger.debug("Interaction user username: '{}'", username);
+                if (username != null && !username.trim().isEmpty()) {
+                    String sanitized = sanitizeDisplayName(username);
+                    logger.debug("Successfully retrieved interaction username: '{}' -> '{}'", username, sanitized);
+                    return sanitized;
+                }
+            }
+            
+            // Try using retrieveUserById as last resort (this makes an API call)
+            logger.debug("Attempting API retrieval for user: {}", userId);
+            try {
+                net.dv8tion.jda.api.entities.User retrievedUser = event.getJDA().retrieveUserById(userId).complete();
+                if (retrievedUser != null) {
+                    logger.debug("User retrieved via API for user: {}", userId);
+                    String effectiveName = retrievedUser.getEffectiveName();
+                    logger.debug("API user effective name: '{}'", effectiveName);
+                    if (effectiveName != null && !effectiveName.trim().isEmpty()) {
+                        String sanitized = sanitizeDisplayName(effectiveName);
+                        logger.debug("Successfully retrieved API user effective name: '{}' -> '{}'", effectiveName, sanitized);
+                        return sanitized;
+                    }
+                    
+                    String username = retrievedUser.getName();
+                    logger.debug("API user username: '{}'", username);
+                    if (username != null && !username.trim().isEmpty()) {
+                        String sanitized = sanitizeDisplayName(username);
+                        logger.debug("Successfully retrieved API username: '{}' -> '{}'", username, sanitized);
+                        return sanitized;
+                    }
+                }
+            } catch (Exception apiException) {
+                logger.debug("API retrieval failed for user {}: {}", userId, apiException.getMessage());
+            }
+            
+            // Ultimate fallback if all else fails
+            logger.warn("Could not retrieve display name for user ID: {} - all lookup methods failed", userId);
+            return "Unknown User";
+            
+        } catch (Exception e) {
+            logger.error("Error retrieving display name for user ID {}: {}", userId, e.getMessage(), e);
+            return "Unknown User";
+        }
+    }
+    
+    /**
+     * Sanitize display name to handle special characters and Discord markdown
+     * @param name The raw display name
+     * @return Sanitized name safe for embed titles
+     */
+    private String sanitizeDisplayName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            return "Unknown User";
+        }
+        
+        // Escape Discord markdown characters that could interfere with embed formatting
+        // This prevents issues with names containing *, _, `, ~, |, \
+        String sanitized = name
+            .replace("\\", "\\\\")  // Escape backslashes first
+            .replace("*", "\\*")    // Escape asterisks (bold/italic)
+            .replace("_", "\\_")    // Escape underscores (italic/underline)
+            .replace("`", "\\`")    // Escape backticks (code)
+            .replace("~", "\\~")    // Escape tildes (strikethrough)
+            .replace("|", "\\|");   // Escape pipes (spoiler)
+        
+        // Trim whitespace and ensure it's not empty after sanitization
+        sanitized = sanitized.trim();
+        if (sanitized.isEmpty()) {
+            return "Unknown User";
+        }
+        
+        // Limit length to prevent overly long embed titles (Discord limit is 256 chars)
+        if (sanitized.length() > 50) {
+            sanitized = sanitized.substring(0, 47) + "...";
+        }
+        
+        return sanitized;
+    }
+    
     // Inner class to represent game state
     private static class RpsGame {
         public enum GameState {
@@ -512,6 +691,8 @@ public class RpsCommandListener extends ListenerAdapter {
         private GameState state;
         private String challengerMove;
         private String challengedMove;
+        private String challengerDisplayName;
+        private String challengedDisplayName;
         
         public RpsGame(String challengerUserId, String challengedUserId, int betAmount) {
             this.challengerUserId = challengerUserId;
@@ -537,7 +718,7 @@ public class RpsCommandListener extends ListenerAdapter {
             return false;
         }
         
-        // Getters
+        // Getters and setters
         public String getChallengerUserId() { return challengerUserId; }
         public String getChallengedUserId() { return challengedUserId; }
         public int getBetAmount() { return betAmount; }
@@ -545,5 +726,9 @@ public class RpsCommandListener extends ListenerAdapter {
         public void setState(GameState state) { this.state = state; }
         public String getChallengerMove() { return challengerMove; }
         public String getChallengedMove() { return challengedMove; }
+        public String getChallengerDisplayName() { return challengerDisplayName; }
+        public String getChallengedDisplayName() { return challengedDisplayName; }
+        public void setChallengerDisplayName(String challengerDisplayName) { this.challengerDisplayName = challengerDisplayName; }
+        public void setChallengedDisplayName(String challengedDisplayName) { this.challengedDisplayName = challengedDisplayName; }
     }
 } 
