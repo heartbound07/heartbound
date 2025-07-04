@@ -814,6 +814,21 @@ export function InventoryPage() {
           transition={{ duration: 0.4, delay: 0.2 }}
           className="inventory-layout-container"
         >
+          {/* Right Column - Item Preview Panel (moved before left column for mobile UX) */}
+          <div className="inventory-right-column">
+            <ItemPreview
+              selectedItems={selectedItems}
+              user={profile || user}
+              onEquip={handleEquipItem}
+              onUnequip={handleUnequipItem}
+              onUnequipBadge={handleUnequipBadge}
+              onOpenCase={openCaseRoll}
+              onViewCaseContents={openCasePreview}
+              actionInProgress={actionInProgress}
+              onEquipMultipleItems={handleEquipMultipleItems}
+            />
+          </div>
+
           {/* Left Column - Inventory Grid with Fixed Height and Scroll */}
           <div className="inventory-left-column">
             {/* Categories Filter */}
@@ -949,21 +964,6 @@ export function InventoryPage() {
                                     )}
                                   </div>
                                     </div>
-
-          {/* Right Column - Item Preview Panel */}
-          <div className="inventory-right-column">
-            <ItemPreview
-              selectedItems={selectedItems}
-              user={profile || user}
-              onEquip={handleEquipItem}
-              onUnequip={handleUnequipItem}
-              onUnequipBadge={handleUnequipBadge}
-              onOpenCase={openCaseRoll}
-              onViewCaseContents={openCasePreview}
-              actionInProgress={actionInProgress}
-              onEquipMultipleItems={handleEquipMultipleItems}
-            />
-                          </div>
                         </motion.div>
     </div>
     

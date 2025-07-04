@@ -41,6 +41,13 @@
   min-height: 600px;
 }
 
+/* Desktop Layout: Reverse order to maintain original layout (grid left, preview right) */
+@media (min-width: 1201px) {
+  .inventory-layout-container {
+    flex-direction: row-reverse;
+  }
+}
+
 /* Left Column - Inventory Grid */
 .inventory-left-column {
   flex: 1;
@@ -284,6 +291,16 @@
   top: 0;
 }
 
+/* Mobile fixes for item-preview-container */
+@media (max-width: 1200px) {
+  .item-preview-container {
+    position: static; /* Remove sticky positioning on mobile */
+    margin-bottom: 2rem; /* Add spacing between preview and category tabs */
+    height: auto; /* Allow height to adjust to content */
+    max-height: 500px; /* Prevent it from being too tall on mobile */
+  }
+}
+
 .item-preview-empty {
   display: flex;
   align-items: center;
@@ -494,9 +511,11 @@
 
 /* Item Preview Details */
 .item-preview-details {
-  padding: 1.5rem 1.5rem 1.5rem 1.5rem; /* Consistent padding all around */
+  padding: 1.5rem;
+  background: rgba(30, 41, 59, 0.2);
   border-top: 1px solid rgba(148, 163, 184, 0.1);
-  margin-top: 0; /* Remove auto margin that was causing alignment issues */
+  overflow-y: auto; /* Allow scrolling if content overflows */
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
 .item-preview-selected-items {
@@ -504,20 +523,18 @@
 }
 
 .item-preview-selected-items h4 {
-  margin: 0 0 0.75rem 0; /* Reset margins and add consistent bottom margin */
-  line-height: 1.2; /* Better line height */
+  margin-bottom: 0.75rem;
 }
 
 .selected-item-row {
-  padding: 0.5rem 0.75rem;
-  background: rgba(30, 41, 59, 0.3);
-  border: 1px solid rgba(148, 163, 184, 0.1);
-  border-radius: 0.5rem;
-  margin-bottom: 0.5rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  word-break: break-word; /* Prevent text overflow on mobile */
+  overflow-wrap: anywhere; /* Ensure long item names wrap properly */
 }
 
 .selected-item-row:last-child {
-  margin-bottom: 0;
+  border-bottom: none;
 }
 
 .item-preview-combined {
@@ -714,6 +731,8 @@
   
   .item-preview-container {
     height: 400px;
+    margin-bottom: 1.5rem; /* Reduce margin on smaller screens */
+    max-height: 400px; /* Smaller max height for tablet */
   }
 }
 
@@ -723,11 +742,16 @@
   }
   
   .inventory-right-column {
-    height: 350px;
+    height: auto; /* Remove fixed height on small screens */
+  }
+  
+  .item-preview-container {
+    margin-bottom: 1rem; /* Smaller margin on mobile */
+    max-height: 350px; /* Even smaller for mobile phones */
   }
   
   .item-preview-header {
-    padding: 1rem 1rem 0 1rem;
+    padding: 1rem 1rem 0.5rem 1rem; /* Reduce bottom padding */
   }
   
   .item-preview-main {
@@ -736,6 +760,10 @@
   
   .item-preview-details {
     padding: 0 1rem 1rem 1rem;
+  }
+  
+  .item-preview-visual {
+    min-height: 150px; /* Reduce min-height on mobile */
   }
 }
 
@@ -1281,24 +1309,49 @@
   
   /* Optimize filters and sort controls */
   .inventory-categories {
-    gap: 0.4rem;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1rem;
   }
   
   .category-button {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.9rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
   }
   
   .sort-control-container {
     flex-direction: column;
     align-items: flex-start;
-    margin-bottom: 1rem;
+    gap: 0.5rem;
   }
   
   .inventory-sort-dropdown {
     width: 100%;
-    margin-top: 0.5rem;
+    font-size: 0.8rem;
+  }
+  
+  /* Very small screens - ultra compact ItemPreview */
+  .item-preview-container {
+    margin-bottom: 0.75rem; /* Minimal margin on very small screens */
+    max-height: 300px; /* Very compact for small phones */
+  }
+  
+  .item-preview-header {
+    padding: 0.75rem 0.75rem 0.25rem 0.75rem; /* Very compact header */
+  }
+  
+  .item-preview-title {
+    font-size: 1.1rem; /* Smaller title on mobile */
+  }
+  
+  .item-preview-main {
+    padding: 0 0.75rem;
+  }
+  
+  .item-preview-details {
+    padding: 0 0.75rem 0.75rem 0.75rem;
+  }
+  
+  .item-preview-visual {
+    min-height: 120px; /* Very compact visual area */
   }
 }
 
@@ -1312,9 +1365,39 @@
     padding: 0.25rem;
   }
   
-  /* Further increase touch targets */
   .badge-action-button {
-    min-height: 36px;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Mobile landscape orientation - optimize ItemPreview for wider but shorter screens */
+@media (max-width: 767px) and (orientation: landscape) {
+  .item-preview-container {
+    max-height: 250px; /* Shorter height for landscape */
+    margin-bottom: 0.5rem;
+  }
+  
+  .item-preview-header {
+    padding: 0.5rem 0.75rem 0.25rem 0.75rem;
+  }
+  
+  .item-preview-title {
+    font-size: 1rem; /* Smaller title for landscape */
+  }
+  
+  .item-preview-visual {
+    min-height: 100px; /* Much shorter visual area for landscape */
+  }
+  
+  .item-preview-main {
+    padding: 0 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .item-preview-details {
+    padding: 0 0.75rem 0.5rem 0.75rem;
+    max-height: 120px; /* Limit details height in landscape */
   }
 }
 
