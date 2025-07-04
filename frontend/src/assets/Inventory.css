@@ -45,6 +45,9 @@
 @media (min-width: 1201px) {
   .inventory-layout-container {
     flex-direction: row-reverse;
+    max-width: 1400px; /* Limit max width for better centering */
+    margin: 0 auto; /* Center the entire layout */
+    padding: 0 2rem; /* Add padding from screen edges */
   }
   
   /* Fixed height for desktop Profile Preview container */
