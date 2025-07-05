@@ -636,10 +636,78 @@ public class ShopService {
      * @param userId User ID
      * @return User's inventory with equipped status
      */
+    @Transactional(readOnly = true)
     public UserInventoryDTO getUserInventory(String userId) {
         logger.debug("Getting inventory for user {}", userId);
         
         User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // Force initialization of lazy collections within transaction
+        Set<Shop> inventory = user.getInventory();
+        inventory.size(); // Force lazy loading
+        
+        Set<UserInventoryItem> inventoryItems = user.getInventoryItems();
+        if (inventoryItems != null) {
+            inventoryItems.size(); // Force lazy loading
+        }
+        
+        Set<ShopDTO> itemDTOs = new HashSet<>();
+        
+        // Process regular inventory items (non-cases)
+        Map<UUID, List<Shop>> itemGroups = inventory.stream()
+            .filter(item -> item.getCategory() != ShopCategory.CASE) // Exclude cases from regular inventory
+            .collect(Collectors.groupingBy(Shop::getId));
+        
+        for (Map.Entry<UUID, List<Shop>> entry : itemGroups.entrySet()) {
+            Shop item = entry.getValue().get(0);
+            int quantity = entry.getValue().size();
+            
+            ShopDTO dto = mapToShopDTO(item, user);
+            dto.setQuantity(quantity);
+            
+            // Add equipped status
+            if (item.getCategory() != null) {
+                if (item.getCategory() == ShopCategory.BADGE) {
+                    dto.setEquipped(user.isBadgeEquipped(item.getId()));
+                } else {
+                    UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
+                    dto.setEquipped(equippedItemId != null && equippedItemId.equals(item.getId()));
+                }
+            }
+            
+            itemDTOs.add(dto);
+        }
+        
+        // Process quantity-based inventory items (cases)
+        if (inventoryItems != null) {
+            for (UserInventoryItem invItem : inventoryItems) {
+                if (invItem.getQuantity() > 0) {
+                    Shop item = invItem.getItem();
+                    ShopDTO dto = mapToShopDTO(item, user);
+                    dto.setQuantity(invItem.getQuantity());
+                    dto.setEquipped(false); // Cases cannot be equipped
+                    
+                    itemDTOs.add(dto);
+                }
+            }
+        }
+        
+        return UserInventoryDTO.builder()
+            .items(itemDTOs)
+            .build();
+    }
+    
+    /**
+     * Gets a user's inventory specifically for Discord commands
+     * Uses eager fetching to avoid LazyInitializationException
+     * @param userId User ID
+     * @return User's inventory with equipped status
+     */
+    public UserInventoryDTO getUserInventoryForDiscord(String userId) {
+        logger.debug("Getting inventory for Discord command for user {}", userId);
+        
+        User user = userRepository.findByIdWithInventory(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         
         Set<Shop> inventory = user.getInventory();

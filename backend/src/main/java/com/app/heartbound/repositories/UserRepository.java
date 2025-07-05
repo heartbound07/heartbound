@@ -47,4 +47,15 @@ public interface UserRepository extends JpaRepository<User, String> {
      */
     @Query("SELECT u.id, u.username, u.avatar FROM User u WHERE u.id IN :userIds")
     List<Object[]> findUserProfilesByIds(@Param("userIds") Set<String> userIds);
+    
+    /**
+     * Find user with eagerly loaded inventory collections for Discord commands
+     * Prevents LazyInitializationException when used outside web transactions
+     */
+    @Query("SELECT DISTINCT u FROM User u " +
+           "LEFT JOIN FETCH u.inventory " +
+           "LEFT JOIN FETCH u.inventoryItems ii " +
+           "LEFT JOIN FETCH ii.item " +
+           "WHERE u.id = :userId")
+    Optional<User> findByIdWithInventory(@Param("userId") String userId);
 }

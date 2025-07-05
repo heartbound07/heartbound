@@ -20,6 +20,7 @@ import com.app.heartbound.services.discord.BlackjackCommandListener;
 import com.app.heartbound.services.discord.PrisonCommandListener;
 import com.app.heartbound.services.discord.CountingGameListener;
 import com.app.heartbound.services.discord.GiveawayCommandListener;
+import com.app.heartbound.services.discord.OpenCaseCommandListener;
 import com.app.heartbound.services.discord.AutoSlowmodeService;
 import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
@@ -128,6 +129,10 @@ public class DiscordConfig {
     @Autowired
     private GiveawayCommandListener giveawayCommandListener;
 
+    @Lazy
+    @Autowired
+    private OpenCaseCommandListener openCaseCommandListener;
+
     @Autowired
     private AutoSlowmodeService autoSlowmodeService;
 
@@ -164,7 +169,7 @@ public class DiscordConfig {
                             CacheFlag.ONLINE_STATUS,
                             CacheFlag.SCHEDULED_EVENTS
                     )
-                    // Register all listeners EXCEPT shopCommandListener, statsCommandListener, breakupCommandListener, and leaderboardCommandListener (we'll register them manually)
+                    // Register all listeners EXCEPT shopCommandListener, statsCommandListener, breakupCommandListener, leaderboardCommandListener, and openCaseCommandListener (we'll register them manually)
                     .addEventListeners(chatActivityListener, 
                                       creditsCommandListener, dailyCommandListener, coinflipCommandListener, rpsCommandListener, defuseCommandListener, giveCommandListener, blackjackCommandListener, welcomeListener, welcomeCommandListener,
                                       inventoryCommandListener, fishCommandListener, levelCardCommandListener,
@@ -191,6 +196,9 @@ public class DiscordConfig {
             
             // Register giveaway command listener manually
             giveawayCommandListener.registerWithJDA(jdaInstance);
+
+            // Register open case command listener manually
+            openCaseCommandListener.registerWithJDA(jdaInstance);
             
             // Register slash commands
             registerSlashCommands();
@@ -276,7 +284,12 @@ public class DiscordConfig {
                             new OptionData(OptionType.STRING, "name", "The giveaway to delete", true)
                                 .setAutoComplete(true)
                         )
-                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
+                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR)),
+                    Commands.slash("open", "Open a case from your inventory")
+                        .addOptions(
+                            new OptionData(OptionType.STRING, "case", "The case to open", true)
+                                .setAutoComplete(true)
+                        )
                 )
                 .queue(
                     cmds -> {
