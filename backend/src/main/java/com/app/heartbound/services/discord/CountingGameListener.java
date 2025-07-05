@@ -269,12 +269,14 @@ public class CountingGameListener extends ListenerAdapter {
         
         Button saveButton = Button.primary("save_count", String.format("💰 Save This Count? (%d credits)", saveCost));
         
+        // Get the highest count from the game state
+        int highestCount = countingGameService.getGameState().getHighestCount();
+        
         EmbedBuilder embed = new EmbedBuilder();
         embed.setColor(Color.CYAN);
         embed.setTitle("💰 Save This Count?");
-        embed.setDescription(String.format("Anyone can click the button below to save this count for **%d** credits!\n\n" +
-                "⚠️ **Note**: You must be a registered user to save the count.", saveCost));
-        embed.setFooter("The save cost doubles each time it's used.");
+        embed.setDescription(String.format("Anyone can click the button below to save this count for **%d** credits!", saveCost));
+        embed.setFooter(String.format("The highest count was %d", highestCount));
         
         event.getChannel().sendMessageEmbeds(embed.build())
                 .setActionRow(saveButton)
