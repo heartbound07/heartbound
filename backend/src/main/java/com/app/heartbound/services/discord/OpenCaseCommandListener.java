@@ -394,11 +394,11 @@ public class OpenCaseCommandListener extends ListenerAdapter {
         // Start the rolling animation sequence
         CompletableFuture.runAsync(() -> {
             try {
-                // Rolling animation phases (8 seconds total)
+                // Rolling animation phases (6 steps total, 2 seconds each = 12 seconds total)
                 String[] rollingTexts = {"Rolling.", "Rolling..", "Rolling..."};
                 
                 // Make the loop variable effectively final by using a different approach
-                for (int step = 0; step < 8; step++) {
+                for (int step = 0; step < 6; step++) {
                     final int currentStep = step; // Make it effectively final
                     String rollingText = rollingTexts[currentStep % 3];
                     
@@ -407,7 +407,7 @@ public class OpenCaseCommandListener extends ListenerAdapter {
                         .setColor(EMBED_COLOR)
                         .setFooter("You are opening a " + caseName + "!");
                     
-                    // Update the embed
+                    // Update the embed with rate limiting protection
                     event.getHook().editOriginalEmbeds(rollingEmbed.build())
                         .setComponents() // Remove buttons during rolling
                         .queue(
@@ -415,8 +415,9 @@ public class OpenCaseCommandListener extends ListenerAdapter {
                             error -> logger.error("Failed to send rolling animation: {}", error.getMessage())
                         );
                     
-                    // Wait 1 second between animation frames
-                    Thread.sleep(1000);
+                    // Wait 2 seconds between animation frames to prevent rate limiting
+                    // Discord allows ~5 requests per 2 seconds, so 2-second intervals are safe
+                    Thread.sleep(2000);
                 }
                 
                 // After animation, open the case
