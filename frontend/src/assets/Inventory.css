@@ -49,6 +49,16 @@
   --inventory-preview-width-large: 450px;
   --inventory-grid-min-width: 280px;
   --inventory-item-height: 160px;
+  
+  /* Refined grid sizing for consistent columns */
+  --inventory-grid-min-width-desktop: 300px;  /* Increased from 280px */
+  --inventory-grid-min-width-tablet: 280px;   /* Tablet size */
+  --inventory-grid-min-width-mobile: 260px;   /* Mobile size */
+  
+  /* Consistent gaps */
+  --inventory-grid-gap-desktop: 1.5rem;
+  --inventory-grid-gap-tablet: 1.25rem;       /* Intermediate gap */
+  --inventory-grid-gap-mobile: 1rem;
 }
 
 /* ============================================================================
@@ -121,10 +131,13 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  max-width: 900px;
+  max-width: 920px;  /* Increased from 900px for better 3-column fit */
   min-width: 600px;
   /* Prevent content jumping */
   contain: layout;
+  
+  /* Ensure consistent available width */
+  width: 100%;
 }
 
 /* Right column - Item preview */
@@ -241,30 +254,24 @@
 }
 
 /* ============================================================================
-   INVENTORY GRID - PERFORMANCE OPTIMIZED
+   INVENTORY GRID - FIXED COLUMN CONSISTENCY
    ============================================================================ */
 
-.inventory-grid-container {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  /* Contain layout and paint for better performance */
-  contain: layout paint;
-}
-
+/* Base inventory grid with more predictable sizing */
 .inventory-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(var(--inventory-grid-min-width), 1fr));
-  gap: var(--inventory-grid-gap);
+  grid-template-columns: repeat(auto-fill, minmax(var(--inventory-grid-min-width-desktop), 1fr));
+  gap: var(--inventory-grid-gap-desktop);
   overflow-y: auto;
   padding-right: 0.5rem;
   scroll-behavior: smooth;
   padding-bottom: 1rem;
   align-content: start;
-  /* Performance optimizations */
   contain: layout;
   will-change: scroll-position;
+  
+  /* Add consistent minimum width to prevent column jumping */
+  min-width: 0; /* Ensure flex shrinking works properly */
 }
 
 /* Optimized scrollbar styles */
@@ -1384,6 +1391,64 @@
 .inventory-grid {
   transform: translateZ(0);
   -webkit-overflow-scrolling: touch;
+}
+
+/* ============================================================================
+   SCROLLBAR COMPENSATION
+   ============================================================================ */
+
+/* Add consistent scrollbar handling */
+.inventory-grid {
+  /* Account for scrollbar width more accurately */
+  scrollbar-gutter: stable;
+}
+
+/* For webkit browsers */
+.inventory-grid::-webkit-scrollbar {
+  width: 8px;
+  /* Ensure scrollbar doesn't affect layout */
+}
+
+/* Ensure the grid container accounts for scrollbar */
+.inventory-grid-container {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  contain: layout paint;
+  
+  /* Add consistent border-box sizing */
+  box-sizing: border-box;
+}
+
+/* ============================================================================
+   LAYOUT STABILITY IMPROVEMENTS
+   ============================================================================ */
+
+/* Prevent layout shifts from container size changes */
+.inventory-layout-container {
+  /* Add more specific container queries */
+  container-type: inline-size;
+  container-name: inventory-layout;
+}
+
+/* Use container queries for more precise control (if supported) */
+@container inventory-layout (min-width: 1000px) {
+  .inventory-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@container inventory-layout (max-width: 999px) and (min-width: 600px) {
+  .inventory-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@container inventory-layout (max-width: 599px) {
+  .inventory-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ============================================================================
