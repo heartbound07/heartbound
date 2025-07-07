@@ -36,7 +36,7 @@ public class UpdatePairingActivityDTO {
     @Max(value = 1, message = "Active days must not exceed 1 per update (realistic daily increment)")
     private Integer activeDays;
     
-    // Admin-only fields for direct metric updates (unchanged - these are for admin use)
+    // Admin-only fields for direct metric updates
     @Min(value = 0, message = "User1 message count must be non-negative")
     @Max(value = 10000000, message = "User1 message count must not exceed 10,000,000")
     private Integer user1MessageCount;
