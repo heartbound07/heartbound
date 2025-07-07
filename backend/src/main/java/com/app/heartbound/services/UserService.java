@@ -5,8 +5,11 @@ import com.app.heartbound.dto.UpdateProfileDTO;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.dto.DailyActivityDataDTO;
 import com.app.heartbound.dto.shop.UserInventoryItemDTO;
+import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.enums.ShopCategory;
+import com.app.heartbound.enums.AuditSeverity;
+import com.app.heartbound.enums.AuditCategory;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.entities.UserInventoryItem;
@@ -20,6 +23,8 @@ import com.app.heartbound.repositories.DailyVoiceActivityStatRepository;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import com.app.heartbound.config.CacheConfig;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +35,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -44,6 +51,7 @@ import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Optional;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Service
 public class UserService {
@@ -54,6 +62,8 @@ public class UserService {
     private final DailyMessageStatRepository dailyMessageStatRepository;
     private final DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository;
     private final CacheConfig cacheConfig;
+    private final AuditService auditService;
+    private final ObjectMapper objectMapper;
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     // Read admin Discord ID from environment variables
@@ -74,14 +84,15 @@ public class UserService {
     private int levelFactor;
 
     // Constructor-based dependency injection
-    @Autowired
-    public UserService(UserRepository userRepository, ShopRepository shopRepository, UserInventoryItemRepository userInventoryItemRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, CacheConfig cacheConfig) {
+    public UserService(UserRepository userRepository, ShopRepository shopRepository, UserInventoryItemRepository userInventoryItemRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, CacheConfig cacheConfig, AuditService auditService, ObjectMapper objectMapper) {
         this.userRepository = userRepository;
         this.shopRepository = shopRepository;
         this.userInventoryItemRepository = userInventoryItemRepository;
         this.dailyMessageStatRepository = dailyMessageStatRepository;
         this.dailyVoiceActivityStatRepository = dailyVoiceActivityStatRepository;
         this.cacheConfig = cacheConfig;
+        this.auditService = auditService;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -102,16 +113,16 @@ public class UserService {
         String id = userDTO.getId();
         String username = userDTO.getUsername();
         String discriminator = userDTO.getDiscriminator();
-        String email = userDTO.getEmail();
         // This is the avatar URL fetched fresh from Discord via the DTO
         String discordAvatarFetched = userDTO.getAvatar(); 
 
         logger.debug("Attempting to create or update user with ID: {}. DTO Avatar: {}", id, discordAvatarFetched);
 
-        User user = userRepository.findById(id).orElse(null);
-        boolean isNewUser = (user == null);
+        Optional<User> userOpt = userRepository.findById(id);
+        User user;
 
-        if (isNewUser) {
+        if (userOpt.isEmpty()) {
+            // New User Logic
             logger.debug("User with ID: {} not found. Creating new user.", id);
             user = new User();
             user.setId(id);
@@ -154,6 +165,7 @@ public class UserService {
 
         } else {
             // Existing User Logic
+            user = userOpt.get(); // User cannot be null here
             logger.debug("Found existing user with ID: {}. Current primary avatar: '{}', current Discord cache: '{}'",
                     id, user.getAvatar(), user.getDiscordAvatarUrl());
 
@@ -264,51 +276,75 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         
         // Update user profile fields
-        user.setDisplayName(updateProfileDTO.getDisplayName());
-        user.setPronouns(updateProfileDTO.getPronouns());
-        user.setAbout(updateProfileDTO.getAbout());
-        user.setBannerColor(updateProfileDTO.getBannerColor());
+        if (updateProfileDTO.getDisplayName() != null) {
+            user.setDisplayName(updateProfileDTO.getDisplayName());
+        }
+        
+        if (updateProfileDTO.getPronouns() != null) {
+            user.setPronouns(updateProfileDTO.getPronouns());
+        }
+        
+        if (updateProfileDTO.getAbout() != null) {
+            user.setAbout(updateProfileDTO.getAbout());
+        }
+        
+        if (updateProfileDTO.getBannerColor() != null) {
+            user.setBannerColor(updateProfileDTO.getBannerColor());
+        }
         
         // Security check: Only MONARCH role users can set banner URLs
         if (updateProfileDTO.getBannerUrl() != null) {
+            String previousBannerUrl = user.getBannerUrl();
+            
             if (user.hasRole(Role.MONARCH) || user.hasRole(Role.ADMIN) || user.hasRole(Role.MODERATOR)) {
                 // User has appropriate role, allow banner URL update
                 user.setBannerUrl(updateProfileDTO.getBannerUrl());
                 logger.debug("Banner URL update allowed for user {} with appropriate role", userId);
+                
+                // Create audit entry for successful security-sensitive operation
+                createProfileUpdateAuditEntry(userId, "bannerUrl", previousBannerUrl, updateProfileDTO.getBannerUrl(), true, true);
             } else {
                 // User lacks MONARCH role, log security attempt and ignore banner URL
                 logger.warn("Security: User {} without MONARCH role attempted to set banner URL. Request ignored.", userId);
+                
+                // Create audit entry for unauthorized security-sensitive operation
+                createProfileUpdateAuditEntry(userId, "bannerUrl", previousBannerUrl, updateProfileDTO.getBannerUrl(), true, false);
+                
                 // Do not update banner URL - keep existing value
             }
         } else {
             // Banner URL is null in the request, update normally
+            String previousBannerUrl = user.getBannerUrl();
             user.setBannerUrl(updateProfileDTO.getBannerUrl());
+            createProfileUpdateAuditEntry(userId, "bannerUrl", previousBannerUrl, null, false, true);
         }
         
         // Special handling for avatar
-        if (updateProfileDTO.getAvatar() != null && updateProfileDTO.getAvatar().isEmpty()) {
-            // Empty avatar string means use Discord avatar
-            user.setAvatar("USE_DISCORD_AVATAR");
-            
-            // Make sure we have a Discord avatar URL to fall back to
-            if (user.getDiscordAvatarUrl() == null || user.getDiscordAvatarUrl().isEmpty()) {
-                // If no cached Discord avatar, attempt to fetch it
-                try {
-                    // Here we would ideally fetch it from Discord API
-                    // For now, we'll add a log to identify this issue
-                    logger.warn("No cached Discord avatar URL available for user: {}", userId);
-                } catch (Exception e) {
-                    logger.error("Error fetching Discord avatar: {}", e.getMessage());
+        if (updateProfileDTO.getAvatar() != null) {
+            if (updateProfileDTO.getAvatar().isEmpty()) {
+                // Empty avatar string means use Discord avatar
+                user.setAvatar("USE_DISCORD_AVATAR");
+                
+                // Make sure we have a Discord avatar URL to fall back to
+                if (user.getDiscordAvatarUrl() == null || user.getDiscordAvatarUrl().isEmpty()) {
+                    // If no cached Discord avatar, attempt to fetch it
+                    try {
+                        // Here we would ideally fetch it from Discord API
+                        // For now, we'll add a log to identify this issue
+                        logger.warn("No cached Discord avatar URL available for user: {}", userId);
+                    } catch (Exception e) {
+                        logger.error("Error fetching Discord avatar: {}", e.getMessage());
+                    }
                 }
-            }
-        } else if (updateProfileDTO.getAvatar() != null) {
-            // Otherwise use the provided avatar
-            user.setAvatar(updateProfileDTO.getAvatar());
-            
-            // If this is a Discord CDN URL, also update the cached URL
-            if (updateProfileDTO.getAvatar().contains("cdn.discordapp.com")) {
-                user.setDiscordAvatarUrl(updateProfileDTO.getAvatar());
-                logger.debug("Updated Discord avatar cache from profile update for user: {}", userId);
+            } else {
+                // Otherwise use the provided avatar
+                user.setAvatar(updateProfileDTO.getAvatar());
+                
+                // If this is a Discord CDN URL, also update the cached URL
+                if (updateProfileDTO.getAvatar().contains("cdn.discordapp.com")) {
+                    user.setDiscordAvatarUrl(updateProfileDTO.getAvatar());
+                    logger.debug("Updated Discord avatar cache from profile update for user: {}", userId);
+                }
             }
         }
         
@@ -450,17 +486,36 @@ public class UserService {
     public User assignRole(String userId, Role role, String adminId) {
         logger.debug("Admin {} assigning role {} to user {}", adminId, role, userId);
         
-        // Only allow ADMIN to assign ADMIN or MODERATOR roles
-        if ((role == Role.ADMIN || role == Role.MODERATOR) && 
-            !userRepository.hasRole(adminId, Role.ADMIN)) {
-            throw new UnauthorizedOperationException("Only ADMIN users can assign ADMIN or MODERATOR roles");
+        boolean successful = false;
+        String errorMessage = null;
+        User user = null;
+        
+        try {
+            // Only allow ADMIN to assign ADMIN or MODERATOR roles
+            if ((role == Role.ADMIN || role == Role.MODERATOR) && 
+                !userRepository.hasRole(adminId, Role.ADMIN)) {
+                errorMessage = "Only ADMIN users can assign ADMIN or MODERATOR roles";
+                throw new UnauthorizedOperationException(errorMessage);
+            }
+            
+            user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+            
+            user.addRole(role);
+            user = userRepository.save(user);
+            successful = true;
+            
+            logger.info("Successfully assigned role {} to user {} by admin {}", role, userId, adminId);
+            return user;
+            
+        } catch (Exception e) {
+            errorMessage = e.getMessage();
+            logger.error("Failed to assign role {} to user {} by admin {}: {}", role, userId, adminId, e.getMessage());
+            throw e;
+        } finally {
+            // Create audit trail regardless of success or failure
+            createRoleAssignmentAuditEntry(adminId, userId, role, successful, errorMessage);
         }
-        
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
-        
-        user.addRole(role);
-        return userRepository.save(user);
     }
     
     /**
@@ -475,17 +530,36 @@ public class UserService {
     public User removeRole(String userId, Role role, String adminId) {
         logger.debug("Admin {} removing role {} from user {}", adminId, role, userId);
         
-        // Only allow ADMIN to remove ADMIN or MODERATOR roles
-        if ((role == Role.ADMIN || role == Role.MODERATOR) && 
-            !userRepository.hasRole(adminId, Role.ADMIN)) {
-            throw new UnauthorizedOperationException("Only ADMIN users can remove ADMIN or MODERATOR roles");
+        boolean successful = false;
+        String errorMessage = null;
+        User user = null;
+        
+        try {
+            // Only allow ADMIN to remove ADMIN or MODERATOR roles
+            if ((role == Role.ADMIN || role == Role.MODERATOR) && 
+                !userRepository.hasRole(adminId, Role.ADMIN)) {
+                errorMessage = "Only ADMIN users can remove ADMIN or MODERATOR roles";
+                throw new UnauthorizedOperationException(errorMessage);
+            }
+            
+            user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+            
+            user.removeRole(role);
+            user = userRepository.save(user);
+            successful = true;
+            
+            logger.info("Successfully removed role {} from user {} by admin {}", role, userId, adminId);
+            return user;
+            
+        } catch (Exception e) {
+            errorMessage = e.getMessage();
+            logger.error("Failed to remove role {} from user {} by admin {}: {}", role, userId, adminId, e.getMessage());
+            throw e;
+        } finally {
+            // Create audit trail regardless of success or failure
+            createRoleRemovalAuditEntry(adminId, userId, role, successful, errorMessage);
         }
-        
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
-        
-        user.removeRole(role);
-        return userRepository.save(user);
     }
     
     /**
@@ -586,15 +660,19 @@ public class UserService {
      * 
      * @param userId the ID of the user to update
      * @param credits the new credit balance
+     * @param adminId the ID of the admin performing the operation
      * @return the updated user
      * @throws ResourceNotFoundException if the user is not found
      */
     @PreAuthorize("hasRole('ADMIN')")
-    public User updateUserCredits(String userId, Integer credits) {
-        logger.debug("Updating credits for user {} to {}", userId, credits);
+    public User updateUserCredits(String userId, Integer credits, String adminId) {
+        logger.debug("Updating credits for user {} to {} by admin {}", userId, credits, adminId);
         
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // Capture previous credits for audit trail
+        int previousCredits = user.getCredits() != null ? user.getCredits() : 0;
         
         // Ensure credits are not negative
         if (credits < 0) {
@@ -602,7 +680,44 @@ public class UserService {
         }
         
         user.setCredits(credits);
-        return userRepository.save(user);
+        User updatedUser = userRepository.save(user);
+        
+        // Create audit trail for credit update
+        createCreditUpdateAuditEntry(adminId, userId, previousCredits, credits);
+        
+        logger.info("Updated credits for user {} from {} to {} by admin {}", userId, previousCredits, credits, adminId);
+        
+        return updatedUser;
+    }
+
+    /**
+     * Overloaded method for backward compatibility - extracts admin ID from security context
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    public User updateUserCredits(String userId, Integer credits) {
+        String adminId = getCurrentAdminId();
+        return updateUserCredits(userId, credits, adminId);
+    }
+
+    /**
+     * Utility method to get the current admin's ID from the security context
+     */
+    private String getCurrentAdminId() {
+        try {
+            // Try to get the current authentication from Spring Security context
+            org.springframework.security.core.Authentication authentication = 
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            
+            if (authentication != null && authentication.isAuthenticated()) {
+                // The principal name should be the user ID in our system
+                return authentication.getName();
+            }
+        } catch (Exception e) {
+            logger.debug("Unable to extract admin ID from security context: {}", e.getMessage());
+        }
+        
+        // Fallback to "SYSTEM" if we can't determine the admin ID
+        return "SYSTEM";
     }
 
     /**
@@ -688,7 +803,6 @@ public class UserService {
      * @param days the number of days to fetch (starting from today going back)
      * @return list of daily activity data
      */
-    @SuppressWarnings("unchecked")
     public List<DailyActivityDataDTO> getUserDailyActivity(String userId, int days) {
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
@@ -926,7 +1040,6 @@ public class UserService {
      * @param days the number of days to fetch (starting from today going back)
      * @return list of daily activity data
      */
-    @SuppressWarnings("unchecked")
     public List<DailyActivityDataDTO> getUserDailyVoiceActivity(String userId, int days) {
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
@@ -1173,6 +1286,9 @@ public class UserService {
         // Save the updated user
         User updatedUser = userRepository.save(user);
         
+        // Create audit trail for inventory removal
+        createInventoryRemovalAuditEntry(adminId, userId, itemId, itemName, refundAmount, wasEquipped);
+        
         // Invalidate relevant caches
         cacheConfig.invalidateUserProfileCache(userId);
         
@@ -1181,5 +1297,387 @@ public class UserService {
                 adminId, userId, itemId, itemName, refundAmount, wasEquipped);
         
         return mapToProfileDTO(updatedUser);
+    }
+
+    /**
+     * Utility method to get the client IP address from the current HTTP request context
+     */
+    private String getClientIp() {
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs != null) {
+                HttpServletRequest request = attrs.getRequest();
+                
+                // Check for X-Forwarded-For header first (for proxied requests)
+                String xForwardedFor = request.getHeader("X-Forwarded-For");
+                if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+                    // X-Forwarded-For can contain multiple IPs, take the first one
+                    return xForwardedFor.split(",")[0].trim();
+                }
+                
+                // Check for X-Real-IP header (alternative proxy header)
+                String xRealIp = request.getHeader("X-Real-IP");
+                if (xRealIp != null && !xRealIp.isEmpty()) {
+                    return xRealIp;
+                }
+                
+                // Fallback to standard remote address
+                return request.getRemoteAddr();
+            }
+        } catch (Exception e) {
+            logger.debug("Unable to extract client IP address: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Utility method to get the user agent from the current HTTP request context
+     */
+    private String getUserAgent() {
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs != null) {
+                HttpServletRequest request = attrs.getRequest();
+                return request.getHeader("User-Agent");
+            }
+        } catch (Exception e) {
+            logger.debug("Unable to extract user agent: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Utility method to get the session ID from the current HTTP request context
+     */
+    private String getSessionId() {
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs != null) {
+                HttpServletRequest request = attrs.getRequest();
+                return request.getSession(false) != null ? request.getSession(false).getId() : null;
+            }
+        } catch (Exception e) {
+            logger.debug("Unable to extract session ID: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Creates an audit entry for role assignment operations
+     */
+    private void createRoleAssignmentAuditEntry(String adminId, String targetUserId, Role role, boolean successful, String errorMessage) {
+        try {
+            // Determine severity based on role being assigned and operation outcome
+            AuditSeverity severity;
+            if (!successful) {
+                severity = AuditSeverity.WARNING;
+            } else if (role == Role.ADMIN || role == Role.MODERATOR) {
+                severity = AuditSeverity.HIGH;
+            } else {
+                severity = AuditSeverity.INFO;
+            }
+
+            // Build description
+            String description = successful 
+                ? String.format("Assigned role %s to user %s", role.name(), targetUserId)
+                : String.format("Failed to assign role %s to user %s - %s", role.name(), targetUserId, errorMessage);
+
+            // Build detailed JSON for audit trail
+            Map<String, Object> details = new HashMap<>();
+            details.put("adminId", adminId);
+            details.put("targetUserId", targetUserId);
+            details.put("assignedRole", role.name());
+            details.put("successful", successful);
+            details.put("timestamp", LocalDateTime.now().toString());
+            
+            if (errorMessage != null) {
+                details.put("errorMessage", errorMessage);
+            }
+
+            String detailsJson;
+            try {
+                detailsJson = objectMapper.writeValueAsString(details);
+            } catch (JsonProcessingException e) {
+                logger.error("Failed to serialize role assignment details to JSON: {}", e.getMessage());
+                detailsJson = "{\"error\": \"Failed to serialize role assignment details\"}";
+            }
+
+            // Create audit entry
+            CreateAuditDTO auditDTO = CreateAuditDTO.builder()
+                .userId(adminId)
+                .action("ASSIGN_ROLE")
+                .entityType("User")
+                .entityId(targetUserId)
+                .description(description)
+                .ipAddress(getClientIp())
+                .userAgent(getUserAgent())
+                .sessionId(getSessionId())
+                .severity(severity)
+                .category(AuditCategory.USER_MANAGEMENT)
+                .details(detailsJson)
+                .source("UserService")
+                .build();
+
+            // Use createSystemAuditEntry for internal operations
+            auditService.createSystemAuditEntry(auditDTO);
+
+        } catch (Exception e) {
+            // Log the error but don't let audit failures break the role assignment flow
+            logger.error("Failed to create audit entry for role assignment - adminId: {}, targetUserId: {}, role: {}, error: {}", 
+                adminId, targetUserId, role, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Creates an audit entry for role removal operations
+     */
+    private void createRoleRemovalAuditEntry(String adminId, String targetUserId, Role role, boolean successful, String errorMessage) {
+        try {
+            // Determine severity based on role being removed and operation outcome
+            AuditSeverity severity;
+            if (!successful) {
+                severity = AuditSeverity.WARNING;
+            } else if (role == Role.ADMIN || role == Role.MODERATOR) {
+                severity = AuditSeverity.HIGH;
+            } else {
+                severity = AuditSeverity.WARNING;
+            }
+
+            // Build description
+            String description = successful 
+                ? String.format("Removed role %s from user %s", role.name(), targetUserId)
+                : String.format("Failed to remove role %s from user %s - %s", role.name(), targetUserId, errorMessage);
+
+            // Build detailed JSON for audit trail
+            Map<String, Object> details = new HashMap<>();
+            details.put("adminId", adminId);
+            details.put("targetUserId", targetUserId);
+            details.put("removedRole", role.name());
+            details.put("successful", successful);
+            details.put("timestamp", LocalDateTime.now().toString());
+            
+            if (errorMessage != null) {
+                details.put("errorMessage", errorMessage);
+            }
+
+            String detailsJson;
+            try {
+                detailsJson = objectMapper.writeValueAsString(details);
+            } catch (JsonProcessingException e) {
+                logger.error("Failed to serialize role removal details to JSON: {}", e.getMessage());
+                detailsJson = "{\"error\": \"Failed to serialize role removal details\"}";
+            }
+
+            // Create audit entry
+            CreateAuditDTO auditDTO = CreateAuditDTO.builder()
+                .userId(adminId)
+                .action("REMOVE_ROLE")
+                .entityType("User")
+                .entityId(targetUserId)
+                .description(description)
+                .ipAddress(getClientIp())
+                .userAgent(getUserAgent())
+                .sessionId(getSessionId())
+                .severity(severity)
+                .category(AuditCategory.USER_MANAGEMENT)
+                .details(detailsJson)
+                .source("UserService")
+                .build();
+
+            // Use createSystemAuditEntry for internal operations
+            auditService.createSystemAuditEntry(auditDTO);
+
+        } catch (Exception e) {
+            // Log the error but don't let audit failures break the role removal flow
+            logger.error("Failed to create audit entry for role removal - adminId: {}, targetUserId: {}, role: {}, error: {}", 
+                adminId, targetUserId, role, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Creates an audit entry for credit modification operations
+     */
+    private void createCreditUpdateAuditEntry(String adminId, String targetUserId, int previousCredits, int newCredits) {
+        try {
+            int difference = newCredits - previousCredits;
+            String operation = difference > 0 ? "increased" : difference < 0 ? "decreased" : "unchanged";
+            
+            // Build description
+            String description = String.format("Credits %s for user %s from %d to %d (difference: %+d)", 
+                operation, targetUserId, previousCredits, newCredits, difference);
+
+            // Build detailed JSON for audit trail
+            Map<String, Object> details = new HashMap<>();
+            details.put("adminId", adminId);
+            details.put("targetUserId", targetUserId);
+            details.put("previousCredits", previousCredits);
+            details.put("newCredits", newCredits);
+            details.put("difference", difference);
+            details.put("operation", operation);
+            details.put("timestamp", LocalDateTime.now().toString());
+
+            String detailsJson;
+            try {
+                detailsJson = objectMapper.writeValueAsString(details);
+            } catch (JsonProcessingException e) {
+                logger.error("Failed to serialize credit update details to JSON: {}", e.getMessage());
+                detailsJson = "{\"error\": \"Failed to serialize credit update details\"}";
+            }
+
+            // Create audit entry
+            CreateAuditDTO auditDTO = CreateAuditDTO.builder()
+                .userId(adminId)
+                .action("UPDATE_CREDITS")
+                .entityType("User")
+                .entityId(targetUserId)
+                .description(description)
+                .ipAddress(getClientIp())
+                .userAgent(getUserAgent())
+                .sessionId(getSessionId())
+                .severity(AuditSeverity.INFO)
+                .category(AuditCategory.FINANCIAL)
+                .details(detailsJson)
+                .source("UserService")
+                .build();
+
+            // Use createSystemAuditEntry for internal operations
+            auditService.createSystemAuditEntry(auditDTO);
+
+        } catch (Exception e) {
+            // Log the error but don't let audit failures break the credit update flow
+            logger.error("Failed to create audit entry for credit update - adminId: {}, targetUserId: {}, previousCredits: {}, newCredits: {}, error: {}", 
+                adminId, targetUserId, previousCredits, newCredits, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Creates an audit entry for profile update operations, particularly for security-sensitive changes
+     */
+    private void createProfileUpdateAuditEntry(String userId, String fieldName, String previousValue, String newValue, boolean isSecuritySensitive, boolean wasAuthorized) {
+        try {
+            // Determine severity and category based on security sensitivity and authorization
+            AuditSeverity severity;
+            AuditCategory category;
+            
+            if (isSecuritySensitive) {
+                category = AuditCategory.SECURITY;
+                severity = wasAuthorized ? AuditSeverity.INFO : AuditSeverity.WARNING;
+            } else {
+                category = AuditCategory.USER_MANAGEMENT;
+                severity = AuditSeverity.INFO;
+            }
+
+            // Build description
+            String description;
+            if (isSecuritySensitive && !wasAuthorized) {
+                description = String.format("Unauthorized attempt to update %s for user %s", fieldName, userId);
+            } else {
+                description = String.format("Updated %s for user %s", fieldName, userId);
+            }
+
+            // Build detailed JSON for audit trail (be careful with sensitive data)
+            Map<String, Object> details = new HashMap<>();
+            details.put("userId", userId);
+            details.put("fieldName", fieldName);
+            details.put("isSecuritySensitive", isSecuritySensitive);
+            details.put("wasAuthorized", wasAuthorized);
+            details.put("timestamp", LocalDateTime.now().toString());
+            
+            // Only include actual values for non-sensitive fields or authorized operations
+            if (!isSecuritySensitive || wasAuthorized) {
+                details.put("previousValue", previousValue != null ? previousValue : "null");
+                details.put("newValue", newValue != null ? newValue : "null");
+            } else {
+                details.put("note", "Values not logged due to unauthorized access attempt");
+            }
+
+            String detailsJson;
+            try {
+                detailsJson = objectMapper.writeValueAsString(details);
+            } catch (JsonProcessingException e) {
+                logger.error("Failed to serialize profile update details to JSON: {}", e.getMessage());
+                detailsJson = "{\"error\": \"Failed to serialize profile update details\"}";
+            }
+
+            // Create audit entry
+            CreateAuditDTO auditDTO = CreateAuditDTO.builder()
+                .userId(userId)
+                .action("UPDATE_PROFILE")
+                .entityType("User")
+                .entityId(userId)
+                .description(description)
+                .ipAddress(getClientIp())
+                .userAgent(getUserAgent())
+                .sessionId(getSessionId())
+                .severity(severity)
+                .category(category)
+                .details(detailsJson)
+                .source("UserService")
+                .build();
+
+            // Use createSystemAuditEntry for internal operations
+            auditService.createSystemAuditEntry(auditDTO);
+
+        } catch (Exception e) {
+            // Log the error but don't let audit failures break the profile update flow
+            logger.error("Failed to create audit entry for profile update - userId: {}, fieldName: {}, error: {}", 
+                userId, fieldName, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Creates an audit entry for inventory item removal operations
+     */
+    private void createInventoryRemovalAuditEntry(String adminId, String targetUserId, UUID itemId, String itemName, int refundAmount, boolean wasEquipped) {
+        try {
+            // Build description
+            String description = String.format("Removed item '%s' from user %s's inventory%s%s", 
+                itemName, 
+                targetUserId,
+                refundAmount > 0 ? String.format(" (refunded %d credits)", refundAmount) : "",
+                wasEquipped ? " (item was equipped)" : "");
+
+            // Build detailed JSON for audit trail
+            Map<String, Object> details = new HashMap<>();
+            details.put("adminId", adminId);
+            details.put("targetUserId", targetUserId);
+            details.put("itemId", itemId.toString());
+            details.put("itemName", itemName);
+            details.put("refundAmount", refundAmount);
+            details.put("wasEquipped", wasEquipped);
+            details.put("timestamp", LocalDateTime.now().toString());
+
+            String detailsJson;
+            try {
+                detailsJson = objectMapper.writeValueAsString(details);
+            } catch (JsonProcessingException e) {
+                logger.error("Failed to serialize inventory removal details to JSON: {}", e.getMessage());
+                detailsJson = "{\"error\": \"Failed to serialize inventory removal details\"}";
+            }
+
+            // Create audit entry
+            CreateAuditDTO auditDTO = CreateAuditDTO.builder()
+                .userId(adminId)
+                .action("REMOVE_INVENTORY_ITEM")
+                .entityType("User")
+                .entityId(targetUserId)
+                .description(description)
+                .ipAddress(getClientIp())
+                .userAgent(getUserAgent())
+                .sessionId(getSessionId())
+                .severity(AuditSeverity.INFO)
+                .category(AuditCategory.DATA_ACCESS)
+                .details(detailsJson)
+                .source("UserService")
+                .build();
+
+            // Use createSystemAuditEntry for internal operations
+            auditService.createSystemAuditEntry(auditDTO);
+
+        } catch (Exception e) {
+            // Log the error but don't let audit failures break the inventory removal flow
+            logger.error("Failed to create audit entry for inventory removal - adminId: {}, targetUserId: {}, itemId: {}, error: {}", 
+                adminId, targetUserId, itemId, e.getMessage(), e);
+        }
     }
 }

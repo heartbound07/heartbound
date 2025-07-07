@@ -182,12 +182,16 @@ export function ProfilePage() {
       setBannerUrl(profile.bannerUrl || "")
     }
     if (user) {
-      setAvatarUrl(user.avatar || "")
+      // Handle avatar URL - if backend returns "USE_DISCORD_AVATAR", treat as empty to show Discord avatar
+      const avatarToUse = user.avatar === "USE_DISCORD_AVATAR" ? "" : (user.avatar || "")
+      setAvatarUrl(avatarToUse)
+      
       if (import.meta.env.DEV) {
-        console.log('[ProfilePage useEffect] Setting local avatarUrl based on context to:', user.avatar || "");
+        console.log('[ProfilePage useEffect] Setting local avatarUrl based on context to:', avatarToUse);
       }
-      // Store the original Discord avatar URL if it contains discordapp.com
-      if (user.avatar && user.avatar.includes('cdn.discordapp.com')) {
+      
+      // Determine if using custom avatar or Discord avatar
+      if (user.avatar === "USE_DISCORD_AVATAR" || (user.avatar && user.avatar.includes('cdn.discordapp.com'))) {
         setIsUsingCustomAvatar(false)
       } else if (user.avatar) {
         setIsUsingCustomAvatar(true)
@@ -202,8 +206,7 @@ export function ProfilePage() {
   }
   
   const handleRemoveAvatar = () => {
-    // Even if we have stored Discord avatar, just set avatarUrl to empty string
-    // to signal to backend we want to use Discord avatar
+    // Set avatarUrl to empty string to signal to backend we want to use Discord avatar
     setAvatarUrl("");
     setIsUsingCustomAvatar(false);
     toast.success("Avatar removed. Your Discord avatar will be used instead. Don't forget to save your profile.");
@@ -492,7 +495,7 @@ export function ProfilePage() {
             name={sanitizedName.sanitized || (user?.username || "")}
             about={sanitizedAbout.sanitized}
             pronouns={sanitizedPronouns.sanitized}
-            user={{ ...user, avatar: avatarUrl }}
+            user={{ ...user, avatar: avatarUrl || (isUsingCustomAvatar ? "" : user?.avatar) }}
             showEditButton={false}
             onClick={() => {
               // For example, navigate to the user's detailed profile page.
