@@ -1,12 +1,15 @@
 package com.app.heartbound.controllers;
 
+import com.app.heartbound.config.security.RateLimited;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.dto.UpdateProfileDTO;
 import com.app.heartbound.dto.DailyActivityDataDTO;
 import com.app.heartbound.dto.shop.UserInventoryItemDTO;
+import com.app.heartbound.enums.RateLimitKeyType;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
+import com.app.heartbound.services.UserSecurityService;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,9 +34,11 @@ public class UserController {
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     private final UserService userService;
+    private final UserSecurityService userSecurityService;
     
-    public UserController(UserService userService) {
+    public UserController(UserService userService, UserSecurityService userSecurityService) {
         this.userService = userService;
+        this.userSecurityService = userSecurityService;
     }
     
     /**
@@ -44,7 +49,14 @@ public class UserController {
      */
     @GetMapping("/{userId}/profile")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<UserProfileDTO> getUserProfile(@PathVariable String userId) {
+    public ResponseEntity<UserProfileDTO> getUserProfile(@PathVariable String userId, Authentication authentication) {
+        // Security validation using centralized service
+        if (!userSecurityService.canAccessUserData(authentication, userId)) {
+            logger.warn("Unauthorized profile access attempt by user {} for user {}", 
+                authentication.getName(), userId);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
         User user = userService.getUserById(userId);
         if (user == null) {
             return ResponseEntity.ok(createDefaultProfile(userId));
@@ -61,18 +73,37 @@ public class UserController {
      */
     @PostMapping("/profiles")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<Map<String, UserProfileDTO>> getUserProfiles(@RequestBody Map<String, List<String>> request) {
+    public ResponseEntity<Map<String, UserProfileDTO>> getUserProfiles(@RequestBody Map<String, List<String>> request, Authentication authentication) {
         List<String> userIds = request.get("userIds");
+        
+        // Security validation: Check input parameters
+        if (userIds == null || userIds.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        // Security validation: Limit batch size using centralized service
+        if (!userSecurityService.validateBatchSize(userIds.size(), 50, "batch_profile_request", authentication.getName())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+        
+        String authenticatedUserId = authentication.getName();
+        boolean isAdmin = userSecurityService.hasAdminRole(authentication);
+        
+        // Security Check: Non-admin users can only request their own profile
+        if (!isAdmin && (userIds.size() > 1 || !userIds.contains(authenticatedUserId))) {
+            logger.warn("Unauthorized batch profile access attempt by user {} for users {}", 
+                authenticatedUserId, userIds);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
         Map<String, UserProfileDTO> profiles = new HashMap<>();
         
-        if (userIds != null) {
-            for (String userId : userIds) {
-                User user = userService.getUserById(userId);
-                if (user != null) {
-                    profiles.put(userId, userService.mapToProfileDTO(user));
-                } else {
-                    profiles.put(userId, createDefaultProfile(userId));
-                }
+        for (String userId : userIds) {
+            User user = userService.getUserById(userId);
+            if (user != null) {
+                profiles.put(userId, userService.mapToProfileDTO(user));
+            } else {
+                profiles.put(userId, createDefaultProfile(userId));
             }
         }
         
@@ -86,6 +117,12 @@ public class UserController {
      * @param profileDTO the profile data to update
      * @return the updated user profile data
      */
+    @RateLimited(
+        requestsPerMinute = 10,
+        requestsPerHour = 50,
+        keyType = RateLimitKeyType.USER,
+        keyPrefix = "profile_update"
+    )
     @PutMapping("/{userId}/profile")
     public ResponseEntity<UserProfileDTO> updateUserProfile(
             @PathVariable String userId,
@@ -107,14 +144,18 @@ public class UserController {
             
             return ResponseEntity.ok(updatedProfile);
         } catch (Exception e) {
-            // Enhanced error handling for security validation failures
+            // Secure error handling - do not expose internal details
             if (e.getMessage() != null && 
                 (e.getMessage().contains("sanitization") || 
                  e.getMessage().contains("security") || 
                  e.getMessage().contains("dangerous"))) {
+                logger.warn("Profile update validation failed for user {}: {}", userId, e.getMessage());
                 return ResponseEntity.badRequest().build();
             }
-            throw e; // Re-throw other exceptions
+            
+            // Log the actual error for debugging but return generic error to user
+            logger.error("Profile update failed for user {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
@@ -329,9 +370,12 @@ public class UserController {
             UserProfileDTO updatedProfile = userService.removeInventoryItem(userId, itemId, adminId);
             return ResponseEntity.ok(updatedProfile);
         } catch (ResourceNotFoundException e) {
+            logger.warn("Admin {} attempted to remove non-existent item {} from user {}", adminId, itemId, userId);
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            logger.error("Error removing inventory item {} from user {}: {}", itemId, userId, e.getMessage(), e);
+            // Log detailed error for admin debugging but return generic error
+            logger.error("Admin {} failed to remove inventory item {} from user {}: {}", 
+                adminId, itemId, userId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

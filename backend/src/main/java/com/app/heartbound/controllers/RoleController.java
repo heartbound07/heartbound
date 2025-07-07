@@ -4,6 +4,7 @@ import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -61,33 +62,62 @@ public class RoleController {
         String adminId = authentication.getName();
         List<String> userIds = (List<String>) request.get("userIds");
         
+        // Security validation: Check input parameters
+        if (userIds == null || userIds.isEmpty()) {
+            logger.warn("Admin {} attempted batch role assignment with no user IDs", adminId);
+            return ResponseEntity.badRequest().body(Map.of("error", "User IDs are required"));
+        }
+        
+        // Security limit: Prevent DoS attacks through large batch operations
+        if (userIds.size() > 100) {
+            logger.warn("Admin {} attempted batch role assignment exceeding limit: {} users", adminId, userIds.size());
+            return ResponseEntity.badRequest().body(Map.of("error", "Batch size cannot exceed 100 users"));
+        }
+        
         // Check if we're receiving a single role string or multiple roles
         Object roleObj = request.get("role");
+        if (roleObj == null) {
+            logger.warn("Admin {} attempted batch role assignment with no roles specified", adminId);
+            return ResponseEntity.badRequest().body(Map.of("error", "Roles are required"));
+        }
+        
         Set<Role> roles = new HashSet<>();
         
-        if (roleObj instanceof String) {
-            // Single role case
-            Role role = Role.valueOf((String) roleObj);
-            roles.add(role);
-            logger.debug("Batch assigning single role {} to {} users", role, userIds.size());
-            
-            // Original behavior - assign single role to multiple users
-            for (String userId : userIds) {
-                userService.assignRole(userId, role, adminId);
+        try {
+            if (roleObj instanceof String) {
+                // Single role case
+                Role role = Role.valueOf((String) roleObj);
+                roles.add(role);
+                logger.info("Admin {} batch assigning single role {} to {} users", adminId, role, userIds.size());
+                
+                // Original behavior - assign single role to multiple users
+                for (String userId : userIds) {
+                    userService.assignRole(userId, role, adminId);
+                }
+            } else if (roleObj instanceof List) {
+                // Multiple roles case - typically for a single user
+                List<?> rolesList = (List<?>) roleObj;
+                roles = rolesList.stream()
+                        .map(r -> Role.valueOf(r.toString()))
+                        .collect(Collectors.toSet());
+                
+                logger.info("Admin {} setting {} roles for {} users", adminId, roles.size(), userIds.size());
+                
+                // For each user, replace their roles with the new set
+                for (String userId : userIds) {
+                    userService.setUserRoles(userId, roles, adminId);
+                }
+            } else {
+                logger.warn("Admin {} provided invalid role format in batch assignment", adminId);
+                return ResponseEntity.badRequest().body(Map.of("error", "Invalid role format"));
             }
-        } else if (roleObj instanceof List) {
-            // Multiple roles case - typically for a single user
-            List<?> rolesList = (List<?>) roleObj;
-            roles = rolesList.stream()
-                    .map(r -> Role.valueOf(r.toString()))
-                    .collect(Collectors.toSet());
-            
-            logger.debug("Setting {} roles for {} users", roles.size(), userIds.size());
-            
-            // For each user, replace their roles with the new set
-            for (String userId : userIds) {
-                userService.setUserRoles(userId, roles, adminId);
-            }
+        } catch (IllegalArgumentException e) {
+            logger.warn("Admin {} attempted to assign invalid role: {}", adminId, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid role specified"));
+        } catch (Exception e) {
+            logger.error("Admin {} batch role assignment failed: {}", adminId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Role assignment failed"));
         }
         
         return ResponseEntity.ok(Map.of(

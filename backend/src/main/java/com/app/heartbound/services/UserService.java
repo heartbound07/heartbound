@@ -133,10 +133,16 @@ public class UserService {
                 initialRoles = new HashSet<>(initialRoles);
             }
 
-            // Add ADMIN role if this is the admin user
-            if (id.equals(adminDiscordId)) {
-                initialRoles.add(Role.ADMIN); 
-                logger.info("Admin role automatically assigned to new user ID: {}", id);
+            // Add ADMIN role if this is the admin user - with additional security validation
+            if (id.equals(adminDiscordId) && adminDiscordId != null && !adminDiscordId.trim().isEmpty()) {
+                // Additional validation: Ensure admin Discord ID is configured properly
+                if (adminDiscordId.length() >= 17 && adminDiscordId.length() <= 20 && adminDiscordId.matches("\\d+")) {
+                    initialRoles.add(Role.ADMIN); 
+                    logger.info("Admin role automatically assigned to new user ID: {}", id);
+                } else {
+                    logger.error("Invalid admin Discord ID configuration detected: {}", adminDiscordId);
+                    // Do not assign admin role if configuration is suspicious
+                }
             }
             user.setRoles(initialRoles);
             
@@ -198,11 +204,16 @@ public class UserService {
         // Note: Email is no longer requested from Discord OAuth, so it remains null
         
         // Ensure admin role for the configured admin ID (applies to existing users too if role was removed)
-        if (id.equals(adminDiscordId)) {
-            if (user.getRoles() == null) user.setRoles(new HashSet<>()); // Ensure roles set is initialized
-            if (!user.getRoles().contains(Role.ADMIN)) {
-                user.addRole(Role.ADMIN);
-                logger.info("Admin role ensured for user ID: {}", id);
+        if (id.equals(adminDiscordId) && adminDiscordId != null && !adminDiscordId.trim().isEmpty()) {
+            // Additional validation: Ensure admin Discord ID is configured properly
+            if (adminDiscordId.length() >= 17 && adminDiscordId.length() <= 20 && adminDiscordId.matches("\\d+")) {
+                if (user.getRoles() == null) user.setRoles(new HashSet<>()); // Ensure roles set is initialized
+                if (!user.getRoles().contains(Role.ADMIN)) {
+                    user.addRole(Role.ADMIN);
+                    logger.info("Admin role ensured for user ID: {}", id);
+                }
+            } else {
+                logger.error("Invalid admin Discord ID configuration detected during role check: {}", adminDiscordId);
             }
         }
         // Ensure every user has at least the USER role

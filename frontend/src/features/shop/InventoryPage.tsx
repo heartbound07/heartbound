@@ -590,18 +590,6 @@ export function InventoryPage() {
       const response = await httpClient.post(`/shop/equip/${itemId}`);
       showToast('Item equipped successfully!', 'success');
       
-      // Update local user profile with the updated profile from response
-      if (response.data) {
-        await updateUserProfile({
-          displayName: response.data.displayName || profile?.displayName || user?.username || '',
-          pronouns: response.data.pronouns || profile?.pronouns || '',
-          about: response.data.about || profile?.about || '',
-          bannerColor: response.data.bannerColor || profile?.bannerColor || '',
-          bannerUrl: response.data.bannerUrl || profile?.bannerUrl || '',
-          avatar: response.data.avatar || user?.avatar || ''
-        });
-      }
-      
       // Refresh inventory to show updated equipped status
       await fetchInventory();
     } catch (error: any) {
@@ -625,18 +613,7 @@ export function InventoryPage() {
     try {
       const response = await httpClient.post(`/shop/unequip/${category}`);
       showToast('Item unequipped successfully!', 'success');
-      
-      // Update local user profile with the updated profile from response
-      if (response.data) {
-        await updateUserProfile({
-          displayName: response.data.displayName || profile?.displayName || user?.username || '',
-          pronouns: response.data.pronouns || profile?.pronouns || '',
-          about: response.data.about || profile?.about || '',
-          bannerColor: response.data.bannerColor || profile?.bannerColor || '',
-          bannerUrl: response.data.bannerUrl || profile?.bannerUrl || '',
-          avatar: response.data.avatar || user?.avatar || ''
-        });
-      }
+
       
       // Refresh inventory to show updated equipped status
       await fetchInventory();
@@ -660,8 +637,6 @@ export function InventoryPage() {
     try {
       const response = await httpClient.post(`/shop/unequip/badge/${badgeId}`);
       if (response.data) {
-        // Update user profile
-        updateUserProfile(response.data);
         
         // Update equipped status in the items state
         const updatedItems = items.map(item => {
@@ -708,15 +683,8 @@ export function InventoryPage() {
       });
       
       if (response.data) {
-        // Update user profile with the updated profile from response
-        await updateUserProfile({
-          displayName: response.data.displayName || profile?.displayName || user?.username || '',
-          pronouns: response.data.pronouns || profile?.pronouns || '',
-          about: response.data.about || profile?.about || '',
-          bannerColor: response.data.bannerColor || profile?.bannerColor || '',
-          bannerUrl: response.data.bannerUrl || profile?.bannerUrl || '',
-          avatar: response.data.avatar || user?.avatar || ''
-        });
+        // The shop batch equip endpoint already updates the user profile internally
+        // No need for additional profile update call that causes rate limiting
         
         // Show success message with count
         const itemCount = itemIds.length;

@@ -6,6 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import java.util.UUID;
 
 @Data
@@ -13,12 +16,29 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class UserInventoryItemDTO {
+    @NotNull
     private UUID itemId;
+    
+    @NotNull
+    @Size(max = 100, message = "Item name cannot exceed 100 characters")
     private String name;
+    
+    @Size(max = 500, message = "Item description cannot exceed 500 characters")
     private String description;
+    
+    @NotNull
     private ShopCategory category;
+    
+    @Size(max = 500, message = "Thumbnail URL cannot exceed 500 characters")
     private String thumbnailUrl;
+    
+    @Size(max = 500, message = "Image URL cannot exceed 500 characters")
     private String imageUrl;
+    
+    @NotNull
+    @Min(value = 0, message = "Quantity cannot be negative")
     private Integer quantity;
+    
+    @Min(value = 0, message = "Price cannot be negative")
     private Integer price;
 } 
