@@ -4,13 +4,16 @@ import com.app.heartbound.dto.UserDTO;
 import com.app.heartbound.dto.UpdateProfileDTO;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.dto.DailyActivityDataDTO;
+import com.app.heartbound.dto.shop.UserInventoryItemDTO;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.entities.Shop;
+import com.app.heartbound.entities.UserInventoryItem;
 import com.app.heartbound.entities.DailyMessageStat;
 import com.app.heartbound.entities.DailyVoiceActivityStat;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
+import com.app.heartbound.repositories.UserInventoryItemRepository;
 import com.app.heartbound.repositories.DailyMessageStatRepository;
 import com.app.heartbound.repositories.DailyVoiceActivityStatRepository;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
@@ -46,6 +49,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final ShopRepository shopRepository;
+    private final UserInventoryItemRepository userInventoryItemRepository;
     private final DailyMessageStatRepository dailyMessageStatRepository;
     private final DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository;
     private final CacheConfig cacheConfig;
@@ -70,9 +74,10 @@ public class UserService {
 
     // Constructor-based dependency injection
     @Autowired
-    public UserService(UserRepository userRepository, ShopRepository shopRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, CacheConfig cacheConfig) {
+    public UserService(UserRepository userRepository, ShopRepository shopRepository, UserInventoryItemRepository userInventoryItemRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, CacheConfig cacheConfig) {
         this.userRepository = userRepository;
         this.shopRepository = shopRepository;
+        this.userInventoryItemRepository = userInventoryItemRepository;
         this.dailyMessageStatRepository = dailyMessageStatRepository;
         this.dailyVoiceActivityStatRepository = dailyVoiceActivityStatRepository;
         this.cacheConfig = cacheConfig;
@@ -962,5 +967,86 @@ public class UserService {
         logger.debug("Cached daily voice activity data for userId={}", userId);
 
         return result;
+    }
+
+    /**
+     * Get inventory items for a specific user.
+     * Only accessible to ADMIN users.
+     * Checks both new inventory system (with quantities) and legacy inventory system.
+     * 
+     * @param userId the ID of the user whose inventory to fetch
+     * @return list of user's inventory items with details
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<UserInventoryItemDTO> getUserInventoryItems(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // Get items from new inventory system (with quantities)
+        List<UserInventoryItem> newInventoryItems = userInventoryItemRepository.findByUserWithQuantity(user);
+        
+        // Convert new inventory items to DTOs
+        List<UserInventoryItemDTO> dtoList = newInventoryItems.stream()
+                .map(this::mapInventoryItemToDTO)
+                .collect(Collectors.toList());
+        
+        // Get item IDs from new inventory to avoid duplicates
+        Set<UUID> newInventoryItemIds = newInventoryItems.stream()
+                .map(item -> item.getItem().getId())
+                .collect(Collectors.toSet());
+        
+        // Get items from legacy inventory system that aren't already in new system
+        Set<Shop> legacyInventoryItems = user.getInventory();
+        if (legacyInventoryItems != null) {
+            List<UserInventoryItemDTO> legacyDtos = legacyInventoryItems.stream()
+                    .filter(item -> !newInventoryItemIds.contains(item.getId())) // Avoid duplicates
+                    .map(this::mapLegacyInventoryItemToDTO)
+                    .collect(Collectors.toList());
+            
+            dtoList.addAll(legacyDtos);
+        }
+        
+        return dtoList;
+    }
+
+    /**
+     * Maps a UserInventoryItem entity to UserInventoryItemDTO.
+     * 
+     * @param inventoryItem the inventory item entity
+     * @return the corresponding DTO
+     */
+    private UserInventoryItemDTO mapInventoryItemToDTO(UserInventoryItem inventoryItem) {
+        Shop item = inventoryItem.getItem();
+        
+        return UserInventoryItemDTO.builder()
+                .itemId(item.getId())
+                .name(item.getName())
+                .description(item.getDescription())
+                .category(item.getCategory())
+                .thumbnailUrl(item.getThumbnailUrl())
+                .imageUrl(item.getImageUrl())
+                .quantity(inventoryItem.getQuantity())
+                .price(item.getPrice())
+                .build();
+    }
+
+    /**
+     * Maps a legacy Shop inventory item to UserInventoryItemDTO.
+     * Legacy items have no quantity tracking, so quantity defaults to 1.
+     * 
+     * @param item the shop item from legacy inventory
+     * @return the corresponding DTO
+     */
+    private UserInventoryItemDTO mapLegacyInventoryItemToDTO(Shop item) {
+        return UserInventoryItemDTO.builder()
+                .itemId(item.getId())
+                .name(item.getName())
+                .description(item.getDescription())
+                .category(item.getCategory())
+                .thumbnailUrl(item.getThumbnailUrl())
+                .imageUrl(item.getImageUrl())
+                .quantity(1) // Legacy items don't have quantity tracking, default to 1
+                .price(item.getPrice())
+                .build();
     }
 }

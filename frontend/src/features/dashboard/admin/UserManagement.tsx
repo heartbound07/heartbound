@@ -4,9 +4,21 @@ import { Navigate } from 'react-router-dom';
 import { Role } from '@/contexts/auth/types';
 import { UserProfileDTO } from '@/config/userService';
 import httpClient from '@/lib/api/httpClient';
-import { ChevronLeft, ChevronRight, Search, Check, X, RefreshCw, Plus, Minus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Check, X, RefreshCw, Plus, Minus, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/valorant/badge';
 import { FaCoins } from 'react-icons/fa';
+
+// Types for inventory items
+interface UserInventoryItem {
+  itemId: string;
+  name: string;
+  description: string;
+  category: string;
+  thumbnailUrl: string;
+  imageUrl: string;
+  quantity: number;
+  price: number;
+}
 
 // User Management page for Admin panel
 export function UserManagement() {
@@ -22,6 +34,21 @@ export function UserManagement() {
   const [editing, setEditing] = useState<{userId: string, roles: Role[]} | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [editingCredits, setEditingCredits] = useState<{userId: string, credits: number} | null>(null);
+  const [inventoryModal, setInventoryModal] = useState<{
+    isOpen: boolean;
+    userId: string | null;
+    username: string | null;
+    isLoading: boolean;
+    items: UserInventoryItem[];
+    error: string | null;
+  }>({
+    isOpen: false,
+    userId: null,
+    username: null,
+    isLoading: false,
+    items: [],
+    error: null
+  });
   
   // Additional security check - redirect if not admin
   if (!hasRole('ADMIN')) {
@@ -218,6 +245,46 @@ export function UserManagement() {
     setRefreshing(true);
     await fetchUsers();
     setRefreshing(false);
+  };
+
+  // Open inventory modal and fetch inventory items
+  const openInventoryModal = async (userId: string, username: string) => {
+    setInventoryModal({
+      isOpen: true,
+      userId,
+      username,
+      isLoading: true,
+      items: [],
+      error: null
+    });
+
+    try {
+      const response = await httpClient.get(`/users/${userId}/inventory`);
+      setInventoryModal(prev => ({
+        ...prev,
+        isLoading: false,
+        items: response.data
+      }));
+    } catch (err) {
+      console.error('Error fetching user inventory:', err);
+      setInventoryModal(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'Failed to load inventory items'
+      }));
+    }
+  };
+
+  // Close inventory modal
+  const closeInventoryModal = () => {
+    setInventoryModal({
+      isOpen: false,
+      userId: null,
+      username: null,
+      isLoading: false,
+      items: [],
+      error: null
+    });
   };
   
   return (
@@ -417,12 +484,21 @@ export function UserManagement() {
                           </button>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => startEditingRoles(user.id, user.roles)}
-                          className="px-2 py-1 bg-primary/20 text-primary hover:bg-primary/30 rounded-md transition-colors text-xs"
-                        >
-                          Edit Roles
-                        </button>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => startEditingRoles(user.id, user.roles)}
+                            className="px-2 py-1 bg-primary/20 text-primary hover:bg-primary/30 rounded-md transition-colors text-xs"
+                          >
+                            Edit Roles
+                          </button>
+                          <button
+                            onClick={() => openInventoryModal(user.id, user.displayName || user.username)}
+                            className="px-2 py-1 bg-blue-900/20 text-blue-300 hover:bg-blue-900/40 rounded-md transition-colors text-xs flex items-center gap-1"
+                          >
+                            <Package className="h-3 w-3" />
+                            Inventory
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -465,6 +541,126 @@ export function UserManagement() {
           </div>
         </div>
       </div>
+
+      {/* Inventory Modal */}
+      {inventoryModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-slate-900/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/10 w-full max-w-4xl max-h-[80vh] mx-4">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <Package className="h-6 w-6 text-blue-400" />
+                <h2 className="text-xl font-bold text-white">
+                  {inventoryModal.username}'s Inventory
+                </h2>
+              </div>
+              <button
+                onClick={closeInventoryModal}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 max-h-[60vh] overflow-y-auto">
+              {inventoryModal.isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="h-8 w-8 animate-spin text-blue-400" />
+                  <span className="ml-3 text-slate-300">Loading inventory...</span>
+                </div>
+              ) : inventoryModal.error ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <X className="h-12 w-12 text-red-400 mx-auto mb-3" />
+                    <p className="text-red-300 text-lg">{inventoryModal.error}</p>
+                  </div>
+                </div>
+              ) : inventoryModal.items.length === 0 ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <Package className="h-12 w-12 text-slate-500 mx-auto mb-3" />
+                    <p className="text-slate-400 text-lg">No items found</p>
+                    <p className="text-slate-500 text-sm mt-1">This user doesn't have any inventory items.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {inventoryModal.items.map((item) => (
+                    <div
+                      key={item.itemId}
+                      className="bg-slate-800/50 border border-white/10 rounded-lg p-4 hover:bg-slate-800/70 transition-colors"
+                    >
+                      {/* Item Image */}
+                      <div className="relative mb-3">
+                        {item.thumbnailUrl ? (
+                          <img
+                            src={item.thumbnailUrl}
+                            alt={item.name}
+                            className="w-full h-24 object-cover rounded-md bg-slate-700"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                        ) : null}
+                        <div className={`w-full h-24 bg-slate-700 rounded-md flex items-center justify-center ${item.thumbnailUrl ? 'hidden' : ''}`}>
+                          <Package className="h-8 w-8 text-slate-500" />
+                        </div>
+                        
+                        {/* Quantity Badge */}
+                        <div className="absolute top-2 right-2 bg-blue-900/80 text-blue-200 px-2 py-1 rounded text-xs font-medium">
+                          x{item.quantity || 0}
+                        </div>
+                      </div>
+
+                      {/* Item Details */}
+                      <div className="space-y-2">
+                        <h3 className="font-medium text-white text-sm truncate" title={item.name || 'Unknown Item'}>
+                          {item.name || 'Unknown Item'}
+                        </h3>
+                        
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {item.category || 'UNKNOWN'}
+                          </Badge>
+                          {item.price !== null && item.price !== undefined && (
+                            <div className="flex items-center text-yellow-400 text-xs">
+                              <FaCoins className="h-3 w-3 mr-1" />
+                              {item.price}
+                            </div>
+                          )}
+                        </div>
+
+                        {item.description && item.description.trim() !== '' && (
+                          <p className="text-slate-400 text-xs line-clamp-2" title={item.description}>
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-t border-white/10 p-4 flex justify-between items-center">
+              <div className="text-sm text-slate-400">
+                {inventoryModal.items.length > 0 && (
+                  <>Total items: {inventoryModal.items.length}</>
+                )}
+              </div>
+              <button
+                onClick={closeInventoryModal}
+                className="px-4 py-2 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 rounded-md transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

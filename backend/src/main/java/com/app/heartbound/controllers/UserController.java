@@ -3,6 +3,7 @@ package com.app.heartbound.controllers;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.dto.UpdateProfileDTO;
 import com.app.heartbound.dto.DailyActivityDataDTO;
+import com.app.heartbound.dto.shop.UserInventoryItemDTO;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
@@ -282,5 +283,19 @@ public class UserController {
         List<DailyActivityDataDTO> voiceActivityData = userService.getUserDailyVoiceActivity(userId, days);
         
         return ResponseEntity.ok(voiceActivityData);
+    }
+
+    /**
+     * Admin endpoint to get a user's inventory items.
+     * Only accessible to ADMIN users.
+     *
+     * @param userId the ID of the user whose inventory to fetch
+     * @return list of user's inventory items
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{userId}/inventory")
+    public ResponseEntity<List<UserInventoryItemDTO>> getUserInventory(@PathVariable String userId) {
+        List<UserInventoryItemDTO> inventoryItems = userService.getUserInventoryItems(userId);
+        return ResponseEntity.ok(inventoryItems);
     }
 }
