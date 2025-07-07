@@ -18,9 +18,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
     return (
       <LoadingSpinner
         title="Authenticating..."
-        description="Please wait while we verify your credentials"
+        description="Please wait..."
         fullScreen={true}
-        useSkeleton={true}
+        useSkeleton={false}
         theme={theme === 'dark' ? 'valorant' : 'dashboard'}
       />
     );
