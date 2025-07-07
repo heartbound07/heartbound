@@ -22,6 +22,7 @@ import com.app.heartbound.exceptions.shop.InvalidCaseContentsException;
 import com.app.heartbound.exceptions.shop.ItemDeletionException;
 import com.app.heartbound.exceptions.shop.ItemReferencedInCasesException;
 import com.app.heartbound.services.shop.ShopService;
+import com.app.heartbound.repositories.shop.ShopRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,8 +34,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -43,6 +46,7 @@ import java.util.stream.Collectors;
 public class ShopController {
     
     private final ShopService shopService;
+    private final ShopRepository shopRepository;
     private static final Logger logger = LoggerFactory.getLogger(ShopController.class);
     
     // Rate limiting configuration values
@@ -74,8 +78,9 @@ public class ShopController {
     private int equipBurstCapacity;
         
     @Autowired
-    public ShopController(ShopService shopService) {
+    public ShopController(ShopService shopService, ShopRepository shopRepository) {
         this.shopService = shopService;
+        this.shopRepository = shopRepository;
     }
     
     /**
@@ -135,6 +140,54 @@ public class ShopController {
     }
     
     /**
+     * Validates if an item can be purchased based on current shop visibility rules.
+     * An item is purchasable only if it's currently displayed in either featured or daily sections.
+     * 
+     * @param itemId Item ID to validate
+     * @return true if item can be purchased, false otherwise
+     */
+    private boolean isItemPurchasable(UUID itemId) {
+        try {
+            Optional<Shop> itemOpt = shopRepository.findById(itemId);
+            if (itemOpt.isEmpty()) {
+                logger.warn("Purchase validation failed: Item {} not found", itemId);
+                return false;
+            }
+            
+            Shop item = itemOpt.get();
+            
+            // Check if item is active
+            if (!item.getIsActive()) {
+                logger.warn("Purchase validation failed: Item {} is not active", itemId);
+                return false;
+            }
+            
+            // Check if item has expired
+            if (item.getExpiresAt() != null && item.getExpiresAt().isBefore(LocalDateTime.now())) {
+                logger.warn("Purchase validation failed: Item {} has expired", itemId);
+                return false;
+            }
+            
+            // Security Check: Item must be either featured or daily to be purchasable
+            boolean isFeatured = item.getIsFeatured();
+            boolean isDaily = item.getIsDaily();
+            
+            if (!isFeatured && !isDaily) {
+                logger.warn("Purchase validation failed: Item {} is not currently displayed in shop layout (not featured or daily)", itemId);
+                return false;
+            }
+            
+            logger.debug("Purchase validation passed: Item {} is purchasable (featured: {}, daily: {})", 
+                        itemId, isFeatured, isDaily);
+            return true;
+            
+        } catch (Exception e) {
+            logger.error("Error validating item purchasability for item {}: {}", itemId, e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /**
      * Purchase an item
      * @param itemId Item ID
      * @param authentication Authentication containing user ID
@@ -166,8 +219,17 @@ public class ShopController {
                 .body(new ErrorResponse("Quantity must be between 1 and 10"));
         }
         
+        // Security Validation: Check if item is currently purchasable
+        if (!isItemPurchasable(itemId)) {
+            logger.warn("Unauthorized purchase attempt by user {} for item {} - item not currently available for purchase", 
+                       userId, itemId);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse("This item is not currently available for purchase"));
+        }
+        
         try {
             UserProfileDTO updatedProfile = shopService.purchaseItem(userId, itemId, quantity);
+            logger.info("Successful purchase by user {} for item {} (quantity: {})", userId, itemId, quantity);
             return ResponseEntity.ok(updatedProfile);
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -182,6 +244,7 @@ public class ShopController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ErrorResponse(e.getMessage()));
         } catch (Exception e) {
+            logger.error("Error processing purchase for user {} and item {}: {}", userId, itemId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse("An error occurred while processing your purchase"));
         }
