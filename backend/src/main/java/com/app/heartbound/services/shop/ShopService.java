@@ -34,6 +34,12 @@ import com.app.heartbound.services.discord.DiscordService;
 import com.app.heartbound.services.HtmlSanitizationService;
 import com.app.heartbound.services.SecureRandomService;
 import com.app.heartbound.services.RollVerificationService;
+import com.app.heartbound.services.AuditService;
+import com.app.heartbound.dto.CreateAuditDTO;
+import com.app.heartbound.enums.AuditSeverity;
+import com.app.heartbound.enums.AuditCategory;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +69,8 @@ public class ShopService {
     private final RollAuditRepository rollAuditRepository;
     private final RollVerificationService rollVerificationService;
     private final UserInventoryItemRepository userInventoryItemRepository;
+    private final AuditService auditService;
+    private final ObjectMapper objectMapper;
     private static final Logger logger = LoggerFactory.getLogger(ShopService.class);
     
     @Autowired
@@ -76,7 +84,8 @@ public class ShopService {
         SecureRandomService secureRandomService,
         RollAuditRepository rollAuditRepository,
         RollVerificationService rollVerificationService,
-        UserInventoryItemRepository userInventoryItemRepository
+        UserInventoryItemRepository userInventoryItemRepository,
+        AuditService auditService
     ) {
         this.shopRepository = shopRepository;
         this.userRepository = userRepository;
@@ -88,6 +97,8 @@ public class ShopService {
         this.rollAuditRepository = rollAuditRepository;
         this.rollVerificationService = rollVerificationService;
         this.userInventoryItemRepository = userInventoryItemRepository;
+        this.auditService = auditService;
+        this.objectMapper = new ObjectMapper();
     }
     
     /**
@@ -237,23 +248,43 @@ public class ShopService {
         
         // Validate quantity
         if (quantity == null || quantity < 1 || quantity > 10) {
+            createPurchaseAuditEntry(userId, itemId, null, quantity, 0, 0, 0, 
+                "PURCHASE_FAILED", "Invalid quantity: " + quantity, AuditSeverity.WARNING);
             throw new IllegalArgumentException("Quantity must be between 1 and 10");
         }
         
         // Get user and item
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+            .orElseThrow(() -> {
+                createPurchaseAuditEntry(userId, itemId, null, quantity, 0, 0, 0, 
+                    "PURCHASE_FAILED", "User not found", AuditSeverity.WARNING);
+                return new ResourceNotFoundException("User not found with ID: " + userId);
+            });
         
         Shop item = shopRepository.findById(itemId)
-            .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
+            .orElseThrow(() -> {
+                createPurchaseAuditEntry(userId, itemId, null, quantity, 0, 0, 0, 
+                    "PURCHASE_FAILED", "Shop item not found", AuditSeverity.WARNING);
+                return new ResourceNotFoundException("Shop item not found with ID: " + itemId);
+            });
+        
+        // Store initial state for audit logging
+        int creditsBeforeTransaction = user.getCredits();
+        int totalCost = item.getPrice() * quantity;
         
         // Validation checks
         if (!item.getIsActive()) {
+            createPurchaseAuditEntry(userId, itemId, item, quantity, totalCost, 
+                creditsBeforeTransaction, creditsBeforeTransaction, 
+                "PURCHASE_FAILED", "Item is not available for purchase", AuditSeverity.WARNING);
             throw new ResourceNotFoundException("Item is not available for purchase");
         }
         
         // For non-case items, enforce ownership check
         if (item.getCategory() != ShopCategory.CASE && user.hasItem(itemId)) {
+            createPurchaseAuditEntry(userId, itemId, item, quantity, totalCost, 
+                creditsBeforeTransaction, creditsBeforeTransaction, 
+                "PURCHASE_FAILED", "User already owns this item", AuditSeverity.WARNING);
             throw new ItemAlreadyOwnedException("User already owns this item");
         }
         
@@ -265,19 +296,25 @@ public class ShopService {
         
         // For non-case items, enforce quantity = 1
         if (item.getCategory() != ShopCategory.CASE && quantity > 1) {
+            createPurchaseAuditEntry(userId, itemId, item, quantity, totalCost, 
+                creditsBeforeTransaction, creditsBeforeTransaction, 
+                "PURCHASE_FAILED", "Non-case items can only be purchased with quantity 1", AuditSeverity.WARNING);
             throw new IllegalArgumentException("Non-case items can only be purchased with quantity 1");
         }
         
-        // Calculate total cost
-        int totalCost = item.getPrice() * quantity;
-        
         if (user.getCredits() < totalCost) {
+            createPurchaseAuditEntry(userId, itemId, item, quantity, totalCost, 
+                creditsBeforeTransaction, creditsBeforeTransaction, 
+                "PURCHASE_FAILED", "Insufficient credits. Required: " + totalCost + ", Available: " + user.getCredits(), AuditSeverity.WARNING);
             throw new InsufficientCreditsException(
                 "Insufficient credits. Required: " + totalCost + ", Available: " + user.getCredits()
             );
         }
         
         if (item.getRequiredRole() != null && !user.hasRole(item.getRequiredRole())) {
+            createPurchaseAuditEntry(userId, itemId, item, quantity, totalCost, 
+                creditsBeforeTransaction, creditsBeforeTransaction, 
+                "PURCHASE_FAILED", "Role requirement not met: " + item.getRequiredRole(), AuditSeverity.WARNING);
             throw new RoleRequirementNotMetException(
                 "This item requires the " + item.getRequiredRole() + " role"
             );
@@ -285,6 +322,7 @@ public class ShopService {
         
         // Process purchase
         user.setCredits(user.getCredits() - totalCost);
+        int creditsAfterTransaction = user.getCredits();
         
         try {
             // Add items to inventory - use quantity-based system for cases
@@ -302,13 +340,106 @@ public class ShopService {
             logger.debug("Saving user {} with updated inventory", userId);
             user = userRepository.save(user);
             
+            // Create audit entry for successful purchase
+            createPurchaseAuditEntry(userId, itemId, item, quantity, totalCost, 
+                creditsBeforeTransaction, creditsAfterTransaction, 
+                "PURCHASE_SUCCESS", "Purchase completed successfully", AuditSeverity.INFO);
+            
             logger.info("User {} successfully purchased {} x{} (total cost: {})", userId, itemId, quantity, totalCost);
             
             // Return updated profile
             return userService.mapToProfileDTO(user);
         } catch (Exception e) {
             logger.error("Error during purchase process for user {} and item {}: {}", userId, itemId, e.getMessage(), e);
+            
+            // Create audit entry for transaction failure
+            createPurchaseAuditEntry(userId, itemId, item, quantity, totalCost, 
+                creditsBeforeTransaction, creditsBeforeTransaction, 
+                "PURCHASE_FAILED", "Transaction failed: " + e.getMessage(), AuditSeverity.HIGH);
+            
             throw new RuntimeException("An error occurred while processing your purchase", e);
+        }
+    }
+    
+    /**
+     * Creates an audit entry for shop purchase events
+     * This method handles both successful and failed purchases
+     * 
+     * @param userId User ID making the purchase
+     * @param itemId Item ID being purchased
+     * @param item Shop item (null if item not found)
+     * @param quantity Quantity being purchased
+     * @param totalCost Total cost of the purchase
+     * @param creditsBeforeTransaction User's credits before transaction
+     * @param creditsAfterTransaction User's credits after transaction
+     * @param purchaseResult Result of the purchase (SUCCESS/FAILED)
+     * @param failureReason Reason for failure (if applicable)
+     * @param severity Audit severity level
+     */
+    private void createPurchaseAuditEntry(String userId, UUID itemId, Shop item, Integer quantity, 
+                                        int totalCost, int creditsBeforeTransaction, int creditsAfterTransaction,
+                                        String purchaseResult, String failureReason, AuditSeverity severity) {
+        try {
+            // Build human-readable description
+            String description;
+            if (item != null) {
+                if ("PURCHASE_SUCCESS".equals(purchaseResult)) {
+                    description = String.format("Purchased %s x%d for %d credits", 
+                        item.getName(), quantity, totalCost);
+                } else {
+                    description = String.format("Failed to purchase %s x%d for %d credits - %s", 
+                        item.getName(), quantity, totalCost, failureReason);
+                }
+            } else {
+                description = String.format("Purchase attempt for item %s x%d - %s", 
+                    itemId, quantity, failureReason);
+            }
+            
+            // Build detailed JSON for audit trail
+            Map<String, Object> details = new HashMap<>();
+            details.put("itemId", itemId.toString());
+            details.put("itemName", item != null ? item.getName() : "Unknown");
+            details.put("itemCategory", item != null ? item.getCategory().name() : "Unknown");
+            details.put("itemPrice", item != null ? item.getPrice() : 0);
+            details.put("quantity", quantity);
+            details.put("totalCost", totalCost);
+            details.put("creditsBeforeTransaction", creditsBeforeTransaction);
+            details.put("creditsAfterTransaction", creditsAfterTransaction);
+            details.put("purchaseResult", purchaseResult);
+            details.put("timestamp", LocalDateTime.now().toString());
+            
+            if (failureReason != null) {
+                details.put("failureReason", failureReason);
+            }
+            
+            String detailsJson;
+            try {
+                detailsJson = objectMapper.writeValueAsString(details);
+            } catch (JsonProcessingException e) {
+                logger.error("Failed to serialize purchase details to JSON: {}", e.getMessage());
+                detailsJson = "{\"error\": \"Failed to serialize purchase details\"}";
+            }
+            
+            // Create audit entry
+            CreateAuditDTO auditDTO = CreateAuditDTO.builder()
+                .userId(userId)
+                .action("SHOP_PURCHASE")
+                .entityType("Shop")
+                .entityId(itemId.toString())
+                .description(description)
+                .severity(severity)
+                .category(AuditCategory.FINANCIAL)
+                .details(detailsJson)
+                .source("ShopService")
+                .build();
+            
+            // Use createSystemAuditEntry for internal operations
+            auditService.createSystemAuditEntry(auditDTO);
+            
+        } catch (Exception e) {
+            // Log the error but don't let audit failures break the purchase flow
+            logger.error("Failed to create audit entry for purchase - userId: {}, itemId: {}, error: {}", 
+                userId, itemId, e.getMessage(), e);
         }
     }
     
