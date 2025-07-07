@@ -38,6 +38,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
 import java.util.HashSet;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
  * PERFORMANCE OPTIMIZED QueueService
@@ -113,6 +115,20 @@ public class QueueService {
         String userId = request.getUserId();
         log.info("User {} attempting to join queue", userId);
 
+        // Ensure authenticated user matches the request user ID
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            log.error("SECURITY VIOLATION: Unauthenticated queue join attempt for user {}", userId);
+            throw new SecurityException("Authentication required to join queue");
+        }
+
+        String authenticatedUserId = authentication.getName();
+        if (!authenticatedUserId.equals(userId)) {
+            log.error("SECURITY VIOLATION: User {} attempted to join queue as user {}", 
+                     authenticatedUserId, userId);
+            throw new SecurityException("Users can only join the queue as themselves");
+        }
+
         // **OPTIMIZATION: Check active pairing with lightweight exists query**
         if (pairingRepository.findActivePairingByUserId(userId).isPresent()) {
             throw new IllegalStateException("User is already in an active pairing");
@@ -172,6 +188,20 @@ public class QueueService {
     public void leaveQueue(String userId) {
         log.info("User {} attempting to leave queue", userId);
 
+        // Ensure authenticated user matches the request user ID
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            log.error("SECURITY VIOLATION: Unauthenticated queue leave attempt for user {}", userId);
+            throw new SecurityException("Authentication required to leave queue");
+        }
+
+        String authenticatedUserId = authentication.getName();
+        if (!authenticatedUserId.equals(userId)) {
+            log.error("SECURITY VIOLATION: User {} attempted to remove user {} from queue", 
+                     authenticatedUserId, userId);
+            throw new SecurityException("Users can only remove themselves from the queue");
+        }
+
         Optional<MatchQueueUser> queueUser = queueRepository.findByUserId(userId);
         if (queueUser.isPresent() && queueUser.get().isInQueue()) {
             queueUser.get().setInQueue(false);
@@ -195,6 +225,20 @@ public class QueueService {
      */
     @Transactional(readOnly = true)
     public QueueStatusDTO getQueueStatus(String userId) {
+        // Ensure authenticated user matches the request user ID (unless admin)
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            String authenticatedUserId = authentication.getName();
+            boolean hasAdminRole = authentication.getAuthorities().stream()
+                    .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+            
+            if (!hasAdminRole && !authenticatedUserId.equals(userId)) {
+                log.error("SECURITY VIOLATION: User {} attempted to check queue status for user {}", 
+                         authenticatedUserId, userId);
+                throw new SecurityException("Users can only check their own queue status");
+            }
+        }
+
         Optional<MatchQueueUser> queueUser = queueRepository.findByUserId(userId);
         
         if (queueUser.isPresent() && queueUser.get().isInQueue()) {

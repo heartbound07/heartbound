@@ -35,7 +35,18 @@ import jakarta.validation.constraints.Positive;
 /**
  * PairingController
  * 
- * REST controller for managing user pairings in the "Don't Catch Feelings Challenge".
+ *
+ * 
+ * SECURITY ENHANCEMENTS:
+ * - Manual pairing creation is restricted to ADMIN users only
+ * - Activity update limits are based on realistic Discord usage patterns
+ * - Comprehensive audit logging for all sensitive operations
+ * - Strict rate limiting to prevent abuse
+ * 
+ * LEGITIMATE PAIRING CREATION:
+ * - Users are paired automatically through the MatchmakingService
+ * - Queue system ensures proper matching based on compatibility
+ * - All existing functionality is preserved for authorized users
  */
 @RestController
 @RequestMapping("/pairings")
@@ -50,36 +61,34 @@ public class PairingController {
     private final QueueService queueService;
     private final PairingSecurityService pairingSecurityService;
 
-    @Operation(summary = "Create a new pairing", description = "Create a pairing between two users")
+    @Operation(summary = "Create a new pairing", description = "ADMIN ONLY: Create a pairing between two users (typically used by automated matchmaking system)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Pairing created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid request data"),
+            @ApiResponse(responseCode = "403", description = "Admin access required"),
             @ApiResponse(responseCode = "409", description = "Users already paired or blacklisted")
     })
     @PostMapping
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PairingDTO> createPairing(@Valid @RequestBody CreatePairingRequestDTO request, Authentication authentication) {
-        log.info("Creating pairing request received");
+        log.info("Admin pairing creation request received from admin: {}", authentication.getName());
         
-        // Security Check: Ensure the authenticated user is one of the users in the pairing
-        String authenticatedUserId = authentication.getName();
-        if (!authenticatedUserId.equals(request.getUser1Id()) && !authenticatedUserId.equals(request.getUser2Id())) {
-            log.warn("Unauthorized pairing creation attempt by user {} for users {} and {}", 
-                    authenticatedUserId, request.getUser1Id(), request.getUser2Id());
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Users can only create pairings involving themselves");
-        }
+        // Security Check: Log admin pairing creation for audit trail
+        log.info("ADMIN PAIRING CREATION: Admin {} creating pairing between users {} and {}", 
+                authentication.getName(), request.getUser1Id(), request.getUser2Id());
         
         try {
             PairingDTO createdPairing = pairingService.createPairing(request);
+            log.info("Admin {} successfully created pairing with ID: {}", authentication.getName(), createdPairing.getId());
             return ResponseEntity.status(HttpStatus.CREATED).body(createdPairing);
         } catch (IllegalArgumentException e) {
-            log.warn("Invalid pairing request: {}", e.getMessage());
+            log.warn("Invalid admin pairing request: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (IllegalStateException e) {
-            log.warn("Pairing conflict: {}", e.getMessage());
+            log.warn("Admin pairing conflict: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (Exception e) {
-            log.error("Unexpected error creating pairing", e);
+            log.error("Unexpected error in admin pairing creation", e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create pairing");
         }
     }
@@ -116,11 +125,11 @@ public class PairingController {
         }
     }
 
-    @Operation(summary = "Update pairing activity", description = "Update activity metrics for a pairing")
+    @Operation(summary = "Update pairing activity", description = "Update activity metrics for a pairing with strict rate limits")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Activity updated successfully"),
             @ApiResponse(responseCode = "404", description = "Pairing not found"),
-            @ApiResponse(responseCode = "400", description = "Invalid request data")
+            @ApiResponse(responseCode = "400", description = "Invalid request data or rate limit exceeded")
     })
     @PatchMapping("/{id}/activity")
     @PreAuthorize("hasRole('USER') and @pairingSecurityService.isUserInPairing(authentication, #id)")
@@ -131,11 +140,37 @@ public class PairingController {
         
         log.info("Updating activity for pairing ID: {}", id);
         
-        // Additional validation to prevent abuse of activity updates
-        if (request.getMessageIncrement() > 10000 || request.getWordIncrement() > 100000 || 
-            request.getEmojiIncrement() > 1000) {
-            log.warn("Activity update rejected for pairing {} - excessive increment values", id);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Activity increment values exceed reasonable limits");
+        // Enhanced validation to prevent abuse based on realistic Discord usage patterns
+        // Discord rate limits: ~5 messages per 5 seconds, ~20 messages per 60 seconds
+        // Realistic daily maximums: ~1000 messages, ~15000 words, ~200 emojis
+        
+        // Strict increment validation based on realistic user behavior
+        if (request.getMessageIncrement() > 50) { // Max 50 messages per update (realistic burst)
+            log.warn("Activity update rejected for pairing {} - message increment too high: {}", 
+                    id, request.getMessageIncrement());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "Message increment exceeds realistic limit (max 50 per update)");
+        }
+        
+        if (request.getWordIncrement() > 1000) { // Max 1000 words per update (avg 20 words per message)
+            log.warn("Activity update rejected for pairing {} - word increment too high: {}", 
+                    id, request.getWordIncrement());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "Word increment exceeds realistic limit (max 1000 per update)");
+        }
+        
+        if (request.getEmojiIncrement() > 20) { // Max 20 emojis per update (realistic usage)
+            log.warn("Activity update rejected for pairing {} - emoji increment too high: {}", 
+                    id, request.getEmojiIncrement());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "Emoji increment exceeds realistic limit (max 20 per update)");
+        }
+        
+        if (request.getActiveDays() != null && request.getActiveDays() > 1) { // Max 1 day increment per update
+            log.warn("Activity update rejected for pairing {} - active days increment too high: {}", 
+                    id, request.getActiveDays());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "Active days increment exceeds realistic limit (max 1 per update)");
         }
         
         // Admin-only fields validation
