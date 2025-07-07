@@ -13,13 +13,16 @@ import * as Popover from '@radix-ui/react-popover'
 import { Button } from "@/components/ui/profile/button"
 import { Input } from "@/components/ui/profile/input"
 import { Label } from "@/components/ui/profile/label"
-import { Textarea } from "@/components/ui/profile/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/profile/tooltip"
 import { useAuth } from "@/contexts/auth"
 import { ProfilePreview } from "@/components/ui/profile/ProfilePreview"
 import { UpdateProfileDTO } from "@/config/userService"
 import { AvatarUpload } from "@/components/ui/profile/AvatarUpload"
 import { BannerUpload } from "@/components/ui/profile/BannerUpload"
+
+// Security components
+import { SecureInput } from "@/components/ui/SecureInput"
+import { useSanitizedContent, useInputValidation } from "@/hooks/useSanitizedContent"
 
 // Helper to convert Tailwind bg classes to hex colors
 const tailwindBgToHex = (bgClass: string) => {
@@ -140,6 +143,31 @@ export function ProfilePage() {
   const [bannerUrl, setBannerUrl] = useState<string>("")
   const [isUsingCustomAvatar, setIsUsingCustomAvatar] = useState(false)
   
+  // Security validation for inputs
+  const { validate: validateDisplayName } = useInputValidation({
+    maxLength: 50,
+    minLength: 1,
+    stripHtml: true,
+    allowHtml: false
+  });
+  
+  const { validate: validatePronouns } = useInputValidation({
+    maxLength: 20,
+    stripHtml: true,
+    allowHtml: false
+  });
+  
+  const { validate: validateAbout } = useInputValidation({
+    maxLength: 200,
+    stripHtml: true,
+    allowHtml: false
+  });
+  
+  // Sanitized content for preview
+  const sanitizedName = useSanitizedContent(name, { maxLength: 50, stripHtml: true });
+  const sanitizedPronouns = useSanitizedContent(pronouns, { maxLength: 20, stripHtml: true });
+  const sanitizedAbout = useSanitizedContent(about, { maxLength: 200, stripHtml: true });
+  
   // Initialize form with profile data if available
   useEffect(() => {
     if (import.meta.env.DEV) {
@@ -213,21 +241,40 @@ export function ProfilePage() {
     return isValidHexColor(color) || isValidTailwindColor(color);
   }
 
+  const isValidUrl = (url: string): boolean => {
+    if (!url || url.trim() === '') return true; // Empty URLs are valid
+    
+    const lowercaseUrl = url.toLowerCase();
+    // Check for dangerous protocols
+    if (lowercaseUrl.startsWith("javascript:") || 
+        lowercaseUrl.startsWith("data:") || 
+        lowercaseUrl.startsWith("vbscript:") ||
+        lowercaseUrl.startsWith("file:")) {
+      return false;
+    }
+    
+    // Must start with http:// or https://
+    return lowercaseUrl.startsWith("http://") || lowercaseUrl.startsWith("https://");
+  }
+
   const handleSaveProfile = async () => {
     try {
-      // Client-side validation for better UX
-      if (name && name.length > 50) {
-        toast.error("Display name cannot exceed 50 characters");
+      // Enhanced client-side validation with security checks
+      const nameValidation = validateDisplayName(name);
+      if (!nameValidation.isValid) {
+        toast.error(`Display name error: ${nameValidation.errors.join(', ')}`);
         return;
       }
 
-      if (pronouns && pronouns.length > 20) {
-        toast.error("Pronouns cannot exceed 20 characters");
+      const pronounsValidation = validatePronouns(pronouns);
+      if (!pronounsValidation.isValid) {
+        toast.error(`Pronouns error: ${pronounsValidation.errors.join(', ')}`);
         return;
       }
 
-      if (about && about.length > 200) {
-        toast.error("About section cannot exceed 200 characters");
+      const aboutValidation = validateAbout(about);
+      if (!aboutValidation.isValid) {
+        toast.error(`About section error: ${aboutValidation.errors.join(', ')}`);
         return;
       }
 
@@ -236,10 +283,21 @@ export function ProfilePage() {
         return;
       }
 
+      // Validate URLs for security
+      if (avatarUrl && !isValidUrl(avatarUrl)) {
+        toast.error("Avatar URL is not valid or contains dangerous content");
+        return;
+      }
+
+      if (bannerUrl && !isValidUrl(bannerUrl)) {
+        toast.error("Banner URL is not valid or contains dangerous content");
+        return;
+      }
+
       const profileUpdate: UpdateProfileDTO = {
-        displayName: name,
-        pronouns: pronouns,
-        about: about,
+        displayName: sanitizedName.sanitized,
+        pronouns: sanitizedPronouns.sanitized,
+        about: sanitizedAbout.sanitized,
         bannerColor: bannerColor,
         avatar: avatarUrl,
         bannerUrl: bannerUrl
@@ -251,11 +309,18 @@ export function ProfilePage() {
     } catch (error) {
       console.error("Error saving profile:", error)
       
-      // Check if it's a validation error from the server
+      // Enhanced error handling for security validation
       if (error && typeof error === 'object' && 'response' in error) {
         const errorResponse = (error as any).response;
-        if (errorResponse?.status === 400 && errorResponse?.data?.message) {
-          toast.error(`Validation error: ${errorResponse.data.message}`);
+        if (errorResponse?.status === 400) {
+          if (errorResponse?.data?.message?.includes('sanitization') || 
+              errorResponse?.data?.message?.includes('security')) {
+            toast.error(`Security validation failed: ${errorResponse.data.message}`);
+          } else if (errorResponse?.data?.message) {
+            toast.error(`Validation error: ${errorResponse.data.message}`);
+          } else {
+            toast.error("Invalid input detected. Please check your entries for any special characters or HTML content.");
+          }
         } else {
           toast.error("Error updating profile. Please check your input and try again.");
         }
@@ -282,12 +347,18 @@ export function ProfilePage() {
                 <Label htmlFor="display-name" className="text-xs font-medium text-white/80">
                   DISPLAY NAME
                 </Label>
-                <Input
-                  id="display-name"
-                  className="border-white/10 bg-white/5 text-sm transition-colors focus:border-white/20 focus:bg-white/10"
-                  placeholder="Enter your display name"
+                <SecureInput
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={setName}
+                  placeholder="Enter your display name"
+                  maxLength={50}
+                  minLength={1}
+                  required={true}
+                  label=""
+                  helpText="Your display name can contain letters, numbers, and basic punctuation only."
+                  className="border-white/10 bg-white/5 text-sm transition-colors focus:border-white/20 focus:bg-white/10"
+                  showCharacterCount={true}
+                  realTimeValidation={true}
                 />
               </div>
 
@@ -295,12 +366,16 @@ export function ProfilePage() {
                 <Label htmlFor="pronouns" className="text-xs font-medium text-white/80">
                   PRONOUNS
                 </Label>
-                <Input
-                  id="pronouns"
-                  className="border-white/10 bg-white/5 text-sm transition-colors focus:border-white/20 focus:bg-white/10"
-                  placeholder="Add your pronouns"
+                <SecureInput
                   value={pronouns}
-                  onChange={(e) => setPronouns(e.target.value)}
+                  onChange={setPronouns}
+                  placeholder="Add your pronouns"
+                  maxLength={20}
+                  label=""
+                  helpText="Optional field for your preferred pronouns."
+                  className="border-white/10 bg-white/5 text-sm transition-colors focus:border-white/20 focus:bg-white/10"
+                  showCharacterCount={true}
+                  realTimeValidation={true}
                 />
               </div>
 
@@ -313,7 +388,7 @@ export function ProfilePage() {
                   showRemoveButton={isUsingCustomAvatar}
                 />
                 <p className="text-xs text-white/60">
-                  Click on your avatar to upload a new image. Maximum size: 5MB.
+                  Click on your avatar to upload a new image. Maximum size: 5MB. Only secure image URLs are allowed.
                 </p>
               </div>
 
@@ -352,7 +427,7 @@ export function ProfilePage() {
                 
                 <p className="text-xs text-white/60">
                   {hasRole('MONARCH') || hasRole('ADMIN') || hasRole('MODERATOR') 
-                    ? "Click on the banner to upload a new image. Maximum size: 5MB."
+                    ? "Click on the banner to upload a new image. Maximum size: 5MB. Only secure image URLs are allowed."
                     : "Banner customization is a premium feature for Monarch users."}
                 </p>
               </div>
@@ -361,17 +436,18 @@ export function ProfilePage() {
                 <Label htmlFor="about" className="text-xs font-medium text-white/80">
                   ABOUT ME
                 </Label>
-                <Textarea
-                  id="about"
+                <SecureInput
                   value={about}
-                  onChange={(e) => setAbout(e.target.value)}
-                  className="min-h-[120px] border-white/10 bg-white/5 text-sm transition-colors focus:border-white/20 focus:bg-white/10"
+                  onChange={setAbout}
                   placeholder="Tell us about yourself..."
                   maxLength={200}
+                  type="textarea"
+                  label=""
+                  helpText="Describe yourself! HTML tags will be removed for security."
+                  className="min-h-[120px] border-white/10 bg-white/5 text-sm transition-colors focus:border-white/20 focus:bg-white/10"
+                  showCharacterCount={true}
+                  realTimeValidation={true}
                 />
-                <div className="flex justify-end">
-                  <span className="text-xs text-white/60">{about.length}/200</span>
-                </div>
               </div>
 
               <div className="space-y-3">
@@ -416,9 +492,9 @@ export function ProfilePage() {
           <ProfilePreview 
             bannerColor={bannerColor}
             bannerUrl={bannerUrl}
-            name={name || (user?.username || "")}
-            about={about}
-            pronouns={pronouns}
+            name={sanitizedName.sanitized || (user?.username || "")}
+            about={sanitizedAbout.sanitized}
+            pronouns={sanitizedPronouns.sanitized}
             user={{ ...user, avatar: avatarUrl }}
             showEditButton={false}
             onClick={() => {

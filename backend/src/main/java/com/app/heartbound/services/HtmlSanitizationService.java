@@ -37,7 +37,7 @@ public class HtmlSanitizationService {
     private final ConcurrentHashMap<String, AtomicLong> sanitizationMetrics = new ConcurrentHashMap<>();
     
     // Regex patterns for validation
-    private static final Pattern ALPHANUMERIC_WITH_PUNCTUATION = Pattern.compile("^[a-zA-Z0-9\\s\\-_.,'!?()]+$");
+    private static final Pattern ALPHANUMERIC_WITH_PUNCTUATION = Pattern.compile("^[a-zA-Z0-9\\s\\-_.,'!?():/]+$");
     private static final Pattern DANGEROUS_PATTERNS = Pattern.compile(
         "(?i)(javascript:|data:|vbscript:|on\\w+\\s*=|<\\s*script|<\\s*iframe|<\\s*object|<\\s*embed|<\\s*link|<\\s*meta|<\\s*style)"
     );
@@ -145,7 +145,7 @@ public class HtmlSanitizationService {
         // Additional validation for alphanumeric + basic punctuation only
         if (!ALPHANUMERIC_WITH_PUNCTUATION.matcher(sanitized).matches()) {
             // Remove any characters that don't match the pattern
-            sanitized = sanitized.replaceAll("[^a-zA-Z0-9\\s\\-_.,'!?()]", "");
+            sanitized = sanitized.replaceAll("[^a-zA-Z0-9\\s\\-_.,'!?():/]", "");
         }
         
         // Normalize whitespace

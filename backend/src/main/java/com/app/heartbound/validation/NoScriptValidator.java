@@ -26,7 +26,7 @@ public class NoScriptValidator implements ConstraintValidator<NoScript, String> 
     private static final Pattern ALPHANUMERIC_ONLY = Pattern.compile("^[a-zA-Z0-9\\s]*$");
     
     // Pattern for alphanumeric + basic punctuation
-    private static final Pattern ALPHANUMERIC_WITH_PUNCTUATION = Pattern.compile("^[a-zA-Z0-9\\s\\-_.,'!?()]*$");
+    private static final Pattern ALPHANUMERIC_WITH_PUNCTUATION = Pattern.compile("^[a-zA-Z0-9\\s\\-_.,'!?():/]*$");
     
     private boolean allowPunctuation;
     
@@ -64,7 +64,7 @@ public class NoScriptValidator implements ConstraintValidator<NoScript, String> 
         Pattern allowedPattern = allowPunctuation ? ALPHANUMERIC_WITH_PUNCTUATION : ALPHANUMERIC_ONLY;
         if (!allowedPattern.matcher(value).matches()) {
             String allowedChars = allowPunctuation ? 
-                "letters, numbers, spaces, and basic punctuation (- _ . , ' ! ? ( ))" :
+                "letters, numbers, spaces, and basic punctuation (- _ . , ' ! ? ( ) : /)" :
                 "letters, numbers, and spaces";
             
             context.disableDefaultConstraintViolation();

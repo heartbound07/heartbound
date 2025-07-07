@@ -91,13 +91,24 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         
-        // The method now returns UserProfileDTO directly, not User
-        UserProfileDTO updatedProfile = userService.updateUserProfile(userId, profileDTO);
-        if (updatedProfile == null) {
-            return ResponseEntity.notFound().build();
+        try {
+            // The method now returns UserProfileDTO directly, not User
+            UserProfileDTO updatedProfile = userService.updateUserProfile(userId, profileDTO);
+            if (updatedProfile == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            return ResponseEntity.ok(updatedProfile);
+        } catch (Exception e) {
+            // Enhanced error handling for security validation failures
+            if (e.getMessage() != null && 
+                (e.getMessage().contains("sanitization") || 
+                 e.getMessage().contains("security") || 
+                 e.getMessage().contains("dangerous"))) {
+                return ResponseEntity.badRequest().build();
+            }
+            throw e; // Re-throw other exceptions
         }
-        
-        return ResponseEntity.ok(updatedProfile);
     }
     
     /**

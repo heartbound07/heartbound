@@ -91,8 +91,25 @@ export const updateUserProfile = async (userId: string, profile: UpdateProfileDT
   try {
     const response = await httpClient.put(`/users/${userId}/profile`, profile);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error updating user profile for ${userId}:`, error);
+    
+    // Enhanced error handling for security-related failures
+    if (error?.response?.status === 400) {
+      // Check if it's a validation error
+      if (error.response.data?.message) {
+        // Create a more specific error object for security issues
+        const securityError = new Error(error.response.data.message);
+        (securityError as any).response = error.response;
+        throw securityError;
+      } else {
+        // Generic validation error
+        const validationError = new Error('Profile validation failed. Please check your input for invalid content.');
+        (validationError as any).response = error.response;
+        throw validationError;
+      }
+    }
+    
     throw error;
   }
 };
