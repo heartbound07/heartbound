@@ -17,6 +17,7 @@ import { AdminPanel } from '@/features/dashboard/admin/AdminPanel';
 import { UserManagement } from '@/features/dashboard/admin/UserManagement';
 import { DiscordBotSettings } from '@/features/dashboard/admin/DiscordBotSettings';
 import { SystemStats } from '@/features/dashboard/admin/SystemStats';
+import { AuditPanel } from '@/features/dashboard/admin/AuditPanel';
 import { DiscordCallback } from '@/features/auth/DiscordCallback';
 import { useAuth } from '@/contexts/auth';
 import { Navigate as RouterNavigate } from 'react-router-dom';
@@ -151,6 +152,14 @@ export function AppRoutes() {
             element={
               <AdminRoute>
                 <SystemStats />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="audit"
+            element={
+              <AdminRoute>
+                <AuditPanel />
               </AdminRoute>
             } 
           />
