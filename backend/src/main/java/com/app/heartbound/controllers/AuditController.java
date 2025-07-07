@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/audit")
+@RequestMapping("/audit")
 @Tag(name = "Audit Management", description = "API for managing audit logs")
 public class AuditController {
 
