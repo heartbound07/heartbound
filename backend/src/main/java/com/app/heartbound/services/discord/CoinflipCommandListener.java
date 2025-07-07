@@ -142,7 +142,8 @@ public class CoinflipCommandListener extends ListenerAdapter {
                         resultEmbed
                             .setColor(SUCCESS_COLOR)
                             .setTitle(String.format("🎉 You got it right, it was %s!", coinResultString))
-                            .setDescription(String.format("You have earned **🪙 %d credits**!", creditChange));
+                            .setDescription(String.format("You have earned **🪙 %d credits**!", creditChange))
+                            .setFooter(event.getUser().getEffectiveName() + ", you now have " + newCredits + " credits", null);
                         
                         logger.info("User {} won coinflip: +{} credits. New balance: {}", userId, creditChange, newCredits);
                     } else {
@@ -153,7 +154,8 @@ public class CoinflipCommandListener extends ListenerAdapter {
                         resultEmbed
                             .setColor(FAILURE_COLOR)
                             .setTitle(String.format("💸 Whoops, it was %s.", coinResultString))
-                            .setDescription(String.format("You lost **🪙 %d credits**!", creditChange));
+                            .setDescription(String.format("You lost **🪙 %d credits**!", creditChange))
+                            .setFooter(event.getUser().getEffectiveName() + ", you now have " + newCredits + " credits", null);
                         
                         logger.info("User {} lost coinflip: -{} credits. New balance: {}", userId, creditChange, newCredits);
                     }
