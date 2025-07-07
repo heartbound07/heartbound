@@ -21,6 +21,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 import java.util.Optional;
@@ -57,8 +58,16 @@ public class PairingController {
     })
     @PostMapping
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<PairingDTO> createPairing(@Valid @RequestBody CreatePairingRequestDTO request) {
+    public ResponseEntity<PairingDTO> createPairing(@Valid @RequestBody CreatePairingRequestDTO request, Authentication authentication) {
         log.info("Creating pairing request received");
+        
+        // Security Check: Ensure the authenticated user is one of the users in the pairing
+        String authenticatedUserId = authentication.getName();
+        if (!authenticatedUserId.equals(request.getUser1Id()) && !authenticatedUserId.equals(request.getUser2Id())) {
+            log.warn("Unauthorized pairing creation attempt by user {} for users {} and {}", 
+                    authenticatedUserId, request.getUser1Id(), request.getUser2Id());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Users can only create pairings involving themselves");
+        }
         
         try {
             PairingDTO createdPairing = pairingService.createPairing(request);
@@ -84,7 +93,15 @@ public class PairingController {
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<PairingDTO> getCurrentPairing(
             @Parameter(description = "User ID", required = true)
-            @RequestParam @NotBlank String userId) {
+            @RequestParam @NotBlank String userId, Authentication authentication) {
+        
+        // Security Check: Ensure the authenticated user matches the requested userId or is admin
+        String authenticatedUserId = authentication.getName();
+        if (!authenticatedUserId.equals(userId) && !pairingSecurityService.hasAdminRole(authentication)) {
+            log.warn("Unauthorized access attempt by user {} to get current pairing for user {}", 
+                    authenticatedUserId, userId);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Users can only access their own current pairing");
+        }
         
         try {
             Optional<PairingDTO> pairing = pairingService.getCurrentPairing(userId);
@@ -106,12 +123,28 @@ public class PairingController {
             @ApiResponse(responseCode = "400", description = "Invalid request data")
     })
     @PatchMapping("/{id}/activity")
+    @PreAuthorize("hasRole('USER') and @pairingSecurityService.isUserInPairing(authentication, #id)")
     public ResponseEntity<PairingDTO> updatePairingActivity(
             @Parameter(description = "Pairing ID", required = true)
             @PathVariable Long id,
             @Valid @RequestBody UpdatePairingActivityDTO request) {
         
         log.info("Updating activity for pairing ID: {}", id);
+        
+        // Additional validation to prevent abuse of activity updates
+        if (request.getMessageIncrement() > 10000 || request.getWordIncrement() > 100000 || 
+            request.getEmojiIncrement() > 1000) {
+            log.warn("Activity update rejected for pairing {} - excessive increment values", id);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Activity increment values exceed reasonable limits");
+        }
+        
+        // Admin-only fields validation
+        if ((request.getUser1MessageCount() != null || request.getUser2MessageCount() != null || 
+             request.getVoiceTimeMinutes() != null) && 
+            !pairingSecurityService.hasAdminRole(SecurityContextHolder.getContext().getAuthentication())) {
+            log.warn("Non-admin user attempted to use admin-only activity update fields for pairing {}", id);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admins can directly set activity metrics");
+        }
         
         try {
             PairingDTO updatedPairing = pairingService.updatePairingActivity(id, request);
@@ -183,9 +216,18 @@ public class PairingController {
             @ApiResponse(responseCode = "200", description = "Pairing history retrieved successfully")
     })
     @GetMapping("/history")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<PairingDTO>> getPairingHistory(
             @Parameter(description = "User ID to get history for", required = true)
-            @RequestParam String userId) {
+            @RequestParam String userId, Authentication authentication) {
+        
+        // Security Check: Ensure the authenticated user matches the requested userId or is admin
+        String authenticatedUserId = authentication.getName();
+        if (!authenticatedUserId.equals(userId) && !pairingSecurityService.hasAdminRole(authentication)) {
+            log.warn("Unauthorized access attempt by user {} to get pairing history for user {}", 
+                    authenticatedUserId, userId);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Users can only access their own pairing history");
+        }
         
         log.info("Getting pairing history for user: {}", userId);
         
@@ -223,11 +265,21 @@ public class PairingController {
             @ApiResponse(responseCode = "200", description = "Blacklist status checked successfully")
     })
     @GetMapping("/is-blacklisted")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<BlacklistStatusDTO> checkBlacklistStatus(
             @Parameter(description = "First user ID", required = true)
             @RequestParam String user1Id,
             @Parameter(description = "Second user ID", required = true)
-            @RequestParam String user2Id) {
+            @RequestParam String user2Id, Authentication authentication) {
+        
+        // Security Check: Ensure the authenticated user is one of the users being checked or is admin
+        String authenticatedUserId = authentication.getName();
+        if (!authenticatedUserId.equals(user1Id) && !authenticatedUserId.equals(user2Id) && 
+            !pairingSecurityService.hasAdminRole(authentication)) {
+            log.warn("Unauthorized blacklist check attempt by user {} for users {} and {}", 
+                    authenticatedUserId, user1Id, user2Id);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Users can only check blacklist status involving themselves");
+        }
         
         log.info("Checking blacklist status for users {} and {}", user1Id, user2Id);
         

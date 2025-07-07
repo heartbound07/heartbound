@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.core.Authentication;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -19,6 +21,7 @@ import java.util.HashMap;
 import com.app.heartbound.dto.pairing.JoinQueueRequestDTO;
 import com.app.heartbound.dto.pairing.QueueStatusDTO;
 import com.app.heartbound.services.pairing.QueueService;
+import com.app.heartbound.services.pairing.PairingSecurityService;
 
 @RestController
 @RequestMapping("/matchmaking")
@@ -29,6 +32,7 @@ import com.app.heartbound.services.pairing.QueueService;
 public class MatchmakingController {
 
     private final QueueService queueService;
+    private final PairingSecurityService pairingSecurityService;
 
     @Operation(summary = "Get queue status for user", description = "Check if user is currently in matchmaking queue")
     @ApiResponses(value = {
@@ -37,7 +41,15 @@ public class MatchmakingController {
     @GetMapping("/status")
     public ResponseEntity<QueueStatusDTO> getQueueStatus(
             @Parameter(description = "User ID to check queue status for", required = true)
-            @RequestParam String userId) {
+            @RequestParam String userId, Authentication authentication) {
+        
+        // Security Check: Ensure the authenticated user matches the requested userId or is admin
+        String authenticatedUserId = authentication.getName();
+        if (!authenticatedUserId.equals(userId) && !pairingSecurityService.hasAdminRole(authentication)) {
+            log.warn("Unauthorized queue status check by user {} for user {}", 
+                    authenticatedUserId, userId);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Users can only check their own queue status");
+        }
         
         log.info("Getting queue status for user: {}", userId);
         
@@ -57,7 +69,16 @@ public class MatchmakingController {
             @ApiResponse(responseCode = "409", description = "User already in queue")
     })
     @PostMapping("/join")
-    public ResponseEntity<QueueStatusDTO> joinQueue(@Valid @RequestBody JoinQueueRequestDTO request) {
+    public ResponseEntity<QueueStatusDTO> joinQueue(@Valid @RequestBody JoinQueueRequestDTO request, Authentication authentication) {
+        
+        // Security Check: Ensure the authenticated user matches the userId in the request
+        String authenticatedUserId = authentication.getName();
+        if (!authenticatedUserId.equals(request.getUserId())) {
+            log.warn("Unauthorized queue join attempt by user {} for user {}", 
+                    authenticatedUserId, request.getUserId());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Users can only join the queue for themselves");
+        }
+        
         log.info("User {} joining matchmaking queue with preferences - Age: {}, Gender: {}, Region: {}, Rank: {}", 
                  request.getUserId(), request.getAge(), request.getGender(), request.getRegion(), request.getRank());
         
@@ -79,7 +100,16 @@ public class MatchmakingController {
             @ApiResponse(responseCode = "400", description = "User not in queue")
     })
     @PostMapping("/leave")
-    public ResponseEntity<Map<String, Object>> leaveQueue(@RequestParam String userId) {
+    public ResponseEntity<Map<String, Object>> leaveQueue(@RequestParam String userId, Authentication authentication) {
+        
+        // Security Check: Ensure the authenticated user matches the requested userId or is admin
+        String authenticatedUserId = authentication.getName();
+        if (!authenticatedUserId.equals(userId) && !pairingSecurityService.hasAdminRole(authentication)) {
+            log.warn("Unauthorized queue leave attempt by user {} for user {}", 
+                    authenticatedUserId, userId);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Users can only leave the queue for themselves");
+        }
+        
         log.info("User {} leaving matchmaking queue", userId);
         
         try {
