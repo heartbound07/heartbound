@@ -355,7 +355,6 @@ export function ProfilePage() {
                   minLength={1}
                   required={true}
                   label=""
-                  helpText="Your display name can contain letters, numbers, and basic punctuation only."
                   className="border-white/10 bg-white/5 text-sm transition-colors focus:border-white/20 focus:bg-white/10"
                   showCharacterCount={true}
                   realTimeValidation={true}
@@ -372,7 +371,6 @@ export function ProfilePage() {
                   placeholder="Add your pronouns"
                   maxLength={20}
                   label=""
-                  helpText="Optional field for your preferred pronouns."
                   className="border-white/10 bg-white/5 text-sm transition-colors focus:border-white/20 focus:bg-white/10"
                   showCharacterCount={true}
                   realTimeValidation={true}
@@ -428,7 +426,7 @@ export function ProfilePage() {
                 <p className="text-xs text-white/60">
                   {hasRole('MONARCH') || hasRole('ADMIN') || hasRole('MODERATOR') 
                     ? "Click on the banner to upload a new image. Maximum size: 5MB. Only secure image URLs are allowed."
-                    : "Banner customization is a premium feature for Monarch users."}
+                    : ""}
                 </p>
               </div>
 
@@ -443,7 +441,6 @@ export function ProfilePage() {
                   maxLength={200}
                   type="textarea"
                   label=""
-                  helpText="Describe yourself! HTML tags will be removed for security."
                   className="min-h-[120px] border-white/10 bg-white/5 text-sm transition-colors focus:border-white/20 focus:bg-white/10"
                   showCharacterCount={true}
                   realTimeValidation={true}
