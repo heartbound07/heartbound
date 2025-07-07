@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -130,7 +131,9 @@ public class AuditService {
                     "entityType: {}, severity: {}, category: {}", 
                     page, size, userId, action, entityType, severity, category);
         
-        Pageable pageable = PageRequest.of(page, size);
+        // Create pageable with explicit sorting by timestamp descending
+        Pageable pageable = PageRequest.of(page, size, 
+            Sort.by(Sort.Direction.DESC, "timestamp"));
         
         Page<Audit> auditPage;
         
@@ -141,7 +144,7 @@ public class AuditService {
             auditPage = auditRepository.findWithFilters(
                 userId, action, entityType, severity, category, startDate, endDate, pageable);
         } else {
-            // No filters - get all audit entries ordered by timestamp desc
+            // No filters - get all audit entries with explicit timestamp descending order
             auditPage = auditRepository.findAll(pageable);
         }
         
@@ -160,7 +163,9 @@ public class AuditService {
     public Page<AuditDTO> getAuditEntriesByUser(String userId, int page, int size) {
         logger.debug("Retrieving audit entries for user: {} - page: {}, size: {}", userId, page, size);
         
-        Pageable pageable = PageRequest.of(page, size);
+        // Create pageable with explicit sorting by timestamp descending
+        Pageable pageable = PageRequest.of(page, size, 
+            Sort.by(Sort.Direction.DESC, "timestamp"));
         Page<Audit> auditPage = auditRepository.findByUserIdOrderByTimestampDesc(userId, pageable);
         
         return auditPage.map(this::mapToDTO);
@@ -181,7 +186,9 @@ public class AuditService {
         logger.debug("Retrieving audit entries from {} to {} - page: {}, size: {}", 
                     startDate, endDate, page, size);
         
-        Pageable pageable = PageRequest.of(page, size);
+        // Create pageable with explicit sorting by timestamp descending
+        Pageable pageable = PageRequest.of(page, size, 
+            Sort.by(Sort.Direction.DESC, "timestamp"));
         Page<Audit> auditPage = auditRepository.findByTimestampBetweenOrderByTimestampDesc(
             startDate, endDate, pageable);
         
@@ -199,7 +206,9 @@ public class AuditService {
     public Page<AuditDTO> getHighSeverityAuditEntries(int page, int size) {
         logger.debug("Retrieving high severity audit entries - page: {}, size: {}", page, size);
         
-        Pageable pageable = PageRequest.of(page, size);
+        // Create pageable with explicit sorting by timestamp descending
+        Pageable pageable = PageRequest.of(page, size, 
+            Sort.by(Sort.Direction.DESC, "timestamp"));
         Page<Audit> auditPage = auditRepository.findRecentHighSeverityEntries(pageable);
         
         return auditPage.map(this::mapToDTO);
