@@ -362,6 +362,91 @@ public class ShopService {
     }
     
     /**
+     * Creates an audit entry for case roll events
+     * This method creates entries in the main audit system for admin visibility
+     * 
+     * @param userId User ID performing the case roll
+     * @param caseId Case ID that was opened
+     * @param caseItem The case item that was opened
+     * @param wonItem The item that was won
+     * @param alreadyOwned Whether the user already owned the item
+     * @param compensationAwarded Whether compensation was awarded
+     * @param compensatedCredits Credits awarded as compensation
+     * @param compensatedXp XP awarded as compensation
+     * @param rollValue The roll value (0-99)
+     * @param dropRate The drop rate of the won item
+     * @param creditsSpent Credits spent on the case (negative if compensation awarded)
+     */
+    private void createCaseRollAuditEntry(String userId, UUID caseId, Shop caseItem, Shop wonItem, 
+                                        boolean alreadyOwned, boolean compensationAwarded, 
+                                        int compensatedCredits, int compensatedXp, int rollValue, 
+                                        int dropRate, int creditsSpent) {
+        try {
+            // Build human-readable description
+            String description;
+            if (alreadyOwned && compensationAwarded) {
+                description = String.format("Opened case '%s' and received duplicate item '%s' (rarity: %s) - awarded %d credits and %d XP as compensation", 
+                    caseItem.getName(), wonItem.getName(), wonItem.getRarity().name(), compensatedCredits, compensatedXp);
+            } else {
+                description = String.format("Opened case '%s' and received item '%s' (rarity: %s)", 
+                    caseItem.getName(), wonItem.getName(), wonItem.getRarity().name());
+            }
+            
+            // Build detailed JSON for audit trail
+            Map<String, Object> details = new HashMap<>();
+            details.put("caseId", caseId.toString());
+            details.put("caseName", caseItem.getName());
+            details.put("wonItemId", wonItem.getId().toString());
+            details.put("wonItemName", wonItem.getName());
+            details.put("wonItemRarity", wonItem.getRarity().name());
+            details.put("wonItemPrice", wonItem.getPrice());
+            details.put("rollValue", rollValue);
+            details.put("dropRate", dropRate);
+            details.put("alreadyOwned", alreadyOwned);
+            details.put("creditsSpent", creditsSpent);
+            details.put("timestamp", LocalDateTime.now().toString());
+            
+            if (compensationAwarded) {
+                details.put("compensationAwarded", true);
+                details.put("compensatedCredits", compensatedCredits);
+                details.put("compensatedXp", compensatedXp);
+            }
+            
+            String detailsJson;
+            try {
+                detailsJson = objectMapper.writeValueAsString(details);
+            } catch (JsonProcessingException e) {
+                logger.error("Failed to serialize case roll details to JSON: {}", e.getMessage());
+                detailsJson = "{\"error\": \"Failed to serialize case roll details\"}";
+            }
+            
+            // Determine severity based on outcome
+            AuditSeverity severity = alreadyOwned ? AuditSeverity.WARNING : AuditSeverity.INFO;
+            
+            // Create audit entry
+            CreateAuditDTO auditDTO = CreateAuditDTO.builder()
+                .userId(userId)
+                .action("CASE_ROLL")
+                .entityType("Shop")
+                .entityId(caseId.toString())
+                .description(description)
+                .severity(severity)
+                .category(AuditCategory.FINANCIAL)
+                .details(detailsJson)
+                .source("ShopService")
+                .build();
+            
+            // Use createSystemAuditEntry for internal operations
+            auditService.createSystemAuditEntry(auditDTO);
+            
+        } catch (Exception e) {
+            // Log the error but don't let audit failures break the case roll flow
+            logger.error("Failed to create audit entry for case roll - userId: {}, caseId: {}, error: {}", 
+                userId, caseId, e.getMessage(), e);
+        }
+    }
+    
+    /**
      * Creates an audit entry for shop purchase events
      * This method handles both successful and failed purchases
      * 
@@ -1359,15 +1444,20 @@ public class ShopService {
         auditRecord.setRollTimestamp(now);
         auditRecord.setStatisticalHash(rollVerificationService.generateStatisticalHash(auditRecord));
         
-        // 18. Save audit record
+        // 18. Save roll audit record (for specialized gambling compliance)
         rollAuditRepository.save(auditRecord);
+        
+        // 19. Create main audit entry for admin visibility
+        createCaseRollAuditEntry(userId, caseId, caseItem, wonItem, alreadyOwned, 
+                                compensationAwarded, compensatedCredits, compensatedXp, 
+                                rollValue, wonItemDropRate, creditsAfter - creditsBefore);
         
         logger.info("User {} opened case {} and won item {} (already owned: {}{}) - Roll: {}, Seed: {}", 
                    userId, caseId, wonItem.getId(), alreadyOwned, 
                    compensationAwarded ? ", compensation awarded: " + compensatedCredits + " credits, " + compensatedXp + " XP" : "",
                    rollValue, rollSeedHash.substring(0, 8) + "...");
         
-        // 19. Return result
+        // 20. Return result
         return RollResultDTO.builder()
             .caseId(caseId)
             .caseName(caseItem.getName())

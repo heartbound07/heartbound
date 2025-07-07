@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth';
 import { Navigate } from 'react-router-dom';
-import { useAudit, AuditFilters } from '@/hooks/useAudit';
+import { useAudit, AuditFilters, CaseRollDetails } from '@/hooks/useAudit';
 import { Toast } from '@/components/Toast';
 
 const SEVERITY_COLORS = {
@@ -105,6 +105,49 @@ export function AuditPanel() {
     return userAgent;
   };
 
+  const parseCaseRollDetails = (entry: any): CaseRollDetails | null => {
+    if (entry.action !== 'CASE_ROLL' || !entry.details) return null;
+    
+    try {
+      const details = JSON.parse(entry.details);
+      return {
+        caseName: details.caseName || 'Unknown Case',
+        wonItemName: details.wonItemName || 'Unknown Item',
+        wonItemRarity: details.wonItemRarity || 'COMMON',
+        wonItemPrice: details.wonItemPrice || 0,
+        rollValue: details.rollValue || 0,
+        dropRate: details.dropRate || 0,
+        alreadyOwned: details.alreadyOwned || false,
+        compensationAwarded: details.compensationAwarded || false,
+        compensatedCredits: details.compensatedCredits || 0,
+        compensatedXp: details.compensatedXp || 0,
+        creditsSpent: details.creditsSpent || 0
+      };
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const getRarityColor = (rarity: string) => {
+    switch (rarity.toUpperCase()) {
+      case 'LEGENDARY':
+        return 'text-yellow-400';
+      case 'EPIC':
+        return 'text-purple-400';
+      case 'RARE':
+        return 'text-blue-400';
+      case 'UNCOMMON':
+        return 'text-green-400';
+      case 'COMMON':
+      default:
+        return 'text-gray-400';
+    }
+  };
+
+  const isCaseRollEntry = (entry: any) => {
+    return entry.action === 'CASE_ROLL';
+  };
+
   return (
     <div className="container mx-auto p-6">
       <div className="bg-gradient-to-b from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-xl shadow-xl p-6 border border-white/10">
@@ -152,6 +195,16 @@ export function AuditPanel() {
           >
             High Severity
           </button>
+          
+          <button
+            onClick={() => {
+              setFilters({ action: 'CASE_ROLL' });
+              fetchAuditEntries(0, pagination.size, { action: 'CASE_ROLL' });
+            }}
+            className="px-4 py-2 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 rounded-md transition-colors"
+          >
+            Case Rolls
+          </button>
 
           <button
             onClick={() => exportAuditData('csv')}
@@ -192,13 +245,19 @@ export function AuditPanel() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Action</label>
-                <input
-                  type="text"
+                <select
                   value={filters.action || ''}
                   onChange={(e) => handleFilterChange('action', e.target.value)}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="Filter by action"
-                />
+                >
+                  <option value="">All Actions</option>
+                  <option value="CASE_ROLL">Case Roll</option>
+                  <option value="SHOP_PURCHASE">Shop Purchase</option>
+                  <option value="USER_LOGIN">User Login</option>
+                  <option value="USER_LOGOUT">User Logout</option>
+                  <option value="ROLE_CHANGE">Role Change</option>
+                  <option value="SYSTEM_CONFIG">System Config</option>
+                </select>
               </div>
 
               <div>
@@ -312,54 +371,93 @@ export function AuditPanel() {
                 </tr>
               </thead>
               <tbody>
-                {auditEntries.map((entry) => (
-                  <tr key={entry.id} className="border-b border-slate-700/50 hover:bg-slate-800/30">
-                    <td className="py-3 px-4 text-slate-300">
-                      {formatTimestamp(entry.timestamp)}
-                    </td>
-                    <td className="py-3 px-4 text-slate-300">
-                      <div>
-                        <div className="font-medium text-white" title={`Username: ${getUserDisplayName(entry.userId)}`}>
-                          {getUserDisplayName(entry.userId)}
-                        </div>
-                        <div className="text-xs font-mono text-slate-400" title={`User ID: ${entry.userId}`}>
-                          ID: {entry.userId}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-white font-medium">
-                      {entry.action}
-                    </td>
-                    <td className="py-3 px-4 text-slate-300">
-                      {entry.entityType && (
+                {auditEntries.map((entry) => {
+                  const caseRollDetails = parseCaseRollDetails(entry);
+                  const isCaseRoll = isCaseRollEntry(entry);
+                  
+                  return (
+                    <tr key={entry.id} className="border-b border-slate-700/50 hover:bg-slate-800/30">
+                      <td className="py-3 px-4 text-slate-300">
+                        {formatTimestamp(entry.timestamp)}
+                      </td>
+                      <td className="py-3 px-4 text-slate-300">
                         <div>
-                          <div className="text-xs text-slate-400">{entry.entityType}</div>
-                          {entry.entityId && (
-                            <div className="text-xs font-mono text-slate-500">{entry.entityId}</div>
-                          )}
+                          <div className="font-medium text-white" title={`Username: ${getUserDisplayName(entry.userId)}`}>
+                            {getUserDisplayName(entry.userId)}
+                          </div>
+                          <div className="text-xs font-mono text-slate-400" title={`User ID: ${entry.userId}`}>
+                            ID: {entry.userId}
+                          </div>
                         </div>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`font-medium ${SEVERITY_COLORS[entry.severity]}`}>
-                        {entry.severity}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${CATEGORY_COLORS[entry.category]}`}>
-                        {entry.category.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-slate-300 font-mono text-xs">
-                      {entry.ipAddress || 'N/A'}
-                    </td>
-                    <td className="py-3 px-4 text-slate-300 max-w-xs">
-                      <div className="truncate" title={entry.description}>
-                        {entry.description || 'N/A'}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-3 px-4 text-white font-medium">
+                        <div className="flex items-center gap-2">
+                          {isCaseRoll && (
+                            <svg className="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                          {entry.action}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-slate-300">
+                        {isCaseRoll && caseRollDetails ? (
+                          <div>
+                            <div className="text-xs text-slate-400">Case Roll</div>
+                            <div className="text-xs font-mono text-slate-500">{caseRollDetails.caseName}</div>
+                          </div>
+                        ) : entry.entityType && (
+                          <div>
+                            <div className="text-xs text-slate-400">{entry.entityType}</div>
+                            {entry.entityId && (
+                              <div className="text-xs font-mono text-slate-500">{entry.entityId}</div>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`font-medium ${SEVERITY_COLORS[entry.severity]}`}>
+                          {entry.severity}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${CATEGORY_COLORS[entry.category]}`}>
+                          {entry.category.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-300 font-mono text-xs">
+                        {entry.ipAddress || 'N/A'}
+                      </td>
+                      <td className="py-3 px-4 text-slate-300 max-w-xs">
+                        {isCaseRoll && caseRollDetails ? (
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-white font-medium">Won:</span>
+                              <span className={`font-medium ${getRarityColor(caseRollDetails.wonItemRarity)}`}>
+                                {caseRollDetails.wonItemName}
+                              </span>
+                              <span className="text-xs text-slate-400">
+                                ({caseRollDetails.wonItemRarity})
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Roll: {caseRollDetails.rollValue} | Drop Rate: {caseRollDetails.dropRate}%
+                            </div>
+                            {caseRollDetails.compensationAwarded && (
+                              <div className="text-xs text-yellow-400 mt-1">
+                                Compensation: {caseRollDetails.compensatedCredits} credits, {caseRollDetails.compensatedXp} XP
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="truncate" title={entry.description}>
+                            {entry.description || 'N/A'}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

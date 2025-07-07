@@ -36,6 +36,20 @@ export interface AuditStatistics {
   entriesLast30Days: number;
 }
 
+export interface CaseRollDetails {
+  caseName: string;
+  wonItemName: string;
+  wonItemRarity: string;
+  wonItemPrice: number;
+  rollValue: number;
+  dropRate: number;
+  alreadyOwned: boolean;
+  compensationAwarded: boolean;
+  compensatedCredits: number;
+  compensatedXp: number;
+  creditsSpent: number;
+}
+
 export interface PaginatedAuditResponse {
   content: AuditEntry[];
   totalElements: number;
