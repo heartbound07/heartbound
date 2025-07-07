@@ -251,7 +251,22 @@ public class UserService {
         user.setPronouns(updateProfileDTO.getPronouns());
         user.setAbout(updateProfileDTO.getAbout());
         user.setBannerColor(updateProfileDTO.getBannerColor());
-        user.setBannerUrl(updateProfileDTO.getBannerUrl());
+        
+        // Security check: Only MONARCH role users can set banner URLs
+        if (updateProfileDTO.getBannerUrl() != null) {
+            if (user.hasRole(Role.MONARCH) || user.hasRole(Role.ADMIN) || user.hasRole(Role.MODERATOR)) {
+                // User has appropriate role, allow banner URL update
+                user.setBannerUrl(updateProfileDTO.getBannerUrl());
+                logger.debug("Banner URL update allowed for user {} with appropriate role", userId);
+            } else {
+                // User lacks MONARCH role, log security attempt and ignore banner URL
+                logger.warn("Security: User {} without MONARCH role attempted to set banner URL. Request ignored.", userId);
+                // Do not update banner URL - keep existing value
+            }
+        } else {
+            // Banner URL is null in the request, update normally
+            user.setBannerUrl(updateProfileDTO.getBannerUrl());
+        }
         
         // Special handling for avatar
         if (updateProfileDTO.getAvatar() != null && updateProfileDTO.getAvatar().isEmpty()) {
