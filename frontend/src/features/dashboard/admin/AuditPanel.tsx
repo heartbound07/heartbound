@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth';
 import { Navigate } from 'react-router-dom';
 import { useAudit, AuditFilters, CaseRollDetails } from '@/hooks/useAudit';
@@ -95,14 +95,6 @@ export function AuditPanel() {
 
   const formatTimestamp = (timestamp: string) => {
     return new Date(timestamp).toLocaleString();
-  };
-
-  const formatUserAgent = (userAgent?: string) => {
-    if (!userAgent) return 'N/A';
-    if (userAgent.length > 50) {
-      return userAgent.substring(0, 50) + '...';
-    }
-    return userAgent;
   };
 
   const parseCaseRollDetails = (entry: any): CaseRollDetails | null => {
