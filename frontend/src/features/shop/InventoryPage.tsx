@@ -392,7 +392,7 @@ const InventoryItemSkeleton = () => {
 };
 
 export function InventoryPage() {
-  const { user, updateUserProfile, profile } = useAuth();
+  const { user, profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ShopItem[]>([]);
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
@@ -587,7 +587,7 @@ export function InventoryPage() {
     
     setActionInProgress(itemId);
     try {
-      const response = await httpClient.post(`/shop/equip/${itemId}`);
+      await httpClient.post(`/shop/equip/${itemId}`);
       showToast('Item equipped successfully!', 'success');
       
       // Refresh inventory to show updated equipped status
@@ -611,7 +611,7 @@ export function InventoryPage() {
     
     setActionInProgress(category);
     try {
-      const response = await httpClient.post(`/shop/unequip/${category}`);
+      await httpClient.post(`/shop/unequip/${category}`);
       showToast('Item unequipped successfully!', 'success');
 
       
@@ -635,20 +635,18 @@ export function InventoryPage() {
     setActionInProgress(badgeId);
     
     try {
-      const response = await httpClient.post(`/shop/unequip/badge/${badgeId}`);
-      if (response.data) {
-        
-        // Update equipped status in the items state
-        const updatedItems = items.map(item => {
-          if (item.id === badgeId && item.category === 'BADGE') {
-            return { ...item, equipped: false };
-          }
-          return item;
-        });
-        setItems(updatedItems);
-        
-        showToast("Badge unequipped successfully!", "success");
-      }
+      await httpClient.post(`/shop/unequip/badge/${badgeId}`);
+      
+      // Update equipped status in the items state
+      const updatedItems = items.map(item => {
+        if (item.id === badgeId && item.category === 'BADGE') {
+          return { ...item, equipped: false };
+        }
+        return item;
+      });
+      setItems(updatedItems);
+      
+      showToast("Badge unequipped successfully!", "success");
     } catch (error) {
       console.error("Failed to unequip badge:", error);
       showToast("Failed to unequip badge", "error");
