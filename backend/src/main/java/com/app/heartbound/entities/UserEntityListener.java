@@ -99,12 +99,16 @@ public class UserEntityListener {
             // Sanitize avatar URL
             if (user.getAvatar() != null) {
                 String originalAvatarUrl = user.getAvatar();
-                String sanitizedAvatarUrl = htmlSanitizationService.sanitizeUrl(originalAvatarUrl);
                 
-                if (!originalAvatarUrl.equals(sanitizedAvatarUrl)) {
-                    logger.warn("User avatar URL sanitized during {}: '{}' -> '{}'", 
-                               operation, originalAvatarUrl, sanitizedAvatarUrl);
-                    user.setAvatar(sanitizedAvatarUrl);
+                // AVATAR FALLBACK FIX: Skip sanitization for special Discord avatar marker
+                if (!"USE_DISCORD_AVATAR".equals(originalAvatarUrl)) {
+                    String sanitizedAvatarUrl = htmlSanitizationService.sanitizeUrl(originalAvatarUrl);
+                    
+                    if (!originalAvatarUrl.equals(sanitizedAvatarUrl)) {
+                        logger.warn("User avatar URL sanitized during {}: '{}' -> '{}'", 
+                                   operation, originalAvatarUrl, sanitizedAvatarUrl);
+                        user.setAvatar(sanitizedAvatarUrl);
+                    }
                 }
             }
             

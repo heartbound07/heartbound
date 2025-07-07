@@ -327,13 +327,34 @@ public class UserService {
                 
                 // Make sure we have a Discord avatar URL to fall back to
                 if (user.getDiscordAvatarUrl() == null || user.getDiscordAvatarUrl().isEmpty()) {
-                    // If no cached Discord avatar, attempt to fetch it
+                    logger.warn("No cached Discord avatar URL available for user: {}. Attempting to construct default Discord avatar.", userId);
+                    
+                    // AVATAR FALLBACK FIX: Generate default Discord avatar URL
+                    // This handles users who don't have discordAvatarUrl cached
                     try {
-                        // Here we would ideally fetch it from Discord API
-                        // For now, we'll add a log to identify this issue
-                        logger.warn("No cached Discord avatar URL available for user: {}", userId);
+                        String defaultDiscordAvatar = null;
+                        
+                        // Try to construct Discord avatar URL based on user's discriminator
+                        if (user.getDiscriminator() != null && !user.getDiscriminator().isEmpty()) {
+                            try {
+                                int defaultAvatar = Integer.parseInt(user.getDiscriminator()) % 5;
+                                defaultDiscordAvatar = "https://cdn.discordapp.com/embed/avatars/" + defaultAvatar + ".png";
+                                logger.info("Generated default Discord avatar URL for user {}: {}", userId, defaultDiscordAvatar);
+                            } catch (NumberFormatException e) {
+                                logger.warn("Invalid discriminator for user {}: {}", userId, user.getDiscriminator());
+                            }
+                        }
+                        
+                        // If we couldn't generate a Discord avatar, we'll let it fall back to /default-avatar.png
+                        if (defaultDiscordAvatar != null) {
+                            user.setDiscordAvatarUrl(defaultDiscordAvatar);
+                            logger.info("Cached generated Discord avatar URL for user {}: {}", userId, defaultDiscordAvatar);
+                        } else {
+                            logger.warn("Could not generate Discord avatar URL for user {}. Profile will use /default-avatar.png", userId);
+                        }
+                        
                     } catch (Exception e) {
-                        logger.error("Error fetching Discord avatar: {}", e.getMessage());
+                        logger.error("Error generating Discord avatar for user {}: {}", userId, e.getMessage());
                     }
                 }
             } else {
@@ -375,11 +396,11 @@ public class UserService {
                 logger.debug("Using cached Discord avatar URL: {}", avatarUrl);
             } else {
                 // Fallback if no cached avatar is found
-                avatarUrl = "/default-avatar.png"; // Consider a consistent default placeholder
+                avatarUrl = "/default-avatar.png";
                 logger.warn("No cached Discord avatar URL found for user: {}, using default", user.getId());
             }
         } else if (avatarUrl == null || avatarUrl.isEmpty()) {
-            avatarUrl = "/default-avatar.png"; // Consider a consistent default placeholder
+            avatarUrl = "/default-avatar.png";
             logger.debug("Empty avatar URL for user: {}, using default", user.getId());
         } else {
             logger.debug("Using custom avatar URL for user: {}: {}", user.getId(), avatarUrl);

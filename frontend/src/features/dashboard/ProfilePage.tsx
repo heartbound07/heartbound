@@ -182,16 +182,17 @@ export function ProfilePage() {
       setBannerUrl(profile.bannerUrl || "")
     }
     if (user) {
-      // Handle avatar URL - if backend returns "USE_DISCORD_AVATAR", treat as empty to show Discord avatar
-      const avatarToUse = user.avatar === "USE_DISCORD_AVATAR" ? "" : (user.avatar || "")
-      setAvatarUrl(avatarToUse)
+      // AVATAR FALLBACK FIX: Use the resolved avatar URL from auth context
+      // The backend resolves "USE_DISCORD_AVATAR" to actual Discord URL in the DTO
+      // and AuthProvider updates the user context with this resolved URL
+      setAvatarUrl(user.avatar || "")
       
       if (import.meta.env.DEV) {
-        console.log('[ProfilePage useEffect] Setting local avatarUrl based on context to:', avatarToUse);
+        console.log('[ProfilePage useEffect] Setting local avatarUrl based on context to:', user.avatar);
       }
       
       // Determine if using custom avatar or Discord avatar
-      if (user.avatar === "USE_DISCORD_AVATAR" || (user.avatar && user.avatar.includes('cdn.discordapp.com'))) {
+      if (user.avatar === "USE_DISCORD_AVATAR" || (user.avatar && user.avatar.includes('cdn.discordapp.com')) || user.avatar === '/default-avatar.png') {
         setIsUsingCustomAvatar(false)
       } else if (user.avatar) {
         setIsUsingCustomAvatar(true)
