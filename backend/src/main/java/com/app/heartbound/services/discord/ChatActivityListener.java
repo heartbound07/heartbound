@@ -33,6 +33,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.Map;
 import java.util.HashMap;
+import com.app.heartbound.services.AuditService;
+import com.app.heartbound.dto.CreateAuditDTO;
+import com.app.heartbound.enums.AuditSeverity;
+import com.app.heartbound.enums.AuditCategory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 @Slf4j
@@ -40,6 +46,7 @@ public class ChatActivityListener extends ListenerAdapter {
     
     private final UserService userService;
     private final PairingRepository pairingRepository;
+    private final AuditService auditService;
     
     @Autowired
     @Lazy
@@ -103,9 +110,11 @@ public class ChatActivityListener extends ListenerAdapter {
     private ScheduledExecutorService cleanupScheduler;
     
     // Constructor for non-circular dependencies
-    public ChatActivityListener(UserService userService, PairingRepository pairingRepository) {
+    public ChatActivityListener(UserService userService, PairingRepository pairingRepository, AuditService auditService) {
         this.userService = userService;
         this.pairingRepository = pairingRepository;
+        this.auditService = auditService;
+        log.info("ChatActivityListener initialized with audit service");
     }
     
     @PostConstruct
@@ -262,7 +271,30 @@ public class ChatActivityListener extends ListenerAdapter {
             int multipliedCredits = (int) Math.round(creditsPerLevel * roleMultiplier);
             user.setCredits(currentCredits + multipliedCredits);
             log.info("Awarded {} credits to user {} for leveling up to {}. New balance: {}",
-                        multipliedCredits, userId, newLevel, user.getCredits());
+                multipliedCredits, userId, newLevel, user.getCredits());
+            
+            // Save user with updated credits and level
+            userService.updateUser(user);
+            
+            // Create audit entry for leveling up credits
+            try {
+                CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                    .userId(userId)
+                    .action("LEVEL_UP_REWARD")
+                    .entityType("USER_CREDITS")
+                    .entityId(userId)
+                    .description(String.format("Earned %d credits for leveling up to level %d", multipliedCredits, newLevel))
+                    .severity(multipliedCredits > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO)
+                    .category(AuditCategory.FINANCIAL)
+                    .details(String.format("{\"activity\":\"level_up\",\"newLevel\":%d,\"creditsAwarded\":%d,\"roleMultiplier\":%.2f,\"newBalance\":%d}", 
+                        newLevel, multipliedCredits, roleMultiplier, user.getCredits()))
+                    .source("DISCORD_BOT")
+                    .build();
+                
+                auditService.createSystemAuditEntry(auditEntry);
+            } catch (Exception e) {
+                log.error("Failed to create audit entry for level up reward for user {}: {}", userId, e.getMessage());
+            }
             
             try {
                 userService.updateUser(user);
@@ -576,7 +608,26 @@ public class ChatActivityListener extends ListenerAdapter {
                     awardedCredits = multipliedCredits;
                     log.debug("[CREDITS DEBUG] Awarded {} credits ({}x{}) to user {}. New balance: {}", 
                         multipliedCredits, creditsToAward, roleMultiplier, userId, user.getCredits());
-                    userUpdated = true; // Ensure user is marked for update
+                    
+                    // Create audit entry for chat activity credits
+                    try {
+                        CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                            .userId(userId)
+                            .action("CHAT_ACTIVITY_REWARD")
+                            .entityType("USER_CREDITS")
+                            .entityId(userId)
+                            .description(String.format("Earned %d credits for chat activity", multipliedCredits))
+                            .severity(AuditSeverity.INFO)
+                            .category(AuditCategory.FINANCIAL)
+                            .details(String.format("{\"activity\":\"chat\",\"creditsAwarded\":%d,\"roleMultiplier\":%.2f,\"newBalance\":%d}", 
+                                multipliedCredits, roleMultiplier, user.getCredits()))
+                            .source("DISCORD_BOT")
+                            .build();
+                        
+                        auditService.createSystemAuditEntry(auditEntry);
+                    } catch (Exception e) {
+                        log.error("Failed to create audit entry for chat activity reward for user {}: {}", userId, e.getMessage());
+                    }
                 }
                 
                 // Add right before calling checkAndProcessLevelUp method

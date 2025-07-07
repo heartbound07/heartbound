@@ -35,6 +35,7 @@ export function AuditPanel() {
     fetchHighSeverityEntries,
     exportAuditData,
     cleanupOldEntries,
+    getUserDisplayName,
     setError
   } = useAudit();
 
@@ -66,7 +67,10 @@ export function AuditPanel() {
   }, [fetchAuditEntries, pagination.size]);
 
   const handlePageChange = useCallback((newPage: number) => {
-    fetchAuditEntries(newPage, pagination.size, filters);
+    // Validate the new page number to prevent NaN
+    const validPage = Math.max(0, Math.floor(Number(newPage) || 0));
+    const validSize = Math.max(1, Math.floor(Number(pagination.size) || 20));
+    fetchAuditEntries(validPage, validSize, filters);
   }, [fetchAuditEntries, pagination.size, filters]);
 
   const handleCleanup = useCallback(async () => {
@@ -313,8 +317,15 @@ export function AuditPanel() {
                     <td className="py-3 px-4 text-slate-300">
                       {formatTimestamp(entry.timestamp)}
                     </td>
-                    <td className="py-3 px-4 text-slate-300 font-mono text-xs">
-                      {entry.userId}
+                    <td className="py-3 px-4 text-slate-300">
+                      <div>
+                        <div className="font-medium text-white" title={`Username: ${getUserDisplayName(entry.userId)}`}>
+                          {getUserDisplayName(entry.userId)}
+                        </div>
+                        <div className="text-xs font-mono text-slate-400" title={`User ID: ${entry.userId}`}>
+                          ID: {entry.userId}
+                        </div>
+                      </div>
                     </td>
                     <td className="py-3 px-4 text-white font-medium">
                       {entry.action}
@@ -371,12 +382,12 @@ export function AuditPanel() {
         {!loading && auditEntries.length > 0 && (
           <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
             <div className="text-sm text-slate-300">
-              Showing {pagination.page * pagination.size + 1} to {Math.min((pagination.page + 1) * pagination.size, pagination.totalElements)} of {pagination.totalElements} entries
+              Showing {(pagination.page || 0) * (pagination.size || 20) + 1} to {Math.min(((pagination.page || 0) + 1) * (pagination.size || 20), pagination.totalElements || 0)} of {pagination.totalElements || 0} entries
             </div>
             
             <div className="flex gap-2">
               <button
-                onClick={() => handlePageChange(pagination.page - 1)}
+                onClick={() => handlePageChange(Math.max(0, (pagination.page || 0) - 1))}
                 disabled={pagination.first}
                 className="px-3 py-2 bg-slate-700 text-slate-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600 transition-colors"
               >
@@ -384,11 +395,11 @@ export function AuditPanel() {
               </button>
               
               <span className="px-3 py-2 text-slate-300">
-                Page {pagination.page + 1} of {pagination.totalPages}
+                Page {(pagination.page || 0) + 1} of {pagination.totalPages || 0}
               </span>
               
               <button
-                onClick={() => handlePageChange(pagination.page + 1)}
+                onClick={() => handlePageChange((pagination.page || 0) + 1)}
                 disabled={pagination.last}
                 className="px-3 py-2 bg-slate-700 text-slate-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600 transition-colors"
               >

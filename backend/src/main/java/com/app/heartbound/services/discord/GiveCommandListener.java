@@ -2,6 +2,10 @@ package com.app.heartbound.services.discord;
 
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
+import com.app.heartbound.services.AuditService;
+import com.app.heartbound.dto.CreateAuditDTO;
+import com.app.heartbound.enums.AuditSeverity;
+import com.app.heartbound.enums.AuditCategory;
 import com.app.heartbound.config.CacheConfig;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -29,12 +33,14 @@ public class GiveCommandListener extends ListenerAdapter {
     
     private final UserService userService;
     private final CacheConfig cacheConfig;
+    private final AuditService auditService;
     
     @Autowired
-    public GiveCommandListener(UserService userService, CacheConfig cacheConfig) {
+    public GiveCommandListener(UserService userService, CacheConfig cacheConfig, AuditService auditService) {
         this.userService = userService;
         this.cacheConfig = cacheConfig;
-        logger.info("GiveCommandListener initialized");
+        this.auditService = auditService;
+        logger.info("GiveCommandListener initialized with audit service");
     }
     
     @Override
@@ -131,6 +137,43 @@ public class GiveCommandListener extends ListenerAdapter {
             // Save both users
             userService.updateUser(giverUser);
             userService.updateUser(recipientUser);
+            
+            // Create audit entries for both participants
+            try {
+                // Audit entry for giver (sender)
+                CreateAuditDTO giverAuditEntry = CreateAuditDTO.builder()
+                    .userId(giverUserId)
+                    .action("CREDIT_TRANSFER_SENT")
+                    .entityType("USER_CREDITS")
+                    .entityId(giverUserId)
+                    .description(String.format("Sent %d credits to %s", amount, recipientUser.getUsername()))
+                    .severity(amount > 5000 ? AuditSeverity.HIGH : (amount > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO))
+                    .category(AuditCategory.FINANCIAL)
+                    .details(String.format("{\"transferType\":\"send\",\"amount\":%d,\"recipient\":\"%s\",\"recipientId\":\"%s\",\"newBalance\":%d}", 
+                        amount, recipientUser.getUsername(), targetUserId, newGiverCredits))
+                    .source("DISCORD_BOT")
+                    .build();
+                
+                auditService.createSystemAuditEntry(giverAuditEntry);
+                
+                // Audit entry for recipient (receiver)
+                CreateAuditDTO recipientAuditEntry = CreateAuditDTO.builder()
+                    .userId(targetUserId)
+                    .action("CREDIT_TRANSFER_RECEIVED")
+                    .entityType("USER_CREDITS")
+                    .entityId(targetUserId)
+                    .description(String.format("Received %d credits from %s", amount, giverUser.getUsername()))
+                    .severity(amount > 5000 ? AuditSeverity.HIGH : (amount > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO))
+                    .category(AuditCategory.FINANCIAL)
+                    .details(String.format("{\"transferType\":\"receive\",\"amount\":%d,\"sender\":\"%s\",\"senderId\":\"%s\",\"newBalance\":%d}", 
+                        amount, giverUser.getUsername(), giverUserId, newRecipientCredits))
+                    .source("DISCORD_BOT")
+                    .build();
+                
+                auditService.createSystemAuditEntry(recipientAuditEntry);
+            } catch (Exception e) {
+                logger.error("Failed to create audit entries for credit transfer from {} to {}: {}", giverUserId, targetUserId, e.getMessage());
+            }
             
             // Invalidate both users' profile caches to ensure fresh data
             cacheConfig.invalidateUserProfileCache(giverUserId);

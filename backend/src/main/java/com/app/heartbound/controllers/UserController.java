@@ -89,11 +89,15 @@ public class UserController {
         String authenticatedUserId = authentication.getName();
         boolean isAdmin = userSecurityService.hasAdminRole(authentication);
         
-        // Security Check: Non-admin users can only request their own profile
-        if (!isAdmin && (userIds.size() > 1 || !userIds.contains(authenticatedUserId))) {
-            logger.warn("Unauthorized batch profile access attempt by user {} for users {}", 
-                authenticatedUserId, userIds);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        // Security Check: Validate each user ID individually using centralized security service
+        if (!isAdmin) {
+            for (String userId : userIds) {
+                if (!userSecurityService.canAccessUserData(authentication, userId)) {
+                    logger.warn("Unauthorized batch profile access attempt by user {} for user {} in batch {}", 
+                        authenticatedUserId, userId, userIds);
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+                }
+            }
         }
         
         Map<String, UserProfileDTO> profiles = new HashMap<>();

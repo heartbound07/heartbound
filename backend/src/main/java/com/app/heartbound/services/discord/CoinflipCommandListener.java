@@ -3,6 +3,10 @@ package com.app.heartbound.services.discord;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.SecureRandomService;
+import com.app.heartbound.services.AuditService;
+import com.app.heartbound.dto.CreateAuditDTO;
+import com.app.heartbound.enums.AuditSeverity;
+import com.app.heartbound.enums.AuditCategory;
 import com.app.heartbound.config.CacheConfig;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -28,13 +32,15 @@ public class CoinflipCommandListener extends ListenerAdapter {
     private final UserService userService;
     private final CacheConfig cacheConfig;
     private final SecureRandomService secureRandomService;
+    private final AuditService auditService;
     
     @Autowired
-    public CoinflipCommandListener(UserService userService, CacheConfig cacheConfig, SecureRandomService secureRandomService) {
+    public CoinflipCommandListener(UserService userService, CacheConfig cacheConfig, SecureRandomService secureRandomService, AuditService auditService) {
         this.userService = userService;
         this.cacheConfig = cacheConfig;
         this.secureRandomService = secureRandomService;
-        logger.info("CoinflipCommandListener initialized with secure random");
+        this.auditService = auditService;
+        logger.info("CoinflipCommandListener initialized with secure random and audit service");
     }
     
     @Override
@@ -139,6 +145,30 @@ public class CoinflipCommandListener extends ListenerAdapter {
                         newCredits = currentCredits + creditChange;
                         user.setCredits(newCredits);
                         
+                        // Save the updated user
+                        userService.updateUser(user);
+                        
+                        // Create audit entry for win
+                        try {
+                            CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                                .userId(userId)
+                                .action("COINFLIP_WIN")
+                                .entityType("USER_CREDITS")
+                                .entityId(userId)
+                                .description(String.format("Won %d credits in coinflip (bet: %d, guess: %s, result: %s)", 
+                                    creditChange, betAmount, userGuess, coinResultString))
+                                .severity(creditChange > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO)
+                                .category(AuditCategory.FINANCIAL)
+                                .details(String.format("{\"game\":\"coinflip\",\"bet\":%d,\"guess\":\"%s\",\"result\":\"%s\",\"won\":%d,\"newBalance\":%d}", 
+                                    betAmount, userGuess, coinResultString, creditChange, newCredits))
+                                .source("DISCORD_BOT")
+                                .build();
+                            
+                            auditService.createSystemAuditEntry(auditEntry);
+                        } catch (Exception e) {
+                            logger.error("Failed to create audit entry for coinflip win by user {}: {}", userId, e.getMessage());
+                        }
+                        
                         resultEmbed
                             .setColor(SUCCESS_COLOR)
                             .setTitle(String.format("🎉 You got it right, it was %s!", coinResultString))
@@ -151,6 +181,30 @@ public class CoinflipCommandListener extends ListenerAdapter {
                         newCredits = currentCredits - creditChange;
                         user.setCredits(newCredits);
                         
+                        // Save the updated user
+                        userService.updateUser(user);
+                        
+                        // Create audit entry for loss
+                        try {
+                            CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                                .userId(userId)
+                                .action("COINFLIP_LOSS")
+                                .entityType("USER_CREDITS")
+                                .entityId(userId)
+                                .description(String.format("Lost %d credits in coinflip (bet: %d, guess: %s, result: %s)", 
+                                    creditChange, betAmount, userGuess, coinResultString))
+                                .severity(creditChange > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO)
+                                .category(AuditCategory.FINANCIAL)
+                                .details(String.format("{\"game\":\"coinflip\",\"bet\":%d,\"guess\":\"%s\",\"result\":\"%s\",\"lost\":%d,\"newBalance\":%d}", 
+                                    betAmount, userGuess, coinResultString, creditChange, newCredits))
+                                .source("DISCORD_BOT")
+                                .build();
+                            
+                            auditService.createSystemAuditEntry(auditEntry);
+                        } catch (Exception e) {
+                            logger.error("Failed to create audit entry for coinflip loss by user {}: {}", userId, e.getMessage());
+                        }
+                        
                         resultEmbed
                             .setColor(FAILURE_COLOR)
                             .setTitle(String.format("💸 Whoops, it was %s.", coinResultString))
@@ -159,9 +213,6 @@ public class CoinflipCommandListener extends ListenerAdapter {
                         
                         logger.info("User {} lost coinflip: -{} credits. New balance: {}", userId, creditChange, newCredits);
                     }
-                    
-                    // Save the updated user
-                    userService.updateUser(user);
                     
                     // Invalidate user profile cache to ensure fresh data
                     cacheConfig.invalidateUserProfileCache(userId);

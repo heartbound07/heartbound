@@ -46,6 +46,31 @@ public class AuditService {
         logger.debug("Creating new audit entry for user: {}, action: {}", 
             createAuditDTO.getUserId(), createAuditDTO.getAction());
         
+        return createAuditEntryInternal(createAuditDTO);
+    }
+    
+    /**
+     * Creates a new audit entry for internal system operations (Discord bot, scheduled tasks, etc.)
+     * This method bypasses security requirements and should only be used by trusted internal services.
+     * 
+     * @param createAuditDTO the audit data to create
+     * @return the created audit entry as DTO
+     */
+    @Transactional
+    public AuditDTO createSystemAuditEntry(CreateAuditDTO createAuditDTO) {
+        logger.debug("Creating system audit entry for user: {}, action: {}", 
+            createAuditDTO.getUserId(), createAuditDTO.getAction());
+        
+        return createAuditEntryInternal(createAuditDTO);
+    }
+    
+    /**
+     * Internal method to create audit entries, shared by both public and system methods
+     * 
+     * @param createAuditDTO the audit data to create
+     * @return the created audit entry as DTO
+     */
+    private AuditDTO createAuditEntryInternal(CreateAuditDTO createAuditDTO) {
         Audit audit = new Audit();
         audit.setUserId(createAuditDTO.getUserId());
         audit.setAction(createAuditDTO.getAction());

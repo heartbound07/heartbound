@@ -3,6 +3,10 @@ package com.app.heartbound.services.discord;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.SecureRandomService;
+import com.app.heartbound.services.AuditService;
+import com.app.heartbound.dto.CreateAuditDTO;
+import com.app.heartbound.enums.AuditSeverity;
+import com.app.heartbound.enums.AuditCategory;
 import com.app.heartbound.config.CacheConfig;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
@@ -44,6 +48,7 @@ public class DefuseCommandListener extends ListenerAdapter {
     private final UserService userService;
     private final CacheConfig cacheConfig;
     private final SecureRandomService secureRandomService;
+    private final AuditService auditService;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
     
     // Wire colors and their emojis
@@ -53,11 +58,12 @@ public class DefuseCommandListener extends ListenerAdapter {
     // Store active games to prevent duplicates and manage state
     private final ConcurrentHashMap<String, DefuseGame> activeGames = new ConcurrentHashMap<>();
     
-    public DefuseCommandListener(UserService userService, CacheConfig cacheConfig, SecureRandomService secureRandomService) {
+    public DefuseCommandListener(UserService userService, CacheConfig cacheConfig, SecureRandomService secureRandomService, AuditService auditService) {
         this.userService = userService;
         this.cacheConfig = cacheConfig;
         this.secureRandomService = secureRandomService;
-        logger.info("DefuseCommandListener initialized with secure random service");
+        this.auditService = auditService;
+        logger.info("DefuseCommandListener initialized with secure random service and audit service");
     }
     
     @Override
@@ -751,6 +757,45 @@ public class DefuseCommandListener extends ListenerAdapter {
             userService.updateUser(loserUser);
             
             logger.debug("Users saved successfully");
+            
+            // Create audit entries for both participants
+            try {
+                // Audit entry for winner
+                CreateAuditDTO winnerAuditEntry = CreateAuditDTO.builder()
+                    .userId(winnerId)
+                    .action("DEFUSE_WIN")
+                    .entityType("USER_CREDITS")
+                    .entityId(winnerId)
+                    .description(String.format("Won %d credits in defuse game against %s (%s)", 
+                        game.getBetAmount(), loserUser.getUsername(), endReason))
+                    .severity(game.getBetAmount() > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO)
+                    .category(AuditCategory.FINANCIAL)
+                    .details(String.format("{\"game\":\"defuse\",\"bet\":%d,\"opponent\":\"%s\",\"endReason\":\"%s\",\"won\":%d,\"newBalance\":%d}", 
+                        game.getBetAmount(), loserId, endReason, game.getBetAmount(), winnerUser.getCredits()))
+                    .source("DISCORD_BOT")
+                    .build();
+                
+                auditService.createSystemAuditEntry(winnerAuditEntry);
+                
+                // Audit entry for loser
+                CreateAuditDTO loserAuditEntry = CreateAuditDTO.builder()
+                    .userId(loserId)
+                    .action("DEFUSE_LOSS")
+                    .entityType("USER_CREDITS")
+                    .entityId(loserId)
+                    .description(String.format("Lost %d credits in defuse game against %s (%s)", 
+                        game.getBetAmount(), winnerUser.getUsername(), endReason))
+                    .severity(game.getBetAmount() > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO)
+                    .category(AuditCategory.FINANCIAL)
+                    .details(String.format("{\"game\":\"defuse\",\"bet\":%d,\"opponent\":\"%s\",\"endReason\":\"%s\",\"lost\":%d,\"newBalance\":%d}", 
+                        game.getBetAmount(), winnerId, endReason, game.getBetAmount(), loserUser.getCredits()))
+                    .source("DISCORD_BOT")
+                    .build();
+                
+                auditService.createSystemAuditEntry(loserAuditEntry);
+            } catch (Exception e) {
+                logger.error("Failed to create audit entries for defuse game result: {}", e.getMessage());
+            }
             
             // Invalidate caches
             cacheConfig.invalidateUserProfileCache(winnerId);

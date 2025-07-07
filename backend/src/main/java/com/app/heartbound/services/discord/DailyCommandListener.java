@@ -2,6 +2,10 @@ package com.app.heartbound.services.discord;
 
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
+import com.app.heartbound.services.AuditService;
+import com.app.heartbound.dto.CreateAuditDTO;
+import com.app.heartbound.enums.AuditSeverity;
+import com.app.heartbound.enums.AuditCategory;
 import com.app.heartbound.config.CacheConfig;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -27,12 +31,14 @@ public class DailyCommandListener extends ListenerAdapter {
     
     private final UserService userService;
     private final CacheConfig cacheConfig;
+    private final AuditService auditService;
     
     @Autowired
-    public DailyCommandListener(UserService userService, CacheConfig cacheConfig) {
+    public DailyCommandListener(UserService userService, CacheConfig cacheConfig, AuditService auditService) {
         this.userService = userService;
         this.cacheConfig = cacheConfig;
-        logger.info("DailyCommandListener initialized");
+        this.auditService = auditService;
+        logger.info("DailyCommandListener initialized with audit service");
     }
     
     @Override
@@ -103,6 +109,27 @@ public class DailyCommandListener extends ListenerAdapter {
             
             // Save to database
             userService.updateUser(user);
+            
+            // Create audit entry for daily claim
+            try {
+                CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                    .userId(userId)
+                    .action("DAILY_CLAIM")
+                    .entityType("USER_CREDITS")
+                    .entityId(userId)
+                    .description(String.format("Claimed daily reward of %d credits (streak: %d days)", 
+                        creditsToAward, newStreak))
+                    .severity(creditsToAward > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO)
+                    .category(AuditCategory.FINANCIAL)
+                    .details(String.format("{\"game\":\"daily\",\"streak\":%d,\"reward\":%d,\"newBalance\":%d}", 
+                        newStreak, creditsToAward, user.getCredits()))
+                    .source("DISCORD_BOT")
+                    .build();
+                
+                auditService.createSystemAuditEntry(auditEntry);
+            } catch (Exception e) {
+                logger.error("Failed to create audit entry for daily claim by user {}: {}", userId, e.getMessage());
+            }
             
             // Invalidate caches to ensure fresh data
             cacheConfig.invalidateDailyClaimCache(userId);

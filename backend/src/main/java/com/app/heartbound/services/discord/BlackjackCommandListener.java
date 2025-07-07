@@ -6,6 +6,10 @@ import com.app.heartbound.entities.Card;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.SecureRandomService;
+import com.app.heartbound.services.AuditService;
+import com.app.heartbound.dto.CreateAuditDTO;
+import com.app.heartbound.enums.AuditSeverity;
+import com.app.heartbound.enums.AuditCategory;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -34,12 +38,14 @@ public class BlackjackCommandListener extends ListenerAdapter {
     
     private final UserService userService;
     private final SecureRandomService secureRandomService;
+    private final AuditService auditService;
     
     @Autowired
-    public BlackjackCommandListener(UserService userService, SecureRandomService secureRandomService) {
+    public BlackjackCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService) {
         this.userService = userService;
         this.secureRandomService = secureRandomService;
-        logger.info("BlackjackCommandListener initialized with secure random");
+        this.auditService = auditService;
+        logger.info("BlackjackCommandListener initialized with secure random and audit service");
     }
     
     @Override
@@ -357,6 +363,56 @@ public class BlackjackCommandListener extends ListenerAdapter {
         int newCredits = (currentCredits == null ? 0 : currentCredits) + creditChange;
         user.setCredits(newCredits);
         userService.updateUser(user);
+        
+        // Create audit entry for blackjack game result
+        try {
+            String action = "";
+            String description = "";
+            int netChange = 0;
+            
+            switch (result) {
+                case PLAYER_BLACKJACK:
+                    action = "BLACKJACK_WIN";
+                    netChange = payout;
+                    description = String.format("Won %d credits with blackjack (bet: %d, payout: 1.5x)", 
+                        payout, game.getBetAmount());
+                    break;
+                case PLAYER_WIN:
+                    action = "BLACKJACK_WIN";
+                    netChange = payout;
+                    description = String.format("Won %d credits in blackjack (bet: %d, payout: 1x)", 
+                        payout, game.getBetAmount());
+                    break;
+                case PUSH:
+                    action = "BLACKJACK_PUSH";
+                    netChange = 0;
+                    description = String.format("Blackjack push - bet returned (bet: %d)", game.getBetAmount());
+                    break;
+                case DEALER_WIN:
+                    action = "BLACKJACK_LOSS";
+                    netChange = -game.getBetAmount();
+                    description = String.format("Lost %d credits in blackjack (bet: %d)", 
+                        game.getBetAmount(), game.getBetAmount());
+                    break;
+            }
+            
+            CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                .userId(game.getUserId())
+                .action(action)
+                .entityType("USER_CREDITS")
+                .entityId(game.getUserId())
+                .description(description)
+                .severity(game.getBetAmount() > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO)
+                .category(AuditCategory.FINANCIAL)
+                .details(String.format("{\"game\":\"blackjack\",\"bet\":%d,\"result\":\"%s\",\"playerHand\":\"%s\",\"dealerHand\":\"%s\",\"netChange\":%d,\"newBalance\":%d}", 
+                    game.getBetAmount(), result.name(), game.getPlayerHand().getValue(), game.getDealerHand().getValue(), netChange, newCredits))
+                .source("DISCORD_BOT")
+                .build();
+            
+            auditService.createSystemAuditEntry(auditEntry);
+        } catch (Exception e) {
+            logger.error("Failed to create audit entry for blackjack game result for user {}: {}", game.getUserId(), e.getMessage());
+        }
         
         // Build final embed - use Discord avatar and username from event
         MessageEmbed embed = buildGameEndEmbed(game, discordUserName, discordAvatarUrl, result, payout, isInitialBlackjack, newCredits);

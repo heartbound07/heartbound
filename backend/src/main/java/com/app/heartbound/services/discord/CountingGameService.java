@@ -7,6 +7,10 @@ import com.app.heartbound.repositories.CountingGameStateRepository;
 import com.app.heartbound.repositories.CountingUserDataRepository;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.config.CacheConfig;
+import com.app.heartbound.services.AuditService;
+import com.app.heartbound.dto.CreateAuditDTO;
+import com.app.heartbound.enums.AuditSeverity;
+import com.app.heartbound.enums.AuditCategory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -23,14 +27,19 @@ import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @Slf4j
 public class CountingGameService {
     
+    private static final Logger log = LoggerFactory.getLogger(CountingGameService.class);
+    
     private final CountingGameStateRepository gameStateRepository;
     private final CountingUserDataRepository userDataRepository;
     private final UserService userService;
+    private final AuditService auditService;
     private final CacheConfig cacheConfig;
     private final DiscordService discordService;
     
@@ -39,12 +48,15 @@ public class CountingGameService {
             CountingUserDataRepository userDataRepository,
             UserService userService,
             CacheConfig cacheConfig,
-            @Lazy DiscordService discordService) {
+            @Lazy DiscordService discordService,
+            AuditService auditService) {
         this.gameStateRepository = gameStateRepository;
         this.userDataRepository = userDataRepository;
         this.userService = userService;
         this.cacheConfig = cacheConfig;
         this.discordService = discordService;
+        this.auditService = auditService;
+        log.info("CountingGameService initialized with audit service");
     }
     
     private String discordServerId;
@@ -357,11 +369,30 @@ public class CountingGameService {
     protected void awardCredits(String userId, int credits) {
         try {
             User user = userService.getUserById(userId);
-            if (user != null) {
-                user.setCredits((user.getCredits() != null ? user.getCredits() : 0) + credits);
-                userService.updateUser(user);
-                log.debug("Awarded {} credits to user {}", credits, userId);
+            user.setCredits((user.getCredits() != null ? user.getCredits() : 0) + credits);
+            userService.updateUser(user);
+            
+            // Create audit entry for counting credits
+            try {
+                CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                    .userId(userId)
+                    .action("COUNTING_REWARD")
+                    .entityType("USER_CREDITS")
+                    .entityId(userId)
+                    .description(String.format("Earned %d credits for correct counting", credits))
+                    .severity(AuditSeverity.INFO)
+                    .category(AuditCategory.FINANCIAL)
+                    .details(String.format("{\"game\":\"counting\",\"creditsAwarded\":%d,\"newBalance\":%d}", 
+                        credits, user.getCredits()))
+                    .source("DISCORD_BOT")
+                    .build();
+                
+                auditService.createSystemAuditEntry(auditEntry);
+            } catch (Exception e) {
+                log.error("Failed to create audit entry for counting reward for user {}: {}", userId, e.getMessage());
             }
+            
+            log.debug("Awarded {} credits to user {}", credits, userId);
         } catch (Exception e) {
             log.error("Failed to award credits to user {}: {}", userId, e.getMessage());
         }
@@ -591,6 +622,26 @@ public class CountingGameService {
         // Deduct credits
         user.setCredits(user.getCredits() - saveCost);
         userService.updateUser(user);
+        
+        // Create audit entry for save cost
+        try {
+            CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                .userId(userId)
+                .action("COUNTING_SAVE_COST")
+                .entityType("USER_CREDITS")
+                .entityId(userId)
+                .description(String.format("Paid %d credits to save counting progress at %d", saveCost, savedCount))
+                .severity(AuditSeverity.INFO)
+                .category(AuditCategory.FINANCIAL)
+                .details(String.format("{\"game\":\"counting\",\"saveCount\":%d,\"costPaid\":%d,\"newBalance\":%d}", 
+                    savedCount, saveCost, user.getCredits()))
+                .source("DISCORD_BOT")
+                .build();
+            
+            auditService.createSystemAuditEntry(auditEntry);
+        } catch (Exception e) {
+            log.error("Failed to create audit entry for counting save cost for user {}: {}", userId, e.getMessage());
+        }
         
         // Restore the count
         gameState.setCurrentCount(savedCount);

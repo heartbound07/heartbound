@@ -3,6 +3,10 @@ package com.app.heartbound.services.discord;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.SecureRandomService;
+import com.app.heartbound.services.AuditService;
+import com.app.heartbound.dto.CreateAuditDTO;
+import com.app.heartbound.enums.AuditSeverity;
+import com.app.heartbound.enums.AuditCategory;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
@@ -55,12 +59,14 @@ public class FishCommandListener extends ListenerAdapter {
     
     private final UserService userService;
     private final SecureRandomService secureRandomService;
+    private final AuditService auditService;
     
     @Autowired
-    public FishCommandListener(UserService userService, SecureRandomService secureRandomService) {
+    public FishCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService) {
         this.userService = userService;
         this.secureRandomService = secureRandomService;
-        logger.info("FishCommandListener initialized with secure random");
+        this.auditService = auditService;
+        logger.info("FishCommandListener initialized with secure random and audit service");
     }
     
     @Override
@@ -128,6 +134,30 @@ public class FishCommandListener extends ListenerAdapter {
                 
                 // Update user credits
                 user.setCredits(currentCredits + creditChange);
+                
+                // Save the updated user
+                userService.updateUser(user);
+                
+                // Create audit entry for rare fish catch
+                try {
+                    CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                        .userId(userId)
+                        .action("FISHING_RARE_CATCH")
+                        .entityType("USER_CREDITS")
+                        .entityId(userId)
+                        .description(String.format("Caught rare fish %s and earned %d credits", fishEmoji, creditChange))
+                        .severity(AuditSeverity.INFO)
+                        .category(AuditCategory.FINANCIAL)
+                        .details(String.format("{\"game\":\"fishing\",\"catchType\":\"rare\",\"fish\":\"%s\",\"won\":%d,\"newBalance\":%d}", 
+                            fishEmoji, creditChange, user.getCredits()))
+                        .source("DISCORD_BOT")
+                        .build();
+                    
+                    auditService.createSystemAuditEntry(auditEntry);
+                } catch (Exception e) {
+                    logger.error("Failed to create audit entry for rare fish catch by user {}: {}", userId, e.getMessage());
+                }
+                
                 logger.debug("User {} fished successfully: +{} credits. New balance: {}", 
                         userId, creditChange, user.getCredits());
                 
@@ -141,6 +171,30 @@ public class FishCommandListener extends ListenerAdapter {
                 
                 // Update user credits
                 user.setCredits(currentCredits + creditChange);
+                
+                // Save the updated user
+                userService.updateUser(user);
+                
+                // Create audit entry for regular fish catch
+                try {
+                    CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                        .userId(userId)
+                        .action("FISHING_CATCH")
+                        .entityType("USER_CREDITS")
+                        .entityId(userId)
+                        .description(String.format("Caught fish %s and earned %d credits", fishEmoji, creditChange))
+                        .severity(AuditSeverity.INFO)
+                        .category(AuditCategory.FINANCIAL)
+                        .details(String.format("{\"game\":\"fishing\",\"catchType\":\"regular\",\"fish\":\"%s\",\"won\":%d,\"newBalance\":%d}", 
+                            fishEmoji, creditChange, user.getCredits()))
+                        .source("DISCORD_BOT")
+                        .build();
+                    
+                    auditService.createSystemAuditEntry(auditEntry);
+                } catch (Exception e) {
+                    logger.error("Failed to create audit entry for regular fish catch by user {}: {}", userId, e.getMessage());
+                }
+                
                 logger.debug("User {} fished successfully: +{} credits. New balance: {}", 
                         userId, creditChange, user.getCredits());
                 
@@ -153,22 +207,43 @@ public class FishCommandListener extends ListenerAdapter {
                     creditChange = currentCredits;
                 }
                 
+                // Update user credits
+                user.setCredits(currentCredits - creditChange);
+                
+                // Save the updated user
+                userService.updateUser(user);
+                
                 // Only show negative message if they actually lost credits
                 if (creditChange > 0) {
                     message.append("You got caught 🦀 and it snipped you! -").append(creditChange).append(" 🪙");
+                    
+                    // Create audit entry for fishing failure with credit loss
+                    try {
+                        CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                            .userId(userId)
+                            .action("FISHING_FAILURE")
+                            .entityType("USER_CREDITS")
+                            .entityId(userId)
+                            .description(String.format("Got caught by crab and lost %d credits", creditChange))
+                            .severity(AuditSeverity.INFO)
+                            .category(AuditCategory.FINANCIAL)
+                            .details(String.format("{\"game\":\"fishing\",\"catchType\":\"failure\",\"lost\":%d,\"newBalance\":%d}", 
+                                creditChange, user.getCredits()))
+                            .source("DISCORD_BOT")
+                            .build();
+                        
+                        auditService.createSystemAuditEntry(auditEntry);
+                    } catch (Exception e) {
+                        logger.error("Failed to create audit entry for fishing failure by user {}: {}", userId, e.getMessage());
+                    }
                 } else {
                     // Special message for users with 0 credits
                     message.append("You got caught 🦀 but it had mercy on you since you have no credits!");
                 }
                 
-                // Update user credits
-                user.setCredits(currentCredits - creditChange);
                 logger.debug("User {} failed fishing: -{} credits. New balance: {}", 
                         userId, creditChange, user.getCredits());
             }
-            
-            // Save the updated user
-            userService.updateUser(user);
             
             // Update cooldown timestamp
             userCooldowns.put(userId, now);
