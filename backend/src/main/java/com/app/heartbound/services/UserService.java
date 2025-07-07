@@ -6,6 +6,7 @@ import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.dto.DailyActivityDataDTO;
 import com.app.heartbound.dto.shop.UserInventoryItemDTO;
 import com.app.heartbound.enums.Role;
+import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.entities.UserInventoryItem;
@@ -1048,5 +1049,126 @@ public class UserService {
                 .quantity(1) // Legacy items don't have quantity tracking, default to 1
                 .price(item.getPrice())
                 .build();
+    }
+
+    /**
+     * Remove an item from a user's inventory by admin.
+     * Handles both new inventory system (with quantities) and legacy inventory system.
+     * Automatically refunds credits if the item was purchased (price > 0).
+     * Unequips the item if it's currently equipped.
+     * 
+     * @param userId the ID of the user whose inventory to modify
+     * @param itemId the ID of the item to remove
+     * @param adminId the ID of the admin performing the operation
+     * @return the updated user profile
+     * @throws ResourceNotFoundException if user or item not found
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public UserProfileDTO removeInventoryItem(String userId, UUID itemId, String adminId) {
+        logger.debug("Admin {} removing item {} from user {}'s inventory", adminId, itemId, userId);
+        
+        // Verify user exists
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // Get the shop item for refund calculation and validation
+        Shop shopItem = shopRepository.findById(itemId)
+                .orElse(null); // Item might have been deleted from shop, but still in inventory
+        
+        boolean itemRemoved = false;
+        boolean wasEquipped = false;
+        int refundAmount = 0;
+        String itemName = "Unknown Item";
+        
+        // Check if item is equipped and unequip it first (skip for CASE items as they cannot be equipped)
+        if (shopItem != null && shopItem.getCategory() != ShopCategory.CASE) {
+            UUID equippedItemId = user.getEquippedItemIdByCategory(shopItem.getCategory());
+            if (equippedItemId != null && equippedItemId.equals(itemId)) {
+                user.setEquippedItemIdByCategory(shopItem.getCategory(), null);
+                wasEquipped = true;
+                logger.debug("Unequipped item {} from user {} before removal", itemId, userId);
+            }
+        }
+        
+        // Try to remove from new inventory system first
+        if (shopItem != null) {
+            Optional<UserInventoryItem> inventoryItemOpt = userInventoryItemRepository.findByUserAndItem(user, shopItem);
+            if (inventoryItemOpt.isPresent()) {
+                UserInventoryItem inventoryItem = inventoryItemOpt.get();
+                itemName = inventoryItem.getItem().getName();
+                
+                // Calculate refund if item has a price
+                if (inventoryItem.getItem().getPrice() != null && inventoryItem.getItem().getPrice() > 0) {
+                    refundAmount = inventoryItem.getItem().getPrice() * inventoryItem.getQuantity();
+                }
+                
+                // Remove from new inventory
+                userInventoryItemRepository.delete(inventoryItem);
+                itemRemoved = true;
+                
+                logger.debug("Removed item {} (quantity: {}) from new inventory system for user {}", 
+                        itemId, inventoryItem.getQuantity(), userId);
+            }
+        } else {
+            // Handle deleted shop items by finding the inventory item directly by item ID
+            List<UserInventoryItem> allUserItems = userInventoryItemRepository.findByUser(user);
+            Optional<UserInventoryItem> inventoryItemOpt = allUserItems.stream()
+                .filter(item -> item.getItem().getId().equals(itemId))
+                .findFirst();
+            
+            if (inventoryItemOpt.isPresent()) {
+                UserInventoryItem inventoryItem = inventoryItemOpt.get();
+                itemName = inventoryItem.getItem().getName();
+                
+                // For deleted shop items, we can't refund as we don't know the original price
+                refundAmount = 0;
+                
+                // Remove from new inventory
+                userInventoryItemRepository.delete(inventoryItem);
+                itemRemoved = true;
+                
+                logger.debug("Removed deleted item {} (quantity: {}) from new inventory system for user {} - no refund", 
+                        itemId, inventoryItem.getQuantity(), userId);
+            }
+        }
+        
+        // Also check and remove from legacy inventory system
+        if (user.getInventory() != null && shopItem != null) {
+            boolean removedFromLegacy = user.getInventory().removeIf(item -> item.getId().equals(itemId));
+            if (removedFromLegacy && !itemRemoved) {
+                // Only calculate refund if not already calculated from new system
+                if (shopItem.getPrice() != null && shopItem.getPrice() > 0) {
+                    refundAmount = shopItem.getPrice(); // Legacy items have quantity 1
+                }
+                itemName = shopItem.getName();
+                itemRemoved = true;
+                logger.debug("Removed item {} from legacy inventory system for user {}", itemId, userId);
+            }
+        }
+        
+        // Verify that the item was actually removed
+        if (!itemRemoved) {
+            throw new ResourceNotFoundException("Item not found in user's inventory: " + itemId);
+        }
+        
+        // Process credit refund if applicable
+        if (refundAmount > 0) {
+            int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
+            user.setCredits(currentCredits + refundAmount);
+            logger.info("Refunded {} credits to user {} for removed item {}", refundAmount, userId, itemId);
+        }
+        
+        // Save the updated user
+        User updatedUser = userRepository.save(user);
+        
+        // Invalidate relevant caches
+        cacheConfig.invalidateUserProfileCache(userId);
+        
+        // Audit log
+        logger.info("ADMIN INVENTORY REMOVAL - Admin: {}, User: {}, Item: {} ({}), Refund: {} credits, Was Equipped: {}", 
+                adminId, userId, itemId, itemName, refundAmount, wasEquipped);
+        
+        return mapToProfileDTO(updatedUser);
     }
 }

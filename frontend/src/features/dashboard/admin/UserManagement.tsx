@@ -7,6 +7,7 @@ import httpClient from '@/lib/api/httpClient';
 import { ChevronLeft, ChevronRight, Search, Check, X, RefreshCw, Plus, Minus, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/valorant/badge';
 import { FaCoins } from 'react-icons/fa';
+import { Toast } from '@/components/Toast';
 
 // Types for inventory items
 interface UserInventoryItem {
@@ -48,6 +49,30 @@ export function UserManagement() {
     isLoading: false,
     items: [],
     error: null
+  });
+
+  // Add state for removal operations
+  const [removalState, setRemovalState] = useState<{
+    isRemoving: boolean;
+    removingItemId: string | null;
+    showConfirmDialog: boolean;
+    itemToRemove: UserInventoryItem | null;
+  }>({
+    isRemoving: false,
+    removingItemId: null,
+    showConfirmDialog: false,
+    itemToRemove: null
+  });
+
+  // Add state for toast notifications
+  const [toast, setToast] = useState<{
+    show: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({
+    show: false,
+    message: '',
+    type: 'info'
   });
   
   // Additional security check - redirect if not admin
@@ -285,6 +310,101 @@ export function UserManagement() {
       items: [],
       error: null
     });
+    // Reset removal state when closing modal
+    setRemovalState({
+      isRemoving: false,
+      removingItemId: null,
+      showConfirmDialog: false,
+      itemToRemove: null
+    });
+  };
+
+  // Open removal confirmation dialog
+  const openRemovalConfirmation = (item: UserInventoryItem) => {
+    setRemovalState({
+      ...removalState,
+      showConfirmDialog: true,
+      itemToRemove: item
+    });
+  };
+
+  // Close removal confirmation dialog
+  const closeRemovalConfirmation = () => {
+    setRemovalState({
+      ...removalState,
+      showConfirmDialog: false,
+      itemToRemove: null
+    });
+  };
+
+  // Helper function to show toast notifications
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    setToast({
+      show: true,
+      message,
+      type
+    });
+  };
+
+  // Helper function to close toast notifications
+  const closeToast = () => {
+    setToast({
+      show: false,
+      message: '',
+      type: 'info'
+    });
+  };
+
+  // Remove inventory item
+  const removeInventoryItem = async () => {
+    if (!removalState.itemToRemove || !inventoryModal.userId) return;
+
+    const itemToRemove = removalState.itemToRemove;
+    
+    setRemovalState({
+      ...removalState,
+      isRemoving: true,
+      removingItemId: itemToRemove.itemId,
+      showConfirmDialog: false
+    });
+
+    try {
+      // Call the API to remove the item
+      await httpClient.delete(`/users/${inventoryModal.userId}/inventory/${itemToRemove.itemId}`);
+
+      // Update the inventory items list by removing the item
+      setInventoryModal(prev => ({
+        ...prev,
+        items: prev.items.filter(item => item.itemId !== itemToRemove.itemId)
+      }));
+
+      // Show success message with refund info if applicable
+      const refundMessage = itemToRemove.price && itemToRemove.price > 0 
+        ? ` ${itemToRemove.quantity * itemToRemove.price} credits have been refunded.`
+        : '';
+      
+      showToast(
+        `Successfully removed "${itemToRemove.name}" from ${inventoryModal.username}'s inventory.${refundMessage}`,
+        'success'
+      );
+
+    } catch (err) {
+      console.error('Error removing inventory item:', err);
+      
+      // Show error message
+      let errorMessage = 'Failed to remove item from inventory.';
+      if (err instanceof Error) {
+        errorMessage += ` ${err.message}`;
+      }
+      showToast(errorMessage, 'error');
+    } finally {
+      setRemovalState({
+        isRemoving: false,
+        removingItemId: null,
+        showConfirmDialog: false,
+        itemToRemove: null
+      });
+    }
   };
   
   return (
@@ -589,7 +709,7 @@ export function UserManagement() {
                   {inventoryModal.items.map((item) => (
                     <div
                       key={item.itemId}
-                      className="bg-slate-800/50 border border-white/10 rounded-lg p-4 hover:bg-slate-800/70 transition-colors"
+                      className="bg-slate-800/50 border border-white/10 rounded-lg p-4 hover:bg-slate-800/70 transition-colors relative"
                     >
                       {/* Item Image */}
                       <div className="relative mb-3">
@@ -637,6 +757,27 @@ export function UserManagement() {
                             {item.description}
                           </p>
                         )}
+
+                        {/* Remove Button - Only visible to ADMIN users */}
+                        <div className="pt-2">
+                          <button
+                            onClick={() => openRemovalConfirmation(item)}
+                            disabled={removalState.isRemoving && removalState.removingItemId === item.itemId}
+                            className="w-full px-3 py-2 bg-red-900/20 text-red-300 hover:bg-red-900/40 disabled:bg-red-900/10 disabled:text-red-500 rounded-md transition-colors text-xs font-medium flex items-center justify-center gap-2"
+                          >
+                            {removalState.isRemoving && removalState.removingItemId === item.itemId ? (
+                              <>
+                                <RefreshCw className="h-3 w-3 animate-spin" />
+                                Removing...
+                              </>
+                            ) : (
+                              <>
+                                <X className="h-3 w-3" />
+                                Remove Item
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -659,6 +800,113 @@ export function UserManagement() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Removal Confirmation Dialog */}
+      {removalState.showConfirmDialog && removalState.itemToRemove && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-slate-900/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/10 w-full max-w-md mx-4">
+            {/* Dialog Header */}
+            <div className="flex items-center justify-between p-6 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <X className="h-6 w-6 text-red-400" />
+                <h2 className="text-xl font-bold text-white">
+                  Confirm Removal
+                </h2>
+              </div>
+            </div>
+
+            {/* Dialog Content */}
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-slate-300 mb-3">
+                  Are you sure you want to remove the following item from{' '}
+                  <span className="font-medium text-white">{inventoryModal.username}</span>'s inventory?
+                </p>
+                
+                <div className="bg-slate-800/50 border border-white/10 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    {removalState.itemToRemove.thumbnailUrl ? (
+                      <img
+                        src={removalState.itemToRemove.thumbnailUrl}
+                        alt={removalState.itemToRemove.name}
+                        className="w-12 h-12 object-cover rounded-md bg-slate-700"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-slate-700 rounded-md flex items-center justify-center">
+                        <Package className="h-6 w-6 text-slate-500" />
+                      </div>
+                    )}
+                    
+                    <div className="flex-1">
+                      <h3 className="font-medium text-white text-sm">
+                        {removalState.itemToRemove.name || 'Unknown Item'}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          {removalState.itemToRemove.category || 'UNKNOWN'}
+                        </Badge>
+                        <span className="text-slate-400 text-xs">
+                          Quantity: {removalState.itemToRemove.quantity || 0}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Warning Messages */}
+              <div className="space-y-2 mb-4">
+                {removalState.itemToRemove.price && removalState.itemToRemove.price > 0 && (
+                  <div className="flex items-center gap-2 p-3 bg-yellow-900/20 border border-yellow-800/50 rounded-md">
+                    <FaCoins className="h-4 w-4 text-yellow-400" />
+                    <span className="text-yellow-300 text-sm">
+                      <strong>{(removalState.itemToRemove.quantity || 0) * removalState.itemToRemove.price} credits</strong> will be refunded to the user.
+                    </span>
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-2 p-3 bg-red-900/20 border border-red-800/50 rounded-md">
+                  <X className="h-4 w-4 text-red-400" />
+                  <span className="text-red-300 text-sm">
+                    If this item is currently equipped, it will be automatically unequipped.
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-slate-400 text-sm">
+                This action cannot be undone.
+              </p>
+            </div>
+
+            {/* Dialog Footer */}
+            <div className="border-t border-white/10 p-4 flex justify-end gap-3">
+              <button
+                onClick={closeRemovalConfirmation}
+                className="px-4 py-2 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 rounded-md transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={removeInventoryItem}
+                className="px-4 py-2 bg-red-900/50 hover:bg-red-900/70 text-red-200 rounded-md transition-colors font-medium"
+              >
+                Remove Item
+              </button>
+            </div>
+                     </div>
+         </div>
+       )}
+
+      {/* Toast Notifications */}
+      {toast.show && (
+        <div className="fixed top-4 right-4 z-50">
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={closeToast}
+          />
         </div>
       )}
     </div>

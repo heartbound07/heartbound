@@ -19,11 +19,17 @@ import jakarta.validation.constraints.Min;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.app.heartbound.exceptions.ResourceNotFoundException;
 
 @RestController
 @RequestMapping("/users")
 public class UserController {
     
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+
     private final UserService userService;
     
     public UserController(UserService userService) {
@@ -297,5 +303,36 @@ public class UserController {
     public ResponseEntity<List<UserInventoryItemDTO>> getUserInventory(@PathVariable String userId) {
         List<UserInventoryItemDTO> inventoryItems = userService.getUserInventoryItems(userId);
         return ResponseEntity.ok(inventoryItems);
+    }
+
+    /**
+     * Admin endpoint to remove an item from a user's inventory.
+     * Automatically refunds credits if the item was purchased (price > 0).
+     * Unequips the item if it's currently equipped.
+     * Only accessible to ADMIN users.
+     *
+     * @param userId the ID of the user whose inventory to modify
+     * @param itemId the ID of the item to remove
+     * @param authentication the authentication context containing admin ID
+     * @return the updated user profile
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{userId}/inventory/{itemId}")
+    public ResponseEntity<UserProfileDTO> removeInventoryItem(
+            @PathVariable String userId,
+            @PathVariable UUID itemId,
+            Authentication authentication) {
+        
+        String adminId = authentication.getName();
+        
+        try {
+            UserProfileDTO updatedProfile = userService.removeInventoryItem(userId, itemId, adminId);
+            return ResponseEntity.ok(updatedProfile);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            logger.error("Error removing inventory item {} from user {}: {}", itemId, userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }
