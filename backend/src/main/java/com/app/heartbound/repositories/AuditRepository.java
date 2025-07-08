@@ -31,7 +31,8 @@ public interface AuditRepository extends JpaRepository<Audit, UUID> {
     /**
      * Find audit entries by action with pagination
      */
-    Page<Audit> findByActionContainingIgnoreCaseOrderByTimestampDesc(String action, Pageable pageable);
+    @Query("SELECT a FROM Audit a WHERE LOWER(CAST(a.action AS TEXT)) LIKE LOWER(CONCAT('%', :action, '%')) ORDER BY a.timestamp DESC")
+    Page<Audit> findByActionContainingIgnoreCaseOrderByTimestampDesc(@Param("action") String action, Pageable pageable);
     
     /**
      * Find audit entries by entity type with pagination
