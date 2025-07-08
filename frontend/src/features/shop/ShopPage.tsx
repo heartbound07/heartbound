@@ -544,13 +544,23 @@ export function ShopPage() {
       // Update user profile to refresh credits while preserving other profile data
       if (purchaseResponse.data) {
         const updatedProfile = purchaseResponse.data;
+        
+        // Prepare the avatar value for the profile update.
+        // The backend validation for avatars rejects local paths like '/default-avatar.png'.
+        // If the current avatar is the default path, send an empty string instead,
+        // which is a valid value indicating no custom avatar is set.
+        let avatarForUpdate = updatedProfile.avatar || user?.avatar || '';
+        if (avatarForUpdate === '/default-avatar.png') {
+          avatarForUpdate = '';
+        }
+        
         await updateUserProfile({
           displayName: updatedProfile.displayName || profile?.displayName || user?.username || '',
           pronouns: updatedProfile.pronouns || profile?.pronouns || '',
           about: updatedProfile.about || profile?.about || '',
           bannerColor: updatedProfile.bannerColor || profile?.bannerColor || '',
           bannerUrl: updatedProfile.bannerUrl || profile?.bannerUrl || '',
-          avatar: updatedProfile.avatar || user?.avatar || ''
+          avatar: avatarForUpdate
         });
       }
     } catch (error: any) {
