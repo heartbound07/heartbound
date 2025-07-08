@@ -6,9 +6,11 @@ import com.app.heartbound.entities.Shop;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -58,4 +60,9 @@ public interface UserRepository extends JpaRepository<User, String> {
            "LEFT JOIN FETCH ii.item " +
            "WHERE u.id = :userId")
     Optional<User> findByIdWithInventory(@Param("userId") String userId);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE User u SET u.credits = u.credits + :credits, u.experience = u.experience + :xp WHERE u.id = :userId")
+    void incrementCreditsAndXp(@Param("userId") String userId, @Param("credits") int credits, @Param("xp") int xp);
 }

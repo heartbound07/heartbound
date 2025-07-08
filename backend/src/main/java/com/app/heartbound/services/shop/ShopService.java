@@ -35,11 +35,13 @@ import com.app.heartbound.services.HtmlSanitizationService;
 import com.app.heartbound.services.SecureRandomService;
 import com.app.heartbound.services.RollVerificationService;
 import com.app.heartbound.services.AuditService;
+import com.app.heartbound.config.CacheConfig;
 import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import jakarta.persistence.EntityManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +73,8 @@ public class ShopService {
     private final UserInventoryItemRepository userInventoryItemRepository;
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
+    private final CacheConfig cacheConfig;
+    private final EntityManager entityManager;
     private static final Logger logger = LoggerFactory.getLogger(ShopService.class);
     
     @Autowired
@@ -85,7 +89,9 @@ public class ShopService {
         RollAuditRepository rollAuditRepository,
         RollVerificationService rollVerificationService,
         UserInventoryItemRepository userInventoryItemRepository,
-        AuditService auditService
+        AuditService auditService,
+        CacheConfig cacheConfig,
+        EntityManager entityManager
     ) {
         this.shopRepository = shopRepository;
         this.userRepository = userRepository;
@@ -98,6 +104,8 @@ public class ShopService {
         this.rollVerificationService = rollVerificationService;
         this.userInventoryItemRepository = userInventoryItemRepository;
         this.auditService = auditService;
+        this.cacheConfig = cacheConfig;
+        this.entityManager = entityManager;
         this.objectMapper = new ObjectMapper();
     }
     
@@ -1402,9 +1410,12 @@ public class ShopService {
             compensatedCredits = calculateCompensationCredits(wonItem.getRarity());
             compensatedXp = calculateCompensationXp(wonItem.getRarity());
             
-            // Award compensation
-            user.setCredits(user.getCredits() + compensatedCredits);
-            user.setExperience(user.getExperience() + compensatedXp);
+            // Atomically update credits and XP to prevent race conditions
+            userRepository.incrementCreditsAndXp(userId, compensatedCredits, compensatedXp);
+            
+            // Refresh the user entity to reflect the database changes in the persistence context
+            entityManager.refresh(user);
+            
             compensationAwarded = true;
             
             logger.info("Awarded compensation for duplicate item {} to user {}: {} credits, {} XP", 
@@ -1454,7 +1465,10 @@ public class ShopService {
                    compensationAwarded ? ", compensation awarded: " + compensatedCredits + " credits, " + compensatedXp + " XP" : "",
                    rollValue, rollSeedHash.substring(0, 8) + "...");
         
-        // 20. Return result
+        // 20. Invalidate user profile cache to reflect updated credits/xp/inventory
+        cacheConfig.invalidateUserProfileCache(userId);
+        
+        // 21. Return result
         return RollResultDTO.builder()
             .caseId(caseId)
             .caseName(caseItem.getName())
