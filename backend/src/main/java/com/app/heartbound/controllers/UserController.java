@@ -49,14 +49,7 @@ public class UserController {
      */
     @GetMapping("/{userId}/profile")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<UserProfileDTO> getUserProfile(@PathVariable String userId, Authentication authentication) {
-        // Security validation using centralized service
-        if (!userSecurityService.canAccessUserData(authentication, userId)) {
-            logger.warn("Unauthorized profile access attempt by user {} for user {}", 
-                authentication.getName(), userId);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        
+    public ResponseEntity<UserProfileDTO> getUserProfile(@PathVariable String userId) {
         User user = userService.getUserById(userId);
         if (user == null) {
             return ResponseEntity.ok(createDefaultProfile(userId));
@@ -86,20 +79,6 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         
-        String authenticatedUserId = authentication.getName();
-        boolean isAdmin = userSecurityService.hasAdminRole(authentication);
-        
-        // Security Check: Validate each user ID individually using centralized security service
-        if (!isAdmin) {
-            for (String userId : userIds) {
-                if (!userSecurityService.canAccessUserData(authentication, userId)) {
-                    logger.warn("Unauthorized batch profile access attempt by user {} for user {} in batch {}", 
-                        authenticatedUserId, userId, userIds);
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-                }
-            }
-        }
-        
         Map<String, UserProfileDTO> profiles = new HashMap<>();
         
         for (String userId : userIds) {
@@ -127,17 +106,11 @@ public class UserController {
         keyType = RateLimitKeyType.USER,
         keyPrefix = "profile_update"
     )
+    @PreAuthorize("hasRole('USER') and #userId == authentication.name")
     @PutMapping("/{userId}/profile")
     public ResponseEntity<UserProfileDTO> updateUserProfile(
             @PathVariable String userId,
-            @RequestBody @Valid UpdateProfileDTO profileDTO,
-            Authentication authentication) {
-        
-        // Security check - ensure the authenticated user is updating their own profile
-        String authenticatedUserId = authentication.getName();
-        if (!userId.equals(authenticatedUserId)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+            @RequestBody @Valid UpdateProfileDTO profileDTO) {
         
         try {
             // The method now returns UserProfileDTO directly, not User
