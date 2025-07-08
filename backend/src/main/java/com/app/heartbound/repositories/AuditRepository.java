@@ -18,6 +18,12 @@ import java.util.UUID;
 public interface AuditRepository extends JpaRepository<Audit, UUID> {
     
     /**
+     * Find all audit entries with explicit timestamp descending order
+     */
+    @Query("SELECT a FROM Audit a ORDER BY a.timestamp DESC")
+    Page<Audit> findAllOrderByTimestampDesc(Pageable pageable);
+    
+    /**
      * Find audit entries by user ID with pagination
      */
     Page<Audit> findByUserIdOrderByTimestampDesc(String userId, Pageable pageable);

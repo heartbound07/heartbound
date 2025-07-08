@@ -76,6 +76,21 @@ public class AuditController {
             Page<AuditDTO> auditEntries = auditService.getAuditEntries(
                 page, size, userId, action, entityType, severity, category, startDate, endDate);
             
+            // Debug logging to understand the response structure
+            logger.info("Audit entries response: totalElements={}, totalPages={}, size={}, number={}, first={}, last={}, contentSize={}", 
+                        auditEntries.getTotalElements(), auditEntries.getTotalPages(), 
+                        auditEntries.getSize(), auditEntries.getNumber(), 
+                        auditEntries.isFirst(), auditEntries.isLast(), 
+                        auditEntries.getContent().size());
+            
+            // Log first few entries to check sorting
+            if (!auditEntries.getContent().isEmpty()) {
+                logger.info("First entry timestamp: {}", auditEntries.getContent().get(0).getTimestamp());
+                if (auditEntries.getContent().size() > 1) {
+                    logger.info("Second entry timestamp: {}", auditEntries.getContent().get(1).getTimestamp());
+                }
+            }
+            
             return ResponseEntity.ok(auditEntries);
         } catch (Exception e) {
             logger.error("Error retrieving audit entries for admin {}: {}", 

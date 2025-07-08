@@ -144,8 +144,8 @@ public class AuditService {
             auditPage = auditRepository.findWithFilters(
                 userId, action, entityType, severity, category, startDate, endDate, pageable);
         } else {
-            // No filters - get all audit entries with explicit timestamp descending order
-            auditPage = auditRepository.findAll(pageable);
+            // No filters - use explicit ordering query instead of findAll
+            auditPage = auditRepository.findAllOrderByTimestampDesc(pageable);
         }
         
         return auditPage.map(this::mapToDTO);
