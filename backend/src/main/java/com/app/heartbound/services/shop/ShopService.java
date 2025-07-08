@@ -1346,15 +1346,11 @@ public class ShopService {
             throw new IllegalArgumentException("Item is not a case");
         }
         
-        // 3. Verify user owns the case
-        if (!user.hasItemWithQuantity(caseId)) {
-            throw new CaseNotOwnedException("You do not own this case");
-        }
-        
-        // Check that user has at least one case to open
-        int caseQuantity = user.getItemQuantity(caseId);
-        if (caseQuantity < 1) {
-            throw new CaseNotOwnedException("You do not have any cases of this type to open");
+        // 3. Verify and consume one case to prevent race conditions
+        // This replaces the previous check-then-modify pattern which was vulnerable to TOCTOU attacks
+        int casesConsumed = userInventoryItemRepository.decrementQuantityIfEnough(userId, caseId, 1);
+        if (casesConsumed == 0) {
+            throw new CaseNotOwnedException("You do not own this case or have no cases left to open");
         }
         
         // 4. Get case contents with drop rates and validate
@@ -1415,8 +1411,9 @@ public class ShopService {
                        wonItem.getId(), userId, compensatedCredits, compensatedXp);
         }
         
-        // 13. Remove case from user inventory (consume it)
-        user.removeItemQuantity(caseId, 1);
+        // 13. Case was already consumed atomically at the beginning (step 3) to prevent race conditions
+        // Clean up any zero-quantity items from the inventory
+        userInventoryItemRepository.removeZeroQuantityItem(userId, caseId);
         
         // 14. Add won item to user inventory (only if not already owned)
         if (!alreadyOwned) {

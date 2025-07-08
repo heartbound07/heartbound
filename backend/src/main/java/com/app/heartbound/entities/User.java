@@ -219,6 +219,12 @@ public class User {
             .orElse(0);
     }
     
+    /**
+     * @deprecated This method is unsafe for concurrent operations due to race conditions.
+     * Use UserInventoryItemRepository.decrementQuantityIfEnough() for atomic operations instead.
+     * This method will be removed in a future version.
+     */
+    @Deprecated
     public boolean removeItemQuantity(UUID itemId, int quantity) {
         if (this.inventoryItems == null) {
             return false;

@@ -63,4 +63,32 @@ public interface UserInventoryItemRepository extends JpaRepository<UserInventory
     @Modifying
     @Query("DELETE FROM UserInventoryItem ui WHERE ui.item = :item")
     void deleteByItem(@Param("item") Shop item);
+    
+    /**
+     * Atomically decrements the quantity of a specific item for a user if enough quantity exists.
+     * This prevents race conditions in concurrent case opening by ensuring the check and decrement 
+     * operation is performed atomically at the database level.
+     * 
+     * @param userId the ID of the user whose inventory to modify
+     * @param itemId the ID of the item to decrement
+     * @param quantity the quantity to decrement (must be > 0)
+     * @return the number of rows updated (1 if successful, 0 if insufficient quantity or item not found)
+     */
+    @Modifying
+    @Query("UPDATE UserInventoryItem ui " +
+           "SET ui.quantity = ui.quantity - :quantity " +
+           "WHERE ui.user.id = :userId AND ui.item.id = :itemId AND ui.quantity >= :quantity")
+    int decrementQuantityIfEnough(@Param("userId") String userId, @Param("itemId") UUID itemId, @Param("quantity") int quantity);
+    
+    /**
+     * Atomically remove UserInventoryItem entries that have zero or negative quantity.
+     * Should be called after decrementQuantityIfEnough to clean up consumed items.
+     * 
+     * @param userId the ID of the user whose inventory to clean
+     * @param itemId the ID of the item to clean if quantity is zero
+     * @return the number of rows deleted
+     */
+    @Modifying
+    @Query("DELETE FROM UserInventoryItem ui WHERE ui.user.id = :userId AND ui.item.id = :itemId AND ui.quantity <= 0")
+    int removeZeroQuantityItem(@Param("userId") String userId, @Param("itemId") UUID itemId);
 } 
