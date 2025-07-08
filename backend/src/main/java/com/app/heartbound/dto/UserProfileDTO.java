@@ -44,6 +44,9 @@ public class UserProfileDTO {
     // Add message count field
     private Long messageCount;
     
+    // Add fish caught count
+    private Integer fishCaughtCount;
+
     // Add time-based message count fields
     private Integer messagesToday;
     private Integer messagesThisWeek;

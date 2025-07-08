@@ -69,6 +69,9 @@ public class User {
     
     // Add message count field to track total messages sent by user
     private Long messageCount = 0L;
+
+    // Add fish caught count field
+    private Integer fishCaughtCount = 0;
     
     // Add time-based message count fields
     private Integer messagesToday = 0;

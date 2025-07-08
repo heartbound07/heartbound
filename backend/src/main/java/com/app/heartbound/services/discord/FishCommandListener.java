@@ -132,8 +132,10 @@ public class FishCommandListener extends ListenerAdapter {
                 message.append("**WOW!** You caught a rare ").append(fishEmoji);
                 message.append("! +").append(creditChange).append(" 🪙");
                 
-                // Update user credits
+                // Update user credits and fish count
                 user.setCredits(currentCredits + creditChange);
+                int newFishCount = (user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0) + 1;
+                user.setFishCaughtCount(newFishCount);
                 
                 // Save the updated user
                 userService.updateUser(user);
@@ -148,8 +150,8 @@ public class FishCommandListener extends ListenerAdapter {
                         .description(String.format("Caught rare fish %s and earned %d credits", fishEmoji, creditChange))
                         .severity(AuditSeverity.INFO)
                         .category(AuditCategory.FINANCIAL)
-                        .details(String.format("{\"game\":\"fishing\",\"catchType\":\"rare\",\"fish\":\"%s\",\"won\":%d,\"newBalance\":%d}", 
-                            fishEmoji, creditChange, user.getCredits()))
+                        .details(String.format("{\"game\":\"fishing\",\"catchType\":\"rare\",\"fish\":\"%s\",\"won\":%d,\"newBalance\":%d,\"fishCaughtCount\":%d}", 
+                            fishEmoji, creditChange, user.getCredits(), newFishCount))
                         .source("DISCORD_BOT")
                         .build();
                     
@@ -169,8 +171,10 @@ public class FishCommandListener extends ListenerAdapter {
                 message.append("You caught ").append(fishEmoji);
                 message.append("! +").append(creditChange).append(" 🪙");
                 
-                // Update user credits
+                // Update user credits and fish count
                 user.setCredits(currentCredits + creditChange);
+                int newFishCount = (user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0) + 1;
+                user.setFishCaughtCount(newFishCount);
                 
                 // Save the updated user
                 userService.updateUser(user);
@@ -185,8 +189,8 @@ public class FishCommandListener extends ListenerAdapter {
                         .description(String.format("Caught fish %s and earned %d credits", fishEmoji, creditChange))
                         .severity(AuditSeverity.INFO)
                         .category(AuditCategory.FINANCIAL)
-                        .details(String.format("{\"game\":\"fishing\",\"catchType\":\"regular\",\"fish\":\"%s\",\"won\":%d,\"newBalance\":%d}", 
-                            fishEmoji, creditChange, user.getCredits()))
+                        .details(String.format("{\"game\":\"fishing\",\"catchType\":\"regular\",\"fish\":\"%s\",\"won\":%d,\"newBalance\":%d,\"fishCaughtCount\":%d}", 
+                            fishEmoji, creditChange, user.getCredits(), newFishCount))
                         .source("DISCORD_BOT")
                         .build();
                     

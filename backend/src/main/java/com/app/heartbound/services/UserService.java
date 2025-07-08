@@ -464,6 +464,7 @@ public class UserService {
                 .experience(user.getExperience())
                 .xpForNextLevel(requiredXp) // Add the calculated required XP for next level
                 .messageCount(user.getMessageCount()) // Add the message count field
+                .fishCaughtCount(user.getFishCaughtCount()) // Add the fish caught count
                 .messagesToday(user.getMessagesToday()) // Add time-based message counts
                 .messagesThisWeek(user.getMessagesThisWeek())
                 .messagesThisTwoWeeks(user.getMessagesThisTwoWeeks())
@@ -490,9 +491,15 @@ public class UserService {
      * @param user the user entity to update
      * @return the updated User entity
      */
+    @Transactional
     public User updateUser(User user) {
         logger.debug("Updating user entity for user ID: {}", user.getId());
-        return userRepository.save(user);
+        User updatedUser = userRepository.save(user);
+        
+        // Invalidate user profile cache to ensure data consistency across the app
+        cacheConfig.invalidateUserProfileCache(user.getId());
+        
+        return updatedUser;
     }
     
     /**

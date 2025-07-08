@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Volume2, BarChart3, Hash, RefreshCw, AlertCircle } from "lucide-react"
+import { Volume2, BarChart3, Hash, RefreshCw, AlertCircle, Fish } from "lucide-react"
 import {
   getCurrentUserProfile,
   type UserProfileDTO,
@@ -486,6 +486,11 @@ export function DashboardPage() {
                     <Volume2 className="h-4 w-4" />
                     <span className="activity-label">Total Voice Time</span>
                     <span className="activity-value">{formatVoiceTime(userProfile?.voiceTimeMinutesTotal || 0)}</span>
+                  </div>
+                  <div className="activity-item">
+                    <Fish className="h-4 w-4" />
+                    <span className="activity-label">Total Fish Caught</span>
+                    <span className="activity-value">{formatNumber(userProfile?.fishCaughtCount || 0)} fish</span>
                   </div>
                 </div>
               </div>
