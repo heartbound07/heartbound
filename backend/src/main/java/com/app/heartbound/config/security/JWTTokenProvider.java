@@ -276,7 +276,7 @@ public class JWTTokenProvider {
             logger.error("Invalid JWT token: {}", ex.getMessage());
             throw new InvalidTokenException("Invalid JWT token", ex);
         } catch (ExpiredJwtException ex) {
-            logger.error("Expired JWT token: {}", ex.getMessage());
+            logger.debug("Expired JWT token: {}", ex.getMessage());
             throw new InvalidTokenException("Expired JWT token", ex);
         } catch (UnsupportedJwtException ex) {
             logger.error("Unsupported JWT token: {}", ex.getMessage());
@@ -432,7 +432,7 @@ public class JWTTokenProvider {
             logger.error("Invalid JWT token: {}", ex.getMessage());
             throw new InvalidTokenException("Invalid JWT token", ex);
         } catch (ExpiredJwtException ex) {
-            logger.error("Expired JWT token: {}", ex.getMessage());
+            logger.debug("Expired JWT token: {}", ex.getMessage());
             throw new InvalidTokenException("Expired JWT token", ex);
         } catch (UnsupportedJwtException ex) {
             logger.error("Unsupported JWT token: {}", ex.getMessage());
@@ -519,7 +519,7 @@ public class JWTTokenProvider {
             logger.error("Invalid JWT token: {}", ex.getMessage());
             isValid = false;
         } catch (ExpiredJwtException ex) {
-            logger.error("Expired JWT token: {}", ex.getMessage());
+            logger.debug("Expired JWT token: {}", ex.getMessage());
             isValid = false;
         } catch (UnsupportedJwtException ex) {
             logger.error("Unsupported JWT token: {}", ex.getMessage());
