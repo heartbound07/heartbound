@@ -73,12 +73,12 @@ public interface AuditRepository extends JpaRepository<Audit, UUID> {
     /**
      * Search audit entries with multiple filters
      */
-    @Query("SELECT a FROM Audit a WHERE " +
+    @Query(value = "SELECT a FROM Audit a WHERE " +
            "(:userId IS NULL OR a.userId = :userId) AND " +
            "(:action IS NULL OR LOWER(a.action) LIKE LOWER(CONCAT('%', :action, '%'))) AND " +
            "(:entityType IS NULL OR a.entityType = :entityType) AND " +
-           "(:severity IS NULL OR a.severity = :severity) AND " +
-           "(:category IS NULL OR a.category = :category) AND " +
+           "(CAST(:severity as text) IS NULL OR a.severity = :severity) AND " +
+           "(CAST(:category as text) IS NULL OR a.category = :category) AND " +
            "(:startDate IS NULL OR a.timestamp >= :startDate) AND " +
            "(:endDate IS NULL OR a.timestamp <= :endDate) " +
            "ORDER BY a.timestamp DESC")
