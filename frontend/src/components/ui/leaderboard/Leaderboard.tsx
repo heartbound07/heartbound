@@ -57,7 +57,6 @@ const LeaderboardRow = React.memo(({
   isHighlighted 
 }: {
   user: LeaderboardEntryDTO;
-  actualIndex: number;
   leaderboardType: 'credits' | 'level' | 'messages' | 'voice';
   compact: boolean;
   onClick: (user: LeaderboardEntryDTO, event: React.MouseEvent) => void;
@@ -453,7 +452,6 @@ export const Leaderboard = React.memo(function Leaderboard({
                       <LeaderboardRow
                         key={user.id}
                         user={user}
-                        actualIndex={actualIndex}
                         leaderboardType={leaderboardType}
                         compact={compact}
                         onClick={handleUserClick}

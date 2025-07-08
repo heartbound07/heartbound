@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ProfilePreview } from "@/components/ui/profile/ProfilePreview";
-import { X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { type UserProfileDTO } from "@/config/userService";
 
 interface Position {
@@ -24,8 +24,9 @@ export function UserProfileModal({ isOpen, onClose, userProfile, position }: Use
   // Calculate optimal position when modal opens or position changes
   useEffect(() => {
     if (isOpen && position && modalRef.current) {
-      const modalWidth = 320; // Width of ProfilePreview component
-      const modalHeight = 450; // Height estimate of ProfilePreview
+      const modalRect = modalRef.current.getBoundingClientRect();
+      const modalWidth = modalRect.width > 0 ? modalRect.width : 320; // Fallback width
+      const modalHeight = modalRect.height > 0 ? modalRect.height : 450; // Fallback height
       const margin = 12; // Small margin from the triggering element
       const viewportMargin = 20; // Minimum margin from viewport edges
       
@@ -62,7 +63,7 @@ export function UserProfileModal({ isOpen, onClose, userProfile, position }: Use
       
       setModalPosition({ x, y });
     }
-  }, [isOpen, position]);
+  }, [isOpen, position, userProfile]);
 
   // Handle closing when clicking outside
   useEffect(() => {
@@ -100,15 +101,13 @@ export function UserProfileModal({ isOpen, onClose, userProfile, position }: Use
 
   // Handle focus trap - focus the close button instead of container
   useEffect(() => {
-    if (isOpen && modalRef.current) {
+    if (isOpen && userProfile && modalRef.current) {
       const closeButton = modalRef.current.querySelector('button[aria-label="Close profile preview"]') as HTMLButtonElement;
       if (closeButton) {
         closeButton.focus();
       }
     }
-  }, [isOpen]);
-
-  if (!userProfile) return null;
+  }, [isOpen, userProfile]);
 
   return (
     <AnimatePresence>
@@ -134,30 +133,39 @@ export function UserProfileModal({ isOpen, onClose, userProfile, position }: Use
               transform: modalPosition ? 'none' : 'translate(-50%, -50%)'
             }}
           >
-            <motion.button
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ delay: 0.1, duration: 0.2 }}
-              onClick={onClose}
-              className="absolute top-2 right-2 z-10 flex items-center justify-center w-8 h-8 bg-black/40 rounded-full text-white hover:bg-black/60 transition-colors"
-              aria-label="Close profile preview"
-            >
-              <X size={16} />
-            </motion.button>
-            
-            <ProfilePreview
-              bannerColor={userProfile.bannerColor || "bg-primary"}
-              bannerUrl={userProfile.bannerUrl}
-              name={userProfile.displayName || userProfile.username}
-              about={userProfile.about}
-              pronouns={userProfile.pronouns}
-              user={{ avatar: userProfile.avatar, username: userProfile.username }}
-              equippedBadgeIds={userProfile.equippedBadgeId ? [userProfile.equippedBadgeId] : []}
-              badgeMap={userProfile.equippedBadgeId && userProfile.badgeUrl ? { [userProfile.equippedBadgeId]: userProfile.badgeUrl } : {}}
-              badgeNames={userProfile.equippedBadgeId && userProfile.badgeName ? { [userProfile.equippedBadgeId]: userProfile.badgeName } : {}}
-              showEditButton={false}
-            />
+            {userProfile ? (
+              <>
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ delay: 0.1, duration: 0.2 }}
+                  onClick={onClose}
+                  className="absolute top-2 right-2 z-10 flex items-center justify-center w-8 h-8 bg-black/40 rounded-full text-white hover:bg-black/60 transition-colors"
+                  aria-label="Close profile preview"
+                >
+                  <X size={16} />
+                </motion.button>
+                
+                <ProfilePreview
+                  bannerColor={userProfile.bannerColor || "bg-primary"}
+                  bannerUrl={userProfile.bannerUrl}
+                  name={userProfile.displayName || userProfile.username}
+                  about={userProfile.about}
+                  pronouns={userProfile.pronouns}
+                  user={{ avatar: userProfile.avatar, username: userProfile.username }}
+                  equippedBadgeIds={userProfile.equippedBadgeId ? [userProfile.equippedBadgeId] : []}
+                  badgeMap={userProfile.equippedBadgeId && userProfile.badgeUrl ? { [userProfile.equippedBadgeId]: userProfile.badgeUrl } : {}}
+                  badgeNames={userProfile.equippedBadgeId && userProfile.badgeName ? { [userProfile.equippedBadgeId]: userProfile.badgeName } : {}}
+                  showEditButton={false}
+                />
+              </>
+            ) : (
+              // Loading state with fixed dimensions matching ProfilePreview
+              <div className="w-80 h-[450px] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm border border-slate-700 rounded-lg text-white">
+                <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}
