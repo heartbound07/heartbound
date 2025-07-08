@@ -73,24 +73,24 @@ public interface AuditRepository extends JpaRepository<Audit, UUID> {
     /**
      * Search audit entries with multiple filters
      */
-    @Query(value = "SELECT a FROM Audit a WHERE " +
-           "(:userId IS NULL OR a.userId = :userId) AND " +
-           "(:action IS NULL OR LOWER(a.action) LIKE LOWER(CONCAT('%', :action, '%'))) AND " +
-           "(:entityType IS NULL OR a.entityType = :entityType) AND " +
-           "(CAST(:severity as text) IS NULL OR a.severity = :severity) AND " +
-           "(CAST(:category as text) IS NULL OR a.category = :category) AND " +
-           "(:startDate IS NULL OR a.timestamp >= :startDate) AND " +
-           "(:endDate IS NULL OR a.timestamp <= :endDate) " +
-           "ORDER BY a.timestamp DESC")
+    @Query("SELECT a FROM Audit a WHERE " +
+            "(:userId IS NULL OR a.userId = :userId) AND " +
+            "(:action IS NULL OR LOWER(a.action) LIKE LOWER(CONCAT('%', :action, '%'))) AND " +
+            "(:entityType IS NULL OR a.entityType = :entityType) AND " +
+            "(cast(:severity as text) IS NULL OR a.severity = :severity) AND " +
+            "(cast(:category as text) IS NULL OR a.category = :category) AND " +
+            "(cast(:startDate as timestamp) IS NULL OR a.timestamp >= :startDate) AND " +
+            "(cast(:endDate as timestamp) IS NULL OR a.timestamp <= :endDate) " +
+            "ORDER BY a.timestamp DESC")
     Page<Audit> findWithFilters(
-        @Param("userId") String userId,
-        @Param("action") String action,
-        @Param("entityType") String entityType,
-        @Param("severity") AuditSeverity severity,
-        @Param("category") AuditCategory category,
-        @Param("startDate") LocalDateTime startDate,
-        @Param("endDate") LocalDateTime endDate,
-        Pageable pageable
+            @Param("userId") String userId,
+            @Param("action") String action,
+            @Param("entityType") String entityType,
+            @Param("severity") AuditSeverity severity,
+            @Param("category") AuditCategory category,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            Pageable pageable
     );
     
     /**
