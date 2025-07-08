@@ -40,28 +40,28 @@ public class Audit {
     @Column(name = "timestamp", nullable = false)
     private LocalDateTime timestamp;
     
-    @Column(name = "user_id", nullable = false, length = 50)
+    @Column(name = "user_id", nullable = false, columnDefinition = "TEXT")
     private String userId;
     
-    @Column(name = "action", nullable = false, length = 100)
+    @Column(name = "action", nullable = false, columnDefinition = "TEXT")
     private String action;
     
-    @Column(name = "entity_type", length = 100)
+    @Column(name = "entity_type", columnDefinition = "TEXT")
     private String entityType;
     
-    @Column(name = "entity_id", length = 100)
+    @Column(name = "entity_id", columnDefinition = "TEXT")
     private String entityId;
     
-    @Column(name = "description", length = 1000)
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
     
-    @Column(name = "ip_address", length = 45)
+    @Column(name = "ip_address", columnDefinition = "TEXT")
     private String ipAddress;
     
-    @Column(name = "user_agent", length = 500)
+    @Column(name = "user_agent", columnDefinition = "TEXT")
     private String userAgent;
     
-    @Column(name = "session_id", length = 100)
+    @Column(name = "session_id", columnDefinition = "TEXT")
     private String sessionId;
     
     @Column(name = "details", columnDefinition = "TEXT")
@@ -75,6 +75,6 @@ public class Audit {
     @Enumerated(EnumType.STRING)
     private AuditCategory category = AuditCategory.SYSTEM;
     
-    @Column(name = "source", length = 50)
+    @Column(name = "source", columnDefinition = "TEXT")
     private String source;
 } 
