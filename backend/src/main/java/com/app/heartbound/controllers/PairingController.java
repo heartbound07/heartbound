@@ -35,7 +35,6 @@ import jakarta.validation.constraints.Positive;
 /**
  * PairingController
  * 
- *
  * 
  * SECURITY ENHANCEMENTS:
  * - Manual pairing creation is restricted to ADMIN users only
@@ -129,57 +128,17 @@ public class PairingController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Activity updated successfully"),
             @ApiResponse(responseCode = "404", description = "Pairing not found"),
-            @ApiResponse(responseCode = "400", description = "Invalid request data or rate limit exceeded")
+            @ApiResponse(responseCode = "400", description = "Invalid request data or rate limit exceeded"),
+            @ApiResponse(responseCode = "403", description = "Admin access required")
     })
     @PatchMapping("/{id}/activity")
-    @PreAuthorize("hasRole('USER') and @pairingSecurityService.isUserInPairing(authentication, #id)")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PairingDTO> updatePairingActivity(
             @Parameter(description = "Pairing ID", required = true)
             @PathVariable Long id,
             @Valid @RequestBody UpdatePairingActivityDTO request) {
         
-        log.info("Updating activity for pairing ID: {}", id);
-        
-        // Enhanced validation to prevent abuse based on realistic Discord usage patterns
-        // Discord rate limits: ~5 messages per 5 seconds, ~20 messages per 60 seconds
-        // Realistic daily maximums: ~1000 messages, ~15000 words, ~200 emojis
-        
-        // Strict increment validation based on realistic user behavior
-        if (request.getMessageIncrement() > 50) { // Max 50 messages per update (realistic burst)
-            log.warn("Activity update rejected for pairing {} - message increment too high: {}", 
-                    id, request.getMessageIncrement());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
-                    "Message increment exceeds realistic limit (max 50 per update)");
-        }
-        
-        if (request.getWordIncrement() > 1000) { // Max 1000 words per update (avg 20 words per message)
-            log.warn("Activity update rejected for pairing {} - word increment too high: {}", 
-                    id, request.getWordIncrement());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
-                    "Word increment exceeds realistic limit (max 1000 per update)");
-        }
-        
-        if (request.getEmojiIncrement() > 20) { // Max 20 emojis per update (realistic usage)
-            log.warn("Activity update rejected for pairing {} - emoji increment too high: {}", 
-                    id, request.getEmojiIncrement());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
-                    "Emoji increment exceeds realistic limit (max 20 per update)");
-        }
-        
-        if (request.getActiveDays() != null && request.getActiveDays() > 1) { // Max 1 day increment per update
-            log.warn("Activity update rejected for pairing {} - active days increment too high: {}", 
-                    id, request.getActiveDays());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
-                    "Active days increment exceeds realistic limit (max 1 per update)");
-        }
-        
-        // Admin-only fields validation
-        if ((request.getUser1MessageCount() != null || request.getUser2MessageCount() != null || 
-             request.getVoiceTimeMinutes() != null) && 
-            !pairingSecurityService.hasAdminRole(SecurityContextHolder.getContext().getAuthentication())) {
-            log.warn("Non-admin user attempted to use admin-only activity update fields for pairing {}", id);
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admins can directly set activity metrics");
-        }
+        log.info("Admin updating activity for pairing ID: {}", id);
         
         try {
             PairingDTO updatedPairing = pairingService.updatePairingActivity(id, request);
