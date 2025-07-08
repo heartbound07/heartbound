@@ -31,10 +31,10 @@ public interface AuditRepository extends JpaRepository<Audit, UUID> {
     /**
      * Find audit entries by action with pagination
      */
-    @Query("SELECT a FROM Audit a WHERE LOWER(CAST(a.action AS TEXT)) LIKE LOWER(CONCAT('%', :action, '%')) ORDER BY a.timestamp DESC")
+    @Query("SELECT a FROM Audit a WHERE LOWER(a.action) LIKE LOWER(CONCAT('%', :action, '%')) ORDER BY a.timestamp DESC")
     Page<Audit> findByActionContainingIgnoreCaseOrderByTimestampDesc(@Param("action") String action, Pageable pageable);
     
-    /**
+    /*
      * Find audit entries by entity type with pagination
      */
     Page<Audit> findByEntityTypeOrderByTimestampDesc(String entityType, Pageable pageable);
@@ -75,7 +75,7 @@ public interface AuditRepository extends JpaRepository<Audit, UUID> {
      */
     @Query("SELECT a FROM Audit a WHERE " +
            "(:userId IS NULL OR a.userId = :userId) AND " +
-           "(:action IS NULL OR LOWER(CAST(a.action AS TEXT)) LIKE LOWER(CONCAT('%', :action, '%'))) AND " +
+           "(:action IS NULL OR LOWER(a.action) LIKE LOWER(CONCAT('%', :action, '%'))) AND " +
            "(:entityType IS NULL OR a.entityType = :entityType) AND " +
            "(:severity IS NULL OR a.severity = :severity) AND " +
            "(:category IS NULL OR a.category = :category) AND " +
