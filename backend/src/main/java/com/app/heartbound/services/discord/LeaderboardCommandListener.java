@@ -1,8 +1,7 @@
 package com.app.heartbound.services.discord;
 
-import com.app.heartbound.dto.UserProfileDTO;
+import com.app.heartbound.dto.LeaderboardEntryDTO;
 import com.app.heartbound.services.UserService;
-import com.app.heartbound.config.CacheConfig;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import net.dv8tion.jda.api.JDA;
@@ -17,14 +16,13 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.Nonnull;
 import jakarta.annotation.PreDestroy;
 import java.awt.Color;
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -36,7 +34,6 @@ public class LeaderboardCommandListener extends ListenerAdapter {
     private static final Color EMBED_COLOR = new Color(88, 101, 242); // Discord Blurple
 
     private final UserService userService;
-    private final CacheConfig cacheConfig;
     
     @Value("${frontend.base.url}")
     private String frontendBaseUrl;
@@ -48,10 +45,8 @@ public class LeaderboardCommandListener extends ListenerAdapter {
     private boolean isRegistered = false;
     private JDA jdaInstance;
 
-    @Autowired
-    public LeaderboardCommandListener(@Lazy UserService userService, CacheConfig cacheConfig) {
+    public LeaderboardCommandListener(@Lazy UserService userService) {
         this.userService = userService;
-        this.cacheConfig = cacheConfig;
         
         // Initialize Discord display name cache with 5-minute TTL for performance
         this.discordDisplayNameCache = Caffeine.newBuilder()
@@ -99,7 +94,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
     }
 
     @Override
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("leaderboard")) {
             return; // Not our command
         }
@@ -112,7 +107,9 @@ public class LeaderboardCommandListener extends ListenerAdapter {
         // Get the leaderboard type (levels, credits, messages, or voice)
         OptionMapping typeOption = event.getOption("type");
         String leaderboardType = typeOption == null ? "levels" : typeOption.getAsString();
-        
+        // The service expects "level", but the command provides "levels"
+        String serviceSortBy = "levels".equalsIgnoreCase(leaderboardType) ? "level" : leaderboardType;
+
         // Get the guild for Discord display name resolution
         Guild guild = event.getGuild();
         
@@ -121,7 +118,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
         
         try {
             // Fetch the full leaderboard from UserService
-            List<UserProfileDTO> leaderboardUsers = userService.getLeaderboardUsers(leaderboardType);
+            List<LeaderboardEntryDTO> leaderboardUsers = userService.getLeaderboardUsers(serviceSortBy);
             
             if (leaderboardUsers == null || leaderboardUsers.isEmpty()) {
                 // Handle empty leaderboard
@@ -129,56 +126,6 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                 return;
             }
             
-            // Sort based on the selected type
-            if ("levels".equals(leaderboardType)) {
-                // Sort by level (desc), then by experience (desc) with null-safe comparison
-                leaderboardUsers.sort((a, b) -> {
-                    Integer levelA = a.getLevel() != null ? a.getLevel() : 1;
-                    Integer levelB = b.getLevel() != null ? b.getLevel() : 1;
-                    
-                    int levelCompare = levelB.compareTo(levelA); // Descending order
-                    if (levelCompare != 0) {
-                        return levelCompare;
-                    }
-                    
-                    Integer xpA = a.getExperience() != null ? a.getExperience() : 0;
-                    Integer xpB = b.getExperience() != null ? b.getExperience() : 0;
-                    return xpB.compareTo(xpA); // Descending order
-                });
-                
-                logger.debug("[LEADERBOARD DEBUG] Sorted by levels. Top user: {}(Lvl {}, XP {})", 
-                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
-                           !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getLevel() != null ? leaderboardUsers.get(0).getLevel() : 1) : 0,
-                           !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getExperience() != null ? leaderboardUsers.get(0).getExperience() : 0) : 0);
-            } else if ("credits".equals(leaderboardType)) {
-                // Sort by credits descending (already done in the service, but let's ensure it)
-                leaderboardUsers.sort(
-                    Comparator.comparing(UserProfileDTO::getCredits, Comparator.nullsFirst(Comparator.reverseOrder()))
-                );
-                logger.debug("[LEADERBOARD DEBUG] Sorted by credits. Top user: {}({} credits)", 
-                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
-                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getCredits() : 0);
-            } else if ("messages".equals(leaderboardType)) {
-                // Sort by message count descending with null-safe comparison
-                leaderboardUsers.sort((a, b) -> {
-                    Long messagesA = a.getMessageCount() != null ? a.getMessageCount() : 0L;
-                    Long messagesB = b.getMessageCount() != null ? b.getMessageCount() : 0L;
-                    return messagesB.compareTo(messagesA); // Descending order
-                });
-                logger.debug("[LEADERBOARD DEBUG] Sorted by messages. Top user: {}({} messages)", 
-                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
-                           !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getMessageCount() != null ? leaderboardUsers.get(0).getMessageCount() : 0) : 0);
-            } else if ("voice".equals(leaderboardType)) {
-                // Sort by voice time descending with null-safe comparison
-                leaderboardUsers.sort((a, b) -> {
-                    Integer voiceA = a.getVoiceTimeMinutesTotal() != null ? a.getVoiceTimeMinutesTotal() : 0;
-                    Integer voiceB = b.getVoiceTimeMinutesTotal() != null ? b.getVoiceTimeMinutesTotal() : 0;
-                    return voiceB.compareTo(voiceA); // Descending order
-                });
-                logger.debug("[LEADERBOARD DEBUG] Sorted by voice time. Top user: {}({} minutes)", 
-                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
-                           !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getVoiceTimeMinutesTotal() != null ? leaderboardUsers.get(0).getVoiceTimeMinutesTotal() : 0) : 0);
-            }
             
             // Calculate total pages
             int totalPages = (int) Math.ceil((double) leaderboardUsers.size() / PAGE_SIZE);
@@ -209,7 +156,7 @@ public class LeaderboardCommandListener extends ListenerAdapter {
     }
     
     @Override
-    public void onButtonInteraction(ButtonInteractionEvent event) {
+    public void onButtonInteraction(@Nonnull ButtonInteractionEvent event) {
         String componentId = event.getComponentId();
         
         if (!componentId.startsWith("leaderboard_")) {
@@ -249,9 +196,12 @@ public class LeaderboardCommandListener extends ListenerAdapter {
             
             // Calculate target page
             int tempTargetPage = isNext ? currentPage + 1 : currentPage - 1;
+
+            // The service expects "level", but the command provides "levels"
+            String serviceSortBy = "levels".equalsIgnoreCase(leaderboardType) ? "level" : leaderboardType;
             
             // Fetch the full leaderboard again
-            List<UserProfileDTO> leaderboardUsers = userService.getLeaderboardUsers(leaderboardType);
+            List<LeaderboardEntryDTO> leaderboardUsers = userService.getLeaderboardUsers(serviceSortBy);
             
             if (leaderboardUsers == null || leaderboardUsers.isEmpty()) {
                 // Handle empty leaderboard (rare edge case)
@@ -259,56 +209,6 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                 return;
             }
             
-            // Sort based on the selected type
-            if ("levels".equals(leaderboardType)) {
-                // Sort by level (desc), then by experience (desc) with null-safe comparison
-                leaderboardUsers.sort((a, b) -> {
-                    Integer levelA = a.getLevel() != null ? a.getLevel() : 1;
-                    Integer levelB = b.getLevel() != null ? b.getLevel() : 1;
-                    
-                    int levelCompare = levelB.compareTo(levelA); // Descending order
-                    if (levelCompare != 0) {
-                        return levelCompare;
-                    }
-                    
-                    Integer xpA = a.getExperience() != null ? a.getExperience() : 0;
-                    Integer xpB = b.getExperience() != null ? b.getExperience() : 0;
-                    return xpB.compareTo(xpA); // Descending order
-                });
-                
-                logger.debug("[LEADERBOARD DEBUG] Sorted by levels. Top user: {}(Lvl {}, XP {})", 
-                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
-                           !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getLevel() != null ? leaderboardUsers.get(0).getLevel() : 1) : 0,
-                           !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getExperience() != null ? leaderboardUsers.get(0).getExperience() : 0) : 0);
-            } else if ("credits".equals(leaderboardType)) {
-                // Sort by credits descending
-                leaderboardUsers.sort(
-                    Comparator.comparing(UserProfileDTO::getCredits, Comparator.nullsFirst(Comparator.reverseOrder()))
-                );
-                logger.debug("[LEADERBOARD DEBUG] Sorted by credits. Top user: {}({} credits)", 
-                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
-                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getCredits() : 0);
-            } else if ("messages".equals(leaderboardType)) {
-                // Sort by message count descending with null-safe comparison
-                leaderboardUsers.sort((a, b) -> {
-                    Long messagesA = a.getMessageCount() != null ? a.getMessageCount() : 0L;
-                    Long messagesB = b.getMessageCount() != null ? b.getMessageCount() : 0L;
-                    return messagesB.compareTo(messagesA); // Descending order
-                });
-                logger.debug("[LEADERBOARD DEBUG] Sorted by messages. Top user: {}({} messages)", 
-                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
-                           !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getMessageCount() != null ? leaderboardUsers.get(0).getMessageCount() : 0) : 0);
-            } else if ("voice".equals(leaderboardType)) {
-                // Sort by voice time descending with null-safe comparison
-                leaderboardUsers.sort((a, b) -> {
-                    Integer voiceA = a.getVoiceTimeMinutesTotal() != null ? a.getVoiceTimeMinutesTotal() : 0;
-                    Integer voiceB = b.getVoiceTimeMinutesTotal() != null ? b.getVoiceTimeMinutesTotal() : 0;
-                    return voiceB.compareTo(voiceA); // Descending order
-                });
-                logger.debug("[LEADERBOARD DEBUG] Sorted by voice time. Top user: {}({} minutes)", 
-                           !leaderboardUsers.isEmpty() ? leaderboardUsers.get(0).getUsername() : "none",
-                           !leaderboardUsers.isEmpty() ? (leaderboardUsers.get(0).getVoiceTimeMinutesTotal() != null ? leaderboardUsers.get(0).getVoiceTimeMinutesTotal() : 0) : 0);
-            }
             
             // Calculate total pages
             int totalPages = (int) Math.ceil((double) leaderboardUsers.size() / PAGE_SIZE);
@@ -443,13 +343,13 @@ public class LeaderboardCommandListener extends ListenerAdapter {
      * @param guild The Discord guild for display name resolution
      * @return A MessageEmbed containing the formatted leaderboard
      */
-    private MessageEmbed buildLeaderboardEmbed(List<UserProfileDTO> users, int page, int totalPages, String type, Guild guild) {
+    private MessageEmbed buildLeaderboardEmbed(List<LeaderboardEntryDTO> users, int page, int totalPages, String type, Guild guild) {
         // Calculate start and end indices for the current page
         int startIndex = (page - 1) * PAGE_SIZE;
         int endIndex = Math.min(startIndex + PAGE_SIZE, users.size());
         
         // Get sublist for current page
-        List<UserProfileDTO> pageUsers = users.subList(startIndex, endIndex);
+        List<LeaderboardEntryDTO> pageUsers = users.subList(startIndex, endIndex);
         
         // Build the embed
         EmbedBuilder embed = new EmbedBuilder();
@@ -489,8 +389,8 @@ public class LeaderboardCommandListener extends ListenerAdapter {
         // Build the formatted leaderboard entries
         StringBuilder content = new StringBuilder();
         for (int i = 0; i < pageUsers.size(); i++) {
-            UserProfileDTO user = pageUsers.get(i);
-            int rank = startIndex + i + 1; // Calculate the global rank
+            LeaderboardEntryDTO user = pageUsers.get(i);
+            int rank = user.getRank(); // Use rank from DTO
             
             // Use Discord display name instead of stored username/displayName
             String displayName = getDiscordDisplayName(

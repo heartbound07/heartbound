@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { UserProfileDTO } from '@/config/userService';
+import { UserProfileDTO, LeaderboardEntryDTO, getUserProfile } from '@/config/userService';
 import { FaCoins, FaCrown, FaTrophy, FaMedal, FaStar } from 'react-icons/fa';
 import { MessageSquare, Volume2 } from 'lucide-react';
 import '@/assets/leaderboard.css';
@@ -10,7 +10,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { SkeletonLeaderboard } from '@/components/ui/SkeletonUI';
 
 interface LeaderboardProps {
-  users: UserProfileDTO[];
+  users: LeaderboardEntryDTO[];
   isLoading?: boolean;
   error?: string | null;
   limit?: number;
@@ -50,20 +50,17 @@ const ROW_VARIANTS = {
 // Memoized components for better performance
 const LeaderboardRow = React.memo(({ 
   user, 
-  index, 
-  actualIndex, 
   leaderboardType, 
   compact, 
   onClick,
   positionDetails,
   isHighlighted 
 }: {
-  user: UserProfileDTO;
-  index: number;
+  user: LeaderboardEntryDTO;
   actualIndex: number;
   leaderboardType: 'credits' | 'level' | 'messages' | 'voice';
   compact: boolean;
-  onClick: (user: UserProfileDTO, event: React.MouseEvent) => void;
+  onClick: (user: LeaderboardEntryDTO, event: React.MouseEvent) => void;
   positionDetails: { icon: React.ReactNode; className: string };
   isHighlighted?: boolean;
 }) => {
@@ -137,7 +134,7 @@ const LeaderboardRow = React.memo(({
 
   return (
     <motion.div
-      key={user.id || index}
+      key={user.id}
       className={`leaderboard-row ${positionDetails.className} ${highlightClassName} cursor-pointer`}
       onClick={handleClick}
       variants={ROW_VARIANTS}
@@ -146,11 +143,11 @@ const LeaderboardRow = React.memo(({
       <div className="leaderboard-rank">
         {positionDetails.icon ? (
           <>
-            <span className="leaderboard-rank-number">{actualIndex + 1}</span>
+            <span className="leaderboard-rank-number">{user.rank}</span>
             <span className="leaderboard-rank-icon">{positionDetails.icon}</span>
           </>
         ) : (
-          <span>{actualIndex + 1}</span>
+          <span>{user.rank}</span>
         )}
       </div>
       <div className="leaderboard-user">
@@ -337,14 +334,24 @@ export const Leaderboard = React.memo(function Leaderboard({
   }, []);
 
   // Optimized user click handler
-  const handleUserClick = useCallback((user: UserProfileDTO, event: React.MouseEvent) => {
-    setSelectedUser(user);
+  const handleUserClick = useCallback(async (user: LeaderboardEntryDTO, event: React.MouseEvent) => {
     setClickPosition({ x: event.clientX, y: event.clientY });
     setModalOpen(true);
+    setSelectedUser(null); // Clear previous user data to show loading state in modal
+
+    try {
+      const fullProfile = await getUserProfile(user.id);
+      setSelectedUser(fullProfile);
+    } catch (error) {
+      console.error("Failed to fetch user profile", error);
+      // Optionally handle error state in modal by closing it or showing an error message
+      setModalOpen(false);
+    }
   }, []);
 
   const closeModal = useCallback(() => {
     setModalOpen(false);
+    setSelectedUser(null);
   }, []);
 
   // Get column header text based on leaderboard type
@@ -444,9 +451,8 @@ export const Leaderboard = React.memo(function Leaderboard({
                     
                     return (
                       <LeaderboardRow
-                        key={user.id || index}
+                        key={user.id}
                         user={user}
-                        index={index}
                         actualIndex={actualIndex}
                         leaderboardType={leaderboardType}
                         compact={compact}

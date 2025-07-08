@@ -5,6 +5,7 @@ import com.app.heartbound.entities.User;
 import com.app.heartbound.entities.Shop;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import com.app.heartbound.dto.LeaderboardEntryDTO;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -50,6 +51,19 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Query("SELECT u.id, u.username, u.avatar FROM User u WHERE u.id IN :userIds")
     List<Object[]> findUserProfilesByIds(@Param("userIds") Set<String> userIds);
     
+    /**
+     * Finds a paginated list of users for the leaderboard, mapped to a lightweight DTO.
+     * This query selects only the necessary fields for the leaderboard.
+     * Sorting is handled by the Pageable object.
+     *
+     * @param pageable specifies sorting and limit (e.g., top 100 users by credits)
+     * @return a page of LeaderboardEntryDTOs
+     */
+    @Query("SELECT new com.app.heartbound.dto.LeaderboardEntryDTO(" +
+           "u.id, u.username, u.displayName, u.avatar, u.credits, u.level, u.experience, u.voiceTimeMinutesTotal, u.messageCount" +
+           ") FROM User u")
+    Page<LeaderboardEntryDTO> findLeaderboardEntries(Pageable pageable);
+
     /**
      * Find user with eagerly loaded inventory collections for Discord commands
      * Prevents LazyInitializationException when used outside web transactions

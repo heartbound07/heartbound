@@ -34,6 +34,19 @@ export interface UserProfileDTO {
   nameplateColor?: string; // Resolved hex color for equipped nameplate
 }
 
+export interface LeaderboardEntryDTO {
+  id: string;
+  username: string;
+  displayName: string;
+  avatar: string;
+  credits: number;
+  level: number;
+  experience: number;
+  voiceTimeMinutesTotal: number;
+  messageCount: number;
+  rank: number;
+}
+
 export interface UpdateProfileDTO {
   displayName: string;
   pronouns: string;
@@ -115,7 +128,7 @@ export const updateUserProfile = async (userId: string, profile: UpdateProfileDT
   }
 };
 
-export const getLeaderboardUsers = async (sortBy: 'credits' | 'level' | 'messages' | 'voice' = 'credits'): Promise<UserProfileDTO[]> => {
+export const getLeaderboardUsers = async (sortBy: 'credits' | 'level' | 'messages' | 'voice' = 'credits'): Promise<LeaderboardEntryDTO[]> => {
   try {
     const response = await httpClient.get('/users/leaderboard', {
       params: { sortBy }

@@ -2,6 +2,7 @@ package com.app.heartbound.controllers;
 
 import com.app.heartbound.config.security.RateLimited;
 import com.app.heartbound.dto.UserProfileDTO;
+import com.app.heartbound.dto.LeaderboardEntryDTO;
 import com.app.heartbound.dto.UpdateProfileDTO;
 import com.app.heartbound.dto.DailyActivityDataDTO;
 import com.app.heartbound.dto.shop.UserInventoryItemDTO;
@@ -275,9 +276,10 @@ public class UserController {
      * Get users for the leaderboard (sorted by credits or level)
      */
     @GetMapping("/leaderboard")
-    public ResponseEntity<List<UserProfileDTO>> getLeaderboardUsers(
+    @RateLimited(requestsPerMinute = 20, keyType = RateLimitKeyType.IP)
+    public ResponseEntity<List<LeaderboardEntryDTO>> getLeaderboardUsers(
             @RequestParam(required = false, defaultValue = "credits") String sortBy) {
-        List<UserProfileDTO> leaderboardUsers = userService.getLeaderboardUsers(sortBy);
+        List<LeaderboardEntryDTO> leaderboardUsers = userService.getLeaderboardUsers(sortBy);
         return ResponseEntity.ok(leaderboardUsers);
     }
     

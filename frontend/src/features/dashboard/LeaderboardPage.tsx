@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { UserProfileDTO, getLeaderboardUsers } from '@/config/userService';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { UserProfileDTO, LeaderboardEntryDTO, getLeaderboardUsers, getCurrentUserProfile } from '@/config/userService';
 import { Leaderboard } from '@/components/ui/leaderboard/Leaderboard';
 import { UserRankCard } from '@/components/ui/leaderboard/UserRankCard';
 import { useAuth } from '@/contexts/auth/useAuth';
@@ -151,7 +151,7 @@ const ANIMATION_VARIANTS = {
 };
 
 export function LeaderboardPage() {
-  const [users, setUsers] = useState<UserProfileDTO[]>([]);
+  const [leaderboardUsers, setLeaderboardUsers] = useState<LeaderboardEntryDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [leaderboardType, setLeaderboardType] = useState<'credits' | 'level' | 'messages' | 'voice'>('messages');
@@ -178,11 +178,20 @@ export function LeaderboardPage() {
     // Page navigation is currently handled automatically by the Leaderboard component
   }, []);
 
-  // Memoized current user profile calculation
-  const memoizedCurrentUserProfile = useMemo(() => {
-    if (!isAuthenticated || !user?.id || !users.length) return null;
-    return users.find(profile => profile.id === user.id) || null;
-  }, [isAuthenticated, user?.id, users]);
+  // Fetch current user's profile when authenticated
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      const fetchCurrentUserProfile = async () => {
+        try {
+          const profile = await getCurrentUserProfile();
+          setCurrentUserProfile(profile);
+        } catch (error) {
+          console.error("Failed to fetch current user's profile:", error);
+        }
+      };
+      fetchCurrentUserProfile();
+    }
+  }, [isAuthenticated, user?.id]);
 
   useEffect(() => {
     const fetchLeaderboardData = async () => {
@@ -193,7 +202,7 @@ export function LeaderboardPage() {
       try {
         setIsLoading(true);
         const leaderboardData = await getLeaderboardUsers(leaderboardType);
-        setUsers(leaderboardData);
+        setLeaderboardUsers(leaderboardData);
         setError(null);
       } catch (err) {
         console.error('Error fetching leaderboard data:', err);
@@ -218,8 +227,8 @@ export function LeaderboardPage() {
 
   // Update current user profile when users change
   useEffect(() => {
-    setCurrentUserProfile(memoizedCurrentUserProfile);
-  }, [memoizedCurrentUserProfile]);
+    // This effect is no longer needed as we fetch the profile separately
+  }, []);
 
   return (
     <div className="bg-theme-gradient min-h-screen">
@@ -264,7 +273,7 @@ export function LeaderboardPage() {
         {...(isLoading ? ANIMATION_VARIANTS.leaderboardStatic : ANIMATION_VARIANTS.leaderboard)}
       >
         <Leaderboard 
-          users={users}
+          users={leaderboardUsers}
           isLoading={isLoading}
           error={error}
           showHeader={false}
@@ -287,7 +296,7 @@ export function LeaderboardPage() {
           >
             <UserRankCard 
               currentUser={currentUserProfile}
-              leaderboardUsers={users}
+              leaderboardUsers={leaderboardUsers}
               leaderboardType={leaderboardType}
               onClick={handleUserRankCardClick}
             />

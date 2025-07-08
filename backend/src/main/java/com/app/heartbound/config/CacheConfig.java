@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import com.app.heartbound.dto.LeaderboardEntryDTO;
 
 /**
  * Centralized Cache Configuration for Pairing System Performance Optimization.
@@ -115,6 +116,13 @@ public class CacheConfig {
     @Value("${cache.shop-layout.expire-after-write-minutes:15}")
     private long shopLayoutCacheExpireMinutes;
 
+    // Leaderboard Cache Configuration
+    @Value("${cache.leaderboard.max-size:10}")
+    private long leaderboardCacheMaxSize;
+
+    @Value("${cache.leaderboard.expire-after-write-minutes:2}")
+    private long leaderboardCacheExpireMinutes;
+
     // Cache instances
     private Cache<Long, Object> pairLevelCache;
     private Cache<String, List<Object>> achievementListCache;
@@ -131,6 +139,7 @@ public class CacheConfig {
     private Cache<String, Object> giveawayCache;
     private Cache<String, List<Object>> featuredItemsCache;
     private Cache<String, List<Object>> dailyItemsCache;
+    private Cache<String, List<LeaderboardEntryDTO>> leaderboardCache;
 
     @PostConstruct
     public void initializeCaches() {
@@ -311,6 +320,18 @@ public class CacheConfig {
                 .removalListener((RemovalListener<String, List<Object>>) (key, value, cause) -> {
                     if (log.isDebugEnabled()) {
                         log.debug("Daily items cache entry removed: key={}, cause={}", key, cause);
+                    }
+                })
+                .recordStats()
+                .build();
+        
+        // Leaderboard Cache - stores leaderboard data
+        this.leaderboardCache = Caffeine.newBuilder()
+                .maximumSize(leaderboardCacheMaxSize)
+                .expireAfterWrite(leaderboardCacheExpireMinutes, TimeUnit.MINUTES)
+                .removalListener((RemovalListener<String, List<LeaderboardEntryDTO>>) (key, value, cause) -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Leaderboard cache entry removed: key={}, cause={}", key, cause);
                     }
                 })
                 .recordStats()
@@ -500,6 +521,15 @@ public class CacheConfig {
     }
 
     /**
+     * Invalidates the leaderboard cache.
+     * Should be called when factors affecting leaderboard might change (e.g., user credits update).
+     */
+    public void invalidateLeaderboardCache() {
+        leaderboardCache.invalidateAll();
+        log.debug("Leaderboard cache invalidated");
+    }
+
+    /**
      * Invalidates all caches. Use with caution - only for scenarios like
      * system maintenance or emergency cache refresh.
      */
@@ -520,6 +550,7 @@ public class CacheConfig {
         giveawayCache.invalidateAll();
         featuredItemsCache.invalidateAll();
         dailyItemsCache.invalidateAll();
+        leaderboardCache.invalidateAll();
         log.info("All pairing system caches invalidated successfully");
     }
 
@@ -576,6 +607,7 @@ public class CacheConfig {
         giveawayCache.cleanUp();
         featuredItemsCache.cleanUp();
         dailyItemsCache.cleanUp();
+        leaderboardCache.cleanUp();
         log.debug("Pairing cache maintenance completed");
     }
 

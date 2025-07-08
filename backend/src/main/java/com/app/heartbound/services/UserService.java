@@ -23,6 +23,7 @@ import com.app.heartbound.repositories.DailyVoiceActivityStatRepository;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import com.app.heartbound.config.CacheConfig;
+import com.app.heartbound.dto.LeaderboardEntryDTO;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -32,6 +33,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.domain.Sort.Order;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,7 +55,9 @@ import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Optional;
+import java.util.stream.IntStream;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.cache.annotation.Cacheable;
 
 @Service
 public class UserService {
@@ -713,6 +719,9 @@ public class UserService {
         // Create audit trail for credit update
         createCreditUpdateAuditEntry(adminId, userId, previousCredits, credits);
         
+        // Invalidate leaderboard cache since credits affect ranking
+        cacheConfig.invalidateLeaderboardCache();
+        
         logger.info("Updated credits for user {} from {} to {} by admin {}", userId, previousCredits, credits, adminId);
         
         return updatedUser;
@@ -749,56 +758,48 @@ public class UserService {
     }
 
     /**
-     * Get users for the leaderboard, sorted by credits, level, messages, or voice
-     * 
+     * Get users for the leaderboard, sorted by a specified criterion.
+     * Fetches a paginated and optimized list of the top 100 users from the database.
+     *
      * @param sortBy Sorting criterion: "credits", "level", "messages", or "voice"
-     * @return List of sorted user profiles
+     * @return List of sorted LeaderboardEntryDTOs with calculated ranks
      */
-    public List<UserProfileDTO> getLeaderboardUsers(String sortBy) {
-        // Fetch users
-        List<User> users = userRepository.findAll();
-        
-        // Sort based on the provided criterion
-        if ("level".equalsIgnoreCase(sortBy)) {
-            // Sort by level (desc), then by experience (desc) with null-safe comparison
-            return users.stream()
-                .sorted((a, b) -> {
-                    Integer levelA = a.getLevel() != null ? a.getLevel() : 1;
-                    Integer levelB = b.getLevel() != null ? b.getLevel() : 1;
-                    
-                    int levelCompare = levelB.compareTo(levelA); // Descending order
-                    if (levelCompare != 0) {
-                        return levelCompare;
-                    }
-                    
-                    Integer xpA = a.getExperience() != null ? a.getExperience() : 0;
-                    Integer xpB = b.getExperience() != null ? b.getExperience() : 0;
-                    return xpB.compareTo(xpA); // Descending order
-                })
-                .map(this::mapToProfileDTO)
-                .collect(Collectors.toList());
-        } else if ("messages".equalsIgnoreCase(sortBy)) {
-            // Sort by message count descending
-            return users.stream()
-                .sorted(Comparator.comparing(user -> user.getMessageCount() != null ? user.getMessageCount() : 0, 
-                        Comparator.reverseOrder()))
-                .map(this::mapToProfileDTO)
-                .collect(Collectors.toList());
-        } else if ("voice".equalsIgnoreCase(sortBy)) {
-            // Sort by total voice time descending with null-safe comparison
-            return users.stream()
-                .sorted(Comparator.comparing(user -> user.getVoiceTimeMinutesTotal() != null ? user.getVoiceTimeMinutesTotal() : 0, 
-                        Comparator.reverseOrder()))
-                .map(this::mapToProfileDTO)
-                .collect(Collectors.toList());
-        } else {
-            // Default: sort by credits descending
-            return users.stream()
-                .sorted(Comparator.comparing(user -> user.getCredits() != null ? user.getCredits() : 0, 
-                        Comparator.reverseOrder()))
-                .map(this::mapToProfileDTO)
-                .collect(Collectors.toList());
+    @Cacheable(value = "leaderboardCache", key = "#sortBy")
+    public List<LeaderboardEntryDTO> getLeaderboardUsers(String sortBy) {
+        String sortProperty;
+        List<Order> orders = new ArrayList<>();
+
+        switch (sortBy.toLowerCase()) {
+            case "level":
+                orders.add(new Order(Direction.DESC, "level"));
+                orders.add(new Order(Direction.DESC, "experience"));
+                break;
+            case "messages":
+                sortProperty = "messageCount";
+                orders.add(new Order(Direction.DESC, sortProperty));
+                break;
+            case "voice":
+                sortProperty = "voiceTimeMinutesTotal";
+                orders.add(new Order(Direction.DESC, sortProperty));
+                break;
+            case "credits":
+            default:
+                sortProperty = "credits";
+                orders.add(new Order(Direction.DESC, sortProperty));
+                break;
         }
+
+        Sort sort = Sort.by(orders);
+        Pageable pageable = PageRequest.of(0, 100, sort);
+
+        Page<LeaderboardEntryDTO> userPage = userRepository.findLeaderboardEntries(pageable);
+        List<LeaderboardEntryDTO> leaderboardEntries = userPage.getContent();
+        
+        // Calculate and set the rank for each entry
+        IntStream.range(0, leaderboardEntries.size())
+                 .forEach(i -> leaderboardEntries.get(i).setRank(i + 1));
+        
+        return leaderboardEntries;
     }
 
     /**
@@ -1319,6 +1320,7 @@ public class UserService {
         
         // Invalidate relevant caches
         cacheConfig.invalidateUserProfileCache(userId);
+        cacheConfig.invalidateLeaderboardCache();
         
         // Audit log
         logger.info("ADMIN INVENTORY REMOVAL - Admin: {}, User: {}, Item: {} ({}), Refund: {} credits, Was Equipped: {}", 
