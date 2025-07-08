@@ -369,8 +369,8 @@ public class CountingGameService {
     protected void awardCredits(String userId, int credits) {
         try {
             User user = userService.getUserById(userId);
-            user.setCredits((user.getCredits() != null ? user.getCredits() : 0) + credits);
-            userService.updateUser(user);
+                user.setCredits((user.getCredits() != null ? user.getCredits() : 0) + credits);
+                userService.updateUser(user);
             
             // Create audit entry for counting credits
             try {

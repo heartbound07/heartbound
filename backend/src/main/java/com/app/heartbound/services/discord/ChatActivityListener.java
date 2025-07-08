@@ -271,7 +271,7 @@ public class ChatActivityListener extends ListenerAdapter {
             int multipliedCredits = (int) Math.round(creditsPerLevel * roleMultiplier);
             user.setCredits(currentCredits + multipliedCredits);
             log.info("Awarded {} credits to user {} for leveling up to {}. New balance: {}",
-                multipliedCredits, userId, newLevel, user.getCredits());
+                        multipliedCredits, userId, newLevel, user.getCredits());
             
             // Save user with updated credits and level
             userService.updateUser(user);
