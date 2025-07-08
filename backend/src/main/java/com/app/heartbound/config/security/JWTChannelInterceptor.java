@@ -80,8 +80,15 @@ public class JWTChannelInterceptor implements ChannelInterceptor {
                 
             } catch (Exception e) {
                 long duration = System.nanoTime() - startTime;
-                logger.error("WebSocket JWT authentication failed in {} ms: {}", 
-                        duration / 1_000_000, e.getMessage());
+                
+                // Use DEBUG level for expired tokens (normal behavior), ERROR for other issues
+                if (e.getMessage() != null && e.getMessage().contains("Expired JWT token")) {
+                    logger.debug("WebSocket JWT authentication failed in {} ms: {}", 
+                            duration / 1_000_000, e.getMessage());
+                } else {
+                    logger.error("WebSocket JWT authentication failed in {} ms: {}", 
+                            duration / 1_000_000, e.getMessage());
+                }
                 
                 // **PERFORMANCE OPTIMIZATION 3**: Fail fast instead of letting connection hang
                 throw new IllegalArgumentException("Authentication failed: " + e.getMessage(), e);
@@ -102,7 +109,12 @@ public class JWTChannelInterceptor implements ChannelInterceptor {
                 try {
                     return jwtTokenProvider.authenticateTokenOptimized(token);
                 } catch (InvalidTokenException e) {
-                    logger.error("Invalid JWT token received during STOMP CONNECT: {}", e.getMessage());
+                    // Use DEBUG level for expired tokens (normal behavior), ERROR for other issues
+                    if (e.getMessage() != null && e.getMessage().contains("Expired JWT token")) {
+                        logger.debug("Invalid JWT token received during STOMP CONNECT: {}", e.getMessage());
+                    } else {
+                        logger.error("Invalid JWT token received during STOMP CONNECT: {}", e.getMessage());
+                    }
                     throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
                 }
             });
@@ -117,7 +129,13 @@ public class JWTChannelInterceptor implements ChannelInterceptor {
             if (e.getCause() instanceof InvalidTokenException) {
                 throw (InvalidTokenException) e.getCause();
             }
-            logger.error("Unexpected error during JWT authentication: {}", e.getMessage(), e);
+            
+            // Use DEBUG level for expired tokens (normal behavior), ERROR for other issues
+            if (e.getMessage() != null && e.getMessage().contains("Expired JWT token")) {
+                logger.debug("Unexpected error during JWT authentication: {}", e.getMessage());
+            } else {
+                logger.error("Unexpected error during JWT authentication: {}", e.getMessage(), e);
+            }
             throw new InvalidTokenException("Authentication error: " + e.getMessage());
         }
     }
