@@ -62,12 +62,9 @@ export const getUserProfile = async (userId: string): Promise<UserProfileDTO> =>
     return response.data;
   } catch (error) {
     console.error(`Error fetching user profile for ${userId}:`, error);
-    return {
-      id: userId,
-      username: "Unknown User",
-      avatar: "/images/default-avatar.png",
-      credits: 0
-    };
+    // Re-throw the error to allow calling components to handle it,
+    // instead of returning a default object that causes UI issues.
+    throw error;
   }
 };
 
@@ -86,18 +83,8 @@ export const getUserProfiles = async (userIds: string[]): Promise<Record<string,
     return response.data;
   } catch (error) {
     console.error('Error fetching user profiles:', error);
-    
-    // Return fallback profiles
-    const fallbackProfiles: Record<string, UserProfileDTO> = {};
-    validUserIds.forEach(id => {
-      fallbackProfiles[id] = {
-        id,
-        username: "Unknown User",
-        avatar: "/images/default-avatar.png",
-        credits: 0
-      };
-    });
-    return fallbackProfiles;
+    // Re-throw the error for consistency in error handling.
+    throw error;
   }
 };
 
