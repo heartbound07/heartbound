@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.awt.Color;
@@ -33,6 +34,9 @@ public class DailyCommandListener extends ListenerAdapter {
     private final CacheConfig cacheConfig;
     private final AuditService auditService;
     
+    @Value("${discord.main.guild.id}")
+    private String mainGuildId;
+
     @Autowired
     public DailyCommandListener(UserService userService, CacheConfig cacheConfig, AuditService auditService) {
         this.userService = userService;
@@ -47,6 +51,14 @@ public class DailyCommandListener extends ListenerAdapter {
             return; // Not our command
         }
         
+        // Guild restriction check
+        if (!event.isFromGuild() || !event.getGuild().getId().equals(mainGuildId)) {
+            event.reply("This command can only be used in the main Heartbound server.")
+                    .setEphemeral(true)
+                    .queue();
+            return;
+        }
+
         logger.info("User {} requested /daily", event.getUser().getId());
         
         // Acknowledge the interaction quickly and make the response public (visible to everyone)

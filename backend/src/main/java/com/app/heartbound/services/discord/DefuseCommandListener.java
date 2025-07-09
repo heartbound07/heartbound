@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 
 import javax.annotation.Nonnull;
 import java.awt.Color;
@@ -51,6 +52,9 @@ public class DefuseCommandListener extends ListenerAdapter {
     private final AuditService auditService;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
     
+    @Value("${discord.main.guild.id}")
+    private String mainGuildId;
+
     // Wire colors and their emojis
     private static final List<String> WIRE_COLORS = Arrays.asList("red", "blue", "yellow", "green", "pink");
     private static final List<String> WIRE_EMOJIS = Arrays.asList("🔴", "🔵", "🟡", "🟢", "🩷");
@@ -72,6 +76,14 @@ public class DefuseCommandListener extends ListenerAdapter {
             return; // Not our command
         }
         
+        // Guild restriction check
+        if (!event.isFromGuild() || !event.getGuild().getId().equals(mainGuildId)) {
+            event.reply("This command can only be used in the main Heartbound server.")
+                    .setEphemeral(true)
+                    .queue();
+            return;
+        }
+
         String challengerId = event.getUser().getId();
         logger.info("User {} requested /defuse", challengerId);
         

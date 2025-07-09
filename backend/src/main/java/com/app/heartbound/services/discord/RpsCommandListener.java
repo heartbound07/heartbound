@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 
 import javax.annotation.Nonnull;
 import java.awt.Color;
@@ -35,6 +36,9 @@ public class RpsCommandListener extends ListenerAdapter {
     private final UserService userService;
     private final CacheConfig cacheConfig;
     
+    @Value("${discord.main.guild.id}")
+    private String mainGuildId;
+
     // Store active games to prevent duplicates and manage state
     private final ConcurrentHashMap<String, RpsGame> activeGames = new ConcurrentHashMap<>();
     
@@ -50,6 +54,14 @@ public class RpsCommandListener extends ListenerAdapter {
             return; // Not our command
         }
         
+        // Guild restriction check
+        if (!event.isFromGuild() || !event.getGuild().getId().equals(mainGuildId)) {
+            event.reply("This command can only be used in the main Heartbound server.")
+                    .setEphemeral(true)
+                    .queue();
+            return;
+        }
+
         String challengerId = event.getUser().getId();
         logger.info("User {} requested /rps", challengerId);
         

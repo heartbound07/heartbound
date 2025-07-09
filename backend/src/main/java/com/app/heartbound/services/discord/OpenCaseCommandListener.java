@@ -81,6 +81,9 @@ public class OpenCaseCommandListener extends ListenerAdapter {
     private final ShopService shopService;
     private final UserService userService;
     
+    @Value("${discord.main.guild.id}")
+    private String mainGuildId;
+
     @Value("${frontend.base.url}")
     private String frontendBaseUrl;
     
@@ -206,6 +209,14 @@ public class OpenCaseCommandListener extends ListenerAdapter {
             return; // Not our command
         }
         
+        // Guild restriction check
+        if (!event.isFromGuild() || !event.getGuild().getId().equals(mainGuildId)) {
+            event.reply("This command can only be used in the main Heartbound server.")
+                    .setEphemeral(true)
+                    .queue();
+            return;
+        }
+
         String userId = event.getUser().getId();
         logger.info("User {} requested /open command", userId);
         
