@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.utils.FileUpload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,8 +108,12 @@ public class LevelCardCommandListener extends ListenerAdapter {
             // Download the image
             byte[] imageBytes = downloadImage(imageUrl);
             
-            // Send the image to Discord
+            // Create the "View Profile" button
+            Button viewProfileButton = Button.link(frontendBaseUrl + "/dashboard", "View Profile");
+
+            // Send the image to Discord with the button
             event.getHook().sendFiles(FileUpload.fromData(imageBytes, "level-card.png"))
+                .addActionRow(viewProfileButton)
                 .queue();
             
         } catch (Exception e) {
