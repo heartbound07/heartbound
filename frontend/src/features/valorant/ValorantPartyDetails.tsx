@@ -129,7 +129,7 @@ export default function ValorantPartyDetails() {
   const [kickConfirmationProps, setKickConfirmationProps] = React.useState<ToastState | null>(null)
 
   // Placeholder avatar for participants who don't have an available avatar.
-  const placeholderAvatar = "https://v0.dev/placeholder.svg?height=400&width=400"
+  const placeholderAvatar = "/images/default-avatar.png"
 
   // Memoize important derived values
   const isUserLeader = React.useMemo(() => 

@@ -174,7 +174,7 @@ public class UserController {
         return UserProfileDTO.builder()
                 .id(userId)
                 .username("Unknown User")
-                .avatar("/default-avatar.png")
+                .avatar("/images/default-avatar.png")
                 .credits(0)
                 .build();
     }

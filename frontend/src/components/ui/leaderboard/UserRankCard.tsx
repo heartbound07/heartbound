@@ -160,7 +160,7 @@ export const UserRankCard = React.memo(function UserRankCard({
               {...AVATAR_ANIMATION}
             >
               <img 
-                src={currentUser!.avatar || "/default-avatar.png"} 
+                src={currentUser!.avatar || "/images/default-avatar.png"} 
                 alt={currentUser!.displayName || currentUser!.username || "User"}
                 className="w-14 h-14 rounded-full object-cover border border-[var(--color-primary)]"
                 loading="lazy"

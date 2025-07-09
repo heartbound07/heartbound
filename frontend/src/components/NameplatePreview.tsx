@@ -16,7 +16,7 @@ interface NameplatePreviewProps {
  */
 export const NameplatePreview: React.FC<NameplatePreviewProps> = ({
   username = 'Username',
-  avatar = '/default-avatar.png',
+  avatar = '/images/default-avatar.png',
   color,
   fallbackColor = '#ffffff',
   message = 'This is the color for the Nameplate!',

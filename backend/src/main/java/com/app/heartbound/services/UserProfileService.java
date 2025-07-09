@@ -71,7 +71,7 @@ public class UserProfileService {
         return UserProfileDTO.builder()
                 .id(userId)
                 .username("Unknown User")
-                .avatar("/default-avatar.png")
+                .avatar("/images/default-avatar.png")
                 .credits(0) // Default credits for unknown users
                 .level(1) // Default level
                 .experience(0) // Default experience

@@ -484,7 +484,7 @@ export function UserManagement() {
                         <div className="h-10 w-10 flex-shrink-0">
                           <img 
                             className="h-10 w-10 rounded-full object-cover" 
-                            src={user.avatar || "/default-avatar.png"} 
+                            src={user.avatar || "/images/default-avatar.png"} 
                             alt="" 
                           />
                         </div>

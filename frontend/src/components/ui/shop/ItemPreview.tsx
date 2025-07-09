@@ -233,7 +233,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
               // Show badge preview with nameplate color
               <BadgePreview
                 username={user?.username || "Username"}
-                avatar={user?.avatar || "/default-avatar.png"}
+                avatar={user?.avatar || "/images/default-avatar.png"}
                 badgeUrl={getBadgeUrl() || ''}
                 message="This is what your profile looks like"
                 className="w-full"
@@ -244,7 +244,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
               // Show nameplate preview only
               <NameplatePreview
                 username={user?.username || "Username"}
-                avatar={user?.avatar || "/default-avatar.png"}
+                avatar={user?.avatar || "/images/default-avatar.png"}
                 color={getNameplateColor()}
                 fallbackColor={rarityColor}
                 message="This is what your profile looks like"
@@ -257,7 +257,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                 {hasEquippedBadge() ? (
                   <BadgePreview
                     username={user?.username || "Username"}
-                    avatar={user?.avatar || "/default-avatar.png"}
+                    avatar={user?.avatar || "/images/default-avatar.png"}
                     badgeUrl={getBadgeUrl() || ''}
                     message="This is what your profile looks like"
                     className="w-full"
@@ -267,7 +267,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                 ) : (
                   <NameplatePreview
                     username={user?.username || "Username"}
-                    avatar={user?.avatar || "/default-avatar.png"}
+                    avatar={user?.avatar || "/images/default-avatar.png"}
                     color={getNameplateColor()}
                     fallbackColor="#ffffff"
                     message="This is what your profile looks like"

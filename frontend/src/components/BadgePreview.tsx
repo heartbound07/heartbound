@@ -16,7 +16,7 @@ interface BadgePreviewProps {
  */
 export const BadgePreview: React.FC<BadgePreviewProps> = ({
   username = 'Username',
-  avatar = '/default-avatar.png',
+  avatar = '/images/default-avatar.png',
   badgeUrl,
   className = '',
   size = 'md',

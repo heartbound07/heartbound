@@ -412,7 +412,7 @@ export function CaseRollModal({
           {containedItem.category === 'USER_COLOR' ? (
             <NameplatePreview
               username={user?.username || "User"}
-              avatar={user?.avatar || "/default-avatar.png"}
+              avatar={user?.avatar || "/images/default-avatar.png"}
               color={containedItem.imageUrl}
               fallbackColor={rarityColor}
               message=""
@@ -597,7 +597,7 @@ export function CaseRollModal({
                                   <div className="flex justify-center py-2">
                                     <NameplatePreview
                                       username={user?.username || "Preview"}
-                                      avatar={user?.avatar || "/default-avatar.png"}
+                                      avatar={user?.avatar || "/images/default-avatar.png"}
                                       color={item.imageUrl}
                                       fallbackColor={rarityColor}
                                       message="Preview of your nameplate color"
@@ -822,7 +822,7 @@ export function CaseRollModal({
                       {rollResult.wonItem.category === 'USER_COLOR' ? (
                         <NameplatePreview
                           username={user?.username || "Username"}
-                          avatar={user?.avatar || "/default-avatar.png"}
+                          avatar={user?.avatar || "/images/default-avatar.png"}
                           color={rollResult.wonItem.imageUrl}
                           fallbackColor={getRarityColor(rollResult.wonItem.rarity)}
                           message="Your new nameplate color"
@@ -832,7 +832,7 @@ export function CaseRollModal({
                       ) : rollResult.wonItem.category === 'BADGE' ? (
                         <BadgePreview
                           username={user?.username || "Username"}
-                          avatar={user?.avatar || "/default-avatar.png"}
+                          avatar={user?.avatar || "/images/default-avatar.png"}
                           badgeUrl={rollResult.wonItem.thumbnailUrl || rollResult.wonItem.imageUrl}
                           message="Your new badge"
                           className=""

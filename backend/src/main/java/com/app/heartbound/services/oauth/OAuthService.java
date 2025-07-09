@@ -54,7 +54,7 @@ public class OAuthService {
                 avatarUrl = "https://cdn.discordapp.com/embed/avatars/" + defaultAvatar + ".png";
             } else {
                 // Fallback to a hardcoded default (should ideally never occur)
-                avatarUrl = "/default-avatar.png";
+                avatarUrl = "/images/default-avatar.png";
             }
             userDTO.setAvatar(avatarUrl);
         } else {

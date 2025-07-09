@@ -248,7 +248,7 @@ public class LevelCardCommandListener extends ListenerAdapter {
         String displayName = profile.getDisplayName() != null ? profile.getDisplayName() : 
                            (profile.getUsername() != null ? profile.getUsername() : "User");
         String username = profile.getUsername() != null ? "@" + profile.getUsername() : "";
-        String avatarUrl = profile.getAvatar() != null ? profile.getAvatar() : "/default-avatar.png";
+        String avatarUrl = profile.getAvatar() != null ? profile.getAvatar() : "/images/default-avatar.png";
         String bannerUrl = profile.getBannerUrl();
         int level = profile.getLevel() != null ? profile.getLevel() : 1;
         

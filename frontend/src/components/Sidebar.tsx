@@ -334,7 +334,7 @@ export function DashboardNavigation({ theme = "default", onCollapseChange }: Das
           onClick={handleProfileClick}
         >
           <div className="profile-avatar">
-            <img src={user?.avatar || "/default-avatar.png"} alt={user?.username || "User"} className="avatar-image" />
+            <img src={user?.avatar || "/images/default-avatar.png"} alt={user?.username || "User"} className="avatar-image" />
             <div className="status-dot"></div>
           </div>
 

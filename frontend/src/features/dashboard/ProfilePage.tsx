@@ -192,7 +192,7 @@ export function ProfilePage() {
       }
       
       // Determine if using custom avatar or Discord avatar
-      if (user.avatar === "USE_DISCORD_AVATAR" || (user.avatar && user.avatar.includes('cdn.discordapp.com')) || user.avatar === '/default-avatar.png') {
+      if (user.avatar === "USE_DISCORD_AVATAR" || (user.avatar && user.avatar.includes('cdn.discordapp.com')) || user.avatar === '/images/default-avatar.png') {
         setIsUsingCustomAvatar(false)
       } else if (user.avatar) {
         setIsUsingCustomAvatar(true)

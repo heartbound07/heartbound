@@ -158,7 +158,7 @@ export const LevelCard = React.memo(function LevelCard({ userProfile, loading, e
           <div className="user-info-left">
             <div className="avatar">
               <img
-                src={userProfile.avatar || "/default-avatar.png"}
+                src={userProfile.avatar || "/images/default-avatar.png"}
                 alt={userProfile.displayName || userProfile.username || "User"}
                 loading="lazy"
                 decoding="async"

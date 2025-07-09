@@ -108,7 +108,7 @@ const ShopItemCard = forwardRef(({
         <div className="shop-item-image discord-preview">
           <NameplatePreview
             username={user?.username || "Username"}
-            avatar={user?.avatar || "/default-avatar.png"}
+            avatar={user?.avatar || "/images/default-avatar.png"}
             color={item.imageUrl}
             fallbackColor={rarityColor}
             message="This is the color for the Nameplate!"
@@ -137,7 +137,7 @@ const ShopItemCard = forwardRef(({
         <div className="shop-item-image discord-preview">
           <BadgePreview
             username={user?.username || "Username"}
-            avatar={user?.avatar || "/default-avatar.png"}
+            avatar={user?.avatar || "/images/default-avatar.png"}
             badgeUrl={item.thumbnailUrl || item.imageUrl}
             message="This is how the badge will appear!"
             className="h-full w-full rounded-t-lg"
@@ -550,7 +550,7 @@ export function ShopPage() {
         // If the current avatar is the default path, send an empty string instead,
         // which is a valid value indicating no custom avatar is set.
         let avatarForUpdate = updatedProfile.avatar || user?.avatar || '';
-        if (avatarForUpdate === '/default-avatar.png') {
+        if (avatarForUpdate === '/images/default-avatar.png') {
           avatarForUpdate = '';
         }
         

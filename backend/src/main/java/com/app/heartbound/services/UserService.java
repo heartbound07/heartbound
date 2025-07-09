@@ -418,11 +418,11 @@ public class UserService {
                 logger.debug("Using cached Discord avatar URL: {}", avatarUrl);
             } else {
                 // Fallback if no cached avatar is found
-                avatarUrl = "/default-avatar.png";
+                avatarUrl = "/images/default-avatar.png";
                 logger.warn("No cached Discord avatar URL found for user: {}, using default", user.getId());
             }
         } else if (avatarUrl == null || avatarUrl.isEmpty()) {
-            avatarUrl = "/default-avatar.png";
+            avatarUrl = "/images/default-avatar.png";
             logger.debug("Empty avatar URL for user: {}, using default", user.getId());
         } else {
             logger.debug("Using custom avatar URL for user: {}: {}", user.getId(), avatarUrl);

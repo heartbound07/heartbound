@@ -157,7 +157,7 @@ const InventoryItemCard = forwardRef(({
         <div className="shop-item-image inventory-item-image">
           <NameplatePreview
             username={user?.username || "Username"}
-            avatar={user?.avatar || "/default-avatar.png"}
+            avatar={user?.avatar || "/images/default-avatar.png"}
             color={item.imageUrl}
             fallbackColor={rarityColor}
             message="Your nameplate color"
@@ -176,7 +176,7 @@ const InventoryItemCard = forwardRef(({
         <div className="shop-item-image inventory-item-image">
           <BadgePreview
             username={user?.username || "Username"}
-            avatar={user?.avatar || "/default-avatar.png"}
+            avatar={user?.avatar || "/images/default-avatar.png"}
             badgeUrl={item.thumbnailUrl || item.imageUrl}
             message="Your badge"
             className="h-full w-full rounded-t-lg"

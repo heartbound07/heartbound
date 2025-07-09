@@ -60,4 +60,37 @@ public class ResourceController {
             return ResponseEntity.internalServerError().build();
         }
     }
+    
+    @GetMapping(value = "/images/default-avatar.png", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> getDefaultAvatar() {
+        String imagePath = "static/images/ranks/default-avatar.png";
+        logger.debug("Attempting to load default avatar from classpath: {}", imagePath);
+
+        try {
+            Resource resource = new ClassPathResource(imagePath);
+
+            if (!resource.exists()) {
+                logger.warn("Default avatar not found in classpath: {}", imagePath);
+
+                String filePath = System.getProperty("user.dir") + "/src/main/resources/" + imagePath;
+                logger.debug("Attempting to load default avatar from file system: {}", filePath);
+
+                File file = new File(filePath);
+                if (file.exists()) {
+                    logger.debug("Found default avatar at file system path: {}", filePath);
+                    return ResponseEntity.ok().body(Files.readAllBytes(file.toPath()));
+                }
+
+                logger.error("Default avatar not found anywhere.");
+                return ResponseEntity.notFound().build();
+            }
+
+            byte[] imageBytes = StreamUtils.copyToByteArray(resource.getInputStream());
+            logger.debug("Successfully loaded default avatar from classpath: {} bytes", imageBytes.length);
+            return ResponseEntity.ok().body(imageBytes);
+        } catch (IOException e) {
+            logger.error("Error loading default avatar: {}", e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 } 
