@@ -279,10 +279,6 @@ public class CountingGameService {
             gameState.setHighestCount(number);
         }
         
-        // Reset save cost to 200 if we've reached a milestone (count 10+) for sustained success
-        if (number >= 10) {
-            gameState.setSaveCost(200);
-        }
         gameState.setLastFailedCount(null);
         gameStateRepository.save(gameState);
         
