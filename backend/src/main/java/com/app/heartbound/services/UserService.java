@@ -759,37 +759,37 @@ public class UserService {
 
     /**
      * Get users for the leaderboard, sorted by a specified criterion.
-     * Fetches a paginated and optimized list of the top 100 users from the database.
+     * Fetches a paginated and optimized list of the top 100 users from the database,
+     * with sorting handled at the database level for efficiency and correctness.
      *
      * @param sortBy Sorting criterion: "credits", "level", "messages", or "voice"
      * @return List of sorted LeaderboardEntryDTOs with calculated ranks
      */
     public List<LeaderboardEntryDTO> getLeaderboardUsers(String sortBy) {
-        // Fetch the top 100 users based on a general activity metric (e.g., credits)
-        // We fetch a slightly larger, unsorted list and sort in memory for accuracy.
-        Pageable pageable = PageRequest.of(0, 100);
-        Page<LeaderboardEntryDTO> userPage = userRepository.findLeaderboardEntries(pageable);
-        List<LeaderboardEntryDTO> leaderboardEntries = new ArrayList<>(userPage.getContent());
-
-        // Perform sorting in memory for precise control over DTO fields
+        Sort sort;
         switch (sortBy.toLowerCase()) {
             case "level":
-                leaderboardEntries.sort(Comparator.comparing(LeaderboardEntryDTO::getLevel, Comparator.nullsLast(Comparator.reverseOrder()))
-                    .thenComparing(LeaderboardEntryDTO::getExperience, Comparator.nullsLast(Comparator.reverseOrder())));
+                sort = Sort.by(Direction.DESC, "level")
+                           .and(Sort.by(Direction.DESC, "experience"));
                 break;
             case "messages":
-                leaderboardEntries.sort(Comparator.comparing(LeaderboardEntryDTO::getMessageCount, Comparator.nullsLast(Comparator.reverseOrder())));
+                sort = Sort.by(Direction.DESC, "messageCount");
                 break;
             case "voice":
-                leaderboardEntries.sort(Comparator.comparing(LeaderboardEntryDTO::getVoiceTimeMinutesTotal, Comparator.nullsLast(Comparator.reverseOrder())));
+                sort = Sort.by(Direction.DESC, "voiceTimeMinutesTotal");
                 break;
             case "credits":
             default:
-                leaderboardEntries.sort(Comparator.comparing(LeaderboardEntryDTO::getCredits, Comparator.nullsLast(Comparator.reverseOrder())));
+                sort = Sort.by(Direction.DESC, "credits");
                 break;
         }
-        
-        // Calculate and set the rank for each entry after sorting
+
+        // Fetch the top 100 users, sorted by the database.
+        Pageable pageable = PageRequest.of(0, 100, sort);
+        Page<LeaderboardEntryDTO> userPage = userRepository.findLeaderboardEntries(pageable);
+        List<LeaderboardEntryDTO> leaderboardEntries = new ArrayList<>(userPage.getContent());
+
+        // The list is already sorted by the database, so we just need to assign ranks.
         IntStream.range(0, leaderboardEntries.size())
                  .forEach(i -> leaderboardEntries.get(i).setRank(i + 1));
         
