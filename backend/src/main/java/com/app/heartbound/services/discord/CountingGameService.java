@@ -272,6 +272,13 @@ public class CountingGameService {
     @Transactional
     protected CountingResult handleCorrectCount(String userId, CountingUserData userData, 
                                                CountingGameState gameState, int number) {
+        // If the count is starting over (i.e., at 1) after a failure (indicated by a non-null lastFailedCount),
+        // it means the opportunity to save the count was missed. Reset the save cost for the next cycle.
+        if (number == 1 && gameState.getLastFailedCount() != null) {
+            gameState.setSaveCost(200);
+            log.info("Counting game save cost reset to 200. A new count has started, and the previous failed count was not saved.");
+        }
+        
         // Update game state
         gameState.setCurrentCount(number);
         gameState.setLastUserId(userId);
