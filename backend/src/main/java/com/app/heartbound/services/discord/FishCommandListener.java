@@ -12,6 +12,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -60,6 +61,9 @@ public class FishCommandListener extends ListenerAdapter {
     private final UserService userService;
     private final SecureRandomService secureRandomService;
     private final AuditService auditService;
+
+    @Value("${discord.main.guild.id}")
+    private String mainGuildId;
     
     @Autowired
     public FishCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService) {
@@ -75,6 +79,14 @@ public class FishCommandListener extends ListenerAdapter {
             return; // Not our command
         }
         
+        // Guild restriction check
+        if (!event.isFromGuild() || !event.getGuild().getId().equals(mainGuildId)) {
+            event.reply("This command can only be used in the main Heartbound server.")
+                    .setEphemeral(true)
+                    .queue();
+            return;
+        }
+
         String userId = event.getUser().getId();
         logger.info("User {} requested /fish", userId);
         
