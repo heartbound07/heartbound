@@ -766,6 +766,8 @@ public class UserService {
      * @return List of sorted LeaderboardEntryDTOs with calculated ranks
      */
     public List<LeaderboardEntryDTO> getLeaderboardUsers(String sortBy) {
+        logger.debug("Fetching leaderboard for sortBy: '{}'", sortBy);
+
         Sort sort;
         switch (sortBy.toLowerCase()) {
             case "level":
@@ -773,10 +775,10 @@ public class UserService {
                            .and(Sort.by(Direction.DESC, "experience"));
                 break;
             case "messages":
-                sort = Sort.by(Direction.DESC, "u.messageCount");
+                sort = Sort.by(Direction.DESC, "messageCount");
                 break;
             case "voice":
-                sort = Sort.by(Direction.DESC, "u.voiceTimeMinutesTotal");
+                sort = Sort.by(Direction.DESC, "voiceTimeMinutesTotal");
                 break;
             case "credits":
             default:
@@ -784,10 +786,35 @@ public class UserService {
                 break;
         }
 
+        logger.debug("Constructed Sort object: {}", sort);
+
         // Fetch the top 100 users, sorted by the database.
         Pageable pageable = PageRequest.of(0, 100, sort);
         Page<LeaderboardEntryDTO> userPage = userRepository.findLeaderboardEntries(pageable);
         List<LeaderboardEntryDTO> leaderboardEntries = new ArrayList<>(userPage.getContent());
+
+        // Add detailed logging for the returned entries to check sorting
+        if (logger.isDebugEnabled()) {
+            logger.debug("Fetched {} leaderboard entries. Top 5 entries for sorting validation:", leaderboardEntries.size());
+            leaderboardEntries.stream().limit(5).forEach(entry -> {
+                String logMessage;
+                switch (sortBy.toLowerCase()) {
+                    case "level":
+                        logMessage = String.format("User: %s, Level: %d, XP: %d", entry.getDisplayName(), entry.getLevel(), entry.getExperience());
+                        break;
+                    case "messages":
+                        logMessage = String.format("User: %s, Messages: %d", entry.getDisplayName(), entry.getMessageCount());
+                        break;
+                    case "voice":
+                        logMessage = String.format("User: %s, Voice Time: %d", entry.getDisplayName(), entry.getVoiceTimeMinutesTotal());
+                        break;
+                    default: // credits
+                        logMessage = String.format("User: %s, Credits: %d", entry.getDisplayName(), entry.getCredits());
+                        break;
+                }
+                logger.debug(logMessage);
+            });
+        }
 
         // The list is already sorted by the database, so we just need to assign ranks.
         IntStream.range(0, leaderboardEntries.size())
