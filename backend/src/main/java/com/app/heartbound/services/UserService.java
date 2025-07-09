@@ -773,10 +773,10 @@ public class UserService {
                            .and(Sort.by(Direction.DESC, "experience"));
                 break;
             case "messages":
-                sort = Sort.by(Direction.DESC, "messageCount");
+                sort = Sort.by(Direction.DESC, "u.messageCount");
                 break;
             case "voice":
-                sort = Sort.by(Direction.DESC, "voiceTimeMinutesTotal");
+                sort = Sort.by(Direction.DESC, "u.voiceTimeMinutesTotal");
                 break;
             case "credits":
             default:
