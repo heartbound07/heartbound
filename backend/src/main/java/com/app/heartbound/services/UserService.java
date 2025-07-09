@@ -189,29 +189,39 @@ public class UserService {
 
             // 2. Conditionally update the primary avatar
             String currentPrimaryAvatar = user.getAvatar();
-            if (discordAvatarFetched != null) { 
-                // If current primary avatar is null, empty, or explicitly set to "USE_DISCORD_AVATAR",
-                // then update it with the new one from Discord.
-                if (currentPrimaryAvatar == null || currentPrimaryAvatar.isEmpty() || "USE_DISCORD_AVATAR".equals(currentPrimaryAvatar)) {
+            if (discordAvatarFetched != null) {
+                // The primary avatar should be updated if:
+                // a) It's blank, null, or the special "USE_DISCORD_AVATAR" marker.
+                // b) It's an existing Discord CDN URL (which may be stale).
+                // This preserves custom non-Discord avatars while keeping Discord ones synced.
+                boolean shouldUpdatePrimaryAvatar = currentPrimaryAvatar == null || currentPrimaryAvatar.isEmpty()
+                        || "USE_DISCORD_AVATAR".equals(currentPrimaryAvatar)
+                        || currentPrimaryAvatar.contains("cdn.discordapp.com");
+
+                if (shouldUpdatePrimaryAvatar) {
                     if (!discordAvatarFetched.equals(currentPrimaryAvatar)) {
                         user.setAvatar(discordAvatarFetched);
-                        logger.debug("Existing user {}: Updated primary avatar to Discord avatar '{}' (was blank, null, or USE_DISCORD_AVATAR). Old: '{}'", id, discordAvatarFetched, currentPrimaryAvatar);
+                        logger.debug("Existing user {}: Updated primary avatar to fresh Discord avatar '{}'. Old: '{}'", id, discordAvatarFetched, currentPrimaryAvatar);
                     } else {
-                        logger.debug("Existing user {}: Primary avatar ('{}') already matches Discord avatar and was eligible for update. No change.", id, currentPrimaryAvatar);
+                        logger.debug("Existing user {}: Primary avatar ('{}') already matches fresh Discord avatar. No change.", id, currentPrimaryAvatar);
                     }
                 } else {
                     // User has a custom primary avatar (e.g., Cloudinary URL). Preserve it.
-                    logger.debug("Existing user {}: Preserved custom primary avatar '{}'. (New Discord avatar from DTO was '{}')", currentPrimaryAvatar, id, discordAvatarFetched);
+                    logger.debug("Existing user {}: Preserved custom primary avatar '{}'. (New Discord avatar from DTO was '{}')", id, currentPrimaryAvatar, discordAvatarFetched);
                 }
             } else { // discordAvatarFetched is null
-                // If Discord provides no avatar, and user was using "USE_DISCORD_AVATAR",
-                // their primary avatar will effectively become null/default after this.
-                // The mapToProfileDTO logic might then apply a default.
-                // No direct change to user.setAvatar() here if discordAvatarFetched is null,
-                // unless currentPrimaryAvatar was "USE_DISCORD_AVATAR" and you want to explicitly clear it.
-                // For now, if discordAvatarFetched is null, we don't change a custom avatar.
-                // If it was "USE_DISCORD_AVATAR", it will reflect the (now null) discordAvatarUrl implicitly.
-                logger.debug("Existing user {}: DTO avatar is null. Primary avatar is '{}'. No change to primary avatar from this path.", id, currentPrimaryAvatar);
+                // If Discord provides no avatar, and the user was previously using a Discord avatar for their primary,
+                // we should reset it to sync with their new (lack of) Discord avatar.
+                boolean wasUsingDiscordAvatar = currentPrimaryAvatar != null
+                    && (currentPrimaryAvatar.contains("cdn.discordapp.com") || "USE_DISCORD_AVATAR".equals(currentPrimaryAvatar));
+
+                if (wasUsingDiscordAvatar) {
+                    // Setting to USE_DISCORD_AVATAR is safer. mapToProfileDTO will handle the fallback.
+                    user.setAvatar("USE_DISCORD_AVATAR");
+                    logger.debug("Existing user {}: Reset primary avatar to USE_DISCORD_AVATAR as DTO avatar was null. Old: '{}'", id, currentPrimaryAvatar);
+                } else {
+                    logger.debug("Existing user {}: DTO avatar is null. Preserving custom primary avatar '{}'.", id, currentPrimaryAvatar);
+                }
             }
         }
 
@@ -254,7 +264,13 @@ public class UserService {
         logger.debug("Saving user {} with final state - Avatar: '{}', DiscordAvatarUrl: '{}', Roles: {}, Credits: {}, Level: {}, Experience: {}",
                 id, user.getAvatar(), user.getDiscordAvatarUrl(), user.getRoles(), user.getCredits(), user.getLevel(), user.getExperience());
                 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        // Invalidate user profile cache to ensure data consistency after login sync
+        cacheConfig.invalidateUserProfileCache(id);
+        logger.debug("Invalidated user profile cache for user {} after create/update.", id);
+
+        return savedUser;
     }
 
     /**
