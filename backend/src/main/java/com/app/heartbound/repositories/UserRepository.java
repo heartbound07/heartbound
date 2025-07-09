@@ -54,9 +54,8 @@ public interface UserRepository extends JpaRepository<User, String> {
     /**
      * Finds a paginated list of users for the leaderboard, mapped to a lightweight DTO.
      * This query selects only the necessary fields for the leaderboard.
-     * Sorting is handled by the Pageable object.
      *
-     * @param pageable specifies sorting and limit (e.g., top 100 users by credits)
+     * @param pageable specifies the limit (e.g., top 100 users)
      * @return a page of LeaderboardEntryDTOs
      */
     @Query("SELECT new com.app.heartbound.dto.LeaderboardEntryDTO(" +

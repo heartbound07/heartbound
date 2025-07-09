@@ -764,38 +764,32 @@ public class UserService {
      * @param sortBy Sorting criterion: "credits", "level", "messages", or "voice"
      * @return List of sorted LeaderboardEntryDTOs with calculated ranks
      */
-    @Cacheable(value = "leaderboardCache", key = "#sortBy")
     public List<LeaderboardEntryDTO> getLeaderboardUsers(String sortBy) {
-        String sortProperty;
-        List<Order> orders = new ArrayList<>();
+        // Fetch the top 100 users based on a general activity metric (e.g., credits)
+        // We fetch a slightly larger, unsorted list and sort in memory for accuracy.
+        Pageable pageable = PageRequest.of(0, 100);
+        Page<LeaderboardEntryDTO> userPage = userRepository.findLeaderboardEntries(pageable);
+        List<LeaderboardEntryDTO> leaderboardEntries = new ArrayList<>(userPage.getContent());
 
+        // Perform sorting in memory for precise control over DTO fields
         switch (sortBy.toLowerCase()) {
             case "level":
-                orders.add(new Order(Direction.DESC, "level"));
-                orders.add(new Order(Direction.DESC, "experience"));
+                leaderboardEntries.sort(Comparator.comparing(LeaderboardEntryDTO::getLevel, Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(LeaderboardEntryDTO::getExperience, Comparator.nullsLast(Comparator.reverseOrder())));
                 break;
             case "messages":
-                sortProperty = "messageCount";
-                orders.add(new Order(Direction.DESC, sortProperty));
+                leaderboardEntries.sort(Comparator.comparing(LeaderboardEntryDTO::getMessageCount, Comparator.nullsLast(Comparator.reverseOrder())));
                 break;
             case "voice":
-                sortProperty = "voiceTimeMinutesTotal";
-                orders.add(new Order(Direction.DESC, sortProperty));
+                leaderboardEntries.sort(Comparator.comparing(LeaderboardEntryDTO::getVoiceTimeMinutesTotal, Comparator.nullsLast(Comparator.reverseOrder())));
                 break;
             case "credits":
             default:
-                sortProperty = "credits";
-                orders.add(new Order(Direction.DESC, sortProperty));
+                leaderboardEntries.sort(Comparator.comparing(LeaderboardEntryDTO::getCredits, Comparator.nullsLast(Comparator.reverseOrder())));
                 break;
         }
-
-        Sort sort = Sort.by(orders);
-        Pageable pageable = PageRequest.of(0, 100, sort);
-
-        Page<LeaderboardEntryDTO> userPage = userRepository.findLeaderboardEntries(pageable);
-        List<LeaderboardEntryDTO> leaderboardEntries = userPage.getContent();
         
-        // Calculate and set the rank for each entry
+        // Calculate and set the rank for each entry after sorting
         IntStream.range(0, leaderboardEntries.size())
                  .forEach(i -> leaderboardEntries.get(i).setRank(i + 1));
         
