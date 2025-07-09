@@ -766,55 +766,31 @@ public class UserService {
      * @return List of sorted LeaderboardEntryDTOs with calculated ranks
      */
     public List<LeaderboardEntryDTO> getLeaderboardUsers(String sortBy) {
-        logger.debug("Fetching leaderboard for sortBy: '{}'", sortBy);
-
         Sort sort;
         switch (sortBy.toLowerCase()) {
             case "level":
-                sort = Sort.by(Direction.DESC, "level")
-                           .and(Sort.by(Direction.DESC, "experience"));
+                // For level, nulls should also be last. Combine with secondary sort on experience.
+                sort = Sort.by(
+                    new Sort.Order(Direction.DESC, "level", Sort.NullHandling.NULLS_LAST),
+                    new Sort.Order(Direction.DESC, "experience", Sort.NullHandling.NULLS_LAST)
+                );
                 break;
             case "messages":
-                sort = Sort.by(Direction.DESC, "messageCount");
+                sort = Sort.by(new Sort.Order(Direction.DESC, "messageCount", Sort.NullHandling.NULLS_LAST));
                 break;
             case "voice":
-                sort = Sort.by(Direction.DESC, "voiceTimeMinutesTotal");
+                sort = Sort.by(new Sort.Order(Direction.DESC, "voiceTimeMinutesTotal", Sort.NullHandling.NULLS_LAST));
                 break;
             case "credits":
             default:
-                sort = Sort.by(Direction.DESC, "credits");
+                sort = Sort.by(new Sort.Order(Direction.DESC, "credits", Sort.NullHandling.NULLS_LAST));
                 break;
         }
-
-        logger.debug("Constructed Sort object: {}", sort);
 
         // Fetch the top 100 users, sorted by the database.
         Pageable pageable = PageRequest.of(0, 100, sort);
         Page<LeaderboardEntryDTO> userPage = userRepository.findLeaderboardEntries(pageable);
         List<LeaderboardEntryDTO> leaderboardEntries = new ArrayList<>(userPage.getContent());
-
-        // Add detailed logging for the returned entries to check sorting
-        if (logger.isDebugEnabled()) {
-            logger.debug("Fetched {} leaderboard entries. Top 5 entries for sorting validation:", leaderboardEntries.size());
-            leaderboardEntries.stream().limit(5).forEach(entry -> {
-                String logMessage;
-                switch (sortBy.toLowerCase()) {
-                    case "level":
-                        logMessage = String.format("User: %s, Level: %d, XP: %d", entry.getDisplayName(), entry.getLevel(), entry.getExperience());
-                        break;
-                    case "messages":
-                        logMessage = String.format("User: %s, Messages: %d", entry.getDisplayName(), entry.getMessageCount());
-                        break;
-                    case "voice":
-                        logMessage = String.format("User: %s, Voice Time: %d", entry.getDisplayName(), entry.getVoiceTimeMinutesTotal());
-                        break;
-                    default: // credits
-                        logMessage = String.format("User: %s, Credits: %d", entry.getDisplayName(), entry.getCredits());
-                        break;
-                }
-                logger.debug(logMessage);
-            });
-        }
 
         // The list is already sorted by the database, so we just need to assign ranks.
         IntStream.range(0, leaderboardEntries.size())
