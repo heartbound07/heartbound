@@ -217,6 +217,28 @@ public class CountingGameListener extends ListenerAdapter {
                 );
                 break;
                 
+            case GRIEFER_PUNISHED:
+                // React with shield emoji
+                message.addReaction(Emoji.fromUnicode("🛡️")).queue(
+                    success -> log.debug("Added shield reaction for griefer punishment by user {}", userId),
+                    error -> log.warn("Failed to add shield reaction: {}", error.getMessage())
+                );
+
+                // Send embed message
+                EmbedBuilder embed = new EmbedBuilder();
+                embed.setColor(Color.ORANGE);
+                embed.setTitle("🛡️ Anti-Griefing Action");
+                embed.setDescription(String.format(
+                    "<@%s> has been automatically timed out due to a poor counting record. The count has been restored to **%d**! The next number is **%d**.",
+                    userId, result.getCurrentCount(), result.getExpectedNumber()
+                ));
+
+                event.getChannel().sendMessageEmbeds(embed.build()).queue(
+                    success -> log.info("Sent griefer punishment notification for user {}", userId),
+                    error -> log.warn("Failed to send griefer punishment notification: {}", error.getMessage())
+                );
+                break;
+
             case USER_TIMED_OUT:
                 // Delete the message and silently ignore - user is timed out
                 message.delete().queue(

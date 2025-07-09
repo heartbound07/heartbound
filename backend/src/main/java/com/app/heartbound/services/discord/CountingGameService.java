@@ -306,6 +306,39 @@ public class CountingGameService {
     @Transactional
     protected CountingResult handleMistake(CountingUserData userData, CountingGameState gameState, 
                                           int attemptedNumber, CountingResult mistakeType) {
+        // Anti-griefing check
+        // We add 1 to totalMistakes to include the current mistake in the calculation.
+        long totalAttempts = userData.getTotalCorrectCounts() + userData.getTotalMistakes() + 1;
+        double successRate = (double) userData.getTotalCorrectCounts() / totalAttempts;
+
+        boolean isGriefer = totalAttempts >= 5 && userData.getBestCount() < 10 && successRate < 0.25;
+
+        if (isGriefer) {
+            int failedCount = gameState.getCurrentCount();
+            log.warn("Griefer detected: user={}, failed at count {}. Criteria: attempts={}, best={}, rate={}",
+                userData.getUserId(), failedCount, totalAttempts, userData.getBestCount(), successRate);
+
+            // Immediately apply timeout
+            applyTimeout(userData);
+
+            // Update user stats for the mistake
+            userData.setTotalMistakes(userData.getTotalMistakes() + 1);
+            userDataRepository.save(userData);
+
+            // Restore game state, but do not reset count
+            gameState.setCurrentCount(failedCount);
+            gameState.setLastUserId(null); // Allow anyone to continue
+            // Ensure no restart delay or save opportunity is created
+            gameState.setRestartDelayUntil(null);
+            gameState.setLastFailedCount(null);
+            gameStateRepository.save(gameState);
+
+            // Invalidate cache
+            cacheConfig.invalidateCountingGameCache();
+            
+            return CountingResult.GRIEFER_PUNISHED.withGrieferData(failedCount);
+        }
+
         // Store the count that failed for save feature
         int failedCount = gameState.getCurrentCount();
         
@@ -677,9 +710,10 @@ public class CountingGameService {
         public static final CountingResult CONSECUTIVE_COUNT = new CountingResult(Type.CONSECUTIVE_COUNT, null, null, null, null, null, null);
         public static final CountingResult WRONG_NUMBER_WARNING = new CountingResult(Type.WRONG_NUMBER_WARNING, null, null, null, null, null, null);
         public static final CountingResult RESTART_DELAYED = new CountingResult(Type.RESTART_DELAYED, null, null, null, null, null, null);
+        public static final CountingResult GRIEFER_PUNISHED = new CountingResult(Type.GRIEFER_PUNISHED, null, null, null, null, null, null);
         
         public enum Type {
-            CORRECT, GAME_DISABLED, USER_TIMED_OUT, USER_NOT_FOUND, WRONG_NUMBER, CONSECUTIVE_COUNT, WRONG_NUMBER_WARNING, RESTART_DELAYED
+            CORRECT, GAME_DISABLED, USER_TIMED_OUT, USER_NOT_FOUND, WRONG_NUMBER, CONSECUTIVE_COUNT, WRONG_NUMBER_WARNING, RESTART_DELAYED, GRIEFER_PUNISHED
         }
         
         private final Type type;
@@ -702,6 +736,10 @@ public class CountingGameService {
         
         public CountingResult withMistakeData(int currentCount, int livesRemaining, int timeoutHours, int saveCost) {
             return new CountingResult(this.type, currentCount, currentCount + 1, livesRemaining, timeoutHours, saveCost, null);
+        }
+        
+        public CountingResult withGrieferData(int restoredCount) {
+            return new CountingResult(this.type, restoredCount, restoredCount + 1, null, null, null, null);
         }
         
         public CountingResult withWarningData(int expectedNumber) {
