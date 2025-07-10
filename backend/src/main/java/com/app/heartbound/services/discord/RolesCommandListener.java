@@ -58,8 +58,11 @@ public class RolesCommandListener extends ListenerAdapter {
 
         // Embed 1: Age Roles
         EmbedBuilder ageEmbed = new EmbedBuilder()
-            .setTitle("✨  AGE  ✨")
+            .setTitle("✨ 𝘼 𝙂 𝙀 ✨")
             .setColor(Color.decode("#FFB6C1"));
+        if (settings.getAgeRolesThumbnailUrl() != null && !settings.getAgeRolesThumbnailUrl().isBlank()) {
+            ageEmbed.setThumbnail(settings.getAgeRolesThumbnailUrl());
+        }
         List<Button> ageButtons = List.of(
             Button.secondary("roles:age:" + settings.getAge15RoleId(), "13-15"),
             Button.secondary("roles:age:" + settings.getAge16To17RoleId(), "16-17"),
@@ -69,8 +72,11 @@ public class RolesCommandListener extends ListenerAdapter {
 
         // Embed 2: Gender Roles
         EmbedBuilder genderEmbed = new EmbedBuilder()
-            .setTitle("✨  GENDER  ✨")
+            .setTitle("✨ 𝙂 𝙀 𝙉 𝘿 𝙀 𝙍 ✨")
             .setColor(Color.decode("#ADD8E6"));
+        if (settings.getGenderRolesThumbnailUrl() != null && !settings.getGenderRolesThumbnailUrl().isBlank()) {
+            genderEmbed.setThumbnail(settings.getGenderRolesThumbnailUrl());
+        }
         List<Button> genderButtons = List.of(
             Button.secondary("roles:gender:" + settings.getGenderSheHerRoleId(), "she/her"),
             Button.secondary("roles:gender:" + settings.getGenderHeHimRoleId(), "he/him"),
@@ -80,8 +86,11 @@ public class RolesCommandListener extends ListenerAdapter {
 
         // Embed 3: Rank Roles
         EmbedBuilder rankEmbed = new EmbedBuilder()
-            .setTitle("✨  RANK  ✨")
+            .setTitle("✨ 𝙍 𝘼 𝙉 𝑲 ✨")
             .setColor(Color.decode("#D4AF37"));
+        if (settings.getRankRolesThumbnailUrl() != null && !settings.getRankRolesThumbnailUrl().isBlank()) {
+            rankEmbed.setThumbnail(settings.getRankRolesThumbnailUrl());
+        }
         List<Button> rankButtons = List.of(
             Button.secondary("roles:rank:" + settings.getRankIronRoleId(), "Iron"),
             Button.secondary("roles:rank:" + settings.getRankBronzeRoleId(), "Bronze"),

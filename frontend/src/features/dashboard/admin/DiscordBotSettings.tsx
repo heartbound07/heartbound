@@ -66,6 +66,9 @@ interface DiscordBotSettingsData {
   rankGoldRoleId: string;
   rankPlatinumRoleId: string;
   rankDiamondRoleId: string;
+  ageRolesThumbnailUrl: string;
+  genderRolesThumbnailUrl: string;
+  rankRolesThumbnailUrl: string;
 }
 
 interface ToastNotification {
@@ -139,7 +142,10 @@ const initialSettings: DiscordBotSettingsData = {
   rankSilverRoleId: "",
   rankGoldRoleId: "",
   rankPlatinumRoleId: "",
-  rankDiamondRoleId: ""
+  rankDiamondRoleId: "",
+  ageRolesThumbnailUrl: "",
+  genderRolesThumbnailUrl: "",
+  rankRolesThumbnailUrl: ""
 };
 
 const calculateRequiredXp = (level: number, baseXp: number, levelMultiplier: number, levelExponent: number, levelFactor: number): number => {

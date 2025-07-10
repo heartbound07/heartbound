@@ -107,6 +107,11 @@ public class DiscordBotSettingsService {
             settings.setRankPlatinumRoleId("");
             settings.setRankDiamondRoleId("");
             
+            // Initialize thumbnail URLs
+            settings.setAgeRolesThumbnailUrl("");
+            settings.setGenderRolesThumbnailUrl("");
+            settings.setRankRolesThumbnailUrl("");
+
             repository.save(settings);
         }
         
@@ -189,6 +194,11 @@ public class DiscordBotSettingsService {
         dto.setRankPlatinumRoleId(settings.getRankPlatinumRoleId());
         dto.setRankDiamondRoleId(settings.getRankDiamondRoleId());
         
+        // Map thumbnail URLs
+        dto.setAgeRolesThumbnailUrl(settings.getAgeRolesThumbnailUrl());
+        dto.setGenderRolesThumbnailUrl(settings.getGenderRolesThumbnailUrl());
+        dto.setRankRolesThumbnailUrl(settings.getRankRolesThumbnailUrl());
+
         return dto;
     }
     
@@ -259,6 +269,11 @@ public class DiscordBotSettingsService {
         settings.setRankPlatinumRoleId(dto.getRankPlatinumRoleId());
         settings.setRankDiamondRoleId(dto.getRankDiamondRoleId());
         
+        // Update thumbnail URLs
+        settings.setAgeRolesThumbnailUrl(dto.getAgeRolesThumbnailUrl());
+        settings.setGenderRolesThumbnailUrl(dto.getGenderRolesThumbnailUrl());
+        settings.setRankRolesThumbnailUrl(dto.getRankRolesThumbnailUrl());
+
         repository.save(settings);
         
         // Invalidate cache after updating settings

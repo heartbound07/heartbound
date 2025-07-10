@@ -76,6 +76,11 @@ public class DiscordBotSettings {
     private String rankPlatinumRoleId;
     private String rankDiamondRoleId;
 
+    // Thumbnail URLs for Self-Assignable Roles
+    private String ageRolesThumbnailUrl;
+    private String genderRolesThumbnailUrl;
+    private String rankRolesThumbnailUrl;
+
     // Getters and setters
     public Long getId() {
         return id;
@@ -465,5 +470,29 @@ public class DiscordBotSettings {
 
     public void setRankDiamondRoleId(String rankDiamondRoleId) {
         this.rankDiamondRoleId = rankDiamondRoleId;
+    }
+
+    public String getAgeRolesThumbnailUrl() {
+        return ageRolesThumbnailUrl;
+    }
+
+    public void setAgeRolesThumbnailUrl(String ageRolesThumbnailUrl) {
+        this.ageRolesThumbnailUrl = ageRolesThumbnailUrl;
+    }
+
+    public String getGenderRolesThumbnailUrl() {
+        return genderRolesThumbnailUrl;
+    }
+
+    public void setGenderRolesThumbnailUrl(String genderRolesThumbnailUrl) {
+        this.genderRolesThumbnailUrl = genderRolesThumbnailUrl;
+    }
+
+    public String getRankRolesThumbnailUrl() {
+        return rankRolesThumbnailUrl;
+    }
+
+    public void setRankRolesThumbnailUrl(String rankRolesThumbnailUrl) {
+        this.rankRolesThumbnailUrl = rankRolesThumbnailUrl;
     }
 } 
