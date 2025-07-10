@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
 /**
  * PrisonCommandListener
@@ -46,6 +47,7 @@ public class PrisonCommandListener extends ListenerAdapter {
     
     private static final Logger logger = LoggerFactory.getLogger(PrisonCommandListener.class);
     private static final String PRISON_ROLE_ID = "1387934212216328202";
+    private static final String PRISON_LOG_CHANNEL_ID = "1387934477929549844";
     private static final String HEAD_MOD_ROLE_ID = "1161777177109483581";
     private static final String MOD_ROLE_ID = "1161797355096518759";
     private static final String JR_MOD_ROLE_ID = "1167669829117935666";
@@ -229,8 +231,8 @@ public class PrisonCommandListener extends ListenerAdapter {
                 success -> {
                     logger.info("Successfully imprisoned user {}", userId);
                     event.getHook().editOriginal("🏛️ " + targetMember.getAsMention() + " has been imprisoned.").queue();
-                    // Send DM notification
-                    sendPrisonNotification(targetMember, reason, durationStr);
+                    // Send channel notification
+                    sendPrisonNotification(guild, targetMember, reason, durationStr);
                 },
                 error -> {
                     logger.error("Failed to modify roles for user {}. Reverting database change.", userId, error);
@@ -246,20 +248,24 @@ public class PrisonCommandListener extends ListenerAdapter {
         }
     }
 
-    private void sendPrisonNotification(Member targetMember, String reason, String durationStr) {
+    private void sendPrisonNotification(Guild guild, Member targetMember, String reason, String durationStr) {
+        TextChannel logChannel = guild.getTextChannelById(PRISON_LOG_CHANNEL_ID);
+        if (logChannel == null) {
+            logger.warn("Prison log channel with ID {} not found. Cannot send notification.", PRISON_LOG_CHANNEL_ID);
+            return;
+        }
+
         EmbedBuilder embed = new EmbedBuilder();
-        embed.setTitle("You Have Been Imprisoned");
+        embed.setTitle(targetMember.getEffectiveName() + " Has Been Imprisoned");
         embed.setColor(Color.RED);
         embed.addField("Reason", reason, false);
         embed.addField("Duration", durationStr != null ? durationStr : "Permanent", false);
         embed.setFooter("If you believe this is a mistake, please contact a server administrator.");
         embed.setTimestamp(LocalDateTime.now());
 
-        targetMember.getUser().openPrivateChannel().queue(
-            privateChannel -> privateChannel.sendMessageEmbeds(embed.build()).queue(
-                null, 
-                error -> logger.warn("Failed to send prison DM to user {}. They may have DMs disabled.", targetMember.getId())
-            )
+        logChannel.sendMessageEmbeds(embed.build()).queue(
+            null,
+            error -> logger.warn("Failed to send prison notification to channel {}: {}", PRISON_LOG_CHANNEL_ID, error.getMessage())
         );
     }
     
