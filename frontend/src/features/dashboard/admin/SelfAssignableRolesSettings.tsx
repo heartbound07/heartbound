@@ -39,7 +39,7 @@ export const SelfAssignableRolesSettings: React.FC<SelfAssignableRolesSettingsPr
         <h3 className="text-lg font-semibold text-white mb-3">Age Roles</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div>
-            <label htmlFor="age15RoleId" className="block text-sm font-medium text-slate-300">13-15 Role ID</label>
+            <label htmlFor="age15RoleId" className="block text-sm font-medium text-slate-300">15 Role ID</label>
             <input type="text" id="age15RoleId" name="age15RoleId" value={settings.age15RoleId || ''} onChange={handleChange} className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" placeholder="Role ID" />
           </div>
           <div>

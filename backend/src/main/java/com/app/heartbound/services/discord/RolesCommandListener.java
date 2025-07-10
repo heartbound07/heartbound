@@ -64,7 +64,7 @@ public class RolesCommandListener extends ListenerAdapter {
             ageEmbed.setThumbnail(settings.getAgeRolesThumbnailUrl());
         }
         List<Button> ageButtons = List.of(
-            Button.secondary("roles:age:" + settings.getAge15RoleId(), "13-15"),
+            Button.secondary("roles:age:" + settings.getAge15RoleId(), "15"),
             Button.secondary("roles:age:" + settings.getAge16To17RoleId(), "16-17"),
             Button.secondary("roles:age:" + settings.getAge18PlusRoleId(), "18+")
         );
