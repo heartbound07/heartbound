@@ -4,6 +4,7 @@ import com.app.heartbound.config.CacheConfig;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.PrisonService;
 import com.app.heartbound.services.UserService;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -16,8 +17,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.awt.Color;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -27,11 +33,13 @@ import java.util.stream.Collectors;
  * Allows administrators and moderators to temporarily remove a user's roles
  * and assign them a "Prison" role, or release them by restoring their original roles.
  * 
- * Command: /prison <user>
+ * Command: /prison <user> [duration] [reason]
  * - Only users with ADMINISTRATOR or MODERATE_MEMBERS permissions can execute this command
  * - If the user is not in prison: stores their roles in the database, removes all roles, adds prison role
  * - If the user is in prison: restores roles from the database, removes prison role
  * - Uses the database for persistent storage of original role data.
+ * - Supports timed imprisonment using a duration string (e.g., 30m, 1h, 7d).
+ * - Notifies the user via DM with an embed containing the reason and duration.
  */
 @Service
 public class PrisonCommandListener extends ListenerAdapter {
@@ -43,13 +51,15 @@ public class PrisonCommandListener extends ListenerAdapter {
     private static final String JR_MOD_ROLE_ID = "1167669829117935666";
     
     private final PrisonService prisonService;
-    private final UserService userService; // Keep for getUserById
+    private final UserService userService;
+    private final PrisonReleaseService prisonReleaseService;
     
     @Autowired
-    public PrisonCommandListener(PrisonService prisonService, UserService userService) {
+    public PrisonCommandListener(PrisonService prisonService, UserService userService, PrisonReleaseService prisonReleaseService) {
         this.prisonService = prisonService;
         this.userService = userService;
-        logger.info("PrisonCommandListener initialized with persistent storage via PrisonService");
+        this.prisonReleaseService = prisonReleaseService;
+        logger.info("PrisonCommandListener initialized with persistent storage via PrisonService and scheduling via PrisonReleaseService");
     }
     
     @Override
@@ -157,6 +167,16 @@ public class PrisonCommandListener extends ListenerAdapter {
         String userId = targetMember.getId();
         logger.info("Sending user {} to prison", userId);
         
+        // Get optional duration and reason
+        String durationStr = event.getOption("duration", null, OptionMapping::getAsString);
+        String reason = event.getOption("reason", "No reason provided.", OptionMapping::getAsString);
+        
+        LocalDateTime releaseAt = parseDuration(durationStr);
+        if (durationStr != null && releaseAt == null) {
+            event.getHook().editOriginal("Invalid duration format. Please use a valid format like `30m`, `1h`, or `7d`.").queue();
+            return;
+        }
+
         try {
             // Ensure the user exists in our database before proceeding
             User user = userService.getUserById(userId);
@@ -176,8 +196,13 @@ public class PrisonCommandListener extends ListenerAdapter {
                     .collect(Collectors.toList());
             
             // Persist roles to the database before making Discord API calls
-            prisonService.prisonUser(userId, roleIds);
-            logger.debug("Persisted {} roles for user {}", roleIds.size(), userId);
+            User prisonedUser = prisonService.prisonUser(userId, roleIds, releaseAt);
+            logger.debug("Persisted {} roles for user {} with release date {}", roleIds.size(), userId, releaseAt);
+
+            // Schedule release if a duration was provided
+            if (releaseAt != null) {
+                prisonReleaseService.scheduleRelease(prisonedUser);
+            }
             
             // Check if bot can interact with all user's roles
             Member botMember = guild.getSelfMember();
@@ -204,6 +229,8 @@ public class PrisonCommandListener extends ListenerAdapter {
                 success -> {
                     logger.info("Successfully imprisoned user {}", userId);
                     event.getHook().editOriginal("🏛️ " + targetMember.getAsMention() + " has been imprisoned.").queue();
+                    // Send DM notification
+                    sendPrisonNotification(targetMember, reason, durationStr);
                 },
                 error -> {
                     logger.error("Failed to modify roles for user {}. Reverting database change.", userId, error);
@@ -218,7 +245,56 @@ public class PrisonCommandListener extends ListenerAdapter {
             event.getHook().editOriginal("An error occurred while sending the user to prison.").queue();
         }
     }
+
+    private void sendPrisonNotification(Member targetMember, String reason, String durationStr) {
+        EmbedBuilder embed = new EmbedBuilder();
+        embed.setTitle("You Have Been Imprisoned");
+        embed.setColor(Color.RED);
+        embed.addField("Reason", reason, false);
+        embed.addField("Duration", durationStr != null ? durationStr : "Permanent", false);
+        embed.setFooter("If you believe this is a mistake, please contact a server administrator.");
+        embed.setTimestamp(LocalDateTime.now());
+
+        targetMember.getUser().openPrivateChannel().queue(
+            privateChannel -> privateChannel.sendMessageEmbeds(embed.build()).queue(
+                null, 
+                error -> logger.warn("Failed to send prison DM to user {}. They may have DMs disabled.", targetMember.getId())
+            )
+        );
+    }
     
+    /**
+     * Parses a duration string (e.g., "30m", "1h", "7d") into a LocalDateTime.
+     * @param durationStr The string to parse.
+     * @return A LocalDateTime representing the release time, or null if the string is invalid or null.
+     */
+    private LocalDateTime parseDuration(String durationStr) {
+        if (durationStr == null || durationStr.isBlank()) {
+            return null;
+        }
+
+        Pattern pattern = Pattern.compile("(\\d+)([mhd])");
+        Matcher matcher = pattern.matcher(durationStr.toLowerCase());
+
+        if (matcher.matches()) {
+            int amount = Integer.parseInt(matcher.group(1));
+            String unit = matcher.group(2);
+            
+            LocalDateTime releaseTime = LocalDateTime.now();
+            switch (unit) {
+                case "m":
+                    return releaseTime.plus(amount, ChronoUnit.MINUTES);
+                case "h":
+                    return releaseTime.plus(amount, ChronoUnit.HOURS);
+                case "d":
+                    return releaseTime.plus(amount, ChronoUnit.DAYS);
+                default:
+                    return null; // Should not happen with the regex
+            }
+        }
+        return null;
+    }
+
     /**
      * Releases a user from prison by restoring their roles from the database
      */

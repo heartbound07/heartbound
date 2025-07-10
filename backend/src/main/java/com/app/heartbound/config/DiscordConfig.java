@@ -25,6 +25,7 @@ import com.app.heartbound.services.discord.AutoSlowmodeService;
 import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
 import com.app.heartbound.services.discord.UserVoiceActivityService;
+import com.app.heartbound.services.discord.PrisonReleaseService;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -135,6 +136,9 @@ public class DiscordConfig {
 
     @Autowired
     private AutoSlowmodeService autoSlowmodeService;
+
+    @Autowired
+    private PrisonReleaseService prisonReleaseService;
 
     @Bean
     public JDA jda() {
@@ -275,7 +279,9 @@ public class DiscordConfig {
                         ),
                     Commands.slash("prison", "Removes all roles from a user and assigns the prison role, or releases them.")
                         .addOptions(
-                            new OptionData(OptionType.USER, "user", "The user to prison or release.", true)
+                            new OptionData(OptionType.USER, "user", "The user to prison or release.", true),
+                            new OptionData(OptionType.STRING, "duration", "Duration of the imprisonment (e.g., 30m, 1h, 7d).", false),
+                            new OptionData(OptionType.STRING, "reason", "The reason for imprisoning the user.", false)
                         ),
                     Commands.slash("gcreate", "Create a new giveaway with customizable settings")
                         .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR)),

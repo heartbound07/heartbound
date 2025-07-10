@@ -78,4 +78,6 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Transactional
     @Query("UPDATE User u SET u.credits = u.credits + :credits, u.experience = u.experience + :xp WHERE u.id = :userId")
     void incrementCreditsAndXp(@Param("userId") String userId, @Param("credits") int credits, @Param("xp") int xp);
+
+    List<User> findByPrisonReleaseAtIsNotNull();
 }

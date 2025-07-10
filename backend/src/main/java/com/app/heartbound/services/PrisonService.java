@@ -36,11 +36,12 @@ public class PrisonService {
      * @return the updated User entity
      */
     @Transactional
-    public User prisonUser(String userId, List<String> roleIds) {
+    public User prisonUser(String userId, List<String> roleIds, LocalDateTime releaseAt) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         user.setOriginalRoleIds(roleIds);
         user.setPrisonedAt(LocalDateTime.now());
+        user.setPrisonReleaseAt(releaseAt);
         User savedUser = userRepository.save(user);
         cacheConfig.invalidateUserProfileCache(userId);
         logger.info("User {} has been imprisoned in the database. Roles stored.", userId);
@@ -60,6 +61,7 @@ public class PrisonService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         user.getOriginalRoleIds().clear();
         user.setPrisonedAt(null);
+        user.setPrisonReleaseAt(null);
         User savedUser = userRepository.save(user);
         cacheConfig.invalidateUserProfileCache(userId);
         logger.info("User {} has been released from prison in the database. Stored roles cleared.", userId);

@@ -110,6 +110,8 @@ public class User {
 
     private LocalDateTime prisonedAt;
     
+    private LocalDateTime prisonReleaseAt;
+    
     // User active status field
     private Boolean active = true;
     
