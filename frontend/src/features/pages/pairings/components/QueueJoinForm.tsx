@@ -109,7 +109,7 @@ export const QueueJoinForm = memo(({ onJoinQueue, loading, userProfile, botSetti
         <CardHeader className="form-header">
           <CardTitle className="form-title">
             <div className="title-icon">
-              <Heart className="h-6 w-6" />
+              <Heart className="h-5 w-5" />
             </div>
             <div className="title-content">
               <h2>Find Your Match</h2>
@@ -122,8 +122,8 @@ export const QueueJoinForm = memo(({ onJoinQueue, loading, userProfile, botSetti
           <form onSubmit={handleSubmit} className="form-container">
             <div className="form-section">
               <div className="section-header">
-                <User className="section-icon" aria-label="Your Selections" />
-                <h3>Your Selections</h3>
+                <User className="section-icon" />
+                <h3>Your Roles</h3>
               </div>
               <div className="form-grid">
                 <RoleDisplayItem
@@ -151,8 +151,8 @@ export const QueueJoinForm = memo(({ onJoinQueue, loading, userProfile, botSetti
 
             {!isFormValid && (
               <div className="missing-roles-notice">
-                <Info className="h-5 w-5" />
-                <p>You must select all roles in the Discord server before you can join the queue.</p>
+                <Info className="h-5 w-5 flex-shrink-0" />
+                <p>You must select all required roles in the Discord server before you can join the queue.</p>
               </div>
             )}
 
@@ -161,7 +161,7 @@ export const QueueJoinForm = memo(({ onJoinQueue, loading, userProfile, botSetti
                 {loading ? (
                   <div className="button-loading">
                     <div className="loading-spinner" />
-                    <span>Joining Queue...</span>
+                    <span>Joining...</span>
                   </div>
                 ) : (
                   <div className="button-content">
