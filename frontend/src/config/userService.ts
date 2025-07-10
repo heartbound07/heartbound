@@ -32,6 +32,10 @@ export interface UserProfileDTO {
   badgeUrl?: string; // URL of the single equipped badge
   badgeName?: string; // Name of the single equipped badge
   nameplateColor?: string; // Resolved hex color for equipped nameplate
+  selectedAgeRoleId?: string;
+  selectedGenderRoleId?: string;
+  selectedRankRoleId?: string;
+  selectedRegionRoleId?: string;
 }
 
 export interface LeaderboardEntryDTO {

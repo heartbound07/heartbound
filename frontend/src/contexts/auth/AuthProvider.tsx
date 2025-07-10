@@ -63,16 +63,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
     const userProfileData = await userService.getCurrentUserProfile();
     if (userProfileData) {
-      const userInfo: UserInfo = {
-        id: userProfileData.id,
-        username: userProfileData.username,
-        avatar: userProfileData.avatar,
-        roles: userProfileData.roles || [],
-        credits: userProfileData.credits || 0,
-        level: userProfileData.level || 0,
-        experience: userProfileData.experience || 0,
-      };
-      setAuthState(userInfo, userProfileData);
+      setAuthState(userProfileData);
       persistAuthState(tokenPair);
       
       // Note: WebSocket connection is now managed by WebSocketProvider
@@ -162,16 +153,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
             console.log('[RefreshToken] Successfully refreshed tokens. Fetching user profile...');
             const userProfileData = await userService.getCurrentUserProfile();
             if (userProfileData) {
-              const userInfo: UserInfo = {
-                id: userProfileData.id,
-                username: userProfileData.username,
-                avatar: userProfileData.avatar,
-                roles: userProfileData.roles || [],
-                credits: userProfileData.credits || 0,
-                level: userProfileData.level || 0,
-                experience: userProfileData.experience || 0,
-              };
-              setAuthState(userInfo, userProfileData);
+              setAuthState(userProfileData);
               // Note: WebSocket reconnection with fresh token is now handled by WebSocketProvider
               console.log('[RefreshToken] User profile fetched and auth state updated after token refresh.');
               return accessToken; // SUCCESS: token refreshed, profile fetched
@@ -257,16 +239,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           const userProfileData = await userService.getCurrentUserProfile(); // Uses the valid currentTokenPair.accessToken via httpClient
 
           if (userProfileData) {
-            const userInfo: UserInfo = {
-              id: userProfileData.id,
-              username: userProfileData.username,
-              avatar: userProfileData.avatar,
-              roles: userProfileData.roles || [],
-              credits: userProfileData.credits || 0,
-              level: userProfileData.level || 0,
-              experience: userProfileData.experience || 0,
-            };
-            setAuthState(userInfo, userProfileData);
+            setAuthState(userProfileData);
             console.log('[AuthInit] Authentication state restored, user profile fetched using existing token.');
             // Note: WebSocket connection is now managed by WebSocketProvider
           } else {
@@ -361,17 +334,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         throw new Error('Failed to fetch user profile after Discord login.');
       }
       
-      const userInfo: UserInfo = {
-        id: userProfileData.id,
-        username: userProfileData.username,
-        avatar: userProfileData.avatar,
-        roles: userProfileData.roles || [],
-        credits: userProfileData.credits || 0,
-        level: userProfileData.level || 0,
-        experience: userProfileData.experience || 0,
-      };
-
-      setAuthState(userInfo, userProfileData);
+      setAuthState(userProfileData);
       
       // Note: WebSocket reconnection is now managed by WebSocketProvider
       
@@ -405,16 +368,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         console.log('[AuthProvider] updateUserProfile - Received from backend:', JSON.stringify(updatedProfileResponse));
       }
 
-      const updatedUserInfo: UserInfo = {
-        ...state.user, 
-        avatar: updatedProfileResponse.avatar, 
-        username: updatedProfileResponse.username, 
-      };
-      if (import.meta.env.DEV) {
-        console.log('[AuthProvider] updateUserProfile - updatedUserInfo to be set:', JSON.stringify(updatedUserInfo));
-      }
-
-      setAuthState(updatedUserInfo, updatedProfileResponse);
+      setAuthState(updatedProfileResponse);
       if (import.meta.env.DEV) {
         console.log('[AuthProvider] updateUserProfile - Called setAuthState.');
       }
@@ -438,16 +392,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     try {
       const userProfileData = await userService.getCurrentUserProfile();
       if (userProfileData) {
-        const userInfo: UserInfo = {
-          id: userProfileData.id,
-          username: userProfileData.username,
-          avatar: userProfileData.avatar,
-          roles: userProfileData.roles || [],
-          credits: userProfileData.credits || 0,
-          level: userProfileData.level || 0,
-          experience: userProfileData.experience || 0,
-        };
-        setAuthState(userInfo, userProfileData);
+        setAuthState(userProfileData);
       } else {
         setAuthError("Failed to fetch current user profile: No data returned.");
         clearAuthState();
@@ -516,6 +461,8 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
   const contextValue = useMemo<AuthContextValue>(() => ({
     ...state,
+    user: state.user as UserInfo | null,
+    profile: state.user,
     login,
     logout,
     register: login,

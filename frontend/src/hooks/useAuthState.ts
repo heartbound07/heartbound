@@ -1,11 +1,18 @@
 import { useState, useCallback } from 'react';
-import { AuthState, UserInfo } from '../contexts/auth/types';
+import { UserInfo } from '../contexts/auth/types';
 import { UserProfileDTO } from '@/config/userService';
+
+// Redefine AuthState here to use UserProfileDTO for user
+export interface AuthState {
+  user: UserProfileDTO | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+}
 
 export function useAuthState() {
   const [state, setState] = useState<AuthState>({
     user: null,
-    profile: null,
     isAuthenticated: false,
     isLoading: true,
     error: null,
@@ -17,21 +24,19 @@ export function useAuthState() {
   };
 
   // Update authentication state
-  const setAuthState = useCallback((user: UserInfo | null, profile: UserProfileDTO | null = null) => {
-    setState(prevState => ({
+  const setAuthState = useCallback((user: UserProfileDTO | null) => {
+    setState({
       user,
-      profile: profile || prevState.profile,
       isAuthenticated: !!user,
       isLoading: false,
       error: null,
-    }));
+    });
   }, []);
 
   // Clear authentication state
   const clearAuthState = useCallback(() => {
     setState({
       user: null,
-      profile: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
@@ -40,7 +45,7 @@ export function useAuthState() {
 
   // Set error state
   const setAuthError = useCallback((errorMessage: string | null) => {
-    setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
+    setState(prev => ({ ...prev, error: errorMessage, isLoading: false, user: prev.user }));
   }, []);
 
   // Set loading state
@@ -50,7 +55,7 @@ export function useAuthState() {
 
   // Update profile
   const updateAuthProfile = useCallback((profile: UserProfileDTO) => {
-    setState(prev => ({ ...prev, profile }));
+    setState(prev => ({ ...prev, user: profile }));
   }, []);
 
   // Check if user has a specific role

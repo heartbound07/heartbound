@@ -504,6 +504,10 @@ public class UserService {
                 .nameplateColor(nameplateColor) // Add resolved nameplate color
                 .dailyStreak(user.getDailyStreak()) // Add daily claim fields
                 .lastDailyClaim(user.getLastDailyClaim())
+                .selectedAgeRoleId(user.getSelectedAgeRoleId())
+                .selectedGenderRoleId(user.getSelectedGenderRoleId())
+                .selectedRankRoleId(user.getSelectedRankRoleId())
+                .selectedRegionRoleId(user.getSelectedRegionRoleId())
                 .build();
     }
 

@@ -36,6 +36,7 @@ import { ErrorBoundary } from "@/components/ui/ErrorBoundary"
 import { XPCard } from "@/features/pages/XPCard"
 import { AllMatchesModal } from "@/components/modals/AllMatchesModal"
 import { useAllPairingHistory } from "@/hooks/useAllPairingHistory"
+import { useDiscordBotSettings } from "@/hooks/useDiscordBotSettings"
 
 // Import extracted components
 import { QueueJoinForm } from "@/features/pages/pairings/components/QueueJoinForm"
@@ -63,7 +64,7 @@ const initialAdminState: AdminState = {
 // QueueJoinForm has been extracted to ./components/QueueJoinForm.tsx
 
 export function PairingsPage() {
-  const { user, hasRole } = useAuth()
+  const { user, hasRole, fetchCurrentUserProfile } = useAuth()
   const {
     currentPairing,
     pairingHistory,
@@ -101,6 +102,9 @@ export function PairingsPage() {
     allPairingHistory, 
     refreshAllPairingHistory 
   } = useAllPairingHistory(hasRole("ADMIN"))
+
+  // Get Discord bot settings for the queue form
+  const { botSettings } = useDiscordBotSettings()
 
   // Use optimized modal manager
   const modalManager = useModalManager()
@@ -271,20 +275,13 @@ export function PairingsPage() {
 
   // Secure form validation with sanitization
   const handleJoinQueue = useCallback(
-    async (queueData: Omit<JoinQueueRequestDTO, "userId">) => {
+    async () => {
       if (!user?.id) {
         throw new Error("User authentication required")
       }
 
-      // Additional security validation
-      const sanitizedData = {
-        ...queueData,
-        userId: user.id,
-        age: Math.max(15, Math.min(100, queueData.age)), // Clamp age values
-      }
-
       try {
-        await joinQueue(sanitizedData)
+        await joinQueue()
       } catch (err: any) {
         const errorMessage = err?.message || "Failed to join matchmaking queue"
         console.error("Queue join error:", err)
@@ -1222,7 +1219,7 @@ export function PairingsPage() {
                             </Card>
                           </motion.div>
                         ) : !queueStatus.inQueue ? (
-                          <QueueJoinForm onJoinQueue={handleJoinQueue} loading={actionLoading} />
+                          <QueueJoinForm onJoinQueue={handleJoinQueue} loading={actionLoading} userProfile={user as UserProfileDTO} botSettings={botSettings} />
                         ) : null
                       ) : (
                         <motion.div

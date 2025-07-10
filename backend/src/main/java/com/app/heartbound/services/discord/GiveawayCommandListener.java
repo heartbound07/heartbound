@@ -536,7 +536,7 @@ public class GiveawayCommandListener extends ListenerAdapter {
     private boolean hasLevelRole(Member member) {
         try {
             // Get current Discord bot settings to retrieve role IDs
-            var settings = discordBotSettingsService.getCurrentSettings();
+            var settings = discordBotSettingsService.getDiscordBotSettings();
             
             // List of level role IDs to check (Level 5 and above)
             String[] levelRoleIds = {

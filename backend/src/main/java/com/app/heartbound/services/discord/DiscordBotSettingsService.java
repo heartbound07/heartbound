@@ -133,7 +133,7 @@ public class DiscordBotSettingsService {
     }
 
     @Transactional(readOnly = true)
-    public DiscordBotSettingsDTO getCurrentSettings() {
+    public DiscordBotSettingsDTO getDiscordBotSettingsAsDTO() {
         // Try to get from cache first
         DiscordBotSettings settings = getDiscordBotSettings();
         

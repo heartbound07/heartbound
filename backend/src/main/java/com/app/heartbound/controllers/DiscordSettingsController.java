@@ -38,7 +38,7 @@ public class DiscordSettingsController {
     @ApiResponse(responseCode = "403", description = "Access denied")
     public ResponseEntity<DiscordBotSettingsDTO> getSettings() {
         log.info("GET request for Discord bot settings");
-        return ResponseEntity.ok(discordBotSettingsService.getCurrentSettings());
+        return ResponseEntity.ok(discordBotSettingsService.getDiscordBotSettingsAsDTO());
     }
 
     @PutMapping("/settings")

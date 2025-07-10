@@ -6,6 +6,10 @@ import com.app.heartbound.dto.pairing.QueueConfigDTO;
 import com.app.heartbound.dto.pairing.QueueStatsDTO;
 import com.app.heartbound.dto.pairing.QueueUserDetailsDTO;
 import com.app.heartbound.entities.MatchQueueUser;
+import com.app.heartbound.entities.User;
+import com.app.heartbound.enums.Gender;
+import com.app.heartbound.enums.Rank;
+import com.app.heartbound.enums.Region;
 import com.app.heartbound.repositories.pairing.MatchQueueUserRepository;
 import com.app.heartbound.repositories.pairing.PairingRepository;
 import com.app.heartbound.repositories.UserRepository;
@@ -21,6 +25,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.app.heartbound.services.discord.DiscordBotSettingsService;
+import com.app.heartbound.entities.DiscordBotSettings;
 
 import java.time.LocalDateTime;
 import java.time.Duration;
@@ -67,6 +73,7 @@ public class QueueService {
     private final SimpMessagingTemplate messagingTemplate;
     private final UserRepository userRepository;
     private final SimpUserRegistry simpUserRegistry;
+    private final DiscordBotSettingsService discordBotSettingsService;
 
     // Queue configuration state
     private volatile boolean queueEnabled = true;
@@ -124,10 +131,32 @@ public class QueueService {
 
         String authenticatedUserId = authentication.getName();
         if (!authenticatedUserId.equals(userId)) {
-            log.error("SECURITY VIOLATION: User {} attempted to join queue as user {}", 
-                     authenticatedUserId, userId);
+            log.error("SECURITY VIOLATION: User {} attempted to join queue as user {}",
+                    authenticatedUserId, userId);
             throw new SecurityException("Users can only join the queue as themselves");
         }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("User profile not found. Please log in again."));
+
+        // === DEBUGGING LOGS START ===
+        logger.info("[QUEUE_DEBUG] User {} ({}) attempting to join queue. Fetched role selections from DB:", user.getUsername(), user.getId());
+        logger.info("[QUEUE_DEBUG] -> Age Role ID: {}", user.getSelectedAgeRoleId());
+        logger.info("[QUEUE_DEBUG] -> Gender Role ID: {}", user.getSelectedGenderRoleId());
+        logger.info("[QUEUE_DEBUG] -> Rank Role ID: {}", user.getSelectedRankRoleId());
+        logger.info("[QUEUE_DEBUG] -> Region Role ID: {}", user.getSelectedRegionRoleId());
+        // === DEBUGGING LOGS END ===
+
+        // Validate that all necessary roles have been selected
+        validateUserRoleSelections(user);
+
+        DiscordBotSettings settings = discordBotSettingsService.getDiscordBotSettings();
+
+        // Convert role IDs to enum values
+        Integer age = convertAgeRoleToAge(user.getSelectedAgeRoleId(), settings);
+        Gender gender = convertGenderRoleToEnum(user.getSelectedGenderRoleId(), settings);
+        Rank rank = convertRankRoleToEnum(user.getSelectedRankRoleId(), settings);
+        Region region = convertRegionRoleToEnum(user.getSelectedRegionRoleId(), settings);
 
         // **OPTIMIZATION: Check active pairing with lightweight exists query**
         if (pairingRepository.findActivePairingByUserId(userId).isPresent()) {
@@ -136,7 +165,7 @@ public class QueueService {
 
         // Check if user is already in queue
         Optional<MatchQueueUser> existingEntry = queueRepository.findByUserId(userId);
-        
+
         MatchQueueUser queueUser;
         if (existingEntry.isPresent()) {
             queueUser = existingEntry.get();
@@ -145,10 +174,10 @@ public class QueueService {
                 return buildQueueStatus(queueUser);
             } else {
                 // Update existing entry
-                queueUser.setAge(request.getAge());
-                queueUser.setRegion(request.getRegion());
-                queueUser.setRank(request.getRank());
-                queueUser.setGender(request.getGender());
+                queueUser.setAge(age);
+                queueUser.setRegion(region);
+                queueUser.setRank(rank);
+                queueUser.setGender(gender);
                 queueUser.setQueuedAt(LocalDateTime.now());
                 queueUser.setInQueue(true);
                 log.info("User {} rejoined queue with updated preferences", userId);
@@ -157,10 +186,10 @@ public class QueueService {
             // Create new queue entry
             queueUser = MatchQueueUser.builder()
                     .userId(userId)
-                    .age(request.getAge())
-                    .region(request.getRegion())
-                    .rank(request.getRank())
-                    .gender(request.getGender())
+                    .age(age)
+                    .region(region)
+                    .rank(rank)
+                    .gender(gender)
                     .queuedAt(LocalDateTime.now())
                     .inQueue(true)
                     .build();
@@ -171,15 +200,15 @@ public class QueueService {
 
         // **OPTIMIZATION: Immediate broadcast for user actions + smart cache invalidation**
         invalidateRelevantCaches("User joined queue");
-        
+
         // Send immediate broadcast for live queue updates - users expect instant feedback
         broadcastQueueUpdate();
         // Also send debounced admin stats update to avoid spam
         broadcastAdminQueueUpdateIfNeeded();
 
-        log.info("Saved queue user: ID={}, Age={}, Gender={}, Region={}, Rank={}, InQueue={}", 
-                 queueUser.getUserId(), queueUser.getAge(), queueUser.getGender(), 
-                 queueUser.getRegion(), queueUser.getRank(), queueUser.isInQueue());
+        log.info("Saved queue user: ID={}, Age={}, Gender={}, Region={}, Rank={}, InQueue={}",
+                queueUser.getUserId(), queueUser.getAge(), queueUser.getGender(),
+                queueUser.getRegion(), queueUser.getRank(), queueUser.isInQueue());
 
         return buildQueueStatus(queueUser);
     }
@@ -768,6 +797,58 @@ public class QueueService {
         status.put("cacheInvalidated", cacheInvalidated.get());
         
         return status;
+    }
+
+    private void validateUserRoleSelections(User user) {
+        List<String> missingRoles = new ArrayList<>();
+        if (user.getSelectedAgeRoleId() == null || user.getSelectedAgeRoleId().isBlank()) {
+            missingRoles.add("Age");
+        }
+        if (user.getSelectedGenderRoleId() == null || user.getSelectedGenderRoleId().isBlank()) {
+            missingRoles.add("Gender");
+        }
+        if (user.getSelectedRankRoleId() == null || user.getSelectedRankRoleId().isBlank()) {
+            missingRoles.add("Rank");
+        }
+        if (user.getSelectedRegionRoleId() == null || user.getSelectedRegionRoleId().isBlank()) {
+            missingRoles.add("Region");
+        }
+        if (!missingRoles.isEmpty()) {
+            throw new IllegalStateException("Please select your roles in Discord first. Missing: " + String.join(", ", missingRoles));
+        }
+    }
+
+    private Integer convertAgeRoleToAge(String roleId, DiscordBotSettings settings) {
+        if (roleId.equals(settings.getAge15RoleId())) return 15;
+        if (roleId.equals(settings.getAge16To17RoleId())) return 16; // Using lower bound
+        if (roleId.equals(settings.getAge18PlusRoleId())) return 18; // Using lower bound
+        throw new IllegalStateException("Invalid Age role selected. Please re-select your age role in Discord.");
+    }
+
+    private Gender convertGenderRoleToEnum(String roleId, DiscordBotSettings settings) {
+        if (roleId.equals(settings.getGenderSheHerRoleId())) return Gender.FEMALE;
+        if (roleId.equals(settings.getGenderHeHimRoleId())) return Gender.MALE;
+        if (roleId.equals(settings.getGenderAskRoleId())) return Gender.PREFER_NOT_TO_SAY; // Mapping "ask" to "prefer not to say"
+        throw new IllegalStateException("Invalid Gender role selected. Please re-select your gender role in Discord.");
+    }
+
+    private Rank convertRankRoleToEnum(String roleId, DiscordBotSettings settings) {
+        if (roleId.equals(settings.getRankIronRoleId())) return Rank.IRON;
+        if (roleId.equals(settings.getRankBronzeRoleId())) return Rank.BRONZE;
+        if (roleId.equals(settings.getRankSilverRoleId())) return Rank.SILVER;
+        if (roleId.equals(settings.getRankGoldRoleId())) return Rank.GOLD;
+        if (roleId.equals(settings.getRankPlatinumRoleId())) return Rank.PLATINUM;
+        if (roleId.equals(settings.getRankDiamondRoleId())) return Rank.DIAMOND;
+        throw new IllegalStateException("Invalid Rank role selected. Please re-select your rank role in Discord.");
+    }
+
+    private Region convertRegionRoleToEnum(String roleId, DiscordBotSettings settings) {
+        if (roleId.equals(settings.getRegionNaRoleId())) return Region.NA_CENTRAL; // Default NA to central
+        if (roleId.equals(settings.getRegionEuRoleId())) return Region.EU;
+        if (roleId.equals(settings.getRegionSaRoleId())) return Region.LATAM;
+        if (roleId.equals(settings.getRegionApRoleId())) return Region.AP;
+        if (roleId.equals(settings.getRegionOceRoleId())) return Region.AP; // OCE part of AP super-region
+        throw new IllegalStateException("Invalid Region role selected. Please re-select your region role in Discord.");
     }
 
     /**

@@ -81,4 +81,10 @@ public class UserProfileDTO {
     // Daily claim system fields
     private Integer dailyStreak;
     private java.time.LocalDateTime lastDailyClaim;
+
+    // Add role selection fields
+    private String selectedAgeRoleId;
+    private String selectedGenderRoleId;
+    private String selectedRankRoleId;
+    private String selectedRegionRoleId;
 }

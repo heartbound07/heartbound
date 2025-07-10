@@ -11,7 +11,6 @@ import {
   unpairUsers,
   breakupPairing as breakupPairingAPI,
   type PairingDTO, 
-  type JoinQueueRequestDTO, 
   type QueueStatusDTO 
 } from '@/config/pairingService';
 import { getUserProfile, type UserProfileDTO } from '@/config/userService';
@@ -114,26 +113,17 @@ export const usePairings = () => {
     }
   }, [user?.id]);
 
-  // Enhanced join queue with retry logic
-  const joinQueue = useCallback(async (queueData: JoinQueueRequestDTO) => {
+  // Join queue now uses backend role-based selections
+  const joinQueue = useCallback(async () => {
     if (!user?.id) {
       throw new Error('User authentication required');
-    }
-
-    // Validate input data
-    if (!queueData.age || queueData.age < 13 || queueData.age > 100) {
-      throw new Error('Invalid age provided');
-    }
-
-    if (!queueData.region || !queueData.rank) {
-      throw new Error('Region and rank are required');
     }
 
     try {
       setActionLoading(true);
       setError(null);
       
-      await joinMatchmakingQueue({ ...queueData, userId: user.id });
+      await joinMatchmakingQueue({} as any); // Pass empty object to satisfy signature
       await fetchPairingData(); // Refresh data
       
     } catch (err: any) {

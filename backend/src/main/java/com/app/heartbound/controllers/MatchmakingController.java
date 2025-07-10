@@ -69,25 +69,23 @@ public class MatchmakingController {
             @ApiResponse(responseCode = "409", description = "User already in queue")
     })
     @PostMapping("/join")
-    public ResponseEntity<QueueStatusDTO> joinQueue(@Valid @RequestBody JoinQueueRequestDTO request, Authentication authentication) {
+    public ResponseEntity<QueueStatusDTO> joinQueue(Authentication authentication) {
         
-        // Security Check: Ensure the authenticated user matches the userId in the request
+        // Security Check: The user is derived from the Authentication object,
+        // so they can only act on their own behalf.
         String authenticatedUserId = authentication.getName();
-        if (!authenticatedUserId.equals(request.getUserId())) {
-            log.warn("Unauthorized queue join attempt by user {} for user {}", 
-                    authenticatedUserId, request.getUserId());
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Users can only join the queue for themselves");
-        }
         
-        log.info("User {} joining matchmaking queue with preferences - Age: {}, Gender: {}, Region: {}, Rank: {}", 
-                 request.getUserId(), request.getAge(), request.getGender(), request.getRegion(), request.getRank());
+        log.info("User {} joining matchmaking queue", authenticatedUserId);
         
         try {
-            QueueStatusDTO status = queueService.joinQueue(request);
+            // The service now handles getting user-specific data
+            QueueStatusDTO status = queueService.joinQueue(new JoinQueueRequestDTO(authenticatedUserId));
             return ResponseEntity.ok(status);
         } catch (IllegalStateException e) {
-            log.error("Conflict when joining queue: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+            log.warn("Conflict when joining queue for user {}: {}", authenticatedUserId, e.getMessage());
+            Map<String, String> errorBody = new HashMap<>();
+            errorBody.put("message", e.getMessage());
+            return new ResponseEntity(errorBody, HttpStatus.CONFLICT);
         } catch (Exception e) {
             log.error("Error joining queue: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

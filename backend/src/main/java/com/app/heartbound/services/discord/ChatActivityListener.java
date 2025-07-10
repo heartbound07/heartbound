@@ -777,7 +777,7 @@ public class ChatActivityListener extends ListenerAdapter {
     private double getUserRoleMultiplier(String userId, MessageReceivedEvent event) {
         try {
             // Get Discord bot settings to check if role multipliers are enabled
-            var settings = discordBotSettingsService.getCurrentSettings();
+            var settings = discordBotSettingsService.getDiscordBotSettings();
             if (!Boolean.TRUE.equals(settings.getRoleMultipliersEnabled()) || 
                 settings.getRoleMultipliers() == null || 
                 settings.getRoleMultipliers().trim().isEmpty()) {
