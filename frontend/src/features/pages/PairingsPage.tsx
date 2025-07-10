@@ -1119,7 +1119,7 @@ export function PairingsPage() {
             </AnimatePresence>
 
             {/* Main Content Grid */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 w-full max-w-full overflow-hidden">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 w-full max-w-full">
               {/* Left Column - Current Status & Queue */}
               <div className="xl:col-span-2 space-y-4 sm:space-y-6 lg:space-y-8">
                 {/* Current Status */}

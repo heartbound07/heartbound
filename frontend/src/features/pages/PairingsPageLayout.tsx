@@ -4,7 +4,7 @@ import { DashboardNavigation } from '@/components/Sidebar';
 import '@/assets/animations.css';
 import '@/assets/PairingsPage.css';
 import '@/assets/theme.css';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 
 /**
@@ -23,29 +23,6 @@ export function PairingsPageLayout() {
     const savedState = localStorage.getItem('sidebar-collapsed');
     return savedState ? JSON.parse(savedState) : false;
   });
-  
-  // Apply overflow control for mobile view if needed
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 768) {
-        document.body.style.overflow = 'hidden';
-      } else {
-        document.body.style.overflow = '';
-      }
-    };
-    
-    // Set initial state
-    handleResize();
-    
-    // Listen for resize events
-    window.addEventListener('resize', handleResize);
-    
-    // Cleanup
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      document.body.style.overflow = '';
-    };
-  }, []);
   
   return (
     <ProtectedRoute>
