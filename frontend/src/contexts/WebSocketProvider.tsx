@@ -316,7 +316,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         if (error.type === 'auth') {
           // Handle auth retry inline to avoid circular dependency
           console.log('[WebSocket] Attempting auth retry...');
-          refreshToken().then(newToken => {
+          refreshToken().then((newToken: string | undefined) => {
             if (newToken) {
               console.log('[WebSocket] Token refresh successful, attempting connection...');
               setRetryState(prev => ({
@@ -329,7 +329,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
               const authError = createError('auth', 'Token refresh returned null', false);
               scheduleRetry(authError);
             }
-          }).catch(refreshError => {
+          }).catch((refreshError: any) => {
             console.error('[WebSocket] Token refresh failed:', refreshError);
             const authError = createError('auth', 'Token refresh failed', false);
             scheduleRetry(authError);
