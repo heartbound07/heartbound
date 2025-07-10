@@ -199,10 +199,14 @@ public class MatchmakingService {
             return 0; // Incompatible - violates age restriction rules
         }
         
-        // Region compatibility (up to 40 points) - enhanced with super-region logic
-        int regionScore = calculateRegionScore(user1.getRegion(), user2.getRegion());
-        score += regionScore;
-        log.info("Region score: {} + {} = {} points", user1.getRegion(), user2.getRegion(), regionScore);
+        // NEW: Region compatibility check (hard constraint)
+        if (user1.getRegion() != user2.getRegion()) {
+            log.info("INCOMPATIBLE: Region mismatch ({} vs {})", user1.getRegion(), user2.getRegion());
+            log.info("=== COMPATIBILITY CHECK END: SCORE = 0 ===");
+            return 0; // Incompatible - regions must match exactly
+        }
+        score += 40; // Same region - highest priority
+        log.info("Region score: {} + {} = 40 points (hard requirement)", user1.getRegion(), user2.getRegion());
         
         // Rank compatibility (up to 30 points) - keeping existing logic
         int rankScore = calculateRankScore(user1.getRank(), user2.getRank());
@@ -211,7 +215,7 @@ public class MatchmakingService {
         
         // Age proximity scoring (up to 30 points) - enhanced scoring for compatible ages
         int ageScore = calculateAgeProximityScore(user1.getAge(), user2.getAge());
-        score += ageScore;
+        score += ageScore;  
         log.info("Age proximity score: {} + {} = {} points", user1.getAge(), user2.getAge(), ageScore);
         
         int finalScore = Math.min(score, 100); // Cap at 100 points
@@ -301,51 +305,6 @@ public class MatchmakingService {
         
         log.debug("Age compatibility check passed: {} and {} (Gap: {} years)", age1, age2, ageGap);
         return true;
-    }
-
-    /**
-     * Calculate region-based compatibility score with super-region logic
-     */
-    private int calculateRegionScore(Region region1, Region region2) {
-        if (region1 == region2) {
-            return 40; // Same region - highest priority
-        }
-        
-        // Check if regions are in the same super-region
-        if (areInSameSuperRegion(region1, region2)) {
-            return 25; // Same super-region, different specific region - high priority
-        }
-        
-        // Cross-super-region matching - lower priority but still possible
-        return 10;
-    }
-
-    /**
-     * Determine if two regions belong to the same super-region
-     */
-    private boolean areInSameSuperRegion(Region region1, Region region2) {
-        // North America super-region: NA_EAST, NA_WEST, NA_CENTRAL
-        Set<Region> northAmerica = Set.of(Region.NA_EAST, Region.NA_WEST, Region.NA_CENTRAL);
-        if (northAmerica.contains(region1) && northAmerica.contains(region2)) {
-            return true;
-        }
-        
-        // Latin America super-region: LATAM, BR
-        Set<Region> latinAmerica = Set.of(Region.LATAM, Region.BR);
-        if (latinAmerica.contains(region1) && latinAmerica.contains(region2)) {
-            return true;
-        }
-        
-        // Asia-Pacific super-region: KR, AP  
-        Set<Region> asiaPacific = Set.of(Region.KR, Region.AP);
-        if (asiaPacific.contains(region1) && asiaPacific.contains(region2)) {
-            return true;
-        }
-        
-        // EU is its own super-region (single region)
-        // Same region matches are handled above, so EU-EU would not reach here
-        
-        return false;
     }
 
     /**
