@@ -152,6 +152,16 @@ public class QueueService {
 
         DiscordBotSettings settings = discordBotSettingsService.getDiscordBotSettings();
 
+        // **NEW: Level requirement validation for male users**
+        String heHimRoleId = settings.getGenderHeHimRoleId();
+        if (heHimRoleId != null && heHimRoleId.equals(user.getSelectedGenderRoleId())) {
+            int userLevel = user.getLevel() != null ? user.getLevel() : 1;
+            if (userLevel < 5) {
+                log.warn("SECURITY: Male user {} (level {}) attempted to join queue but is below level 5.", user.getId(), userLevel);
+                throw new IllegalStateException("Male users must be level 5 or higher to join the queue. Your current level is " + userLevel + ".");
+            }
+        }
+
         // Convert role IDs to enum values
         Integer age = convertAgeRoleToAge(user.getSelectedAgeRoleId(), settings);
         Gender gender = convertGenderRoleToEnum(user.getSelectedGenderRoleId(), settings);

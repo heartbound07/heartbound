@@ -92,6 +92,20 @@ export const QueueJoinForm = memo(({ onJoinQueue, loading, userProfile, botSetti
     }
   }, [userProfile, getRoleName])
 
+  const levelRequirement = useMemo(() => {
+    if (!botSettings || !userProfile?.selectedGenderRoleId || userProfile.level == null) {
+      return { isApplicable: false, isMet: true };
+    }
+    
+    const isMale = userProfile.selectedGenderRoleId === botSettings.genderHeHimRoleId;
+    if (!isMale) {
+      return { isApplicable: false, isMet: true };
+    }
+    
+    const meets = (userProfile.level ?? 1) >= 5;
+    return { isApplicable: true, isMet: meets };
+  }, [userProfile, botSettings]);
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
@@ -156,8 +170,15 @@ export const QueueJoinForm = memo(({ onJoinQueue, loading, userProfile, botSetti
               </div>
             )}
 
+            {levelRequirement.isApplicable && !levelRequirement.isMet && (
+                <div className="missing-roles-notice">
+                    <Info className="h-5 w-5 flex-shrink-0" />
+                    <p>Male users must be level 5 or higher to join the queue. Your current level is {userProfile.level ?? 1}.</p>
+                </div>
+            )}
+
             <div className="form-actions">
-              <button type="submit" className="join-queue-button" disabled={loading || !isFormValid}>
+              <button type="submit" className="join-queue-button" disabled={loading || !isFormValid || !levelRequirement.isMet}>
                 {loading ? (
                   <div className="button-loading">
                     <div className="loading-spinner" />
