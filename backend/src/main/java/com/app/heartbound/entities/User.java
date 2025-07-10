@@ -27,6 +27,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.LinkedHashSet;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Entity
@@ -98,6 +100,15 @@ public class User {
     // Daily claim system fields
     private Integer dailyStreak = 0;
     private LocalDateTime lastDailyClaim;
+
+    // Prison system fields
+    @ElementCollection(fetch = jakarta.persistence.FetchType.EAGER)
+    @CollectionTable(name = "user_prison_roles", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "role_id")
+    @Builder.Default
+    private List<String> originalRoleIds = new ArrayList<>();
+
+    private LocalDateTime prisonedAt;
     
     // User active status field
     private Boolean active = true;

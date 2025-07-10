@@ -1,6 +1,9 @@
 package com.app.heartbound.services.discord;
 
 import com.app.heartbound.config.CacheConfig;
+import com.app.heartbound.entities.User;
+import com.app.heartbound.services.PrisonService;
+import com.app.heartbound.services.UserService;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -13,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,9 +29,9 @@ import java.util.stream.Collectors;
  * 
  * Command: /prison <user>
  * - Only users with ADMINISTRATOR or MODERATE_MEMBERS permissions can execute this command
- * - If the user is not in prison: caches their roles, removes all roles, adds prison role
- * - If the user is in prison: restores cached roles, removes prison role
- * - Uses Caffeine cache to store original role data for restoration
+ * - If the user is not in prison: stores their roles in the database, removes all roles, adds prison role
+ * - If the user is in prison: restores roles from the database, removes prison role
+ * - Uses the database for persistent storage of original role data.
  */
 @Service
 public class PrisonCommandListener extends ListenerAdapter {
@@ -38,12 +42,14 @@ public class PrisonCommandListener extends ListenerAdapter {
     private static final String MOD_ROLE_ID = "1161797355096518759";
     private static final String JR_MOD_ROLE_ID = "1167669829117935666";
     
-    private final CacheConfig cacheConfig;
+    private final PrisonService prisonService;
+    private final UserService userService; // Keep for getUserById
     
     @Autowired
-    public PrisonCommandListener(CacheConfig cacheConfig) {
-        this.cacheConfig = cacheConfig;
-        logger.info("PrisonCommandListener initialized");
+    public PrisonCommandListener(PrisonService prisonService, UserService userService) {
+        this.prisonService = prisonService;
+        this.userService = userService;
+        logger.info("PrisonCommandListener initialized with persistent storage via PrisonService");
     }
     
     @Override
@@ -59,7 +65,7 @@ public class PrisonCommandListener extends ListenerAdapter {
         Guild guild = event.getGuild();
         
         if (guild == null || commandMember == null) {
-            event.reply("This command can only be used in a server.").queue();
+            event.reply("This command can only be used in a server.").setEphemeral(true).queue();
             return;
         }
         
@@ -73,33 +79,33 @@ public class PrisonCommandListener extends ListenerAdapter {
         
         if (!hasPermission) {
             logger.warn("User {} attempted to use /prison without required permissions", event.getUser().getId());
-            event.reply("You do not have permission to use this command. You need Administrator, Moderate Members permission, or a moderator role.").queue();
+            event.reply("You do not have permission to use this command.").setEphemeral(true).queue();
             return;
         }
         
         // Get the target user
         OptionMapping userOption = event.getOption("user");
         if (userOption == null) {
-            event.reply("You must specify a user to prison or release.").queue();
+            event.reply("You must specify a user to prison or release.").setEphemeral(true).queue();
             return;
         }
         
         Member targetMember = userOption.getAsMember();
         if (targetMember == null) {
-            event.reply("The specified user was not found in this server.").queue();
+            event.reply("The specified user was not found in this server.").setEphemeral(true).queue();
             return;
         }
         
         // Prevent self-targeting
         if (targetMember.getId().equals(event.getUser().getId())) {
-            event.reply("You cannot use the prison command on yourself.").queue();
+            event.reply("You cannot use the prison command on yourself.").setEphemeral(true).queue();
             return;
         }
         
         // Prevent targeting other moderators/administrators
         if (targetMember.hasPermission(Permission.ADMINISTRATOR) || 
             targetMember.hasPermission(Permission.MODERATE_MEMBERS)) {
-            event.reply("You cannot use the prison command on other moderators or administrators.").queue();
+            event.reply("You cannot use the prison command on other moderators or administrators.").setEphemeral(true).queue();
             return;
         }
         
@@ -107,20 +113,20 @@ public class PrisonCommandListener extends ListenerAdapter {
         Role prisonRole = guild.getRoleById(PRISON_ROLE_ID);
         if (prisonRole == null) {
             logger.error("Prison role with ID {} not found", PRISON_ROLE_ID);
-            event.reply("Error: Prison role not found. Please contact an administrator.").queue();
+            event.reply("Error: Prison role not found. Please contact an administrator.").setEphemeral(true).queue();
             return;
         }
         
         // Check if the bot has permission to manage roles
         Member botMember = guild.getSelfMember();
         if (!botMember.hasPermission(Permission.MANAGE_ROLES)) {
-            event.reply("I don't have permission to manage roles. Please grant me the 'Manage Roles' permission.").queue();
+            event.reply("I don't have permission to manage roles. Please grant me the 'Manage Roles' permission.").setEphemeral(true).queue();
             return;
         }
         
         // Check if the bot can interact with the prison role
         if (!botMember.canInteract(prisonRole)) {
-            event.reply("I cannot assign the prison role. Please ensure my role is higher than the prison role in the hierarchy.").queue();
+            event.reply("I cannot assign the prison role. Please ensure my role is higher than the prison role in the hierarchy.").setEphemeral(true).queue();
             return;
         }
         
@@ -128,7 +134,7 @@ public class PrisonCommandListener extends ListenerAdapter {
         event.deferReply().queue();
         
         try {
-            // Check if user is already in prison
+            // Check if user is already in prison based on their Discord roles
             boolean isInPrison = targetMember.getRoles().contains(prisonRole);
             
             if (isInPrison) {
@@ -145,25 +151,33 @@ public class PrisonCommandListener extends ListenerAdapter {
     }
     
     /**
-     * Sends a user to prison by caching their roles and replacing them with the prison role
+     * Sends a user to prison by storing their roles in the database and replacing them with the prison role
      */
     private void sendToPrison(SlashCommandInteractionEvent event, Member targetMember, Role prisonRole, Guild guild) {
         String userId = targetMember.getId();
         logger.info("Sending user {} to prison", userId);
         
         try {
-            // Get current roles (excluding @everyone and bot roles)
+            // Ensure the user exists in our database before proceeding
+            User user = userService.getUserById(userId);
+            if (user == null) {
+                logger.warn("Attempted to prison user {} not found in the database.", userId);
+                event.getHook().editOriginal("Cannot prison user: This user has not logged into the web application yet.").queue();
+                return;
+            }
+
+            // Get current roles (excluding @everyone and bot-managed roles)
             List<Role> currentRoles = targetMember.getRoles().stream()
                     .filter(role -> !role.isPublicRole() && !role.isManaged())
                     .collect(Collectors.toList());
             
-            // Cache the original roles
             List<String> roleIds = currentRoles.stream()
                     .map(Role::getId)
                     .collect(Collectors.toList());
             
-                         cacheConfig.getPrisonCache().put(userId, roleIds);
-            logger.debug("Cached {} roles for user {}", roleIds.size(), userId);
+            // Persist roles to the database before making Discord API calls
+            prisonService.prisonUser(userId, roleIds);
+            logger.debug("Persisted {} roles for user {}", roleIds.size(), userId);
             
             // Check if bot can interact with all user's roles
             Member botMember = guild.getSelfMember();
@@ -192,9 +206,9 @@ public class PrisonCommandListener extends ListenerAdapter {
                     event.getHook().editOriginal("🏛️ " + targetMember.getAsMention() + " has been imprisoned.").queue();
                 },
                 error -> {
-                    logger.error("Failed to modify roles for user {}", userId, error);
-                    // Remove from cache if role modification failed
-                    cacheConfig.getPrisonCache().invalidate(userId);
+                    logger.error("Failed to modify roles for user {}. Reverting database change.", userId, error);
+                    // If Discord API fails, roll back the database change
+                    prisonService.releaseUser(userId);
                     event.getHook().editOriginal("Failed to modify user roles: " + error.getMessage()).queue();
                 }
             );
@@ -206,33 +220,33 @@ public class PrisonCommandListener extends ListenerAdapter {
     }
     
     /**
-     * Releases a user from prison by restoring their cached roles
+     * Releases a user from prison by restoring their roles from the database
      */
     private void releaseFromPrison(SlashCommandInteractionEvent event, Member targetMember, Role prisonRole, Guild guild) {
         String userId = targetMember.getId();
         logger.info("Releasing user {} from prison", userId);
         
         try {
-            // Get cached roles
-            @SuppressWarnings("unchecked")
-            List<String> cachedRoleIds = (List<String>) cacheConfig.getPrisonCache().getIfPresent(userId);
-            
-            if (cachedRoleIds == null || cachedRoleIds.isEmpty()) {
-                logger.warn("No cached roles found for user {} during release", userId);
+            // Get user from database to retrieve stored roles
+            User user = userService.getUserById(userId);
+            if (user == null || user.getOriginalRoleIds() == null || user.getOriginalRoleIds().isEmpty()) {
+                logger.warn("No stored roles found in database for user {} during release", userId);
                 event.getHook().editOriginal("⚠️ Cannot release " + targetMember.getAsMention() + 
-                        " - original roles not found in cache. Please restore their roles manually.").queue();
+                        " - original roles not found in the database. Please restore their roles manually.").queue();
                 return;
             }
+
+            List<String> storedRoleIds = user.getOriginalRoleIds();
             
             // Convert role IDs to Role objects
-            List<Role> rolesToRestore = cachedRoleIds.stream()
+            List<Role> rolesToRestore = storedRoleIds.stream()
                     .map(guild::getRoleById)
-                    .filter(role -> role != null) // Filter out deleted roles
+                    .filter(role -> role != null) // Filter out any roles that may have been deleted from the server
                     .collect(Collectors.toList());
             
-            if (rolesToRestore.size() != cachedRoleIds.size()) {
-                int deletedRoles = cachedRoleIds.size() - rolesToRestore.size();
-                logger.warn("{} cached roles no longer exist for user {}", deletedRoles, userId);
+            if (rolesToRestore.size() != storedRoleIds.size()) {
+                int deletedRoles = storedRoleIds.size() - rolesToRestore.size();
+                logger.warn("{} stored roles no longer exist for user {}", deletedRoles, userId);
             }
             
             // Check if bot can interact with the roles to restore
@@ -241,6 +255,7 @@ public class PrisonCommandListener extends ListenerAdapter {
                     .filter(role -> !botMember.canInteract(role))
                     .collect(Collectors.toList());
             
+            StringBuilder finalMessage = new StringBuilder();
             if (!unmanageableRoles.isEmpty()) {
                 String roleNames = unmanageableRoles.stream()
                         .map(Role::getName)
@@ -252,24 +267,26 @@ public class PrisonCommandListener extends ListenerAdapter {
                         .filter(botMember::canInteract)
                         .collect(Collectors.toList());
                 
-                event.getHook().editOriginal("⚠️ " + targetMember.getAsMention() + 
-                        " has been released from prison, but I cannot restore some roles due to role hierarchy: " + roleNames).queue();
+                finalMessage.append("⚠️ ").append(targetMember.getAsMention())
+                            .append(" has been released from prison, but I cannot restore some roles due to hierarchy: ")
+                            .append(roleNames);
             }
             
             // Restore roles and remove prison role
             guild.modifyMemberRoles(targetMember, rolesToRestore, List.of(prisonRole)).queue(
                 success -> {
-                    logger.info("Successfully released user {} from prison", userId);
-                    // Remove from cache
-                    cacheConfig.getPrisonCache().invalidate(userId);
+                    logger.info("Successfully released user {} from prison on Discord", userId);
+                    // Clear the stored roles from the database
+                    prisonService.releaseUser(userId);
                     
-                    if (unmanageableRoles.isEmpty()) {
+                    if (finalMessage.length() > 0) {
+                        event.getHook().editOriginal(finalMessage.toString()).queue();
+                    } else {
                         event.getHook().editOriginal("🔓 " + targetMember.getAsMention() + " has been released from prison.").queue();
                     }
-                    // If there were unmanageable roles, the message was already sent above
                 },
                 error -> {
-                    logger.error("Failed to restore roles for user {}", userId, error);
+                    logger.error("Failed to restore roles for user {}. Database state was not changed.", userId, error);
                     event.getHook().editOriginal("Failed to restore user roles: " + error.getMessage()).queue();
                 }
             );
