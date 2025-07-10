@@ -105,6 +105,22 @@ public class RolesCommandListener extends ListenerAdapter {
 
         event.getChannel().sendMessageEmbeds(rankEmbed.build()).addActionRow(rankButtons).addActionRow(rankButtons2).queue();
 
+        // Embed 4: Region Roles
+        EmbedBuilder regionEmbed = new EmbedBuilder()
+            .setTitle("✨ 𝑹 𝑬 𝑮 𝑰 𝑶 𝑵 ✨")
+            .setColor(Color.decode("#90EE90"));
+        if (settings.getRegionRolesThumbnailUrl() != null && !settings.getRegionRolesThumbnailUrl().isBlank()) {
+            regionEmbed.setThumbnail(settings.getRegionRolesThumbnailUrl());
+        }
+        List<Button> regionButtons = List.of(
+            Button.secondary("roles:region:" + settings.getRegionNaRoleId(), "NA"),
+            Button.secondary("roles:region:" + settings.getRegionEuRoleId(), "EU"),
+            Button.secondary("roles:region:" + settings.getRegionSaRoleId(), "SA"),
+            Button.secondary("roles:region:" + settings.getRegionApRoleId(), "AP"),
+            Button.secondary("roles:region:" + settings.getRegionOceRoleId(), "OCE")
+        );
+        event.getChannel().sendMessageEmbeds(regionEmbed.build()).addActionRow(regionButtons).queue();
+
         event.getHook().editOriginal("Role selection messages have been sent to this channel.").queue();
     }
 
@@ -193,6 +209,7 @@ public class RolesCommandListener extends ListenerAdapter {
             case "age" -> user.getSelectedAgeRoleId();
             case "gender" -> user.getSelectedGenderRoleId();
             case "rank" -> user.getSelectedRankRoleId();
+            case "region" -> user.getSelectedRegionRoleId();
             default -> null;
         };
 
@@ -219,6 +236,9 @@ public class RolesCommandListener extends ListenerAdapter {
             case "rank":
                 roleIdsStream = Stream.of(settings.getRankIronRoleId(), settings.getRankBronzeRoleId(), settings.getRankSilverRoleId(), settings.getRankGoldRoleId(), settings.getRankPlatinumRoleId(), settings.getRankDiamondRoleId());
                 break;
+            case "region":
+                roleIdsStream = Stream.of(settings.getRegionNaRoleId(), settings.getRegionEuRoleId(), settings.getRegionSaRoleId(), settings.getRegionApRoleId(), settings.getRegionOceRoleId());
+                break;
             default:
                 return Map.of();
         }
@@ -237,6 +257,9 @@ public class RolesCommandListener extends ListenerAdapter {
                 break;
             case "rank":
                 user.setSelectedRankRoleId(roleId);
+                break;
+            case "region":
+                user.setSelectedRegionRoleId(roleId);
                 break;
         }
         userService.updateUser(user);

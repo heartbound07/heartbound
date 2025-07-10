@@ -19,6 +19,12 @@ interface SelfAssignableRolesSettingsProps {
     ageRolesThumbnailUrl?: string;
     genderRolesThumbnailUrl?: string;
     rankRolesThumbnailUrl?: string;
+    regionNaRoleId?: string;
+    regionEuRoleId?: string;
+    regionSaRoleId?: string;
+    regionApRoleId?: string;
+    regionOceRoleId?: string;
+    regionRolesThumbnailUrl?: string;
   };
   handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
@@ -112,6 +118,37 @@ export const SelfAssignableRolesSettings: React.FC<SelfAssignableRolesSettingsPr
         <div>
             <label htmlFor="rankRolesThumbnailUrl" className="block text-sm font-medium text-slate-300">Thumbnail URL</label>
             <input type="text" id="rankRolesThumbnailUrl" name="rankRolesThumbnailUrl" value={settings.rankRolesThumbnailUrl || ''} onChange={handleChange} className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" placeholder="https://example.com/image.png" />
+        </div>
+      </div>
+
+      {/* Region Roles */}
+      <div className="pt-6">
+        <h3 className="text-lg font-semibold text-white mb-3">Region Roles</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label htmlFor="regionNaRoleId" className="block text-sm font-medium text-slate-300">NA Role ID</label>
+            <input type="text" id="regionNaRoleId" name="regionNaRoleId" value={settings.regionNaRoleId || ''} onChange={handleChange} className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" placeholder="Role ID" />
+          </div>
+          <div>
+            <label htmlFor="regionEuRoleId" className="block text-sm font-medium text-slate-300">EU Role ID</label>
+            <input type="text" id="regionEuRoleId" name="regionEuRoleId" value={settings.regionEuRoleId || ''} onChange={handleChange} className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" placeholder="Role ID" />
+          </div>
+          <div>
+            <label htmlFor="regionSaRoleId" className="block text-sm font-medium text-slate-300">SA Role ID</label>
+            <input type="text" id="regionSaRoleId" name="regionSaRoleId" value={settings.regionSaRoleId || ''} onChange={handleChange} className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" placeholder="Role ID" />
+          </div>
+          <div>
+            <label htmlFor="regionApRoleId" className="block text-sm font-medium text-slate-300">AP Role ID</label>
+            <input type="text" id="regionApRoleId" name="regionApRoleId" value={settings.regionApRoleId || ''} onChange={handleChange} className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" placeholder="Role ID" />
+          </div>
+          <div>
+            <label htmlFor="regionOceRoleId" className="block text-sm font-medium text-slate-300">OCE Role ID</label>
+            <input type="text" id="regionOceRoleId" name="regionOceRoleId" value={settings.regionOceRoleId || ''} onChange={handleChange} className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" placeholder="Role ID" />
+          </div>
+        </div>
+        <div>
+            <label htmlFor="regionRolesThumbnailUrl" className="block text-sm font-medium text-slate-300">Thumbnail URL</label>
+            <input type="text" id="regionRolesThumbnailUrl" name="regionRolesThumbnailUrl" value={settings.regionRolesThumbnailUrl || ''} onChange={handleChange} className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" placeholder="https://example.com/image.png" />
         </div>
       </div>
     </div>

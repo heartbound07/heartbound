@@ -152,4 +152,16 @@ public class DiscordBotSettingsDTO {
     private String ageRolesThumbnailUrl;
     private String genderRolesThumbnailUrl;
     private String rankRolesThumbnailUrl;
+
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String regionNaRoleId;
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String regionEuRoleId;
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String regionSaRoleId;
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String regionApRoleId;
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String regionOceRoleId;
+    private String regionRolesThumbnailUrl;
 } 

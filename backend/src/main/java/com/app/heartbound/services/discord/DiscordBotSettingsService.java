@@ -111,6 +111,12 @@ public class DiscordBotSettingsService {
             settings.setAgeRolesThumbnailUrl("");
             settings.setGenderRolesThumbnailUrl("");
             settings.setRankRolesThumbnailUrl("");
+            settings.setRegionNaRoleId("");
+            settings.setRegionEuRoleId("");
+            settings.setRegionSaRoleId("");
+            settings.setRegionApRoleId("");
+            settings.setRegionOceRoleId("");
+            settings.setRegionRolesThumbnailUrl("");
 
             repository.save(settings);
         }
@@ -199,6 +205,14 @@ public class DiscordBotSettingsService {
         dto.setGenderRolesThumbnailUrl(settings.getGenderRolesThumbnailUrl());
         dto.setRankRolesThumbnailUrl(settings.getRankRolesThumbnailUrl());
 
+        // Map region roles
+        dto.setRegionNaRoleId(settings.getRegionNaRoleId());
+        dto.setRegionEuRoleId(settings.getRegionEuRoleId());
+        dto.setRegionSaRoleId(settings.getRegionSaRoleId());
+        dto.setRegionApRoleId(settings.getRegionApRoleId());
+        dto.setRegionOceRoleId(settings.getRegionOceRoleId());
+        dto.setRegionRolesThumbnailUrl(settings.getRegionRolesThumbnailUrl());
+
         return dto;
     }
     
@@ -273,6 +287,14 @@ public class DiscordBotSettingsService {
         settings.setAgeRolesThumbnailUrl(dto.getAgeRolesThumbnailUrl());
         settings.setGenderRolesThumbnailUrl(dto.getGenderRolesThumbnailUrl());
         settings.setRankRolesThumbnailUrl(dto.getRankRolesThumbnailUrl());
+
+        // Update region roles
+        settings.setRegionNaRoleId(dto.getRegionNaRoleId());
+        settings.setRegionEuRoleId(dto.getRegionEuRoleId());
+        settings.setRegionSaRoleId(dto.getRegionSaRoleId());
+        settings.setRegionApRoleId(dto.getRegionApRoleId());
+        settings.setRegionOceRoleId(dto.getRegionOceRoleId());
+        settings.setRegionRolesThumbnailUrl(dto.getRegionRolesThumbnailUrl());
 
         repository.save(settings);
         

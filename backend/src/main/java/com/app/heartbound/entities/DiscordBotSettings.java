@@ -81,6 +81,13 @@ public class DiscordBotSettings {
     private String genderRolesThumbnailUrl;
     private String rankRolesThumbnailUrl;
 
+    private String regionNaRoleId;
+    private String regionEuRoleId;
+    private String regionSaRoleId;
+    private String regionApRoleId;
+    private String regionOceRoleId;
+    private String regionRolesThumbnailUrl;
+
     // Getters and setters
     public Long getId() {
         return id;
@@ -494,5 +501,53 @@ public class DiscordBotSettings {
 
     public void setRankRolesThumbnailUrl(String rankRolesThumbnailUrl) {
         this.rankRolesThumbnailUrl = rankRolesThumbnailUrl;
+    }
+
+    public String getRegionNaRoleId() {
+        return regionNaRoleId;
+    }
+
+    public void setRegionNaRoleId(String regionNaRoleId) {
+        this.regionNaRoleId = regionNaRoleId;
+    }
+
+    public String getRegionEuRoleId() {
+        return regionEuRoleId;
+    }
+
+    public void setRegionEuRoleId(String regionEuRoleId) {
+        this.regionEuRoleId = regionEuRoleId;
+    }
+
+    public String getRegionSaRoleId() {
+        return regionSaRoleId;
+    }
+
+    public void setRegionSaRoleId(String regionSaRoleId) {
+        this.regionSaRoleId = regionSaRoleId;
+    }
+
+    public String getRegionApRoleId() {
+        return regionApRoleId;
+    }
+
+    public void setRegionApRoleId(String regionApRoleId) {
+        this.regionApRoleId = regionApRoleId;
+    }
+
+    public String getRegionOceRoleId() {
+        return regionOceRoleId;
+    }
+
+    public void setRegionOceRoleId(String regionOceRoleId) {
+        this.regionOceRoleId = regionOceRoleId;
+    }
+
+    public String getRegionRolesThumbnailUrl() {
+        return regionRolesThumbnailUrl;
+    }
+
+    public void setRegionRolesThumbnailUrl(String regionRolesThumbnailUrl) {
+        this.regionRolesThumbnailUrl = regionRolesThumbnailUrl;
     }
 } 

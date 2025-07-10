@@ -116,6 +116,7 @@ public class User {
     private String selectedAgeRoleId;
     private String selectedGenderRoleId;
     private String selectedRankRoleId;
+    private String selectedRegionRoleId;
     
     // User active status field
     private Boolean active = true;
@@ -341,6 +342,14 @@ public class User {
 
     public void setSelectedRankRoleId(String selectedRankRoleId) {
         this.selectedRankRoleId = selectedRankRoleId;
+    }
+
+    public String getSelectedRegionRoleId() {
+        return selectedRegionRoleId;
+    }
+
+    public void setSelectedRegionRoleId(String selectedRegionRoleId) {
+        this.selectedRegionRoleId = selectedRegionRoleId;
     }
 
     // Helper method to get equipped item ID by category
