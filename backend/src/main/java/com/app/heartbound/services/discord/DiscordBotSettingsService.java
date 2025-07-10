@@ -92,6 +92,20 @@ public class DiscordBotSettingsService {
             
             // Set default starter role ID
             settings.setStarterRoleId(defaultStarterRoleId);
+
+            // Initialize self-assignable roles to prevent nulls
+            settings.setAge15RoleId("");
+            settings.setAge16To17RoleId("");
+            settings.setAge18PlusRoleId("");
+            settings.setGenderSheHerRoleId("");
+            settings.setGenderHeHimRoleId("");
+            settings.setGenderAskRoleId("");
+            settings.setRankIronRoleId("");
+            settings.setRankBronzeRoleId("");
+            settings.setRankSilverRoleId("");
+            settings.setRankGoldRoleId("");
+            settings.setRankPlatinumRoleId("");
+            settings.setRankDiamondRoleId("");
             
             repository.save(settings);
         }
@@ -101,11 +115,16 @@ public class DiscordBotSettingsService {
     }
     
     @Transactional(readOnly = true)
-    public DiscordBotSettingsDTO getCurrentSettings() {
-        // Try to get from cache first
-        DiscordBotSettings settings = (DiscordBotSettings) cacheConfig.getDiscordBotSettingsCache()
+    public DiscordBotSettings getDiscordBotSettings() {
+        return (DiscordBotSettings) cacheConfig.getDiscordBotSettingsCache()
                 .get(1L, key -> repository.findById(1L)
                         .orElseThrow(() -> new RuntimeException("Discord bot settings not found")));
+    }
+
+    @Transactional(readOnly = true)
+    public DiscordBotSettingsDTO getCurrentSettings() {
+        // Try to get from cache first
+        DiscordBotSettings settings = getDiscordBotSettings();
         
         DiscordBotSettingsDTO dto = new DiscordBotSettingsDTO();
         // Map entity to DTO (this would be cleaner with ModelMapper or MapStruct)
@@ -155,6 +174,20 @@ public class DiscordBotSettingsService {
         dto.setSlowmodeTimeWindow(settings.getSlowmodeTimeWindow());
         dto.setSlowmodeDuration(settings.getSlowmodeDuration());
         dto.setSlowmodeCooldown(settings.getSlowmodeCooldown());
+
+        // Map self-assignable roles
+        dto.setAge15RoleId(settings.getAge15RoleId());
+        dto.setAge16To17RoleId(settings.getAge16To17RoleId());
+        dto.setAge18PlusRoleId(settings.getAge18PlusRoleId());
+        dto.setGenderSheHerRoleId(settings.getGenderSheHerRoleId());
+        dto.setGenderHeHimRoleId(settings.getGenderHeHimRoleId());
+        dto.setGenderAskRoleId(settings.getGenderAskRoleId());
+        dto.setRankIronRoleId(settings.getRankIronRoleId());
+        dto.setRankBronzeRoleId(settings.getRankBronzeRoleId());
+        dto.setRankSilverRoleId(settings.getRankSilverRoleId());
+        dto.setRankGoldRoleId(settings.getRankGoldRoleId());
+        dto.setRankPlatinumRoleId(settings.getRankPlatinumRoleId());
+        dto.setRankDiamondRoleId(settings.getRankDiamondRoleId());
         
         return dto;
     }
@@ -211,6 +244,20 @@ public class DiscordBotSettingsService {
         settings.setSlowmodeTimeWindow(dto.getSlowmodeTimeWindow());
         settings.setSlowmodeDuration(dto.getSlowmodeDuration());
         settings.setSlowmodeCooldown(dto.getSlowmodeCooldown());
+
+        // Update self-assignable roles
+        settings.setAge15RoleId(dto.getAge15RoleId());
+        settings.setAge16To17RoleId(dto.getAge16To17RoleId());
+        settings.setAge18PlusRoleId(dto.getAge18PlusRoleId());
+        settings.setGenderSheHerRoleId(dto.getGenderSheHerRoleId());
+        settings.setGenderHeHimRoleId(dto.getGenderHeHimRoleId());
+        settings.setGenderAskRoleId(dto.getGenderAskRoleId());
+        settings.setRankIronRoleId(dto.getRankIronRoleId());
+        settings.setRankBronzeRoleId(dto.getRankBronzeRoleId());
+        settings.setRankSilverRoleId(dto.getRankSilverRoleId());
+        settings.setRankGoldRoleId(dto.getRankGoldRoleId());
+        settings.setRankPlatinumRoleId(dto.getRankPlatinumRoleId());
+        settings.setRankDiamondRoleId(dto.getRankDiamondRoleId());
         
         repository.save(settings);
         

@@ -26,6 +26,7 @@ import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
 import com.app.heartbound.services.discord.UserVoiceActivityService;
 import com.app.heartbound.services.discord.PrisonReleaseService;
+import com.app.heartbound.services.discord.RolesCommandListener;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -140,6 +141,9 @@ public class DiscordConfig {
     @Autowired
     private PrisonReleaseService prisonReleaseService;
 
+    @Autowired
+    private RolesCommandListener rolesCommandListener;
+
     @Bean
     public JDA jda() {
         if (discordToken == null || discordToken.isBlank() || discordToken.equals("${DISCORD_BOT_TOKEN}")) {
@@ -179,7 +183,7 @@ public class DiscordConfig {
                                       inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService, prisonCommandListener, countingGameListener,
-                                      autoSlowmodeService)
+                                      autoSlowmodeService, rolesCommandListener)
                     .build();
 
             // Waits until JDA is fully connected and ready
@@ -295,7 +299,9 @@ public class DiscordConfig {
                         .addOptions(
                             new OptionData(OptionType.STRING, "case", "The case to open", true)
                                 .setAutoComplete(true)
-                        )
+                        ),
+                    Commands.slash("roles", "Post the self-assignable role selection embeds")
+                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
                 )
                 .queue(
                     cmds -> {

@@ -112,6 +112,11 @@ public class User {
     
     private LocalDateTime prisonReleaseAt;
     
+    // Self-assignable role selections
+    private String selectedAgeRoleId;
+    private String selectedGenderRoleId;
+    private String selectedRankRoleId;
+    
     // User active status field
     private Boolean active = true;
     
@@ -312,6 +317,30 @@ public class User {
 
     public boolean hasEquippedBadge() {
         return this.equippedBadgeId != null;
+    }
+
+    public String getSelectedAgeRoleId() {
+        return selectedAgeRoleId;
+    }
+
+    public void setSelectedAgeRoleId(String selectedAgeRoleId) {
+        this.selectedAgeRoleId = selectedAgeRoleId;
+    }
+
+    public String getSelectedGenderRoleId() {
+        return selectedGenderRoleId;
+    }
+
+    public void setSelectedGenderRoleId(String selectedGenderRoleId) {
+        this.selectedGenderRoleId = selectedGenderRoleId;
+    }
+
+    public String getSelectedRankRoleId() {
+        return selectedRankRoleId;
+    }
+
+    public void setSelectedRankRoleId(String selectedRankRoleId) {
+        this.selectedRankRoleId = selectedRankRoleId;
     }
 
     // Helper method to get equipped item ID by category

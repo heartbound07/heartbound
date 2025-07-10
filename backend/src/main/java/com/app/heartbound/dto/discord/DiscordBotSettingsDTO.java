@@ -121,4 +121,30 @@ public class DiscordBotSettingsDTO {
     
     @Min(1)
     private Integer slowmodeCooldown;
+
+    // Self-Assignable Roles Configuration
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String age15RoleId;
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String age16To17RoleId;
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String age18PlusRoleId;
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String genderSheHerRoleId;
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String genderHeHimRoleId;
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String genderAskRoleId;
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String rankIronRoleId;
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String rankBronzeRoleId;
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String rankSilverRoleId;
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String rankGoldRoleId;
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String rankPlatinumRoleId;
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String rankDiamondRoleId;
 } 

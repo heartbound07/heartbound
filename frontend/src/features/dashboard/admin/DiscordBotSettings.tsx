@@ -16,6 +16,7 @@ import {
 } from 'react-icons/hi';
 import { FiActivity, FiSettings, FiUsers, FiAward } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+import { SelfAssignableRolesSettings } from './SelfAssignableRolesSettings';
 
 interface DiscordBotSettingsData {
   activityEnabled: boolean;
@@ -52,6 +53,19 @@ interface DiscordBotSettingsData {
   slowmodeTimeWindow: number;
   slowmodeDuration: number;
   slowmodeCooldown: number;
+  // Self-Assignable Roles
+  age15RoleId: string;
+  age16To17RoleId: string;
+  age18PlusRoleId: string;
+  genderSheHerRoleId: string;
+  genderHeHimRoleId: string;
+  genderAskRoleId: string;
+  rankIronRoleId: string;
+  rankBronzeRoleId: string;
+  rankSilverRoleId: string;
+  rankGoldRoleId: string;
+  rankPlatinumRoleId: string;
+  rankDiamondRoleId: string;
 }
 
 interface ToastNotification {
@@ -112,7 +126,20 @@ const initialSettings: DiscordBotSettingsData = {
   activityThreshold: 10,
   slowmodeTimeWindow: 5,
   slowmodeDuration: 30,
-  slowmodeCooldown: 10
+  slowmodeCooldown: 10,
+  // Self-Assignable Roles
+  age15RoleId: "",
+  age16To17RoleId: "",
+  age18PlusRoleId: "",
+  genderSheHerRoleId: "",
+  genderHeHimRoleId: "",
+  genderAskRoleId: "",
+  rankIronRoleId: "",
+  rankBronzeRoleId: "",
+  rankSilverRoleId: "",
+  rankGoldRoleId: "",
+  rankPlatinumRoleId: "",
+  rankDiamondRoleId: ""
 };
 
 const calculateRequiredXp = (level: number, baseXp: number, levelMultiplier: number, levelExponent: number, levelFactor: number): number => {
@@ -756,6 +783,9 @@ export function DiscordBotSettings() {
           
           {/* Right Column - Role Rewards and Calculator */}
           <div>
+            {/* Self-Assignable Roles Card */}
+            <SelfAssignableRolesSettings settings={settings} handleChange={handleChange} />
+
             {/* Level Role Rewards Card */}
             <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 mb-8 transition-all duration-300 hover:shadow-xl">
               <div className="flex items-center mb-4">

@@ -62,6 +62,20 @@ public class DiscordBotSettings {
     private Integer slowmodeDuration = 30; // Seconds of slowmode to apply
     private Integer slowmodeCooldown = 10; // Minutes before re-evaluation
 
+    // Self-Assignable Roles Configuration
+    private String age15RoleId;
+    private String age16To17RoleId;
+    private String age18PlusRoleId;
+    private String genderSheHerRoleId;
+    private String genderHeHimRoleId;
+    private String genderAskRoleId;
+    private String rankIronRoleId;
+    private String rankBronzeRoleId;
+    private String rankSilverRoleId;
+    private String rankGoldRoleId;
+    private String rankPlatinumRoleId;
+    private String rankDiamondRoleId;
+
     // Getters and setters
     public Long getId() {
         return id;
@@ -355,5 +369,101 @@ public class DiscordBotSettings {
 
     public void setRoleMultipliersEnabled(Boolean roleMultipliersEnabled) {
         this.roleMultipliersEnabled = roleMultipliersEnabled;
+    }
+
+    public String getAge15RoleId() {
+        return age15RoleId;
+    }
+
+    public void setAge15RoleId(String age15RoleId) {
+        this.age15RoleId = age15RoleId;
+    }
+
+    public String getAge16To17RoleId() {
+        return age16To17RoleId;
+    }
+
+    public void setAge16To17RoleId(String age16To17RoleId) {
+        this.age16To17RoleId = age16To17RoleId;
+    }
+
+    public String getAge18PlusRoleId() {
+        return age18PlusRoleId;
+    }
+
+    public void setAge18PlusRoleId(String age18PlusRoleId) {
+        this.age18PlusRoleId = age18PlusRoleId;
+    }
+
+    public String getGenderSheHerRoleId() {
+        return genderSheHerRoleId;
+    }
+
+    public void setGenderSheHerRoleId(String genderSheHerRoleId) {
+        this.genderSheHerRoleId = genderSheHerRoleId;
+    }
+
+    public String getGenderHeHimRoleId() {
+        return genderHeHimRoleId;
+    }
+
+    public void setGenderHeHimRoleId(String genderHeHimRoleId) {
+        this.genderHeHimRoleId = genderHeHimRoleId;
+    }
+
+    public String getGenderAskRoleId() {
+        return genderAskRoleId;
+    }
+
+    public void setGenderAskRoleId(String genderAskRoleId) {
+        this.genderAskRoleId = genderAskRoleId;
+    }
+
+    public String getRankIronRoleId() {
+        return rankIronRoleId;
+    }
+
+    public void setRankIronRoleId(String rankIronRoleId) {
+        this.rankIronRoleId = rankIronRoleId;
+    }
+
+    public String getRankBronzeRoleId() {
+        return rankBronzeRoleId;
+    }
+
+    public void setRankBronzeRoleId(String rankBronzeRoleId) {
+        this.rankBronzeRoleId = rankBronzeRoleId;
+    }
+
+    public String getRankSilverRoleId() {
+        return rankSilverRoleId;
+    }
+
+    public void setRankSilverRoleId(String rankSilverRoleId) {
+        this.rankSilverRoleId = rankSilverRoleId;
+    }
+
+    public String getRankGoldRoleId() {
+        return rankGoldRoleId;
+    }
+
+    public void setRankGoldRoleId(String rankGoldRoleId) {
+        this.rankGoldRoleId = rankGoldRoleId;
+    }
+
+    public String getRankPlatinumRoleId() {
+        return rankPlatinumRoleId;
+    }
+
+    public void setRankPlatinumRoleId(String rankPlatinumRoleId) {
+        this.rankPlatinumRoleId = rankPlatinumRoleId;
+    }
+
+    public String getRankDiamondRoleId() {
+        return rankDiamondRoleId;
+    }
+
+    public void setRankDiamondRoleId(String rankDiamondRoleId) {
+        this.rankDiamondRoleId = rankDiamondRoleId;
     }
 } 
