@@ -157,11 +157,6 @@ public class RolesCommandListener extends ListenerAdapter {
             return;
         }
 
-        // === DEBUGGING LOGS START ===
-        logger.info("[ROLES_DEBUG] User {} ({}) clicked role button for category '{}' with role ID '{}'", user.getUsername(), user.getId(), category, roleIdToAssign);
-        logger.info("[ROLES_DEBUG] BEFORE update - Age: {}, Gender: {}, Rank: {}, Region: {}", user.getSelectedAgeRoleId(), user.getSelectedGenderRoleId(), user.getSelectedRankRoleId(), user.getSelectedRegionRoleId());
-        // === DEBUGGING LOGS END ===
-
         DiscordBotSettings settings = discordBotSettingsService.getDiscordBotSettings();
         Map<String, String> categoryRoles = getCategoryRoles(settings, category);
 
@@ -198,9 +193,6 @@ public class RolesCommandListener extends ListenerAdapter {
         guild.modifyMemberRoles(member, List.of(newRole), rolesToRemove).queue(
             success -> {
                 updateUserWithNewRole(user, category, roleIdToAssign);
-                // === DEBUGGING LOGS START ===
-                logger.info("[ROLES_DEBUG] AFTER update - Age: {}, Gender: {}, Rank: {}, Region: {}", user.getSelectedAgeRoleId(), user.getSelectedGenderRoleId(), user.getSelectedRankRoleId(), user.getSelectedRegionRoleId());
-                // === DEBUGGING LOGS END ===
                 event.getHook().editOriginal("You have been successfully assigned the '" + newRole.getName() + "' role!").queue();
                 logger.info("Assigned role '{}' to user {} in category '{}'", newRole.getName(), member.getId(), category);
             },
@@ -270,7 +262,6 @@ public class RolesCommandListener extends ListenerAdapter {
                 user.setSelectedRegionRoleId(roleId);
                 break;
         }
-        logger.info("[ROLES_DEBUG] Calling userService.updateUser for user {}", user.getId());
         userService.updateUser(user);
     }
 } 

@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useCallback, useMemo, memo } from "react"
+import { useCallback, useMemo, memo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/valorant/label"
 import { Heart, Users, User, Info, CheckCircle, XCircle } from "lucide-react"
@@ -40,12 +40,7 @@ const RoleDisplayItem: React.FC<{
 )
 
 export const QueueJoinForm = memo(({ onJoinQueue, loading, userProfile, botSettings }: QueueJoinFormProps) => {
-  // === DEBUGGING LOGS START ===
-  console.log("[QUEUE_FORM_DEBUG] Received userProfile:", JSON.stringify(userProfile, null, 2));
-  console.log("[QUEUE_FORM_DEBUG] Received botSettings:", botSettings ? "Settings Loaded" : "Settings NOT Loaded");
-  // === DEBUGGING LOGS END ===
-
-  const getRoleName = useCallback((roleId: string | null | undefined, category: keyof DiscordBotSettingsDTO) => {
+  const getRoleName = useCallback((roleId: string | null | undefined) => {
     if (!roleId || !botSettings) return null
 
     // This is a simplified lookup. A more robust solution might involve a dedicated mapping object.
@@ -86,26 +81,16 @@ export const QueueJoinForm = memo(({ onJoinQueue, loading, userProfile, botSetti
     isFormValid,
   } = useMemo(() => {
     const selections = {
-      ageSelection: getRoleName(userProfile.selectedAgeRoleId, "age15RoleId"),
-      genderSelection: getRoleName(userProfile.selectedGenderRoleId, "genderSheHerRoleId"),
-      rankSelection: getRoleName(userProfile.selectedRankRoleId, "rankIronRoleId"),
-      regionSelection: getRoleName(userProfile.selectedRegionRoleId, "regionNaRoleId"),
+      ageSelection: getRoleName(userProfile.selectedAgeRoleId),
+      genderSelection: getRoleName(userProfile.selectedGenderRoleId),
+      rankSelection: getRoleName(userProfile.selectedRankRoleId),
+      regionSelection: getRoleName(userProfile.selectedRegionRoleId),
     }
     return {
       ...selections,
       isFormValid: Object.values(selections).every(Boolean),
     }
   }, [userProfile, getRoleName])
-
-  // === DEBUGGING LOGS START ===
-  console.log("[QUEUE_FORM_DEBUG] Derived Selections:", {
-    age: ageSelection,
-    gender: genderSelection,
-    rank: rankSelection,
-    region: regionSelection,
-    isValid: isFormValid,
-  });
-  // === DEBUGGING LOGS END ===
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -172,7 +157,7 @@ export const QueueJoinForm = memo(({ onJoinQueue, loading, userProfile, botSetti
             )}
 
             <div className="form-actions">
-              <button type="submit" className="join-queue-button" disabled={loading}>
+              <button type="submit" className="join-queue-button" disabled={loading || !isFormValid}>
                 {loading ? (
                   <div className="button-loading">
                     <div className="loading-spinner" />

@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/valorant/badge"
 import { Heart, Users, Settings, AlertCircle, Zap, UserCheck, Activity, Trash2, MessageCircle} from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
-import type { JoinQueueRequestDTO, PairingDTO } from "@/config/pairingService"
+import type { PairingDTO } from "@/config/pairingService"
 import { useQueueUpdates } from "@/contexts/QueueUpdates"
 import { performMatchmaking, deleteAllPairings, enableQueue, disableQueue } from "@/config/pairingService"
 import { usePairingUpdates } from "@/contexts/PairingUpdates"
@@ -64,7 +64,7 @@ const initialAdminState: AdminState = {
 // QueueJoinForm has been extracted to ./components/QueueJoinForm.tsx
 
 export function PairingsPage() {
-  const { user, hasRole, fetchCurrentUserProfile } = useAuth()
+  const { user, hasRole } = useAuth()
   const {
     currentPairing,
     pairingHistory,
