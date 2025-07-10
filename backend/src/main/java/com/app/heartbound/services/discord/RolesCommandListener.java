@@ -87,7 +87,8 @@ public class RolesCommandListener extends ListenerAdapter {
         // Embed 3: Rank Roles
         EmbedBuilder rankEmbed = new EmbedBuilder()
             .setTitle("✨ 𝙍 𝘼 𝙉 𝑲 ✨")
-            .setColor(Color.decode("#D4AF37"));
+            .setColor(Color.decode("#D4AF37"))
+            .setDescription("**REQUIRES VERIFICATION**\n\n**ASCENDANT**\n**IMMORTAL**\n**RADIANT**");
         if (settings.getRankRolesThumbnailUrl() != null && !settings.getRankRolesThumbnailUrl().isBlank()) {
             rankEmbed.setThumbnail(settings.getRankRolesThumbnailUrl());
         }
