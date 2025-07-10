@@ -256,17 +256,17 @@ public class PrisonCommandListener extends ListenerAdapter {
         }
 
         EmbedBuilder embed = new EmbedBuilder();
-        embed.setTitle(targetMember.getEffectiveName() + " Has Been Imprisoned");
+        embed.setTitle("You have been imprisoned!");
         embed.setColor(Color.RED);
         embed.addField("Reason", reason, false);
         embed.addField("Duration", durationStr != null ? durationStr : "Permanent", false);
-        embed.setFooter("If you believe this is a mistake, please contact a server administrator.");
-        embed.setTimestamp(LocalDateTime.now());
 
-        logChannel.sendMessageEmbeds(embed.build()).queue(
-            null,
-            error -> logger.warn("Failed to send prison notification to channel {}: {}", PRISON_LOG_CHANNEL_ID, error.getMessage())
-        );
+        logChannel.sendMessage(targetMember.getAsMention())
+                .addEmbeds(embed.build())
+                .queue(
+                    null,
+                    error -> logger.warn("Failed to send prison notification to channel {}: {}", PRISON_LOG_CHANNEL_ID, error.getMessage())
+                );
     }
     
     /**
