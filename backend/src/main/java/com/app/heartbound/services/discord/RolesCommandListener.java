@@ -151,13 +151,31 @@ public class RolesCommandListener extends ListenerAdapter {
             return;
         }
 
+        DiscordBotSettings settings = discordBotSettingsService.getDiscordBotSettings();
+
+        // Security Check: Prevent users with a verified rank from getting a self-assigned one.
+        if (category.equals("rank")) {
+            List<String> verifiedRankRoleIds = Stream.of(
+                settings.getRankAscendantRoleId(),
+                settings.getRankImmortalRoleId(),
+                settings.getRankRadiantRoleId()
+            ).filter(id -> id != null && !id.isBlank()).collect(Collectors.toList());
+
+            boolean hasVerifiedRank = member.getRoles().stream()
+                .anyMatch(role -> verifiedRankRoleIds.contains(role.getId()));
+
+            if (hasVerifiedRank) {
+                event.getHook().editOriginal("You cannot select a self-assignable rank because you already have a moderator-verified rank.").queue();
+                return;
+            }
+        }
+
         User user = userService.getUserById(member.getId());
         if (user == null) {
             event.getHook().editOriginal("Could not find your user profile in the database. Please try logging into the website first.").queue();
             return;
         }
 
-        DiscordBotSettings settings = discordBotSettingsService.getDiscordBotSettings();
         Map<String, String> categoryRoles = getCategoryRoles(settings, category);
 
         // Check if user already has a role from this category

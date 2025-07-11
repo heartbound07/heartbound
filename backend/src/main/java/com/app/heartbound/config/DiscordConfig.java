@@ -27,6 +27,7 @@ import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
 import com.app.heartbound.services.discord.UserVoiceActivityService;
 import com.app.heartbound.services.discord.PrisonReleaseService;
 import com.app.heartbound.services.discord.RolesCommandListener;
+import com.app.heartbound.services.discord.VerifyCommandListener;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -144,6 +145,9 @@ public class DiscordConfig {
     @Autowired
     private RolesCommandListener rolesCommandListener;
 
+    @Autowired
+    private VerifyCommandListener verifyCommandListener;
+
     @Bean
     public JDA jda() {
         if (discordToken == null || discordToken.isBlank() || discordToken.equals("${DISCORD_BOT_TOKEN}")) {
@@ -183,7 +187,7 @@ public class DiscordConfig {
                                       inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService, prisonCommandListener, countingGameListener,
-                                      autoSlowmodeService, rolesCommandListener)
+                                      autoSlowmodeService, rolesCommandListener, verifyCommandListener)
                     .build();
 
             // Waits until JDA is fully connected and ready
@@ -301,7 +305,16 @@ public class DiscordConfig {
                                 .setAutoComplete(true)
                         ),
                     Commands.slash("roles", "Post the self-assignable role selection embeds")
-                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
+                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR)),
+                    Commands.slash("verify", "Assigns a high-tier, moderator-verified rank to a user.")
+                        .addOptions(
+                            new OptionData(OptionType.USER, "user", "The user to verify.", true),
+                            new OptionData(OptionType.STRING, "rank", "The verified rank to assign.", true)
+                                .addChoice("Ascendant", "ascendant")
+                                .addChoice("Immortal", "immortal")
+                                .addChoice("Radiant", "radiant")
+                        )
+                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MANAGE_ROLES))
                 )
                 .queue(
                     cmds -> {

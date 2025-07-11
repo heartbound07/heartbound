@@ -76,6 +76,11 @@ public class DiscordBotSettings {
     private String rankPlatinumRoleId;
     private String rankDiamondRoleId;
 
+    // Verified Rank Roles (Admin/Mod assigned)
+    private String rankAscendantRoleId;
+    private String rankImmortalRoleId;
+    private String rankRadiantRoleId;
+
     // Thumbnail URLs for Self-Assignable Roles
     private String ageRolesThumbnailUrl;
     private String genderRolesThumbnailUrl;
@@ -477,6 +482,30 @@ public class DiscordBotSettings {
 
     public void setRankDiamondRoleId(String rankDiamondRoleId) {
         this.rankDiamondRoleId = rankDiamondRoleId;
+    }
+
+    public String getRankAscendantRoleId() {
+        return rankAscendantRoleId;
+    }
+
+    public void setRankAscendantRoleId(String rankAscendantRoleId) {
+        this.rankAscendantRoleId = rankAscendantRoleId;
+    }
+
+    public String getRankImmortalRoleId() {
+        return rankImmortalRoleId;
+    }
+
+    public void setRankImmortalRoleId(String rankImmortalRoleId) {
+        this.rankImmortalRoleId = rankImmortalRoleId;
+    }
+
+    public String getRankRadiantRoleId() {
+        return rankRadiantRoleId;
+    }
+
+    public void setRankRadiantRoleId(String rankRadiantRoleId) {
+        this.rankRadiantRoleId = rankRadiantRoleId;
     }
 
     public String getAgeRolesThumbnailUrl() {

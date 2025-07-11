@@ -148,6 +148,14 @@ public class DiscordBotSettingsDTO {
     @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
     private String rankDiamondRoleId;
 
+    // Verified Rank Roles (Admin/Mod assigned)
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String rankAscendantRoleId;
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String rankImmortalRoleId;
+    @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
+    private String rankRadiantRoleId;
+
     // Thumbnail URLs for Self-Assignable Roles
     private String ageRolesThumbnailUrl;
     private String genderRolesThumbnailUrl;

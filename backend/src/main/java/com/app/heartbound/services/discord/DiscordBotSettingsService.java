@@ -107,6 +107,11 @@ public class DiscordBotSettingsService {
             settings.setRankPlatinumRoleId("");
             settings.setRankDiamondRoleId("");
             
+            // Initialize verified rank roles
+            settings.setRankAscendantRoleId("");
+            settings.setRankImmortalRoleId("");
+            settings.setRankRadiantRoleId("");
+
             // Initialize thumbnail URLs
             settings.setAgeRolesThumbnailUrl("");
             settings.setGenderRolesThumbnailUrl("");
@@ -200,6 +205,11 @@ public class DiscordBotSettingsService {
         dto.setRankPlatinumRoleId(settings.getRankPlatinumRoleId());
         dto.setRankDiamondRoleId(settings.getRankDiamondRoleId());
         
+        // Map verified rank roles
+        dto.setRankAscendantRoleId(settings.getRankAscendantRoleId());
+        dto.setRankImmortalRoleId(settings.getRankImmortalRoleId());
+        dto.setRankRadiantRoleId(settings.getRankRadiantRoleId());
+        
         // Map thumbnail URLs
         dto.setAgeRolesThumbnailUrl(settings.getAgeRolesThumbnailUrl());
         dto.setGenderRolesThumbnailUrl(settings.getGenderRolesThumbnailUrl());
@@ -282,6 +292,11 @@ public class DiscordBotSettingsService {
         settings.setRankGoldRoleId(dto.getRankGoldRoleId());
         settings.setRankPlatinumRoleId(dto.getRankPlatinumRoleId());
         settings.setRankDiamondRoleId(dto.getRankDiamondRoleId());
+        
+        // Update verified rank roles
+        settings.setRankAscendantRoleId(dto.getRankAscendantRoleId());
+        settings.setRankImmortalRoleId(dto.getRankImmortalRoleId());
+        settings.setRankRadiantRoleId(dto.getRankRadiantRoleId());
         
         // Update thumbnail URLs
         settings.setAgeRolesThumbnailUrl(dto.getAgeRolesThumbnailUrl());

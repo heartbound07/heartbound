@@ -16,6 +16,9 @@ interface SelfAssignableRolesSettingsProps {
     rankGoldRoleId: string;
     rankPlatinumRoleId: string;
     rankDiamondRoleId: string;
+    rankAscendantRoleId?: string;
+    rankImmortalRoleId?: string;
+    rankRadiantRoleId?: string;
     ageRolesThumbnailUrl?: string;
     genderRolesThumbnailUrl?: string;
     rankRolesThumbnailUrl?: string;
@@ -87,7 +90,7 @@ export const SelfAssignableRolesSettings: React.FC<SelfAssignableRolesSettingsPr
       </div>
 
       {/* Rank Roles */}
-      <div>
+      <div className="border-b border-slate-700/50 pb-6 mb-6">
         <h3 className="text-lg font-semibold text-white mb-3">Rank Roles</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div>
@@ -118,6 +121,26 @@ export const SelfAssignableRolesSettings: React.FC<SelfAssignableRolesSettingsPr
         <div>
             <label htmlFor="rankRolesThumbnailUrl" className="block text-sm font-medium text-slate-300">Thumbnail URL</label>
             <input type="text" id="rankRolesThumbnailUrl" name="rankRolesThumbnailUrl" value={settings.rankRolesThumbnailUrl || ''} onChange={handleChange} className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" placeholder="https://example.com/image.png" />
+        </div>
+      </div>
+      
+      {/* Verified Rank Roles */}
+      <div className="mb-6 border-b border-slate-700/50 pb-6">
+        <h3 className="text-lg font-semibold text-white mb-3">Verified Rank Roles (Mod Assigned)</h3>
+        <p className="text-slate-400 text-sm mb-4">These roles are assigned via the `/verify` command and are not self-assignable by users.</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label htmlFor="rankAscendantRoleId" className="block text-sm font-medium text-slate-300">Ascendant Role ID</label>
+            <input type="text" id="rankAscendantRoleId" name="rankAscendantRoleId" value={settings.rankAscendantRoleId || ''} onChange={handleChange} className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" placeholder="Role ID" />
+          </div>
+          <div>
+            <label htmlFor="rankImmortalRoleId" className="block text-sm font-medium text-slate-300">Immortal Role ID</label>
+            <input type="text" id="rankImmortalRoleId" name="rankImmortalRoleId" value={settings.rankImmortalRoleId || ''} onChange={handleChange} className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" placeholder="Role ID" />
+          </div>
+          <div>
+            <label htmlFor="rankRadiantRoleId" className="block text-sm font-medium text-slate-300">Radiant Role ID</label>
+            <input type="text" id="rankRadiantRoleId" name="rankRadiantRoleId" value={settings.rankRadiantRoleId || ''} onChange={handleChange} className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" placeholder="Role ID" />
+          </div>
         </div>
       </div>
 
