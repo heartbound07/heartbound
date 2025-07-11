@@ -1,7 +1,6 @@
 package com.app.heartbound.services.discord;
 
 import com.app.heartbound.dto.pairing.CreatePairingRequestDTO;
-import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.UserValidationService;
 import com.app.heartbound.services.pairing.PairingService;
@@ -10,7 +9,7 @@ import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -23,7 +22,6 @@ import org.springframework.stereotype.Component;
 import java.awt.*;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -71,8 +69,8 @@ public class PairCommandListener extends ListenerAdapter {
 
         event.deferReply(true).queue();
 
-        net.dv8tion.jda.api.entities.User requesterUser = event.getUser();
-        net.dv8tion.jda.api.entities.User targetUser = event.getOption("user").getAsUser();
+        User requesterUser = event.getUser();
+        User targetUser = event.getOption("user").getAsUser();
 
         if (targetUser.isBot() || targetUser.equals(requesterUser)) {
             event.getHook().sendMessage("You cannot pair with a bot or yourself.").queue();
@@ -80,8 +78,8 @@ public class PairCommandListener extends ListenerAdapter {
         }
 
         try {
-            User requester = userService.getUserById(requesterUser.getId());
-            User target = userService.getUserById(targetUser.getId());
+            com.app.heartbound.entities.User requester = userService.getUserById(requesterUser.getId());
+            com.app.heartbound.entities.User target = userService.getUserById(targetUser.getId());
 
             if (requester == null || target == null) {
                 event.getHook().sendMessage("Both you and the target user must be registered in the system.").queue();
@@ -115,10 +113,16 @@ public class PairCommandListener extends ListenerAdapter {
                     .setDescription("Hey " + targetUser.getAsMention() + ", " + requesterUser.getAsMention() + " wants to pair with you!")
                     .setColor(new Color(0x5865F2));
 
-            event.getChannel().sendMessage(targetUser.getAsMention()).addEmbeds(embedBuilder.build()).setActionRow(acceptButton, rejectButton).queue(message -> {
-                pendingRequests.put(requestKey, new PairRequest(requester.getId(), target.getId(), message.getIdLong(), Instant.now()));
-                event.getHook().sendMessage("Your pair request has been sent!").queue();
-            });
+            event.getChannel().sendMessage(targetUser.getAsMention()).addEmbeds(embedBuilder.build()).setActionRow(acceptButton, rejectButton).queue(
+                message -> {
+                    pendingRequests.put(requestKey, new PairRequest(requester.getId(), target.getId(), message.getIdLong(), Instant.now()));
+                    event.getHook().deleteOriginal().queue(); // Delete the "Thinking..." message
+                },
+                failure -> {
+                    log.warn("Failed to send pair request message in channel {}: {}", event.getChannel().getId(), failure.getMessage());
+                    event.getHook().sendMessage("❌ I couldn't send the request. Please make sure I have permission to post in this channel.").queue();
+                }
+            );
 
         } catch (IllegalStateException e) {
             event.getHook().sendMessage("Validation failed: " + e.getMessage()).queue();
@@ -170,8 +174,8 @@ public class PairCommandListener extends ListenerAdapter {
         }
 
         try {
-            User requester = userService.getUserById(requesterId);
-            User target = userService.getUserById(targetId);
+            com.app.heartbound.entities.User requester = userService.getUserById(requesterId);
+            com.app.heartbound.entities.User target = userService.getUserById(targetId);
 
             CreatePairingRequestDTO createRequest = CreatePairingRequestDTO.builder()
                 .user1Id(requester.getId())
@@ -192,10 +196,24 @@ public class PairCommandListener extends ListenerAdapter {
             pairingService.createPairing(createRequest);
             queueService.removeMatchedUsersFromQueue(List.of(requesterId, targetId));
 
-            EmbedBuilder embedBuilder = new EmbedBuilder()
-                    .setDescription(requester.getDisplayName() + " and " + target.getDisplayName() + " have been paired together!")
-                    .setColor(Color.GREEN);
-            event.getHook().editOriginalEmbeds(embedBuilder.build()).setComponents().queue();
+            // Get the JDA User object for the target (who clicked the button)
+            User targetDiscordUser = event.getUser();
+
+            // Asynchronously retrieve the requester's Discord User object to build the mention string
+            jdaInstance.retrieveUserById(requesterId).queue(requesterDiscordUser -> {
+                // On success, use mentions for both users
+                EmbedBuilder embedBuilder = new EmbedBuilder()
+                        .setDescription(requesterDiscordUser.getAsMention() + " and " + targetDiscordUser.getAsMention() + " have been paired together!")
+                        .setColor(Color.GREEN);
+                event.getHook().editOriginalEmbeds(embedBuilder.build()).setComponents().queue();
+            }, failure -> {
+                // Fallback if the requester's Discord profile can't be fetched
+                log.warn("Could not retrieve requester's Discord profile (ID: {}). Falling back to database display names.", requesterId, failure);
+                EmbedBuilder embedBuilder = new EmbedBuilder()
+                        .setDescription(requester.getDisplayName() + " and " + target.getDisplayName() + " have been paired together!")
+                        .setColor(Color.GREEN);
+                event.getHook().editOriginalEmbeds(embedBuilder.build()).setComponents().queue();
+            });
             
         } catch (Exception e) {
             log.error("Error creating pairing from /pair command", e);
