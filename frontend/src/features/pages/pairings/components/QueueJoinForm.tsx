@@ -59,6 +59,8 @@ const RoleDisplayItem: React.FC<{
 }
 
 export const QueueJoinForm = memo(({ onJoinQueue, loading, userProfile, botSettings }: QueueJoinFormProps) => {
+  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+  
   const getRoleName = useCallback(
     (roleId: string | null | undefined) => {
       if (!roleId || !botSettings) return null
@@ -167,7 +169,7 @@ export const QueueJoinForm = memo(({ onJoinQueue, loading, userProfile, botSetti
                   label="Rank"
                   value={rankSelection}
                   missingMessage="Select in #roles"
-                  imageUrl={rankSelection ? `/api/images/ranks/${rankSelection.toLowerCase()}.png` : undefined}
+                  imageUrl={rankSelection ? `${apiBaseUrl}/images/ranks/${rankSelection.toLowerCase()}.png` : undefined}
                 />
                 <RoleDisplayItem label="Region" value={regionSelection} missingMessage="Select in #roles" />
               </div>

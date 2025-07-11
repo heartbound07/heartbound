@@ -2,82 +2,95 @@ package com.app.heartbound.controllers;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Value;
 import jakarta.validation.constraints.Pattern;
 
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.file.Files;
 
 @RestController
 public class ResourceController {
     private static final Logger logger = LoggerFactory.getLogger(ResourceController.class);
-
-    @Autowired
-    private ResourceLoader resourceLoader;
-
+    
+    @Value("${spring.web.resources.static-locations:classpath:/static/}")
+    private String[] staticLocations;
+    
     @GetMapping(value = "/images/ranks/{rank}.png", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<byte[]> getRankImage(
             @PathVariable @Pattern(regexp = "^[a-zA-Z0-9_-]+$", message = "Invalid rank format") String rank) {
+        // First try loading from classpath
         String imagePath = "static/images/ranks/" + rank.toLowerCase() + ".png";
         logger.debug("Attempting to load image from classpath: {}", imagePath);
-
-        Resource resource = resourceLoader.getResource("classpath:" + imagePath);
-
-        if (resource.exists() && resource.isReadable()) {
-            try (InputStream inputStream = resource.getInputStream()) {
-                byte[] imageBytes = StreamUtils.copyToByteArray(inputStream);
-                logger.debug("Successfully loaded image from classpath: {} ({} bytes)", rank, imageBytes.length);
-                return ResponseEntity.ok().body(imageBytes);
-            } catch (IOException e) {
-                logger.error("Error loading image {}: {}", rank, e.getMessage(), e);
-                return ResponseEntity.internalServerError().build();
-            }
-        } else {
-            // Fallback for default avatar if rank image is not found
-            String defaultAvatarPath = "static/images/ranks/default-avatar.png";
-            logger.warn("Rank image not found: {}. Falling back to default avatar.", imagePath);
-            Resource defaultAvatarResource = resourceLoader.getResource("classpath:" + defaultAvatarPath);
-            if (defaultAvatarResource.exists() && defaultAvatarResource.isReadable()) {
-                try (InputStream inputStream = defaultAvatarResource.getInputStream()) {
-                    return ResponseEntity.ok().body(StreamUtils.copyToByteArray(inputStream));
-                } catch (IOException e) {
-                    logger.error("Error loading default avatar: {}", e.getMessage(), e);
-                    return ResponseEntity.status(500).build();
+        
+        try {
+            // Try classpath resources first
+            Resource resource = new ClassPathResource(imagePath);
+            
+            if (!resource.exists()) {
+                logger.warn("Image not found in classpath: {}", imagePath);
+                
+                // Try file system path as backup
+                String filePath = System.getProperty("user.dir") + "/src/main/resources/" + imagePath;
+                logger.debug("Attempting to load from file system: {}", filePath);
+                
+                File file = new File(filePath);
+                if (file.exists()) {
+                    logger.debug("Found image at file system path: {}", filePath);
+                    return ResponseEntity.ok().body(Files.readAllBytes(file.toPath()));
                 }
+                
+                logger.error("Image not found anywhere: {}", rank);
+                return ResponseEntity.notFound().build();
             }
-            logger.error("Default avatar not found at {}", defaultAvatarPath);
-            return ResponseEntity.notFound().build();
+            
+            byte[] imageBytes = StreamUtils.copyToByteArray(resource.getInputStream());
+            logger.debug("Successfully loaded image from classpath: {} ({} bytes)", rank, imageBytes.length);
+            return ResponseEntity.ok().body(imageBytes);
+        } catch (IOException e) {
+            logger.error("Error loading image {}: {}", rank, e.getMessage());
+            return ResponseEntity.internalServerError().build();
         }
     }
-
+    
     @GetMapping(value = "/images/default-avatar.png", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<byte[]> getDefaultAvatar() {
         String imagePath = "static/images/ranks/default-avatar.png";
         logger.debug("Attempting to load default avatar from classpath: {}", imagePath);
 
-        Resource resource = new ClassPathResource(imagePath);
+        try {
+            Resource resource = new ClassPathResource(imagePath);
 
-        if (resource.exists() && resource.isReadable()) {
-            try (InputStream inputStream = resource.getInputStream()) {
-                byte[] imageBytes = StreamUtils.copyToByteArray(inputStream);
-                logger.debug("Successfully loaded default avatar from classpath: {} bytes", imageBytes.length);
-                return ResponseEntity.ok().body(imageBytes);
-            } catch (IOException e) {
-                logger.error("Error loading default avatar: {}", e.getMessage());
-                return ResponseEntity.internalServerError().build();
+            if (!resource.exists()) {
+                logger.warn("Default avatar not found in classpath: {}", imagePath);
+
+                String filePath = System.getProperty("user.dir") + "/src/main/resources/" + imagePath;
+                logger.debug("Attempting to load default avatar from file system: {}", filePath);
+
+                File file = new File(filePath);
+                if (file.exists()) {
+                    logger.debug("Found default avatar at file system path: {}", filePath);
+                    return ResponseEntity.ok().body(Files.readAllBytes(file.toPath()));
+                }
+
+                logger.error("Default avatar not found anywhere.");
+                return ResponseEntity.notFound().build();
             }
-        } else {
-             logger.error("Default avatar not found anywhere.");
-             return ResponseEntity.notFound().build();
+
+            byte[] imageBytes = StreamUtils.copyToByteArray(resource.getInputStream());
+            logger.debug("Successfully loaded default avatar from classpath: {} bytes", imageBytes.length);
+            return ResponseEntity.ok().body(imageBytes);
+        } catch (IOException e) {
+            logger.error("Error loading default avatar: {}", e.getMessage());
+            return ResponseEntity.internalServerError().build();
         }
     }
 } 
