@@ -164,6 +164,19 @@
   margin: 0;
 }
 
+.role-value-content {
+  display: flex;
+  align-items: center;
+  min-height: 1.5rem; /* Match image height to prevent layout shift */
+  gap: 0.5rem; /* Add space between image and text */
+}
+
+.rank-image {
+  height: 1.5rem; /* 24px */
+  width: auto;
+  object-fit: contain;
+}
+
 .role-missing {
   font-size: 1rem;
   font-weight: 500;
