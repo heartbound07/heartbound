@@ -80,6 +80,9 @@ public class UserValidationService {
         if (roleId.equals(settings.getRankGoldRoleId())) return Rank.GOLD;
         if (roleId.equals(settings.getRankPlatinumRoleId())) return Rank.PLATINUM;
         if (roleId.equals(settings.getRankDiamondRoleId())) return Rank.DIAMOND;
+        if (roleId.equals(settings.getRankAscendantRoleId())) return Rank.ASCENDANT;
+        if (roleId.equals(settings.getRankImmortalRoleId())) return Rank.IMMORTAL;
+        if (roleId.equals(settings.getRankRadiantRoleId())) return Rank.RADIANT;
         throw new IllegalStateException("Invalid Rank role selected. Please re-select your rank role in Discord.");
     }
 
