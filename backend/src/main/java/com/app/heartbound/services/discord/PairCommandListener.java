@@ -28,6 +28,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class PairCommandListener extends ListenerAdapter {
 
+    private static final Color WARNING_COLOR = new Color(255, 193, 7); // Bootstrap warning yellow
+
     private final PairingService pairingService;
     private final UserService userService;
     private final UserValidationService userValidationService;
@@ -160,8 +162,10 @@ public class PairCommandListener extends ListenerAdapter {
         }
         
         if (Instant.ofEpochMilli(timestamp).isBefore(Instant.now().minusSeconds(300))) {
-            event.getHook().sendMessage("This pair request has expired.").setEphemeral(true).queue();
-            disableButtons(event.getChannel(), event.getMessageIdLong(), "Request expired");
+            EmbedBuilder embedBuilder = new EmbedBuilder()
+                    .setTitle("Expired!")
+                    .setColor(WARNING_COLOR);
+            event.getHook().editOriginalEmbeds(embedBuilder.build()).setComponents().queue();
             return;
         }
 
