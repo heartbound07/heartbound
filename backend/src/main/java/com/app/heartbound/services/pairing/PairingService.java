@@ -163,45 +163,40 @@ public class PairingService {
      * This prevents users from directly calling service methods to bypass controller security
      */
     private void validatePairingCreationAuth() {
+        // First, check if the call is coming from one of our trusted internal services.
+        // These services (like Discord listeners or matchmaking) operate outside of a
+        // standard user authentication context but are considered secure system callers.
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        for (StackTraceElement element : stackTrace) {
+            String className = element.getClassName();
+            if (className.contains("MatchmakingService") || className.contains("PairCommandListener")) {
+                log.info("SECURITY CHECK PASSED: System call from a permitted service ({}).", className);
+                return; // System call is trusted, no need to check Spring Security context.
+            }
+        }
+
+        // If the call is not from a trusted internal service, it must be from an
+        // authenticated web context (e.g., an admin using a controller).
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        
+
         if (authentication == null || !authentication.isAuthenticated()) {
-            log.error("SECURITY VIOLATION: Unauthenticated pairing creation attempt");
+            log.error("SECURITY VIOLATION: Unauthenticated pairing creation attempt from an untrusted source.");
             throw new SecurityException("Authentication required for pairing creation");
         }
 
-        // Check if caller has admin role (legitimate admin operation)
+        // Check if the authenticated user has the ADMIN role.
         boolean hasAdminRole = authentication.getAuthorities().stream()
                 .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         if (hasAdminRole) {
-            log.info("SECURITY CHECK PASSED: Admin {} creating pairing", authentication.getName());
+            log.info("SECURITY CHECK PASSED: Admin {} creating pairing via API.", authentication.getName());
             return;
         }
 
-        // If not admin, check if this is a system/automated call
-        // The MatchmakingService should be the only non-admin caller
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        boolean isMatchmakingCall = false;
-        
-        for (StackTraceElement element : stackTrace) {
-            if (element.getClassName().contains("MatchmakingService")) {
-                isMatchmakingCall = true;
-                break;
-            }
-            if (element.getClassName().contains("PairCommandListener")) {
-                isMatchmakingCall = true; // Allow PairCommandListener as well
-                break;
-            }
-        }
-
-        if (!isMatchmakingCall) {
-            log.error("SECURITY VIOLATION: Unauthorized pairing creation attempt by {} - not admin and not from a permitted service",
-                     authentication.getName());
-            throw new SecurityException("Only automated matchmaking or admin operations can create pairings");
-        }
-
-        log.info("SECURITY CHECK PASSED: Automated matchmaking creating pairing");
+        // If we reach here, the call is from an authenticated but non-admin user, which is not permitted.
+        log.error("SECURITY VIOLATION: Unauthorized pairing creation attempt by {} - not admin and not from a permitted service.",
+                 authentication.getName());
+        throw new SecurityException("Only automated matchmaking or admin operations can create pairings");
     }
 
     /**
