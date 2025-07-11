@@ -14,6 +14,7 @@ import com.app.heartbound.repositories.pairing.MatchQueueUserRepository;
 import com.app.heartbound.repositories.pairing.PairingRepository;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.config.WebSocketConfig;
+import com.app.heartbound.services.UserValidationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -74,6 +75,7 @@ public class QueueService {
     private final UserRepository userRepository;
     private final SimpUserRegistry simpUserRegistry;
     private final DiscordBotSettingsService discordBotSettingsService;
+    private final UserValidationService userValidationService;
 
     // Queue configuration state
     private volatile boolean queueEnabled = true;
@@ -147,26 +149,16 @@ public class QueueService {
         logger.info("[QUEUE_DEBUG] -> Region Role ID: {}", user.getSelectedRegionRoleId());
         // === DEBUGGING LOGS END ===
 
-        // Validate that all necessary roles have been selected
-        validateUserRoleSelections(user);
+        // Validate that all necessary roles have been selected and level requirements are met
+        userValidationService.validateUserForPairing(user);
 
         DiscordBotSettings settings = discordBotSettingsService.getDiscordBotSettings();
 
-        // **NEW: Level requirement validation for male users**
-        String heHimRoleId = settings.getGenderHeHimRoleId();
-        if (heHimRoleId != null && heHimRoleId.equals(user.getSelectedGenderRoleId())) {
-            int userLevel = user.getLevel() != null ? user.getLevel() : 1;
-            if (userLevel < 5) {
-                log.warn("SECURITY: Male user {} (level {}) attempted to join queue but is below level 5.", user.getId(), userLevel);
-                throw new IllegalStateException("Male users must be level 5 or higher to join the queue. Your current level is " + userLevel + ".");
-            }
-        }
-
         // Convert role IDs to enum values
-        Integer age = convertAgeRoleToAge(user.getSelectedAgeRoleId(), settings);
-        Gender gender = convertGenderRoleToEnum(user.getSelectedGenderRoleId(), settings);
-        Rank rank = convertRankRoleToEnum(user.getSelectedRankRoleId(), settings);
-        Region region = convertRegionRoleToEnum(user.getSelectedRegionRoleId(), settings);
+        Integer age = userValidationService.convertAgeRoleToAge(user.getSelectedAgeRoleId());
+        Gender gender = userValidationService.convertGenderRoleToEnum(user.getSelectedGenderRoleId());
+        Rank rank = userValidationService.convertRankRoleToEnum(user.getSelectedRankRoleId());
+        Region region = userValidationService.convertRegionRoleToEnum(user.getSelectedRegionRoleId());
 
         // **OPTIMIZATION: Check active pairing with lightweight exists query**
         if (pairingRepository.findActivePairingByUserId(userId).isPresent()) {
@@ -884,7 +876,7 @@ public class QueueService {
      */
     @Transactional
     public void removeMatchedUsersFromQueue(List<String> matchedUserIds) {
-        if (matchedUserIds.isEmpty()) {
+        if (matchedUserIds == null || matchedUserIds.isEmpty()) {
             return;
         }
         

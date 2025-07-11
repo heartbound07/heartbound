@@ -189,10 +189,14 @@ public class PairingService {
                 isMatchmakingCall = true;
                 break;
             }
+            if (element.getClassName().contains("PairCommandListener")) {
+                isMatchmakingCall = true; // Allow PairCommandListener as well
+                break;
+            }
         }
 
         if (!isMatchmakingCall) {
-            log.error("SECURITY VIOLATION: Unauthorized pairing creation attempt by {} - not admin and not from MatchmakingService", 
+            log.error("SECURITY VIOLATION: Unauthorized pairing creation attempt by {} - not admin and not from a permitted service",
                      authentication.getName());
             throw new SecurityException("Only automated matchmaking or admin operations can create pairings");
         }

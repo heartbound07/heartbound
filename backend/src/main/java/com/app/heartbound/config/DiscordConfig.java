@@ -28,6 +28,7 @@ import com.app.heartbound.services.discord.UserVoiceActivityService;
 import com.app.heartbound.services.discord.PrisonReleaseService;
 import com.app.heartbound.services.discord.RolesCommandListener;
 import com.app.heartbound.services.discord.VerifyCommandListener;
+import com.app.heartbound.services.discord.PairCommandListener;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -148,6 +149,10 @@ public class DiscordConfig {
     @Autowired
     private VerifyCommandListener verifyCommandListener;
 
+    @Lazy
+    @Autowired
+    private PairCommandListener pairCommandListener;
+
     @Bean
     public JDA jda() {
         if (discordToken == null || discordToken.isBlank() || discordToken.equals("${DISCORD_BOT_TOKEN}")) {
@@ -211,6 +216,9 @@ public class DiscordConfig {
 
             // Register open case command listener manually
             openCaseCommandListener.registerWithJDA(jdaInstance);
+            
+            // Register pair command listener manually
+            pairCommandListener.registerWithJDA(jdaInstance);
             
             // Register slash commands
             registerSlashCommands();
@@ -314,7 +322,11 @@ public class DiscordConfig {
                                 .addChoice("Immortal", "immortal")
                                 .addChoice("Radiant", "radiant")
                         )
-                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MANAGE_ROLES))
+                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MANAGE_ROLES)),
+                    Commands.slash("pair", "Request to pair with another user")
+                        .addOptions(
+                                new OptionData(OptionType.USER, "user", "The user you want to pair with", true)
+                        )
                 )
                 .queue(
                     cmds -> {

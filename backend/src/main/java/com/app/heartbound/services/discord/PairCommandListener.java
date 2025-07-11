@@ -1,0 +1,216 @@
+package com.app.heartbound.services.discord;
+
+import com.app.heartbound.dto.pairing.CreatePairingRequestDTO;
+import com.app.heartbound.entities.User;
+import com.app.heartbound.services.UserService;
+import com.app.heartbound.services.UserValidationService;
+import com.app.heartbound.services.pairing.PairingService;
+import com.app.heartbound.services.pairing.QueueService;
+import jakarta.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Component;
+
+import java.awt.*;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Component
+@Slf4j
+public class PairCommandListener extends ListenerAdapter {
+
+    private final PairingService pairingService;
+    private final UserService userService;
+    private final UserValidationService userValidationService;
+    private final QueueService queueService;
+    private JDA jdaInstance;
+    private boolean isRegistered = false;
+
+    private final ConcurrentHashMap<String, PairRequest> pendingRequests = new ConcurrentHashMap<>();
+
+    @Autowired
+    public PairCommandListener(@Lazy PairingService pairingService, UserService userService,
+                               UserValidationService userValidationService, @Lazy QueueService queueService) {
+        this.pairingService = pairingService;
+        this.userService = userService;
+        this.userValidationService = userValidationService;
+        this.queueService = queueService;
+    }
+
+    public void registerWithJDA(JDA jda) {
+        if (jda != null && !isRegistered) {
+            this.jdaInstance = jda;
+            jda.addEventListener(this);
+            isRegistered = true;
+            log.info("PairCommandListener registered with JDA");
+        }
+    }
+
+    @PreDestroy
+    public void cleanup() {
+        if (isRegistered && jdaInstance != null) {
+            jdaInstance.removeEventListener(this);
+            log.info("PairCommandListener unregistered from JDA");
+        }
+    }
+
+    @Override
+    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+        if (!event.getName().equals("pair")) return;
+
+        event.deferReply(true).queue();
+
+        net.dv8tion.jda.api.entities.User requesterUser = event.getUser();
+        net.dv8tion.jda.api.entities.User targetUser = event.getOption("user").getAsUser();
+
+        if (targetUser.isBot() || targetUser.equals(requesterUser)) {
+            event.getHook().sendMessage("You cannot pair with a bot or yourself.").queue();
+            return;
+        }
+
+        try {
+            User requester = userService.getUserById(requesterUser.getId());
+            User target = userService.getUserById(targetUser.getId());
+
+            if (requester == null || target == null) {
+                event.getHook().sendMessage("Both you and the target user must be registered in the system.").queue();
+                return;
+            }
+
+            userValidationService.validateUserForPairing(requester);
+            userValidationService.validateUserForPairing(target);
+            
+            if (pairingService.getCurrentPairing(requester.getId()).isPresent() || pairingService.getCurrentPairing(target.getId()).isPresent()) {
+                event.getHook().sendMessage("One of the users is already in a pairing.").queue();
+                return;
+            }
+
+            if (pairingService.checkBlacklistStatus(requester.getId(), target.getId()).isBlacklisted()) {
+                event.getHook().sendMessage("You are unable to pair with this user.").queue();
+                return;
+            }
+            
+            String requestKey = getRequestKey(requester.getId(), target.getId());
+            if (pendingRequests.containsKey(requestKey)) {
+                event.getHook().sendMessage("There is already a pending pair request between you and this user.").queue();
+                return;
+            }
+
+            long timestamp = Instant.now().toEpochMilli();
+            Button acceptButton = Button.success("pair_accept_" + requester.getId() + "_" + target.getId() + "_" + timestamp, "✅");
+            Button rejectButton = Button.danger("pair_reject_" + requester.getId() + "_" + target.getId() + "_" + timestamp, "❌");
+
+            EmbedBuilder embedBuilder = new EmbedBuilder()
+                    .setDescription("Hey " + targetUser.getAsMention() + ", " + requesterUser.getAsMention() + " wants to pair with you!")
+                    .setColor(new Color(0x5865F2));
+
+            event.getChannel().sendMessage(targetUser.getAsMention()).addEmbeds(embedBuilder.build()).setActionRow(acceptButton, rejectButton).queue(message -> {
+                pendingRequests.put(requestKey, new PairRequest(requester.getId(), target.getId(), message.getIdLong(), Instant.now()));
+                event.getHook().sendMessage("Your pair request has been sent!").queue();
+            });
+
+        } catch (IllegalStateException e) {
+            event.getHook().sendMessage("Validation failed: " + e.getMessage()).queue();
+        } catch (Exception e) {
+            log.error("Error in /pair command", e);
+            event.getHook().sendMessage("An error occurred while sending the pair request.").queue();
+        }
+    }
+
+    @Override
+    public void onButtonInteraction(ButtonInteractionEvent event) {
+        String componentId = event.getComponentId();
+        if (!componentId.startsWith("pair_")) return;
+
+        event.deferEdit().queue();
+        
+        String[] parts = componentId.split("_");
+        String action = parts[1];
+        String requesterId = parts[2];
+        String targetId = parts[3];
+        long timestamp = Long.parseLong(parts[4]);
+
+        if (!event.getUser().getId().equals(targetId)) {
+            event.getHook().sendMessage("You are not the recipient of this pair request.").setEphemeral(true).queue();
+            return;
+        }
+        
+        if (Instant.ofEpochMilli(timestamp).isBefore(Instant.now().minusSeconds(300))) {
+            event.getHook().sendMessage("This pair request has expired.").setEphemeral(true).queue();
+            disableButtons(event.getChannel(), event.getMessageIdLong(), "Request expired");
+            return;
+        }
+
+        String requestKey = getRequestKey(requesterId, targetId);
+        PairRequest request = pendingRequests.remove(requestKey);
+
+        if (request == null) {
+            event.getHook().sendMessage("This request is no longer valid.").setEphemeral(true).queue();
+            disableButtons(event.getChannel(), event.getMessageIdLong(), "Request invalid");
+            return;
+        }
+
+        if ("reject".equals(action)) {
+            EmbedBuilder embedBuilder = new EmbedBuilder()
+                    .setDescription(event.getUser().getAsMention() + " has rejected the request! :<")
+                    .setColor(Color.RED);
+            event.getHook().editOriginalEmbeds(embedBuilder.build()).setComponents().queue();
+            return;
+        }
+
+        try {
+            User requester = userService.getUserById(requesterId);
+            User target = userService.getUserById(targetId);
+
+            CreatePairingRequestDTO createRequest = CreatePairingRequestDTO.builder()
+                .user1Id(requester.getId())
+                .user2Id(target.getId())
+                .user1DiscordId(requester.getId())
+                .user2DiscordId(target.getId())
+                .compatibilityScore(75) // Default for manual pair
+                .user1Age(userValidationService.convertAgeRoleToAge(requester.getSelectedAgeRoleId()))
+                .user1Gender(userValidationService.convertGenderRoleToEnum(requester.getSelectedGenderRoleId()).name())
+                .user1Region(userValidationService.convertRegionRoleToEnum(requester.getSelectedRegionRoleId()).name())
+                .user1Rank(userValidationService.convertRankRoleToEnum(requester.getSelectedRankRoleId()).name())
+                .user2Age(userValidationService.convertAgeRoleToAge(target.getSelectedAgeRoleId()))
+                .user2Gender(userValidationService.convertGenderRoleToEnum(target.getSelectedGenderRoleId()).name())
+                .user2Region(userValidationService.convertRegionRoleToEnum(target.getSelectedRegionRoleId()).name())
+                .user2Rank(userValidationService.convertRankRoleToEnum(target.getSelectedRankRoleId()).name())
+                .build();
+            
+            pairingService.createPairing(createRequest);
+            queueService.removeMatchedUsersFromQueue(List.of(requesterId, targetId));
+
+            EmbedBuilder embedBuilder = new EmbedBuilder()
+                    .setDescription(requester.getDisplayName() + " and " + target.getDisplayName() + " have been paired together!")
+                    .setColor(Color.GREEN);
+            event.getHook().editOriginalEmbeds(embedBuilder.build()).setComponents().queue();
+            
+        } catch (Exception e) {
+            log.error("Error creating pairing from /pair command", e);
+            event.getHook().sendMessage("Failed to create pairing: " + e.getMessage()).setEphemeral(true).queue();
+        }
+    }
+
+    private String getRequestKey(String id1, String id2) {
+        return id1.compareTo(id2) < 0 ? id1 + ":" + id2 : id2 + ":" + id1;
+    }
+
+    private void disableButtons(MessageChannel channel, long messageId, String reason) {
+        channel.retrieveMessageById(messageId).queue(message -> {
+            message.editMessageComponents().setComponents().queue();
+            // Optionally edit embed to show it's expired/invalid
+        });
+    }
+} 
