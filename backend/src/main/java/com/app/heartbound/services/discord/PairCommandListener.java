@@ -86,8 +86,19 @@ public class PairCommandListener extends ListenerAdapter {
                 return;
             }
 
-            userValidationService.validateUserForPairing(requester);
-            userValidationService.validateUserForPairing(target);
+            try {
+                userValidationService.validateUserForPairing(requester);
+            } catch (IllegalStateException e) {
+                event.getHook().sendMessage("Validation failed: " + e.getMessage()).queue();
+                return;
+            }
+
+            try {
+                userValidationService.validateUserForPairing(target);
+            } catch (IllegalStateException e) {
+                event.getHook().sendMessage("This user does not have the required roles!").queue();
+                return;
+            }
             
             if (pairingService.getCurrentPairing(requester.getId()).isPresent() || pairingService.getCurrentPairing(target.getId()).isPresent()) {
                 event.getHook().sendMessage("One of the users is already in a pairing.").queue();
@@ -124,8 +135,6 @@ public class PairCommandListener extends ListenerAdapter {
                 }
             );
 
-        } catch (IllegalStateException e) {
-            event.getHook().sendMessage("Validation failed: " + e.getMessage()).queue();
         } catch (Exception e) {
             log.error("Error in /pair command", e);
             event.getHook().sendMessage("An error occurred while sending the pair request.").queue();
