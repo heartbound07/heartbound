@@ -20,10 +20,12 @@ import com.app.heartbound.repositories.shop.ShopRepository;
 import com.app.heartbound.repositories.UserInventoryItemRepository;
 import com.app.heartbound.repositories.DailyMessageStatRepository;
 import com.app.heartbound.repositories.DailyVoiceActivityStatRepository;
+import com.app.heartbound.repositories.PendingRoleSelectionRepository;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import com.app.heartbound.config.CacheConfig;
 import com.app.heartbound.dto.LeaderboardEntryDTO;
+import com.app.heartbound.entities.PendingRoleSelection;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -67,6 +69,7 @@ public class UserService {
     private final UserInventoryItemRepository userInventoryItemRepository;
     private final DailyMessageStatRepository dailyMessageStatRepository;
     private final DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository;
+    private final PendingRoleSelectionRepository pendingRoleSelectionRepository;
     private final CacheConfig cacheConfig;
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
@@ -90,12 +93,13 @@ public class UserService {
     private int levelFactor;
 
     // Constructor-based dependency injection
-    public UserService(UserRepository userRepository, ShopRepository shopRepository, UserInventoryItemRepository userInventoryItemRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, CacheConfig cacheConfig, AuditService auditService, ObjectMapper objectMapper) {
+    public UserService(UserRepository userRepository, ShopRepository shopRepository, UserInventoryItemRepository userInventoryItemRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, PendingRoleSelectionRepository pendingRoleSelectionRepository, CacheConfig cacheConfig, AuditService auditService, ObjectMapper objectMapper) {
         this.userRepository = userRepository;
         this.shopRepository = shopRepository;
         this.userInventoryItemRepository = userInventoryItemRepository;
         this.dailyMessageStatRepository = dailyMessageStatRepository;
         this.dailyVoiceActivityStatRepository = dailyVoiceActivityStatRepository;
+        this.pendingRoleSelectionRepository = pendingRoleSelectionRepository;
         this.cacheConfig = cacheConfig;
         this.auditService = auditService;
         this.objectMapper = objectMapper;
@@ -110,6 +114,73 @@ public class UserService {
      */
     private int calculateRequiredXp(int level) {
         return baseXp + (levelFactor * (int)Math.pow(level, levelExponent)) + (levelMultiplier * level);
+    }
+
+    /**
+     * Syncs pending role selections from PendingRoleSelection to User entity.
+     * This method is called during user creation to apply any roles they selected before registration.
+     * 
+     * @param user the user entity to sync role selections to
+     */
+    private void syncPendingRoleSelections(User user) {
+        try {
+            Optional<PendingRoleSelection> pendingSelection = pendingRoleSelectionRepository.findByDiscordUserId(user.getId());
+            
+            if (pendingSelection.isPresent()) {
+                PendingRoleSelection pending = pendingSelection.get();
+                boolean hasChanges = false;
+                
+                // Sync age role selection
+                if (pending.getSelectedAgeRoleId() != null && !pending.getSelectedAgeRoleId().isBlank() &&
+                    (user.getSelectedAgeRoleId() == null || user.getSelectedAgeRoleId().isBlank())) {
+                    user.setSelectedAgeRoleId(pending.getSelectedAgeRoleId());
+                    hasChanges = true;
+                    logger.debug("Synced age role selection for user {}: {}", user.getId(), pending.getSelectedAgeRoleId());
+                }
+                
+                // Sync gender role selection
+                if (pending.getSelectedGenderRoleId() != null && !pending.getSelectedGenderRoleId().isBlank() &&
+                    (user.getSelectedGenderRoleId() == null || user.getSelectedGenderRoleId().isBlank())) {
+                    user.setSelectedGenderRoleId(pending.getSelectedGenderRoleId());
+                    hasChanges = true;
+                    logger.debug("Synced gender role selection for user {}: {}", user.getId(), pending.getSelectedGenderRoleId());
+                }
+                
+                // Sync rank role selection
+                if (pending.getSelectedRankRoleId() != null && !pending.getSelectedRankRoleId().isBlank() &&
+                    (user.getSelectedRankRoleId() == null || user.getSelectedRankRoleId().isBlank())) {
+                    user.setSelectedRankRoleId(pending.getSelectedRankRoleId());
+                    hasChanges = true;
+                    logger.debug("Synced rank role selection for user {}: {}", user.getId(), pending.getSelectedRankRoleId());
+                }
+                
+                // Sync region role selection
+                if (pending.getSelectedRegionRoleId() != null && !pending.getSelectedRegionRoleId().isBlank() &&
+                    (user.getSelectedRegionRoleId() == null || user.getSelectedRegionRoleId().isBlank())) {
+                    user.setSelectedRegionRoleId(pending.getSelectedRegionRoleId());
+                    hasChanges = true;
+                    logger.debug("Synced region role selection for user {}: {}", user.getId(), pending.getSelectedRegionRoleId());
+                }
+                
+                if (hasChanges) {
+                    // Delete the pending role selection after successful sync
+                    pendingRoleSelectionRepository.deleteById(user.getId());
+                    
+                    // Invalidate pending role selection cache
+                    cacheConfig.invalidatePendingRoleSelectionCache(user.getId());
+                    
+                    logger.info("Successfully synced pending role selections for user {} and deleted pending record", user.getId());
+                } else {
+                    // No changes needed, but still delete the pending record to clean up
+                    pendingRoleSelectionRepository.deleteById(user.getId());
+                    cacheConfig.invalidatePendingRoleSelectionCache(user.getId());
+                    logger.debug("No pending role selections to sync for user {}, deleted pending record", user.getId());
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error syncing pending role selections for user {}: {}", user.getId(), e.getMessage(), e);
+            // Don't throw the exception - role sync failure shouldn't prevent user creation
+        }
     }
 
     /**
@@ -263,6 +334,9 @@ public class UserService {
 
         logger.debug("Saving user {} with final state - Avatar: '{}', DiscordAvatarUrl: '{}', Roles: {}, Credits: {}, Level: {}, Experience: {}",
                 id, user.getAvatar(), user.getDiscordAvatarUrl(), user.getRoles(), user.getCredits(), user.getLevel(), user.getExperience());
+        
+        // Sync pending role selections before saving the user
+        syncPendingRoleSelections(user);
                 
         User savedUser = userRepository.save(user);
 
