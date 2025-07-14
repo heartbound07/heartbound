@@ -1509,27 +1509,11 @@ public class ShopService {
     
     /**
      * Calculate XP compensation for duplicate items based on rarity
-     * @param rarity Item rarity
+     * @param rarity Item rarity (no longer used)
      * @return XP compensation amount
      */
     private int calculateCompensationXp(ItemRarity rarity) {
-        if (rarity == null) {
-            rarity = ItemRarity.COMMON;
-        }
-        
-        switch (rarity) {
-            case LEGENDARY:
-                return 350;
-            case EPIC:
-                return 250;
-            case RARE:
-                return 100;
-            case UNCOMMON:
-                return 25;
-            case COMMON:
-            default:
-                return 15;
-        }
+        return 10;
     }
     
     /**
