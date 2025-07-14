@@ -30,10 +30,15 @@ import com.app.heartbound.entities.PendingRoleSelection;
 import com.app.heartbound.entities.PendingPrison;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -76,11 +81,15 @@ public class UserService {
     private final CacheConfig cacheConfig;
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
+    private final JDA jda;
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     // Read admin Discord ID from environment variables
     @Value("${admin.discord.id}")
     private String adminDiscordId;
+
+    @Value("${discord.guild.id}")
+    private String guildId;
 
     // Leveling system configuration properties (copied from ChatActivityListener)
     @Value("${discord.leveling.base-xp:100}")
@@ -96,7 +105,7 @@ public class UserService {
     private int levelFactor;
 
     // Constructor-based dependency injection
-    public UserService(UserRepository userRepository, ShopRepository shopRepository, UserInventoryItemRepository userInventoryItemRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, PendingRoleSelectionRepository pendingRoleSelectionRepository, PendingPrisonService pendingPrisonService, CacheConfig cacheConfig, AuditService auditService, ObjectMapper objectMapper) {
+    public UserService(UserRepository userRepository, ShopRepository shopRepository, UserInventoryItemRepository userInventoryItemRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, PendingRoleSelectionRepository pendingRoleSelectionRepository, PendingPrisonService pendingPrisonService, CacheConfig cacheConfig, AuditService auditService, ObjectMapper objectMapper, @Lazy JDA jda) {
         this.userRepository = userRepository;
         this.shopRepository = shopRepository;
         this.userInventoryItemRepository = userInventoryItemRepository;
@@ -107,6 +116,7 @@ public class UserService {
         this.cacheConfig = cacheConfig;
         this.auditService = auditService;
         this.objectMapper = objectMapper;
+        this.jda = jda;
     }
 
     /**
@@ -358,6 +368,36 @@ public class UserService {
 
         logger.debug("Saving user {} with final state - Avatar: '{}', DiscordAvatarUrl: '{}', Roles: {}, Credits: {}, Level: {}, Experience: {}",
                 id, user.getAvatar(), user.getDiscordAvatarUrl(), user.getRoles(), user.getCredits(), user.getLevel(), user.getExperience());
+        
+        // Sync ban status with Discord as the source of truth
+        try {
+            Guild guild = jda.getGuildById(guildId);
+            if (guild != null) {
+                // This is a blocking call to ensure ban status is known before proceeding
+                guild.retrieveBan(net.dv8tion.jda.api.entities.User.fromId(id)).complete();
+                // If the above line doesn't throw an exception, the user IS banned on Discord.
+                if (user.getBanned() == null || !user.getBanned()) {
+                    user.setBanned(true);
+                    logger.info("User {} is banned on Discord. Syncing status to application.", id);
+                }
+            } else {
+                logger.warn("Discord Guild with ID {} not found. Cannot sync ban status.", guildId);
+            }
+        } catch (ErrorResponseException e) {
+            if (e.getErrorResponse() == ErrorResponse.UNKNOWN_BAN) {
+                // This error means the user is NOT banned.
+                if (user.getBanned() != null && user.getBanned()) {
+                    user.setBanned(false);
+                    logger.info("User {} is not banned on Discord, but was in DB. Syncing status to application.", id);
+                }
+            } else {
+                // A different Discord API error occurred.
+                logger.error("Discord API error while checking ban status for user {}: {}", id, e.getMessage());
+            }
+        } catch (Exception e) {
+            // Catch any other exceptions during the process.
+            logger.error("An unexpected error occurred while syncing ban status for user {}: {}", id, e.getMessage(), e);
+        }
         
         // Sync pending data before saving the user
         syncPendingRoleSelections(user);
