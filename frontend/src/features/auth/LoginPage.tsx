@@ -102,14 +102,16 @@ export function LoginPage() {
     id: "demo-user-1",
     username: "ValorantPro",
     displayName: "Alex Chen",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+    banned: false
   }
 
   const mockUser2Profile: UserProfileDTO = {
     id: "demo-user-2", 
     username: "RankClimber",
     displayName: "Sophie Martinez",
-    avatar: "https://images.unsplash.com/photo-1494790108755-2616b332c24b?w=150&h=150&fit=crop&crop=face"
+    avatar: "https://images.unsplash.com/photo-1494790108755-2616b332c24b?w=150&h=150&fit=crop&crop=face",
+    banned: false
   }
 
   const mockPairing: PairingDTO = {

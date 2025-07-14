@@ -24,12 +24,13 @@ public class LeaderboardEntryDTO {
     private Integer voiceTimeMinutesTotal;
     private Long messageCount;
     private Integer rank;
+    private boolean banned;
 
     /**
      * Constructor used by JPA's constructor expression to map query results directly.
      * This avoids the overhead of fetching the full User entity.
      */
-    public LeaderboardEntryDTO(String id, String username, String displayName, String avatar, Integer credits, Integer level, Integer experience, Integer voiceTimeMinutesTotal, Long messageCount) {
+    public LeaderboardEntryDTO(String id, String username, String displayName, String avatar, Integer credits, Integer level, Integer experience, Integer voiceTimeMinutesTotal, Long messageCount, Boolean banned) {
         this.id = id;
         this.username = username;
         this.displayName = displayName;
@@ -39,5 +40,6 @@ public class LeaderboardEntryDTO {
         this.experience = experience;
         this.voiceTimeMinutesTotal = voiceTimeMinutesTotal;
         this.messageCount = messageCount;
+        this.banned = banned != null && banned;
     }
 } 

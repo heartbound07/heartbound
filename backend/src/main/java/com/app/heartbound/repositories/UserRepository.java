@@ -59,8 +59,8 @@ public interface UserRepository extends JpaRepository<User, String> {
      * @return a page of LeaderboardEntryDTOs
      */
     @Query("SELECT new com.app.heartbound.dto.LeaderboardEntryDTO(" +
-           "u.id, u.username, u.displayName, u.avatar, u.credits, u.level, u.experience, u.voiceTimeMinutesTotal, u.messageCount" +
-           ") FROM User u")
+           "u.id, u.username, u.displayName, u.avatar, u.credits, u.level, u.experience, u.voiceTimeMinutesTotal, u.messageCount, u.banned" +
+           ") FROM User u WHERE u.banned = false")
     Page<LeaderboardEntryDTO> findLeaderboardEntries(Pageable pageable);
 
     /**

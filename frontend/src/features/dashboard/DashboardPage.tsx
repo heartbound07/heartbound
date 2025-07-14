@@ -9,6 +9,7 @@ import {
   getCombinedDailyActivity,
   type CombinedDailyActivityDTO,
   getLeaderboardUsers,
+  type LeaderboardEntryDTO,
 } from "@/config/userService"
 import { DailyActivityChart } from "./components/DailyActivityChart"
 import { Button } from "@/components/ui/button"
@@ -45,8 +46,8 @@ export function DashboardPage() {
   const [activityError, setActivityError] = useState<string | null>(null)
 
   // Add state for leaderboard data to calculate ranks
-  const [messageLeaderboard, setMessageLeaderboard] = useState<UserProfileDTO[]>([])
-  const [voiceLeaderboard, setVoiceLeaderboard] = useState<UserProfileDTO[]>([])
+  const [messageLeaderboard, setMessageLeaderboard] = useState<LeaderboardEntryDTO[]>([])
+  const [voiceLeaderboard, setVoiceLeaderboard] = useState<LeaderboardEntryDTO[]>([])
 
   // Legend state management for chart
   const [activeLegend, setActiveLegend] = useState<LegendState>({

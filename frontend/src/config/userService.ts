@@ -50,6 +50,7 @@ export interface LeaderboardEntryDTO {
   voiceTimeMinutesTotal: number;
   messageCount: number;
   rank: number;
+  banned: boolean;
 }
 
 export interface UpdateProfileDTO {

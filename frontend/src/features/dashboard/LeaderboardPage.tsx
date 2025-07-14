@@ -150,6 +150,7 @@ const ANIMATION_VARIANTS = {
   }
 };
 
+// Main component for the leaderboard page
 export function LeaderboardPage() {
   const [leaderboardUsers, setLeaderboardUsers] = useState<LeaderboardEntryDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
