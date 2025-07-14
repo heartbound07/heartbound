@@ -121,6 +121,11 @@ public class User {
     
     // User active status field
     private Boolean active = true;
+
+    // Add banned field
+    @Builder.Default
+    @Column(name = "is_banned")
+    private Boolean banned = false;
     
     // Role-based security addition
     @ElementCollection(fetch = jakarta.persistence.FetchType.EAGER)

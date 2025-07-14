@@ -588,6 +588,7 @@ public class UserService {
                 .about(user.getAbout())
                 .bannerColor(user.getBannerColor())
                 .bannerUrl(user.getBannerUrl())
+                .banned(user.getBanned() != null && user.getBanned())
                 .roles(user.getRoles())
                 .credits(user.getCredits())
                 .level(currentLevel)
@@ -1833,6 +1834,42 @@ public class UserService {
             // Log the error but don't let audit failures break the inventory removal flow
             logger.error("Failed to create audit entry for inventory removal - adminId: {}, targetUserId: {}, itemId: {}, error: {}", 
                 adminId, targetUserId, itemId, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Bans a user.
+     * @param userId the ID of the user to ban
+     */
+    @Transactional
+    public void banUser(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        if (user.getBanned() == null || !user.getBanned()) {
+            user.setBanned(true);
+            userRepository.save(user);
+            cacheConfig.invalidateUserProfileCache(userId);
+            logger.info("User {} has been banned.", userId);
+        } else {
+            logger.info("User {} was already banned.", userId);
+        }
+    }
+
+    /**
+     * Unbans a user.
+     * @param userId the ID of the user to unban
+     */
+    @Transactional
+    public void unbanUser(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        if (user.getBanned() != null && user.getBanned()) {
+            user.setBanned(false);
+            userRepository.save(user);
+            cacheConfig.invalidateUserProfileCache(userId);
+            logger.info("User {} has been unbanned.", userId);
+        } else {
+            logger.info("User {} was not banned.", userId);
         }
     }
 }

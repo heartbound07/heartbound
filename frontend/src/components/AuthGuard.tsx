@@ -10,7 +10,7 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const { theme } = useTheme();
   const location = useLocation();
 
@@ -24,6 +24,10 @@ export function AuthGuard({ children }: AuthGuardProps) {
         theme={theme === 'dark' ? 'valorant' : 'dashboard'}
       />
     );
+  }
+
+  if (user?.banned && location.pathname !== '/banned') {
+    return <Navigate to="/banned" replace />;
   }
 
   if (requiresAuth(location.pathname) && !isAuthenticated) {

@@ -27,6 +27,7 @@ public class UserProfileDTO {
     private String about;
     private String bannerColor;
     private String bannerUrl;
+    private boolean banned;
     
     // Add roles - you may choose to expose this in profiles if needed
     private Set<Role> roles;

@@ -10,6 +10,7 @@ import { PairingsPageLayout } from '@/features/pages/PairingsPageLayout';
 // import ValorantPartyDetails from '@/features/valorant/ValorantPartyDetails';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { AuthErrorPage } from '@/features/auth/AuthErrorPage';
+import { BannedPage } from '@/features/auth/BannedPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { DiscoverPage } from '@/features/dashboard/DiscoverPage';
 import { ProfilePage } from '@/features/dashboard/ProfilePage';
@@ -97,6 +98,7 @@ export function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/auth/discord/callback" element={<DiscordCallback />} />
       <Route path="/auth/error" element={<AuthErrorPage />} />
+      <Route path="/banned" element={<BannedPage />} />
       
       {/* Riot Games verification file route */}
       <Route path="/riot.txt" element={ 

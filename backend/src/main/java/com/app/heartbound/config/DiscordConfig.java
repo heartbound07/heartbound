@@ -29,6 +29,7 @@ import com.app.heartbound.services.discord.PrisonReleaseService;
 import com.app.heartbound.services.discord.RolesCommandListener;
 import com.app.heartbound.services.discord.VerifyCommandListener;
 import com.app.heartbound.services.discord.PairCommandListener;
+import com.app.heartbound.services.discord.GuildEventListener;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -153,6 +154,9 @@ public class DiscordConfig {
     @Autowired
     private PairCommandListener pairCommandListener;
 
+    @Autowired
+    private GuildEventListener guildEventListener;
+
     @Bean
     public JDA jda() {
         if (discordToken == null || discordToken.isBlank() || discordToken.equals("${DISCORD_BOT_TOKEN}")) {
@@ -169,7 +173,8 @@ public class DiscordConfig {
                             GatewayIntent.GUILD_MEMBERS,      // Required for adding users to the server
                             GatewayIntent.GUILD_VOICE_STATES, // Needed for voice channel creation
                             GatewayIntent.MESSAGE_CONTENT,    // Enabled in portal/properties
-                            GatewayIntent.GUILD_MESSAGES      // Required for receiving messages
+                            GatewayIntent.GUILD_MESSAGES,      // Required for receiving messages
+                            GatewayIntent.GUILD_MODERATION    // Required for ban events
                     )
                     // Enable necessary caches
                     .enableCache(
@@ -192,7 +197,7 @@ public class DiscordConfig {
                                       inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService, prisonCommandListener, countingGameListener,
-                                      autoSlowmodeService, rolesCommandListener, verifyCommandListener)
+                                      autoSlowmodeService, rolesCommandListener, verifyCommandListener, guildEventListener)
                     .build();
 
             // Waits until JDA is fully connected and ready
