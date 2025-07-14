@@ -21,11 +21,13 @@ import com.app.heartbound.repositories.UserInventoryItemRepository;
 import com.app.heartbound.repositories.DailyMessageStatRepository;
 import com.app.heartbound.repositories.DailyVoiceActivityStatRepository;
 import com.app.heartbound.repositories.PendingRoleSelectionRepository;
+import com.app.heartbound.services.PendingPrisonService;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import com.app.heartbound.config.CacheConfig;
 import com.app.heartbound.dto.LeaderboardEntryDTO;
 import com.app.heartbound.entities.PendingRoleSelection;
+import com.app.heartbound.entities.PendingPrison;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -70,6 +72,7 @@ public class UserService {
     private final DailyMessageStatRepository dailyMessageStatRepository;
     private final DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository;
     private final PendingRoleSelectionRepository pendingRoleSelectionRepository;
+    private final PendingPrisonService pendingPrisonService;
     private final CacheConfig cacheConfig;
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
@@ -93,13 +96,14 @@ public class UserService {
     private int levelFactor;
 
     // Constructor-based dependency injection
-    public UserService(UserRepository userRepository, ShopRepository shopRepository, UserInventoryItemRepository userInventoryItemRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, PendingRoleSelectionRepository pendingRoleSelectionRepository, CacheConfig cacheConfig, AuditService auditService, ObjectMapper objectMapper) {
+    public UserService(UserRepository userRepository, ShopRepository shopRepository, UserInventoryItemRepository userInventoryItemRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, PendingRoleSelectionRepository pendingRoleSelectionRepository, PendingPrisonService pendingPrisonService, CacheConfig cacheConfig, AuditService auditService, ObjectMapper objectMapper) {
         this.userRepository = userRepository;
         this.shopRepository = shopRepository;
         this.userInventoryItemRepository = userInventoryItemRepository;
         this.dailyMessageStatRepository = dailyMessageStatRepository;
         this.dailyVoiceActivityStatRepository = dailyVoiceActivityStatRepository;
         this.pendingRoleSelectionRepository = pendingRoleSelectionRepository;
+        this.pendingPrisonService = pendingPrisonService;
         this.cacheConfig = cacheConfig;
         this.auditService = auditService;
         this.objectMapper = objectMapper;
@@ -184,8 +188,28 @@ public class UserService {
     }
 
     /**
+     * Syncs a pending prison record to a newly created User entity.
+     * @param user The user to sync the record to.
+     */
+    private void syncPendingPrison(User user) {
+        try {
+            pendingPrisonService.findByDiscordUserId(user.getId()).ifPresent(pending -> {
+                user.setOriginalRoleIds(pending.getOriginalRoleIds());
+                user.setPrisonedAt(pending.getPrisonedAt());
+                user.setPrisonReleaseAt(pending.getPrisonReleaseAt());
+
+                pendingPrisonService.deleteByDiscordUserId(user.getId());
+                logger.info("Successfully synced pending prison record for user {} and deleted pending record.", user.getId());
+            });
+        } catch (Exception e) {
+            logger.error("Error syncing pending prison record for user {}: {}", user.getId(), e.getMessage(), e);
+        }
+    }
+
+    /**
      * Creates a new user or updates an existing one based on the provided DTO.
      */
+    @Transactional
     public User createOrUpdateUser(UserDTO userDTO) {
         String id = userDTO.getId();
         String username = userDTO.getUsername();
@@ -335,8 +359,9 @@ public class UserService {
         logger.debug("Saving user {} with final state - Avatar: '{}', DiscordAvatarUrl: '{}', Roles: {}, Credits: {}, Level: {}, Experience: {}",
                 id, user.getAvatar(), user.getDiscordAvatarUrl(), user.getRoles(), user.getCredits(), user.getLevel(), user.getExperience());
         
-        // Sync pending role selections before saving the user
+        // Sync pending data before saving the user
         syncPendingRoleSelections(user);
+        syncPendingPrison(user);
                 
         User savedUser = userRepository.save(user);
 
@@ -355,6 +380,15 @@ public class UserService {
      */
     public User getUserById(String id) {
         return userRepository.findById(id).orElse(null);
+    }
+
+    /**
+     * Check if a user exists by their ID.
+     * @param userId The ID of the user to check.
+     * @return true if the user exists, false otherwise.
+     */
+    public boolean userExists(String userId) {
+        return userRepository.existsById(userId);
     }
 
     /**

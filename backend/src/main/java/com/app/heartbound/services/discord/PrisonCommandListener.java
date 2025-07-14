@@ -26,6 +26,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import com.app.heartbound.services.PendingPrisonService;
+import java.util.Optional;
+import java.util.Objects;
 
 /**
  * PrisonCommandListener
@@ -55,13 +58,15 @@ public class PrisonCommandListener extends ListenerAdapter {
     private final PrisonService prisonService;
     private final UserService userService;
     private final PrisonReleaseService prisonReleaseService;
+    private final PendingPrisonService pendingPrisonService;
     
     @Autowired
-    public PrisonCommandListener(PrisonService prisonService, UserService userService, PrisonReleaseService prisonReleaseService) {
+    public PrisonCommandListener(PrisonService prisonService, UserService userService, PrisonReleaseService prisonReleaseService, PendingPrisonService pendingPrisonService) {
         this.prisonService = prisonService;
         this.userService = userService;
         this.prisonReleaseService = prisonReleaseService;
-        logger.info("PrisonCommandListener initialized with persistent storage via PrisonService and scheduling via PrisonReleaseService");
+        this.pendingPrisonService = pendingPrisonService;
+        logger.info("PrisonCommandListener initialized with persistent storage via PrisonService, pending storage via PendingPrisonService, and scheduling via PrisonReleaseService");
     }
     
     @Override
@@ -180,13 +185,9 @@ public class PrisonCommandListener extends ListenerAdapter {
         }
 
         try {
-            // Ensure the user exists in our database before proceeding
+            // This now handles both registered and unregistered users.
+            // The prison record will be stored in the appropriate table.
             User user = userService.getUserById(userId);
-            if (user == null) {
-                logger.warn("Attempted to prison user {} not found in the database.", userId);
-                event.getHook().editOriginal("Cannot prison user: This user has not logged into the web application yet.").queue();
-                return;
-            }
 
             // Get current roles (excluding @everyone and bot-managed roles)
             List<Role> currentRoles = targetMember.getRoles().stream()
@@ -197,13 +198,23 @@ public class PrisonCommandListener extends ListenerAdapter {
                     .map(Role::getId)
                     .collect(Collectors.toList());
             
-            // Persist roles to the database before making Discord API calls
-            User prisonedUser = prisonService.prisonUser(userId, roleIds, releaseAt);
-            logger.debug("Persisted {} roles for user {} with release date {}", roleIds.size(), userId, releaseAt);
-
-            // Schedule release if a duration was provided
-            if (releaseAt != null) {
-                prisonReleaseService.scheduleRelease(prisonedUser);
+            // Persist roles to the appropriate database before making Discord API calls
+            if (user != null) {
+                // Registered user, use the main prison service
+                User prisonedUser = prisonService.prisonUser(userId, roleIds, releaseAt);
+                logger.debug("Persisted {} roles for registered user {} with release date {}", roleIds.size(), userId, releaseAt);
+                // Schedule release if a duration was provided
+                if (releaseAt != null) {
+                    prisonReleaseService.scheduleRelease(prisonedUser);
+                }
+            } else {
+                // Unregistered user, use the pending prison service
+                pendingPrisonService.prisonUser(userId, roleIds, releaseAt);
+                logger.debug("Persisted {} roles for unregistered user {} in pending prison with release date {}", roleIds.size(), userId, releaseAt);
+                // Schedule release for the unregistered user as well
+                if (releaseAt != null) {
+                    prisonReleaseService.scheduleRelease(userId, releaseAt);
+                }
             }
             
             // Check if bot can interact with all user's roles
@@ -237,7 +248,12 @@ public class PrisonCommandListener extends ListenerAdapter {
                 error -> {
                     logger.error("Failed to modify roles for user {}. Reverting database change.", userId, error);
                     // If Discord API fails, roll back the database change
-                    prisonService.releaseUser(userId);
+                    // We need to check both services to know where to roll back from
+                    if (userService.userExists(userId)) {
+                        prisonService.releaseUser(userId);
+                    } else {
+                        pendingPrisonService.releaseUser(userId);
+                    }
                     event.getHook().editOriginal("Failed to modify user roles: " + error.getMessage()).queue();
                 }
             );
@@ -307,60 +323,96 @@ public class PrisonCommandListener extends ListenerAdapter {
     private void releaseFromPrison(SlashCommandInteractionEvent event, Member targetMember, Role prisonRole, Guild guild) {
         String userId = targetMember.getId();
         logger.info("Releasing user {} from prison", userId);
-        
+
         try {
-            // Get user from database to retrieve stored roles
-            User user = userService.getUserById(userId);
-            if (user == null || user.getOriginalRoleIds() == null || user.getOriginalRoleIds().isEmpty()) {
-                logger.warn("No stored roles found in database for user {} during release", userId);
-                event.getHook().editOriginal("⚠️ Cannot release " + targetMember.getAsMention() + 
-                        " - original roles not found in the database. Please restore their roles manually.").queue();
-                return;
+            // First, check if there's a pending prison record for an unregistered user
+            Optional<com.app.heartbound.entities.PendingPrison> pendingPrisonOpt = pendingPrisonService.findByDiscordUserId(userId);
+            if (pendingPrisonOpt.isPresent()) {
+                logger.debug("Found pending prison record for user {}. Releasing as unregistered.", userId);
+                List<String> storedRoleIds = pendingPrisonOpt.get().getOriginalRoleIds();
+                releaseMemberWithRoles(event, targetMember, prisonRole, guild, storedRoleIds, true);
+                return; // Release process handled for pending user
             }
 
-            List<String> storedRoleIds = user.getOriginalRoleIds();
-            
-            // Convert role IDs to Role objects
-            List<Role> rolesToRestore = storedRoleIds.stream()
-                    .map(guild::getRoleById)
-                    .filter(role -> role != null) // Filter out any roles that may have been deleted from the server
-                    .collect(Collectors.toList());
-            
-            if (rolesToRestore.size() != storedRoleIds.size()) {
-                int deletedRoles = storedRoleIds.size() - rolesToRestore.size();
-                logger.warn("{} stored roles no longer exist for user {}", deletedRoles, userId);
+            // If no pending record, check the main user table for a registered user
+            User user = userService.getUserById(userId);
+            if (user != null && user.getPrisonedAt() != null) {
+                logger.debug("Found prison record for registered user {}. Releasing as registered.", userId);
+                List<String> storedRoleIds = user.getOriginalRoleIds();
+                releaseMemberWithRoles(event, targetMember, prisonRole, guild, storedRoleIds, false);
+                return; // Release process handled for registered user
             }
-            
-            // Check if bot can interact with the roles to restore
-            Member botMember = guild.getSelfMember();
-            List<Role> unmanageableRoles = rolesToRestore.stream()
-                    .filter(role -> !botMember.canInteract(role))
+
+            // If we reach here, no record was found in either table
+            logger.warn("No stored roles found in any database for user {} during release", userId);
+            event.getHook().editOriginal("⚠️ Cannot release " + targetMember.getAsMention() +
+                    " - original roles not found. Please restore their roles manually.").queue();
+
+        } catch (Exception e) {
+            logger.error("Error releasing user {} from prison", userId, e);
+            event.getHook().editOriginal("An error occurred while releasing the user from prison.").queue();
+        }
+    }
+
+    /**
+     * Helper method to handle the actual Discord role modification and database cleanup for releasing a user.
+     * @param event The interaction event.
+     * @param targetMember The member to release.
+     * @param prisonRole The prison role object.
+     * @param guild The guild object.
+     * @param storedRoleIds The list of role IDs to restore.
+     * @param isPending True if the user was in the pending prison table.
+     */
+    private void releaseMemberWithRoles(SlashCommandInteractionEvent event, Member targetMember, Role prisonRole, Guild guild, List<String> storedRoleIds, boolean isPending) {
+        String userId = targetMember.getId();
+
+        // Convert role IDs to Role objects
+        List<Role> rolesToRestore = storedRoleIds.stream()
+                .map(guild::getRoleById)
+                .filter(Objects::nonNull) // Filter out any roles that may have been deleted
+                .collect(Collectors.toList());
+
+        if (rolesToRestore.size() != storedRoleIds.size()) {
+            int deletedRoles = storedRoleIds.size() - rolesToRestore.size();
+            logger.warn("{} stored roles no longer exist for user {}", deletedRoles, userId);
+        }
+
+        // Check if bot can interact with the roles to restore
+        Member botMember = guild.getSelfMember();
+        List<Role> unmanageableRoles = rolesToRestore.stream()
+                .filter(role -> !botMember.canInteract(role))
+                .collect(Collectors.toList());
+
+        StringBuilder finalMessage = new StringBuilder();
+        if (!unmanageableRoles.isEmpty()) {
+            String roleNames = unmanageableRoles.stream()
+                    .map(Role::getName)
+                    .collect(Collectors.joining(", "));
+            logger.warn("Cannot interact with some roles for user {}: {}", userId, roleNames);
+
+            // Only restore the roles we can manage
+            rolesToRestore = rolesToRestore.stream()
+                    .filter(botMember::canInteract)
                     .collect(Collectors.toList());
-            
-            StringBuilder finalMessage = new StringBuilder();
-            if (!unmanageableRoles.isEmpty()) {
-                String roleNames = unmanageableRoles.stream()
-                        .map(Role::getName)
-                        .collect(Collectors.joining(", "));
-                logger.warn("Cannot interact with some roles for user {}: {}", userId, roleNames);
-                
-                // Only restore the roles we can manage
-                rolesToRestore = rolesToRestore.stream()
-                        .filter(botMember::canInteract)
-                        .collect(Collectors.toList());
-                
-                finalMessage.append("⚠️ ").append(targetMember.getAsMention())
-                            .append(" has been released from prison, but I cannot restore some roles due to hierarchy: ")
-                            .append(roleNames);
-            }
-            
-            // Restore roles and remove prison role
-            guild.modifyMemberRoles(targetMember, rolesToRestore, List.of(prisonRole)).queue(
+
+            finalMessage.append("⚠️ ").append(targetMember.getAsMention())
+                    .append(" has been released from prison, but I cannot restore some roles due to hierarchy: ")
+                    .append(roleNames);
+        }
+
+        // Restore roles and remove prison role
+        guild.modifyMemberRoles(targetMember, rolesToRestore, List.of(prisonRole)).queue(
                 success -> {
                     logger.info("Successfully released user {} from prison on Discord", userId);
-                    // Clear the stored roles from the database
-                    prisonService.releaseUser(userId);
-                    
+                    // Clear the stored roles from the correct database table
+                    if (isPending) {
+                        pendingPrisonService.releaseUser(userId);
+                        logger.debug("Cleared pending prison record for user {}", userId);
+                    } else {
+                        prisonService.releaseUser(userId);
+                        logger.debug("Cleared main prison record for user {}", userId);
+                    }
+
                     if (finalMessage.length() > 0) {
                         event.getHook().editOriginal(finalMessage.toString()).queue();
                     } else {
@@ -371,11 +423,6 @@ public class PrisonCommandListener extends ListenerAdapter {
                     logger.error("Failed to restore roles for user {}. Database state was not changed.", userId, error);
                     event.getHook().editOriginal("Failed to restore user roles: " + error.getMessage()).queue();
                 }
-            );
-            
-        } catch (Exception e) {
-            logger.error("Error releasing user {} from prison", userId, e);
-            event.getHook().editOriginal("An error occurred while releasing the user from prison.").queue();
-        }
+        );
     }
 } 

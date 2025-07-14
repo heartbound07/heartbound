@@ -53,12 +53,17 @@ public class PrisonService {
      * This method is transactional.
      *
      * @param userId the ID of the user to release
-     * @return the updated User entity
+     * @return the updated User entity, or null if the user was not found
      */
     @Transactional
     public User releaseUser(String userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        User user = userRepository.findById(userId).orElse(null);
+
+        if (user == null) {
+            // User not found, nothing to do. This prevents errors in the auto-release service.
+            return null;
+        }
+
         user.getOriginalRoleIds().clear();
         user.setPrisonedAt(null);
         user.setPrisonReleaseAt(null);

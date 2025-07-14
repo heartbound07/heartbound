@@ -21,54 +21,85 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import com.app.heartbound.repositories.PendingPrisonRepository;
+import com.app.heartbound.entities.PendingPrison;
+import com.app.heartbound.services.PendingPrisonService;
 
 @Service
 @Slf4j
 public class PrisonReleaseService {
 
     private final UserRepository userRepository;
+    private final PendingPrisonRepository pendingPrisonRepository;
     private final PrisonService prisonService;
+    private final PendingPrisonService pendingPrisonService;
     private final JDA jda;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     private static final String PRISON_ROLE_ID = "1387934212216328202";
 
     @Autowired
-    public PrisonReleaseService(UserRepository userRepository, PrisonService prisonService, @Lazy JDA jda) {
+    public PrisonReleaseService(UserRepository userRepository, PendingPrisonRepository pendingPrisonRepository, PrisonService prisonService, PendingPrisonService pendingPrisonService, @Lazy JDA jda) {
         this.userRepository = userRepository;
+        this.pendingPrisonRepository = pendingPrisonRepository;
         this.prisonService = prisonService;
+        this.pendingPrisonService = pendingPrisonService;
         this.jda = jda;
     }
 
     @PostConstruct
     public void reconcilePendingReleases() {
         log.info("Reconciling pending prison releases on startup...");
-        List<User> usersToRelease = userRepository.findByPrisonReleaseAtIsNotNull();
         LocalDateTime now = LocalDateTime.now();
+        int releaseCount = 0;
 
+        // Reconcile registered users
+        List<User> usersToRelease = userRepository.findByPrisonReleaseAtIsNotNull();
         for (User user : usersToRelease) {
             if (user.getPrisonReleaseAt().isBefore(now) || user.getPrisonReleaseAt().isEqual(now)) {
-                log.info("Found past-due release for user {}. Releasing immediately.", user.getId());
+                log.info("Found past-due release for registered user {}. Releasing immediately.", user.getId());
                 releaseUser(user.getId());
             } else {
-                log.info("Found future release for user {}. Scheduling release.", user.getId());
-                scheduleRelease(user);
+                log.info("Found future release for registered user {}. Scheduling release.", user.getId());
+                scheduleRelease(user.getId(), user.getPrisonReleaseAt());
             }
+            releaseCount++;
         }
-        log.info("Finished reconciling {} pending releases.", usersToRelease.size());
+
+        // Reconcile pending (unregistered) users
+        List<PendingPrison> pendingToRelease = pendingPrisonRepository.findByPrisonReleaseAtIsNotNull();
+        for (PendingPrison pending : pendingToRelease) {
+            if (pending.getPrisonReleaseAt().isBefore(now) || pending.getPrisonReleaseAt().isEqual(now)) {
+                log.info("Found past-due release for pending user {}. Releasing immediately.", pending.getDiscordUserId());
+                releaseUser(pending.getDiscordUserId());
+            } else {
+                log.info("Found future release for pending user {}. Scheduling release.", pending.getDiscordUserId());
+                scheduleRelease(pending.getDiscordUserId(), pending.getPrisonReleaseAt());
+            }
+            releaseCount++;
+        }
+
+        log.info("Finished reconciling {} total pending releases.", releaseCount);
     }
 
     public void scheduleRelease(User user) {
         if (user.getPrisonReleaseAt() == null) {
             return;
         }
+        scheduleRelease(user.getId(), user.getPrisonReleaseAt());
+    }
 
-        long delay = Duration.between(LocalDateTime.now(), user.getPrisonReleaseAt()).toMillis();
+    public void scheduleRelease(String userId, LocalDateTime releaseAt) {
+        if (releaseAt == null) {
+            return;
+        }
+
+        long delay = Duration.between(LocalDateTime.now(), releaseAt).toMillis();
         if (delay <= 0) {
-            releaseUser(user.getId());
+            releaseUser(userId);
         } else {
-            scheduler.schedule(() -> releaseUser(user.getId()), delay, TimeUnit.MILLISECONDS);
-            log.info("Scheduled release for user {} in {} ms.", user.getId(), delay);
+            scheduler.schedule(() -> releaseUser(userId), delay, TimeUnit.MILLISECONDS);
+            log.info("Scheduled release for user {} in {} ms.", userId, delay);
         }
     }
 
@@ -86,7 +117,9 @@ public class PrisonReleaseService {
                 member -> {
                     if (member == null) {
                         log.warn("User {} to be released was not found in the guild. Releasing from database.", userId);
+                        // Clean up from both tables just in case, to prevent orphaned records
                         prisonService.releaseUser(userId);
+                        pendingPrisonService.releaseUser(userId);
                         return;
                     }
 
@@ -96,13 +129,16 @@ public class PrisonReleaseService {
                         return;
                     }
 
-                    // Get original roles from database
-                    User user = userRepository.findById(userId).orElse(null);
-                    if (user == null || user.getOriginalRoleIds() == null) {
+                    // Get original roles from database, checking both tables
+                    List<String> roleIds = findOriginalRoleIds(userId);
+
+                    if (roleIds == null || roleIds.isEmpty()) {
                         log.warn("No stored roles found for user {} during auto-release. Removing prison role only.", userId);
                         guild.removeRoleFromMember(member, prisonRole).queue(
                             success -> {
+                                // Clean up from both tables
                                 prisonService.releaseUser(userId);
+                                pendingPrisonService.releaseUser(userId);
                                 log.info("Removed prison role from {} as no roles were stored.", member.getEffectiveName());
                             },
                             error -> log.error("Failed to remove prison role from {}", member.getEffectiveName(), error)
@@ -110,7 +146,7 @@ public class PrisonReleaseService {
                         return;
                     }
 
-                    List<Role> rolesToRestore = user.getOriginalRoleIds().stream()
+                    List<Role> rolesToRestore = roleIds.stream()
                         .map(guild::getRoleById)
                         .filter(role -> role != null && guild.getSelfMember().canInteract(role))
                         .collect(Collectors.toList());
@@ -118,7 +154,9 @@ public class PrisonReleaseService {
                     // Restore roles and remove prison role
                     guild.modifyMemberRoles(member, rolesToRestore, List.of(prisonRole)).queue(
                         success -> {
+                            // Clean up from both tables
                             prisonService.releaseUser(userId);
+                            pendingPrisonService.releaseUser(userId);
                             log.info("Successfully auto-released user {}", userId);
                         },
                         error -> {
@@ -128,12 +166,26 @@ public class PrisonReleaseService {
                 },
                 failure -> {
                      log.warn("User {} to be released was not found in the guild (on failure). Releasing from database only.", userId);
+                     // Clean up from both tables
                      prisonService.releaseUser(userId);
+                     pendingPrisonService.releaseUser(userId);
                 }
             );
         } catch (Exception e) {
             log.error("An unexpected error occurred during auto-release for user {}", userId, e);
         }
+    }
+
+    private List<String> findOriginalRoleIds(String userId) {
+        // Check main user table first
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null && user.getOriginalRoleIds() != null && !user.getOriginalRoleIds().isEmpty()) {
+            return user.getOriginalRoleIds();
+        }
+        // Then check pending prison table
+        return pendingPrisonRepository.findById(userId)
+                .map(PendingPrison::getOriginalRoleIds)
+                .orElse(null);
     }
 
     @PreDestroy

@@ -44,6 +44,8 @@ import org.slf4j.LoggerFactory;
 @Slf4j
 public class ChatActivityListener extends ListenerAdapter {
     
+    private static final String PRISON_LOG_CHANNEL_ID = "1387934477929549844";
+    
     private final UserService userService;
     private final PairingRepository pairingRepository;
     private final AuditService auditService;
@@ -522,9 +524,16 @@ public class ChatActivityListener extends ListenerAdapter {
             event.getAuthor().getId().equals(event.getJDA().getSelfUser().getId())) {
             return;
         }
+
+        long channelId = event.getChannel().getIdLong();
+
+        // Skip the prison log channel
+        if (String.valueOf(channelId).equals(PRISON_LOG_CHANNEL_ID)) {
+            log.debug("Skipping activity tracking for prison log channel: {}", channelId);
+            return;
+        }
         
         // 🚀 NEW: Skip pairing channels to avoid double XP/credits (pairing XP system handles these)
-        long channelId = event.getChannel().getIdLong();
         if (pairingRepository.findByDiscordChannelId(channelId).isPresent()) {
             log.debug("Skipping individual user XP/credits for pairing channel: {} - pairing XP system will handle this", channelId);
             return;
