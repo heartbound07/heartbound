@@ -11,6 +11,8 @@ import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.oauth.DiscordCodeStore;
 import com.app.heartbound.config.security.JWTTokenProvider;
 import com.app.heartbound.enums.Role;
+import com.app.heartbound.services.discord.DiscordBotSettingsService;
+import com.app.heartbound.entities.DiscordBotSettings;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.UserSnowflake;
@@ -31,6 +33,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.Set;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Stream;
 
 @CrossOrigin(origins = "${cors.allowed-origins}", allowCredentials = "true")
 @RestController
@@ -38,25 +42,27 @@ import java.util.Collections;
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
-    private static final String VERIFIED_ROLE_ID = "1303106353014771773";
 
     private final AuthService authService;
     private final DiscordCodeStore discordCodeStore;
     private final UserService userService;
     private final JWTTokenProvider jwtTokenProvider;
     private final JDA jda;
+    private final DiscordBotSettingsService discordBotSettingsService;
     
     @Value("${discord.server.id}")
     private String discordServerId;
 
     @Autowired
     public AuthController(AuthService authService, DiscordCodeStore discordCodeStore, 
-                         UserService userService, JWTTokenProvider jwtTokenProvider, JDA jda) {
+                         UserService userService, JWTTokenProvider jwtTokenProvider, JDA jda,
+                         DiscordBotSettingsService discordBotSettingsService) {
         this.discordCodeStore = discordCodeStore;
         this.userService = userService;
         this.jwtTokenProvider = jwtTokenProvider;
         this.authService = authService;
         this.jda = jda;
+        this.discordBotSettingsService = discordBotSettingsService;
     }
 
     @Operation(summary = "Log in a user", description = "Generates a JWT token for the given user details")
@@ -199,7 +205,7 @@ public class AuthController {
     }
     
     /**
-     * Asynchronously assigns the Verified role to a Discord user
+     * Asynchronously assigns the Verified role to a Discord user if they do not already have a level-based role.
      * 
      * @param discordUserId The Discord user ID to assign the role to
      */
@@ -210,64 +216,72 @@ public class AuthController {
                 return;
             }
             
-            // Parse the server ID to long
-            long discordServerIdL;
-            try {
-                discordServerIdL = Long.parseLong(discordServerId);
-            } catch (NumberFormatException e) {
-                logger.error("Invalid Discord server ID configuration: {}", discordServerId);
+            // Fetch settings once
+            DiscordBotSettings settings = discordBotSettingsService.getDiscordBotSettings();
+            String starterRoleId = settings.getStarterRoleId();
+
+            if (starterRoleId == null || starterRoleId.trim().isEmpty()) {
+                logger.error("Starter Role ID is not configured in bot settings. Cannot assign role.");
                 return;
             }
-            
+
+            // Compile a list of all roles that indicate a user is already a member
+            List<String> memberRoleIds = Stream.of(
+                starterRoleId,
+                settings.getLevel5RoleId(),
+                settings.getLevel15RoleId(),
+                settings.getLevel30RoleId(),
+                settings.getLevel40RoleId(),
+                settings.getLevel50RoleId(),
+                settings.getLevel70RoleId(),
+                settings.getLevel100RoleId()
+            ).filter(id -> id != null && !id.isEmpty()).toList();
+
             // Get the guild
-            Guild guild = jda.getGuildById(discordServerIdL);
+            Guild guild = jda.getGuildById(discordServerId);
             if (guild == null) {
-                logger.error("Failed to find Discord server with ID: {}", discordServerIdL);
+                logger.error("Failed to find Discord server with ID: {}", discordServerId);
                 return;
             }
             
             // Check if bot has permission to manage roles
             if (!guild.getSelfMember().hasPermission(Permission.MANAGE_ROLES)) {
-                logger.error("Bot lacks MANAGE_ROLES permission in Guild ID: {}", discordServerIdL);
+                logger.error("Bot lacks MANAGE_ROLES permission in Guild ID: {}", discordServerId);
                 return;
             }
             
             // Get the verified role
-            net.dv8tion.jda.api.entities.Role verifiedRole = guild.getRoleById(VERIFIED_ROLE_ID);
+            net.dv8tion.jda.api.entities.Role verifiedRole = guild.getRoleById(starterRoleId);
             if (verifiedRole == null) {
-                logger.error("Failed to find Verified role with ID: {}", VERIFIED_ROLE_ID);
-                return;
-            }
-            
-            // Parse the user ID to long
-            long discordUserIdL;
-            try {
-                discordUserIdL = Long.parseLong(discordUserId);
-            } catch (NumberFormatException e) {
-                logger.error("Invalid Discord user ID: {}", discordUserId);
+                logger.error("Failed to find Starter/Verified role with ID: {}", starterRoleId);
                 return;
             }
             
             // Retrieve the member and assign the role
-            guild.retrieveMemberById(discordUserIdL).queue(
+            guild.retrieveMemberById(discordUserId).queue(
                 member -> {
-                    // Check if the member already has the role
-                    if (member.getRoles().contains(verifiedRole)) {
-                        logger.info("User {} already has the verified role", discordUserIdL);
+                    // Check if the member already has ANY of the specified roles
+                    boolean alreadyHasRole = member.getRoles().stream()
+                        .anyMatch(role -> memberRoleIds.contains(role.getId()));
+
+                    if (alreadyHasRole) {
+                        logger.info("User {} already has a member/level role. Skipping role assignment.", discordUserId);
                         return;
                     }
-                    
-                    // Assign the role
-                    guild.addRoleToMember(UserSnowflake.fromId(discordUserIdL), verifiedRole).queue(
-                        success -> logger.info("Successfully assigned verified role to user {}", discordUserIdL),
+
+                    // If no roles matched, assign the starter role
+                    guild.addRoleToMember(UserSnowflake.fromId(discordUserId), verifiedRole).queue(
+                        success -> logger.info("Successfully assigned verified role to user {}", discordUserId),
                         failure -> logger.error("Failed to assign verified role to user {}: {}", 
-                                              discordUserIdL, failure.getMessage())
+                                              discordUserId, failure.getMessage())
                     );
                 },
                 error -> logger.error("Could not find member with ID {} in guild {} to assign role: {}", 
-                                    discordUserIdL, discordServerIdL, error.getMessage())
+                                    discordUserId, discordServerId, error.getMessage())
             );
             
+        } catch (NumberFormatException e) {
+            logger.error("Invalid Discord server or user ID configuration.", e);
         } catch (Exception e) {
             logger.error("Error assigning verified role to user {}: {}", discordUserId, e.getMessage(), e);
         }
