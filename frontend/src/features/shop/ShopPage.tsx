@@ -263,7 +263,10 @@ const ShopItemCard = forwardRef(({
         </div>
       ) : item.category === 'FISHING_ROD' ? (
         <div className="shop-item-image fishing-rod-preview-container">
-          <div className="h-full w-full bg-gradient-to-br from-blue-800 to-cyan-700 flex flex-col items-center justify-center relative overflow-hidden p-4">
+          <div 
+            className="h-full w-full flex flex-col items-center justify-center relative overflow-hidden p-4"
+            style={{ background: `linear-gradient(to bottom right, #1f2937, ${rarityColor})` }}
+            >
             <GiFishingPole
               className="absolute w-24 h-24 text-white/10 transform -rotate-12 -right-4 -bottom-4"
             />
