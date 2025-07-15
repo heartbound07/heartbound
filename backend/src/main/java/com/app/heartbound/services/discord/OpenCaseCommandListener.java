@@ -300,7 +300,7 @@ public class OpenCaseCommandListener extends ListenerAdapter {
                 description.append(item.getContainedItem().getName())
                     .append(" (").append(formatCategoryForDisplay(item.getContainedItem().getCategory())).append(")")
                     .append(" | **").append(formatRarityForDisplay(item.getContainedItem().getRarity())).append("**")
-                    .append(" - ").append(item.getDropRate()).append("%\n");
+                    .append("\n");
             }
             confirmEmbed.setDescription(description.toString());
             
