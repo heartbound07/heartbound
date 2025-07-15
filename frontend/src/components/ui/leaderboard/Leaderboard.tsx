@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { UserProfileDTO, LeaderboardEntryDTO, getUserProfile } from '@/config/userService';
 import { FaCoins, FaCrown, FaTrophy, FaMedal, FaStar } from 'react-icons/fa';
-import { MessageSquare, Volume2 } from 'lucide-react';
+import { MessageSquare, Volume2, Fish } from 'lucide-react';
 import '@/assets/leaderboard.css';
 import { UserProfileModal } from '@/components/modals/UserProfileModal';
 import { createPortal } from 'react-dom';
@@ -18,7 +18,7 @@ interface LeaderboardProps {
   showHeader?: boolean;
   compact?: boolean;
   className?: string;
-  leaderboardType?: 'credits' | 'level' | 'messages' | 'voice';
+  leaderboardType?: 'credits' | 'level' | 'messages' | 'voice' | 'fish';
   itemsPerPage?: number;
   highlightUserId?: string | null;
   onGoToPage?: (page: number) => void;
@@ -61,7 +61,7 @@ const LeaderboardRow = React.memo(({
   user: LeaderboardEntryDTO;
   index: number;
   actualIndex: number;
-  leaderboardType: 'credits' | 'level' | 'messages' | 'voice';
+  leaderboardType: 'credits' | 'level' | 'messages' | 'voice' | 'fish';
   compact: boolean;
   onClick: (user: LeaderboardEntryDTO, event: React.MouseEvent) => void;
   positionDetails: { icon: React.ReactNode; className: string };
@@ -123,6 +123,13 @@ const LeaderboardRow = React.memo(({
           <>
             <Volume2 className="text-purple-400" />
             <span>{formatVoiceTime(user.voiceTimeMinutesTotal || 0)}</span>
+          </>
+        );
+      case 'fish':
+        return (
+          <>
+            <Fish className="text-cyan-400" />
+            <span>{user.fishCaughtCount || 0}</span>
           </>
         );
       default:
@@ -367,6 +374,8 @@ export const Leaderboard = React.memo(function Leaderboard({
         return 'Messages';
       case 'voice':
         return 'Voice Time';
+      case 'fish':
+        return 'Fish Caught';
       default:
         return 'Credits';
     }

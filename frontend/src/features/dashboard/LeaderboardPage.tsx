@@ -8,11 +8,11 @@ import '@/assets/styles/fonts.css';
 import '@/assets/leaderboard.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaCoins, FaStar } from 'react-icons/fa';
-import { ChevronDown, MessageSquare, Volume2 } from 'lucide-react';
+import { ChevronDown, MessageSquare, Volume2, Fish } from 'lucide-react';
 
 // Dropdown option interface
 interface DropdownOption {
-  value: 'credits' | 'level' | 'messages' | 'voice';
+  value: 'credits' | 'level' | 'messages' | 'voice' | 'fish';
   label: string;
   icon: React.ReactNode;
 }
@@ -28,6 +28,11 @@ const DROPDOWN_OPTIONS: DropdownOption[] = [
     value: 'voice',
     label: 'Voice Time',
     icon: <Volume2 className="text-purple-400" size={16} />
+  },
+  {
+    value: 'fish',
+    label: 'Fish Caught',
+    icon: <Fish className="text-cyan-400" size={16} />
   },
   {
     value: 'level',
@@ -46,8 +51,8 @@ const LeaderboardDropdown = React.memo(({
   currentType, 
   onTypeChange 
 }: {
-  currentType: 'credits' | 'level' | 'messages' | 'voice';
-  onTypeChange: (type: 'credits' | 'level' | 'messages' | 'voice') => void;
+  currentType: 'credits' | 'level' | 'messages' | 'voice' | 'fish';
+  onTypeChange: (type: 'credits' | 'level' | 'messages' | 'voice' | 'fish') => void;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -155,7 +160,7 @@ export function LeaderboardPage() {
   const [leaderboardUsers, setLeaderboardUsers] = useState<LeaderboardEntryDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [leaderboardType, setLeaderboardType] = useState<'credits' | 'level' | 'messages' | 'voice'>('messages');
+  const [leaderboardType, setLeaderboardType] = useState<'credits' | 'level' | 'messages' | 'voice' | 'fish'>('messages');
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfileDTO | null>(null);
   const [highlightedUserId, setHighlightedUserId] = useState<string | null>(null);
   

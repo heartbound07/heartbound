@@ -251,11 +251,12 @@ public class DiscordConfig {
                 .addCommands(
                     Commands.slash("leaderboard", "Displays the user leaderboard by messages, voice time, levels, or credits")
                         .addOptions(
-                            new OptionData(OptionType.STRING, "type", "Sort leaderboard by 'messages', 'voice', 'levels', or 'credits'", false)
+                            new OptionData(OptionType.STRING, "type", "Sort leaderboard by 'messages', 'voice', 'levels', 'credits', or 'fish'", false)
                                 .addChoice("messages", "messages")
                                 .addChoice("voice", "voice")
                                 .addChoice("levels", "levels")
                                 .addChoice("credits", "credits")
+                                .addChoice("fish", "fish")
                         ),
                     Commands.slash("credits", "Check your current credit balance"),
                     Commands.slash("daily", "Claim your daily credits reward with streak bonuses"),

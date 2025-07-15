@@ -931,7 +931,7 @@ public class UserService {
      * Fetches a paginated and optimized list of the top 100 users from the database,
      * with sorting handled at the database level for efficiency and correctness.
      *
-     * @param sortBy Sorting criterion: "credits", "level", "messages", or "voice"
+     * @param sortBy Sorting criterion: "credits", "level", "messages", "voice", or "fish"
      * @return List of sorted LeaderboardEntryDTOs with calculated ranks
      */
     public List<LeaderboardEntryDTO> getLeaderboardUsers(String sortBy) {
@@ -949,6 +949,9 @@ public class UserService {
                 break;
             case "voice":
                 sort = Sort.by(new Sort.Order(Direction.DESC, "voiceTimeMinutesTotal", Sort.NullHandling.NULLS_LAST));
+                break;
+            case "fish":
+                sort = Sort.by(new Sort.Order(Direction.DESC, "fishCaughtCount", Sort.NullHandling.NULLS_LAST));
                 break;
             case "credits":
             default:

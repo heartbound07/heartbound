@@ -51,6 +51,7 @@ export interface LeaderboardEntryDTO {
   messageCount: number;
   rank: number;
   banned: boolean;
+  fishCaughtCount: number;
 }
 
 export interface UpdateProfileDTO {
@@ -121,7 +122,7 @@ export const updateUserProfile = async (userId: string, profile: UpdateProfileDT
   }
 };
 
-export const getLeaderboardUsers = async (sortBy: 'credits' | 'level' | 'messages' | 'voice' = 'credits'): Promise<LeaderboardEntryDTO[]> => {
+export const getLeaderboardUsers = async (sortBy: 'credits' | 'level' | 'messages' | 'voice' | 'fish' = 'credits'): Promise<LeaderboardEntryDTO[]> => {
   try {
     const response = await httpClient.get('/users/leaderboard', {
       params: { sortBy }

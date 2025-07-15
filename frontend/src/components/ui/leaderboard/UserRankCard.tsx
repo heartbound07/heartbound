@@ -1,14 +1,14 @@
 import React, { useMemo } from 'react';
-import { UserProfileDTO } from '@/config/userService';
+import { UserProfileDTO, LeaderboardEntryDTO } from '@/config/userService';
 import { FaCoins, FaStar, FaTrophy, FaCrown, FaMedal } from 'react-icons/fa';
-import { MessageSquare, Volume2 } from 'lucide-react';
+import { MessageSquare, Volume2, Fish } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { motion } from 'framer-motion';
 
 interface UserRankCardProps {
   currentUser: UserProfileDTO | null;
-  leaderboardUsers: UserProfileDTO[];
-  leaderboardType: 'credits' | 'level' | 'messages' | 'voice';
+  leaderboardUsers: LeaderboardEntryDTO[];
+  leaderboardType: 'credits' | 'level' | 'messages' | 'voice' | 'fish';
   onClick?: (userData: UserProfileDTO) => void;
 }
 
@@ -129,6 +129,13 @@ export const UserRankCard = React.memo(function UserRankCard({
           <>
             <Volume2 className="text-purple-400 mr-1" size={12} />
             <span className="font-bold text-[var(--color-text-primary)]">{formatVoiceTime(currentUser!.voiceTimeMinutesTotal || 0)}</span>
+          </>
+        );
+      case 'fish':
+        return (
+          <>
+            <Fish className="text-cyan-400 mr-1" size={12} />
+            <span className="font-bold text-[var(--color-text-primary)]">{currentUser!.fishCaughtCount || 0}</span>
           </>
         );
       default:

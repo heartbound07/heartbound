@@ -368,6 +368,9 @@ public class LeaderboardCommandListener extends ListenerAdapter {
             case "voice":
                 embed.setTitle("Voice Time Leaderboard");
                 break;
+            case "fish":
+                embed.setTitle("Fish Caught Leaderboard");
+                break;
             default:
                 embed.setTitle("Leaderboard");
                 break;
@@ -432,6 +435,10 @@ public class LeaderboardCommandListener extends ListenerAdapter {
                 case "voice":
                     int voiceMinutes = user.getVoiceTimeMinutesTotal() != null ? user.getVoiceTimeMinutesTotal() : 0;
                     valueDisplay = String.format("%s 🎙️", formatVoiceTime(voiceMinutes));
+                    break;
+                case "fish":
+                    int fishCount = user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0;
+                    valueDisplay = String.format("%,d 🐟", fishCount);
                     break;
                 default:
                     valueDisplay = "N/A";
