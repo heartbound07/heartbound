@@ -161,6 +161,9 @@ public class User {
     // Updated field to store single equipped badge ID instead of multiple
     @Column(name = "equipped_badge_id")
     private UUID equippedBadgeId;
+
+    @Column(name = "equipped_fishing_rod_id")
+    private UUID equippedFishingRodId;
     
     // Helper methods for role management
     public void addRole(Role role) {
@@ -306,6 +309,14 @@ public class User {
         this.equippedAccentId = equippedAccentId;
     }
 
+    public UUID getEquippedFishingRodId() {
+        return equippedFishingRodId;
+    }
+
+    public void setEquippedFishingRodId(UUID equippedFishingRodId) {
+        this.equippedFishingRodId = equippedFishingRodId;
+    }
+
     // Helper methods for badge management - updated for single badge
     public void setEquippedBadge(UUID badgeId) {
         this.equippedBadgeId = badgeId;
@@ -370,6 +381,8 @@ public class User {
                 return getEquippedAccentId();
             case BADGE:
                 return getEquippedBadgeId();
+            case FISHING_ROD:
+                return getEquippedFishingRodId();
             case CASE:
                 throw new UnsupportedOperationException("CASE category items cannot be equipped. Cases are purchased and stored in inventory.");
             default:
@@ -391,6 +404,9 @@ public class User {
                 break;
             case BADGE:
                 setEquippedBadge(itemId);
+                break;
+            case FISHING_ROD:
+                setEquippedFishingRodId(itemId);
                 break;
             case CASE:
                 throw new UnsupportedOperationException("CASE category items cannot be equipped. Cases are purchased and stored in inventory.");

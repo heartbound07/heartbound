@@ -11,6 +11,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.DecimalMax;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -60,6 +62,10 @@ public class ShopDTO {
     
     // Quantity field for inventory items (especially cases)
     private Integer quantity = 1;  // Default to 1 for compatibility
+
+    @DecimalMin(value = "0.1", message = "Multiplier must be at least 0.1")
+    @DecimalMax(value = "10.0", message = "Multiplier must not exceed 10.0")
+    private Double fishingRodMultiplier;
 
     public boolean isEquipped() {
         return equipped;

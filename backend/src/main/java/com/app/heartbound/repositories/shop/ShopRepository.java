@@ -27,4 +27,6 @@ public interface ShopRepository extends JpaRepository<Shop, UUID> {
     List<Shop> findByIsFeaturedTrueAndIsActiveTrueOrderByCreatedAtDesc();
     
     List<Shop> findByIsDailyTrueAndIsActiveTrueOrderByCreatedAtDesc();
+
+    List<Shop> findByCategoryAndIsActiveTrueOrderByFishingRodMultiplierDesc(ShopCategory category);
 }

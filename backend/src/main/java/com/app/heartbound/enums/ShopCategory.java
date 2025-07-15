@@ -8,5 +8,6 @@ public enum ShopCategory {
     LISTING,
     ACCENT,
     BADGE,
-    CASE
+    CASE,
+    FISHING_ROD
 } 

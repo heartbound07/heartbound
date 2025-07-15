@@ -756,6 +756,44 @@ public class ShopService {
                     logger.warn("Failed to grant Discord role {} to user {}", newRoleId, user.getId());
                 }
             }
+        } else if (category == ShopCategory.FISHING_ROD) {
+            // Handle Discord role management for FISHING_ROD items
+            // Check if there was a previously equipped item of the same category
+            UUID previousItemId = user.getEquippedItemIdByCategory(category);
+            if (previousItemId != null && !previousItemId.equals(item.getId())) {
+                // Find the previous item to get its Discord role ID and handle removal synchronously
+                shopRepository.findById(previousItemId).ifPresent(previousItem -> {
+                    String previousRoleId = previousItem.getDiscordRoleId();
+                    if (previousRoleId != null && !previousRoleId.isEmpty()) {
+                        logger.debug("Removing previous Discord role {} from user {} before equipping new item", 
+                                previousRoleId, user.getId());
+                        
+                        // Ensure role removal occurs and log any failures
+                        boolean removalSuccess = discordService.removeRole(user.getId(), previousRoleId);
+                        if (!removalSuccess) {
+                            // Log the issue but continue with equipping the new item
+                            logger.warn("Failed to remove previous Discord role {} from user {}. " +
+                                    "Continuing with equipping new item.", previousRoleId, user.getId());
+                        } else {
+                            logger.debug("Successfully removed previous Discord role {} from user {}", 
+                                    previousRoleId, user.getId());
+                        }
+                    }
+                });
+            }
+            
+            // Now unequip the previous item and set the new one
+            user.setEquippedItemIdByCategory(category, item.getId());
+            
+            // Grant the new role if it has a discordRoleId
+            String newRoleId = item.getDiscordRoleId();
+            if (newRoleId != null && !newRoleId.isEmpty()) {
+                logger.debug("Granting Discord role {} to user {} for equipped item", newRoleId, user.getId());
+                boolean grantSuccess = discordService.grantRole(user.getId(), newRoleId);
+                if (!grantSuccess) {
+                    logger.warn("Failed to grant Discord role {} to user {}", newRoleId, user.getId());
+                }
+            }
         } else {
             // For other categories, simply update the equipped item
             user.setEquippedItemIdByCategory(category, item.getId());
@@ -1023,6 +1061,7 @@ public class ShopService {
             .caseContentsCount(caseContentsCount)
             .isFeatured(shop.getIsFeatured())
             .isDaily(shop.getIsDaily())
+            .fishingRodMultiplier(shop.getFishingRodMultiplier())
             .build();
     }
     
@@ -1086,6 +1125,7 @@ public class ShopService {
             .thumbnailUrl(sanitizedThumbnailUrl)
             .isFeatured(shopDTO.getIsFeatured())
             .isDaily(shopDTO.getIsDaily())
+            .fishingRodMultiplier(shopDTO.getFishingRodMultiplier())
             .build();
         
         logger.debug("Creating new shop item with sanitized content");
@@ -1157,6 +1197,7 @@ public class ShopService {
         existingItem.setThumbnailUrl(sanitizedThumbnailUrl);
         existingItem.setIsFeatured(shopDTO.getIsFeatured());
         existingItem.setIsDaily(shopDTO.getIsDaily());
+        existingItem.setFishingRodMultiplier(shopDTO.getFishingRodMultiplier());
         
         logger.debug("Updating shop item with ID: {} with sanitized content", existingItem.getId());
         

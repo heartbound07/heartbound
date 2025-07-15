@@ -1,12 +1,14 @@
 package com.app.heartbound.services.discord;
 
 import com.app.heartbound.entities.User;
+import com.app.heartbound.entities.Shop;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.SecureRandomService;
 import com.app.heartbound.services.AuditService;
 import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
+import com.app.heartbound.repositories.shop.ShopRepository;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
@@ -19,6 +21,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -61,15 +64,17 @@ public class FishCommandListener extends ListenerAdapter {
     private final UserService userService;
     private final SecureRandomService secureRandomService;
     private final AuditService auditService;
+    private final ShopRepository shopRepository;
 
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
     
     @Autowired
-    public FishCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService) {
+    public FishCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService, ShopRepository shopRepository) {
         this.userService = userService;
         this.secureRandomService = secureRandomService;
         this.auditService = auditService;
+        this.shopRepository = shopRepository;
         logger.info("FishCommandListener initialized with secure random and audit service");
     }
     
@@ -139,13 +144,33 @@ public class FishCommandListener extends ListenerAdapter {
             if (roll <= RARE_FISH_CHANCE) {
                 // 5% chance: rare fish
                 String fishEmoji = RARE_CATCHES.get(secureRandomService.getSecureInt(RARE_CATCHES.size()));
-                creditChange = 50 + secureRandomService.getSecureInt(21); // 50-70 range for rare catches
+                int baseCreditChange = 50 + secureRandomService.getSecureInt(21); // 50-70 range for rare catches
+
+                // Apply fishing rod multiplier if equipped
+                double multiplier = 1.0;
+                int finalCreditChange = baseCreditChange;
+
+                if (user.getEquippedFishingRodId() != null) {
+                    try {
+                        Optional<Shop> rodOpt = shopRepository.findById(user.getEquippedFishingRodId());
+                        if (rodOpt.isPresent()) {
+                            Shop rod = rodOpt.get();
+                            if (rod.getFishingRodMultiplier() != null && rod.getFishingRodMultiplier() > 1.0) {
+                                multiplier = rod.getFishingRodMultiplier();
+                                finalCreditChange = (int) Math.round(baseCreditChange * multiplier);
+                                logger.info("Applied {}x fishing rod multiplier for user {}. Original credits: {}, New credits: {}", multiplier, userId, baseCreditChange, finalCreditChange);
+                            }
+                        }
+                    } catch (Exception e) {
+                        logger.error("Failed to apply fishing rod multiplier for user {}: {}", userId, e.getMessage());
+                    }
+                }
                 
                 message.append("**WOW!** You caught a rare ").append(fishEmoji);
-                message.append("! +").append(creditChange).append(" 🪙");
+                message.append("! +").append(finalCreditChange).append(" 🪙");
                 
                 // Update user credits and fish count
-                user.setCredits(currentCredits + creditChange);
+                user.setCredits(currentCredits + finalCreditChange);
                 int newFishCount = (user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0) + 1;
                 user.setFishCaughtCount(newFishCount);
                 
@@ -159,11 +184,11 @@ public class FishCommandListener extends ListenerAdapter {
                         .action("FISHING_RARE_CATCH")
                         .entityType("USER_CREDITS")
                         .entityId(userId)
-                        .description(String.format("Caught rare fish %s and earned %d credits", fishEmoji, creditChange))
+                        .description(String.format("Caught rare fish %s and earned %d credits", fishEmoji, finalCreditChange))
                         .severity(AuditSeverity.INFO)
                         .category(AuditCategory.FINANCIAL)
-                        .details(String.format("{\"game\":\"fishing\",\"catchType\":\"rare\",\"fish\":\"%s\",\"won\":%d,\"newBalance\":%d,\"fishCaughtCount\":%d}", 
-                            fishEmoji, creditChange, user.getCredits(), newFishCount))
+                        .details(String.format("{\"game\":\"fishing\",\"catchType\":\"rare\",\"fish\":\"%s\",\"won\":%d,\"newBalance\":%d,\"fishCaughtCount\":%d,\"multiplier\":%.2f}", 
+                            fishEmoji, finalCreditChange, user.getCredits(), newFishCount, multiplier))
                         .source("DISCORD_BOT")
                         .build();
                     
@@ -173,18 +198,38 @@ public class FishCommandListener extends ListenerAdapter {
                 }
                 
                 logger.debug("User {} fished successfully: +{} credits. New balance: {}", 
-                        userId, creditChange, user.getCredits());
+                        userId, finalCreditChange, user.getCredits());
                 
             } else if (roll <= SUCCESS_CHANCE) {
                 // 75% chance: regular fish (80% - 5% = 75%)
                 String fishEmoji = REGULAR_FISH.get(secureRandomService.getSecureInt(REGULAR_FISH.size()));
-                creditChange = secureRandomService.getSecureInt(20) + 1;
+                int baseCreditChange = secureRandomService.getSecureInt(20) + 1;
+
+                // Apply fishing rod multiplier if equipped
+                double multiplier = 1.0;
+                int finalCreditChange = baseCreditChange;
+
+                if (user.getEquippedFishingRodId() != null) {
+                    try {
+                        Optional<Shop> rodOpt = shopRepository.findById(user.getEquippedFishingRodId());
+                        if (rodOpt.isPresent()) {
+                            Shop rod = rodOpt.get();
+                            if (rod.getFishingRodMultiplier() != null && rod.getFishingRodMultiplier() > 1.0) {
+                                multiplier = rod.getFishingRodMultiplier();
+                                finalCreditChange = (int) Math.round(baseCreditChange * multiplier);
+                                logger.info("Applied {}x fishing rod multiplier for user {}. Original credits: {}, New credits: {}", multiplier, userId, baseCreditChange, finalCreditChange);
+                            }
+                        }
+                    } catch (Exception e) {
+                        logger.error("Failed to apply fishing rod multiplier for user {}: {}", userId, e.getMessage());
+                    }
+                }
                 
                 message.append("You caught ").append(fishEmoji);
-                message.append("! +").append(creditChange).append(" 🪙");
+                message.append("! +").append(finalCreditChange).append(" 🪙");
                 
                 // Update user credits and fish count
-                user.setCredits(currentCredits + creditChange);
+                user.setCredits(currentCredits + finalCreditChange);
                 int newFishCount = (user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0) + 1;
                 user.setFishCaughtCount(newFishCount);
                 
@@ -198,11 +243,11 @@ public class FishCommandListener extends ListenerAdapter {
                         .action("FISHING_CATCH")
                         .entityType("USER_CREDITS")
                         .entityId(userId)
-                        .description(String.format("Caught fish %s and earned %d credits", fishEmoji, creditChange))
+                        .description(String.format("Caught fish %s and earned %d credits", fishEmoji, finalCreditChange))
                         .severity(AuditSeverity.INFO)
                         .category(AuditCategory.FINANCIAL)
-                        .details(String.format("{\"game\":\"fishing\",\"catchType\":\"regular\",\"fish\":\"%s\",\"won\":%d,\"newBalance\":%d,\"fishCaughtCount\":%d}", 
-                            fishEmoji, creditChange, user.getCredits(), newFishCount))
+                        .details(String.format("{\"game\":\"fishing\",\"catchType\":\"regular\",\"fish\":\"%s\",\"won\":%d,\"newBalance\":%d,\"fishCaughtCount\":%d,\"multiplier\":%.2f}", 
+                            fishEmoji, finalCreditChange, user.getCredits(), newFishCount, multiplier))
                         .source("DISCORD_BOT")
                         .build();
                     
@@ -212,7 +257,7 @@ public class FishCommandListener extends ListenerAdapter {
                 }
                 
                 logger.debug("User {} fished successfully: +{} credits. New balance: {}", 
-                        userId, creditChange, user.getCredits());
+                        userId, finalCreditChange, user.getCredits());
                 
             } else {
                 // 20% chance: failure - lose 1-50 credits
