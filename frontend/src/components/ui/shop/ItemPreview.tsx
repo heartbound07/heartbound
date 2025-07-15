@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FaCoins } from 'react-icons/fa';
+import { GiFishingPole } from 'react-icons/gi';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 import NameplatePreview from '@/components/NameplatePreview';
 import BadgePreview from '@/components/BadgePreview';
@@ -227,34 +228,28 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
             />
           )}
 
-          {/* Combined Profile Preview */}
-          <div className="item-preview-combined">
-            {selectedItems.badge ? (
-              // Show badge preview with nameplate color
-              <BadgePreview
-                username={user?.username || "Username"}
-                avatar={user?.avatar || "/images/default-avatar.png"}
-                badgeUrl={getBadgeUrl() || ''}
-                message="This is what your profile looks like"
-                className="w-full"
-                size="lg"
-                nameplateColor={getNameplateColor()} // Pass the nameplate color
-              />
-            ) : selectedItems.nameplate ? (
-              // Show nameplate preview only
-              <NameplatePreview
-                username={user?.username || "Username"}
-                avatar={user?.avatar || "/images/default-avatar.png"}
-                color={getNameplateColor()}
-                fallbackColor={rarityColor}
-                message="This is what your profile looks like"
-                className="w-full"
-                size="lg"
-              />
-            ) : (
-              // Default profile preview - show equipped badge if available, otherwise nameplate
-              <div className="item-preview-default-profile">
-                {hasEquippedBadge() ? (
+          {/* ADDED: Special preview for FISHING_ROD */}
+          {primaryItem?.category === 'FISHING_ROD' ? (
+            <div className="item-preview-visual fishing-rod-preview-container">
+              <div className="h-full w-full bg-gradient-to-br from-blue-800 to-cyan-700 flex flex-col items-center justify-center relative overflow-hidden p-4">
+                <GiFishingPole className="absolute w-32 h-32 text-white/10 transform -rotate-12 -right-6 -bottom-6" />
+                <GiFishingPole className="relative z-10 w-20 h-20 text-white/80 drop-shadow-lg" />
+                <div className="relative z-10 mt-3 text-center">
+                  <p className="text-3xl font-bold text-white drop-shadow-md">
+                    {primaryItem.fishingRodMultiplier}x
+                  </p>
+                  <p className="text-md font-semibold text-cyan-200 drop-shadow-sm">
+                    Credit Bonus
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Combined Profile Preview */}
+              <div className="item-preview-combined">
+                {selectedItems.badge ? (
+                  // Show badge preview with nameplate color
                   <BadgePreview
                     username={user?.username || "Username"}
                     avatar={user?.avatar || "/images/default-avatar.png"}
@@ -262,22 +257,48 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                     message="This is what your profile looks like"
                     className="w-full"
                     size="lg"
-                    nameplateColor={getNameplateColor()} // Show both equipped badge and nameplate color
+                    nameplateColor={getNameplateColor()} // Pass the nameplate color
                   />
-                ) : (
+                ) : selectedItems.nameplate ? (
+                  // Show nameplate preview only
                   <NameplatePreview
                     username={user?.username || "Username"}
                     avatar={user?.avatar || "/images/default-avatar.png"}
                     color={getNameplateColor()}
-                    fallbackColor="#ffffff"
+                    fallbackColor={rarityColor}
                     message="This is what your profile looks like"
                     className="w-full"
                     size="lg"
                   />
+                ) : (
+                  // Default profile preview - show equipped badge if available, otherwise nameplate
+                  <div className="item-preview-default-profile">
+                    {hasEquippedBadge() ? (
+                      <BadgePreview
+                        username={user?.username || "Username"}
+                        avatar={user?.avatar || "/images/default-avatar.png"}
+                        badgeUrl={getBadgeUrl() || ''}
+                        message="This is what your profile looks like"
+                        className="w-full"
+                        size="lg"
+                        nameplateColor={getNameplateColor()} // Show both equipped badge and nameplate color
+                      />
+                    ) : (
+                      <NameplatePreview
+                        username={user?.username || "Username"}
+                        avatar={user?.avatar || "/images/default-avatar.png"}
+                        color={getNameplateColor()}
+                        fallbackColor="#ffffff"
+                        message="This is what your profile looks like"
+                        className="w-full"
+                        size="lg"
+                      />
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
+            </>
+          )}
 
           {/* Show case preview if a case is selected */}
           {primaryItem?.category === 'CASE' && (
@@ -354,6 +375,37 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
 
       {/* Details Section */}
       <div className="item-preview-details">
+        {/* Item Name */}
+        {primaryItem && (
+          <div className="item-preview-name-section">
+            <SafeText
+              text={primaryItem.name}
+              tag="h3"
+              className="item-preview-name"
+              maxLength={100}
+              showTooltip={true}
+            />
+            <div
+              className="px-2 py-0.5 rounded text-xs font-semibold"
+              style={getRarityBadgeStyle(primaryItem.rarity)}
+            >
+              {getRarityLabel(primaryItem.rarity)}
+            </div>
+          </div>
+        )}
+        
+        {/* ADDED: Fishing Rod Multiplier Details */}
+        {primaryItem?.category === 'FISHING_ROD' && (
+          <div className="text-center my-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+            <p className="text-lg font-bold text-cyan-400">
+              {primaryItem.fishingRodMultiplier}x Credit Multiplier
+            </p>
+            <p className="text-xs text-slate-400 mt-1">
+              With this rod equipped, a <strong>20</strong> credit fish will now award <strong>{20 * (primaryItem.fishingRodMultiplier || 1)}</strong> credits!
+            </p>
+          </div>
+        )}
+
         {/* Show selected items list */}
         <div className="item-preview-selected-items">
           <div className="space-y-2">

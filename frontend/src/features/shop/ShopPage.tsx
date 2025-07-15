@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth';
 import { FaCoins, FaInfoCircle } from 'react-icons/fa';
+import { GiFishingPole } from 'react-icons/gi';
 import { motion, AnimatePresence } from 'framer-motion';
 import httpClient from '@/lib/api/httpClient';
 import { Toast } from '@/components/Toast';
@@ -31,6 +32,7 @@ interface ShopItem {
   caseContentsCount?: number;
   isFeatured?: boolean;
   isDaily?: boolean;
+  fishingRodMultiplier?: number;
 }
 
 interface ToastNotification {
@@ -252,6 +254,33 @@ const ShopItemCard = forwardRef(({
           {/* Recent purchase effect */}
           {isRecentlyPurchased && (
             <motion.div 
+              initial={{ opacity: 0.8 }}
+              animate={{ opacity: 0 }}
+              transition={{ duration: 2 }}
+              className="absolute inset-0 bg-green-500/20 rounded-t-lg z-10"
+            />
+          )}
+        </div>
+      ) : item.category === 'FISHING_ROD' ? (
+        <div className="shop-item-image fishing-rod-preview-container">
+          <div className="h-full w-full bg-gradient-to-br from-blue-800 to-cyan-700 flex flex-col items-center justify-center relative overflow-hidden p-4">
+            <GiFishingPole
+              className="absolute w-24 h-24 text-white/10 transform -rotate-12 -right-4 -bottom-4"
+            />
+            <GiFishingPole
+              className="relative z-10 w-16 h-16 text-white/80 drop-shadow-lg"
+            />
+            <div className="relative z-10 mt-2 text-center">
+              <p className="text-2xl font-bold text-white drop-shadow-md">
+                {item.fishingRodMultiplier}x
+              </p>
+              <p className="text-sm font-semibold text-cyan-200 drop-shadow-sm">
+                Credit Bonus
+              </p>
+            </div>
+          </div>
+           {isRecentlyPurchased && (
+            <motion.div
               initial={{ opacity: 0.8 }}
               animate={{ opacity: 0 }}
               transition={{ duration: 2 }}

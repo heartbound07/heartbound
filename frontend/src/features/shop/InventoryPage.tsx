@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import httpClient from '@/lib/api/httpClient';
 import { Toast } from '@/components/Toast';
 import { FaInfoCircle } from 'react-icons/fa';
+import { GiFishingPole } from 'react-icons/gi';
 import '@/assets/dashboard.css';
 import '@/assets/styles/fonts.css';
 import '@/assets/Inventory.css';
@@ -33,6 +34,7 @@ export interface ShopItem {
   isCase?: boolean;
   caseContentsCount?: number;
   quantity?: number;
+  fishingRodMultiplier?: number;
 }
 
 interface ToastNotification {
@@ -69,7 +71,8 @@ const categoryDisplayMapping: Record<string, string> = {
   'LISTING': 'Listing Color',
   'ACCENT': 'Profile Accent',
   'BADGE': 'Badge',
-  'CASE': 'Case'
+  'CASE': 'Case',
+  'FISHING_ROD': 'Fishing Rod'
 };
 
 // Format category for display with custom mappings
@@ -278,6 +281,30 @@ const InventoryItemCard = forwardRef(({
             </div>
           )}
         </div>
+      ) : item.category === 'FISHING_ROD' ? (
+        <div className="shop-item-image inventory-item-image fishing-rod-preview-container">
+          <div className="h-full w-full bg-gradient-to-br from-blue-800 to-cyan-700 flex flex-col items-center justify-center relative overflow-hidden p-4">
+            <GiFishingPole
+              className="absolute w-24 h-24 text-white/10 transform -rotate-12 -right-4 -bottom-4"
+            />
+            <GiFishingPole
+              className="relative z-10 w-16 h-16 text-white/80 drop-shadow-lg"
+            />
+             <div className="relative z-10 mt-2 text-center">
+              <p className="text-xl font-bold text-white drop-shadow-md">
+                {item.fishingRodMultiplier}x
+              </p>
+              <p className="text-xs font-semibold text-cyan-200 drop-shadow-sm">
+                Credit Bonus
+              </p>
+            </div>
+          </div>
+          {item.equipped && (
+            <div className="item-badge badge-equipped">
+              Equipped
+            </div>
+          )}
+        </div>
       ) : (
         <div className="shop-item-image inventory-item-image">
           {item.imageUrl ? (
@@ -318,6 +345,11 @@ const InventoryItemCard = forwardRef(({
               {getRarityLabel(item.rarity)}
             </div>
           </div>
+          {item.category === 'FISHING_ROD' && (
+            <div className="text-lg font-bold text-cyan-400">
+              {item.fishingRodMultiplier}x
+            </div>
+          )}
         </div>
         
         {descriptionContent.sanitized && (

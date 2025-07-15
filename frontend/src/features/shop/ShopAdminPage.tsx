@@ -40,6 +40,7 @@ interface ShopItem {
   rarity: string;
   isFeatured: boolean;
   isDaily: boolean;
+  fishingRodMultiplier?: number;
 }
 
 interface ShopFormData {
@@ -56,6 +57,7 @@ interface ShopFormData {
   rarity: string;
   isFeatured: boolean;
   isDaily: boolean;
+  fishingRodMultiplier?: number;
 }
 
 interface CaseItemData {
@@ -101,11 +103,12 @@ export function ShopAdminPage() {
     discordRoleId: '',
     rarity: 'COMMON',
     isFeatured: false,
-    isDaily: false
+    isDaily: false,
+    fishingRodMultiplier: 1.0
   });
   
   // Available categories
-  const categories = ['USER_COLOR', 'LISTING', 'ACCENT', 'BADGE', 'CASE'];
+  const categories = ['USER_COLOR', 'LISTING', 'ACCENT', 'BADGE', 'CASE', 'FISHING_ROD'];
   
   // Available roles for role-restricted items
   const roles = ['ADMIN', 'MODERATOR', 'MONARCH'];
@@ -338,7 +341,8 @@ export function ShopAdminPage() {
       discordRoleId: item.discordRoleId || '',
       rarity: item.rarity || 'COMMON',
       isFeatured: item.isFeatured,
-      isDaily: item.isDaily
+      isDaily: item.isDaily,
+      fishingRodMultiplier: item.fishingRodMultiplier || 1.0
     });
     
     // Load case contents if this is a case
@@ -399,7 +403,8 @@ export function ShopAdminPage() {
       discordRoleId: '',
       rarity: 'COMMON',
       isFeatured: false,
-      isDaily: false
+      isDaily: false,
+      fishingRodMultiplier: 1.0
     });
     setEditingItem(null);
     setCaseContents({ items: [], totalDropRate: 0 });
@@ -711,6 +716,37 @@ export function ShopAdminPage() {
                     />
                   </div>
                 </div>
+              ) : formData.category === 'FISHING_ROD' ? (
+                <div className="space-y-5">
+                  <div>
+                    <label htmlFor="fishingRodMultiplier" className="block text-sm font-medium text-slate-300 mb-1">
+                      Fishing Rod Multiplier
+                    </label>
+                    <input
+                      id="fishingRodMultiplier"
+                      type="number"
+                      name="fishingRodMultiplier"
+                      value={formData.fishingRodMultiplier || 1.0}
+                      onChange={handleInputChange}
+                      min="0.1"
+                      max="10.0"
+                      step="0.1"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                    />
+                    <p className="text-xs text-slate-400 mt-1">
+                      Multiplies the credits earned when fishing (0.1x to 10.0x).
+                    </p>
+                  </div>
+                  <div className="mt-4 p-5 bg-slate-900 rounded-md border border-slate-700">
+                    <h4 className="text-sm font-medium text-slate-300 mb-3 flex items-center">
+                      <HiOutlineExclamation className="mr-1.5 text-yellow-400" size={16} />
+                      Multiplier Preview
+                    </h4>
+                    <p className="text-sm text-slate-300">
+                      A <strong>{formData.fishingRodMultiplier}x</strong> rod means a <strong>20</strong> credit fish becomes <strong>{20 * (formData.fishingRodMultiplier || 1)}</strong> credits.
+                    </p>
+                  </div>
+                </div>
               ) : (
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -978,6 +1014,7 @@ export function ShopAdminPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Item</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Category</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Price</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Multiplier</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Rarity</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Visibility</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Status</th>
@@ -987,7 +1024,7 @@ export function ShopAdminPage() {
             <tbody className="divide-y divide-slate-700/70 bg-slate-800/20">
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-slate-400">
+                  <td colSpan={7} className="px-6 py-8 text-center text-slate-400">
                     <div className="flex flex-col items-center">
                       <HiOutlineExclamation className="text-slate-500 mb-2" size={24} />
                       <p>No items found. Create your first shop item above.</p>
@@ -1037,6 +1074,9 @@ export function ShopAdminPage() {
                         <HiOutlineCash className="mr-1" size={14} />
                         <span>{item.price}</span>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                        {item.category === 'FISHING_ROD' ? `${item.fishingRodMultiplier}x` : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span 
