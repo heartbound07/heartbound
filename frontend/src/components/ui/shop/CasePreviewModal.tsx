@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaDice } from 'react-icons/fa';
 import httpClient from '@/lib/api/httpClient';
-import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
+import { getRarityColor, getRarityLabel, getRarityBadgeStyle, RARITY_ORDER } from '@/utils/rarityHelpers';
 import NameplatePreview from '@/components/NameplatePreview';
 import { formatDisplayText } from '@/utils/formatters';
 
@@ -134,7 +134,14 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
                 {/* Items Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {caseContents.items
-                    .sort((a, b) => b.dropRate - a.dropRate) // Sort by drop rate descending
+                    .sort((a, b) => {
+                      const aIndex = RARITY_ORDER.indexOf(a.containedItem.rarity);
+                      const bIndex = RARITY_ORDER.indexOf(b.containedItem.rarity);
+                      if (aIndex !== bIndex) {
+                        return aIndex - bIndex;
+                      }
+                      return b.dropRate - a.dropRate;
+                    })
                     .map((caseItem) => {
                       const item = caseItem.containedItem;
                       const rarityColor = getRarityColor(item.rarity);
