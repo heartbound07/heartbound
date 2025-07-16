@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from 'framer-motion';
 import { FaTimes, FaGift, FaCoins } from 'react-icons/fa';
+import { GiFishingPole } from 'react-icons/gi';
 import { Star } from 'lucide-react';
 import httpClient from '@/lib/api/httpClient';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
@@ -21,6 +22,7 @@ interface RollResult {
     thumbnailUrl?: string;
     rarity: string;
     owned: boolean;
+    fishingRodMultiplier?: number;
   };
   rollValue: number;
   rolledAt: string;
@@ -43,6 +45,7 @@ interface CaseItemDTO {
     thumbnailUrl?: string;
     rarity: string;
     owned: boolean;
+    fishingRodMultiplier?: number;
   };
   dropRate: number;
 }
@@ -426,6 +429,16 @@ export function CaseRollModal({
               className="h-full w-full object-cover rounded-full"
               style={{ padding: '8px' }}
             />
+          ) : containedItem.category === 'FISHING_ROD' ? (
+            <div 
+              className="h-full w-full flex flex-col items-center justify-center relative overflow-hidden p-2"
+              style={{ background: `linear-gradient(to bottom right, #1f2937, ${rarityColor})` }}
+            >
+              <GiFishingPole className="absolute w-12 h-12 text-white/10 transform -rotate-12 -right-2 -bottom-2" />
+              <GiFishingPole className="relative z-10 w-12 h-12 text-white/80" />
+              <div className="relative z-10 mt-1 text-center">
+              </div>
+            </div>
           ) : containedItem.imageUrl ? (
             <img 
               src={containedItem.thumbnailUrl || containedItem.imageUrl} 
@@ -603,6 +616,53 @@ export function CaseRollModal({
                                       message="Preview of your nameplate color"
                                       size="md"
                                     />
+                                  </div>
+
+                                  {/* Drop Rate */}
+                                  <div className="flex items-center justify-center space-x-2">
+                                    <span className="text-xs text-slate-300">Drop Rate</span>
+                                    <div className="w-16 bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                                      <div 
+                                        className="h-full transition-all duration-300"
+                                        style={{ 
+                                          width: `${caseItem.dropRate}%`,
+                                          background: 'linear-gradient(90deg, #ff4655 0%, rgba(255, 70, 85, 0.8) 100%)'
+                                        }}
+                                      />
+                                    </div>
+                                    <span className="text-sm font-medium text-primary">
+                                      {caseItem.dropRate}%
+                                    </span>
+                                  </div>
+
+                                  {item.description && (
+                                    <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
+                                  )}
+                                </div>
+                              ) : item.category === 'FISHING_ROD' ? (
+                                // FISHING_ROD - Full preview layout
+                                <div className="space-y-3">
+                                  {/* Header with name and rarity */}
+                                  <div className="flex items-center justify-center space-x-2 mb-2">
+                                    <h3 className="font-medium text-white text-sm">{item.name}</h3>
+                                    <span 
+                                      className="px-2 py-0.5 rounded text-xs font-semibold"
+                                      style={getRarityBadgeStyle(item.rarity)}
+                                    >
+                                      {getRarityLabel(item.rarity)}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Fishing Rod Visual Preview */}
+                                  <div 
+                                    className="h-24 w-full flex flex-col items-center justify-center relative overflow-hidden rounded-lg p-2"
+                                    style={{ background: `linear-gradient(to bottom right, #1f2937, ${rarityColor})` }}
+                                  >
+                                    <GiFishingPole className="absolute w-20 h-20 text-white/10 transform -rotate-12 -right-4 -bottom-4" />
+                                    <GiFishingPole className="relative z-10 w-12 h-12 text-white/80" />
+                                    <div className="relative z-10 mt-1 text-center">
+                                      <p className="text-xl font-bold text-white">{item.name}</p>
+                                    </div>
                                   </div>
 
                                   {/* Drop Rate */}
@@ -838,6 +898,16 @@ export function CaseRollModal({
                           className=""
                           size="md"
                         />
+                      ) : rollResult.wonItem.category === 'FISHING_ROD' ? (
+                        <div 
+                          className="h-32 w-full flex flex-col items-center justify-center relative overflow-hidden rounded-lg p-4"
+                        >
+                          <GiFishingPole className="absolute w-24 h-24 text-white/10 transform -rotate-12 -right-4 -bottom-4" />
+                          <GiFishingPole className="relative z-10 w-16 h-16 text-white/80" />
+                          <div className="relative z-10 mt-2 text-center">
+                            <p className="text-sm font-semibold text-white-200">{rollResult.wonItem.name}</p>
+                          </div>
+                        </div>
                       ) : rollResult.wonItem.imageUrl ? (
                         <div className="w-32 h-32 rounded-lg overflow-hidden border-3 mx-auto" 
                              style={{ borderColor: getRarityColor(rollResult.wonItem.rarity) }}>
