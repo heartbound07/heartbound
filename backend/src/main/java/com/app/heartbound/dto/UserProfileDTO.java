@@ -88,4 +88,7 @@ public class UserProfileDTO {
     private String selectedGenderRoleId;
     private String selectedRankRoleId;
     private String selectedRegionRoleId;
+    
+    // Add fishing limit cooldown field
+    private java.time.LocalDateTime fishingLimitCooldownUntil;
 }

@@ -657,6 +657,7 @@ public class UserService {
                 .selectedGenderRoleId(user.getSelectedGenderRoleId())
                 .selectedRankRoleId(user.getSelectedRankRoleId())
                 .selectedRegionRoleId(user.getSelectedRegionRoleId())
+                .fishingLimitCooldownUntil(user.getFishingLimitCooldownUntil())
                 .build();
     }
 

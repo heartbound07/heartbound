@@ -37,6 +37,7 @@ export interface UserProfileDTO {
   selectedGenderRoleId?: string;
   selectedRankRoleId?: string;
   selectedRegionRoleId?: string;
+  fishingLimitCooldownUntil?: string; // ISO string format from backend
 }
 
 export interface LeaderboardEntryDTO {

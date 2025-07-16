@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.time.LocalDateTime;
 
 @Component
 public class FishCommandListener extends ListenerAdapter {
@@ -31,6 +32,13 @@ public class FishCommandListener extends ListenerAdapter {
     private static final int COOLDOWN_SECONDS = 5;
     private static final double SUCCESS_CHANCE = 0.8; // 80% total success rate
     private static final double RARE_FISH_CHANCE = 0.05; // 5% chance for rare fish
+    
+    // Fishing limit system configuration
+    @Value("${fishing.max-catches:300}")
+    private int maxCatches;
+    
+    @Value("${fishing.cooldown-hours:6}")
+    private int cooldownHours;
     
     // Fishing emojis with their Unicode representations
     private static final List<String> FISH_EMOJIS = Arrays.asList(
@@ -78,6 +86,77 @@ public class FishCommandListener extends ListenerAdapter {
         logger.info("FishCommandListener initialized with secure random and audit service");
     }
     
+    /**
+     * Check if user has reached fishing limit and is on cooldown
+     * @param user The user to check
+     * @return FishingLimitStatus containing the result and any remaining time
+     */
+    private FishingLimitStatus checkFishingLimit(User user) {
+        int currentCatches = user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0;
+        
+        // If user hasn't reached the limit, they can fish
+        if (currentCatches < maxCatches) {
+            return new FishingLimitStatus(false, 0, currentCatches, maxCatches);
+        }
+        
+        // User has reached the limit, check cooldown
+        LocalDateTime cooldownUntil = user.getFishingLimitCooldownUntil();
+        if (cooldownUntil == null) {
+            // This shouldn't happen, but if it does, set the cooldown now
+            logger.warn("User {} reached {} catches but has no cooldown set. Setting cooldown now.", 
+                       user.getId(), maxCatches);
+            return new FishingLimitStatus(true, 0, currentCatches, maxCatches);
+        }
+        
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(cooldownUntil)) {
+            // Still on cooldown, calculate remaining time
+            long hoursRemaining = ChronoUnit.HOURS.between(now, cooldownUntil);
+            long minutesRemaining = ChronoUnit.MINUTES.between(now, cooldownUntil) % 60;
+            
+            return new FishingLimitStatus(true, hoursRemaining * 60 + minutesRemaining, currentCatches, maxCatches);
+        } else {
+            // Cooldown has expired, reset the cooldown field
+            user.setFishingLimitCooldownUntil(null);
+            userService.updateUser(user);
+            logger.info("Fishing cooldown expired for user {}. Resetting cooldown.", user.getId());
+            return new FishingLimitStatus(false, 0, currentCatches, maxCatches);
+        }
+    }
+    
+    /**
+     * Set fishing limit cooldown for user who has reached the maximum catches
+     * @param user The user to set cooldown for
+     */
+    private void setFishingLimitCooldown(User user) {
+        LocalDateTime cooldownUntil = LocalDateTime.now().plusHours(cooldownHours);
+        user.setFishingLimitCooldownUntil(cooldownUntil);
+        userService.updateUser(user);
+        logger.info("Set fishing limit cooldown for user {} until {}", user.getId(), cooldownUntil);
+    }
+    
+    /**
+     * Helper class to represent fishing limit status
+     */
+    private static class FishingLimitStatus {
+        private final boolean onCooldown;
+        private final long remainingMinutes;
+        private final int currentCatches;
+        private final int maxCatches;
+        
+        public FishingLimitStatus(boolean onCooldown, long remainingMinutes, int currentCatches, int maxCatches) {
+            this.onCooldown = onCooldown;
+            this.remainingMinutes = remainingMinutes;
+            this.currentCatches = currentCatches;
+            this.maxCatches = maxCatches;
+        }
+        
+        public boolean isOnCooldown() { return onCooldown; }
+        public long getRemainingMinutes() { return remainingMinutes; }
+        public int getCurrentCatches() { return currentCatches; }
+        public int getMaxCatches() { return maxCatches; }
+    }
+    
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if (!event.getName().equals("fish")) {
@@ -120,6 +199,27 @@ public class FishCommandListener extends ListenerAdapter {
             if (user == null) {
                 logger.warn("User {} not found in database when using /fish", userId);
                 event.getHook().sendMessage("Could not find your account. Please log in to the web application first.").queue();
+                return;
+            }
+            
+            // Check fishing limit and cooldown
+            FishingLimitStatus limitStatus = checkFishingLimit(user);
+            if (limitStatus.isOnCooldown()) {
+                long hoursRemaining = limitStatus.getRemainingMinutes() / 60;
+                long minutesRemaining = limitStatus.getRemainingMinutes() % 60;
+                
+                String timeMessage;
+                if (hoursRemaining > 0) {
+                    timeMessage = String.format("%d hours and %d minutes", hoursRemaining, minutesRemaining);
+                } else {
+                    timeMessage = String.format("%d minutes", minutesRemaining);
+                }
+                
+                String limitMessage = String.format("🎣 | **Fishing Limit Reached!** You've caught %d/%d fish and must wait **%s** before fishing again.", 
+                    limitStatus.getCurrentCatches(), limitStatus.getMaxCatches(), timeMessage);
+                
+                event.getHook().sendMessage(limitMessage).queue();
+                logger.info("User {} attempted to fish while on limit cooldown. Remaining: {} minutes", userId, limitStatus.getRemainingMinutes());
                 return;
             }
             
@@ -173,6 +273,14 @@ public class FishCommandListener extends ListenerAdapter {
                 user.setCredits(currentCredits + finalCreditChange);
                 int newFishCount = (user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0) + 1;
                 user.setFishCaughtCount(newFishCount);
+                
+                // Check if user has reached the fishing limit
+                if (newFishCount >= maxCatches) {
+                    setFishingLimitCooldown(user);
+                    message.append(String.format("\n\n🎯 **Fishing Limit Reached!** You've caught %d/%d fish and must wait **%d hours** before fishing again.", 
+                        newFishCount, maxCatches, cooldownHours));
+                    logger.info("User {} reached fishing limit of {} catches. Cooldown set for {} hours.", userId, maxCatches, cooldownHours);
+                }
                 
                 // Save the updated user
                 userService.updateUser(user);
@@ -232,6 +340,14 @@ public class FishCommandListener extends ListenerAdapter {
                 user.setCredits(currentCredits + finalCreditChange);
                 int newFishCount = (user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0) + 1;
                 user.setFishCaughtCount(newFishCount);
+                
+                // Check if user has reached the fishing limit
+                if (newFishCount >= maxCatches) {
+                    setFishingLimitCooldown(user);
+                    message.append(String.format("\n\n🎯 **Fishing Limit Reached!** You've caught %d/%d fish and must wait **%d hours** before fishing again.", 
+                        newFishCount, maxCatches, cooldownHours));
+                    logger.info("User {} reached fishing limit of {} catches. Cooldown set for {} hours.", userId, maxCatches, cooldownHours);
+                }
                 
                 // Save the updated user
                 userService.updateUser(user);

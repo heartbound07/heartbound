@@ -76,6 +76,9 @@ public class User {
     // Add fish caught count field
     private Integer fishCaughtCount = 0;
     
+    // Add fishing limit cooldown field to track 6-hour cooldown after 300 catches
+    private LocalDateTime fishingLimitCooldownUntil;
+    
     // Add time-based message count fields
     private Integer messagesToday = 0;
     private Integer messagesThisWeek = 0;
