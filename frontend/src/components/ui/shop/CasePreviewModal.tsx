@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaDice } from 'react-icons/fa';
+import { GiFishingPole } from 'react-icons/gi';
 import httpClient from '@/lib/api/httpClient';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle, RARITY_ORDER } from '@/utils/rarityHelpers';
 import NameplatePreview from '@/components/NameplatePreview';
@@ -17,6 +18,7 @@ interface CaseItem {
     imageUrl: string;
     thumbnailUrl?: string;
     rarity: string;
+    fishingRodMultiplier?: number;
   };
   dropRate: number;
 }
@@ -181,6 +183,34 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
                                   message="Preview of your nameplate color"
                                   size="md"
                                 />
+                              </div>
+
+                              {item.description && (
+                                <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
+                              )}
+                            </div>
+                          ) : item.category === 'FISHING_ROD' ? (
+                            // FISHING_ROD - Full preview layout
+                            <div className="space-y-3">
+                              {/* Header with name and rarity */}
+                              <div className="flex items-center justify-center space-x-2 mb-2">
+                                <h3 className="font-medium text-white text-sm">{item.name}</h3>
+                                <span 
+                                  className="px-2 py-0.5 rounded text-xs font-semibold"
+                                  style={getRarityBadgeStyle(item.rarity)}
+                                >
+                                  {getRarityLabel(item.rarity)}
+                                </span>
+                              </div>
+                              
+                              {/* Fishing Rod Visual Preview */}
+                              <div className="h-24 w-full bg-gradient-to-br from-blue-800 to-cyan-700 flex flex-col items-center justify-center relative overflow-hidden rounded-lg p-2">
+                                <GiFishingPole className="absolute w-20 h-20 text-white/10 transform -rotate-12 -right-4 -bottom-4" />
+                                <GiFishingPole className="relative z-10 w-12 h-12 text-white/80 drop-shadow-lg" />
+                                <div className="relative z-10 mt-1 text-center">
+                                  <p className="text-xl font-bold text-white drop-shadow-md">{item.fishingRodMultiplier}x</p>
+                                  <p className="text-xs font-semibold text-cyan-200 drop-shadow-sm">Credit Bonus</p>
+                                </div>
                               </div>
 
                               {item.description && (
