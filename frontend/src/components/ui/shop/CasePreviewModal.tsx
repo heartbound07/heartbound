@@ -204,7 +204,10 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
                               </div>
                               
                               {/* Fishing Rod Visual Preview */}
-                              <div className="h-24 w-full bg-gradient-to-br from-blue-800 to-cyan-700 flex flex-col items-center justify-center relative overflow-hidden rounded-lg p-2">
+                              <div 
+                                className="h-24 w-full flex flex-col items-center justify-center relative overflow-hidden rounded-lg p-2"
+                                style={{ background: `linear-gradient(to bottom right, #1f2937, ${rarityColor})` }}
+                              >
                                 <GiFishingPole className="absolute w-20 h-20 text-white/10 transform -rotate-12 -right-4 -bottom-4" />
                                 <GiFishingPole className="relative z-10 w-12 h-12 text-white/80 drop-shadow-lg" />
                                 <div className="relative z-10 mt-1 text-center">
