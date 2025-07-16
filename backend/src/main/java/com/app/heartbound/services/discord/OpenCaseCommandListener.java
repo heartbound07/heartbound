@@ -619,6 +619,7 @@ public class OpenCaseCommandListener extends ListenerAdapter {
             case ACCENT: return "Profile Accent";
             case BADGE: return "Badge";
             case CASE: return "Case";
+            case FISHING_ROD: return "Fishing Rod";
             default: return category.toString();
         }
     }
