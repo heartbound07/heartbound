@@ -10,10 +10,10 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
+import javax.annotation.Nonnull;
 
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
@@ -44,7 +44,6 @@ public class StatsCommandListener extends ListenerAdapter {
     private boolean isRegistered = false;
     private JDA jdaInstance;
 
-    @Autowired
     public StatsCommandListener(@Lazy PairingService pairingService, UserService userService) {
         this.pairingService = pairingService;
         this.userService = userService;
@@ -87,7 +86,7 @@ public class StatsCommandListener extends ListenerAdapter {
     }
 
     @Override
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("stats")) {
             return; // Not our command
         }

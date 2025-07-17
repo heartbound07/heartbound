@@ -1,7 +1,6 @@
 package com.app.heartbound.services.discord;
 
 import com.app.heartbound.dto.shop.ShopDTO;
-import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.services.shop.ShopService;
 import com.app.heartbound.services.UserService;
@@ -14,11 +13,11 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nonnull;
 import java.awt.Color;
 import java.util.HashMap;
 import java.util.List;
@@ -55,7 +54,6 @@ public class ShopCommandListener extends ListenerAdapter {
     private boolean isRegistered = false;
     private JDA jdaInstance;
 
-    @Autowired
     public ShopCommandListener(@Lazy ShopService shopService, UserService userService) {
         this.shopService = shopService;
         this.userService = userService;
@@ -98,7 +96,7 @@ public class ShopCommandListener extends ListenerAdapter {
     }
 
     @Override
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("shop")) {
             return; // Not our command
         }
@@ -172,7 +170,7 @@ public class ShopCommandListener extends ListenerAdapter {
     }
     
     @Override
-    public void onButtonInteraction(ButtonInteractionEvent event) {
+    public void onButtonInteraction(@Nonnull ButtonInteractionEvent event) {
         String componentId = event.getComponentId();
         
         if (!componentId.startsWith("shop_")) {
@@ -358,47 +356,5 @@ public class ShopCommandListener extends ListenerAdapter {
         }
 
         return embed.build();
-    }
-    
-    /**
-     * Format a category string for display (capitalize first letter of each word)
-     */
-    private String formatCategoryDisplay(String category) {
-        if (category == null || category.isEmpty()) {
-            return "Miscellaneous";
-        }
-        
-        // Replace underscores with spaces and lowercase everything
-        String formatted = category.replace('_', ' ').toLowerCase();
-        
-        // Capitalize first letter of each word
-        StringBuilder result = new StringBuilder();
-        boolean capitalizeNext = true;
-        
-        for (char c : formatted.toCharArray()) {
-            if (Character.isWhitespace(c)) {
-                capitalizeNext = true;
-                result.append(c);
-            } else if (capitalizeNext) {
-                result.append(Character.toUpperCase(c));
-                capitalizeNext = false;
-            } else {
-                result.append(c);
-            }
-        }
-        
-        return result.toString();
-    }
-    
-    /**
-     * Format a rarity enum value for display
-     */
-    private String formatRarityLabel(ItemRarity rarity) {
-        if (rarity == null) {
-            return "Common";
-        }
-        
-        String rarityName = rarity.name();
-        return rarityName.charAt(0) + rarityName.substring(1).toLowerCase();
     }
 } 
