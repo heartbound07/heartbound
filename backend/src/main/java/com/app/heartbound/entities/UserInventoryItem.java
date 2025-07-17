@@ -68,6 +68,7 @@ public class UserInventoryItem {
     @NotNull
     @Min(0)
     @Column(name = "quantity", nullable = false)
+    @Builder.Default
     private Integer quantity = 1;
     
     @CreationTimestamp

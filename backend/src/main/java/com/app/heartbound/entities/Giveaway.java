@@ -45,16 +45,22 @@ public class Giveaway {
     private String messageId; // Discord message ID of the giveaway embed
     
     // Restrictions
+    @Builder.Default
     private Boolean boostersOnly = false;
+    @Builder.Default
     private Boolean levelRestricted = false; // Level 5+ users only
+    @Builder.Default
     private Boolean noRestrictions = false;
     
     // Entry configuration
-    private Integer maxEntriesPerUser; // null = unlimited
+    @Builder.Default
+    private Integer maxEntriesPerUser = 0; // null = unlimited
+    @Builder.Default
     private Integer entryPrice = 0; // Credits cost per entry, 0 = free
     
     // Status tracking
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private GiveawayStatus status = GiveawayStatus.ACTIVE;
     
     @Column(nullable = false)
@@ -64,6 +70,7 @@ public class Giveaway {
     
     // Relationship to entries
     @OneToMany(mappedBy = "giveaway", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
     private Set<GiveawayEntry> entries = new HashSet<>();
     
     // Helper methods

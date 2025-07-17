@@ -22,11 +22,15 @@ public class CountingUserData {
     private String userId; // Discord user ID
     
     private Integer livesRemaining;
+    @Builder.Default
     private Integer timeoutLevel = 0; // Track progressive timeout durations (0 = never timed out)
     private LocalDateTime timeoutExpiry; // When the current timeout expires (null if not timed out)
     
     // Statistics
+    @Builder.Default
     private Long totalCorrectCounts = 0L;
+    @Builder.Default
     private Long totalMistakes = 0L;
+    @Builder.Default
     private Integer bestCount = 0; // Highest number they've successfully counted to
 } 

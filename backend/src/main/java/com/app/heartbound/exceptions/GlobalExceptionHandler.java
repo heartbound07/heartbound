@@ -6,11 +6,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import com.app.heartbound.exceptions.ResourceNotFoundException;
-import com.app.heartbound.exceptions.UnauthorizedOperationException;
-import com.app.heartbound.exceptions.AuthenticationException;
-import com.app.heartbound.exceptions.InvalidTokenException;
-import com.app.heartbound.exceptions.RateLimitExceededException;
 import com.app.heartbound.exceptions.shop.BadgeLimitException;
 
 @RestControllerAdvice

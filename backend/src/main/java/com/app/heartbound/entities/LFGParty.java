@@ -118,6 +118,7 @@ public class LFGParty {
         joinColumns = @JoinColumn(name = "party_id")
     )
     @Column(name = "invited_user_id")
+    @Builder.Default
     private Set<String> invitedUsers = new HashSet<>();
 
     // Collection of join requests
@@ -127,6 +128,7 @@ public class LFGParty {
         joinColumns = @JoinColumn(name = "party_id")
     )
     @Column(name = "requesting_user_id")
+    @Builder.Default
     private Set<String> joinRequests = new HashSet<>();
 
     @Column(name = "discord_channel_id")

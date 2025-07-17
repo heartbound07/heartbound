@@ -51,6 +51,7 @@ public class PairAchievement {
     private int xpAwarded; // XP actually awarded (may differ from achievement reward due to bonuses)
 
     @Column(name = "notified", nullable = false)
+    @Builder.Default
     private boolean notified = false; // Whether users have been notified about this achievement
 
     @Column(name = "created_at", nullable = false)

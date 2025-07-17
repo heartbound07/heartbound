@@ -11,7 +11,6 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +19,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import jakarta.annotation.PostConstruct;
+import javax.annotation.Nonnull;
 
 /**
  * Service responsible for monitoring Discord channel activity and automatically
@@ -30,11 +30,8 @@ public class AutoSlowmodeService extends ListenerAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(AutoSlowmodeService.class);
 
-    @Autowired
-    private DiscordBotSettingsRepository discordBotSettingsRepository;
-
-    @Autowired
-    private CacheConfig cacheConfig;
+    private final DiscordBotSettingsRepository discordBotSettingsRepository;
+    private final CacheConfig cacheConfig;
 
     // JDA instance obtained from first event
     private JDA jda;
@@ -48,13 +45,18 @@ public class AutoSlowmodeService extends ListenerAdapter {
     // Track current slowmode status to avoid unnecessary API calls
     private final Map<String, Integer> currentSlowmodeStatus = new ConcurrentHashMap<>();
 
+    public AutoSlowmodeService(DiscordBotSettingsRepository discordBotSettingsRepository, CacheConfig cacheConfig) {
+        this.discordBotSettingsRepository = discordBotSettingsRepository;
+        this.cacheConfig = cacheConfig;
+    }
+
     @PostConstruct
     public void initialize() {
         logger.info("AutoSlowmodeService initialized and ready to monitor channel activity");
     }
 
     @Override
-    public void onMessageReceived(MessageReceivedEvent event) {
+    public void onMessageReceived(@Nonnull MessageReceivedEvent event) {
         // Only process guild messages
         if (!event.isFromGuild() || event.getAuthor().isBot()) {
             return;

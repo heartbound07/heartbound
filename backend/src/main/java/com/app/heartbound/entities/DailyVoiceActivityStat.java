@@ -30,5 +30,6 @@ public class DailyVoiceActivityStat {
     private LocalDate date;
     
     @Column(name = "voice_minutes", nullable = false)
+    @Builder.Default
     private Long voiceMinutes = 0L;
 } 

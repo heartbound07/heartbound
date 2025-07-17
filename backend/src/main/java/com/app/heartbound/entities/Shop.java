@@ -55,18 +55,22 @@ public class Shop {
     
     @NotNull
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private ItemRarity rarity = ItemRarity.COMMON;
     
     @NotNull
+    @Builder.Default
     private Boolean isActive = true;
     
     @Enumerated(EnumType.STRING)
     private Role requiredRole;
     
     @NotNull
+    @Builder.Default
     private Boolean isFeatured = false;
     
     @NotNull
+    @Builder.Default
     private Boolean isDaily = false;
     
     @CreationTimestamp
