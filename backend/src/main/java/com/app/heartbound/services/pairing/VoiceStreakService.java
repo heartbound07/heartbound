@@ -251,7 +251,6 @@ public class VoiceStreakService {
             return;
         }
 
-        Pairing pairing = pairingOpt.get();
         
         // Mark previous streaks as inactive if this day was missed
         List<VoiceStreak> recentStreaks = voiceStreakRepository.findStreaksInDateRange(

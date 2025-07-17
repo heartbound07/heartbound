@@ -2,21 +2,17 @@ package com.app.heartbound.services;
 
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.entities.User;
-import com.app.heartbound.repositories.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Service
 public class UserProfileService {
     
     private final UserService userService;
     
-    @Autowired
     public UserProfileService(UserService userService) {
         this.userService = userService;
     }

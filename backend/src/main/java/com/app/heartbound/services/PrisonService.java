@@ -6,7 +6,6 @@ import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.repositories.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +20,6 @@ public class PrisonService {
     private final UserRepository userRepository;
     private final CacheConfig cacheConfig;
 
-    @Autowired
     public PrisonService(UserRepository userRepository, CacheConfig cacheConfig) {
         this.userRepository = userRepository;
         this.cacheConfig = cacheConfig;

@@ -17,7 +17,6 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.EmbedBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -43,7 +42,6 @@ public class GiveawayService {
     private final GiveawayRepository giveawayRepository;
     private final GiveawayEntryRepository giveawayEntryRepository;
     private final UserService userService;
-    private final DiscordBotSettingsService discordBotSettingsService;
     private final CacheConfig cacheConfig;
     private final DiscordService discordService;
     
@@ -53,7 +51,6 @@ public class GiveawayService {
     // Track scheduled tasks for cancellation when needed
     private final Map<UUID, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
 
-    @Autowired
     public GiveawayService(GiveawayRepository giveawayRepository,
                           GiveawayEntryRepository giveawayEntryRepository,
                           UserService userService,
@@ -63,7 +60,6 @@ public class GiveawayService {
         this.giveawayRepository = giveawayRepository;
         this.giveawayEntryRepository = giveawayEntryRepository;
         this.userService = userService;
-        this.discordBotSettingsService = discordBotSettingsService;
         this.cacheConfig = cacheConfig;
         this.discordService = discordService;
         

@@ -45,7 +45,6 @@ import jakarta.persistence.EntityManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.Cacheable;
@@ -77,7 +76,6 @@ public class ShopService {
     private final EntityManager entityManager;
     private static final Logger logger = LoggerFactory.getLogger(ShopService.class);
     
-    @Autowired
     public ShopService(
         ShopRepository shopRepository,
         UserRepository userRepository,
@@ -1107,7 +1105,7 @@ public class ShopService {
         if (!sanitizedName.equals(shopDTO.getName())) {
             logger.info("Shop item name sanitized during creation: '{}' -> '{}'", shopDTO.getName(), sanitizedName);
         }
-        if (shopDTO.getDescription() != null && !sanitizedDescription.equals(shopDTO.getDescription())) {
+        if (shopDTO.getDescription() != null && !Objects.equals(sanitizedDescription, shopDTO.getDescription())) {
             logger.info("Shop item description sanitized during creation");
         }
         
@@ -1179,7 +1177,7 @@ public class ShopService {
         if (!sanitizedName.equals(shopDTO.getName())) {
             logger.info("Shop item name sanitized during update: '{}' -> '{}'", shopDTO.getName(), sanitizedName);
         }
-        if (shopDTO.getDescription() != null && !sanitizedDescription.equals(shopDTO.getDescription())) {
+        if (shopDTO.getDescription() != null && !Objects.equals(sanitizedDescription, shopDTO.getDescription())) {
             logger.info("Shop item description sanitized during update");
         }
         
@@ -1439,7 +1437,6 @@ public class ShopService {
         
         // 11. Store credits and XP before operation
         int creditsBefore = user.getCredits();
-        int xpBefore = user.getExperience();
         
         // 12. Calculate and award compensation for duplicate items
         boolean compensationAwarded = false;
@@ -1558,20 +1555,6 @@ public class ShopService {
     }
     
     /**
-     * Perform secure weighted random selection based on drop rates
-     * @param caseItems List of case items with drop rates
-     * @return Selected shop item
-     */
-    private Shop selectItemByDropRateSecure(List<CaseItem> caseItems) {
-        // Use secure random service for weighted selection
-        return secureRandomService.selectWeightedRandom(
-            caseItems,
-            100, // Total weight should always be 100 for drop rates
-            CaseItem::getDropRate
-        ).getContainedItem();
-    }
-    
-    /**
      * Perform secure weighted random selection based on drop rates using a pre-generated roll value
      * This method ensures animation synchronization by using the same roll value for both selection and animation
      * @param caseItems List of case items with drop rates
@@ -1586,15 +1569,6 @@ public class ShopService {
             rollValue, // Use the pre-generated roll value
             CaseItem::getDropRate
         ).getContainedItem();
-    }
-    
-    /**
-     * Legacy method - kept for backward compatibility but using secure random
-     * @deprecated Use selectItemByDropRateSecure instead
-     */
-    @Deprecated
-    private Shop selectItemByDropRate(List<CaseItem> caseItems) {
-        return selectItemByDropRateSecure(caseItems);
     }
     
     /**
