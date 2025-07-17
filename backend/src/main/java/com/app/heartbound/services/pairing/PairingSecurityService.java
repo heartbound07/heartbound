@@ -1,7 +1,6 @@
 package com.app.heartbound.services.pairing;
 
 import com.app.heartbound.entities.Pairing;
-import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.pairing.PairingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +23,6 @@ import java.util.Optional;
 public class PairingSecurityService {
 
     private final PairingRepository pairingRepository;
-    private final UserRepository userRepository;
 
     /**
      * Check if the authenticated user is involved in the specified pairing OR has ADMIN role

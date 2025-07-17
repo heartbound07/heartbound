@@ -2,7 +2,6 @@ package com.app.heartbound.services.pairing;
 
 import com.app.heartbound.dto.pairing.*;
 import com.app.heartbound.entities.BlacklistEntry;
-import com.app.heartbound.entities.MatchQueueUser;
 import com.app.heartbound.entities.Pairing;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.repositories.UserRepository;
@@ -401,7 +400,6 @@ public class PairingService {
     @Transactional(readOnly = true)
     public List<PairingDTO> getAllActivePairings() {
         // Check cache first for performance optimization
-        @SuppressWarnings("unchecked")
         Map<String, Object> cachedData = cacheConfig.getBatchOperationsCache()
                 .getIfPresent("all_active_pairings");
         

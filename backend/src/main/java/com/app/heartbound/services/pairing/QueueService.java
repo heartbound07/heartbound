@@ -26,8 +26,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.app.heartbound.services.discord.DiscordBotSettingsService;
-import com.app.heartbound.entities.DiscordBotSettings;
 
 import java.time.LocalDateTime;
 import java.time.Duration;
@@ -74,7 +72,6 @@ public class QueueService {
     private final SimpMessagingTemplate messagingTemplate;
     private final UserRepository userRepository;
     private final SimpUserRegistry simpUserRegistry;
-    private final DiscordBotSettingsService discordBotSettingsService;
     private final UserValidationService userValidationService;
 
     // Queue configuration state
@@ -151,8 +148,6 @@ public class QueueService {
 
         // Validate that all necessary roles have been selected and level requirements are met
         userValidationService.validateUserForPairing(user);
-
-        DiscordBotSettings settings = discordBotSettingsService.getDiscordBotSettings();
 
         // Convert role IDs to enum values
         Integer age = userValidationService.convertAgeRoleToAge(user.getSelectedAgeRoleId());
@@ -799,58 +794,6 @@ public class QueueService {
         status.put("cacheInvalidated", cacheInvalidated.get());
         
         return status;
-    }
-
-    private void validateUserRoleSelections(User user) {
-        List<String> missingRoles = new ArrayList<>();
-        if (user.getSelectedAgeRoleId() == null || user.getSelectedAgeRoleId().isBlank()) {
-            missingRoles.add("Age");
-        }
-        if (user.getSelectedGenderRoleId() == null || user.getSelectedGenderRoleId().isBlank()) {
-            missingRoles.add("Gender");
-        }
-        if (user.getSelectedRankRoleId() == null || user.getSelectedRankRoleId().isBlank()) {
-            missingRoles.add("Rank");
-        }
-        if (user.getSelectedRegionRoleId() == null || user.getSelectedRegionRoleId().isBlank()) {
-            missingRoles.add("Region");
-        }
-        if (!missingRoles.isEmpty()) {
-            throw new IllegalStateException("Please select your roles in Discord first. Missing: " + String.join(", ", missingRoles));
-        }
-    }
-
-    private Integer convertAgeRoleToAge(String roleId, DiscordBotSettings settings) {
-        if (roleId.equals(settings.getAge15RoleId())) return 15;
-        if (roleId.equals(settings.getAge16To17RoleId())) return 16; // Using lower bound
-        if (roleId.equals(settings.getAge18PlusRoleId())) return 18; // Using lower bound
-        throw new IllegalStateException("Invalid Age role selected. Please re-select your age role in Discord.");
-    }
-
-    private Gender convertGenderRoleToEnum(String roleId, DiscordBotSettings settings) {
-        if (roleId.equals(settings.getGenderSheHerRoleId())) return Gender.FEMALE;
-        if (roleId.equals(settings.getGenderHeHimRoleId())) return Gender.MALE;
-        if (roleId.equals(settings.getGenderAskRoleId())) return Gender.PREFER_NOT_TO_SAY; // Mapping "ask" to "prefer not to say"
-        throw new IllegalStateException("Invalid Gender role selected. Please re-select your gender role in Discord.");
-    }
-
-    private Rank convertRankRoleToEnum(String roleId, DiscordBotSettings settings) {
-        if (roleId.equals(settings.getRankIronRoleId())) return Rank.IRON;
-        if (roleId.equals(settings.getRankBronzeRoleId())) return Rank.BRONZE;
-        if (roleId.equals(settings.getRankSilverRoleId())) return Rank.SILVER;
-        if (roleId.equals(settings.getRankGoldRoleId())) return Rank.GOLD;
-        if (roleId.equals(settings.getRankPlatinumRoleId())) return Rank.PLATINUM;
-        if (roleId.equals(settings.getRankDiamondRoleId())) return Rank.DIAMOND;
-        throw new IllegalStateException("Invalid Rank role selected. Please re-select your rank role in Discord.");
-    }
-
-    private Region convertRegionRoleToEnum(String roleId, DiscordBotSettings settings) {
-        if (roleId.equals(settings.getRegionNaRoleId())) return Region.NA_CENTRAL; // Default NA to central
-        if (roleId.equals(settings.getRegionEuRoleId())) return Region.EU;
-        if (roleId.equals(settings.getRegionSaRoleId())) return Region.LATAM;
-        if (roleId.equals(settings.getRegionApRoleId())) return Region.AP;
-        if (roleId.equals(settings.getRegionOceRoleId())) return Region.AP; // OCE part of AP super-region
-        throw new IllegalStateException("Invalid Region role selected. Please re-select your region role in Discord.");
     }
 
     /**

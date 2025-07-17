@@ -1,7 +1,6 @@
 package com.app.heartbound.services.oauth;
 
 import com.app.heartbound.dto.UserDTO;
-import com.app.heartbound.dto.oauth.OAuthTokenResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

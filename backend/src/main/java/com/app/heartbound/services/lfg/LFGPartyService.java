@@ -16,7 +16,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -46,7 +45,6 @@ public class LFGPartyService {
     private final DiscordChannelService discordChannelService;
     private static final Logger logger = LoggerFactory.getLogger(LFGPartyService.class);
 
-    @Autowired
     public LFGPartyService(LFGPartyRepository lfgPartyRepository, DiscordChannelService discordChannelService) {
         this.lfgPartyRepository = lfgPartyRepository;
         this.discordChannelService = discordChannelService;

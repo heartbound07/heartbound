@@ -14,7 +14,6 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import java.util.*;
 import java.util.Set;
 import com.app.heartbound.enums.Gender;
-import com.app.heartbound.enums.Region;
 import com.app.heartbound.enums.Rank;
 
 /**
