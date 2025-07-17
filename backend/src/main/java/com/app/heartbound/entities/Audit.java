@@ -69,10 +69,12 @@ public class Audit {
     
     @Column(name = "severity", length = 20)
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private AuditSeverity severity = AuditSeverity.INFO;
     
     @Column(name = "category", length = 50)
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private AuditCategory category = AuditCategory.SYSTEM;
     
     @Column(name = "source", columnDefinition = "TEXT")

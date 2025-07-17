@@ -35,5 +35,6 @@ public class UserDTO {
     private Set<Role> roles;
     
     @Schema(description = "The number of credits the user has", example = "100")
+    @Builder.Default
     private Integer credits = 0;
 }
