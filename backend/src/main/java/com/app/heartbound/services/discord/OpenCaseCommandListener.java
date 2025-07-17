@@ -5,7 +5,6 @@ import com.app.heartbound.dto.shop.CaseItemDTO;
 import com.app.heartbound.dto.shop.RollResultDTO;
 import com.app.heartbound.dto.shop.ShopDTO;
 import com.app.heartbound.dto.shop.UserInventoryDTO;
-import com.app.heartbound.entities.User;
 import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
@@ -16,13 +15,13 @@ import com.app.heartbound.exceptions.shop.InvalidCaseContentsException;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.shop.ShopService;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.Command;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,9 +36,7 @@ import javax.annotation.Nonnull;
 import java.awt.Color;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import com.app.heartbound.entities.Shop;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
 /**
@@ -79,7 +76,6 @@ public class OpenCaseCommandListener extends ListenerAdapter {
     }
     
     private final ShopService shopService;
-    private final UserService userService;
     
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
@@ -93,7 +89,6 @@ public class OpenCaseCommandListener extends ListenerAdapter {
     
     public OpenCaseCommandListener(@Lazy ShopService shopService, UserService userService) {
         this.shopService = shopService;
-        this.userService = userService;
         logger.info("OpenCaseCommandListener initialized");
     }
     
@@ -210,7 +205,8 @@ public class OpenCaseCommandListener extends ListenerAdapter {
         }
         
         // Guild restriction check
-        if (!event.isFromGuild() || !event.getGuild().getId().equals(mainGuildId)) {
+        Guild guild = event.getGuild();
+        if (guild == null || !guild.getId().equals(mainGuildId)) {
             event.reply("This command can only be used in the main Heartbound server.")
                     .setEphemeral(true)
                     .queue();
@@ -533,46 +529,6 @@ public class OpenCaseCommandListener extends ListenerAdapter {
             .queue();
     }
     
-    private MessageEmbed buildConfirmationEmbed(CaseContentsDTO caseContents, String userName) {
-        EmbedBuilder embed = new EmbedBuilder();
-        
-        // Set title with case name and rarity
-        String title = caseContents.getCaseName();
-        embed.setTitle(title + " | **" + "Case" + "**")
-            .setColor(EMBED_COLOR);
-        
-        // Build description with all case contents
-        StringBuilder description = new StringBuilder();
-        
-        // Sort items by rarity (legendary first) then by name
-        List<CaseItemDTO> sortedItems = caseContents.getItems().stream()
-            .sorted((a, b) -> {
-                // First sort by rarity (reverse order - legendary first)
-                int rarityComparison = getRarityOrder(b.getContainedItem().getRarity()) - 
-                                     getRarityOrder(a.getContainedItem().getRarity());
-                if (rarityComparison != 0) {
-                    return rarityComparison;
-                }
-                // Then sort by name
-                return a.getContainedItem().getName().compareTo(b.getContainedItem().getName());
-            })
-            .collect(Collectors.toList());
-        
-        for (CaseItemDTO item : sortedItems) {
-            ShopDTO containedItem = item.getContainedItem();
-            String itemType = formatCategoryForDisplay(containedItem.getCategory());
-            String rarity = formatRarityForDisplay(containedItem.getRarity());
-            
-            description.append(String.format("%s (%s) | **%s** (%.1f%%)\n", 
-                containedItem.getName(), itemType, rarity, item.getDropRate()));
-        }
-        
-        embed.setDescription(description.toString());
-        embed.setFooter("Do you want to open this case?");
-        
-        return embed.build();
-    }
-    
     private MessageEmbed buildResultEmbed(RollResultDTO result) {
         EmbedBuilder embed = new EmbedBuilder();
         
@@ -623,19 +579,7 @@ public class OpenCaseCommandListener extends ListenerAdapter {
             default: return category.toString();
         }
     }
-    
-    private int getRarityOrder(ItemRarity rarity) {
-        if (rarity == null) return 0;
-        
-        switch (rarity) {
-            case LEGENDARY: return 4;
-            case EPIC: return 3;
-            case RARE: return 2;
-            case UNCOMMON: return 1;
-            case COMMON:
-            default: return 0;
-        }
-    }
+
 
     private Color getRarityColor(ItemRarity rarity) {
         if (rarity == null) return EMBED_COLOR;
