@@ -14,11 +14,12 @@ import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nonnull;
 import java.awt.*;
 import java.time.Instant;
 import java.util.List;
@@ -39,7 +40,6 @@ public class PairCommandListener extends ListenerAdapter {
 
     private final ConcurrentHashMap<String, PairRequest> pendingRequests = new ConcurrentHashMap<>();
 
-    @Autowired
     public PairCommandListener(@Lazy PairingService pairingService, UserService userService,
                                UserValidationService userValidationService, @Lazy QueueService queueService) {
         this.pairingService = pairingService;
@@ -66,13 +66,19 @@ public class PairCommandListener extends ListenerAdapter {
     }
 
     @Override
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("pair")) return;
 
         event.deferReply(true).queue();
 
         User requesterUser = event.getUser();
-        User targetUser = event.getOption("user").getAsUser();
+
+        OptionMapping userOption = event.getOption("user");
+        if (userOption == null) {
+            event.getHook().sendMessage("You must specify a user to pair with.").queue();
+            return;
+        }
+        User targetUser = userOption.getAsUser();
 
         if (targetUser.isBot() || targetUser.equals(requesterUser)) {
             event.getHook().sendMessage("You cannot pair with a bot or yourself.").queue();
@@ -144,7 +150,7 @@ public class PairCommandListener extends ListenerAdapter {
     }
 
     @Override
-    public void onButtonInteraction(ButtonInteractionEvent event) {
+    public void onButtonInteraction(@Nonnull ButtonInteractionEvent event) {
         String componentId = event.getComponentId();
         if (!componentId.startsWith("pair_")) return;
 
