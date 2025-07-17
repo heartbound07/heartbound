@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
 import java.awt.Color;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -109,44 +110,43 @@ public class ShopCommandListener extends ListenerAdapter {
         try {
             // Get the user ID for ownership checking
             String userId = event.getUser().getId();
-            List<ShopDTO> shopItems;
             
-            try {
-                // Try to fetch items with ownership status
-                shopItems = shopService.getAvailableShopItems(userId, null);
-                
-                // Filter out items already owned by the user
-                shopItems = shopItems.stream()
-                    .filter(item -> {
-                        try {
-                            return !item.isOwned();
-                        } catch (Exception e) {
-                            // If we can't determine ownership, keep the item
-                            return true;
-                        }
-                    })
-                    .collect(Collectors.toList());
-                
-            } catch (Exception e) {
-                // If lazy loading fails, fall back to getting items without ownership status
-                logger.warn("Failed to get shop items with ownership status, falling back to basic shop display: {}", e.getMessage());
-                shopItems = shopService.getAvailableShopItems(null, null);
-            }
+            // Fetch featured and daily items separately
+            List<ShopDTO> featuredItems = shopService.getFeaturedItems(userId)
+                .stream()
+                .filter(item -> !item.isOwned())
+                .collect(Collectors.toList());
             
-            if (shopItems == null || shopItems.isEmpty()) {
+            List<ShopDTO> dailyItems = shopService.getDailyItems(userId)
+                .stream()
+                .filter(item -> !item.isOwned())
+                .collect(Collectors.toList());
+
+            // Combine lists for pagination
+            List<ShopDTO> allItems = new ArrayList<>();
+            allItems.addAll(featuredItems);
+            allItems.addAll(dailyItems);
+            
+            final int featuredItemsCount = featuredItems.size();
+            
+            if (allItems.isEmpty()) {
                 // Handle empty shop
                 event.getHook().sendMessage("The shop is currently empty or you've purchased all available items!").queue();
                 return;
             }
             
             // Calculate total pages
-            int totalPages = (int) Math.ceil((double) shopItems.size() / PAGE_SIZE);
+            int totalPages = (int) Math.ceil((double) allItems.size() / PAGE_SIZE);
             int currentPage = 1; // Start with page 1
+
+            // Determine section title for the first page
+            int startIndex = (currentPage - 1) * PAGE_SIZE;
+            String sectionTitle = (startIndex < featuredItemsCount) ? "Featured Items" : "Daily Items";
             
             // Build the initial embed for page 1
             Guild guild = event.getGuild(); // Get the guild from the event
             String userName = event.getUser().getName(); // Get user's name
-            MessageEmbed embed = buildShopEmbed(shopItems, currentPage, totalPages, guild, userId, userName);
+            MessageEmbed embed = buildShopEmbed(allItems, currentPage, totalPages, guild, userId, userName, sectionTitle);
             
             // Create pagination buttons - include original user ID in button IDs
             Button prevButton = Button.secondary("shop_prev:" + userId + ":" + currentPage, "◀️").withDisabled(true); // Disabled on page 1
@@ -209,38 +209,33 @@ public class ShopCommandListener extends ListenerAdapter {
             
             // Get the user ID for ownership checking
             String userId = event.getUser().getId();
-            List<ShopDTO> shopItems;
             
-            try {
-                // Try to fetch items with ownership status
-                shopItems = shopService.getAvailableShopItems(userId, null);
-                
-                // Filter out items already owned by the user
-                shopItems = shopItems.stream()
-                    .filter(item -> {
-                        try {
-                            return !item.isOwned();
-                        } catch (Exception e) {
-                            // If we can't determine ownership, keep the item
-                            return true;
-                        }
-                    })
-                    .collect(Collectors.toList());
-                
-            } catch (Exception e) {
-                // If lazy loading fails, fall back to getting items without ownership status
-                logger.warn("Failed to get shop items with ownership status, falling back to basic shop display: {}", e.getMessage());
-                shopItems = shopService.getAvailableShopItems(null, null);
-            }
+            // Fetch featured and daily items separately
+            List<ShopDTO> featuredItems = shopService.getFeaturedItems(userId)
+                .stream()
+                .filter(item -> !item.isOwned())
+                .collect(Collectors.toList());
             
-            if (shopItems == null || shopItems.isEmpty()) {
+            List<ShopDTO> dailyItems = shopService.getDailyItems(userId)
+                .stream()
+                .filter(item -> !item.isOwned())
+                .collect(Collectors.toList());
+
+            // Combine lists for pagination
+            List<ShopDTO> allItems = new ArrayList<>();
+            allItems.addAll(featuredItems);
+            allItems.addAll(dailyItems);
+            
+            final int featuredItemsCount = featuredItems.size();
+            
+            if (allItems.isEmpty()) {
                 // Handle empty shop
                 event.getHook().editOriginal("The shop is currently empty or you've purchased all available items!").queue();
                 return;
             }
             
             // Calculate total pages
-            int totalPages = (int) Math.ceil((double) shopItems.size() / PAGE_SIZE);
+            int totalPages = (int) Math.ceil((double) allItems.size() / PAGE_SIZE);
             
             // Safety check for valid page number
             if (tempTargetPage < 1) tempTargetPage = 1;
@@ -249,10 +244,14 @@ public class ShopCommandListener extends ListenerAdapter {
             // Create final variable for use in lambda
             final int targetPage = tempTargetPage;
             
+            // Determine section title based on the new page's content
+            int startIndex = (targetPage - 1) * PAGE_SIZE;
+            String sectionTitle = (startIndex < featuredItemsCount) ? "Featured Items" : "Daily Items";
+            
             // Build the new embed for the target page
             Guild guild = event.getGuild(); // Get the guild from the event
             String userName = event.getUser().getName(); // Get user's name
-            MessageEmbed embed = buildShopEmbed(shopItems, targetPage, totalPages, guild, userId, userName);
+            MessageEmbed embed = buildShopEmbed(allItems, targetPage, totalPages, guild, userId, userName, sectionTitle);
             
             // Create updated pagination buttons with original author ID
             Button prevButton = Button.secondary("shop_prev:" + originalUserId + ":" + targetPage, "◀️").withDisabled(targetPage <= 1);
@@ -283,9 +282,10 @@ public class ShopCommandListener extends ListenerAdapter {
      * @param guild The Discord guild (server)
      * @param userId The ID of the user viewing the shop
      * @param userName The display name of the user viewing the shop
+     * @param sectionTitle The title for the shop section (e.g., "Featured Items")
      * @return A MessageEmbed containing the formatted shop items
      */
-    private MessageEmbed buildShopEmbed(List<ShopDTO> items, int page, int totalPages, Guild guild, String userId, String userName) {
+    private MessageEmbed buildShopEmbed(List<ShopDTO> items, int page, int totalPages, Guild guild, String userId, String userName, String sectionTitle) {
         // Calculate start and end indices for the current page
         int startIndex = (page - 1) * PAGE_SIZE;
         int endIndex = Math.min(startIndex + PAGE_SIZE, items.size());
@@ -335,8 +335,8 @@ public class ShopCommandListener extends ListenerAdapter {
             }
         }
         
-        // Add all shop items as a single field with empty name
-        embed.addField("", shopContent.toString(), false);
+        // Add all shop items as a single field with a dynamic title
+        embed.addField(sectionTitle, shopContent.toString(), false);
         
         // Add user's credits to footer
         try {
