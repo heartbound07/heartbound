@@ -17,19 +17,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.time.LocalDateTime;
 
 @Component
 public class FishCommandListener extends ListenerAdapter {
     
     private static final Logger logger = LoggerFactory.getLogger(FishCommandListener.class);
-    private static final int COOLDOWN_SECONDS = 5;
     private static final double SUCCESS_CHANCE = 0.8; // 80% total success rate
     private static final double RARE_FISH_CHANCE = 0.05; // 5% chance for rare fish
     
@@ -65,9 +62,6 @@ public class FishCommandListener extends ListenerAdapter {
             "🐡", // :blowfish:
             "🦐"  // :shrimp:
     );
-    
-    // Track user cooldowns - userId -> lastFishingTimestamp
-    private final ConcurrentHashMap<String, Instant> userCooldowns = new ConcurrentHashMap<>();
     
     private final UserService userService;
     private final SecureRandomService secureRandomService;
@@ -182,21 +176,6 @@ public class FishCommandListener extends ListenerAdapter {
         event.deferReply().queue();
         
         try {
-            // Check cooldown
-            Instant now = Instant.now();
-            if (userCooldowns.containsKey(userId)) {
-                Instant lastFishTime = userCooldowns.get(userId);
-                long secondsElapsed = ChronoUnit.SECONDS.between(lastFishTime, now);
-                
-                if (secondsElapsed < COOLDOWN_SECONDS) {
-                    long timeRemaining = COOLDOWN_SECONDS - secondsElapsed;
-                    event.getHook().sendMessage("You need to wait " + timeRemaining + " seconds before fishing again!")
-                            .setEphemeral(true) // Only the user can see this message
-                            .queue();
-                    return; // Make sure we exit the method completely
-                }
-            }
-            
             // Fetch the user from the database
             User user = userService.getUserById(userId);
             
@@ -425,9 +404,6 @@ public class FishCommandListener extends ListenerAdapter {
                 logger.debug("User {} failed fishing: -{} credits. New balance: {}", 
                         userId, creditChange, user.getCredits());
             }
-            
-            // Update cooldown timestamp
-            userCooldowns.put(userId, now);
             
             // Send the response
             event.getHook().sendMessage(message.toString()).queue();
