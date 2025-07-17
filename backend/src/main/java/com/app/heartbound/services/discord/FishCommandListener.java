@@ -118,11 +118,13 @@ public class FishCommandListener extends ListenerAdapter {
             
             return new FishingLimitStatus(true, hoursRemaining * 60 + minutesRemaining, currentCatches, maxCatches);
         } else {
-            // Cooldown has expired, reset the cooldown field
+            // Cooldown has expired, reset the cooldown field AND the fish count
             user.setFishingLimitCooldownUntil(null);
+            user.setFishCaughtCount(0); // <-- THE FIX
             userService.updateUser(user);
-            logger.info("Fishing cooldown expired for user {}. Resetting cooldown.", user.getId());
-            return new FishingLimitStatus(false, 0, currentCatches, maxCatches);
+            logger.info("Fishing cooldown expired for user {}. Resetting cooldown and fish count.", user.getId());
+            // Return a new status with the reset count
+            return new FishingLimitStatus(false, 0, 0, maxCatches);
         }
     }
     
