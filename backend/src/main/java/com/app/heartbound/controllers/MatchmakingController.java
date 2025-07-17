@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -39,7 +38,7 @@ public class MatchmakingController {
             @ApiResponse(responseCode = "200", description = "Queue status retrieved successfully")
     })
     @GetMapping("/status")
-    public ResponseEntity<QueueStatusDTO> getQueueStatus(
+    public ResponseEntity<?> getQueueStatus(
             @Parameter(description = "User ID to check queue status for", required = true)
             @RequestParam String userId, Authentication authentication) {
         
@@ -69,7 +68,7 @@ public class MatchmakingController {
             @ApiResponse(responseCode = "409", description = "User already in queue")
     })
     @PostMapping("/join")
-    public ResponseEntity<QueueStatusDTO> joinQueue(Authentication authentication) {
+    public ResponseEntity<?> joinQueue(Authentication authentication) {
         
         // Security Check: The user is derived from the Authentication object,
         // so they can only act on their own behalf.
@@ -85,7 +84,7 @@ public class MatchmakingController {
             log.warn("Conflict when joining queue for user {}: {}", authenticatedUserId, e.getMessage());
             Map<String, String> errorBody = new HashMap<>();
             errorBody.put("message", e.getMessage());
-            return new ResponseEntity(errorBody, HttpStatus.CONFLICT);
+            return new ResponseEntity<>(errorBody, HttpStatus.CONFLICT);
         } catch (Exception e) {
             log.error("Error joining queue: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -98,7 +97,7 @@ public class MatchmakingController {
             @ApiResponse(responseCode = "400", description = "User not in queue")
     })
     @PostMapping("/leave")
-    public ResponseEntity<Map<String, Object>> leaveQueue(@RequestParam String userId, Authentication authentication) {
+    public ResponseEntity<?> leaveQueue(@RequestParam String userId, Authentication authentication) {
         
         // Security Check: Ensure the authenticated user matches the requested userId or is admin
         String authenticatedUserId = authentication.getName();

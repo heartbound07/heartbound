@@ -26,7 +26,6 @@ import lombok.ToString;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.LinkedHashSet;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -64,24 +63,32 @@ public class User {
     private String bannerUrl;
     
     // Add credits field with default value
+    @Builder.Default
     private Integer credits = 0;
     
     // Add level and experience fields with default values
+    @Builder.Default
     private Integer level = 1;
+    @Builder.Default
     private Integer experience = 0;
     
     // Add message count field to track total messages sent by user
+    @Builder.Default
     private Long messageCount = 0L;
 
     // Add fish caught count field
+    @Builder.Default
     private Integer fishCaughtCount = 0;
     
     // Add fishing limit cooldown field to track 6-hour cooldown after 300 catches
     private LocalDateTime fishingLimitCooldownUntil;
     
     // Add time-based message count fields
+    @Builder.Default
     private Integer messagesToday = 0;
+    @Builder.Default
     private Integer messagesThisWeek = 0;
+    @Builder.Default
     private Integer messagesThisTwoWeeks = 0;
     
     // Add timestamp fields for tracking when to reset counters
@@ -90,9 +97,13 @@ public class User {
     private LocalDateTime lastBiWeeklyReset;
     
     // Add voice activity tracking fields
+    @Builder.Default
     private Integer voiceTimeMinutesTotal = 0;
+    @Builder.Default
     private Integer voiceTimeMinutesToday = 0;
+    @Builder.Default
     private Integer voiceTimeMinutesThisWeek = 0;
+    @Builder.Default
     private Integer voiceTimeMinutesThisTwoWeeks = 0;
     private Integer voiceRank;
     
@@ -102,6 +113,7 @@ public class User {
     private LocalDateTime lastVoiceBiWeeklyReset;
     
     // Daily claim system fields
+    @Builder.Default
     private Integer dailyStreak = 0;
     private LocalDateTime lastDailyClaim;
 
@@ -123,6 +135,7 @@ public class User {
     private String selectedRegionRoleId;
     
     // User active status field
+    @Builder.Default
     private Boolean active = true;
 
     // Add banned field
@@ -135,6 +148,7 @@ public class User {
     @Enumerated(jakarta.persistence.EnumType.STRING)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role")
+    @Builder.Default
     private Set<Role> roles = new HashSet<>();
     
     // Add inventory relationship
@@ -144,11 +158,13 @@ public class User {
         joinColumns = @JoinColumn(name = "user_id"),
         inverseJoinColumns = @JoinColumn(name = "item_id")
     )
+    @Builder.Default
     private Set<Shop> inventory = new HashSet<>();
     
     // Add new inventory relationship with quantity support
     @OneToMany(mappedBy = "user", fetch = jakarta.persistence.FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
+    @Builder.Default
     private Set<UserInventoryItem> inventoryItems = new HashSet<>();
     
     // Add these fields to store equipped item IDs
