@@ -3,7 +3,6 @@ package com.app.heartbound.services.discord;
 import com.app.heartbound.entities.DiscordBotSettings;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
-import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -11,19 +10,14 @@ import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
-import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.Commands;
-import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import javax.annotation.Nonnull;
 
-import java.awt.Color;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -39,7 +33,6 @@ public class VerifyCommandListener extends ListenerAdapter {
     private final UserService userService;
     private final DiscordBotSettingsService discordBotSettingsService;
 
-    @Autowired
     public VerifyCommandListener(UserService userService, DiscordBotSettingsService discordBotSettingsService) {
         this.userService = userService;
         this.discordBotSettingsService = discordBotSettingsService;
@@ -47,7 +40,7 @@ public class VerifyCommandListener extends ListenerAdapter {
 
     @Override
     @Transactional
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("verify")) {
             return;
         }

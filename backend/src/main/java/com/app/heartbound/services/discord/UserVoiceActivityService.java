@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import javax.annotation.Nonnull;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -71,7 +72,7 @@ public class UserVoiceActivityService extends ListenerAdapter {
 
     @Override
     @Transactional
-    public void onGuildVoiceUpdate(GuildVoiceUpdateEvent event) {
+    public void onGuildVoiceUpdate(@Nonnull GuildVoiceUpdateEvent event) {
         try {
             String userId = event.getMember().getId();
             AudioChannelUnion leftChannel = event.getChannelLeft();

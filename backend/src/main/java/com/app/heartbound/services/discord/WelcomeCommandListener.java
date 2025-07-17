@@ -8,8 +8,8 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import javax.annotation.Nonnull;
 
 @Component
 public class WelcomeCommandListener extends ListenerAdapter {
@@ -20,14 +20,13 @@ public class WelcomeCommandListener extends ListenerAdapter {
     
     private final WelcomeListener welcomeListener;
     
-    @Autowired
     public WelcomeCommandListener(WelcomeListener welcomeListener) {
         this.welcomeListener = welcomeListener;
         logger.info("WelcomeCommandListener initialized");
     }
     
     @Override
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("welcome")) {
             return; // Not our command
         }

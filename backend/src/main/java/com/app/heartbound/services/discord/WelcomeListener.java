@@ -1,7 +1,6 @@
 package com.app.heartbound.services.discord;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -11,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import javax.annotation.Nonnull;
 
 import java.awt.Color;
 
@@ -18,7 +18,6 @@ import java.awt.Color;
 public class WelcomeListener extends ListenerAdapter {
     
     private static final Logger logger = LoggerFactory.getLogger(WelcomeListener.class);
-    private static final String WELCOME_CHANNEL_ID = "1161715793050996828";
     private static final Color EMBED_COLOR = new Color(88, 101, 242); // Discord Blurple
     
     @Value("${frontend.base.url}")
@@ -28,9 +27,9 @@ public class WelcomeListener extends ListenerAdapter {
     private String backendBaseUrl;
     
     @Override
-    public void onGuildMemberJoin(GuildMemberJoinEvent event) {
+    public void onGuildMemberJoin(@Nonnull GuildMemberJoinEvent event) {
         // Log the join event but don't send a welcome message
-        Guild guild = event.getGuild();
+
         String memberId = event.getUser().getId();
         String memberName = event.getUser().getName();
         
