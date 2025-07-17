@@ -11,7 +11,6 @@ import com.app.heartbound.services.AuditService;
 import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -27,14 +26,10 @@ import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Service
 @Slf4j
 public class CountingGameService {
-    
-    private static final Logger log = LoggerFactory.getLogger(CountingGameService.class);
     
     private final CountingGameStateRepository gameStateRepository;
     private final CountingUserDataRepository userDataRepository;
@@ -59,7 +54,6 @@ public class CountingGameService {
         log.info("CountingGameService initialized with audit service");
     }
     
-    private String discordServerId;
     private String countingChannelId;
     private String timeoutRoleId;
     private Integer creditsPerCount;
@@ -118,9 +112,8 @@ public class CountingGameService {
     /**
      * Update settings from DiscordBotSettings
      */
-    public void updateSettings(String discordServerId, String countingChannelId, String timeoutRoleId, 
+    public void updateSettings(String countingChannelId, String timeoutRoleId, 
                               Integer creditsPerCount, Integer countingLives, boolean countingGameEnabled) {
-        this.discordServerId = discordServerId;
         this.countingChannelId = countingChannelId;
         this.timeoutRoleId = timeoutRoleId;
         this.creditsPerCount = creditsPerCount;

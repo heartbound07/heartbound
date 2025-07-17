@@ -348,7 +348,6 @@ public class DiscordBotSettingsService {
         
         // Update counting game service with new settings
         countingGameService.updateSettings(
-            System.getProperty("discord.server.id", ""), // Get from system property or environment
             settings.getCountingChannelId(),
             settings.getCountingTimeoutRoleId(),
             settings.getCreditsPerCount(),
@@ -396,7 +395,6 @@ public class DiscordBotSettingsService {
                 
                 // Apply counting game settings
                 countingGameService.updateSettings(
-                    System.getProperty("discord.server.id", ""), // Get from system property or environment
                     settings.getCountingChannelId(),
                     settings.getCountingTimeoutRoleId(),
                     settings.getCreditsPerCount(),

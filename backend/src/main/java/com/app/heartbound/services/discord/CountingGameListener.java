@@ -11,10 +11,10 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nonnull;
 import java.awt.Color;
 
 @Component
@@ -28,7 +28,7 @@ public class CountingGameListener extends ListenerAdapter {
     private String frontendBaseUrl;
     
     @Override
-    public void onMessageReceived(MessageReceivedEvent event) {
+    public void onMessageReceived(@Nonnull MessageReceivedEvent event) {
         // Ignore bot messages
         if (event.getAuthor().isBot()) {
             return;
@@ -75,7 +75,7 @@ public class CountingGameListener extends ListenerAdapter {
     }
     
     @Override
-    public void onButtonInteraction(ButtonInteractionEvent event) {
+    public void onButtonInteraction(@Nonnull ButtonInteractionEvent event) {
         // Check if this is a save count button in the counting channel
         if (!countingGameService.isCountingChannel(event.getChannel().getId())) {
             return;
