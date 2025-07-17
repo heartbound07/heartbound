@@ -2,7 +2,6 @@ package com.app.heartbound.services.discord;
 
 import com.app.heartbound.entities.DiscordBotSettings;
 import com.app.heartbound.entities.User;
-import com.app.heartbound.entities.PendingRoleSelection;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.PendingRoleSelectionService;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -10,22 +9,19 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.Nonnull;
 import java.awt.Color;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -37,7 +33,6 @@ public class RolesCommandListener extends ListenerAdapter {
     private final DiscordBotSettingsService discordBotSettingsService;
     private final PendingRoleSelectionService pendingRoleSelectionService;
 
-    @Autowired
     public RolesCommandListener(UserService userService, DiscordBotSettingsService discordBotSettingsService, PendingRoleSelectionService pendingRoleSelectionService) {
         this.userService = userService;
         this.discordBotSettingsService = discordBotSettingsService;
@@ -45,13 +40,14 @@ public class RolesCommandListener extends ListenerAdapter {
     }
 
     @Override
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("roles")) {
             return;
         }
 
         // This command is admin-only, but we double-check permissions
-        if (event.getMember() == null || !event.getMember().hasPermission(Permission.ADMINISTRATOR)) {
+        Member member = event.getMember();
+        if (member == null || !member.hasPermission(Permission.ADMINISTRATOR)) {
             event.reply("You do not have permission to use this command.").setEphemeral(true).queue();
             return;
         }
@@ -130,7 +126,7 @@ public class RolesCommandListener extends ListenerAdapter {
 
     @Override
     @Transactional
-    public void onButtonInteraction(ButtonInteractionEvent event) {
+    public void onButtonInteraction(@Nonnull ButtonInteractionEvent event) {
         String componentId = event.getComponentId();
         if (!componentId.startsWith("roles:")) {
             return;

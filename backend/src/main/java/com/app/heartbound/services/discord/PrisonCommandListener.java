@@ -1,6 +1,5 @@
 package com.app.heartbound.services.discord;
 
-import com.app.heartbound.config.CacheConfig;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.PrisonService;
 import com.app.heartbound.services.UserService;
@@ -14,13 +13,12 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Nonnull;
 import java.awt.Color;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,7 +58,6 @@ public class PrisonCommandListener extends ListenerAdapter {
     private final PrisonReleaseService prisonReleaseService;
     private final PendingPrisonService pendingPrisonService;
     
-    @Autowired
     public PrisonCommandListener(PrisonService prisonService, UserService userService, PrisonReleaseService prisonReleaseService, PendingPrisonService pendingPrisonService) {
         this.prisonService = prisonService;
         this.userService = userService;
@@ -70,7 +67,7 @@ public class PrisonCommandListener extends ListenerAdapter {
     }
     
     @Override
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("prison")) {
             return; // Not our command
         }
