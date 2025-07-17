@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 
 import java.util.Set;
 import java.util.UUID;
-import java.util.Map;
 
 /**
  * Data transfer object for user profile information.

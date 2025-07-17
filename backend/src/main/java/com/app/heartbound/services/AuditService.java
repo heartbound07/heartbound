@@ -9,7 +9,6 @@ import com.app.heartbound.repositories.AuditRepository;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,9 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class AuditService {
@@ -30,7 +27,6 @@ public class AuditService {
     
     private final AuditRepository auditRepository;
     
-    @Autowired
     public AuditService(AuditRepository auditRepository) {
         this.auditRepository = auditRepository;
     }

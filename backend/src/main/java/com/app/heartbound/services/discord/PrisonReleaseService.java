@@ -8,9 +8,7 @@ import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
@@ -38,7 +36,6 @@ public class PrisonReleaseService {
 
     private static final String PRISON_ROLE_ID = "1387934212216328202";
 
-    @Autowired
     public PrisonReleaseService(UserRepository userRepository, PendingPrisonRepository pendingPrisonRepository, PrisonService prisonService, PendingPrisonService pendingPrisonService, @Lazy JDA jda) {
         this.userRepository = userRepository;
         this.pendingPrisonRepository = pendingPrisonRepository;
