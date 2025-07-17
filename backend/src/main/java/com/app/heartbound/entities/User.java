@@ -79,6 +79,10 @@ public class User {
     // Add fish caught count field
     @Builder.Default
     private Integer fishCaughtCount = 0;
+
+    // Add field to track catches for the current fishing limit period
+    @Builder.Default
+    private Integer fishCaughtSinceLimit = 0;
     
     // Add fishing limit cooldown field to track 6-hour cooldown after 300 catches
     private LocalDateTime fishingLimitCooldownUntil;

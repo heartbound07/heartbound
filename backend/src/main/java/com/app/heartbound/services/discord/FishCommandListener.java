@@ -75,7 +75,7 @@ public class FishCommandListener extends ListenerAdapter {
      * @return FishingLimitStatus containing the result and any remaining time
      */
     private FishingLimitStatus checkFishingLimit(User user) {
-        int currentCatches = user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0;
+        int currentCatches = user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0;
         
         // If user hasn't reached the limit, they can fish
         if (currentCatches < maxCatches) {
@@ -101,11 +101,11 @@ public class FishCommandListener extends ListenerAdapter {
             
             return new FishingLimitStatus(true, hoursRemaining * 60 + minutesRemaining, currentCatches, maxCatches);
         } else {
-            // Cooldown has expired, reset the cooldown field AND the fish count
+            // Cooldown has expired, reset the cooldown field AND the fish-since-limit count
             user.setFishingLimitCooldownUntil(null);
-            user.setFishCaughtCount(0); // <-- THE FIX
+            user.setFishCaughtSinceLimit(0); // <-- THE FIX
             userService.updateUser(user);
-            logger.info("Fishing cooldown expired for user {}. Resetting cooldown and fish count.", user.getId());
+            logger.info("Fishing cooldown expired for user {}. Resetting cooldown and fish-since-limit count.", user.getId());
             // Return a new status with the reset count
             return new FishingLimitStatus(false, 0, 0, maxCatches);
         }
@@ -242,16 +242,18 @@ public class FishCommandListener extends ListenerAdapter {
                 message.append("**WOW!** You caught a rare ").append(fishEmoji);
                 message.append("! +").append(finalCreditChange).append(" 🪙");
                 
-                // Update user credits and fish count
+                // Update user credits and both fish counts
                 user.setCredits(currentCredits + finalCreditChange);
                 int newFishCount = (user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0) + 1;
+                int newFishSinceLimit = (user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0) + 1;
                 user.setFishCaughtCount(newFishCount);
+                user.setFishCaughtSinceLimit(newFishSinceLimit);
                 
                 // Check if user has reached the fishing limit
-                if (newFishCount >= maxCatches && user.getFishingLimitCooldownUntil() == null) {
+                if (newFishSinceLimit >= maxCatches && user.getFishingLimitCooldownUntil() == null) {
                     setFishingLimitCooldown(user);
                     message.append(String.format("\n\n🎯 **Fishing Limit Reached!** You've caught %d/%d fish and must wait **%d hours** before fishing again.", 
-                        newFishCount, maxCatches, cooldownHours));
+                        newFishSinceLimit, maxCatches, cooldownHours));
                     logger.info("User {} reached fishing limit of {} catches. Cooldown set for {} hours.", userId, maxCatches, cooldownHours);
                 }
                 
@@ -309,16 +311,18 @@ public class FishCommandListener extends ListenerAdapter {
                 message.append("You caught ").append(fishEmoji);
                 message.append("! +").append(finalCreditChange).append(" 🪙");
                 
-                // Update user credits and fish count
+                // Update user credits and both fish counts
                 user.setCredits(currentCredits + finalCreditChange);
                 int newFishCount = (user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0) + 1;
+                int newFishSinceLimit = (user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0) + 1;
                 user.setFishCaughtCount(newFishCount);
+                user.setFishCaughtSinceLimit(newFishSinceLimit);
                 
                 // Check if user has reached the fishing limit
-                if (newFishCount >= maxCatches && user.getFishingLimitCooldownUntil() == null) {
+                if (newFishSinceLimit >= maxCatches && user.getFishingLimitCooldownUntil() == null) {
                     setFishingLimitCooldown(user);
                     message.append(String.format("\n\n🎯 **Fishing Limit Reached!** You've caught %d/%d fish and must wait **%d hours** before fishing again.", 
-                        newFishCount, maxCatches, cooldownHours));
+                        newFishSinceLimit, maxCatches, cooldownHours));
                     logger.info("User {} reached fishing limit of {} catches. Cooldown set for {} hours.", userId, maxCatches, cooldownHours);
                 }
                 
