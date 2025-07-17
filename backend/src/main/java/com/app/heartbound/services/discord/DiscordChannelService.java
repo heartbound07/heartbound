@@ -4,6 +4,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel;
 import net.dv8tion.jda.api.entities.Invite;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -25,8 +26,6 @@ import net.dv8tion.jda.api.entities.GuildVoiceState;
 import com.app.heartbound.entities.LFGParty;
 import com.app.heartbound.enums.Region;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.entities.UserSnowflake;
 import java.util.concurrent.CompletableFuture;
 
@@ -306,14 +305,16 @@ public class DiscordChannelService {
                 if (member != null) {
                     // Check if user is currently in this voice channel
                     GuildVoiceState voiceState = member.getVoiceState();
-                    if (voiceState != null && voiceState.getChannel() != null && 
-                        voiceState.getChannel().getId().equals(channelId)) {
-                        // Kick the user from voice channel
-                        guild.kickVoiceMember(member).queue(
-                            success -> logger.info("Kicked user {} from voice channel {}", discordUserId, channelId),
-                            error -> logger.error("Failed to kick user {} from voice channel {}: {}", 
-                                                discordUserId, channelId, error.getMessage())
-                        );
+                    if (voiceState != null) {
+                        AudioChannel currentChannel = voiceState.getChannel();
+                        if (currentChannel != null && currentChannel.getId().equals(channelId)) {
+                            // Kick the user from voice channel
+                            guild.kickVoiceMember(member).queue(
+                                success -> logger.info("Kicked user {} from voice channel {}", discordUserId, channelId),
+                                error -> logger.error("Failed to kick user {} from voice channel {}: {}", 
+                                                    discordUserId, channelId, error.getMessage())
+                            );
+                        }
                     }
                     
                     // Remove permission overrides

@@ -4,13 +4,10 @@ import com.app.heartbound.dto.discord.DiscordBotSettingsDTO;
 import com.app.heartbound.entities.DiscordBotSettings;
 import com.app.heartbound.repositories.DiscordBotSettingsRepository;
 import com.app.heartbound.config.CacheConfig;
-import com.app.heartbound.services.discord.UserVoiceActivityService;
-import com.app.heartbound.services.discord.CountingGameService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +20,6 @@ public class DiscordBotSettingsService {
     private final ChatActivityListener chatActivityListener;
     private final UserVoiceActivityService userVoiceActivityService;
     private final CountingGameService countingGameService;
-    private final Environment environment;
     private final CacheConfig cacheConfig;
     
     // Import default values from application.properties

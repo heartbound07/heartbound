@@ -77,7 +77,8 @@ public class DefuseCommandListener extends ListenerAdapter {
         }
         
         // Guild restriction check
-        if (!event.isFromGuild() || !event.getGuild().getId().equals(mainGuildId)) {
+        final Guild guild = event.getGuild();
+        if (guild == null || !guild.getId().equals(mainGuildId)) {
             event.reply("This command can only be used in the main Heartbound server.")
                     .setEphemeral(true)
                     .queue();
