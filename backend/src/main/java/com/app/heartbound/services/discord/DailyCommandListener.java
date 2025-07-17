@@ -8,18 +8,18 @@ import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
 import com.app.heartbound.config.CacheConfig;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nonnull;
 import java.awt.Color;
 import java.time.LocalDateTime;
 import java.time.Duration;
-import java.time.format.DateTimeFormatter;
 
 @Component
 public class DailyCommandListener extends ListenerAdapter {
@@ -37,7 +37,6 @@ public class DailyCommandListener extends ListenerAdapter {
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
 
-    @Autowired
     public DailyCommandListener(UserService userService, CacheConfig cacheConfig, AuditService auditService) {
         this.userService = userService;
         this.cacheConfig = cacheConfig;
@@ -46,13 +45,14 @@ public class DailyCommandListener extends ListenerAdapter {
     }
     
     @Override
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("daily")) {
             return; // Not our command
         }
         
         // Guild restriction check
-        if (!event.isFromGuild() || !event.getGuild().getId().equals(mainGuildId)) {
+        final Guild guild = event.getGuild();
+        if (guild == null || !guild.getId().equals(mainGuildId)) {
             event.reply("This command can only be used in the main Heartbound server.")
                     .setEphemeral(true)
                     .queue();

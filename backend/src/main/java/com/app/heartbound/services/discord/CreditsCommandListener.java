@@ -2,12 +2,13 @@ package com.app.heartbound.services.discord;
 
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
+
+import javax.annotation.Nonnull;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.awt.Color;
@@ -20,14 +21,13 @@ public class CreditsCommandListener extends ListenerAdapter {
     
     private final UserService userService;
     
-    @Autowired
     public CreditsCommandListener(UserService userService) {
         this.userService = userService;
         logger.info("CreditsCommandListener initialized");
     }
     
     @Override
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("credits")) {
             return; // Not our command
         }
