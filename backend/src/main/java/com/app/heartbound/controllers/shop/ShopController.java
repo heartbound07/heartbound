@@ -25,7 +25,6 @@ import com.app.heartbound.services.shop.ShopService;
 import com.app.heartbound.repositories.shop.ShopRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -77,7 +76,6 @@ public class ShopController {
     @Value("${rate.limit.equip.burst-capacity:35}")
     private int equipBurstCapacity;
         
-    @Autowired
     public ShopController(ShopService shopService, ShopRepository shopRepository) {
         this.shopService = shopService;
         this.shopRepository = shopRepository;
@@ -656,6 +654,7 @@ public class ShopController {
             this.message = message;
         }
         
+        @SuppressWarnings("unused")
         public String getMessage() {
             return message;
         }
@@ -673,10 +672,12 @@ public class ShopController {
             this.message = message;
         }
         
+        @SuppressWarnings("unused")
         public boolean isValid() {
             return valid;
         }
         
+        @SuppressWarnings("unused")
         public String getMessage() {
             return message;
         }
@@ -692,6 +693,7 @@ public class ShopController {
             this.message = message;
         }
         
+        @SuppressWarnings("unused")
         public String getMessage() {
             return message;
         }

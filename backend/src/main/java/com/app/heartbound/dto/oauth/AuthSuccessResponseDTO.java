@@ -19,6 +19,7 @@ public class AuthSuccessResponseDTO {
     private String refreshToken;
 
     @JsonProperty("token_type")
+    @Builder.Default
     private String tokenType = "bearer"; // Default to bearer
 
     @JsonProperty("expires_in")

@@ -27,8 +27,11 @@ public class CreateGiveawayDTO {
     private String duration; // "1 day", "2 days", etc.
     
     // Restrictions
+    @Builder.Default
     private Boolean boostersOnly = false;
+    @Builder.Default
     private Boolean levelRestricted = false; // Level 5+ users only
+    @Builder.Default
     private Boolean noRestrictions = false;
     
     // Entry configuration
@@ -36,6 +39,7 @@ public class CreateGiveawayDTO {
     private Integer maxEntriesPerUser; // null = unlimited
     
     @Min(value = 0, message = "Entry price cannot be negative")
+    @Builder.Default
     private Integer entryPrice = 0; // Credits cost per entry, 0 = free
     
     // Validation helper
