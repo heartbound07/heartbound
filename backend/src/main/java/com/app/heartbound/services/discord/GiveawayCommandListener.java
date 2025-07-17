@@ -5,7 +5,6 @@ import com.app.heartbound.entities.Giveaway;
 import com.app.heartbound.entities.GiveawayEntry;
 import com.app.heartbound.services.GiveawayService;
 import com.app.heartbound.services.UserService;
-import com.app.heartbound.services.discord.DiscordBotSettingsService;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
@@ -19,18 +18,20 @@ import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInterac
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.Command;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
+import net.dv8tion.jda.api.interactions.modals.ModalMapping;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nonnull;
 import java.awt.Color;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -68,7 +69,6 @@ public class GiveawayCommandListener extends ListenerAdapter {
     @Value("${frontend.base.url}")
     private String frontendBaseUrl;
 
-    @Autowired
     @Lazy
     public GiveawayCommandListener(GiveawayService giveawayService, UserService userService, DiscordBotSettingsService discordBotSettingsService) {
         this.giveawayService = giveawayService;
@@ -94,7 +94,7 @@ public class GiveawayCommandListener extends ListenerAdapter {
     }
 
     @Override
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         String commandName = event.getName();
         
         if (commandName.equals("gcreate")) {
@@ -105,7 +105,7 @@ public class GiveawayCommandListener extends ListenerAdapter {
     }
 
     @Override
-    public void onCommandAutoCompleteInteraction(CommandAutoCompleteInteractionEvent event) {
+    public void onCommandAutoCompleteInteraction(@Nonnull CommandAutoCompleteInteractionEvent event) {
         if (!event.getName().equals("gdelete")) {
             return; // Not our command
         }
@@ -140,7 +140,7 @@ public class GiveawayCommandListener extends ListenerAdapter {
     }
 
     @Override
-    public void onModalInteraction(ModalInteractionEvent event) {
+    public void onModalInteraction(@Nonnull ModalInteractionEvent event) {
         if (!event.getModalId().equals("giveaway-create-modal")) {
             return; // Not our modal
         }
@@ -152,12 +152,11 @@ public class GiveawayCommandListener extends ListenerAdapter {
 
         try {
             // Extract values from modal
-            String prize = event.getValue("giveaway-prize").getAsString();
-            String winnersStr = event.getValue("giveaway-winners").getAsString();
-            String duration = event.getValue("giveaway-duration").getAsString();
-            String restrictionsStr = event.getValue("giveaway-restrictions").getAsString();
-            String entryConfigStr = event.getValue("giveaway-entry-config") != null ? 
-                event.getValue("giveaway-entry-config").getAsString() : "0";
+            String prize = Optional.ofNullable(event.getValue("giveaway-prize")).map(ModalMapping::getAsString).orElse(null);
+            String winnersStr = Optional.ofNullable(event.getValue("giveaway-winners")).map(ModalMapping::getAsString).orElse(null);
+            String duration = Optional.ofNullable(event.getValue("giveaway-duration")).map(ModalMapping::getAsString).orElse(null);
+            String restrictionsStr = Optional.ofNullable(event.getValue("giveaway-restrictions")).map(ModalMapping::getAsString).orElse(null);
+            String entryConfigStr = Optional.ofNullable(event.getValue("giveaway-entry-config")).map(ModalMapping::getAsString).orElse("0");
 
             // Parse the combined entry config field
             String[] configParts = parseEntryConfig(entryConfigStr);
@@ -197,7 +196,7 @@ public class GiveawayCommandListener extends ListenerAdapter {
     }
 
     @Override
-    public void onButtonInteraction(ButtonInteractionEvent event) {
+    public void onButtonInteraction(@Nonnull ButtonInteractionEvent event) {
         String componentId = event.getComponentId();
         
         if (!componentId.startsWith("giveaway-enter:")) {
@@ -602,10 +601,15 @@ public class GiveawayCommandListener extends ListenerAdapter {
         }
 
         // Get the giveaway ID from the command option
-        String giveawayIdStr = event.getOption("name").getAsString();
+        String giveawayIdStr = Optional.ofNullable(event.getOption("name")).map(OptionMapping::getAsString).orElse(null);
         
         // Acknowledge the command immediately
         event.deferReply(true).queue(); // Ephemeral response
+
+        if (giveawayIdStr == null) {
+            event.getHook().editOriginal("❌ **Error**\nGiveaway name option is missing.").queue();
+            return;
+        }
 
         try {
             UUID giveawayId = UUID.fromString(giveawayIdStr);

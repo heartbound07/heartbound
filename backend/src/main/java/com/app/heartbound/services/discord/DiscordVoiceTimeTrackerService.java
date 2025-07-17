@@ -13,6 +13,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.Nonnull;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -42,7 +43,7 @@ public class DiscordVoiceTimeTrackerService extends ListenerAdapter {
 
     @Override
     @Transactional
-    public void onGuildVoiceUpdate(GuildVoiceUpdateEvent event) {
+    public void onGuildVoiceUpdate(@Nonnull GuildVoiceUpdateEvent event) {
         try {
             String userId = event.getMember().getId();
             AudioChannelUnion leftChannel = event.getChannelLeft();

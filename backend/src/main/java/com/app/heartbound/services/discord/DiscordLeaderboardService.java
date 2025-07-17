@@ -157,9 +157,6 @@ public class DiscordLeaderboardService {
                     .filter(id -> id != null && !id.isEmpty())
                     .collect(Collectors.toSet());
                 
-                Set<Long> activePairingIds = activePairings.stream()
-                    .map(com.app.heartbound.entities.Pairing::getId)
-                    .collect(Collectors.toSet());
                 
                 int deletedCount = 0;
                 int validatedCount = 0;
@@ -499,12 +496,6 @@ public class DiscordLeaderboardService {
         });
     }
     
-    /**
-     * Build the Discord embed for a pairing
-     */
-    private MessageEmbed buildPairingEmbed(PairingDTO pairing) {
-        return buildPairingEmbed(pairing, null);
-    }
     
     /**
      * Build the Discord embed for a pairing with rank information

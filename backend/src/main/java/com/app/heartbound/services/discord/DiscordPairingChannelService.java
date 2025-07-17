@@ -3,7 +3,6 @@ package com.app.heartbound.services.discord;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.UserSnowflake;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
@@ -635,12 +634,6 @@ public class DiscordPairingChannelService {
         }
     }
     
-    private boolean isPairingChannel(TextChannel channel) {
-        String name = channel.getName();
-        
-        // Check if it's a pairing channel based on naming pattern
-        return name.matches(".*-\\d+$"); // Ends with dash and number (pairing ID)
-    }
     
     private boolean isValidDiscordId(String discordId) {
         if (discordId == null || discordId.trim().isEmpty()) {

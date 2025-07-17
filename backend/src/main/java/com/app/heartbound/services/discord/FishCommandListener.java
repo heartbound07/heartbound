@@ -9,14 +9,15 @@ import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
 import com.app.heartbound.repositories.shop.ShopRepository;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nonnull;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
@@ -36,17 +37,6 @@ public class FishCommandListener extends ListenerAdapter {
     
     @Value("${fishing.cooldown-hours:6}")
     private int cooldownHours;
-    
-    // Fishing emojis with their Unicode representations
-    private static final List<String> FISH_EMOJIS = Arrays.asList(
-            "🐟", // :fish:
-            "🐠", // :tropical_fish:
-            "🐡", // :blowfish:
-            "🪼", // :jellyfish:
-            "🦈", // :shark:
-            "🦦", // :otter:
-            "🦐"  // :shrimp:
-    );
     
     // Rare catches that give bonus credits
     private static final List<String> RARE_CATCHES = Arrays.asList(
@@ -71,7 +61,6 @@ public class FishCommandListener extends ListenerAdapter {
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
     
-    @Autowired
     public FishCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService, ShopRepository shopRepository) {
         this.userService = userService;
         this.secureRandomService = secureRandomService;
@@ -156,13 +145,14 @@ public class FishCommandListener extends ListenerAdapter {
     }
     
     @Override
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("fish")) {
             return; // Not our command
         }
         
         // Guild restriction check
-        if (!event.isFromGuild() || !event.getGuild().getId().equals(mainGuildId)) {
+        Guild guild = event.getGuild();
+        if (guild == null || !guild.getId().equals(mainGuildId)) {
             event.reply("This command can only be used in the main Heartbound server.")
                     .setEphemeral(true)
                     .queue();

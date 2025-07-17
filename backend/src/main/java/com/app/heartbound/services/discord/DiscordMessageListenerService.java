@@ -16,6 +16,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.Nonnull;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.awt.Color;
@@ -430,7 +431,7 @@ public class DiscordMessageListenerService extends ListenerAdapter {
 
     @Override
     @Transactional
-    public void onMessageReceived(MessageReceivedEvent event) {
+    public void onMessageReceived(@Nonnull MessageReceivedEvent event) {
         // Ignore bot messages to prevent infinite loops
         if (event.getAuthor().isBot()) {
             return;
