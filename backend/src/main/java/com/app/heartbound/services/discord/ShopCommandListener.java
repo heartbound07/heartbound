@@ -32,7 +32,7 @@ import net.dv8tion.jda.api.JDA;
 public class ShopCommandListener extends ListenerAdapter {
     
     private static final Logger logger = LoggerFactory.getLogger(ShopCommandListener.class);
-    private static final int PAGE_SIZE = 5; // Show 5 shop items per page section
+    private static final int PAGE_SIZE = 10; // Show 10 shop items per page section
     private static final Color EMBED_COLOR = new Color(88, 101, 242); // Discord Blurple
     
     // Define rarity colors similar to frontend
