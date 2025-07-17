@@ -10,18 +10,18 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
+import net.dv8tion.jda.api.interactions.modals.ModalMapping;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nonnull;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import java.awt.Color;
@@ -45,7 +45,6 @@ import java.util.Optional;
 public class BreakupCommandListener extends ListenerAdapter {
     
     private static final Logger logger = LoggerFactory.getLogger(BreakupCommandListener.class);
-    private static final Color EMBED_COLOR = new Color(220, 53, 69); // Bootstrap danger red
     private static final Color SUCCESS_COLOR = new Color(40, 167, 69); // Bootstrap success green
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy");
     
@@ -59,7 +58,6 @@ public class BreakupCommandListener extends ListenerAdapter {
     private boolean isRegistered = false;
     private JDA jdaInstance;
 
-    @Autowired
     public BreakupCommandListener(@Lazy PairingService pairingService, UserService userService) {
         this.pairingService = pairingService;
         this.userService = userService;
@@ -102,7 +100,7 @@ public class BreakupCommandListener extends ListenerAdapter {
     }
 
     @Override
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("breakup")) {
             return; // Not our command
         }
@@ -170,7 +168,7 @@ public class BreakupCommandListener extends ListenerAdapter {
     }
     
     @Override
-    public void onModalInteraction(ModalInteractionEvent event) {
+    public void onModalInteraction(@Nonnull ModalInteractionEvent event) {
         if (!event.getModalId().startsWith("breakup-modal-")) {
             return; // Not our modal
         }
@@ -188,7 +186,8 @@ public class BreakupCommandListener extends ListenerAdapter {
             Long pairingId = Long.parseLong(modalId.substring("breakup-modal-".length()));
             
             // Get the reason from the modal
-            String reason = event.getValue("breakup-reason").getAsString();
+            ModalMapping reasonMapping = event.getValue("breakup-reason");
+            String reason = reasonMapping != null ? reasonMapping.getAsString() : null;
             
             // Validate and sanitize reason
             if (reason == null || reason.trim().isEmpty()) {
@@ -230,7 +229,7 @@ public class BreakupCommandListener extends ListenerAdapter {
                     .build();
             
             // Process the breakup using existing service method
-            PairingDTO updatedPairing = pairingService.breakupPairing(pairingId, breakupRequest);
+            pairingService.breakupPairing(pairingId, breakupRequest);
             
             // Build success confirmation embed
             MessageEmbed successEmbed = buildBreakupSuccessEmbed(stats, partnerName, reason, event.getUser().getName());

@@ -3,7 +3,6 @@ package com.app.heartbound.services.discord;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.repositories.pairing.PairingRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
@@ -18,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nonnull;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.awt.Color;
@@ -37,8 +37,6 @@ import com.app.heartbound.services.AuditService;
 import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Component
 @Slf4j
@@ -515,7 +513,7 @@ public class ChatActivityListener extends ListenerAdapter {
     }
     
     @Override
-    public void onMessageReceived(MessageReceivedEvent event) {
+    public void onMessageReceived(@Nonnull MessageReceivedEvent event) {
         // Early return only if ALL features are disabled (message counting always enabled)
         // We always track message counts regardless of XP/activity feature status
         
@@ -592,8 +590,6 @@ public class ChatActivityListener extends ListenerAdapter {
                 userUpdated = true;
             }
             
-            int awardedXp = 0;
-            int awardedCredits = 0;
             int initialLevel = user.getLevel(); // Safe to access now, guaranteed to be non-null
             
             // Get role multiplier for this user
@@ -606,7 +602,6 @@ public class ChatActivityListener extends ListenerAdapter {
                 int multipliedXp = (int) Math.round(xpToAward * roleMultiplier);
                 user.setExperience(currentXp + multipliedXp);
                 userUpdated = true; // Mark user for update
-                awardedXp = multipliedXp;
                 log.debug("[XP DEBUG] Awarded {} XP ({}x{}) to user {}. New XP: {}", multipliedXp, xpToAward, roleMultiplier, userId, user.getExperience());
                 
                 // Award credits alongside XP for each eligible message
@@ -614,7 +609,6 @@ public class ChatActivityListener extends ListenerAdapter {
                     int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
                     int multipliedCredits = (int) Math.round(creditsToAward * roleMultiplier);
                     user.setCredits(currentCredits + multipliedCredits);
-                    awardedCredits = multipliedCredits;
                     log.debug("[CREDITS DEBUG] Awarded {} credits ({}x{}) to user {}. New balance: {}", 
                         multipliedCredits, creditsToAward, roleMultiplier, userId, user.getCredits());
                     
@@ -799,47 +793,35 @@ public class ChatActivityListener extends ListenerAdapter {
                 return 1.0; // No valid multipliers configured
             }
             
-            // Get the Discord guild and member
-            Guild guild = event.getGuild();
-            if (guild == null) {
-                log.debug("[ROLE MULTIPLIER] No guild found for message event");
+            // Use event.getMember() for efficiency and to avoid unnecessary API calls
+            Member member = event.getMember();
+            if (member == null) {
+                // This case is unlikely given the initial checks in onMessageReceived, but it's a safe fallback.
+                log.debug("[ROLE MULTIPLIER] Member not found in event for userId={}", userId);
                 return 1.0;
             }
+
+            // Check user's roles for the highest multiplier
+            double highestMultiplier = 1.0;
+            List<Role> userRoles = member.getRoles();
             
-            // Retrieve the member asynchronously but wait for result
-            try {
-                Member member = guild.retrieveMemberById(userId).complete();
-                if (member == null) {
-                    log.debug("[ROLE MULTIPLIER] Member not found in guild: userId={}", userId);
-                    return 1.0;
-                }
-                
-                // Check user's roles for the highest multiplier
-                double highestMultiplier = 1.0;
-                List<Role> userRoles = member.getRoles();
-                
-                for (Role role : userRoles) {
-                    String roleId = role.getId();
-                    if (roleMultipliers.containsKey(roleId)) {
-                        double multiplier = roleMultipliers.get(roleId);
-                        if (multiplier > highestMultiplier) {
-                            highestMultiplier = multiplier;
-                            log.debug("[ROLE MULTIPLIER] User {} has qualifying role {} with multiplier {}", 
-                                     userId, roleId, multiplier);
-                        }
+            for (Role role : userRoles) {
+                String roleId = role.getId();
+                if (roleMultipliers.containsKey(roleId)) {
+                    double multiplier = roleMultipliers.get(roleId);
+                    if (multiplier > highestMultiplier) {
+                        highestMultiplier = multiplier;
+                        log.debug("[ROLE MULTIPLIER] User {} has qualifying role {} with multiplier {}", 
+                                    userId, roleId, multiplier);
                     }
                 }
-                
-                if (highestMultiplier > 1.0) {
-                    log.debug("[ROLE MULTIPLIER] User {} final multiplier: {}", userId, highestMultiplier);
-                }
-                
-                return highestMultiplier;
-                
-            } catch (Exception memberException) {
-                log.warn("[ROLE MULTIPLIER] Failed to retrieve member {}: {}", userId, memberException.getMessage());
-                return 1.0;
             }
+            
+            if (highestMultiplier > 1.0) {
+                log.debug("[ROLE MULTIPLIER] User {} final multiplier: {}", userId, highestMultiplier);
+            }
+            
+            return highestMultiplier;
             
         } catch (Exception e) {
             log.error("[ROLE MULTIPLIER] Error getting user role multiplier for user {}: {}", userId, e.getMessage(), e);
