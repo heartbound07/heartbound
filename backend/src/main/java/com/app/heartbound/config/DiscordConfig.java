@@ -25,7 +25,6 @@ import com.app.heartbound.services.discord.AutoSlowmodeService;
 import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
 import com.app.heartbound.services.discord.UserVoiceActivityService;
-import com.app.heartbound.services.discord.PrisonReleaseService;
 import com.app.heartbound.services.discord.RolesCommandListener;
 import com.app.heartbound.services.discord.VerifyCommandListener;
 import com.app.heartbound.services.discord.PairCommandListener;
@@ -141,8 +140,6 @@ public class DiscordConfig {
     @Autowired
     private AutoSlowmodeService autoSlowmodeService;
 
-    @Autowired
-    private PrisonReleaseService prisonReleaseService;
 
     @Autowired
     private RolesCommandListener rolesCommandListener;

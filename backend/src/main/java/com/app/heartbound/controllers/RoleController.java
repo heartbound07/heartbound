@@ -3,7 +3,6 @@ package com.app.heartbound.controllers;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.services.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,7 +25,6 @@ public class RoleController {
     private final UserService userService;
     private static final Logger logger = LoggerFactory.getLogger(RoleController.class);
     
-    @Autowired
     public RoleController(UserService userService) {
         this.userService = userService;
     }
@@ -60,10 +58,25 @@ public class RoleController {
             Authentication authentication) {
         
         String adminId = authentication.getName();
-        List<String> userIds = (List<String>) request.get("userIds");
+        
+        Object userIdsRaw = request.get("userIds");
+        if (!(userIdsRaw instanceof List)) {
+            logger.warn("Admin {} attempted batch role assignment with missing or invalid userIds field", adminId);
+            return ResponseEntity.badRequest().body(Map.of("error", "The 'userIds' field is required and must be a list."));
+        }
+
+        List<String> userIds;
+        try {
+            userIds = ((List<?>) userIdsRaw).stream()
+                    .map(String.class::cast)
+                    .collect(Collectors.toList());
+        } catch (ClassCastException e) {
+            logger.warn("Admin {} provided a non-string user ID in batch assignment.", adminId);
+            return ResponseEntity.badRequest().body(Map.of("error", "All user IDs in the list must be strings."));
+        }
         
         // Security validation: Check input parameters
-        if (userIds == null || userIds.isEmpty()) {
+        if (userIds.isEmpty()) {
             logger.warn("Admin {} attempted batch role assignment with no user IDs", adminId);
             return ResponseEntity.badRequest().body(Map.of("error", "User IDs are required"));
         }
