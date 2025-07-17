@@ -7,16 +7,16 @@ import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
 import com.app.heartbound.config.CacheConfig;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.awt.Color;
+import javax.annotation.Nonnull;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,8 +25,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class GiveCommandListener extends ListenerAdapter {
     
     private static final Logger logger = LoggerFactory.getLogger(GiveCommandListener.class);
-    private static final Color SUCCESS_COLOR = new Color(34, 197, 94); // Green
-    private static final Color ERROR_COLOR = new Color(239, 68, 68); // Red
     private static final int COOLDOWN_SECONDS = 30; // 30 second cooldown
     
     // Track user cooldowns - userId -> lastGiveCommandTimestamp
@@ -39,7 +37,6 @@ public class GiveCommandListener extends ListenerAdapter {
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
 
-    @Autowired
     public GiveCommandListener(UserService userService, CacheConfig cacheConfig, AuditService auditService) {
         this.userService = userService;
         this.cacheConfig = cacheConfig;
@@ -48,13 +45,14 @@ public class GiveCommandListener extends ListenerAdapter {
     }
     
     @Override
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("give")) {
             return; // Not our command
         }
         
         // Guild restriction check
-        if (!event.isFromGuild() || !event.getGuild().getId().equals(mainGuildId)) {
+        Guild guild = event.getGuild();
+        if (guild == null || !guild.getId().equals(mainGuildId)) {
             event.reply("This command can only be used in the main Heartbound server.")
                     .setEphemeral(true)
                     .queue();

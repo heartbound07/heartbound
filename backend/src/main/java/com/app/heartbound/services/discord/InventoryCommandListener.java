@@ -20,9 +20,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional; // Import for potential future use
 import org.springframework.beans.factory.annotation.Value;
 
+import javax.annotation.Nonnull;
 import java.awt.Color;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -101,7 +101,7 @@ public class InventoryCommandListener extends ListenerAdapter {
 
     @Override
     @Transactional(readOnly = true) // Add transactionality here to ensure lazy loading works
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("inventory")) {
             return; // Not our command
         }
@@ -167,7 +167,7 @@ public class InventoryCommandListener extends ListenerAdapter {
 
     @Override
     @Transactional(readOnly = true) // Also needed for fetching user inventory again
-    public void onButtonInteraction(ButtonInteractionEvent event) {
+    public void onButtonInteraction(@Nonnull ButtonInteractionEvent event) {
         String componentId = event.getComponentId();
         if (!componentId.startsWith("inventory_")) {
             return; // Not our button

@@ -6,10 +6,9 @@ import net.dv8tion.jda.api.events.guild.GuildUnbanEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.Nonnull;
+import javax.annotation.Nonnull;
 
 @Service
 public class GuildEventListener extends ListenerAdapter {
@@ -18,7 +17,6 @@ public class GuildEventListener extends ListenerAdapter {
 
     private final UserService userService;
 
-    @Autowired
     public GuildEventListener(UserService userService) {
         this.userService = userService;
     }

@@ -19,6 +19,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.HashMap;
@@ -53,7 +54,7 @@ public class LevelCardCommandListener extends ListenerAdapter {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!"me".equals(event.getName())) {
             return;
         }

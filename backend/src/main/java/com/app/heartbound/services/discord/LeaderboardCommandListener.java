@@ -20,7 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
-import jakarta.annotation.Nonnull;
+import javax.annotation.Nonnull;
 import jakarta.annotation.PreDestroy;
 import java.awt.Color;
 import java.util.List;
