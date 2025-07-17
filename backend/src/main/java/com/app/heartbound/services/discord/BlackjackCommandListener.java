@@ -11,17 +11,19 @@ import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nonnull;
 import java.awt.Color;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -44,7 +46,6 @@ public class BlackjackCommandListener extends ListenerAdapter {
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
 
-    @Autowired
     public BlackjackCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService) {
         this.userService = userService;
         this.secureRandomService = secureRandomService;
@@ -53,13 +54,14 @@ public class BlackjackCommandListener extends ListenerAdapter {
     }
     
     @Override
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("blackjack")) {
             return; // Not our command
         }
         
         // Guild restriction check
-        if (!event.isFromGuild() || !event.getGuild().getId().equals(mainGuildId)) {
+        Guild guild = event.getGuild();
+        if (guild == null || !guild.getId().equals(mainGuildId)) {
             event.reply("This command can only be used in the main Heartbound server.")
                     .setEphemeral(true)
                     .queue();
@@ -107,7 +109,12 @@ public class BlackjackCommandListener extends ListenerAdapter {
         
         try {
             // Get bet amount from command option
-            int betAmount = event.getOption("bet").getAsInt();
+            OptionMapping betOption = event.getOption("bet");
+            if (betOption == null) {
+                event.getHook().sendMessage("Bet amount is a required option.").setEphemeral(true).queue();
+                return;
+            }
+            int betAmount = betOption.getAsInt();
             
             // Fetch the user from the database
             User user = userService.getUserById(userId);
@@ -171,7 +178,7 @@ public class BlackjackCommandListener extends ListenerAdapter {
     }
     
     @Override
-    public void onButtonInteraction(ButtonInteractionEvent event) {
+    public void onButtonInteraction(@Nonnull ButtonInteractionEvent event) {
         String componentId = event.getComponentId();
         
         if (!componentId.startsWith("blackjack_")) {
@@ -370,6 +377,10 @@ public class BlackjackCommandListener extends ListenerAdapter {
             case DEALER_WIN:
                 creditChange = 0; // Bet already deducted, no return
                 break;
+            case IN_PROGRESS:
+            default:
+                logger.warn("handleGameEnd called with unexpected game result '{}' for user {}", result, user.getId());
+                break;
         }
         
         int newCredits = (currentCredits == null ? 0 : currentCredits) + creditChange;
@@ -406,6 +417,10 @@ public class BlackjackCommandListener extends ListenerAdapter {
                     description = String.format("Lost %d credits in blackjack (bet: %d)", 
                         game.getBetAmount(), game.getBetAmount());
                     break;
+                case IN_PROGRESS:
+                default:
+                     logger.warn("handleGameEnd audit creation called with unexpected game result '{}' for user {}", result, user.getId());
+                     return; // Do not create an audit for an unexpected state
             }
             
             CreateAuditDTO auditEntry = CreateAuditDTO.builder()
