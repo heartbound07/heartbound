@@ -11,6 +11,9 @@ import org.springframework.stereotype.Service;
 
 import java.awt.Color;
 import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Service
@@ -23,6 +26,7 @@ public class CreditDropSchedulerService {
     private final JDA jda;
     private final Random random = new Random();
     private final ReentrantLock creditDropLock = new ReentrantLock();
+    private final ScheduledExecutorService expirationScheduler = Executors.newSingleThreadScheduledExecutor();
 
     @Scheduled(fixedRate = 60000) // Runs every minute
     public void scheduledCreditDrop() {
@@ -65,13 +69,23 @@ public class CreditDropSchedulerService {
             }
 
             EmbedBuilder embed = new EmbedBuilder()
-                .setDescription("Someone has dropped 🪙" + amount + " credits!")
+                .setDescription("Someone has dropped 🪙 **" + amount + "** credits!")
                 .setFooter("do /grab to collect the credits!")
                 .setColor(new Color(52, 152, 219)); // A pleasant blue color
 
             channel.sendMessageEmbeds(embed.build()).queue(message -> {
                 creditDropStateService.startDrop(channelId, message.getId(), amount);
                 log.info("[CreditDropScheduler] Dropped {} credits in channel {}.", amount, channelId);
+
+                // Schedule expiration
+                expirationScheduler.schedule(() -> {
+                    creditDropStateService.expireDrop(channelId, message.getId()).ifPresent(expiredDrop -> {
+                        message.delete().queue(
+                            success -> log.info("[CreditDropScheduler] Expired and deleted credit drop message {}.", message.getId()),
+                            error -> log.error("[CreditDropScheduler] Failed to delete expired drop message {}: {}", message.getId(), error.getMessage())
+                        );
+                    });
+                }, 30, TimeUnit.SECONDS);
             }, error -> {
                 log.error("[CreditDropScheduler] Failed to send credit drop message to channel {}: {}", channelId, error.getMessage());
             });

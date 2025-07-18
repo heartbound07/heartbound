@@ -19,6 +19,18 @@ public class CreditDropStateService {
         return Optional.ofNullable(activeDrops.remove(channelId));
     }
 
+    public Optional<ActiveDrop> expireDrop(String channelId, String messageId) {
+        final ActiveDrop[] removedDrop = {null};
+        activeDrops.computeIfPresent(channelId, (key, existingDrop) -> {
+            if (existingDrop.messageId().equals(messageId)) {
+                removedDrop[0] = existingDrop;
+                return null; // remove the mapping
+            }
+            return existingDrop; // keep the existing mapping
+        });
+        return Optional.ofNullable(removedDrop[0]);
+    }
+
     public boolean hasActiveDrop(String channelId) {
         return activeDrops.containsKey(channelId);
     }
