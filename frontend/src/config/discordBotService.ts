@@ -36,6 +36,10 @@ export interface DiscordBotSettingsDTO {
   slowmodeTimeWindow: number
   slowmodeDuration: number
   slowmodeCooldown: number
+  creditDropEnabled: boolean;
+  creditDropChannelId: string;
+  creditDropMinAmount: number;
+  creditDropMaxAmount: number;
   age15RoleId: string
   age16To17RoleId: string
   age18PlusRoleId: string

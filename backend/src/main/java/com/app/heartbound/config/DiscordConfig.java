@@ -29,6 +29,7 @@ import com.app.heartbound.services.discord.RolesCommandListener;
 import com.app.heartbound.services.discord.VerifyCommandListener;
 import com.app.heartbound.services.discord.PairCommandListener;
 import com.app.heartbound.services.discord.GuildEventListener;
+import com.app.heartbound.services.discord.GrabCommandListener;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -154,6 +155,9 @@ public class DiscordConfig {
     @Autowired
     private GuildEventListener guildEventListener;
 
+    @Autowired
+    private GrabCommandListener grabCommandListener;
+
     @Bean
     public JDA jda() {
         if (discordToken == null || discordToken.isBlank() || discordToken.equals("${DISCORD_BOT_TOKEN}")) {
@@ -194,7 +198,7 @@ public class DiscordConfig {
                                       inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService, prisonCommandListener, countingGameListener,
-                                      autoSlowmodeService, rolesCommandListener, verifyCommandListener, guildEventListener)
+                                      autoSlowmodeService, rolesCommandListener, verifyCommandListener, guildEventListener, grabCommandListener)
                     .build();
 
             // Waits until JDA is fully connected and ready
@@ -329,7 +333,8 @@ public class DiscordConfig {
                     Commands.slash("pair", "Request to pair with another user")
                         .addOptions(
                                 new OptionData(OptionType.USER, "user", "The user you want to pair with", true)
-                        )
+                        ),
+                    Commands.slash("grab", "Collect the credits dropped in this channel")
                 )
                 .queue(
                     cmds -> {

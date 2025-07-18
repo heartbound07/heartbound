@@ -122,6 +122,21 @@ public class DiscordBotSettingsDTO {
     @Min(1)
     private Integer slowmodeCooldown;
 
+    // Credit Drop Configuration
+    @NotNull
+    private Boolean creditDropEnabled;
+
+    @Pattern(regexp = "^\\d*$", message = "Channel ID must contain only digits")
+    private String creditDropChannelId;
+
+    @NotNull
+    @Min(1)
+    private Integer creditDropMinAmount;
+
+    @NotNull
+    @Min(1)
+    private Integer creditDropMaxAmount;
+
     // Self-Assignable Roles Configuration
     @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
     private String age15RoleId;

@@ -119,6 +119,12 @@ public class DiscordBotSettingsService {
             settings.setRegionOceRoleId("");
             settings.setRegionRolesThumbnailUrl("");
 
+            // Initialize credit drop settings
+            settings.setCreditDropEnabled(false);
+            settings.setCreditDropChannelId("");
+            settings.setCreditDropMinAmount(1);
+            settings.setCreditDropMaxAmount(1000);
+
             repository.save(settings);
         }
         
@@ -186,6 +192,12 @@ public class DiscordBotSettingsService {
         dto.setSlowmodeTimeWindow(settings.getSlowmodeTimeWindow());
         dto.setSlowmodeDuration(settings.getSlowmodeDuration());
         dto.setSlowmodeCooldown(settings.getSlowmodeCooldown());
+
+        // Map credit drop settings
+        dto.setCreditDropEnabled(settings.getCreditDropEnabled());
+        dto.setCreditDropChannelId(settings.getCreditDropChannelId());
+        dto.setCreditDropMinAmount(settings.getCreditDropMinAmount());
+        dto.setCreditDropMaxAmount(settings.getCreditDropMaxAmount());
 
         // Map self-assignable roles
         dto.setAge15RoleId(settings.getAge15RoleId());
@@ -274,6 +286,12 @@ public class DiscordBotSettingsService {
         settings.setSlowmodeTimeWindow(dto.getSlowmodeTimeWindow());
         settings.setSlowmodeDuration(dto.getSlowmodeDuration());
         settings.setSlowmodeCooldown(dto.getSlowmodeCooldown());
+
+        // Update credit drop settings
+        settings.setCreditDropEnabled(dto.getCreditDropEnabled());
+        settings.setCreditDropChannelId(dto.getCreditDropChannelId());
+        settings.setCreditDropMinAmount(dto.getCreditDropMinAmount());
+        settings.setCreditDropMaxAmount(dto.getCreditDropMaxAmount());
 
         // Update self-assignable roles
         settings.setAge15RoleId(dto.getAge15RoleId());

@@ -62,6 +62,12 @@ public class DiscordBotSettings {
     private Integer slowmodeDuration = 30; // Seconds of slowmode to apply
     private Integer slowmodeCooldown = 10; // Minutes before re-evaluation
 
+    // Credit Drop Configuration
+    private Boolean creditDropEnabled = false;
+    private String creditDropChannelId;
+    private Integer creditDropMinAmount = 1;
+    private Integer creditDropMaxAmount = 1000;
+
     // Self-Assignable Roles Configuration
     private String age15RoleId;
     private String age16To17RoleId;
@@ -369,6 +375,39 @@ public class DiscordBotSettings {
 
     public void setSlowmodeCooldown(Integer slowmodeCooldown) {
         this.slowmodeCooldown = slowmodeCooldown;
+    }
+
+    // Credit Drop Getters and Setters
+    public Boolean getCreditDropEnabled() {
+        return creditDropEnabled;
+    }
+
+    public void setCreditDropEnabled(Boolean creditDropEnabled) {
+        this.creditDropEnabled = creditDropEnabled;
+    }
+
+    public String getCreditDropChannelId() {
+        return creditDropChannelId;
+    }
+
+    public void setCreditDropChannelId(String creditDropChannelId) {
+        this.creditDropChannelId = creditDropChannelId;
+    }
+
+    public Integer getCreditDropMinAmount() {
+        return creditDropMinAmount;
+    }
+
+    public void setCreditDropMinAmount(Integer creditDropMinAmount) {
+        this.creditDropMinAmount = creditDropMinAmount;
+    }
+
+    public Integer getCreditDropMaxAmount() {
+        return creditDropMaxAmount;
+    }
+
+    public void setCreditDropMaxAmount(Integer creditDropMaxAmount) {
+        this.creditDropMaxAmount = creditDropMaxAmount;
     }
 
     // Role Multipliers getters and setters
