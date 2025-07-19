@@ -18,10 +18,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
+import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.time.LocalDateTime;
 
 @Component
@@ -57,6 +60,8 @@ public class FishCommandListener extends ListenerAdapter {
     private final SecureRandomService secureRandomService;
     private final AuditService auditService;
     private final ShopRepository shopRepository;
+
+    private final Map<String, LocalDateTime> userCooldowns = new ConcurrentHashMap<>();
 
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
@@ -149,6 +154,16 @@ public class FishCommandListener extends ListenerAdapter {
             return; // Not our command
         }
         
+        String userId = event.getUser().getId();
+        LocalDateTime now = LocalDateTime.now();
+
+        // 1-second cooldown to prevent spam
+        LocalDateTime lastUsed = userCooldowns.get(userId);
+        if (lastUsed != null && Duration.between(lastUsed, now).getSeconds() < 1) {
+            event.reply("You're fishing too fast! Please wait a moment.").setEphemeral(true).queue();
+            return;
+        }
+
         // Guild restriction check
         Guild guild = event.getGuild();
         if (guild == null || !guild.getId().equals(mainGuildId)) {
@@ -158,7 +173,9 @@ public class FishCommandListener extends ListenerAdapter {
             return;
         }
 
-        String userId = event.getUser().getId();
+        // All checks passed, update cooldown
+        userCooldowns.put(userId, now);
+        
         logger.info("User {} requested /fish", userId);
         
         // Acknowledge the interaction immediately (public, not ephemeral)
