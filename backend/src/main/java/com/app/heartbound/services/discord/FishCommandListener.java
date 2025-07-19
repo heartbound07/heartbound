@@ -157,9 +157,9 @@ public class FishCommandListener extends ListenerAdapter {
         String userId = event.getUser().getId();
         LocalDateTime now = LocalDateTime.now();
 
-        // 1-second cooldown to prevent spam
+        // 3-second cooldown to prevent spam
         LocalDateTime lastUsed = userCooldowns.get(userId);
-        if (lastUsed != null && Duration.between(lastUsed, now).getSeconds() < 1) {
+        if (lastUsed != null && Duration.between(lastUsed, now).getSeconds() < 3) {
             event.reply("You're fishing too fast! Please wait a moment.").setEphemeral(true).queue();
             return;
         }
