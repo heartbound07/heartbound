@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
@@ -62,7 +63,7 @@ public class CountingGameListener extends ListenerAdapter {
             log.debug("Processing counting attempt: user={}, number={}", userId, attemptedNumber);
             
             // Process the count attempt
-            CountingResult result = countingGameService.processCount(userId, attemptedNumber);
+            CountingResult result = countingGameService.processCount(userId, attemptedNumber, event.getMessageId());
             
             // Handle the result
             handleCountingResult(event, result, attemptedNumber, userId);
@@ -84,6 +85,12 @@ public class CountingGameListener extends ListenerAdapter {
         if (event.getComponentId().equals("save_count")) {
             handleSaveCountButton(event);
         }
+    }
+    
+    @Override
+    public void onMessageDelete(@Nonnull MessageDeleteEvent event) {
+        // Pass the deletion event to the service to handle anti-griefing logic
+        countingGameService.handleMessageDeletion(event.getChannel().getId(), event.getMessageId());
     }
     
     private void handleSaveCountButton(ButtonInteractionEvent event) {

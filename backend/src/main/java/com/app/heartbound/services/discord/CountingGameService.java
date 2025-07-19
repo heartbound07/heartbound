@@ -12,6 +12,8 @@ import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
 import lombok.extern.slf4j.Slf4j;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -211,7 +213,7 @@ public class CountingGameService {
      * Process a counting attempt and return the result
      */
     @Transactional
-    public CountingResult processCount(String userId, int attemptedNumber) {
+    public CountingResult processCount(String userId, int attemptedNumber, String messageId) {
         if (!isGameActive()) {
             return CountingResult.GAME_DISABLED;
         }
@@ -259,12 +261,12 @@ public class CountingGameService {
         }
         
         // Correct count!
-        return handleCorrectCount(userId, userData, gameState, attemptedNumber);
+        return handleCorrectCount(userId, userData, gameState, attemptedNumber, messageId);
     }
     
     @Transactional
     protected CountingResult handleCorrectCount(String userId, CountingUserData userData, 
-                                               CountingGameState gameState, int number) {
+                                               CountingGameState gameState, int number, String messageId) {
         // If the count is starting over (i.e., at 1) after a failure (indicated by a non-null lastFailedCount),
         // it means the opportunity to save the count was missed. Reset the save cost for the next cycle.
         if (number == 1 && gameState.getLastFailedCount() != null) {
@@ -275,6 +277,7 @@ public class CountingGameService {
         // Update game state
         gameState.setCurrentCount(number);
         gameState.setLastUserId(userId);
+        gameState.setLastCorrectMessageId(messageId); // Store the message ID
         if (number > gameState.getHighestCount()) {
             gameState.setHighestCount(number);
         }
@@ -490,6 +493,47 @@ public class CountingGameService {
         }
     }
     
+    /**
+     * Handle the deletion of a message in the counting channel.
+     * This is the core of the anti-griefing feature.
+     */
+    @Transactional
+    public void handleMessageDeletion(String channelId, String deletedMessageId) {
+        if (!isCountingChannel(channelId)) {
+            return; // Not our channel
+        }
+
+        CountingGameState gameState = getGameState();
+
+        // Check if the deleted message was the last correct one
+        if (gameState.getLastCorrectMessageId() != null && gameState.getLastCorrectMessageId().equals(deletedMessageId)) {
+            log.info("Detected deletion of last correct count message (ID: {}). Announcing next number.", deletedMessageId);
+
+            int nextNumber = gameState.getCurrentCount() + 1;
+            String announcement = "The previous count was deleted. The next number is **" + nextNumber + "**.";
+
+            // Announce the next number in the channel
+            try {
+                JDA jda = discordService.getJDA();
+                TextChannel channel = jda.getTextChannelById(countingChannelId);
+                if (channel != null) {
+                    channel.sendMessage(announcement).queue();
+                } else {
+                    log.error("Could not find counting channel with ID: {}", countingChannelId);
+                }
+            } catch (Exception e) {
+                log.error("Failed to send deletion announcement to channel {}: {}", countingChannelId, e.getMessage());
+            }
+
+            // Nullify the message ID to prevent re-triggering
+            gameState.setLastCorrectMessageId(null);
+            gameStateRepository.save(gameState);
+            
+            // Invalidate cache to reflect the change
+            cacheConfig.invalidateCountingGameCache();
+        }
+    }
+
     /**
      * Get all currently timed out users with their details
      */

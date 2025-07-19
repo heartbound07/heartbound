@@ -25,6 +25,7 @@ public class CountingGameState {
     @Builder.Default
     private Integer currentCount = 0;
     private String lastUserId; // Discord ID of user who sent the last correct number
+    private String lastCorrectMessageId; // Discord ID of the message for the last correct number
     
     // Reset tracking
     @Builder.Default
