@@ -1,4 +1,4 @@
-package com.app.heartbound.services.discord.mines;
+package com.app.heartbound.services.discord;
 
 import lombok.Data;
 import net.dv8tion.jda.api.interactions.InteractionHook;

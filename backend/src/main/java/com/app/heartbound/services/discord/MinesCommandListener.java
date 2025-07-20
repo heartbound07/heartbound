@@ -3,7 +3,7 @@ package com.app.heartbound.services.discord;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.SecureRandomService;
-import com.app.heartbound.services.discord.mines.MinesGame;
+
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +36,10 @@ import java.util.stream.IntStream;
 public class MinesCommandListener extends ListenerAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(MinesCommandListener.class);
+    private static final Color EMBED_COLOR = new Color(88, 101, 242); // Discord Blurple
+    private static final Color WIN_COLOR = new Color(40, 167, 69);
+    private static final Color LOSE_COLOR = new Color(220, 53, 69);
+    private static final Color TIMEOUT_COLOR = Color.ORANGE;
     private final Map<String, MinesGame> activeGames = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
@@ -188,11 +192,11 @@ public class MinesCommandListener extends ListenerAdapter {
 
         EmbedBuilder embed = new EmbedBuilder()
                 .setTitle("🎉 You Won!")
-                .setColor(Color.GREEN)
+                .setColor(WIN_COLOR)
                 .appendDescription(String.format("You cashed out successfully!%n%n"))
-                .appendDescription(String.format("**Bet Amount:** 🪙 %d%n", game.getBetAmount()))
-                .appendDescription(String.format("**Won:** 🪙 %d (%.2fx)%n%n", winnings, game.getCurrentMultiplier()))
-                .appendDescription(String.format("**New Balance:** 🪙 %d", user.getCredits()));
+                .appendDescription(String.format("**Bet Amount:** 🪙 %d credits%n", game.getBetAmount()))
+                .appendDescription(String.format("**Won:** 🪙 %d credits (%.2fx)%n%n", winnings, game.getCurrentMultiplier()))
+                .appendDescription(String.format("**New Balance:** 🪙 %d credits", user.getCredits()));
 
         List<ActionRow> components = createRevealedGrid(game, -1, -1, true);
         game.getHook().editOriginalEmbeds(embed.build()).setComponents(components).queue();
@@ -204,10 +208,9 @@ public class MinesCommandListener extends ListenerAdapter {
 
         EmbedBuilder embed = new EmbedBuilder()
                 .setTitle("💔 You Lost!")
-                .setColor(Color.RED)
-                .appendDescription(String.format("You hit a mine and lost your bet. Better luck next time!%n%n"))
-                .appendDescription(String.format("**Bet Amount:** 🪙 %d%n", game.getBetAmount()))
-                .appendDescription(String.format("**New Balance:** 🪙 %d", user.getCredits()));
+                .setColor(LOSE_COLOR)
+                .appendDescription(String.format("**Bet Amount:** 🪙 %d credits%n", game.getBetAmount()))
+                .appendDescription(String.format("**New Balance:** 🪙 %d credits", user.getCredits()));
 
         List<ActionRow> components = createRevealedGrid(game, hitRow, hitCol, true);
         game.getHook().editOriginalEmbeds(embed.build()).setComponents(components).queue();
@@ -232,11 +235,11 @@ public class MinesCommandListener extends ListenerAdapter {
     private EmbedBuilder createGameEmbed(MinesGame game) {
         return new EmbedBuilder()
                 .setTitle("💣 Mines - Select Your Squares!")
-                .setColor(Color.CYAN)
-                .appendDescription(String.format("**Bet Amount:** 🪙 %d%n", game.getBetAmount()))
-                .appendDescription(String.format("**Number of Mines:** %d%n", game.getMineCount()))
-                .appendDescription(String.format("**Current Multiplier:** %.2fx%n", game.getCurrentMultiplier()))
-                .appendDescription(String.format("**Potential Winnings:** 🪙 %d", (int) Math.round(game.getBetAmount() * game.getCurrentMultiplier())));
+                .setColor(EMBED_COLOR)
+                .appendDescription(String.format("**Bet Amount:** 🪙 %d credits%n", game.getBetAmount()))
+                .appendDescription(String.format("**Winnings:** 🪙 %d credits (%.2fx)",
+                        (int) Math.round(game.getBetAmount() * game.getCurrentMultiplier()),
+                        game.getCurrentMultiplier()));
     }
 
     private List<ActionRow> createGameComponents(String userId, boolean disabled) {
@@ -272,13 +275,25 @@ public class MinesCommandListener extends ListenerAdapter {
             List<Button> buttons = new ArrayList<>();
             for (int c = 0; c < GRID_SIZE; c++) {
                 String buttonId = "mines_revealed_" + r + "_" + c;
+                Button button;
+
                 if (r == hitRow && c == hitCol) {
-                    buttons.add(Button.danger(buttonId, "💣").withDisabled(disabled));
+                    // The exact mine the user clicked to lose
+                    button = Button.danger(buttonId, "💣").withDisabled(disabled);
                 } else if (game.getMines()[r][c]) {
-                    buttons.add(Button.secondary(buttonId, "💣").withDisabled(disabled));
+                    // Other mines that were not clicked
+                    button = Button.secondary(buttonId, "💣").withDisabled(disabled);
                 } else {
-                    buttons.add(Button.success(buttonId, "✅").withDisabled(disabled));
+                    // This is a safe square. Now check if it was revealed.
+                    if (game.getRevealed()[r][c]) {
+                        // Safe square the user clicked
+                        button = Button.success(buttonId, "✅").withDisabled(disabled);
+                    } else {
+                        // Safe square the user did NOT click
+                        button = Button.secondary(buttonId, "✅").withDisabled(disabled);
+                    }
                 }
+                buttons.add(button);
             }
             rows.add(ActionRow.of(buttons));
         }
@@ -294,8 +309,8 @@ public class MinesCommandListener extends ListenerAdapter {
                 logger.info("Game for user {} timed out. Bet of {} lost.", game.getUserId(), game.getBetAmount());
                 EmbedBuilder embed = new EmbedBuilder()
                         .setTitle("Game Timed Out")
-                        .setColor(Color.ORANGE)
-                        .setDescription("Your game of Mines has expired. Your bet of 🪙 " + game.getBetAmount() + " has been forfeited.");
+                        .setColor(TIMEOUT_COLOR)
+                        .setDescription("Your game of Mines has expired. Your bet of 🪙 " + game.getBetAmount() + " credits has been forfeited.");
                 
                 List<ActionRow> components = createRevealedGrid(game, -1, -1, true);
 
