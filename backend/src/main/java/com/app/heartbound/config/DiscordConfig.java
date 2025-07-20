@@ -22,6 +22,7 @@ import com.app.heartbound.services.discord.CountingGameListener;
 import com.app.heartbound.services.discord.GiveawayCommandListener;
 import com.app.heartbound.services.discord.OpenCaseCommandListener;
 import com.app.heartbound.services.discord.AutoSlowmodeService;
+import com.app.heartbound.services.discord.MinesCommandListener;
 import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import com.app.heartbound.services.discord.DiscordVoiceTimeTrackerService;
 import com.app.heartbound.services.discord.UserVoiceActivityService;
@@ -158,6 +159,9 @@ public class DiscordConfig {
     @Autowired
     private GrabCommandListener grabCommandListener;
 
+    @Autowired
+    private MinesCommandListener minesCommandListener;
+
     @Bean
     public JDA jda() {
         if (discordToken == null || discordToken.isBlank() || discordToken.equals("${DISCORD_BOT_TOKEN}")) {
@@ -198,7 +202,7 @@ public class DiscordConfig {
                                       inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService, prisonCommandListener, countingGameListener,
-                                      autoSlowmodeService, rolesCommandListener, verifyCommandListener, guildEventListener, grabCommandListener)
+                                      autoSlowmodeService, rolesCommandListener, verifyCommandListener, guildEventListener, grabCommandListener, minesCommandListener)
                     .build();
 
             // Waits until JDA is fully connected and ready
@@ -334,7 +338,15 @@ public class DiscordConfig {
                         .addOptions(
                                 new OptionData(OptionType.USER, "user", "The user you want to pair with", true)
                         ),
-                    Commands.slash("grab", "Collect the credits dropped in this channel")
+                    Commands.slash("grab", "Collect the credits dropped in this channel"),
+                    Commands.slash("mines", "Play a game of Mines and bet credits")
+                        .addOptions(
+                            new OptionData(OptionType.INTEGER, "bet", "Amount of credits to bet", true)
+                                .setMinValue(1),
+                            new OptionData(OptionType.INTEGER, "mines", "Number of mines (1-8)", true)
+                                .setMinValue(1)
+                                .setMaxValue(8)
+                        )
                 )
                 .queue(
                     cmds -> {

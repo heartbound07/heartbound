@@ -3,7 +3,6 @@ package com.app.heartbound.config;
 import com.app.heartbound.config.security.JWTChannelInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -33,7 +32,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Value("${cors.allowed-origins}")
     private String allowedOrigins;
 
-    @Autowired
     public WebSocketConfig(JWTChannelInterceptor jwtChannelInterceptor) {
         this.jwtChannelInterceptor = jwtChannelInterceptor;
         logger.debug("Initializing WebSocketConfig with JWTChannelInterceptor");

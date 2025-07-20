@@ -110,6 +110,10 @@ public class SecureRandomService {
         operationsCount.incrementAndGet();
         return secureRandom.nextDouble();
     }
+
+    public SecureRandom getSecureRandom() {
+        return secureRandom;
+    }
     
     /**
      * Perform weighted random selection from a list of items
