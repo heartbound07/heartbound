@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Set;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, String> {
@@ -79,4 +81,9 @@ public interface UserRepository extends JpaRepository<User, String> {
     void incrementCreditsAndXp(@Param("userId") String userId, @Param("credits") int credits, @Param("xp") int xp);
 
     List<User> findByPrisonReleaseAtIsNotNull();
+
+    // Pessimistic locking for purchase transactions
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.id = :userId")
+    Optional<User> findByIdWithLock(@Param("userId") String userId, LockModeType lockMode);
 }

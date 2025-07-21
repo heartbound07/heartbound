@@ -16,6 +16,7 @@ import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
 import com.app.heartbound.exceptions.shop.ItemAlreadyOwnedException;
 import com.app.heartbound.exceptions.shop.ItemNotEquippableException;
+import com.app.heartbound.exceptions.shop.ItemNotOwnedException;
 import com.app.heartbound.exceptions.shop.RoleRequirementNotMetException;
 import com.app.heartbound.exceptions.shop.CaseNotFoundException;
 import com.app.heartbound.exceptions.shop.CaseNotOwnedException;
@@ -42,12 +43,14 @@ import com.app.heartbound.enums.AuditCategory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -231,6 +234,45 @@ public class ShopService {
     }
     
     /**
+     * Validates if an item can be purchased based on current shop visibility rules.
+     * An item is purchasable only if it's currently displayed in either featured or daily sections.
+     * This logic is critical for preventing users from purchasing expired, inactive, or unlisted items.
+     * 
+     * @param item The Shop item to validate
+     * @return true if item can be purchased, false otherwise
+     */
+    private boolean isItemPurchasable(Shop item) {
+        if (item == null) {
+            return false;
+        }
+
+        // Check if item is active
+        if (!item.getIsActive()) {
+            logger.warn("Purchase validation failed: Item {} is not active", item.getId());
+            return false;
+        }
+        
+        // Check if item has expired
+        if (item.getExpiresAt() != null && item.getExpiresAt().isBefore(LocalDateTime.now())) {
+            logger.warn("Purchase validation failed: Item {} has expired", item.getId());
+            return false;
+        }
+        
+        // Security Check: Item must be either featured or daily to be purchasable
+        boolean isFeatured = item.getIsFeatured();
+        boolean isDaily = item.getIsDaily();
+        
+        if (!isFeatured && !isDaily) {
+            logger.warn("Purchase validation failed: Item {} is not currently displayed in shop layout (not featured or daily)", item.getId());
+            return false;
+        }
+        
+        logger.debug("Purchase validation passed: Item {} is purchasable (featured: {}, daily: {})", 
+                    item.getId(), isFeatured, isDaily);
+        return true;
+    }
+    
+    /**
      * Purchase an item for a user
      * @param userId User ID
      * @param itemId Item ID
@@ -259,8 +301,8 @@ public class ShopService {
             throw new IllegalArgumentException("Quantity must be between 1 and 10");
         }
         
-        // Get user and item
-        User user = userRepository.findById(userId)
+        // Get user and item, applying a pessimistic write lock to the user to prevent race conditions
+        User user = userRepository.findByIdWithLock(userId, LockModeType.PESSIMISTIC_WRITE)
             .orElseThrow(() -> {
                 createPurchaseAuditEntry(userId, itemId, null, quantity, 0, 0, 0, 
                     "PURCHASE_FAILED", "User not found", AuditSeverity.WARNING);
@@ -274,17 +316,19 @@ public class ShopService {
                 return new ResourceNotFoundException("Shop item not found with ID: " + itemId);
             });
         
+        // Centralized security validation
+        if (!isItemPurchasable(item)) {
+            createPurchaseAuditEntry(userId, itemId, item, quantity, 0, 
+                user.getCredits(), user.getCredits(), 
+                "PURCHASE_FAILED", "Item is not available for purchase (failed isItemPurchasable check)", AuditSeverity.HIGH);
+            throw new ResourceNotFoundException("This item is not currently available for purchase");
+        }
+        
         // Store initial state for audit logging
         int creditsBeforeTransaction = user.getCredits();
         int totalCost = item.getPrice() * quantity;
         
         // Validation checks
-        if (!item.getIsActive()) {
-            createPurchaseAuditEntry(userId, itemId, item, quantity, totalCost, 
-                creditsBeforeTransaction, creditsBeforeTransaction, 
-                "PURCHASE_FAILED", "Item is not available for purchase", AuditSeverity.WARNING);
-            throw new ResourceNotFoundException("Item is not available for purchase");
-        }
         
         // For non-case items, enforce ownership check
         if (item.getCategory() != ShopCategory.CASE && user.hasItem(itemId)) {
@@ -638,13 +682,13 @@ public class ShopService {
      * Validates that an item can be equipped by a user
      * @param user User attempting to equip
      * @param item Item to validate
-     * @throws ItemAlreadyOwnedException if user doesn't own the item
+     * @throws ItemNotOwnedException if user doesn't own the item
      * @throws ItemNotEquippableException if item cannot be equipped
      */
     private void validateItemForEquipping(User user, Shop item) {
         // Check if user owns the item
         if (!user.hasItem(item.getId())) {
-            throw new ItemAlreadyOwnedException("You don't own this item: " + item.getName());
+            throw new ItemNotOwnedException("You don't own this item: " + item.getName());
         }
         
         // Check if item can be equipped
@@ -1069,6 +1113,7 @@ public class ShopService {
      * @return Created shop item
      */
     @Transactional
+    @CacheEvict(value = {"featuredItems", "dailyItems"}, allEntries = true)
     public Shop createShopItem(ShopDTO shopDTO) {
         logger.debug("Creating new shop item: {} with active status: {}", shopDTO.getName(), shopDTO.isActive());
         
@@ -1138,6 +1183,7 @@ public class ShopService {
      * @return Updated shop item
      */
     @Transactional
+    @CacheEvict(value = {"featuredItems", "dailyItems"}, allEntries = true)
     public Shop updateShopItem(UUID itemId, ShopDTO shopDTO) {
         logger.debug("Updating shop item {}: {} with active status: {}", itemId, shopDTO.getName(), shopDTO.isActive());
         
@@ -1209,6 +1255,7 @@ public class ShopService {
      * @throws ItemReferencedInCasesException if the item is referenced in cases (with cascade info)
      */
     @Transactional
+    @CacheEvict(value = {"featuredItems", "dailyItems"}, allEntries = true)
     public void deleteShopItem(UUID itemId) {
         logger.debug("Attempting to delete shop item {}", itemId);
         

@@ -567,11 +567,18 @@ export function ShopPage() {
       // Mark recent purchase for animation
       setRecentPurchases(prev => ({...prev, [itemId]: Date.now()}));
       
-      // Refresh shop items
-      const response = await httpClient.get('/shop/layout');
-      const data: ShopLayoutResponse = response.data;
-      setFeaturedItems(data.featuredItems);
-      setDailyItems(data.dailyItems);
+      // Update item state locally instead of re-fetching the entire shop layout
+      const updateItemAsOwned = (items: ShopItem[]) => 
+        items.map(item => {
+          // Only mark non-case items as owned, since cases can be re-purchased
+          if (item.id === itemId && item.category !== 'CASE') {
+            return { ...item, owned: true };
+          }
+          return item;
+        });
+
+      setFeaturedItems(prevItems => updateItemAsOwned(prevItems));
+      setDailyItems(prevItems => updateItemAsOwned(prevItems));
       
       // Update user profile to refresh credits while preserving other profile data
       if (purchaseResponse.data) {

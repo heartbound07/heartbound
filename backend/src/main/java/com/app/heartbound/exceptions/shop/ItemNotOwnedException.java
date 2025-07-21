@@ -8,4 +8,8 @@ public class ItemNotOwnedException extends RuntimeException {
     public ItemNotOwnedException(String message) {
         super(message);
     }
+
+    public ItemNotOwnedException(String message, Throwable cause) {
+        super(message, cause);
+    }
 } 

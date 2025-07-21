@@ -139,54 +139,6 @@ public class ShopController {
     }
     
     /**
-     * Validates if an item can be purchased based on current shop visibility rules.
-     * An item is purchasable only if it's currently displayed in either featured or daily sections.
-     * 
-     * @param itemId Item ID to validate
-     * @return true if item can be purchased, false otherwise
-     */
-    private boolean isItemPurchasable(UUID itemId) {
-        try {
-            Optional<Shop> itemOpt = shopRepository.findById(itemId);
-            if (itemOpt.isEmpty()) {
-                logger.warn("Purchase validation failed: Item {} not found", itemId);
-                return false;
-            }
-            
-            Shop item = itemOpt.get();
-            
-            // Check if item is active
-            if (!item.getIsActive()) {
-                logger.warn("Purchase validation failed: Item {} is not active", itemId);
-                return false;
-            }
-            
-            // Check if item has expired
-            if (item.getExpiresAt() != null && item.getExpiresAt().isBefore(LocalDateTime.now())) {
-                logger.warn("Purchase validation failed: Item {} has expired", itemId);
-                return false;
-            }
-            
-            // Security Check: Item must be either featured or daily to be purchasable
-            boolean isFeatured = item.getIsFeatured();
-            boolean isDaily = item.getIsDaily();
-            
-            if (!isFeatured && !isDaily) {
-                logger.warn("Purchase validation failed: Item {} is not currently displayed in shop layout (not featured or daily)", itemId);
-                return false;
-            }
-            
-            logger.debug("Purchase validation passed: Item {} is purchasable (featured: {}, daily: {})", 
-                        itemId, isFeatured, isDaily);
-            return true;
-            
-        } catch (Exception e) {
-            logger.error("Error validating item purchasability for item {}: {}", itemId, e.getMessage(), e);
-            return false;
-        }
-    }
-    
-    /**
      * Purchase an item
      * @param itemId Item ID
      * @param authentication Authentication containing user ID
@@ -216,14 +168,6 @@ public class ShopController {
         if (quantity < 1 || quantity > 10) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse("Quantity must be between 1 and 10"));
-        }
-        
-        // Security Validation: Check if item is currently purchasable
-        if (!isItemPurchasable(itemId)) {
-            logger.warn("Unauthorized purchase attempt by user {} for item {} - item not currently available for purchase", 
-                       userId, itemId);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ErrorResponse("This item is not currently available for purchase"));
         }
         
         try {
@@ -382,11 +326,8 @@ public class ShopController {
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse(e.getMessage()));
-        } catch (ItemNotOwnedException e) { // IDEAL: Service should throw this exception
+        } catch (ItemNotOwnedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ErrorResponse("You do not own this item."));
-        } catch (ItemAlreadyOwnedException e) { // FALLBACK: Current implementation may throw this
-            return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse(e.getMessage()));
         } catch (ItemNotEquippableException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -436,8 +377,8 @@ public class ShopController {
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse(e.getMessage()));
-        } catch (ItemAlreadyOwnedException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
+        } catch (ItemNotOwnedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ErrorResponse(e.getMessage()));
         } catch (ItemNotEquippableException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
