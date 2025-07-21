@@ -31,6 +31,7 @@ import com.app.heartbound.services.discord.VerifyCommandListener;
 import com.app.heartbound.services.discord.PairCommandListener;
 import com.app.heartbound.services.discord.GuildEventListener;
 import com.app.heartbound.services.discord.GrabCommandListener;
+import com.app.heartbound.services.discord.challenge.ChallengeCommandListener;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -162,6 +163,9 @@ public class DiscordConfig {
     @Autowired
     private MinesCommandListener minesCommandListener;
 
+    @Autowired
+    private ChallengeCommandListener challengeCommandListener;
+
     @Bean
     public JDA jda() {
         if (discordToken == null || discordToken.isBlank() || discordToken.equals("${DISCORD_BOT_TOKEN}")) {
@@ -202,7 +206,8 @@ public class DiscordConfig {
                                       inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService, prisonCommandListener, countingGameListener,
-                                      autoSlowmodeService, rolesCommandListener, verifyCommandListener, guildEventListener, grabCommandListener, minesCommandListener)
+                                      autoSlowmodeService, rolesCommandListener, verifyCommandListener, guildEventListener, grabCommandListener, minesCommandListener,
+                                      challengeCommandListener)
                     .build();
 
             // Waits until JDA is fully connected and ready
@@ -346,7 +351,8 @@ public class DiscordConfig {
                             new OptionData(OptionType.INTEGER, "mines", "Number of mines (1-8)", true)
                                 .setMinValue(1)
                                 .setMaxValue(8)
-                        )
+                        ),
+                    Commands.slash("challenge", "Displays the monthly team challenge leaderboard")
                 )
                 .queue(
                     cmds -> {

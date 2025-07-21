@@ -1,0 +1,25 @@
+package com.app.heartbound.repositories.challenge;
+
+import com.app.heartbound.entities.challenge.ChallengeParticipant;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface ChallengeParticipantRepository extends JpaRepository<ChallengeParticipant, Long> {
+
+    Optional<ChallengeParticipant> findByUserIdAndChallengePeriod(String userId, String challengePeriod);
+
+    List<ChallengeParticipant> findByTeamIdAndChallengePeriodOrderByMessageCountDesc(String teamId, String challengePeriod);
+
+    @Query("SELECT cp.teamName as teamName, SUM(cp.messageCount) as totalMessageCount " +
+           "FROM ChallengeParticipant cp " +
+           "WHERE cp.challengePeriod = :challengePeriod " +
+           "GROUP BY cp.teamName " +
+           "ORDER BY totalMessageCount DESC")
+    List<Object[]> findTeamMessageCounts(@Param("challengePeriod") String challengePeriod);
+} 
