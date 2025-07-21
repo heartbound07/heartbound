@@ -89,7 +89,7 @@ public class ChallengeCommandListener extends ListenerAdapter {
         StringBuilder description = new StringBuilder();
         for (int i = 0; i < teams.size(); i++) {
             ChallengeService.TeamLeaderboardEntry team = teams.get(i);
-            description.append(String.format("%s | **%s** - %d 📝%n", getMedal(i), team.teamName(), team.totalMessageCount()));
+            description.append(String.format("%s | **%s** - %d messages%n", getMedal(i), team.teamName(), team.totalMessageCount()));
         }
 
         embed.setDescription(description.toString());
@@ -109,7 +109,7 @@ public class ChallengeCommandListener extends ListenerAdapter {
 
         for (int i = 0; i < limit; i++) {
             ChallengeParticipant user = users.get(i);
-            description.append(String.format("%s | <@%s> - %d 📝%n", getMedal(i), user.getUserId(), user.getMessageCount()));
+            description.append(String.format("%s | <@%s> - %d messages%n", getMedal(i), user.getUserId(), user.getMessageCount()));
         }
 
         totalMessages = users.stream().mapToLong(ChallengeParticipant::getMessageCount).sum();
