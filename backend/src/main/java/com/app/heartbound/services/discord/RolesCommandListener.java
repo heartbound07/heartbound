@@ -153,6 +153,20 @@ public class RolesCommandListener extends ListenerAdapter {
 
         DiscordBotSettings settings = discordBotSettingsService.getDiscordBotSettings();
 
+        Map<String, String> categoryRoles = getCategoryRoles(settings, category);
+
+        // Check if the role ID from the button interaction is in the pre-approved list.
+        if (!categoryRoles.containsKey(roleIdToAssign)) {
+            // If the roleId is not in the approved list, this is a security event.
+            logger.warn("SECURITY ALERT: User attempted to assign an unauthorized role." +
+                            " UserId: {}, GuildId: {}, Category: {}, Attempted RoleId: {}",
+                    member.getId(), guild.getId(), category, roleIdToAssign);
+            
+            // Inform the user and abort the operation.
+            event.getHook().editOriginal("Invalid role selection. This attempt has been logged.").queue();
+            return;
+        }
+
         // Security Check: Prevent users with a verified rank from getting a self-assigned one.
         if (category.equals("rank")) {
             List<String> verifiedRankRoleIds = Stream.of(
@@ -171,7 +185,6 @@ public class RolesCommandListener extends ListenerAdapter {
         }
 
         User user = userService.getUserById(member.getId());
-        Map<String, String> categoryRoles = getCategoryRoles(settings, category);
 
         // Check if user already has a role from this category (either in User entity or PendingRoleSelection)
         if (hasRoleFromCategory(user, category, member)) {
