@@ -94,8 +94,18 @@ public class MinesCommandListener extends ListenerAdapter {
         }
 
         User user = userService.getUserById(userId);
-        if (user == null || user.getCredits() == null || user.getCredits() < bet) {
-            event.reply("You do not have enough credits to place this bet.").setEphemeral(true).queue();
+        
+        // Handle case where user is not registered with the bot
+        if (user == null) {
+            event.reply("You must be registered with the bot to use this command. Please log in to the web application first.").setEphemeral(true).queue();
+            return;
+        }
+        
+        // Handle case where user does not have enough credits
+        int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
+        if (currentCredits < bet) {
+            event.reply(String.format("You do not have enough credits to place this bet. You tried to bet **%d** but only have **%d** credits.", bet, currentCredits))
+                 .setEphemeral(true).queue();
             return;
         }
 
@@ -122,8 +132,19 @@ public class MinesCommandListener extends ListenerAdapter {
             return;
         }
 
-        String userId = event.getUser().getId();
-        MinesGame game = activeGames.get(userId);
+        // Extract the game owner's ID, which is the last part of the component ID.
+        String[] parts = componentId.split("_");
+        String ownerId = parts[parts.length - 1];
+        String interactingUserId = event.getUser().getId();
+
+        // Check if the user clicking the button is the one who started the game.
+        if (!interactingUserId.equals(ownerId)) {
+            event.reply("This is not your game to play!").setEphemeral(true).queue();
+            return;
+        }
+
+        // Use the owner's ID to retrieve the game.
+        MinesGame game = activeGames.get(ownerId);
 
         if (game == null) {
             event.reply("This game of Mines has expired or is invalid.").setEphemeral(true).queue();
@@ -135,7 +156,7 @@ public class MinesCommandListener extends ListenerAdapter {
 
         event.deferEdit().queue();
 
-        if (componentId.equals("mines_cashout")) {
+        if (componentId.startsWith("mines_cashout")) {
             handleCashout(event, game);
         } else {
             handleGridClick(event, game);
@@ -270,7 +291,8 @@ public class MinesCommandListener extends ListenerAdapter {
             List<Button> buttons = new ArrayList<>();
             for (int col = 0; col < GRID_SIZE; col++) {
                 Button button;
-                String buttonId = String.format("mines_tile_%d_%d", row, col);
+                // Append the owner's userId to the button ID
+                String buttonId = String.format("mines_tile_%d_%d_%s", row, col, userId);
                 if (game.getRevealed()[row][col]) {
                     button = Button.success(buttonId, "✅").withDisabled(true);
                 } else {
@@ -281,7 +303,7 @@ public class MinesCommandListener extends ListenerAdapter {
             rows.add(ActionRow.of(buttons));
         }
 
-        rows.add(ActionRow.of(Button.success("mines_cashout", "Cashout").withDisabled(disabled || game.getSafeTilesRevealed() == 0)));
+        rows.add(ActionRow.of(Button.success("mines_cashout_" + userId, "Cashout").withDisabled(disabled || game.getSafeTilesRevealed() == 0)));
         return rows;
     }
 
@@ -290,7 +312,8 @@ public class MinesCommandListener extends ListenerAdapter {
         for (int r = 0; r < GRID_SIZE; r++) {
             List<Button> buttons = new ArrayList<>();
             for (int c = 0; c < GRID_SIZE; c++) {
-                String buttonId = "mines_revealed_" + r + "_" + c;
+                // Append the owner's userId to the button ID
+                String buttonId = String.format("mines_revealed_%d_%d_%s", r, c, game.getUserId());
                 Button button;
 
                 if (r == hitRow && c == hitCol) {
@@ -313,7 +336,7 @@ public class MinesCommandListener extends ListenerAdapter {
             }
             rows.add(ActionRow.of(buttons));
         }
-        rows.add(ActionRow.of(Button.success("mines_cashout", "Cashout").withDisabled(true)));
+        rows.add(ActionRow.of(Button.success("mines_cashout_" + game.getUserId(), "Cashout").withDisabled(true)));
         return rows;
     }
 
