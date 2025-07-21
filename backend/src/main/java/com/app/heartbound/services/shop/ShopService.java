@@ -196,8 +196,8 @@ public class ShopService {
     public List<ShopDTO> getDailyItems(String userId) {
         logger.debug("Generating daily items for user {}", userId);
 
-        // 1. Create a deterministic seed for the user and the current day
-        String seedString = userId + java.time.LocalDate.now().toString();
+        // 1. Create a deterministic seed for the user and the current day (using UTC)
+        String seedString = userId + java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString();
         long seed = seedString.hashCode();
         Random random = new Random(seed);
 

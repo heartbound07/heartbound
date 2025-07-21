@@ -16,6 +16,8 @@ import BadgePreview from '@/components/BadgePreview';
 import { CasePreviewModal } from '@/components/ui/shop/CasePreviewModal';
 import { SafeText } from '@/components/SafeHtmlRenderer';
 import { useSanitizedContent } from '@/hooks/useSanitizedContent';
+import { useDailyResetTimer } from '@/hooks/useDailyResetTimer';
+import { HiOutlineClock } from 'react-icons/hi';
 
 interface ShopItem {
   id: string;
@@ -479,6 +481,7 @@ export function ShopPage() {
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
   const [purchaseInProgress, setPurchaseInProgress] = useState(false);
   const [recentPurchases, setRecentPurchases] = useState<Record<string, number>>({});
+  const timer = useDailyResetTimer();
   
   // Case preview modal state
   const [casePreviewModal, setCasePreviewModal] = useState<{
@@ -681,7 +684,13 @@ export function ShopPage() {
                 </div>
               </div>
               <div className="daily-section">
-                <h2 className="text-2xl font-bold text-white mb-6">Daily Items</h2>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-white">Daily Items</h2>
+                  <div className="flex items-center text-sm text-slate-400 bg-slate-800/50 px-3 py-1.5 rounded-full">
+                    <HiOutlineClock className="mr-2" />
+                    <span>{timer.formatted}</span>
+                  </div>
+                </div>
                 <div className="daily-grid">
                   {Array.from({ length: 6 }).map((_, index) => (
                     <ShopItemSkeleton key={index} />
@@ -725,7 +734,13 @@ export function ShopPage() {
               
               {/* Daily Items Section - Right Side */}
               <div className="daily-section">
-                <h2 className="text-2xl font-bold text-white mb-6">Daily Items</h2>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-white">Daily Items</h2>
+                  <div className="flex items-center text-sm text-slate-400 bg-slate-800/50 px-3 py-1.5 rounded-full">
+                    <HiOutlineClock className="mr-2" />
+                    <span>{timer.formatted}</span>
+                  </div>
+                </div>
                 {dailyItems.length === 0 ? (
                   <motion.div 
                     initial={{ opacity: 0 }}
