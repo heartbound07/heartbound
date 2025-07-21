@@ -1,5 +1,6 @@
 package com.app.heartbound.services.discord.challenge;
 
+import com.app.heartbound.dto.ChallengeParticipantDTO;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.RequiredArgsConstructor;
@@ -115,18 +116,18 @@ public class ChallengeCommandListener extends ListenerAdapter {
                 .setTitle(teamName)
                 .setColor(EMBED_COLOR);
 
-        List<ChallengeService.ChallengeParticipantDTO> users = challengeService.getUserLeaderboardForTeam(teamId);
+        List<ChallengeParticipantDTO> users = challengeService.getUserLeaderboardForTeam(teamId);
         StringBuilder description = new StringBuilder();
         long totalMessages = 0;
         int limit = Math.min(users.size(), 10);
 
         for (int i = 0; i < limit; i++) {
-            ChallengeService.ChallengeParticipantDTO user = users.get(i);
+            ChallengeParticipantDTO user = users.get(i);
             String displayName = getDiscordDisplayName(user.userId(), user.username(), user.displayName(), guild);
             description.append(String.format("%s | **%s** - %d messages%n", getMedal(i), displayName, user.messageCount()));
         }
 
-        totalMessages = users.stream().mapToLong(ChallengeService.ChallengeParticipantDTO::messageCount).sum();
+        totalMessages = users.stream().mapToLong(ChallengeParticipantDTO::messageCount).sum();
 
         embed.setDescription(description.toString());
         embed.setFooter("Total Message Count: " + totalMessages);

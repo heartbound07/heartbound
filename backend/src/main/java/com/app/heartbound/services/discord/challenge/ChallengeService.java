@@ -1,5 +1,6 @@
 package com.app.heartbound.services.discord.challenge;
 
+import com.app.heartbound.dto.ChallengeParticipantDTO;
 import com.app.heartbound.entities.challenge.ChallengeParticipant;
 import com.app.heartbound.repositories.challenge.ChallengeParticipantRepository;
 import lombok.RequiredArgsConstructor;
@@ -84,6 +85,4 @@ public class ChallengeService {
     public record TeamLeaderboardEntry(String teamName, long totalMessageCount) {
     }
 
-    public record ChallengeParticipantDTO(String userId, long messageCount, String username, String displayName) {
-    }
 } 
