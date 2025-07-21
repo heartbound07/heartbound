@@ -201,8 +201,11 @@ public class ShopService {
         long seed = seedString.hashCode();
         Random random = new Random(seed);
 
-        // 2. Fetch all eligible items for the daily pool
-        List<Shop> itemPool = shopRepository.findByIsDailyTrueAndIsActiveTrueAndExpiresAtAfterOrExpiresAtIsNull(LocalDateTime.now());
+        // 2. Fetch all eligible items for the daily pool, excluding cases
+        List<Shop> itemPool = shopRepository.findByIsDailyTrueAndIsActiveTrueAndExpiresAtAfterOrExpiresAtIsNull(LocalDateTime.now())
+                .stream()
+                .filter(item -> item.getCategory() != ShopCategory.CASE)
+                .collect(Collectors.toList());
 
         // 3. Group items by rarity
         Map<ItemRarity, List<Shop>> itemsByRarity = itemPool.stream()
