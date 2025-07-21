@@ -219,8 +219,9 @@ public class MinesCommandListener extends ListenerAdapter {
             }
 
             User user = userService.getUserById(game.getUserId());
-            int winnings = (int) Math.round(game.getBetAmount() * game.getCurrentMultiplier());
-            user.setCredits(user.getCredits() + winnings);
+            int totalPayout = (int) Math.round(game.getBetAmount() * game.getCurrentMultiplier());
+            int profit = totalPayout - game.getBetAmount();
+            user.setCredits(user.getCredits() + totalPayout);
             userService.updateUser(user);
 
             EmbedBuilder embed = new EmbedBuilder()
@@ -228,7 +229,7 @@ public class MinesCommandListener extends ListenerAdapter {
                     .setColor(WIN_COLOR)
                     .appendDescription(String.format("You cashed out successfully!%n%n"))
                     .appendDescription(String.format("**Bet Amount:** 🪙 %d credits%n", game.getBetAmount()))
-                    .appendDescription(String.format("**Won:** 🪙 %d credits (%.2fx)%n%n", winnings, game.getCurrentMultiplier()))
+                    .appendDescription(String.format("**Winnings:** 🪙 +%d credits (%.2fx)%n%n", profit, game.getCurrentMultiplier()))
                     .appendDescription(String.format("**New Balance:** 🪙 %d credits", user.getCredits()));
 
             List<ActionRow> components = createRevealedGrid(game, -1, -1, true);
@@ -290,12 +291,14 @@ public class MinesCommandListener extends ListenerAdapter {
 
 
     private EmbedBuilder createGameEmbed(MinesGame game) {
+        int potentialWinnings = (int) Math.round(game.getBetAmount() * game.getCurrentMultiplier());
+        int profit = potentialWinnings - game.getBetAmount();
         return new EmbedBuilder()
                 .setTitle("💣 Mines - Select Your Squares!")
                 .setColor(EMBED_COLOR)
                 .appendDescription(String.format("**Bet Amount:** 🪙 %d credits%n", game.getBetAmount()))
-                .appendDescription(String.format("**Winnings:** 🪙 %d credits (%.2fx)",
-                        (int) Math.round(game.getBetAmount() * game.getCurrentMultiplier()),
+                .appendDescription(String.format("**Winnings:** 🪙 +%d credits (%.2fx)",
+                        profit,
                         game.getCurrentMultiplier()));
     }
 
@@ -386,8 +389,9 @@ public class MinesCommandListener extends ListenerAdapter {
                 // Scenario 2: At least one move made. Auto-cashout.
                 logger.info("Mines game for user {} timed out with {} tiles revealed. Auto-cashing out.", userId, game.getSafeTilesRevealed());
                 User user = userService.getUserById(userId);
-                int winnings = (int) Math.round(game.getBetAmount() * game.getCurrentMultiplier());
-                user.setCredits(user.getCredits() + winnings);
+                int totalPayout = (int) Math.round(game.getBetAmount() * game.getCurrentMultiplier());
+                int profit = totalPayout - game.getBetAmount();
+                user.setCredits(user.getCredits() + totalPayout);
                 userService.updateUser(user);
 
                 EmbedBuilder embed = new EmbedBuilder()
@@ -395,7 +399,7 @@ public class MinesCommandListener extends ListenerAdapter {
                         .setColor(WIN_COLOR)
                         .appendDescription(String.format("The game timed out, so you were automatically cashed out!%n%n"))
                         .appendDescription(String.format("**Bet Amount:** 🪙 %d credits%n", game.getBetAmount()))
-                        .appendDescription(String.format("**Won:** 🪙 %d credits (%.2fx)%n%n", winnings, game.getCurrentMultiplier()))
+                        .appendDescription(String.format("**Winnings:** 🪙 +%d credits (%.2fx)%n%n", profit, game.getCurrentMultiplier()))
                         .appendDescription(String.format("**New Balance:** 🪙 %d credits", user.getCredits()));
 
                 List<ActionRow> components = createRevealedGrid(game, -1, -1, true);
