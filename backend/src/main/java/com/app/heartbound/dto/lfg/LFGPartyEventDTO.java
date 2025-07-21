@@ -43,7 +43,7 @@ public class LFGPartyEventDTO {
     @Builder
     public static class MinimalPartyDTO {
         private UUID id;
-        private String userId;
+        private String leaderId;
         // Fields that might change based on event type
         private String status;
         private java.util.Set<String> participants;

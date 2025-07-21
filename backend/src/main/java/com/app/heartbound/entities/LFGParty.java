@@ -58,8 +58,8 @@ public class LFGParty {
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-    @Column(name = "user_id", nullable = false)
-    private String userId;
+    @Column(name = "leader_id", nullable = false)
+    private String leaderId;
 
     @Column(nullable = false)
     private String game;

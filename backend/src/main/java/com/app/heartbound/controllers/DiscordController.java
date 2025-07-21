@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/discord/api")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('USER')")
+@PreAuthorize("hasRole('ADMIN')")
 public class DiscordController {
 
     private final DiscordBotSettingsService discordBotSettingsService;

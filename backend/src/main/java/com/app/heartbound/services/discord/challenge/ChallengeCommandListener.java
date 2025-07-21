@@ -1,8 +1,11 @@
 package com.app.heartbound.services.discord.challenge;
 
-import com.app.heartbound.entities.challenge.ChallengeParticipant;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.RequiredArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -13,6 +16,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Nonnull;
 import java.awt.Color;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @RequiredArgsConstructor
@@ -20,6 +24,15 @@ public class ChallengeCommandListener extends ListenerAdapter {
 
     private final ChallengeService challengeService;
     private static final Color EMBED_COLOR = new Color(88, 101, 242);
+    private final Cache<String, String> discordDisplayNameCache;
+
+    public ChallengeCommandListener(ChallengeService challengeService) {
+        this.challengeService = challengeService;
+        this.discordDisplayNameCache = Caffeine.newBuilder()
+                .maximumSize(1000)
+                .expireAfterWrite(5, TimeUnit.MINUTES)
+                .build();
+    }
 
     @Override
     public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
@@ -63,7 +76,7 @@ public class ChallengeCommandListener extends ListenerAdapter {
         } else {
             List<String> teamIds = challengeService.getTeamIds();
             String teamId = teamIds.get(pageIndex - 1);
-            embed = buildUserLeaderboardEmbedForTeam(teamId);
+            embed = buildUserLeaderboardEmbedForTeam(teamId, event.getGuild());
         }
 
         List<Button> buttons = createPaginationButtons(pageIndex, originalUserId);
@@ -96,27 +109,56 @@ public class ChallengeCommandListener extends ListenerAdapter {
         return embed.build();
     }
 
-    private MessageEmbed buildUserLeaderboardEmbedForTeam(String teamId) {
+    private MessageEmbed buildUserLeaderboardEmbedForTeam(String teamId, Guild guild) {
         String teamName = challengeService.getTeamNameById(teamId);
         EmbedBuilder embed = new EmbedBuilder()
                 .setTitle(teamName)
                 .setColor(EMBED_COLOR);
 
-        List<ChallengeParticipant> users = challengeService.getUserLeaderboardForTeam(teamId);
+        List<ChallengeService.ChallengeParticipantDTO> users = challengeService.getUserLeaderboardForTeam(teamId);
         StringBuilder description = new StringBuilder();
         long totalMessages = 0;
         int limit = Math.min(users.size(), 10);
 
         for (int i = 0; i < limit; i++) {
-            ChallengeParticipant user = users.get(i);
-            description.append(String.format("%s | <@%s> - %d messages%n", getMedal(i), user.getUserId(), user.getMessageCount()));
+            ChallengeService.ChallengeParticipantDTO user = users.get(i);
+            String displayName = getDiscordDisplayName(user.userId(), user.username(), user.displayName(), guild);
+            description.append(String.format("%s | **%s** - %d messages%n", getMedal(i), displayName, user.messageCount()));
         }
 
-        totalMessages = users.stream().mapToLong(ChallengeParticipant::getMessageCount).sum();
+        totalMessages = users.stream().mapToLong(ChallengeService.ChallengeParticipantDTO::messageCount).sum();
 
         embed.setDescription(description.toString());
         embed.setFooter("Total Message Count: " + totalMessages);
         return embed.build();
+    }
+
+    private String getDiscordDisplayName(String userId, String storedUsername, String storedDisplayName, Guild guild) {
+        if (userId == null || guild == null) {
+            return storedDisplayName != null ? storedDisplayName : storedUsername;
+        }
+
+        String cachedName = discordDisplayNameCache.getIfPresent(userId);
+        if (cachedName != null) {
+            return cachedName;
+        }
+
+        try {
+            Member member = guild.getMemberById(userId);
+            if (member != null) {
+                String effectiveName = member.getEffectiveName();
+                discordDisplayNameCache.put(userId, effectiveName);
+                return effectiveName;
+            } else {
+                String fallbackName = storedDisplayName != null ? storedDisplayName : storedUsername;
+                discordDisplayNameCache.put(userId, fallbackName);
+                return fallbackName;
+            }
+        } catch (Exception e) {
+            String fallbackName = storedDisplayName != null ? storedDisplayName : storedUsername;
+            discordDisplayNameCache.put(userId, fallbackName);
+            return fallbackName;
+        }
     }
 
     private String getMedal(int index) {

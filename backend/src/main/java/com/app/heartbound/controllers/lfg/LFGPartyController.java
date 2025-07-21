@@ -6,6 +6,7 @@ import com.app.heartbound.dto.lfg.UpdatePartyRequestDTO;
 import com.app.heartbound.dto.lfg.LFGPartyEventDTO;
 import com.app.heartbound.entities.LFGParty;
 import com.app.heartbound.services.lfg.LFGPartyService;
+import com.app.heartbound.services.lfg.LFGSecurityService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -15,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 import java.util.Set;
-import java.util.HashSet;
 
 @RestController
 @RequestMapping("/lfg/parties")
@@ -24,10 +24,12 @@ public class LFGPartyController {
 
     private final LFGPartyService partyService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final LFGSecurityService lfgSecurityService;
 
-    public LFGPartyController(LFGPartyService partyService, SimpMessagingTemplate messagingTemplate) {
+    public LFGPartyController(LFGPartyService partyService, SimpMessagingTemplate messagingTemplate, LFGSecurityService lfgSecurityService) {
         this.partyService = partyService;
         this.messagingTemplate = messagingTemplate;
+        this.lfgSecurityService = lfgSecurityService;
     }
 
     /**
@@ -98,6 +100,7 @@ public class LFGPartyController {
      * @return the updated party details
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('USER') and @lfgSecurityService.isPartyLeader(authentication, #id)")
     public LFGPartyResponseDTO updateParty(@PathVariable UUID id,
                                            @RequestBody UpdatePartyRequestDTO dto) {
         LFGPartyResponseDTO updatedParty = partyService.updateParty(id, dto);
@@ -116,12 +119,11 @@ public class LFGPartyController {
      * @param id the UUID of the party to delete
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('USER') and @lfgSecurityService.isPartyLeader(authentication, #id)")
     public void deleteParty(@PathVariable UUID id) {
         // Get party details before deletion to include in the event
         LFGPartyResponseDTO partyToDelete = partyService.getPartyById(id);
         
-        // Store participants for targeted notifications
-        Set<String> participants = new HashSet<>(partyToDelete.getParticipants());
         
         // Delete the party
         partyService.deleteParty(id);
@@ -170,6 +172,7 @@ public class LFGPartyController {
     }
 
     @PostMapping("/{id}/kick/{userId}")
+    @PreAuthorize("hasRole('USER') and @lfgSecurityService.isPartyLeader(authentication, #id)")
     public String kickUserFromParty(@PathVariable UUID id, @PathVariable String userId) {
         String result = partyService.kickUserFromParty(id, userId);
         LFGPartyResponseDTO updatedParty = partyService.getPartyById(id);
@@ -186,6 +189,7 @@ public class LFGPartyController {
      * Invite a user to join a party
      */
     @PostMapping("/{id}/invite/{userId}")
+    @PreAuthorize("hasRole('USER') and @lfgSecurityService.isPartyLeader(authentication, #id)")
     public String inviteUserToParty(@PathVariable UUID id, @PathVariable String userId) {
         String result = partyService.inviteUserToParty(id, userId);
         LFGPartyResponseDTO updatedParty = partyService.getPartyById(id);
@@ -254,6 +258,7 @@ public class LFGPartyController {
      * @return success message if acceptance succeeds
      */
     @PostMapping("/{id}/accept-join-request/{userId}")
+    @PreAuthorize("hasRole('USER') and @lfgSecurityService.isPartyLeader(authentication, #id)")
     public String acceptJoinRequest(@PathVariable UUID id, @PathVariable String userId) {
         String result = partyService.acceptJoinRequest(id, userId);
         LFGPartyResponseDTO updatedParty = partyService.getPartyById(id);
@@ -275,6 +280,7 @@ public class LFGPartyController {
      * @return success message if rejection succeeds
      */
     @PostMapping("/{id}/reject-join-request/{userId}")
+    @PreAuthorize("hasRole('USER') and @lfgSecurityService.isPartyLeader(authentication, #id)")
     public String rejectJoinRequest(@PathVariable UUID id, @PathVariable String userId) {
         String result = partyService.rejectJoinRequest(id, userId);
         LFGPartyResponseDTO updatedParty = partyService.getPartyById(id);

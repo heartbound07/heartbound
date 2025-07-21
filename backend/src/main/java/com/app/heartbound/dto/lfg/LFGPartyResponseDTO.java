@@ -18,7 +18,7 @@ import java.util.UUID;
 public class LFGPartyResponseDTO {
 
     private UUID id;
-    private String userId;
+    private String leaderId;
     private String game;
     private String title;
     private String description;

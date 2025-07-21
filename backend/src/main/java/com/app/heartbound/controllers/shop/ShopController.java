@@ -21,6 +21,7 @@ import com.app.heartbound.exceptions.shop.EmptyCaseException;
 import com.app.heartbound.exceptions.shop.InvalidCaseContentsException;
 import com.app.heartbound.exceptions.shop.ItemDeletionException;
 import com.app.heartbound.exceptions.shop.ItemReferencedInCasesException;
+import com.app.heartbound.exceptions.shop.ItemNotOwnedException;
 import com.app.heartbound.services.shop.ShopService;
 import com.app.heartbound.repositories.shop.ShopRepository;
 import org.slf4j.Logger;
@@ -381,7 +382,10 @@ public class ShopController {
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse(e.getMessage()));
-        } catch (ItemAlreadyOwnedException e) {
+        } catch (ItemNotOwnedException e) { // IDEAL: Service should throw this exception
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse("You do not own this item."));
+        } catch (ItemAlreadyOwnedException e) { // FALLBACK: Current implementation may throw this
             return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse(e.getMessage()));
         } catch (ItemNotEquippableException e) {

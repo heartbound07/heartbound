@@ -54,8 +54,8 @@ public class ChallengeService {
                 .collect(Collectors.toList());
     }
 
-    public List<ChallengeParticipant> getUserLeaderboardForTeam(String teamId) {
-        return challengeParticipantRepository.findByTeamIdAndChallengePeriodOrderByMessageCountDesc(teamId, CURRENT_CHALLENGE_PERIOD);
+    public List<ChallengeParticipantDTO> getUserLeaderboardForTeam(String teamId) {
+        return challengeParticipantRepository.findUserLeaderboardForTeam(teamId, CURRENT_CHALLENGE_PERIOD);
     }
 
     public Optional<TeamInfo> getMemberTeam(Member member) {
@@ -82,5 +82,8 @@ public class ChallengeService {
     }
 
     public record TeamLeaderboardEntry(String teamName, long totalMessageCount) {
+    }
+
+    public record ChallengeParticipantDTO(String userId, long messageCount, String username, String displayName) {
     }
 } 

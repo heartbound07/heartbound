@@ -72,12 +72,12 @@ public class LFGPartyService {
     public LFGPartyResponseDTO createParty(CreatePartyRequestDTO dto) {
         String userId = getCurrentUserId();
 
-        if (lfgPartyRepository.findByUserId(userId).isPresent()) {
+        if (lfgPartyRepository.findByLeaderId(userId).isPresent()) {
             throw new IllegalStateException("You can only create one party");
         }
 
         LFGParty party = new LFGParty();
-        party.setUserId(userId);
+        party.setLeaderId(userId);
         party.setGame(dto.getGame());
         party.setTitle(dto.getTitle());
         party.setDescription(dto.getDescription());
@@ -116,7 +116,7 @@ public class LFGPartyService {
                         savedParty.getDescription(),
                         savedParty.getGame(),
                         savedParty.getRequirements().isInviteOnly(),
-                        savedParty.getUserId()
+                        savedParty.getLeaderId()
                 );
                 
                 // If Discord channel was created, store the ID and invite URL
@@ -198,7 +198,7 @@ public class LFGPartyService {
                 .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
 
         // Verify that the user is the owner of the party
-        if (!party.getUserId().equals(userId)) {
+        if (!party.getLeaderId().equals(userId)) {
             throw new UnauthorizedOperationException("You are not authorized to update this party");
         }
 
@@ -266,7 +266,7 @@ public class LFGPartyService {
         LFGParty party = lfgPartyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
         
-        boolean isPartyLeader = party.getUserId().equals(currentUserId);
+        boolean isPartyLeader = party.getLeaderId().equals(currentUserId);
         boolean hasAdminRole = hasRole("ADMIN") || hasRole("MODERATOR");
         
         if (!isPartyLeader && !hasAdminRole) {
@@ -316,7 +316,7 @@ public class LFGPartyService {
         }
 
         // Additional validations
-        if (party.getUserId().equals(userId)) {
+        if (party.getLeaderId().equals(userId)) {
             throw new IllegalArgumentException("Party owner cannot join their own party");
         }
         if (party.getParticipants().contains(userId)) {
@@ -366,7 +366,7 @@ public class LFGPartyService {
                 .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
 
         // Prevent party leaders from "leaving" – they should delete the party instead.
-        if (party.getUserId().equals(currentUserId)) {
+        if (party.getLeaderId().equals(currentUserId)) {
             throw new UnauthorizedOperationException("Party owner cannot leave the party. Delete the party instead.");
         }
 
@@ -422,7 +422,7 @@ public class LFGPartyService {
                 .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
         
         // Check if current user is the party leader or has admin/moderator role
-        boolean isPartyLeader = party.getUserId().equals(currentUserId);
+        boolean isPartyLeader = party.getLeaderId().equals(currentUserId);
         boolean hasAdminRole = hasRole("ADMIN") || hasRole("MODERATOR");
         
         if (!isPartyLeader && !hasAdminRole) {
@@ -430,7 +430,7 @@ public class LFGPartyService {
         }
         
         // Party leader cannot be kicked
-        if (party.getUserId().equals(userIdToKick)) {
+        if (party.getLeaderId().equals(userIdToKick)) {
             throw new UnauthorizedOperationException("Party leader cannot be kicked from their own party.");
         }
         
@@ -488,7 +488,7 @@ public class LFGPartyService {
                 .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
         
         // Check if current user is the party leader
-        boolean isPartyLeader = party.getUserId().equals(currentUserId);
+        boolean isPartyLeader = party.getLeaderId().equals(currentUserId);
         
         if (!isPartyLeader) {
             throw new UnauthorizedOperationException("Only the party leader can invite users");
@@ -542,7 +542,7 @@ public class LFGPartyService {
         }
         
         // Additional validations
-        if (party.getUserId().equals(userId)) {
+        if (party.getLeaderId().equals(userId)) {
             throw new IllegalArgumentException("Party owner cannot join their own party");
         }
         if (party.getParticipants().contains(userId)) {
@@ -633,7 +633,7 @@ public class LFGPartyService {
                 .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
         
         // Check if current user is the party leader
-        if (!party.getUserId().equals(currentUserId)) {
+        if (!party.getLeaderId().equals(currentUserId)) {
             throw new UnauthorizedOperationException("Only the party leader can accept join requests");
         }
         
@@ -693,7 +693,7 @@ public class LFGPartyService {
                 .orElseThrow(() -> new ResourceNotFoundException("Party not found with id: " + id));
         
         // Check if current user is the party leader
-        if (!party.getUserId().equals(currentUserId)) {
+        if (!party.getLeaderId().equals(currentUserId)) {
             throw new UnauthorizedOperationException("Only the party leader can reject join requests");
         }
         
@@ -728,7 +728,7 @@ public class LFGPartyService {
     private LFGPartyResponseDTO mapToResponseDTO(LFGParty party) {
         return LFGPartyResponseDTO.builder()
                 .id(party.getId())
-                .userId(party.getUserId())
+                .leaderId(party.getLeaderId())
                 .game(party.getGame())
                 .title(party.getTitle())
                 .description(party.getDescription())

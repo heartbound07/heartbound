@@ -10,5 +10,5 @@ import java.util.UUID;
 
 @Repository
 public interface LFGPartyRepository extends JpaRepository<LFGParty, UUID>, JpaSpecificationExecutor<LFGParty> {
-    Optional<LFGParty> findByUserId(String userId);
+    Optional<LFGParty> findByLeaderId(String leaderId);
 }
