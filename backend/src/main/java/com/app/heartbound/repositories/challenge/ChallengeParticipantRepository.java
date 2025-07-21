@@ -1,6 +1,6 @@
 package com.app.heartbound.repositories.challenge;
 
-import com.app.heartbound.dto.ChallengeParticipantDTO;
+       import com.app.heartbound.dto.ChallengeParticipantDTO;
 import com.app.heartbound.entities.challenge.ChallengeParticipant;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -15,7 +15,7 @@ public interface ChallengeParticipantRepository extends JpaRepository<ChallengeP
 
     Optional<ChallengeParticipant> findByUserIdAndChallengePeriod(String userId, String challengePeriod);
 
-    @Query("SELECT new ChallengeParticipantDTO(cp.userId, cp.messageCount, u.username, u.displayName) " +
+    @Query("SELECT new com.app.heartbound.dto.ChallengeParticipantDTO(cp.userId, cp.messageCount, u.username, u.displayName) " +
            "FROM ChallengeParticipant cp JOIN User u ON cp.userId = u.id " +
            "WHERE cp.teamId = :teamId AND cp.challengePeriod = :challengePeriod " +
            "ORDER BY cp.messageCount DESC")
