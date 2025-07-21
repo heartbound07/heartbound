@@ -54,10 +54,6 @@ public class UpdateProfileDTO {
              message = "Banner color must be empty, a valid hex color (e.g., #RRGGBB, #RRGGBBAA) or a valid Tailwind CSS class (e.g., bg-blue-600, bg-white/10)")
     private String bannerColor;
     
-    @Schema(description = "The avatar image URL", example = "https://cloudinary.com/image.jpg")
-    @ValidAvatarUrl
-    private String avatar;
-    
     @Schema(description = "The banner image URL", example = "https://cloudinary.com/banner.jpg")
     @ValidBannerUrl
     private String bannerUrl;

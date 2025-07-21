@@ -50,11 +50,13 @@ public class UserController {
      */
     @GetMapping("/{userId}/profile")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<UserProfileDTO> getUserProfile(@PathVariable String userId, Authentication authentication) {
+    public ResponseEntity<?> getUserProfile(@PathVariable String userId, Authentication authentication) {
+        String authenticatedUserId = authentication.getName();
+        
         // Security validation using centralized service
         if (!userSecurityService.canAccessUserData(authentication, userId)) {
             logger.warn("Unauthorized profile access attempt by user {} for user {}", 
-                authentication.getName(), userId);
+                authenticatedUserId, userId);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         
@@ -63,7 +65,14 @@ public class UserController {
             return ResponseEntity.ok(createDefaultProfile(userId));
         }
         
-        return ResponseEntity.ok(userService.mapToProfileDTO(user));
+        // Determine which DTO to use based on access level
+        boolean isOwnerOrAdmin = authenticatedUserId.equals(userId) || userSecurityService.hasAdminRole(authentication);
+        
+        if (isOwnerOrAdmin) {
+            return ResponseEntity.ok(userService.mapToProfileDTO(user));
+        } else {
+            return ResponseEntity.ok(userService.mapToPublicProfileDTO(user));
+        }
     }
     
     /**
@@ -74,7 +83,7 @@ public class UserController {
      */
     @PostMapping("/profiles")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<Map<String, UserProfileDTO>> getUserProfiles(@RequestBody Map<String, List<String>> request, Authentication authentication) {
+    public ResponseEntity<Map<String, Object>> getUserProfiles(@RequestBody Map<String, List<String>> request, Authentication authentication) {
         List<String> userIds = request.get("userIds");
         
         // Security validation: Check input parameters
@@ -101,12 +110,18 @@ public class UserController {
             }
         }
         
-        Map<String, UserProfileDTO> profiles = new HashMap<>();
+        Map<String, Object> profiles = new HashMap<>();
         
         for (String userId : userIds) {
             User user = userService.getUserById(userId);
             if (user != null) {
-                profiles.put(userId, userService.mapToProfileDTO(user));
+                // Determine which DTO to use based on access level
+                boolean isOwnerOrAdmin = authenticatedUserId.equals(userId) || isAdmin;
+                if (isOwnerOrAdmin) {
+                    profiles.put(userId, userService.mapToProfileDTO(user));
+                } else {
+                    profiles.put(userId, userService.mapToPublicProfileDTO(user));
+                }
             } else {
                 profiles.put(userId, createDefaultProfile(userId));
             }
@@ -142,12 +157,12 @@ public class UserController {
         
         try {
             // The method now returns UserProfileDTO directly, not User
-            UserProfileDTO updatedProfile = userService.updateUserProfile(userId, profileDTO);
-            if (updatedProfile == null) {
+            User updatedUser = userService.updateUserProfile(userId, profileDTO);
+            if (updatedUser == null) {
                 return ResponseEntity.notFound().build();
             }
             
-            return ResponseEntity.ok(updatedProfile);
+            return ResponseEntity.ok(userService.mapToProfileDTO(updatedUser));
         } catch (Exception e) {
             // Secure error handling - do not expose internal details
             if (e.getMessage() != null && 

@@ -3,6 +3,7 @@ package com.app.heartbound.services;
 import com.app.heartbound.dto.UserDTO;
 import com.app.heartbound.dto.UpdateProfileDTO;
 import com.app.heartbound.dto.UserProfileDTO;
+import com.app.heartbound.dto.PublicUserProfileDTO;
 import com.app.heartbound.dto.DailyActivityDataDTO;
 import com.app.heartbound.dto.shop.UserInventoryItemDTO;
 import com.app.heartbound.dto.CreateAuditDTO;
@@ -432,7 +433,7 @@ public class UserService {
      * @param updateProfileDTO the profile data to update
      * @return the updated UserProfileDTO
      */
-    public UserProfileDTO updateUserProfile(String userId, UpdateProfileDTO updateProfileDTO) {
+    public User updateUserProfile(String userId, UpdateProfileDTO updateProfileDTO) {
         logger.debug("Updating profile for user ID: {}", userId);
         
         // Get the user entity
@@ -483,56 +484,6 @@ public class UserService {
             createProfileUpdateAuditEntry(userId, "bannerUrl", previousBannerUrl, null, false, true);
         }
         
-        // Special handling for avatar
-        if (updateProfileDTO.getAvatar() != null) {
-            if (updateProfileDTO.getAvatar().isEmpty()) {
-                // Empty avatar string means use Discord avatar
-                user.setAvatar("USE_DISCORD_AVATAR");
-                
-                // Make sure we have a Discord avatar URL to fall back to
-                if (user.getDiscordAvatarUrl() == null || user.getDiscordAvatarUrl().isEmpty()) {
-                    logger.warn("No cached Discord avatar URL available for user: {}. Attempting to construct default Discord avatar.", userId);
-                    
-                    // AVATAR FALLBACK FIX: Generate default Discord avatar URL
-                    // This handles users who don't have discordAvatarUrl cached
-                    try {
-                        String defaultDiscordAvatar = null;
-                        
-                        // Try to construct Discord avatar URL based on user's discriminator
-                        if (user.getDiscriminator() != null && !user.getDiscriminator().isEmpty()) {
-                            try {
-                                int defaultAvatar = Integer.parseInt(user.getDiscriminator()) % 5;
-                                defaultDiscordAvatar = "https://cdn.discordapp.com/embed/avatars/" + defaultAvatar + ".png";
-                                logger.info("Generated default Discord avatar URL for user {}: {}", userId, defaultDiscordAvatar);
-                            } catch (NumberFormatException e) {
-                                logger.warn("Invalid discriminator for user {}: {}", userId, user.getDiscriminator());
-                            }
-                        }
-                        
-                        // If we couldn't generate a Discord avatar, we'll let it fall back to /default-avatar.png
-                        if (defaultDiscordAvatar != null) {
-                            user.setDiscordAvatarUrl(defaultDiscordAvatar);
-                            logger.info("Cached generated Discord avatar URL for user {}: {}", userId, defaultDiscordAvatar);
-                        } else {
-                            logger.warn("Could not generate Discord avatar URL for user {}. Profile will use /default-avatar.png", userId);
-                        }
-                        
-                    } catch (Exception e) {
-                        logger.error("Error generating Discord avatar for user {}: {}", userId, e.getMessage());
-                    }
-                }
-            } else {
-                // Otherwise use the provided avatar
-                user.setAvatar(updateProfileDTO.getAvatar());
-                
-                // If this is a Discord CDN URL, also update the cached URL
-                if (updateProfileDTO.getAvatar().contains("cdn.discordapp.com")) {
-                    user.setDiscordAvatarUrl(updateProfileDTO.getAvatar());
-                    logger.debug("Updated Discord avatar cache from profile update for user: {}", userId);
-                }
-            }
-        }
-        
         // Save the updated user
         User updatedUser = userRepository.save(user);
         logger.info("Updated profile for user: {}", updatedUser.getUsername());
@@ -542,7 +493,7 @@ public class UserService {
         logger.debug("Invalidated user profile cache for user: {}", userId);
         
         // Convert to DTO and return
-        return mapToProfileDTO(updatedUser);
+        return updatedUser;
     }
 
     /**
@@ -1909,5 +1860,60 @@ public class UserService {
         } else {
             logger.info("User {} was not banned.", userId);
         }
+    }
+
+    public PublicUserProfileDTO mapToPublicProfileDTO(User user) {
+        String avatarUrl = user.getAvatar();
+
+        if ("USE_DISCORD_AVATAR".equals(avatarUrl)) {
+            if (user.getDiscordAvatarUrl() != null && !user.getDiscordAvatarUrl().isEmpty()) {
+                avatarUrl = user.getDiscordAvatarUrl();
+            } else {
+                avatarUrl = "/images/default-avatar.png";
+            }
+        } else if (avatarUrl == null || avatarUrl.isEmpty()) {
+            avatarUrl = "/images/default-avatar.png";
+        }
+
+        UUID badgeId = user.getEquippedBadgeId();
+        String badgeUrl = null;
+        String badgeName = null;
+        if (badgeId != null) {
+            shopRepository.findById(badgeId).ifPresent(badge -> {
+                // This is not ideal, need to assign to outer scope variables.
+            });
+        }
+        
+        Shop equippedBadge = null;
+        if (badgeId != null) {
+            equippedBadge = shopRepository.findById(badgeId).orElse(null);
+        }
+        if (equippedBadge != null) {
+            badgeUrl = equippedBadge.getThumbnailUrl();
+            badgeName = equippedBadge.getName();
+        }
+
+        String nameplateColor = null;
+        UUID equippedUserColorId = user.getEquippedUserColorId();
+        if (equippedUserColorId != null) {
+            nameplateColor = shopRepository.findById(equippedUserColorId)
+                .map(item -> item.getImageUrl())
+                .orElse(null);
+        }
+
+        return PublicUserProfileDTO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .avatar(avatarUrl)
+                .displayName(user.getDisplayName())
+                .pronouns(user.getPronouns())
+                .about(user.getAbout())
+                .bannerColor(user.getBannerColor())
+                .bannerUrl(user.getBannerUrl())
+                .roles(user.getRoles())
+                .badgeUrl(badgeUrl)
+                .badgeName(badgeName)
+                .nameplateColor(nameplateColor)
+                .build();
     }
 }
