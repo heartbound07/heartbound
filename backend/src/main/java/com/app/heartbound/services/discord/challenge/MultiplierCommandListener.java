@@ -4,6 +4,8 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.springframework.stereotype.Component;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.entities.Member;
 
 import javax.annotation.Nonnull;
 
@@ -22,12 +24,19 @@ public class MultiplierCommandListener extends ListenerAdapter {
             return;
         }
 
-        if (event.getMember() == null || !event.getMember().hasPermission(Permission.ADMINISTRATOR)) {
+        Member member = event.getMember();
+        if (member == null || !member.hasPermission(Permission.ADMINISTRATOR)) {
             event.reply("You do not have permission to use this command.").setEphemeral(true).queue();
             return;
         }
 
-        boolean enabled = event.getOption("enabled").getAsBoolean();
+        OptionMapping enabledOption = event.getOption("enabled");
+        if (enabledOption == null) {
+            event.reply("Error: The 'enabled' option is missing. Please provide true or false.").setEphemeral(true).queue();
+            return;
+        }
+
+        boolean enabled = enabledOption.getAsBoolean();
         challengeService.setMultiplierActive(enabled);
 
         event.reply("✅ Success! The 2x message multiplier for teams #4-7 has been " + (enabled ? "ENABLED" : "DISABLED") + ".")

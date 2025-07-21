@@ -28,6 +28,7 @@ public class ChallengeParticipant {
     private String teamName;
 
     @Column(nullable = false)
+    @Builder.Default
     private long messageCount = 0L;
 
     @Column(nullable = false)
