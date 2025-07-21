@@ -15,7 +15,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 
 @Configuration
 @EnableMethodSecurity // Enable method-level security for @PreAuthorize annotations
@@ -76,7 +75,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PATCH, "/users/*/credits").hasRole("ADMIN")
                 
                 // Role-based security for admin endpoints
-                .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/admin/**", "/shop/admin/**").hasRole("ADMIN")
                 // Moderator endpoints available to admins and moderators
                 .requestMatchers("/moderation/**").hasAnyRole("ADMIN", "MODERATOR")
                 // Monarch (premium) features

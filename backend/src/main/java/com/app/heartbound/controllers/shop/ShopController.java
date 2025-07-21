@@ -35,10 +35,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -47,7 +45,6 @@ import java.util.stream.Collectors;
 public class ShopController {
     
     private final ShopService shopService;
-    private final ShopRepository shopRepository;
     private static final Logger logger = LoggerFactory.getLogger(ShopController.class);
     
     // Rate limiting configuration values
@@ -80,7 +77,6 @@ public class ShopController {
         
     public ShopController(ShopService shopService, ShopRepository shopRepository) {
         this.shopService = shopService;
-        this.shopRepository = shopRepository;
     }
     
     /**
