@@ -236,8 +236,8 @@ public class MinesCommandListener extends ListenerAdapter {
         // The multiplier for this single step.
         double stepMultiplier = unrevealedTiles / (unrevealedTiles - mineCount);
 
-        // Apply a house edge.
-        double houseEdge = 0.97;
+        // Apply a house edge. A lower value means a higher house edge (lower payout).
+        double houseEdge = 0.92; // Lowered from 0.97 to reduce payouts slightly.
         stepMultiplier *= houseEdge;
 
         // Update the game's cumulative multiplier.
