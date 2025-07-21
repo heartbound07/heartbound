@@ -637,10 +637,10 @@ export function ShopAdminPage() {
                       onChange={handleCheckboxChange}
                       className="w-4 h-4 rounded text-primary focus:ring-primary bg-slate-800 border-slate-600"
                     />
-                    <span>Daily Item</span>
+                    <span>Eligible for Daily Items Pool</span>
                   </label>
                   <p className="text-xs text-slate-400 mt-1 ml-6">
-                    Daily items appear in the right section of the shop page with horizontal scrolling.
+                    If checked, this item can be randomly selected for a user's personalized daily items.
                   </p>
                 </div>
               </div>

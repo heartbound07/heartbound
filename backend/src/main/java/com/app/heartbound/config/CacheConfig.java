@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -109,6 +108,13 @@ public class CacheConfig {
     @Value("${cache.giveaway.expire-after-write-minutes:10}")
     private long giveawayCacheExpireMinutes;
 
+    // User Daily Items Cache Configuration
+    @Value("${cache.user-daily-items.max-size:10000}")
+    private long userDailyItemsCacheMaxSize;
+
+    @Value("${cache.user-daily-items.expire-after-access-hours:24}")
+    private long userDailyItemsCacheExpireHours;
+
     // Shop Layout Cache Configuration
     @Value("${cache.shop-layout.max-size:100}")
     private long shopLayoutCacheMaxSize;
@@ -152,7 +158,7 @@ public class CacheConfig {
     private Cache<String, Object> countingGameCache;
     private Cache<String, Object> giveawayCache;
     private Cache<String, List<Object>> featuredItemsCache;
-    private Cache<String, List<Object>> dailyItemsCache;
+    private Cache<String, List<Object>> userDailyItemsCache;
     private Cache<String, List<LeaderboardEntryDTO>> leaderboardCache;
     private Cache<String, Object> pendingRoleSelectionCache;
     private Cache<String, Object> pendingPrisonCache;
@@ -329,13 +335,13 @@ public class CacheConfig {
                 .recordStats()
                 .build();
 
-        // Daily Items Cache - stores daily shop items
-        this.dailyItemsCache = Caffeine.newBuilder()
-                .maximumSize(shopLayoutCacheMaxSize)
-                .expireAfterWrite(shopLayoutCacheExpireMinutes, TimeUnit.MINUTES)
+        // User Daily Items Cache - stores daily shop items
+        this.userDailyItemsCache = Caffeine.newBuilder()
+                .maximumSize(userDailyItemsCacheMaxSize)
+                .expireAfterAccess(userDailyItemsCacheExpireHours, TimeUnit.HOURS)
                 .removalListener((RemovalListener<String, List<Object>>) (key, value, cause) -> {
                     if (log.isDebugEnabled()) {
-                        log.debug("Daily items cache entry removed: key={}, cause={}", key, cause);
+                        log.debug("User daily items cache entry removed: key={}, cause={}", key, cause);
                     }
                 })
                 .recordStats()
@@ -390,6 +396,7 @@ public class CacheConfig {
                 "CountingGame: {}/{} entries/minutes, " +
                 "Giveaway: {}/{} entries/minutes, " +
                 "ShopLayout: {}/{} entries/minutes, " +
+                "UserDailyItems: {}/{} entries/hours, " +
                 "PendingRoleSelection: {}/{} entries/minutes, " +
                 "PendingPrison: {}/{} entries/days",
                 pairLevelCacheMaxSize, pairLevelCacheExpireMinutes,
@@ -404,6 +411,7 @@ public class CacheConfig {
                 countingGameCacheMaxSize, countingGameCacheExpireMinutes,
                 giveawayCacheMaxSize, giveawayCacheExpireMinutes,
                 shopLayoutCacheMaxSize, shopLayoutCacheExpireMinutes,
+                userDailyItemsCacheMaxSize, userDailyItemsCacheExpireHours,
                 pendingRoleSelectionCacheMaxSize, pendingRoleSelectionCacheExpireMinutes,
                 pendingPrisonCacheMaxSize, pendingPrisonCacheExpireDays);
     }
@@ -548,7 +556,7 @@ public class CacheConfig {
      */
     public void invalidateShopLayoutCaches() {
         featuredItemsCache.invalidateAll();
-        dailyItemsCache.invalidateAll();
+        userDailyItemsCache.invalidateAll();
         log.debug("Shop layout caches invalidated");
     }
 
@@ -559,7 +567,7 @@ public class CacheConfig {
     public void invalidateShopLayoutCache(String userId) {
         if (userId != null) {
             featuredItemsCache.invalidate(userId);
-            dailyItemsCache.invalidate(userId);
+            userDailyItemsCache.invalidate(userId);
             log.debug("Shop layout cache invalidated for user: {}", userId);
         }
     }
@@ -633,7 +641,7 @@ public class CacheConfig {
         countingGameCache.invalidateAll();
         giveawayCache.invalidateAll();
         featuredItemsCache.invalidateAll();
-        dailyItemsCache.invalidateAll();
+        userDailyItemsCache.invalidateAll();
         leaderboardCache.invalidateAll();
         pendingRoleSelectionCache.invalidateAll();
         pendingPrisonCache.invalidateAll();
@@ -696,7 +704,7 @@ public class CacheConfig {
         countingGameCache.cleanUp();
         giveawayCache.cleanUp();
         featuredItemsCache.cleanUp();
-        dailyItemsCache.cleanUp();
+        userDailyItemsCache.cleanUp();
         leaderboardCache.cleanUp();
         pendingRoleSelectionCache.cleanUp();
         pendingPrisonCache.cleanUp();

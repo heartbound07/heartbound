@@ -192,28 +192,97 @@ public class ShopService {
      * @return List of daily shop items
      */
     @Transactional(readOnly = true)
-    @Cacheable(value = "dailyItems", key = "#userId")
+    @Cacheable(value = "userDailyItems", key = "#userId")
     public List<ShopDTO> getDailyItems(String userId) {
-        logger.debug("Getting daily items for user {}", userId);
+        logger.debug("Generating daily items for user {}", userId);
+
+        // 1. Create a deterministic seed for the user and the current day
+        String seedString = userId + java.time.LocalDate.now().toString();
+        long seed = seedString.hashCode();
+        Random random = new Random(seed);
+
+        // 2. Fetch all eligible items for the daily pool
+        List<Shop> itemPool = shopRepository.findByIsDailyTrueAndIsActiveTrueAndExpiresAtAfterOrExpiresAtIsNull(LocalDateTime.now());
+
+        // 3. Group items by rarity
+        Map<ItemRarity, List<Shop>> itemsByRarity = itemPool.stream()
+                .collect(Collectors.groupingBy(Shop::getRarity));
+
+        // Initialize lists for each rarity, handling null cases
+        List<Shop> legendaryItems = itemsByRarity.getOrDefault(ItemRarity.LEGENDARY, Collections.emptyList());
+        List<Shop> epicItems = itemsByRarity.getOrDefault(ItemRarity.EPIC, Collections.emptyList());
+        List<Shop> rareItems = itemsByRarity.getOrDefault(ItemRarity.RARE, Collections.emptyList());
+        List<Shop> uncommonItems = itemsByRarity.getOrDefault(ItemRarity.UNCOMMON, Collections.emptyList());
+        List<Shop> commonItems = itemsByRarity.getOrDefault(ItemRarity.COMMON, Collections.emptyList());
+
+        List<Shop> lowerTierItems = new ArrayList<>();
+        lowerTierItems.addAll(rareItems);
+        lowerTierItems.addAll(uncommonItems);
+        lowerTierItems.addAll(commonItems);
+
+        List<Shop> selectedItems = new ArrayList<>();
+
+        // 4. Select items based on rarity distribution with fallback logic
+        // Select 1 Legendary item
+        selectAndAddItem(selectedItems, legendaryItems, 1, random, 
+            Arrays.asList(epicItems, lowerTierItems));
         
-        LocalDateTime now = LocalDateTime.now();
+        // Select 1 Epic item
+        selectAndAddItem(selectedItems, epicItems, 1, random, 
+            Arrays.asList(legendaryItems, lowerTierItems));
+
+        // Select 2 from lower tiers
+        selectAndAddItem(selectedItems, lowerTierItems, 2, random, 
+            Arrays.asList(epicItems, legendaryItems));
         
-        // Get daily items that are active and not expired
-        List<Shop> items = shopRepository.findByIsDailyTrueAndIsActiveTrueOrderByCreatedAtDesc()
-            .stream()
-            .filter(item -> item.getExpiresAt() == null || item.getExpiresAt().isAfter(now))
-            .collect(Collectors.toList());
-        
-        // Get user for ownership checking
-        User user = null;
-        if (userId != null) {
-            user = userRepository.findById(userId).orElse(null);
+        // Final fallback to ensure 4 items if possible
+        if (selectedItems.size() < 4) {
+            List<Shop> remainingPool = new ArrayList<>(itemPool);
+            remainingPool.removeAll(selectedItems);
+            
+            while (selectedItems.size() < 4 && !remainingPool.isEmpty()) {
+                int randomIndex = random.nextInt(remainingPool.size());
+                Shop item = remainingPool.remove(randomIndex);
+                if (!selectedItems.contains(item)) {
+                    selectedItems.add(item);
+                }
+            }
         }
-        
+
+        // 5. Convert to DTOs
+        User user = userRepository.findById(userId).orElse(null);
         final User finalUser = user;
-        return items.stream()
+        return selectedItems.stream()
             .map(item -> mapToShopDTO(item, finalUser))
             .collect(Collectors.toList());
+    }
+
+    private void selectAndAddItem(List<Shop> selectedItems, List<Shop> sourceList, int count, Random random, List<List<Shop>> fallbacks) {
+        List<Shop> pool = new ArrayList<>(sourceList);
+        for (int i = 0; i < count; i++) {
+            if (!pool.isEmpty()) {
+                int randomIndex = random.nextInt(pool.size());
+                Shop selected = pool.remove(randomIndex);
+                if (!selectedItems.contains(selected)) {
+                    selectedItems.add(selected);
+                }
+            } else {
+                // Fallback logic
+                for (List<Shop> fallbackPool : fallbacks) {
+                    List<Shop> availableFallbacks = new ArrayList<>(fallbackPool);
+                    availableFallbacks.removeAll(selectedItems);
+                    if (!availableFallbacks.isEmpty()) {
+                        int fallbackIndex = random.nextInt(availableFallbacks.size());
+                        Shop fallbackItem = availableFallbacks.get(fallbackIndex);
+                        if (!selectedItems.contains(fallbackItem)) {
+                             selectedItems.add(fallbackItem);
+                             // We found one, so break from the fallback loop
+                             break;
+                        }
+                    }
+                }
+            }
+        }
     }
     
     /**
