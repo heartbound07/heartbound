@@ -41,6 +41,11 @@ interface ToastNotification {
   type: 'success' | 'error' | 'info';
 }
 
+interface PurchaseResponse {
+  userProfile: any; // You can define a proper type for user profile
+  purchasedItem: ShopItem;
+}
+
 interface ShopLayoutResponse {
   featuredItems: ShopItem[];
   dailyItems: ShopItem[];
@@ -555,8 +560,10 @@ export function ShopPage() {
     
     setPurchaseInProgress(true);
     try {
-      // Store the purchase response which contains updated user profile
-      const purchaseResponse = await httpClient.post(`/shop/purchase/${itemId}`, { quantity });
+      // Store the purchase response which contains updated user profile and purchased item state
+      const response = await httpClient.post(`/shop/purchase/${itemId}`, { quantity });
+      const { userProfile, purchasedItem }: PurchaseResponse = response.data;
+      
       showToast(
         quantity && quantity > 1 
           ? `${quantity} items purchased successfully!` 
@@ -566,23 +573,17 @@ export function ShopPage() {
       
       // Mark recent purchase for animation
       setRecentPurchases(prev => ({...prev, [itemId]: Date.now()}));
-      
-      // Update item state locally instead of re-fetching the entire shop layout
-      const updateItemAsOwned = (items: ShopItem[]) => 
-        items.map(item => {
-          // Only mark non-case items as owned, since cases can be re-purchased
-          if (item.id === itemId && item.category !== 'CASE') {
-            return { ...item, owned: true };
-          }
-          return item;
-        });
 
-      setFeaturedItems(prevItems => updateItemAsOwned(prevItems));
-      setDailyItems(prevItems => updateItemAsOwned(prevItems));
+      // Update item state locally using the authoritative response from the server
+      const updateItemInState = (items: ShopItem[]) => 
+        items.map(item => (item.id === purchasedItem.id ? purchasedItem : item));
+
+      setFeaturedItems(prevItems => updateItemInState(prevItems));
+      setDailyItems(prevItems => updateItemInState(prevItems));
       
       // Update user profile to refresh credits while preserving other profile data
-      if (purchaseResponse.data) {
-        const updatedProfile = purchaseResponse.data;
+      if (userProfile) {
+        const updatedProfile = userProfile;
         
         // Prepare the avatar value for the profile update.
         // The backend validation for avatars rejects local paths like '/default-avatar.png'.
@@ -608,7 +609,7 @@ export function ShopPage() {
         showToast('You do not have permission to purchase this item', 'error');
       } else if (error.response?.status === 409) {
         showToast('You already own this item', 'error');
-      } else if (error.response?.status === 400) {
+      } else if (error.response?.status === 400 && error.response.data.message.includes("Insufficient credits")) {
         showToast('Insufficient credits to purchase this item', 'error');
       } else {
         showToast('Failed to purchase item: ' + (error.response?.data?.message || 'Unknown error'), 'error');

@@ -4,6 +4,7 @@ import com.app.heartbound.config.security.RateLimited;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.dto.shop.ShopDTO;
+import com.app.heartbound.dto.shop.PurchaseResponseDTO;
 import com.app.heartbound.dto.shop.UserInventoryDTO;
 import com.app.heartbound.dto.shop.CaseContentsDTO;
 import com.app.heartbound.dto.shop.CaseItemDTO;
@@ -171,9 +172,9 @@ public class ShopController {
         }
         
         try {
-            UserProfileDTO updatedProfile = shopService.purchaseItem(userId, itemId, quantity);
+            PurchaseResponseDTO purchaseResponse = shopService.purchaseItem(userId, itemId, quantity);
             logger.info("Successful purchase by user {} for item {} (quantity: {})", userId, itemId, quantity);
-            return ResponseEntity.ok(updatedProfile);
+            return ResponseEntity.ok(purchaseResponse);
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse(e.getMessage()));

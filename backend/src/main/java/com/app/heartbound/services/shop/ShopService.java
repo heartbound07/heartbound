@@ -3,6 +3,7 @@ package com.app.heartbound.services.shop;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.dto.shop.ShopDTO;
 import com.app.heartbound.dto.shop.UserInventoryDTO;
+import com.app.heartbound.dto.shop.PurchaseResponseDTO;
 import com.app.heartbound.dto.shop.CaseContentsDTO;
 import com.app.heartbound.dto.shop.CaseItemDTO;
 import com.app.heartbound.dto.shop.RollResultDTO;
@@ -279,7 +280,7 @@ public class ShopService {
      * @return Updated UserProfileDTO
      */
     @Transactional
-    public UserProfileDTO purchaseItem(String userId, UUID itemId) {
+    public PurchaseResponseDTO purchaseItem(String userId, UUID itemId) {
         return purchaseItem(userId, itemId, 1);
     }
     
@@ -291,7 +292,7 @@ public class ShopService {
      * @return Updated UserProfileDTO
      */
     @Transactional
-    public UserProfileDTO purchaseItem(String userId, UUID itemId, Integer quantity) {
+    public PurchaseResponseDTO purchaseItem(String userId, UUID itemId, Integer quantity) {
         logger.debug("Processing purchase of item {} for user {} with quantity {}", itemId, userId, quantity);
         
         // Validate quantity
@@ -396,9 +397,17 @@ public class ShopService {
                 "PURCHASE_SUCCESS", "Purchase completed successfully", AuditSeverity.INFO);
             
             logger.info("User {} successfully purchased {} x{} (total cost: {})", userId, itemId, quantity, totalCost);
+
+            // Map the purchased item to a DTO, now including ownership and quantity
+            ShopDTO purchasedItemDTO = mapToShopDTO(item, user);
+            if (item.getCategory() == ShopCategory.CASE) {
+                purchasedItemDTO.setQuantity(user.getItemQuantity(item.getId()));
+            } else {
+                purchasedItemDTO.setOwned(true);
+            }
             
-            // Return updated profile
-            return userService.mapToProfileDTO(user);
+            // Return updated profile and the purchased item DTO
+            return new PurchaseResponseDTO(userService.mapToProfileDTO(user), purchasedItemDTO);
         } catch (Exception e) {
             logger.error("Error during purchase process for user {} and item {}: {}", userId, itemId, e.getMessage(), e);
             
