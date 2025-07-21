@@ -218,17 +218,33 @@ public class MinesCommandListener extends ListenerAdapter {
     }
     
     private void updateMultiplier(MinesGame game) {
-        int totalTiles = GRID_SIZE * GRID_SIZE;
-        int remainingTiles = totalTiles - game.getSafeTilesRevealed();
-        int remainingMines = game.getMineCount();
-        
-        // Ensure remainingTiles is greater than remainingMines to avoid division by zero or negative multipliers
-        if (remainingTiles > remainingMines) {
-            double multiplierIncrease = (double) remainingTiles / (remainingTiles - remainingMines);
-            // Apply house edge
-            multiplierIncrease *= 0.97;
-            game.setCurrentMultiplier(game.getCurrentMultiplier() * multiplierIncrease);
+        int safeTilesFound = game.getSafeTilesRevealed();
+        int mineCount = game.getMineCount();
+        final int TOTAL_TILES = GRID_SIZE * GRID_SIZE;
+
+        // Calculate the multiplier for the step of finding the `safeTilesFound`-th safe tile.
+        // Before this tile was revealed, there were `safeTilesFound - 1` tiles revealed.
+        double unrevealedTiles = TOTAL_TILES - (safeTilesFound - 1);
+
+        // This check prevents division by zero if all remaining tiles are mines.
+        if (unrevealedTiles <= mineCount) {
+            logger.warn("Cannot calculate multiplier increase for user {}, as number of unrevealed tiles ({}) is not greater than mine count ({}).",
+                    game.getUserId(), unrevealedTiles, mineCount);
+            return;
         }
+
+        // The multiplier for this single step.
+        double stepMultiplier = unrevealedTiles / (unrevealedTiles - mineCount);
+
+        // Apply a house edge.
+        double houseEdge = 0.97;
+        stepMultiplier *= houseEdge;
+
+        // Update the game's cumulative multiplier.
+        game.setCurrentMultiplier(game.getCurrentMultiplier() * stepMultiplier);
+
+        logger.debug("Updated multiplier for user {}: safe_tiles={}, step_mult={}, new_total_mult={}",
+                game.getUserId(), safeTilesFound, stepMultiplier, game.getCurrentMultiplier());
     }
 
 
