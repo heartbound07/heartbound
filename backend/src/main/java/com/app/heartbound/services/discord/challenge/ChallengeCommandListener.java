@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Component
-@RequiredArgsConstructor
 public class ChallengeCommandListener extends ListenerAdapter {
 
     private final ChallengeService challengeService;
