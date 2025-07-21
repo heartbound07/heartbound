@@ -4,7 +4,6 @@ import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.SecureRandomService;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -47,12 +46,6 @@ public class MinesCommandListener extends ListenerAdapter {
     private final SecureRandomService secureRandomService;
 
     private static final int GRID_SIZE = 3;
-    private static final long GAME_TIMEOUT_MINUTES = 10;
-
-    @PostConstruct
-    public void init() {
-        scheduler.scheduleAtFixedRate(this::cleanupExpiredGames, GAME_TIMEOUT_MINUTES, GAME_TIMEOUT_MINUTES, TimeUnit.MINUTES);
-    }
 
     @PreDestroy
     public void shutdown() {
@@ -118,6 +111,9 @@ public class MinesCommandListener extends ListenerAdapter {
         MinesGame game = new MinesGame(userId, event.getHook(), bet, mines);
         placeMines(game);
         activeGames.put(userId, game);
+
+        // Schedule a one-time 15-second expiration task for this game.
+        scheduler.schedule(() -> handleGameExpiration(userId, game), 15, TimeUnit.SECONDS);
 
         EmbedBuilder embed = createGameEmbed(game);
         List<ActionRow> components = createGameComponents(game.getUserId(), false);
@@ -206,36 +202,41 @@ public class MinesCommandListener extends ListenerAdapter {
     }
 
     private void handleCashout(ButtonInteractionEvent event, MinesGame game) {
-        User user = userService.getUserById(game.getUserId());
-        int winnings = (int) Math.round(game.getBetAmount() * game.getCurrentMultiplier());
-        user.setCredits(user.getCredits() + winnings);
-        userService.updateUser(user);
+        // Atomically remove the game to prevent the expiration task from running on a completed game.
+        if (activeGames.remove(game.getUserId(), game)) {
+            User user = userService.getUserById(game.getUserId());
+            int winnings = (int) Math.round(game.getBetAmount() * game.getCurrentMultiplier());
+            user.setCredits(user.getCredits() + winnings);
+            userService.updateUser(user);
 
-        EmbedBuilder embed = new EmbedBuilder()
-                .setTitle("🎉 You Won!")
-                .setColor(WIN_COLOR)
-                .appendDescription(String.format("You cashed out successfully!%n%n"))
-                .appendDescription(String.format("**Bet Amount:** 🪙 %d credits%n", game.getBetAmount()))
-                .appendDescription(String.format("**Won:** 🪙 %d credits (%.2fx)%n%n", winnings, game.getCurrentMultiplier()))
-                .appendDescription(String.format("**New Balance:** 🪙 %d credits", user.getCredits()));
+            EmbedBuilder embed = new EmbedBuilder()
+                    .setTitle("🎉 You Won!")
+                    .setColor(WIN_COLOR)
+                    .appendDescription(String.format("You cashed out successfully!%n%n"))
+                    .appendDescription(String.format("**Bet Amount:** 🪙 %d credits%n", game.getBetAmount()))
+                    .appendDescription(String.format("**Won:** 🪙 %d credits (%.2fx)%n%n", winnings, game.getCurrentMultiplier()))
+                    .appendDescription(String.format("**New Balance:** 🪙 %d credits", user.getCredits()));
 
-        List<ActionRow> components = createRevealedGrid(game, -1, -1, true);
-        game.getHook().editOriginalEmbeds(embed.build()).setComponents(components).queue();
-        activeGames.remove(game.getUserId());
+            List<ActionRow> components = createRevealedGrid(game, -1, -1, true);
+            game.getHook().editOriginalEmbeds(embed.build()).setComponents(components).queue();
+        }
     }
 
     private void handleLoss(ButtonInteractionEvent event, MinesGame game, int hitRow, int hitCol) {
-        User user = userService.getUserById(game.getUserId());
+        // Atomically remove the game to prevent the expiration task from running on a completed game.
+        if (activeGames.remove(game.getUserId(), game)) {
+            User user = userService.getUserById(game.getUserId());
 
-        EmbedBuilder embed = new EmbedBuilder()
-                .setTitle("💔 You Lost!")
-                .setColor(LOSE_COLOR)
-                .appendDescription(String.format("**Bet Amount:** 🪙 %d credits%n", game.getBetAmount()))
-                .appendDescription(String.format("**New Balance:** 🪙 %d credits", user.getCredits()));
+            EmbedBuilder embed = new EmbedBuilder()
+                    .setTitle("💔 You Lost!")
+                    .setColor(LOSE_COLOR)
+                    .appendDescription(String.format("You hit a mine and lost your bet. Better luck next time!%n%n"))
+                    .appendDescription(String.format("**Bet Amount:** 🪙 %d credits%n", game.getBetAmount()))
+                    .appendDescription(String.format("**New Balance:** 🪙 %d credits", user.getCredits()));
 
-        List<ActionRow> components = createRevealedGrid(game, hitRow, hitCol, true);
-        game.getHook().editOriginalEmbeds(embed.build()).setComponents(components).queue();
-        activeGames.remove(game.getUserId());
+            List<ActionRow> components = createRevealedGrid(game, hitRow, hitCol, true);
+            game.getHook().editOriginalEmbeds(embed.build()).setComponents(components).queue();
+        }
     }
     
     private void updateMultiplier(MinesGame game) {
@@ -340,26 +341,44 @@ public class MinesCommandListener extends ListenerAdapter {
         return rows;
     }
 
-    private void cleanupExpiredGames() {
-        long now = System.currentTimeMillis();
-        activeGames.entrySet().removeIf(entry -> {
-            MinesGame game = entry.getValue();
-            if (TimeUnit.MILLISECONDS.toMinutes(now - game.getGameStartTime()) > GAME_TIMEOUT_MINUTES) {
-                logger.info("Game for user {} timed out. Bet of {} lost.", game.getUserId(), game.getBetAmount());
-                EmbedBuilder embed = new EmbedBuilder()
-                        .setTitle("Game Timed Out")
-                        .setColor(TIMEOUT_COLOR)
-                        .setDescription("Your game of Mines has expired. Your bet of 🪙 " + game.getBetAmount() + " credits has been forfeited.");
-                
-                List<ActionRow> components = createRevealedGrid(game, -1, -1, true);
+    private void handleGameExpiration(String userId, MinesGame game) {
+        // Atomically remove the game. If it fails, another thread (e.g., a button click) already handled it.
+        if (activeGames.remove(userId, game)) {
+            if (game.getSafeTilesRevealed() == 0) {
+                // Scenario 1: No moves made. Refund the bet and show a timeout message.
+                logger.info("Mines game for user {} timed out with no moves. Refunding bet.", userId);
+                User user = userService.getUserById(userId);
+                if (user != null) {
+                    user.setCredits(user.getCredits() + game.getBetAmount());
+                    userService.updateUser(user);
+                }
 
-                game.getHook().editOriginalEmbeds(embed.build()).setComponents(components).queue(
-                    success -> logger.debug("Successfully edited timed out game message for user {}", game.getUserId()),
-                    error -> logger.error("Failed to edit timed out game message for user {}", game.getUserId(), error)
-                );
-                return true;
+                EmbedBuilder embed = new EmbedBuilder()
+                        .setTitle("⏳ Mines Timed Out")
+                        .setColor(TIMEOUT_COLOR)
+                        .setDescription("The mines session has timed out.\nIf you want to try again, simply start a new mines game.");
+
+                List<ActionRow> components = createRevealedGrid(game, -1, -1, true);
+                game.getHook().editOriginalEmbeds(embed.build()).setComponents(components).queue();
+            } else {
+                // Scenario 2: At least one move made. Auto-cashout.
+                logger.info("Mines game for user {} timed out with {} tiles revealed. Auto-cashing out.", userId, game.getSafeTilesRevealed());
+                User user = userService.getUserById(userId);
+                int winnings = (int) Math.round(game.getBetAmount() * game.getCurrentMultiplier());
+                user.setCredits(user.getCredits() + winnings);
+                userService.updateUser(user);
+
+                EmbedBuilder embed = new EmbedBuilder()
+                        .setTitle("🎉 Auto Cashed Out!")
+                        .setColor(WIN_COLOR)
+                        .appendDescription(String.format("The game timed out, so you were automatically cashed out!%n%n"))
+                        .appendDescription(String.format("**Bet Amount:** 🪙 %d credits%n", game.getBetAmount()))
+                        .appendDescription(String.format("**Won:** 🪙 %d credits (%.2fx)%n%n", winnings, game.getCurrentMultiplier()))
+                        .appendDescription(String.format("**New Balance:** 🪙 %d credits", user.getCredits()));
+
+                List<ActionRow> components = createRevealedGrid(game, -1, -1, true);
+                game.getHook().editOriginalEmbeds(embed.build()).setComponents(components).queue();
             }
-            return false;
-        });
+        }
     }
 } 
