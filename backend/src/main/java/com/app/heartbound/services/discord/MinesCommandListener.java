@@ -29,6 +29,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.concurrent.ScheduledFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -113,7 +114,8 @@ public class MinesCommandListener extends ListenerAdapter {
         activeGames.put(userId, game);
 
         // Schedule a one-time 15-second expiration task for this game.
-        scheduler.schedule(() -> handleGameExpiration(userId, game), 15, TimeUnit.SECONDS);
+        ScheduledFuture<?> expirationTask = scheduler.schedule(() -> handleGameExpiration(userId, game), 15, TimeUnit.SECONDS);
+        game.setExpirationTask(expirationTask);
 
         EmbedBuilder embed = createGameEmbed(game);
         List<ActionRow> components = createGameComponents(game.getUserId(), false);
@@ -194,6 +196,13 @@ public class MinesCommandListener extends ListenerAdapter {
                 // All safe tiles revealed, automatic win
                 handleCashout(event, game);
             } else {
+                // Successfully revealed a safe tile, so reset the expiration timer.
+                if (game.getExpirationTask() != null) {
+                    game.getExpirationTask().cancel(false);
+                }
+                ScheduledFuture<?> newExpirationTask = scheduler.schedule(() -> handleGameExpiration(game.getUserId(), game), 15, TimeUnit.SECONDS);
+                game.setExpirationTask(newExpirationTask);
+                
                 EmbedBuilder embed = createGameEmbed(game);
                 List<ActionRow> components = createGameComponents(game.getUserId(), false);
                 game.getHook().editOriginalEmbeds(embed.build()).setComponents(components).queue();
@@ -204,6 +213,11 @@ public class MinesCommandListener extends ListenerAdapter {
     private void handleCashout(ButtonInteractionEvent event, MinesGame game) {
         // Atomically remove the game to prevent the expiration task from running on a completed game.
         if (activeGames.remove(game.getUserId(), game)) {
+            // Also cancel the scheduled expiration task.
+            if (game.getExpirationTask() != null) {
+                game.getExpirationTask().cancel(false);
+            }
+
             User user = userService.getUserById(game.getUserId());
             int winnings = (int) Math.round(game.getBetAmount() * game.getCurrentMultiplier());
             user.setCredits(user.getCredits() + winnings);
@@ -225,6 +239,11 @@ public class MinesCommandListener extends ListenerAdapter {
     private void handleLoss(ButtonInteractionEvent event, MinesGame game, int hitRow, int hitCol) {
         // Atomically remove the game to prevent the expiration task from running on a completed game.
         if (activeGames.remove(game.getUserId(), game)) {
+            // Also cancel the scheduled expiration task.
+            if (game.getExpirationTask() != null) {
+                game.getExpirationTask().cancel(false);
+            }
+            
             User user = userService.getUserById(game.getUserId());
 
             EmbedBuilder embed = new EmbedBuilder()

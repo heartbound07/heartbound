@@ -2,6 +2,7 @@ package com.app.heartbound.services.discord;
 
 import lombok.Data;
 import net.dv8tion.jda.api.interactions.InteractionHook;
+import java.util.concurrent.ScheduledFuture;
 
 @Data
 public class MinesGame {
@@ -14,6 +15,7 @@ public class MinesGame {
     private double currentMultiplier = 1.0;
     private final long gameStartTime = System.currentTimeMillis();
     private int safeTilesRevealed = 0;
+    private ScheduledFuture<?> expirationTask;
 
     public MinesGame(String userId, InteractionHook hook, int betAmount, int mineCount) {
         this.userId = userId;
