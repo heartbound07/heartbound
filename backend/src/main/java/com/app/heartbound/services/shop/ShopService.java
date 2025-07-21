@@ -235,6 +235,53 @@ public class ShopService {
         selectAndAddItem(selectedItems, lowerTierItems, 2, random, 
             Arrays.asList(epicItems, legendaryItems));
         
+        // Enforce the 'max one fishing rod' rule
+        long fishingRodCount = selectedItems.stream()
+            .filter(item -> item.getCategory() == ShopCategory.FISHING_ROD)
+            .count();
+
+        if (fishingRodCount > 1) {
+            List<Shop> rodsToReplace = selectedItems.stream()
+                .filter(item -> item.getCategory() == ShopCategory.FISHING_ROD)
+                .skip(1) // Keep the first one, collect the rest
+                .collect(Collectors.toList());
+
+            for (Shop rodToReplace : rodsToReplace) {
+                ItemRarity rarityToMatch = rodToReplace.getRarity();
+
+                // Attempt to find a replacement of the same rarity
+                List<Shop> replacementPool = itemsByRarity.getOrDefault(rarityToMatch, Collections.emptyList())
+                    .stream()
+                    .filter(item -> item.getCategory() != ShopCategory.FISHING_ROD && !selectedItems.contains(item))
+                    .collect(Collectors.toList());
+
+                Shop replacement = null;
+                if (!replacementPool.isEmpty()) {
+                    replacement = replacementPool.get(random.nextInt(replacementPool.size()));
+                } else {
+                    // If no same-rarity replacement, try the general pool
+                    List<Shop> generalReplacementPool = itemPool.stream()
+                        .filter(item -> item.getCategory() != ShopCategory.FISHING_ROD && !selectedItems.contains(item))
+                        .collect(Collectors.toList());
+                    if (!generalReplacementPool.isEmpty()) {
+                        replacement = generalReplacementPool.get(random.nextInt(generalReplacementPool.size()));
+                    }
+                }
+
+                // Perform the replacement or removal
+                int index = selectedItems.indexOf(rodToReplace);
+                if (index != -1) {
+                    if (replacement != null) {
+                        selectedItems.set(index, replacement);
+                        logger.debug("Replaced extra fishing rod with {} for user {}", replacement.getName(), userId);
+                    } else {
+                        selectedItems.remove(index);
+                        logger.warn("Removed extra fishing rod because no replacement could be found. User {} may see fewer than 4 daily items.", userId);
+                    }
+                }
+            }
+        }
+        
         // Final fallback to ensure 4 items if possible
         if (selectedItems.size() < 4) {
             List<Shop> remainingPool = new ArrayList<>(itemPool);
