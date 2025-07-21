@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,6 +22,7 @@ public class ChallengeService {
 
     private final ChallengeParticipantRepository challengeParticipantRepository;
     private static final String CURRENT_CHALLENGE_PERIOD = "july-2024";
+    private final AtomicBoolean multiplierActive = new AtomicBoolean(false);
 
     private static final Map<String, String> TEAM_ROLES = Map.of(
             "1396652642888974407", "Team 1",
@@ -32,8 +34,33 @@ public class ChallengeService {
             "1396652834472202372", "Team 7"
     );
 
+    public void setMultiplierActive(boolean isActive) {
+        multiplierActive.set(isActive);
+    }
+
+    public boolean isMultiplierActive() {
+        return multiplierActive.get();
+    }
+
     @Transactional
     public void incrementMessageCount(String userId, String teamId, String teamName) {
+        long incrementAmount = 1L;
+
+        if (isMultiplierActive()) {
+            List<TeamLeaderboardEntry> leaderboard = getTeamLeaderboard();
+            int rank = -1;
+            for (int i = 0; i < leaderboard.size(); i++) {
+                if (leaderboard.get(i).teamName().equals(teamName)) {
+                    rank = i + 1;
+                    break;
+                }
+            }
+
+            if (rank >= 4 && rank <= 7) {
+                incrementAmount = 2L;
+            }
+        }
+
         ChallengeParticipant participant = challengeParticipantRepository
                 .findByUserIdAndChallengePeriod(userId, CURRENT_CHALLENGE_PERIOD)
                 .orElseGet(() -> ChallengeParticipant.builder()
@@ -44,7 +71,7 @@ public class ChallengeService {
                         .messageCount(0L)
                         .build());
 
-        participant.setMessageCount(participant.getMessageCount() + 1);
+        participant.setMessageCount(participant.getMessageCount() + incrementAmount);
         challengeParticipantRepository.save(participant);
     }
 

@@ -32,6 +32,7 @@ import com.app.heartbound.services.discord.PairCommandListener;
 import com.app.heartbound.services.discord.GuildEventListener;
 import com.app.heartbound.services.discord.GrabCommandListener;
 import com.app.heartbound.services.discord.challenge.ChallengeCommandListener;
+import com.app.heartbound.services.discord.challenge.MultiplierCommandListener;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -166,6 +167,9 @@ public class DiscordConfig {
     @Autowired
     private ChallengeCommandListener challengeCommandListener;
 
+    @Autowired
+    private MultiplierCommandListener multiplierCommandListener;
+
     @Bean
     public JDA jda() {
         if (discordToken == null || discordToken.isBlank() || discordToken.equals("${DISCORD_BOT_TOKEN}")) {
@@ -207,7 +211,7 @@ public class DiscordConfig {
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService, prisonCommandListener, countingGameListener,
                                       autoSlowmodeService, rolesCommandListener, verifyCommandListener, guildEventListener, grabCommandListener, minesCommandListener,
-                                      challengeCommandListener)
+                                      challengeCommandListener, multiplierCommandListener)
                     .build();
 
             // Waits until JDA is fully connected and ready
@@ -352,7 +356,12 @@ public class DiscordConfig {
                                 .setMinValue(1)
                                 .setMaxValue(8)
                         ),
-                    Commands.slash("challenge", "Displays the monthly team challenge leaderboard")
+                    Commands.slash("challenge", "Displays the monthly team challenge leaderboard"),
+                    Commands.slash("multiplier", "Enable/disable 2x message multiplier for teams #4-7")
+                        .addOptions(
+                            new OptionData(OptionType.BOOLEAN, "enabled", "Set to true to enable, false to disable", true)
+                        )
+                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
                 )
                 .queue(
                     cmds -> {
