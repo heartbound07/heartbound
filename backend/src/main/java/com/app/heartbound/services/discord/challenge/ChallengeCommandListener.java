@@ -167,7 +167,7 @@ public class ChallengeCommandListener extends ListenerAdapter {
             case 0 -> "🥇";
             case 1 -> "🥈";
             case 2 -> "🥉";
-            default -> "**#" + (index + 1) + "**";
+            default -> "**#" + (index + 1) + "**"; 
         };
     }
 } 
