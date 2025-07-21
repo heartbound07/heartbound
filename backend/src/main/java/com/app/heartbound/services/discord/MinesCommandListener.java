@@ -304,7 +304,10 @@ public class MinesCommandListener extends ListenerAdapter {
             rows.add(ActionRow.of(buttons));
         }
 
-        rows.add(ActionRow.of(Button.success("mines_cashout_" + userId, "Cashout").withDisabled(disabled || game.getSafeTilesRevealed() == 0)));
+        // Only add the cashout button if at least one safe tile has been revealed.
+        if (game.getSafeTilesRevealed() > 0) {
+            rows.add(ActionRow.of(Button.success("mines_cashout_" + userId, "Cashout").withDisabled(disabled)));
+        }
         return rows;
     }
 
@@ -358,8 +361,8 @@ public class MinesCommandListener extends ListenerAdapter {
                         .setColor(TIMEOUT_COLOR)
                         .setDescription("The mines session has timed out.\nIf you want to try again, simply start a new mines game.");
 
-                List<ActionRow> components = createRevealedGrid(game, -1, -1, true);
-                game.getHook().editOriginalEmbeds(embed.build()).setComponents(components).queue();
+                // Remove all buttons, leaving only the timeout embed.
+                game.getHook().editOriginalEmbeds(embed.build()).setComponents().queue();
             } else {
                 // Scenario 2: At least one move made. Auto-cashout.
                 logger.info("Mines game for user {} timed out with {} tiles revealed. Auto-cashing out.", userId, game.getSafeTilesRevealed());
