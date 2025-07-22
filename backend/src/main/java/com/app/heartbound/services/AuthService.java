@@ -1,14 +1,19 @@
 package com.app.heartbound.services;
 
 import com.app.heartbound.config.security.JWTTokenProvider;
+import com.app.heartbound.dto.LoginRequestDTO;
 import com.app.heartbound.dto.UserDTO;
 import com.app.heartbound.dto.oauth.OAuthTokenResponse;
+import com.app.heartbound.dto.RegisterRequestDTO;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.exceptions.AuthenticationException;
 import com.app.heartbound.exceptions.InvalidTokenException;
+import com.app.heartbound.exceptions.UserNotFoundException;
+import com.app.heartbound.exceptions.UserAlreadyExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -20,70 +25,94 @@ public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
     private final JWTTokenProvider jwtTokenProvider;
     private final UserService userService;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthService(JWTTokenProvider jwtTokenProvider, UserService userService) {
+    public AuthService(JWTTokenProvider jwtTokenProvider, UserService userService, PasswordEncoder passwordEncoder) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.userService = userService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
-     * Generates a JWT access token for a user based on the provided UserDTO.
-     * User roles and credits are sourced first from the UserDTO. If not present,
-     * they are fetched from the database via UserService. If still unavailable after
-     * checking the database, roles default to USER and credits default to 0.
+     * Authenticates a user with username and password, then generates JWTs.
+     * This replaces the insecure direct token generation from a UserDTO.
      *
-     * @param userDTO - Data transfer object containing user details. Must contain at least user ID.
-     *                  Username, email, and avatar are taken from this DTO for the token.
-     * @return A JWT access token string.
+     * @param loginRequest DTO containing username and password.
+     * @return An OAuthTokenResponse containing the access and refresh tokens.
+     * @throws UserNotFoundException if the user does not exist.
+     * @throws AuthenticationException if the password is incorrect.
      */
-    public String generateTokenForUser(UserDTO userDTO) {
-        logger.info("Generating JWT token for user with id: {}", userDTO.getId());
-        
-        User userEntity = null;
-        boolean needsRolesFromDb = (userDTO.getRoles() == null || userDTO.getRoles().isEmpty());
-        boolean needsCreditsFromDb = (userDTO.getCredits() == null);
+    public OAuthTokenResponse login(LoginRequestDTO loginRequest) {
+        logger.info("Login attempt for user: {}", loginRequest.getUsername());
 
-        if (needsRolesFromDb || needsCreditsFromDb) {
-            // Fetch user from DB only once if either roles or credits (or both) are missing from DTO
-            userEntity = userService.getUserById(userDTO.getId());
+        // Step 1: Fetch user from the database (source of truth)
+        User user = userService.findByUsername(loginRequest.getUsername())
+                .orElseThrow(() -> {
+                    logger.warn("Login failed: User not found with username '{}'", loginRequest.getUsername());
+                    return new UserNotFoundException("User not found with username: " + loginRequest.getUsername());
+                });
+
+        // Step 2: Securely verify the password
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+            logger.warn("Login failed: Invalid password for user '{}'", loginRequest.getUsername());
+            throw new AuthenticationException("Invalid username or password");
         }
 
-        Set<Role> roles = userDTO.getRoles();
-        if (needsRolesFromDb) {
-            if (userEntity != null && userEntity.getRoles() != null && !userEntity.getRoles().isEmpty()) {
-                roles = userEntity.getRoles();
-            } else {
-                // Default to USER role if not in DTO and not found in DB user or user has no roles
-                roles = Collections.singleton(Role.USER);
-            }
-        }
-        // Ensure roles are at least USER if it was an empty set from DTO and DB check didn't override
-        if (roles == null || roles.isEmpty()) {
-            roles = Collections.singleton(Role.USER);
-        }
-        
-        Integer credits = userDTO.getCredits();
-        if (needsCreditsFromDb) {
-            credits = (userEntity != null && userEntity.getCredits() != null) ? userEntity.getCredits() : 0;
-        }
-        // Ensure credits are at least 0 if it was null from DTO and DB check didn't provide a value
-        if (credits == null) {
-            credits = 0;
-        }
-        
-        String token = jwtTokenProvider.generateToken(
-                userDTO.getId(),
-                userDTO.getUsername(),
-                null, // Email no longer available from Discord OAuth
-                userDTO.getAvatar(),
+        logger.info("User '{}' authenticated successfully. Generating tokens...", user.getUsername());
+
+        // Step 3: Generate tokens using trusted data from the User entity
+        Set<Role> roles = user.getRoles() != null && !user.getRoles().isEmpty()
+                ? user.getRoles()
+                : Collections.singleton(Role.USER);
+
+        String accessToken = jwtTokenProvider.generateToken(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getAvatar(),
                 roles,
-                credits
+                user.getCredits()
         );
-        
-        logger.info("JWT token generated successfully for user: {}", userDTO.getUsername());
-        return token;
+
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), roles);
+
+        logger.info("Tokens generated successfully for user: {}", user.getUsername());
+
+        return OAuthTokenResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenType("bearer")
+                .expiresIn((int) (jwtTokenProvider.getTokenExpiryInMs() / 1000))
+                .scope("read write") // Adjust scope as needed
+                .build();
     }
     
+    /**
+     * Registers a new user, hashes their password, and saves them to the database.
+     *
+     * @param registerRequest DTO containing username, password, and email.
+     * @return The newly created User entity.
+     * @throws UserAlreadyExistsException if the username is already taken.
+     */
+    public User register(RegisterRequestDTO registerRequest) {
+        logger.info("Registration attempt for username: {}", registerRequest.getUsername());
+
+        // Step 1: Check if username already exists
+        if (userService.findByUsername(registerRequest.getUsername()).isPresent()) {
+            logger.warn("Registration failed: Username '{}' is already taken.", registerRequest.getUsername());
+            throw new UserAlreadyExistsException("Username is already taken: " + registerRequest.getUsername());
+        }
+
+        // Step 2: Hash the password
+        String hashedPassword = passwordEncoder.encode(registerRequest.getPassword());
+
+        // Step 3: Create the user via UserService
+        User newUser = userService.createUser(registerRequest, hashedPassword);
+
+        logger.info("User '{}' registered successfully.", newUser.getUsername());
+        return newUser;
+    }
+
     /**
      * Validates the provided JWT token.
      *

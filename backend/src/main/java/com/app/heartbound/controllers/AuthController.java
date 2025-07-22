@@ -5,6 +5,8 @@ import com.app.heartbound.dto.oauth.OAuthRefreshRequest;
 import com.app.heartbound.dto.oauth.OAuthTokenResponse;
 import com.app.heartbound.dto.oauth.DiscordCodeExchangeRequest;
 import com.app.heartbound.dto.oauth.DiscordAuthResponseDTO;
+import com.app.heartbound.dto.LoginRequestDTO;
+import com.app.heartbound.dto.RegisterRequestDTO;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.AuthService;
 import com.app.heartbound.services.UserService;
@@ -63,19 +65,31 @@ public class AuthController {
         this.discordBotSettingsService = discordBotSettingsService;
     }
 
-    @Operation(summary = "Log in a user", description = "Generates a JWT token for the given user details")
+    @Operation(summary = "Log in a user via username and password", description = "Authenticates a user and returns a JWT token pair.")
     @ApiResponses({
         @ApiResponse(responseCode = "200",
-                     description = "JWT token generated successfully",
-                     content = @Content(schema = @Schema(implementation = Map.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid user details provided", content = @Content)
+                     description = "Authentication successful, token pair returned",
+                     content = @Content(schema = @Schema(implementation = OAuthTokenResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Invalid username or password", content = @Content),
+        @ApiResponse(responseCode = "404", description = "User not found", content = @Content)
     })
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody UserDTO userDTO) {
-        logger.info("Login attempt for user: {}", userDTO.getUsername());
-        String token = authService.generateTokenForUser(userDTO);
-        logger.info("JWT token generated successfully for user: {}", userDTO.getUsername());
-        return ResponseEntity.ok(Map.of("token", token));
+    public ResponseEntity<OAuthTokenResponse> login(@RequestBody LoginRequestDTO loginRequest) {
+        OAuthTokenResponse tokenResponse = authService.login(loginRequest);
+        return ResponseEntity.ok(tokenResponse);
+    }
+
+    @Operation(summary = "Register a new user", description = "Creates a new user account with the provided details.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200",
+                     description = "User registered successfully",
+                     content = @Content(schema = @Schema(implementation = User.class))),
+        @ApiResponse(responseCode = "409", description = "Username is already taken", content = @Content)
+    })
+    @PostMapping("/register")
+    public ResponseEntity<User> register(@RequestBody RegisterRequestDTO registerRequest) {
+        User newUser = authService.register(registerRequest);
+        return ResponseEntity.ok(newUser);
     }
 
     @Operation(summary = "Log out the current user", description = "Instructs the client to remove the stored JWT token")

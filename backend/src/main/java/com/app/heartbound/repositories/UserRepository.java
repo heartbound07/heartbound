@@ -18,6 +18,7 @@ import java.util.Set;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.Lock;
 import jakarta.persistence.LockModeType;
+import java.util.UUID;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, String> {
@@ -86,4 +87,8 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u FROM User u WHERE u.id = :userId")
     Optional<User> findByIdWithLock(@Param("userId") String userId, LockModeType lockMode);
+
+    Optional<User> findByUsername(String username);
+    // Custom query to find users by equipped badge ID
+    List<User> findByEquippedBadgeId(UUID equippedBadgeId);
 }

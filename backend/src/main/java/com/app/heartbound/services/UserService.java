@@ -62,6 +62,8 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.Collections;
+import com.app.heartbound.dto.RegisterRequestDTO;
 
 @Service
 public class UserService {
@@ -112,6 +114,10 @@ public class UserService {
         this.auditService = auditService;
         this.objectMapper = objectMapper;
         this.jda = jda;
+    }
+
+    public Optional<User> findByUsername(String username) {
+        return userRepository.findByUsername(username);
     }
 
     /**
@@ -1915,5 +1921,38 @@ public class UserService {
                 .badgeName(badgeName)
                 .nameplateColor(nameplateColor)
                 .build();
+    }
+
+    /**
+     * Creates a new user in the database from a registration request.
+     *
+     * @param registerRequest DTO containing registration details (username, email).
+     * @param hashedPassword The securely hashed password for the new user.
+     * @return The newly created User entity.
+     */
+    @Transactional
+    public User createUser(RegisterRequestDTO registerRequest, String hashedPassword) {
+        logger.debug("Creating a new user with username: {}", registerRequest.getUsername());
+
+        User newUser = new User();
+        // Generate a new UUID for the user ID
+        newUser.setId(UUID.randomUUID().toString());
+        newUser.setUsername(registerRequest.getUsername());
+        newUser.setEmail(registerRequest.getEmail());
+        newUser.setPassword(hashedPassword);
+
+        // Set default values for new users
+        newUser.setRoles(Collections.singleton(Role.USER));
+        newUser.setCredits(0);
+        newUser.setLevel(1);
+        newUser.setExperience(0);
+        newUser.setBanned(false);
+        newUser.setActive(true);
+
+        // Save the new user to the database
+        User savedUser = userRepository.save(newUser);
+        logger.info("Successfully created new user with ID: {} and username: {}", savedUser.getId(), savedUser.getUsername());
+
+        return savedUser;
     }
 }

@@ -50,6 +50,7 @@ public class User {
     private String discriminator;
     private String avatar;
     private String email;
+    private String password;
     
     // Add this field to cache the Discord avatar URL
     private String discordAvatarUrl;
