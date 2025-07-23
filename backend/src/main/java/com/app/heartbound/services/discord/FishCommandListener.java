@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.time.LocalDateTime;
+import java.text.DecimalFormat;
 
 @Component
 public class FishCommandListener extends ListenerAdapter {
@@ -148,6 +149,23 @@ public class FishCommandListener extends ListenerAdapter {
         public int getMaxCatches() { return maxCatches; }
     }
     
+    private double getEquippedRodMultiplier(User user) {
+        if (user.getEquippedFishingRodId() != null) {
+            try {
+                Optional<Shop> rodOpt = shopRepository.findById(user.getEquippedFishingRodId());
+                if (rodOpt.isPresent()) {
+                    Shop rod = rodOpt.get();
+                    if (rod.getFishingRodMultiplier() != null && rod.getFishingRodMultiplier() > 1.0) {
+                        return rod.getFishingRodMultiplier();
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Failed to apply fishing rod multiplier for user {}: {}", user.getId(), e.getMessage());
+            }
+        }
+        return 1.0;
+    }
+
     @Override
     public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("fish")) {
@@ -227,32 +245,26 @@ public class FishCommandListener extends ListenerAdapter {
             // Determine success or failure
             double roll = secureRandomService.getSecureDouble();
             
-            StringBuilder message = new StringBuilder("🎣 | ");
+            StringBuilder message = new StringBuilder();
             int creditChange;
+            double multiplier = getEquippedRodMultiplier(user);
             
             if (roll <= RARE_FISH_CHANCE) {
                 // 5% chance: rare fish
                 String fishEmoji = RARE_CATCHES.get(secureRandomService.getSecureInt(RARE_CATCHES.size()));
                 int baseCreditChange = 50 + secureRandomService.getSecureInt(21); // 50-70 range for rare catches
 
-                // Apply fishing rod multiplier if equipped
-                double multiplier = 1.0;
-                int finalCreditChange = baseCreditChange;
-
-                if (user.getEquippedFishingRodId() != null) {
-                    try {
-                        Optional<Shop> rodOpt = shopRepository.findById(user.getEquippedFishingRodId());
-                        if (rodOpt.isPresent()) {
-                            Shop rod = rodOpt.get();
-                            if (rod.getFishingRodMultiplier() != null && rod.getFishingRodMultiplier() > 1.0) {
-                                multiplier = rod.getFishingRodMultiplier();
-                                finalCreditChange = (int) Math.round(baseCreditChange * multiplier);
-                                logger.info("Applied {}x fishing rod multiplier for user {}. Original credits: {}, New credits: {}", multiplier, userId, baseCreditChange, finalCreditChange);
-                            }
-                        }
-                    } catch (Exception e) {
-                        logger.error("Failed to apply fishing rod multiplier for user {}: {}", userId, e.getMessage());
-                    }
+                int finalCreditChange = (int) Math.round(baseCreditChange * multiplier);
+                if (multiplier > 1.0) {
+                    logger.info("Applied {}x fishing rod multiplier for user {}. Original credits: {}, New credits: {}", multiplier, userId, baseCreditChange, finalCreditChange);
+                }
+                
+                message.append("🎣 ");
+                if (multiplier > 1.0) {
+                    DecimalFormat df = new DecimalFormat("0.#");
+                    message.append("**").append(df.format(multiplier)).append("x**|");
+                } else {
+                    message.append("| ");
                 }
                 
                 message.append("**WOW!** You caught a rare ").append(fishEmoji);
@@ -307,24 +319,17 @@ public class FishCommandListener extends ListenerAdapter {
                 String fishEmoji = REGULAR_FISH.get(secureRandomService.getSecureInt(REGULAR_FISH.size()));
                 int baseCreditChange = secureRandomService.getSecureInt(20) + 1;
 
-                // Apply fishing rod multiplier if equipped
-                double multiplier = 1.0;
-                int finalCreditChange = baseCreditChange;
+                int finalCreditChange = (int) Math.round(baseCreditChange * multiplier);
+                if (multiplier > 1.0) {
+                    logger.info("Applied {}x fishing rod multiplier for user {}. Original credits: {}, New credits: {}", multiplier, userId, baseCreditChange, finalCreditChange);
+                }
 
-                if (user.getEquippedFishingRodId() != null) {
-                    try {
-                        Optional<Shop> rodOpt = shopRepository.findById(user.getEquippedFishingRodId());
-                        if (rodOpt.isPresent()) {
-                            Shop rod = rodOpt.get();
-                            if (rod.getFishingRodMultiplier() != null && rod.getFishingRodMultiplier() > 1.0) {
-                                multiplier = rod.getFishingRodMultiplier();
-                                finalCreditChange = (int) Math.round(baseCreditChange * multiplier);
-                                logger.info("Applied {}x fishing rod multiplier for user {}. Original credits: {}, New credits: {}", multiplier, userId, baseCreditChange, finalCreditChange);
-                            }
-                        }
-                    } catch (Exception e) {
-                        logger.error("Failed to apply fishing rod multiplier for user {}: {}", userId, e.getMessage());
-                    }
+                message.append("🎣 ");
+                if (multiplier > 1.0) {
+                    DecimalFormat df = new DecimalFormat("0.#");
+                    message.append("**").append(df.format(multiplier)).append("x**|");
+                } else {
+                    message.append("| ");
                 }
                 
                 message.append("You caught ").append(fishEmoji);
@@ -391,7 +396,7 @@ public class FishCommandListener extends ListenerAdapter {
                 
                 // Only show negative message if they actually lost credits
                 if (creditChange > 0) {
-                    message.append("You got caught 🦀 and it snipped you! -").append(creditChange).append(" 🪙");
+                    message.append("🎣 | You got caught 🦀 and it snipped you! -").append(creditChange).append(" 🪙");
                     
                     // Create audit entry for fishing failure with credit loss
                     try {
@@ -414,7 +419,7 @@ public class FishCommandListener extends ListenerAdapter {
                     }
                 } else {
                     // Special message for users with 0 credits
-                    message.append("You got caught 🦀 but it had mercy on you since you have no credits!");
+                    message.append("🎣 | You got caught 🦀 but it had mercy on you since you have no credits!");
                 }
                 
                 logger.debug("User {} failed fishing: -{} credits. New balance: {}", 
