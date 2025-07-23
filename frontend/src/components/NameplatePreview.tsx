@@ -36,11 +36,13 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = ({
   };
 
   if (isValidStartColor && isValidEndColor) {
-    style.background = `linear-gradient(to right, ${color}, ${endColor})`;
+    style.background = `linear-gradient(135deg, ${color}, ${endColor})`;
     style.WebkitBackgroundClip = 'text';
     style.WebkitTextFillColor = 'transparent';
+    style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))';
   } else {
     style.color = displayColor;
+    style.textShadow = '0 1px 2px rgba(0,0,0,0.4)';
   }
   
   // Set sizes based on the size prop
