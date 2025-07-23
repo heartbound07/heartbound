@@ -1388,6 +1388,42 @@ public class ShopService {
         
         return shopRepository.save(existingItem);
     }
+
+    /**
+     * Update an item's price (admin only)
+     * @param itemId Item ID
+     * @param newPrice New price
+     */
+    @Transactional
+    @CacheEvict(value = {"featuredItems", "dailyItems"}, allEntries = true)
+    public void updateItemPrice(UUID itemId, int newPrice) {
+        if (newPrice < 0) {
+            throw new IllegalArgumentException("Price cannot be negative.");
+        }
+        
+        Shop item = shopRepository.findById(itemId)
+            .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
+        
+        item.setPrice(newPrice);
+        shopRepository.save(item);
+        logger.info("Updated price for item {} to {}", itemId, newPrice);
+    }
+
+    /**
+     * Update an item's active status (admin only)
+     * @param itemId Item ID
+     * @param newStatus New active status
+     */
+    @Transactional
+    @CacheEvict(value = {"featuredItems", "dailyItems"}, allEntries = true)
+    public void updateItemStatus(UUID itemId, boolean newStatus) {
+        Shop item = shopRepository.findById(itemId)
+            .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
+        
+        item.setIsActive(newStatus);
+        shopRepository.save(item);
+        logger.info("Updated active status for item {} to {}", itemId, newStatus);
+    }
     
     /**
      * Delete a shop item completely with cascade delete handling

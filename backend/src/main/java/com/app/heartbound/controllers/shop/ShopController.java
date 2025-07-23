@@ -37,6 +37,7 @@ import jakarta.validation.Valid;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -227,6 +228,56 @@ public class ShopController {
         logger.debug("Received update shop item request for ID {} with active status: {}", itemId, shopDTO.isActive());
         Shop updatedItem = shopService.updateShopItem(itemId, shopDTO);
         return ResponseEntity.ok(shopService.getShopItemById(updatedItem.getId(), null));
+    }
+
+    /**
+     * Admin endpoint to update an item's price
+     */
+    @PatchMapping("/admin/items/{itemId}/price")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateItemPrice(
+        @PathVariable UUID itemId,
+        @RequestBody Map<String, Object> payload
+    ) {
+        try {
+            if (!payload.containsKey("price")) {
+                return ResponseEntity.badRequest().body(new ErrorResponse("Payload must contain 'price' key."));
+            }
+            int newPrice = (Integer) payload.get("price");
+            shopService.updateItemPrice(itemId, newPrice);
+            return ResponseEntity.ok(new SuccessResponse("Price updated successfully."));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error updating price for item {}: {}", itemId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An error occurred while updating the price."));
+        }
+    }
+
+    /**
+     * Admin endpoint to update an item's active status
+     */
+    @PatchMapping("/admin/items/{itemId}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateItemStatus(
+        @PathVariable UUID itemId,
+        @RequestBody Map<String, Object> payload
+    ) {
+        try {
+            if (!payload.containsKey("active")) {
+                return ResponseEntity.badRequest().body(new ErrorResponse("Payload must contain 'active' key."));
+            }
+            boolean newStatus = (Boolean) payload.get("active");
+            shopService.updateItemStatus(itemId, newStatus);
+            return ResponseEntity.ok(new SuccessResponse("Status updated successfully."));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error updating status for item {}: {}", itemId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An error occurred while updating the status."));
+        }
     }
     
     /**
