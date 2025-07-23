@@ -2,15 +2,11 @@ import React from 'react';
 import { 
     HiOutlineCheck, 
     HiOutlineCollection, 
-    HiOutlineShoppingCart, 
     HiOutlineColorSwatch,
     HiOutlineTag,
     HiOutlineCash,
     HiOutlineExclamation,
-    HiOutlineClock,
     HiOutlineCalendar,
-    HiOutlineTrash,
-    HiOutlinePencil,
     HiOutlineStar,
     HiOutlineX,
     HiOutlinePlus
