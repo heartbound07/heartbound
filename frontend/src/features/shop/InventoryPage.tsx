@@ -35,6 +35,7 @@ export interface ShopItem {
   caseContentsCount?: number;
   quantity?: number;
   fishingRodMultiplier?: number;
+  gradientEndColor?: string;
 }
 
 interface ToastNotification {
@@ -162,6 +163,7 @@ const InventoryItemCard = forwardRef(({
             username={user?.username || "Username"}
             avatar={user?.avatar || "/images/default-avatar.png"}
             color={item.imageUrl}
+            endColor={item.gradientEndColor}
             fallbackColor={rarityColor}
             message="Your nameplate color"
             className="h-full w-full rounded-t-lg"
