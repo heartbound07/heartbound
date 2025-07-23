@@ -42,6 +42,9 @@ public class FishCommandListener extends ListenerAdapter {
     @Value("${fishing.cooldown-hours:6}")
     private int cooldownHours;
     
+    @Value("${fishing.limit-warning-threshold:0.9}")
+    private double limitWarningThreshold;
+    
     // Rare catches that give bonus credits
     private static final List<String> RARE_CATCHES = Arrays.asList(
             "🦈", // :shark:
@@ -286,6 +289,10 @@ public class FishCommandListener extends ListenerAdapter {
                     message.append(String.format("\n\n🎯 **Fishing Limit Reached!** You've caught %d/%d fish and must wait **%d %s** before fishing again.", 
                         newFishSinceLimit, maxCatches, cooldownHours, hourText));
                     logger.info("User {} reached fishing limit of {} catches. Cooldown set for {} hours.", userId, maxCatches, cooldownHours);
+                } else if (newFishSinceLimit >= (maxCatches * limitWarningThreshold)) {
+                    // Send a warning if the user is approaching the limit
+                    String warningMessage = String.format("You are approaching the fishing limit! **%d/%d**", newFishSinceLimit, maxCatches);
+                    event.getHook().sendMessage(warningMessage).setEphemeral(true).queue();
                 }
                 
                 // Save the updated user
@@ -351,6 +358,10 @@ public class FishCommandListener extends ListenerAdapter {
                     message.append(String.format("\n\n🎯 **Fishing Limit Reached!** You've caught %d/%d fish and must wait **%d %s** before fishing again.", 
                         newFishSinceLimit, maxCatches, cooldownHours, hourText));
                     logger.info("User {} reached fishing limit of {} catches. Cooldown set for {} hours.", userId, maxCatches, cooldownHours);
+                } else if (newFishSinceLimit >= (maxCatches * limitWarningThreshold)) {
+                    // Send a warning if the user is approaching the limit
+                    String warningMessage = String.format("You are approaching the fishing limit! **%d/%d**", newFishSinceLimit, maxCatches);
+                    event.getHook().sendMessage(warningMessage).setEphemeral(true).queue();
                 }
                 
                 // Save the updated user
