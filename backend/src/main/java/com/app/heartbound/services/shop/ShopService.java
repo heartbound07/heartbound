@@ -1232,6 +1232,7 @@ public class ShopService {
             .isFeatured(shop.getIsFeatured())
             .isDaily(shop.getIsDaily())
             .fishingRodMultiplier(shop.getFishingRodMultiplier())
+            .gradientEndColor(shop.getGradientEndColor())
             .build();
     }
     
@@ -1257,6 +1258,11 @@ public class ShopService {
         } else {
             // For other categories, treat as URL
             sanitizedImageUrl = htmlSanitizationService.sanitizeUrl(shopDTO.getImageUrl());
+        }
+        
+        String sanitizedGradientEndColor = null;
+        if (shopDTO.getCategory() == ShopCategory.USER_COLOR) {
+            sanitizedGradientEndColor = sanitizeColorValue(shopDTO.getGradientEndColor());
         }
         
         String sanitizedThumbnailUrl = htmlSanitizationService.sanitizeUrl(shopDTO.getThumbnailUrl());
@@ -1297,6 +1303,7 @@ public class ShopService {
             .isFeatured(shopDTO.getIsFeatured())
             .isDaily(shopDTO.getIsDaily())
             .fishingRodMultiplier(shopDTO.getFishingRodMultiplier())
+            .gradientEndColor(sanitizedGradientEndColor)
             .build();
         
         logger.debug("Creating new shop item with sanitized content");
@@ -1330,6 +1337,11 @@ public class ShopService {
         } else {
             // For other categories, treat as URL
             sanitizedImageUrl = htmlSanitizationService.sanitizeUrl(shopDTO.getImageUrl());
+        }
+        
+        String sanitizedGradientEndColor = null;
+        if (shopDTO.getCategory() == ShopCategory.USER_COLOR) {
+            sanitizedGradientEndColor = sanitizeColorValue(shopDTO.getGradientEndColor());
         }
         
         String sanitizedThumbnailUrl = htmlSanitizationService.sanitizeUrl(shopDTO.getThumbnailUrl());
@@ -1370,6 +1382,7 @@ public class ShopService {
         existingItem.setIsFeatured(shopDTO.getIsFeatured());
         existingItem.setIsDaily(shopDTO.getIsDaily());
         existingItem.setFishingRodMultiplier(shopDTO.getFishingRodMultiplier());
+        existingItem.setGradientEndColor(sanitizedGradientEndColor);
         
         logger.debug("Updating shop item with ID: {} with sanitized content", existingItem.getId());
         

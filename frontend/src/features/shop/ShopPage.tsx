@@ -35,6 +35,7 @@ interface ShopItem {
   isFeatured?: boolean;
   isDaily?: boolean;
   fishingRodMultiplier?: number;
+  gradientEndColor?: string;
 }
 
 interface ToastNotification {
@@ -119,6 +120,7 @@ const ShopItemCard = forwardRef(({
             username={user?.username || "Username"}
             avatar={user?.avatar || "/images/default-avatar.png"}
             color={item.imageUrl}
+            endColor={item.gradientEndColor}
             fallbackColor={rarityColor}
             message="This is the color for the Nameplate!"
             className="h-full w-full rounded-t-lg"

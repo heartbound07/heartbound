@@ -41,6 +41,7 @@ interface ShopItem {
   isFeatured: boolean;
   isDaily: boolean;
   fishingRodMultiplier?: number;
+  gradientEndColor?: string;
 }
 
 interface ShopFormData {
@@ -58,6 +59,8 @@ interface ShopFormData {
   isFeatured: boolean;
   isDaily: boolean;
   fishingRodMultiplier?: number;
+  colorType: 'solid' | 'gradient';
+  gradientEndColor?: string;
 }
 
 interface CaseItemData {
@@ -104,7 +107,9 @@ export function ShopAdminPage() {
     rarity: 'COMMON',
     isFeatured: false,
     isDaily: false,
-    fishingRodMultiplier: 1.0
+    fishingRodMultiplier: 1.0,
+    colorType: 'solid',
+    gradientEndColor: ''
   });
   
   // Available categories
@@ -342,7 +347,9 @@ export function ShopAdminPage() {
       rarity: item.rarity || 'COMMON',
       isFeatured: item.isFeatured,
       isDaily: item.isDaily,
-      fishingRodMultiplier: item.fishingRodMultiplier || 1.0
+      fishingRodMultiplier: item.fishingRodMultiplier || 1.0,
+      colorType: item.gradientEndColor ? 'gradient' : 'solid',
+      gradientEndColor: item.gradientEndColor || ''
     });
     
     // Load case contents if this is a case
@@ -404,7 +411,9 @@ export function ShopAdminPage() {
       rarity: 'COMMON',
       isFeatured: false,
       isDaily: false,
-      fishingRodMultiplier: 1.0
+      fishingRodMultiplier: 1.0,
+      colorType: 'solid',
+      gradientEndColor: ''
     });
     setEditingItem(null);
     setCaseContents({ items: [], totalDropRate: 0 });
@@ -655,51 +664,110 @@ export function ShopAdminPage() {
               
               {formData.category === 'USER_COLOR' ? (
                 <div className="space-y-5">
-                  <div>
-                    <label htmlFor="colorPicker" className="block text-sm font-medium text-slate-300 mb-1">
-                      Nameplate Color
+                   <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      Color Type
                     </label>
-                    <div className="flex items-center space-x-3">
-                      <input
-                        id="colorPicker"
-                        type="color"
-                        value={formData.imageUrl && formData.imageUrl.startsWith('#') ? formData.imageUrl : '#ffffff'}
-                        onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
-                        className="h-10 w-14 p-1 bg-slate-800 border border-slate-700 rounded cursor-pointer"
-                      />
-                      <input
-                        type="text"
-                        value={formData.imageUrl || ''}
-                        onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
-                        className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="#RRGGBB Hex Color"
-                      />
-                      <div 
-                        className="h-10 w-10 rounded border border-slate-600"
-                        style={{ backgroundColor: formData.imageUrl || '#ffffff' }}
-                      ></div>
+                    <div className="flex items-center space-x-4">
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="colorType"
+                          value="solid"
+                          checked={formData.colorType === 'solid'}
+                          onChange={() => setFormData({ ...formData, colorType: 'solid' })}
+                          className="text-primary focus:ring-primary bg-slate-700 border-slate-600"
+                        />
+                        <span className="text-slate-300">Solid</span>
+                      </label>
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="colorType"
+                          value="gradient"
+                          checked={formData.colorType === 'gradient'}
+                          onChange={() => setFormData({ ...formData, colorType: 'gradient' })}
+                          className="text-primary focus:ring-primary bg-slate-700 border-slate-600"
+                        />
+                        <span className="text-slate-300">Gradient</span>
+                      </label>
                     </div>
-                    <p className="mt-1 text-xs text-slate-400">
-                      Choose a color for this nameplate. This will be displayed in the user's name in Discord.
-                    </p>
                   </div>
+                  
+                  {formData.colorType === 'solid' ? (
+                    <div>
+                      <label htmlFor="colorPicker" className="block text-sm font-medium text-slate-300 mb-1">
+                        Nameplate Color
+                      </label>
+                      <div className="flex items-center space-x-3">
+                        <input
+                          id="colorPicker"
+                          type="color"
+                          value={formData.imageUrl && formData.imageUrl.startsWith('#') ? formData.imageUrl : '#ffffff'}
+                          onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+                          className="h-10 w-14 p-1 bg-slate-800 border border-slate-700 rounded cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={formData.imageUrl || ''}
+                          onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+                          className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                          placeholder="#RRGGBB Hex Color"
+                        />
+                        <div 
+                          className="h-10 w-10 rounded border border-slate-600"
+                          style={{ backgroundColor: formData.imageUrl || '#ffffff' }}
+                        ></div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-1">
+                          Start Color
+                        </label>
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="color"
+                            value={formData.imageUrl && formData.imageUrl.startsWith('#') ? formData.imageUrl : '#ffffff'}
+                            onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+                            className="h-10 w-14 p-1 bg-slate-800 border border-slate-700 rounded cursor-pointer"
+                          />
+                          <input
+                            type="text"
+                            value={formData.imageUrl || ''}
+                            onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+                            className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                            placeholder="#RRGGBB Hex Color"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-1">
+                          End Color
+                        </label>
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="color"
+                            value={formData.gradientEndColor && formData.gradientEndColor.startsWith('#') ? formData.gradientEndColor : '#ffffff'}
+                            onChange={(e) => setFormData({...formData, gradientEndColor: e.target.value})}
+                            className="h-10 w-14 p-1 bg-slate-800 border border-slate-700 rounded cursor-pointer"
+                          />
+                          <input
+                            type="text"
+                            value={formData.gradientEndColor || ''}
+                            onChange={(e) => setFormData({...formData, gradientEndColor: e.target.value})}
+                            className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                            placeholder="#RRGGBB Hex Color"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-                  <div>
-                    <label htmlFor="discordRoleId" className="block text-sm font-medium text-slate-300 mb-1">
-                      Discord Role ID
-                    </label>
-                    <input
-                      id="discordRoleId"
-                      type="text"
-                      value={formData.discordRoleId || ''}
-                      onChange={(e) => setFormData({...formData, discordRoleId: e.target.value})}
-                      className="block w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="Discord role ID for USER_COLOR items"
-                    />
-                    <p className="mt-1 text-xs text-slate-400">
-                      Enter the Discord role ID to be granted when this color is equipped. Leave empty for no role.
-                    </p>
-                  </div>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Choose a color for this nameplate. The gradient will only appear on the website, not in Discord.
+                  </p>
                   
                   {/* Preview section */}
                   <div className="mt-4 p-5 bg-slate-900 rounded-md border border-slate-700">
@@ -710,6 +778,7 @@ export function ShopAdminPage() {
                     <NameplatePreview
                       username="Username"
                       color={formData.imageUrl}
+                      endColor={formData.colorType === 'gradient' ? formData.gradientEndColor : undefined}
                       message="This is how the color will appear"
                       size="md"
                       className="bg-slate-800/80 rounded-md"
@@ -1041,7 +1110,8 @@ export function ShopAdminPage() {
                             className="h-10 w-10 rounded-full mr-3 flex items-center justify-center"
                             style={{ 
                               backgroundColor: item.imageUrl || '#ffffff',
-                              border: `2px solid ${getRarityColor(item.rarity)}`
+                              border: `2px solid ${getRarityColor(item.rarity)}`,
+                              background: item.gradientEndColor ? `linear-gradient(to right, ${item.imageUrl}, ${item.gradientEndColor})` : item.imageUrl
                             }}
                           >
                             <HiOutlineColorSwatch className="text-white text-opacity-80" size={16} />

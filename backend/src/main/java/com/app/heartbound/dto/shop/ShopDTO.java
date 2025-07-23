@@ -74,6 +74,8 @@ public class ShopDTO {
     @DecimalMax(value = "10.0", message = "Multiplier must not exceed 10.0")
     private Double fishingRodMultiplier;
 
+    private String gradientEndColor;
+
     public boolean isEquipped() {
         return equipped;
     }

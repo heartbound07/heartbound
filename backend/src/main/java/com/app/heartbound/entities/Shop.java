@@ -89,4 +89,7 @@ public class Shop {
     @DecimalMax(value = "10.0", message = "Multiplier must not exceed 10.0")
     @Column(name = "fishing_rod_multiplier")
     private Double fishingRodMultiplier;
+
+    @Column(name = "gradient_end_color")
+    private String gradientEndColor;
 }

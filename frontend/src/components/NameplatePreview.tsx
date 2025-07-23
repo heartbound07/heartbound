@@ -4,6 +4,7 @@ interface NameplatePreviewProps {
   username?: string;
   avatar?: string;
   color: string;
+  endColor?: string;
   fallbackColor?: string;
   message?: string;
   className?: string;
@@ -18,14 +19,29 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = ({
   username = 'Username',
   avatar = '/images/default-avatar.png',
   color,
+  endColor,
   fallbackColor = '#ffffff',
   message = 'This is the color for the Nameplate!',
   className = '',
   size = 'md'
 }) => {
   // Determine if color is valid (starts with #)
-  const isValidColor = color && color.startsWith('#');
-  const displayColor = isValidColor ? color : fallbackColor;
+  const isValidStartColor = color && color.startsWith('#');
+  const isValidEndColor = endColor && endColor.startsWith('#');
+  const displayColor = isValidStartColor ? color : fallbackColor;
+
+  const style: React.CSSProperties = {
+    fontWeight: 600,
+    fontFamily: '"gg sans", sans-serif',
+  };
+
+  if (isValidStartColor && isValidEndColor) {
+    style.background = `linear-gradient(to right, ${color}, ${endColor})`;
+    style.WebkitBackgroundClip = 'text';
+    style.WebkitTextFillColor = 'transparent';
+  } else {
+    style.color = displayColor;
+  }
   
   // Set sizes based on the size prop
   const avatarSizes = {
@@ -59,11 +75,7 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = ({
         {/* Username with preview color */}
         <span 
           className={`font-medium ${textSizes[size]}`} 
-          style={{ 
-            color: displayColor,
-            fontWeight: 600,
-            fontFamily: '"gg sans", sans-serif'
-          }}
+          style={style}
         >
           {username}
         </span>
