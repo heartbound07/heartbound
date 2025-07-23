@@ -265,7 +265,7 @@ public class FishCommandListener extends ListenerAdapter {
                 message.append("🎣 ");
                 if (multiplier > 1.0) {
                     DecimalFormat df = new DecimalFormat("0.#");
-                    message.append("**").append(df.format(multiplier)).append("x**|");
+                    message.append("**").append(df.format(multiplier)).append("x** | ");
                 } else {
                     message.append("| ");
                 }
@@ -334,7 +334,7 @@ public class FishCommandListener extends ListenerAdapter {
                 message.append("🎣 ");
                 if (multiplier > 1.0) {
                     DecimalFormat df = new DecimalFormat("0.#");
-                    message.append("**").append(df.format(multiplier)).append("x**|");
+                    message.append("**").append(df.format(multiplier)).append("x** | ");
                 } else {
                     message.append("| ");
                 }
