@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/auth';
 import httpClient from '@/lib/api/httpClient';
 import { Toast } from '@/components/Toast';
-import ShopItemsTable from '@/components/admin/shop/ShopItemsTable';
-import ShopFilters from '@/components/admin/shop/ShopFilters';
-import ItemFormModal from '@/components/admin/shop/ItemFormModal';
+import ShopItemsTable from '@/features/shop/ShopItemsTable';
+import ShopFilters from '@/features/shop/ShopFilters';
+import ItemFormModal from '@/features/shop/ItemFormModal';
 import { 
   HiOutlineShoppingCart, 
   HiOutlinePlus
