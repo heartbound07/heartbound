@@ -8,15 +8,17 @@ import com.app.heartbound.services.SecureRandomService;
 public class BlackjackGame {
     private final String userId;
     private final int betAmount;
+    private final double roleMultiplier;
     private final Deck deck;
     private final BlackjackHand playerHand;
     private final BlackjackHand dealerHand;
     private boolean gameEnded;
     private boolean dealerTurn;
 
-    public BlackjackGame(String userId, int betAmount, SecureRandomService secureRandomService) {
+    public BlackjackGame(String userId, int betAmount, double roleMultiplier, SecureRandomService secureRandomService) {
         this.userId = userId;
         this.betAmount = betAmount;
+        this.roleMultiplier = roleMultiplier;
         this.deck = new Deck(secureRandomService);
         this.playerHand = new BlackjackHand();
         this.dealerHand = new BlackjackHand();
@@ -152,7 +154,7 @@ public class BlackjackGame {
         
         switch (result) {
             case PLAYER_BLACKJACK:
-                return (int) (betAmount * 1.5); // Blackjack pays 3:2
+                return (int) (betAmount * 1.5 * this.roleMultiplier); // Blackjack pays 3:2, modified by role multiplier
             case PLAYER_WIN:
                 return betAmount; // Normal win pays 1:1
             case PUSH:
@@ -172,6 +174,10 @@ public class BlackjackGame {
 
     public int getBetAmount() {
         return betAmount;
+    }
+
+    public double getRoleMultiplier() {
+        return roleMultiplier;
     }
 
     public BlackjackHand getPlayerHand() {

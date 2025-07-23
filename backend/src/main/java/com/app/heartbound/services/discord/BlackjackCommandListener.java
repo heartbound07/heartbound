@@ -10,8 +10,11 @@ import com.app.heartbound.services.AuditService;
 import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
+import com.app.heartbound.services.discord.DiscordBotSettingsService;
+import com.app.heartbound.entities.DiscordBotSettings;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -42,14 +45,16 @@ public class BlackjackCommandListener extends ListenerAdapter {
     private final UserService userService;
     private final SecureRandomService secureRandomService;
     private final AuditService auditService;
+    private final DiscordBotSettingsService discordBotSettingsService;
     
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
 
-    public BlackjackCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService) {
+    public BlackjackCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService, DiscordBotSettingsService discordBotSettingsService) {
         this.userService = userService;
         this.secureRandomService = secureRandomService;
         this.auditService = auditService;
+        this.discordBotSettingsService = discordBotSettingsService;
         logger.info("BlackjackCommandListener initialized with secure random and audit service");
     }
     
@@ -144,8 +149,15 @@ public class BlackjackCommandListener extends ListenerAdapter {
             user.setCredits(currentCredits - betAmount);
             userService.updateUser(user);
             
-            // Create new game with secure random
-            BlackjackGame game = new BlackjackGame(userId, betAmount, secureRandomService);
+            // Fetch Discord bot settings to get role multipliers
+            DiscordBotSettings settings = discordBotSettingsService.getDiscordBotSettings();
+
+            // Get user's highest role multiplier
+            Member member = event.getMember();
+            double roleMultiplier = userService.getUserHighestMultiplier(member, settings);
+            
+            // Create new game with secure random and role multiplier
+            BlackjackGame game = new BlackjackGame(userId, betAmount, roleMultiplier, secureRandomService);
             activeGames.put(userId, game);
             
             // Check for immediate blackjack
@@ -397,8 +409,8 @@ public class BlackjackCommandListener extends ListenerAdapter {
                 case PLAYER_BLACKJACK:
                     action = "BLACKJACK_WIN";
                     netChange = payout;
-                    description = String.format("Won %d credits with blackjack (bet: %d, payout: 1.5x)", 
-                        payout, game.getBetAmount());
+                    description = String.format("Won %d credits with blackjack (bet: %d, payout: 1.5x, multiplier: %.2fx)", 
+                        payout, game.getBetAmount(), game.getRoleMultiplier());
                     break;
                 case PLAYER_WIN:
                     action = "BLACKJACK_WIN";
@@ -431,8 +443,8 @@ public class BlackjackCommandListener extends ListenerAdapter {
                 .description(description)
                 .severity(game.getBetAmount() > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO)
                 .category(AuditCategory.FINANCIAL)
-                .details(String.format("{\"game\":\"blackjack\",\"bet\":%d,\"result\":\"%s\",\"playerHand\":\"%s\",\"dealerHand\":\"%s\",\"netChange\":%d,\"newBalance\":%d}", 
-                    game.getBetAmount(), result.name(), game.getPlayerHand().getValue(), game.getDealerHand().getValue(), netChange, newCredits))
+                .details(String.format("{\"game\":\"blackjack\",\"bet\":%d,\"result\":\"%s\",\"roleMultiplier\":%.2f,\"playerHand\":\"%s\",\"dealerHand\":\"%s\",\"netChange\":%d,\"newBalance\":%d}", 
+                    game.getBetAmount(), result.name(), game.getRoleMultiplier(), game.getPlayerHand().getValue(), game.getDealerHand().getValue(), netChange, newCredits))
                 .source("DISCORD_BOT")
                 .build();
             

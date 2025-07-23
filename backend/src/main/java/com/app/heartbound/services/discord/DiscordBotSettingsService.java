@@ -3,11 +3,12 @@ package com.app.heartbound.services.discord;
 import com.app.heartbound.dto.discord.DiscordBotSettingsDTO;
 import com.app.heartbound.entities.DiscordBotSettings;
 import com.app.heartbound.repositories.DiscordBotSettingsRepository;
-import com.app.heartbound.config.CacheConfig;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +21,6 @@ public class DiscordBotSettingsService {
     private final ChatActivityListener chatActivityListener;
     private final UserVoiceActivityService userVoiceActivityService;
     private final CountingGameService countingGameService;
-    private final CacheConfig cacheConfig;
     
     // Import default values from application.properties
     @Value("${discord.activity.enabled:true}")
@@ -133,10 +133,10 @@ public class DiscordBotSettingsService {
     }
     
     @Transactional(readOnly = true)
+    @Cacheable(value = "discordBotSettings", key = "#root.methodName")
     public DiscordBotSettings getDiscordBotSettings() {
-        return (DiscordBotSettings) cacheConfig.getDiscordBotSettingsCache()
-                .get(1L, key -> repository.findById(1L)
-                        .orElseThrow(() -> new RuntimeException("Discord bot settings not found")));
+        return repository.findById(1L)
+                .orElseThrow(() -> new RuntimeException("Discord bot settings not found"));
     }
 
     @Transactional(readOnly = true)
@@ -235,6 +235,7 @@ public class DiscordBotSettingsService {
     }
     
     @Transactional
+    @CacheEvict(value = "discordBotSettings", allEntries = true)
     public DiscordBotSettingsDTO updateSettings(DiscordBotSettingsDTO dto) {
         DiscordBotSettings settings = repository.findById(1L)
                 .orElseThrow(() -> new RuntimeException("Discord bot settings not found"));
@@ -328,7 +329,7 @@ public class DiscordBotSettingsService {
         repository.save(settings);
         
         // Invalidate cache after updating settings
-        cacheConfig.invalidateDiscordBotSettingsCache();
+        // cacheConfig.invalidateDiscordBotSettingsCache(); // This is now handled by @CacheEvict
         
         // Apply the updated settings to the ChatActivityListener and UserVoiceActivityService
         chatActivityListener.updateSettings(

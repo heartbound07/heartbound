@@ -64,6 +64,9 @@ import java.util.stream.IntStream;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Collections;
 import com.app.heartbound.dto.RegisterRequestDTO;
+import com.app.heartbound.entities.DiscordBotSettings;
+import net.dv8tion.jda.api.entities.Member;
+import java.util.Arrays;
 
 @Service
 public class UserService {
@@ -1954,5 +1957,57 @@ public class UserService {
         logger.info("Successfully created new user with ID: {} and username: {}", savedUser.getId(), savedUser.getUsername());
 
         return savedUser;
+    }
+
+    /**
+     * Calculates the highest role-based multiplier for a given Discord member.
+     *
+     * @param member The JDA Member object representing the user.
+     * @param settings The current DiscordBotSettings.
+     * @return The highest applicable multiplier, or 1.0 if none applies or if the feature is disabled.
+     */
+    public double getUserHighestMultiplier(Member member, DiscordBotSettings settings) {
+        if (member == null || settings == null || !Boolean.TRUE.equals(settings.getRoleMultipliersEnabled()) || settings.getRoleMultipliers() == null || settings.getRoleMultipliers().isBlank()) {
+            return 1.0;
+        }
+
+        String roleMultipliersStr = settings.getRoleMultipliers();
+        java.util.Map<String, Double> multipliersMap;
+
+        try {
+            multipliersMap = Arrays.stream(roleMultipliersStr.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty() && s.contains(":"))
+                    .map(entry -> entry.split(":"))
+                    .filter(parts -> parts.length == 2)
+                    .collect(Collectors.toMap(
+                            parts -> parts[0].trim(),
+                            parts -> {
+                                try {
+                                    return Double.parseDouble(parts[1].trim());
+                                } catch (NumberFormatException e) {
+                                    logger.warn("Invalid multiplier format for role ID {}: {}", parts[0].trim(), parts[1].trim());
+                                    return null; // Will be filtered out
+                                }
+                            }
+                    ));
+            
+            multipliersMap.values().removeIf(java.util.Objects::isNull);
+
+        } catch (Exception e) {
+            logger.error("Error parsing role multipliers string: {}", roleMultipliersStr, e);
+            return 1.0; // Return default if format is invalid
+        }
+
+        if (multipliersMap.isEmpty()) {
+            return 1.0;
+        }
+
+        return member.getRoles().stream()
+                .map(net.dv8tion.jda.api.entities.Role::getId)
+                .filter(multipliersMap::containsKey)
+                .mapToDouble(multipliersMap::get)
+                .max()
+                .orElse(1.0);
     }
 }

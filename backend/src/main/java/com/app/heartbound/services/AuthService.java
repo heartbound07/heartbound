@@ -2,7 +2,6 @@ package com.app.heartbound.services;
 
 import com.app.heartbound.config.security.JWTTokenProvider;
 import com.app.heartbound.dto.LoginRequestDTO;
-import com.app.heartbound.dto.UserDTO;
 import com.app.heartbound.dto.oauth.OAuthTokenResponse;
 import com.app.heartbound.dto.RegisterRequestDTO;
 import com.app.heartbound.enums.Role;
