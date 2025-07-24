@@ -23,7 +23,7 @@ public class TradeItem {
     private Trade trade;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "item_instance_id", referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "item_instance_id", nullable = false)
     private ItemInstance itemInstance;
 
 } 

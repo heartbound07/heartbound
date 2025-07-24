@@ -27,8 +27,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.Map;
 import com.app.heartbound.enums.TradeStatus;
+import com.app.heartbound.entities.TradeItem;
 
 @Component
 @Slf4j
@@ -116,6 +116,8 @@ public class TradeCommandListener extends ListenerAdapter {
         String[] parts = event.getComponentId().split("_");
         if (!parts[0].equals("trade")) return;
 
+        event.deferEdit().queue();
+
         String action = parts[1];
         long tradeId = Long.parseLong(parts[2]);
         String initiatorId = parts.length > 3 ? parts[3] : null;
@@ -123,17 +125,12 @@ public class TradeCommandListener extends ListenerAdapter {
 
         String clickerId = event.getUser().getId();
 
-        // Security Check
         if (initiatorId != null && receiverId != null && !clickerId.equals(initiatorId) && !clickerId.equals(receiverId)) {
             event.reply("You are not part of this trade.").setEphemeral(true).queue();
             return;
         }
 
         try {
-            // Defer the edit to acknowledge the interaction
-            event.deferEdit().queue();
-
-            // Reroute button clicks to the correct handlers.
             switch (action) {
                 case "accept-initial":
                     handleInitialAccept(event, tradeId, initiatorId, receiverId);
@@ -163,33 +160,29 @@ public class TradeCommandListener extends ListenerAdapter {
     @Override
     public void onStringSelectInteraction(@Nonnull StringSelectInteractionEvent event) {
         String componentId = event.getComponentId();
-        if (!componentId.startsWith("trade-item-select:")) {
+        String[] parts = componentId.split(":");
+        if (!parts[0].equals("trade-item-select")) {
             return;
         }
 
-        // Acknowledge the interaction immediately to prevent a timeout.
-        // This is crucial, especially if the database operation takes time.
         event.deferEdit().queue();
 
-        long tradeId = Long.parseLong(componentId.split(":")[1]);
+        long tradeId = Long.parseLong(parts[1]);
         String userId = event.getUser().getId();
-        List<String> selectedItemInstanceIds = event.getValues(); // item instance UUIDs
+        List<String> selectedItemInstanceIds = event.getValues();
 
         try {
-            log.debug("Processing item selection for tradeId: {} by userId: {}. Selected items: {}", tradeId, userId, selectedItemInstanceIds);
+            log.debug("User {} is adding items to trade {}", userId, tradeId);
             List<UUID> itemInstanceUuids = selectedItemInstanceIds.stream()
                 .map(UUID::fromString)
                 .collect(Collectors.toList());
 
             tradeService.addItemsToTrade(tradeId, userId, itemInstanceUuids);
-            log.info("User {} added {} items to tradeId: {}", userId, itemInstanceUuids.size(), tradeId);
 
-            // Update the main trade UI
             updateTradeUI(event.getChannel(), tradeId);
 
         } catch (Exception e) {
             log.error("Error processing item selection for tradeId: {}", tradeId, e);
-            // After deferring, we must use the hook to send messages.
             event.getHook().sendMessage("An error occurred while adding your items: " + e.getMessage()).setEphemeral(true).queue();
         }
     }
@@ -211,7 +204,6 @@ public class TradeCommandListener extends ListenerAdapter {
                 .setComponents(getTradeActionRows(trade))
                 .queue(message -> {
                     tradeService.setTradeMessageInfo(tradeId, message.getId(), message.getChannelId(), expiresAt);
-                    // The expiration message can still be queued locally without complex state
                     message.editMessageComponents().setComponents()
                             .setEmbeds(new EmbedBuilder().setDescription("Trade has expired.").setColor(Color.RED).build())
                             .queueAfter(120, TimeUnit.SECONDS, s -> {
@@ -235,7 +227,6 @@ public class TradeCommandListener extends ListenerAdapter {
     private void handleAddItem(ButtonInteractionEvent event, long tradeId, String userId) {
         log.info("Handling 'add-items' action for tradeId: {} by userId: {}", tradeId, userId);
 
-        // Fetch the latest trade state from the database
         Trade trade = tradeService.getTradeDetails(tradeId);
         boolean isInitiator = userId.equals(trade.getInitiator().getId());
 
@@ -246,43 +237,32 @@ public class TradeCommandListener extends ListenerAdapter {
         }
 
         com.app.heartbound.entities.User userEntity = userService.getUserById(userId);
-        List<ItemInstance> inventory = userEntity.getItemInstances();
+        List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
+            .filter(invItem -> invItem.getBaseItem().getCategory().isTradable())
+            .collect(Collectors.toList());
 
-        log.debug("User {} inventory instance count: {}", userId, inventory.size());
-        if (inventory.isEmpty()) {
-            event.getHook().sendMessage("Your inventory is empty.").setEphemeral(true).queue();
+        if (tradableItems.isEmpty()) {
+            event.getHook().sendMessage("You have no tradable items in your inventory.").setEphemeral(true).queue();
             return;
         }
 
         StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("trade-item-select:" + tradeId)
                 .setPlaceholder("Select items to offer...")
-                .setRequiredRange(1, Math.min(25, inventory.size()))
-                .setMaxValues(Math.min(25, inventory.size()));
+                .setRequiredRange(0, Math.min(25, tradableItems.size()))
+                .setMaxValues(Math.min(25, tradableItems.size()));
 
-        inventory.stream()
-            .filter(invItem -> {
-                boolean tradable = invItem.getBaseItem().getCategory().isTradable();
-                log.trace("Item '{}' (Category: {}) is tradable: {}", invItem.getBaseItem().getName(), invItem.getBaseItem().getCategory(), tradable);
-                return tradable;
-            })
-            .forEach(invItem -> {
-                String label = invItem.getBaseItem().getName();
-                if (invItem.getSerialNumber() != null) {
-                    label += " #" + invItem.getSerialNumber();
-                }
-                menuBuilder.addOption(
-                    label,
-                    invItem.getId().toString(),
-                    "Rarity: " + invItem.getBaseItem().getRarity()
-                );
-            });
+        tradableItems.forEach(invItem -> {
+            String label = invItem.getBaseItem().getName();
+            if (invItem.getSerialNumber() != null) {
+                label += " #" + invItem.getSerialNumber();
+            }
+            menuBuilder.addOption(
+                label,
+                invItem.getId().toString(),
+                "Rarity: " + invItem.getBaseItem().getRarity()
+            );
+        });
 
-        if (menuBuilder.getOptions().isEmpty()) {
-            log.warn("User {} has inventory, but no tradable items were found for tradeId: {}", userId, tradeId);
-            event.getHook().sendMessage("You have no tradable items in your inventory.").setEphemeral(true).queue();
-            return;
-        }
-        log.info("Presenting item selection menu to user {} for tradeId: {}. Options count: {}", userId, tradeId, menuBuilder.getOptions().size());
         event.getHook().sendMessage("Please select which items you would like to offer.").setComponents(ActionRow.of(menuBuilder.build())).setEphemeral(true).queue();
     }
 
@@ -296,11 +276,9 @@ public class TradeCommandListener extends ListenerAdapter {
             Trade trade = tradeService.acceptFinalTrade(tradeId, clickerId);
 
             if (trade.getStatus() == TradeStatus.ACCEPTED) {
-                // The trade is complete, show success message
                 event.getHook().editOriginalEmbeds(new EmbedBuilder().setTitle("Trade Successful!").setColor(Color.GREEN).build())
                         .setComponents().queue();
             } else {
-                // The trade is not yet complete, just update the UI
                 updateTradeUI(event.getChannel(), tradeId);
             }
         } catch (Exception e) {
@@ -321,7 +299,6 @@ public class TradeCommandListener extends ListenerAdapter {
         Trade trade = tradeService.getTradeDetails(tradeId);
         if (trade == null || trade.getStatus() != TradeStatus.PENDING) {
             log.warn("updateTradeUI called for non-pending or non-existent tradeId: {}", tradeId);
-            // Optionally edit the message to show it's no longer active
             return;
         }
 
@@ -359,39 +336,33 @@ public class TradeCommandListener extends ListenerAdapter {
         if(trade.getInitiatorAccepted() && !trade.getReceiverAccepted()) initiatorStatus += " (Waiting for other user)";
 
 
-        Map<String, Long> initiatorItemCounts = trade.getItems().stream()
-                .map(tradeItem -> tradeItem.getItemInstance())
+        String initiatorItems = trade.getItems().stream()
+                .map(TradeItem::getItemInstance)
                 .filter(instance -> instance.getOwner().getId().equals(initiator.getId()))
-                .collect(Collectors.groupingBy(instance -> instance.getBaseItem().getName(), Collectors.counting()));
-
-        String initiatorItems = initiatorItemCounts.entrySet().stream()
-                .map(entry -> entry.getValue() + "x " + entry.getKey())
+                .map(instance -> {
+                    String name = instance.getBaseItem().getName();
+                    if (instance.getSerialNumber() != null) {
+                        name += " #" + instance.getSerialNumber();
+                    }
+                    return name;
+                })
                 .collect(Collectors.joining("\n"));
 
         if(initiatorItems.isEmpty()) initiatorItems = "No items offered.";
-        log.trace("Initiator ({}): {} items found. Rendered text length: {}", initiator.getId(),
-            initiatorItemCounts.values().stream().mapToLong(Long::longValue).sum(),
-            initiatorItems.length());
 
-        Map<String, Long> receiverItemCounts = trade.getItems().stream()
-                .map(tradeItem -> tradeItem.getItemInstance())
-                .filter(instance -> {
-                    if (instance == null || instance.getOwner() == null || instance.getBaseItem() == null) {
-                        log.warn("Null ItemInstance, Owner, or BaseItem found in tradeId: {}", trade.getId());
-                        return false;
+        String receiverItems = trade.getItems().stream()
+                .map(TradeItem::getItemInstance)
+                .filter(instance -> instance.getOwner().getId().equals(receiver.getId()))
+                .map(instance -> {
+                    String name = instance.getBaseItem().getName();
+                    if (instance.getSerialNumber() != null) {
+                        name += " #" + instance.getSerialNumber();
                     }
-                    return instance.getOwner().getId().equals(receiver.getId());
+                    return name;
                 })
-                .collect(Collectors.groupingBy(instance -> instance.getBaseItem().getName(), Collectors.counting()));
-
-        String receiverItems = receiverItemCounts.entrySet().stream()
-                .map(entry -> entry.getValue() + "x " + entry.getKey())
                 .collect(Collectors.joining("\n"));
 
         if(receiverItems.isEmpty()) receiverItems = "No items offered.";
-        log.trace("Receiver ({}): {} items found. Rendered text length: {}", receiver.getId(),
-            receiverItemCounts.values().stream().mapToLong(Long::longValue).sum(),
-            receiverItems.length());
 
         embed.addField(initiator.getEffectiveName() + "'s Offer " + initiatorStatus, initiatorItems, true);
         embed.addField(receiver.getEffectiveName() + "'s Offer " + receiverStatus, receiverItems, true);
