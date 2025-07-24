@@ -1,3 +1,15 @@
+-- First, ensure the target table exists. This makes the script robust if it's run
+-- against a database that was baselined before this table was added to V1.
+CREATE TABLE IF NOT EXISTS public.item_instances (
+    id UUID PRIMARY KEY,
+    owner_id VARCHAR(255) NOT NULL,
+    base_item_id UUID NOT NULL,
+    serial_number BIGINT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    CONSTRAINT fk_item_instances_owner FOREIGN KEY (owner_id) REFERENCES public.users(id),
+    CONSTRAINT fk_item_instances_base_item FOREIGN KEY (base_item_id) REFERENCES public.shop_items(id)
+);
+
 DO $$
 DECLARE
     item_row RECORD;
