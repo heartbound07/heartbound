@@ -36,6 +36,8 @@ export interface ShopItem {
   quantity?: number;
   fishingRodMultiplier?: number;
   gradientEndColor?: string;
+  maxCopies?: number;
+  copiesSold?: number;
 }
 
 interface ToastNotification {
@@ -156,6 +158,11 @@ const InventoryItemCard = forwardRef(({
       style={{ borderColor: isSelected ? 'var(--color-primary, #0088cc)' : (item.equipped ? 'var(--color-primary, #0088cc)' : 'transparent') }}
       onClick={() => onSelect(item)}
     >
+      {(item.quantity && item.quantity > 1) && (
+        <div className="absolute top-2 left-2 z-10 bg-indigo-600 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-lg">
+          x{item.quantity}
+        </div>
+      )}
       {/* Item image or Discord preview for USER_COLOR or BADGE preview */}
       {item.category === 'USER_COLOR' ? (
         <div className="shop-item-image inventory-item-image">

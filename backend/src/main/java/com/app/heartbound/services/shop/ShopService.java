@@ -11,6 +11,7 @@ import com.app.heartbound.entities.Shop;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.entities.CaseItem;
 import com.app.heartbound.entities.UserInventoryItem;
+import com.app.heartbound.entities.ItemInstance;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
@@ -25,10 +26,12 @@ import com.app.heartbound.exceptions.shop.EmptyCaseException;
 import com.app.heartbound.exceptions.shop.InvalidCaseContentsException;
 import com.app.heartbound.exceptions.shop.ItemDeletionException;
 import com.app.heartbound.exceptions.shop.ItemReferencedInCasesException;
+import com.app.heartbound.exceptions.shop.InsufficientStockException;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
 import com.app.heartbound.repositories.shop.CaseItemRepository;
 import com.app.heartbound.repositories.UserInventoryItemRepository;
+import com.app.heartbound.repositories.ItemInstanceRepository;
 import com.app.heartbound.repositories.RollAuditRepository;
 import com.app.heartbound.entities.RollAudit;
 import com.app.heartbound.services.UserService;
@@ -48,6 +51,7 @@ import jakarta.persistence.LockModeType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.Cacheable;
@@ -66,6 +70,7 @@ public class ShopService {
     
     private final ShopRepository shopRepository;
     private final UserRepository userRepository;
+    private final ItemInstanceRepository itemInstanceRepository;
     private final UserService userService;
     private final DiscordService discordService;
     private final CaseItemRepository caseItemRepository;
@@ -83,8 +88,9 @@ public class ShopService {
     public ShopService(
         ShopRepository shopRepository,
         UserRepository userRepository,
+        ItemInstanceRepository itemInstanceRepository,
         UserService userService,
-        DiscordService discordService,
+        @Lazy DiscordService discordService,
         CaseItemRepository caseItemRepository,
         HtmlSanitizationService htmlSanitizationService,
         SecureRandomService secureRandomService,
@@ -97,6 +103,7 @@ public class ShopService {
     ) {
         this.shopRepository = shopRepository;
         this.userRepository = userRepository;
+        this.itemInstanceRepository = itemInstanceRepository;
         this.userService = userService;
         this.discordService = discordService;
         this.caseItemRepository = caseItemRepository;
@@ -352,6 +359,10 @@ public class ShopService {
         
         return mapToShopDTO(item, user);
     }
+
+    public Optional<Shop> findById(UUID itemId) {
+        return shopRepository.findById(itemId);
+    }
     
     /**
      * Validates if an item can be purchased based on current shop visibility rules.
@@ -413,130 +424,116 @@ public class ShopService {
     @Transactional
     public PurchaseResponseDTO purchaseItem(String userId, UUID itemId, Integer quantity) {
         logger.debug("Processing purchase of item {} for user {} with quantity {}", itemId, userId, quantity);
-        
-        // Validate quantity
-        if (quantity == null || quantity < 1 || quantity > 10) {
-            createPurchaseAuditEntry(userId, itemId, null, quantity, 0, 0, 0, 
+    
+        if (quantity == null || quantity < 1 || quantity > 100) { // Allow larger quantities
+            createPurchaseAuditEntry(userId, itemId, null, quantity, 0, 0, 0,
                 "PURCHASE_FAILED", "Invalid quantity: " + quantity, AuditSeverity.WARNING);
-            throw new IllegalArgumentException("Quantity must be between 1 and 10");
+            throw new IllegalArgumentException("Quantity must be between 1 and 100");
         }
-        
-        // Get user and item, applying a pessimistic write lock to the user to prevent race conditions
+    
         User user = userRepository.findByIdWithLock(userId, LockModeType.PESSIMISTIC_WRITE)
             .orElseThrow(() -> {
-                createPurchaseAuditEntry(userId, itemId, null, quantity, 0, 0, 0, 
+                createPurchaseAuditEntry(userId, itemId, null, quantity, 0, 0, 0,
                     "PURCHASE_FAILED", "User not found", AuditSeverity.WARNING);
                 return new ResourceNotFoundException("User not found with ID: " + userId);
             });
-        
-        Shop item = shopRepository.findById(itemId)
+    
+        // Lock the shop item to prevent race conditions on copiesSold
+        Shop item = shopRepository.findByIdWithLock(itemId)
             .orElseThrow(() -> {
-                createPurchaseAuditEntry(userId, itemId, null, quantity, 0, 0, 0, 
+                createPurchaseAuditEntry(userId, itemId, null, quantity, 0, 0, 0,
                     "PURCHASE_FAILED", "Shop item not found", AuditSeverity.WARNING);
                 return new ResourceNotFoundException("Shop item not found with ID: " + itemId);
             });
-        
-        // Centralized security validation
+    
         if (!isItemPurchasable(item)) {
-            createPurchaseAuditEntry(userId, itemId, item, quantity, 0, 
-                user.getCredits(), user.getCredits(), 
+            createPurchaseAuditEntry(userId, itemId, item, quantity, 0,
+                user.getCredits(), user.getCredits(),
                 "PURCHASE_FAILED", "Item is not available for purchase (failed isItemPurchasable check)", AuditSeverity.HIGH);
             throw new ResourceNotFoundException("This item is not currently available for purchase");
         }
-        
-        // Store initial state for audit logging
-        int creditsBeforeTransaction = user.getCredits();
+    
         int totalCost = item.getPrice() * quantity;
-        
-        // Validation checks
-        
-        // For non-case items, enforce ownership check
-        if (item.getCategory() != ShopCategory.CASE && user.hasItem(itemId)) {
-            createPurchaseAuditEntry(userId, itemId, item, quantity, totalCost, 
-                creditsBeforeTransaction, creditsBeforeTransaction, 
-                "PURCHASE_FAILED", "User already owns this item", AuditSeverity.WARNING);
-            throw new ItemAlreadyOwnedException("User already owns this item");
-        }
-        
-        // For cases, check quantity-based ownership for proper inventory management
-        if (item.getCategory() == ShopCategory.CASE) {
-            // Cases can be purchased multiple times, no ownership check needed
-            logger.debug("Purchasing {} cases for user {}", quantity, userId);
-        }
-        
-        // For non-case items, enforce quantity = 1
-        if (item.getCategory() != ShopCategory.CASE && quantity > 1) {
-            createPurchaseAuditEntry(userId, itemId, item, quantity, totalCost, 
-                creditsBeforeTransaction, creditsBeforeTransaction, 
-                "PURCHASE_FAILED", "Non-case items can only be purchased with quantity 1", AuditSeverity.WARNING);
-            throw new IllegalArgumentException("Non-case items can only be purchased with quantity 1");
-        }
-        
+        int creditsBeforeTransaction = user.getCredits();
+    
         if (user.getCredits() < totalCost) {
-            createPurchaseAuditEntry(userId, itemId, item, quantity, totalCost, 
-                creditsBeforeTransaction, creditsBeforeTransaction, 
+            createPurchaseAuditEntry(userId, itemId, item, quantity, totalCost,
+                creditsBeforeTransaction, creditsBeforeTransaction,
                 "PURCHASE_FAILED", "Insufficient credits. Required: " + totalCost + ", Available: " + user.getCredits(), AuditSeverity.WARNING);
-            throw new InsufficientCreditsException(
-                "Insufficient credits. Required: " + totalCost + ", Available: " + user.getCredits()
-            );
+            throw new InsufficientCreditsException("Insufficient credits. Required: " + totalCost + ", Available: " + user.getCredits());
         }
-        
+    
         if (item.getRequiredRole() != null && !user.hasRole(item.getRequiredRole())) {
-            createPurchaseAuditEntry(userId, itemId, item, quantity, totalCost, 
-                creditsBeforeTransaction, creditsBeforeTransaction, 
+            createPurchaseAuditEntry(userId, itemId, item, quantity, totalCost,
+                creditsBeforeTransaction, creditsBeforeTransaction,
                 "PURCHASE_FAILED", "Role requirement not met: " + item.getRequiredRole(), AuditSeverity.WARNING);
-            throw new RoleRequirementNotMetException(
-                "This item requires the " + item.getRequiredRole() + " role"
-            );
+            throw new RoleRequirementNotMetException("This item requires the " + item.getRequiredRole() + " role");
         }
-        
+    
+        // Limited stock check
+        if (item.getMaxCopies() != null) {
+            int currentCopiesSold = item.getCopiesSold() != null ? item.getCopiesSold() : 0;
+            if (currentCopiesSold >= item.getMaxCopies()) {
+                throw new InsufficientStockException("This item is sold out.");
+            }
+            if (currentCopiesSold + quantity > item.getMaxCopies()) {
+                throw new InsufficientStockException("Not enough stock available. Only " + (item.getMaxCopies() - currentCopiesSold) + " left.");
+            }
+        }
+    
+        // Check for non-stackable item ownership
+        if (!item.getCategory().isStackable()) {
+             long ownedCount = user.getItemInstances().stream()
+                .filter(instance -> instance.getBaseItem().getId().equals(item.getId()))
+                .count();
+             if (ownedCount > 0) {
+                 throw new ItemAlreadyOwnedException("You already own this unique item.");
+             }
+             if (quantity > 1) {
+                 throw new IllegalArgumentException("Cannot purchase more than one of this unique item at a time.");
+             }
+        }
+    
         // Process purchase
-        user.setCredits(user.getCredits() - totalCost);
-        int creditsAfterTransaction = user.getCredits();
-        
-        try {
-            // Add items to inventory - use quantity-based system for cases
-            if (item.getCategory() == ShopCategory.CASE) {
-                logger.debug("Adding {} cases to user inventory using quantity-based system", quantity);
-                user.addItemWithQuantity(item, quantity);
-            } else {
-                logger.debug("Adding {} instances of item {} to user inventory", quantity, itemId);
-                for (int i = 0; i < quantity; i++) {
-                    user.addItem(item);
-                }
+        user.setCredits(creditsBeforeTransaction - totalCost);
+    
+        List<ItemInstance> newInstances = new ArrayList<>();
+        for (int i = 0; i < quantity; i++) {
+            Long serialNumber = null;
+            if (item.getMaxCopies() != null) {
+                int currentCopiesSold = item.getCopiesSold() != null ? item.getCopiesSold() : 0;
+                item.setCopiesSold(currentCopiesSold + 1);
+                serialNumber = (long) item.getCopiesSold();
             }
-            
-            // Save user with updated inventory
-            logger.debug("Saving user {} with updated inventory", userId);
-            user = userRepository.save(user);
-            
-            // Create audit entry for successful purchase
-            createPurchaseAuditEntry(userId, itemId, item, quantity, totalCost, 
-                creditsBeforeTransaction, creditsAfterTransaction, 
-                "PURCHASE_SUCCESS", "Purchase completed successfully", AuditSeverity.INFO);
-            
-            logger.info("User {} successfully purchased {} x{} (total cost: {})", userId, itemId, quantity, totalCost);
-
-            // Map the purchased item to a DTO, now including ownership and quantity
-            ShopDTO purchasedItemDTO = mapToShopDTO(item, user);
-            if (item.getCategory() == ShopCategory.CASE) {
-                purchasedItemDTO.setQuantity(user.getItemQuantity(item.getId()));
-            } else {
-                purchasedItemDTO.setOwned(true);
-            }
-            
-            // Return updated profile and the purchased item DTO
-            return new PurchaseResponseDTO(userService.mapToProfileDTO(user), purchasedItemDTO);
-        } catch (Exception e) {
-            logger.error("Error during purchase process for user {} and item {}: {}", userId, itemId, e.getMessage(), e);
-            
-            // Create audit entry for transaction failure
-            createPurchaseAuditEntry(userId, itemId, item, quantity, totalCost, 
-                creditsBeforeTransaction, creditsBeforeTransaction, 
-                "PURCHASE_FAILED", "Transaction failed: " + e.getMessage(), AuditSeverity.HIGH);
-            
-            throw new RuntimeException("An error occurred while processing your purchase", e);
+    
+            ItemInstance newInstance = ItemInstance.builder()
+                .owner(user)
+                .baseItem(item)
+                .serialNumber(serialNumber)
+                .build();
+            newInstances.add(newInstance);
         }
+    
+        if (item.getMaxCopies() != null && item.getCopiesSold() >= item.getMaxCopies()) {
+            item.setIsActive(false);
+        }
+    
+        itemInstanceRepository.saveAll(newInstances);
+        shopRepository.save(item);
+        userRepository.save(user);
+    
+        int creditsAfterTransaction = user.getCredits();
+    
+        createPurchaseAuditEntry(userId, itemId, item, quantity, totalCost,
+            creditsBeforeTransaction, creditsAfterTransaction,
+            "PURCHASE_SUCCESS", "Purchase completed successfully", AuditSeverity.INFO);
+    
+        logger.info("User {} successfully purchased {} x{} (total cost: {})", userId, itemId, quantity, totalCost);
+    
+        ShopDTO purchasedItemDTO = mapToShopDTO(item, user);
+        purchasedItemDTO.setQuantity(quantity);
+    
+        return new PurchaseResponseDTO(userService.mapToProfileDTO(user), purchasedItemDTO);
     }
     
     /**
@@ -1072,31 +1069,18 @@ public class ShopService {
     public UserInventoryDTO getUserInventory(String userId) {
         logger.debug("Getting inventory for user {}", userId);
         
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdWithInventory(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
-        
-        // Force initialization of lazy collections within transaction
-        Set<Shop> inventory = user.getInventory();
-        inventory.size(); // Force lazy loading
-        
-        Set<UserInventoryItem> inventoryItems = user.getInventoryItems();
-        if (inventoryItems != null) {
-            inventoryItems.size(); // Force lazy loading
-        }
-        
-        Set<ShopDTO> itemDTOs = new HashSet<>();
-        
-        // Process regular inventory items (non-cases)
-        Map<UUID, List<Shop>> itemGroups = inventory.stream()
-            .filter(item -> item.getCategory() != ShopCategory.CASE) // Exclude cases from regular inventory
-            .collect(Collectors.groupingBy(Shop::getId));
-        
-        for (Map.Entry<UUID, List<Shop>> entry : itemGroups.entrySet()) {
-            Shop item = entry.getValue().get(0);
-            int quantity = entry.getValue().size();
+
+        Map<Shop, Long> itemCounts = user.getItemInstances().stream()
+            .collect(Collectors.groupingBy(ItemInstance::getBaseItem, Collectors.counting()));
+            
+        Set<ShopDTO> itemDTOs = itemCounts.entrySet().stream().map(entry -> {
+            Shop item = entry.getKey();
+            long quantity = entry.getValue();
             
             ShopDTO dto = mapToShopDTO(item, user);
-            dto.setQuantity(quantity);
+            dto.setQuantity((int) quantity);
             
             // Add equipped status
             if (item.getCategory() != null) {
@@ -1108,22 +1092,8 @@ public class ShopService {
                 }
             }
             
-            itemDTOs.add(dto);
-        }
-        
-        // Process quantity-based inventory items (cases)
-        if (inventoryItems != null) {
-            for (UserInventoryItem invItem : inventoryItems) {
-                if (invItem.getQuantity() > 0) {
-                    Shop item = invItem.getItem();
-                    ShopDTO dto = mapToShopDTO(item, user);
-                    dto.setQuantity(invItem.getQuantity());
-                    dto.setEquipped(false); // Cases cannot be equipped
-                    
-                    itemDTOs.add(dto);
-                }
-            }
-        }
+            return dto;
+        }).collect(Collectors.toSet());
         
         return UserInventoryDTO.builder()
             .items(itemDTOs)
@@ -1142,22 +1112,15 @@ public class ShopService {
         User user = userRepository.findByIdWithInventory(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         
-        Set<Shop> inventory = user.getInventory();
-        Set<UserInventoryItem> inventoryItems = user.getInventoryItems();
-        
-        Set<ShopDTO> itemDTOs = new HashSet<>();
-        
-        // Process regular inventory items (non-cases)
-        Map<UUID, List<Shop>> itemGroups = inventory.stream()
-            .filter(item -> item.getCategory() != ShopCategory.CASE) // Exclude cases from regular inventory
-            .collect(Collectors.groupingBy(Shop::getId));
-        
-        for (Map.Entry<UUID, List<Shop>> entry : itemGroups.entrySet()) {
-            Shop item = entry.getValue().get(0);
-            int quantity = entry.getValue().size();
+        Map<Shop, Long> itemCounts = user.getItemInstances().stream()
+            .collect(Collectors.groupingBy(ItemInstance::getBaseItem, Collectors.counting()));
+            
+        Set<ShopDTO> itemDTOs = itemCounts.entrySet().stream().map(entry -> {
+            Shop item = entry.getKey();
+            long quantity = entry.getValue();
             
             ShopDTO dto = mapToShopDTO(item, user);
-            dto.setQuantity(quantity);
+            dto.setQuantity((int) quantity);
             
             // Add equipped status
             if (item.getCategory() != null) {
@@ -1169,22 +1132,8 @@ public class ShopService {
                 }
             }
             
-            itemDTOs.add(dto);
-        }
-        
-        // Process quantity-based inventory items (cases)
-        if (inventoryItems != null) {
-            for (UserInventoryItem invItem : inventoryItems) {
-                if (invItem.getQuantity() > 0) {
-                    Shop item = invItem.getItem();
-                    ShopDTO dto = mapToShopDTO(item, user);
-                    dto.setQuantity(invItem.getQuantity());
-                    dto.setEquipped(false); // Cases cannot be equipped
-                    
-                    itemDTOs.add(dto);
-                }
-            }
-        }
+            return dto;
+        }).collect(Collectors.toSet());
         
         return UserInventoryDTO.builder()
             .items(itemDTOs)
@@ -1202,9 +1151,8 @@ public class ShopService {
         
         // For cases, never show as owned since they can be purchased multiple times
         if (shop.getCategory() != ShopCategory.CASE && user != null) {
-            // This accesses the lazy-loaded inventory, which works when inside @Transactional
-            owned = user.getInventory().stream()
-                .anyMatch(item -> item.getId().equals(shop.getId()));
+            owned = user.getItemInstances().stream()
+                .anyMatch(instance -> instance.getBaseItem().getId().equals(shop.getId()));
         }
         
         // Check if this is a case and get contents count
@@ -1233,6 +1181,8 @@ public class ShopService {
             .isDaily(shop.getIsDaily())
             .fishingRodMultiplier(shop.getFishingRodMultiplier())
             .gradientEndColor(shop.getGradientEndColor())
+            .maxCopies(shop.getMaxCopies())
+            .copiesSold(shop.getCopiesSold())
             .build();
     }
     
@@ -1304,6 +1254,7 @@ public class ShopService {
             .isDaily(shopDTO.getIsDaily())
             .fishingRodMultiplier(shopDTO.getFishingRodMultiplier())
             .gradientEndColor(sanitizedGradientEndColor)
+            .maxCopies(shopDTO.getMaxCopies())
             .build();
         
         logger.debug("Creating new shop item with sanitized content");
@@ -1383,6 +1334,7 @@ public class ShopService {
         existingItem.setIsDaily(shopDTO.getIsDaily());
         existingItem.setFishingRodMultiplier(shopDTO.getFishingRodMultiplier());
         existingItem.setGradientEndColor(sanitizedGradientEndColor);
+        existingItem.setMaxCopies(shopDTO.getMaxCopies());
         
         logger.debug("Updating shop item with ID: {} with sanitized content", existingItem.getId());
         

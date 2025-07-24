@@ -92,4 +92,11 @@ public class Shop {
 
     @Column(name = "gradient_end_color")
     private String gradientEndColor;
+
+    @Column(name = "max_copies")
+    private Integer maxCopies;
+
+    @Builder.Default
+    @Column(name = "copies_sold")
+    private Integer copiesSold = 0;
 }
