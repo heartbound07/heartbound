@@ -1,7 +1,7 @@
 package com.app.heartbound.controllers;
 
 import com.app.heartbound.config.security.RateLimited;
-import com.app.heartbound.dtos.CreateTradeDto;
+import com.app.heartbound.dto.CreateTradeDto;
 import com.app.heartbound.entities.Trade;
 import com.app.heartbound.enums.RateLimitKeyType;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;

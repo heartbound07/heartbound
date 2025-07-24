@@ -76,6 +76,9 @@ public class ShopDTO {
 
     private String gradientEndColor;
 
+    private Integer maxCopies;
+    private Integer copiesSold;
+
     public boolean isEquipped() {
         return equipped;
     }

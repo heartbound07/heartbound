@@ -32,6 +32,8 @@ import httpClient from '@/lib/api/httpClient';
     isDaily: boolean;
     fishingRodMultiplier?: number;
     gradientEndColor?: string;
+    maxCopies?: number;
+    copiesSold?: number;
   }
 
   interface ShopItemsTableProps {
@@ -73,7 +75,8 @@ const ShopItemsTable: React.FC<ShopItemsTableProps> = ({ items, handleEdit, hand
             <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Rarity</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Visibility</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Status</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Actions</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Stock</th>
+            <th className="px-6 py-3 text-right text-xs font-medium text-slate-300 uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-700/70 bg-slate-800/20">
@@ -206,6 +209,16 @@ const ShopItemsTable: React.FC<ShopItemsTableProps> = ({ items, handleEdit, hand
                     </div>
                   )}
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                    {item.maxCopies != null && item.maxCopies > 0 ? (
+                      <span className={item.copiesSold != null && item.copiesSold >= item.maxCopies ? 'text-red-400' : ''}>
+                        {item.copiesSold ?? 0} / {item.maxCopies}
+                        {item.copiesSold != null && item.copiesSold >= item.maxCopies && <span className="ml-2 font-bold">(Sold Out)</span>}
+                      </span>
+                    ) : (
+                      <span>Unlimited</span>
+                    )}
+                  </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="flex items-center space-x-3">
                     <button

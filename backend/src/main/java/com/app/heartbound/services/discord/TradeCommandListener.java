@@ -1,10 +1,8 @@
 package com.app.heartbound.services.discord;
 
-import com.app.heartbound.dtos.CreateTradeDto;
 import com.app.heartbound.entities.Trade;
-import com.app.heartbound.entities.UserInventoryItem;
+import com.app.heartbound.entities.ItemInstance;
 import com.app.heartbound.services.TradeService;
-import com.app.heartbound.services.UserInventoryService;
 import com.app.heartbound.services.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +27,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.ArrayList;
+import java.util.Map;
 import com.app.heartbound.enums.TradeStatus;
 
 @Component
@@ -39,7 +37,6 @@ public class TradeCommandListener extends ListenerAdapter {
 
     private final TradeService tradeService;
     private final UserService userService;
-    private final UserInventoryService userInventoryService;
     private JDA jdaInstance;
 
     private final ConcurrentHashMap<String, Long> pendingTradeRequests = new ConcurrentHashMap<>();
@@ -176,19 +173,16 @@ public class TradeCommandListener extends ListenerAdapter {
 
         long tradeId = Long.parseLong(componentId.split(":")[1]);
         String userId = event.getUser().getId();
-        List<String> selectedItemIds = event.getValues(); // item UUIDs
+        List<String> selectedItemInstanceIds = event.getValues(); // item instance UUIDs
 
         try {
-            log.debug("Processing item selection for tradeId: {} by userId: {}. Selected items: {}", tradeId, userId, selectedItemIds);
-            List<CreateTradeDto.TradeItemDto> itemDtos = new ArrayList<>();
-            for (String itemIdStr : selectedItemIds) {
-                // For simplicity, we're adding quantity 1.
-                // A more complex implementation would ask for quantity.
-                itemDtos.add(new CreateTradeDto.TradeItemDto(UUID.fromString(itemIdStr), 1));
-            }
+            log.debug("Processing item selection for tradeId: {} by userId: {}. Selected items: {}", tradeId, userId, selectedItemInstanceIds);
+            List<UUID> itemInstanceUuids = selectedItemInstanceIds.stream()
+                .map(UUID::fromString)
+                .collect(Collectors.toList());
 
-            tradeService.addItemsToTrade(tradeId, userId, itemDtos);
-            log.info("User {} added {} items to tradeId: {}", userId, itemDtos.size(), tradeId);
+            tradeService.addItemsToTrade(tradeId, userId, itemInstanceUuids);
+            log.info("User {} added {} items to tradeId: {}", userId, itemInstanceUuids.size(), tradeId);
 
             // Update the main trade UI
             updateTradeUI(event.getChannel(), tradeId);
@@ -251,8 +245,10 @@ public class TradeCommandListener extends ListenerAdapter {
             return;
         }
 
-        List<UserInventoryItem> inventory = userInventoryService.getUserInventory(userId);
-        log.debug("User {} inventory count: {}", userId, inventory.size());
+        com.app.heartbound.entities.User userEntity = userService.getUserById(userId);
+        List<ItemInstance> inventory = userEntity.getItemInstances();
+
+        log.debug("User {} inventory instance count: {}", userId, inventory.size());
         if (inventory.isEmpty()) {
             event.getHook().sendMessage("Your inventory is empty.").setEphemeral(true).queue();
             return;
@@ -265,15 +261,21 @@ public class TradeCommandListener extends ListenerAdapter {
 
         inventory.stream()
             .filter(invItem -> {
-                boolean tradable = invItem.getItem().getCategory().isTradable();
-                log.trace("Item '{}' (Category: {}) is tradable: {}", invItem.getItem().getName(), invItem.getItem().getCategory(), tradable);
+                boolean tradable = invItem.getBaseItem().getCategory().isTradable();
+                log.trace("Item '{}' (Category: {}) is tradable: {}", invItem.getBaseItem().getName(), invItem.getBaseItem().getCategory(), tradable);
                 return tradable;
             })
-            .forEach(invItem -> menuBuilder.addOption(
-                invItem.getItem().getName(),
-                invItem.getItem().getId().toString(),
-                "Quantity: " + invItem.getQuantity()
-            ));
+            .forEach(invItem -> {
+                String label = invItem.getBaseItem().getName();
+                if (invItem.getSerialNumber() != null) {
+                    label += " #" + invItem.getSerialNumber();
+                }
+                menuBuilder.addOption(
+                    label,
+                    invItem.getId().toString(),
+                    "Rarity: " + invItem.getBaseItem().getRarity()
+                );
+            });
 
         if (menuBuilder.getOptions().isEmpty()) {
             log.warn("User {} has inventory, but no tradable items were found for tradeId: {}", userId, tradeId);
@@ -357,28 +359,38 @@ public class TradeCommandListener extends ListenerAdapter {
         if(trade.getInitiatorAccepted() && !trade.getReceiverAccepted()) initiatorStatus += " (Waiting for other user)";
 
 
-        String initiatorItems = trade.getItems().stream()
-                .filter(i -> i.getUser().getId().equals(initiator.getId()))
-                .map(i -> i.getQuantity() + "x " + i.getItem().getName())
+        Map<String, Long> initiatorItemCounts = trade.getItems().stream()
+                .map(tradeItem -> tradeItem.getItemInstance())
+                .filter(instance -> instance.getOwner().getId().equals(initiator.getId()))
+                .collect(Collectors.groupingBy(instance -> instance.getBaseItem().getName(), Collectors.counting()));
+
+        String initiatorItems = initiatorItemCounts.entrySet().stream()
+                .map(entry -> entry.getValue() + "x " + entry.getKey())
                 .collect(Collectors.joining("\n"));
+
         if(initiatorItems.isEmpty()) initiatorItems = "No items offered.";
         log.trace("Initiator ({}): {} items found. Rendered text length: {}", initiator.getId(),
-            trade.getItems().stream().filter(i -> i.getUser().getId().equals(initiator.getId())).count(),
+            initiatorItemCounts.values().stream().mapToLong(Long::longValue).sum(),
             initiatorItems.length());
 
-        String receiverItems = trade.getItems().stream()
-                .filter(i -> {
-                    if (i == null || i.getUser() == null || i.getItem() == null) {
-                        log.warn("Null TradeItem, User, or Item found in tradeId: {}", trade.getId());
+        Map<String, Long> receiverItemCounts = trade.getItems().stream()
+                .map(tradeItem -> tradeItem.getItemInstance())
+                .filter(instance -> {
+                    if (instance == null || instance.getOwner() == null || instance.getBaseItem() == null) {
+                        log.warn("Null ItemInstance, Owner, or BaseItem found in tradeId: {}", trade.getId());
                         return false;
                     }
-                    return i.getUser().getId().equals(receiver.getId());
+                    return instance.getOwner().getId().equals(receiver.getId());
                 })
-                .map(i -> i.getQuantity() + "x " + i.getItem().getName())
+                .collect(Collectors.groupingBy(instance -> instance.getBaseItem().getName(), Collectors.counting()));
+
+        String receiverItems = receiverItemCounts.entrySet().stream()
+                .map(entry -> entry.getValue() + "x " + entry.getKey())
                 .collect(Collectors.joining("\n"));
+
         if(receiverItems.isEmpty()) receiverItems = "No items offered.";
         log.trace("Receiver ({}): {} items found. Rendered text length: {}", receiver.getId(),
-            trade.getItems().stream().filter(i -> i.getUser().getId().equals(receiver.getId())).count(),
+            receiverItemCounts.values().stream().mapToLong(Long::longValue).sum(),
             receiverItems.length());
 
         embed.addField(initiator.getEffectiveName() + "'s Offer " + initiatorStatus, initiatorItems, true);

@@ -22,14 +22,8 @@ public class TradeItem {
     @JoinColumn(name = "trade_id", nullable = false)
     private Trade trade;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "item_instance_id", referencedColumnName = "id", nullable = false)
+    private ItemInstance itemInstance;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "item_id", nullable = false)
-    private Shop item;
-
-    @Column(nullable = false)
-    private Integer quantity;
 } 

@@ -29,6 +29,8 @@ interface ShopItem {
   isDaily: boolean;
   fishingRodMultiplier?: number;
   gradientEndColor?: string;
+  maxCopies?: number;
+  copiesSold?: number;
 }
 
 interface ShopFormData {
@@ -48,6 +50,7 @@ interface ShopFormData {
   fishingRodMultiplier?: number;
   colorType: 'solid' | 'gradient';
   gradientEndColor?: string;
+  maxCopies?: number;
 }
 
 interface CaseItemData {
@@ -335,14 +338,15 @@ export function ShopAdminPage() {
     setSubmitting(true);
     
     try {
-      const payload = {
+      const dataToSend = {
         ...formData,
-        ...(editingItem && { id: editingItem.id })
+        expiresAt: formData.expiresAt ? new Date(formData.expiresAt).toISOString() : null,
+        maxCopies: formData.maxCopies ? Number(formData.maxCopies) : null,
       };
       
       if (editingItem) {
         // Update existing item
-        await httpClient.put(`/shop/admin/items/${editingItem.id}`, payload);
+        await httpClient.put(`/shop/admin/items/${editingItem.id}`, dataToSend);
         
         // Only show toast if another with same message doesn't exist
         if (!toasts.some(t => t.message === 'Item updated successfully')) {
@@ -350,7 +354,7 @@ export function ShopAdminPage() {
         }
       } else {
         // Create new item
-        await httpClient.post('/shop/admin/items', payload);
+        await httpClient.post('/shop/admin/items', dataToSend);
         
         // Only show toast if another with same message doesn't exist
         if (!toasts.some(t => t.message === 'Item created successfully')) {
@@ -388,7 +392,8 @@ export function ShopAdminPage() {
       isDaily: item.isDaily,
       fishingRodMultiplier: item.fishingRodMultiplier || 1.0,
       colorType: item.gradientEndColor ? 'gradient' : 'solid',
-      gradientEndColor: item.gradientEndColor || ''
+      gradientEndColor: item.gradientEndColor || '',
+      maxCopies: item.maxCopies
     });
     
     // Load case contents if this is a case
@@ -453,7 +458,8 @@ export function ShopAdminPage() {
       isDaily: false,
       fishingRodMultiplier: 1.0,
       colorType: 'solid',
-      gradientEndColor: ''
+      gradientEndColor: '',
+      maxCopies: undefined
     });
     setEditingItem(null);
     setCaseContents({ items: [], totalDropRate: 0 });

@@ -35,6 +35,8 @@ interface ShopItem {
     isDaily: boolean;
     fishingRodMultiplier?: number;
     gradientEndColor?: string;
+    maxCopies?: number;
+    copiesSold?: number;
   }
   
   interface ShopFormData {
@@ -54,6 +56,7 @@ interface ShopItem {
     fishingRodMultiplier?: number;
     colorType: 'solid' | 'gradient';
     gradientEndColor?: string;
+    maxCopies?: number;
   }
   
   interface CaseItemData {
@@ -174,6 +177,23 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                       className="w-full bg-slate-800 border border-slate-700 rounded-md pl-9 pr-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                     />
                   </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    Max Copies (Optional)
+                  </label>
+                  <input
+                    type="number"
+                    name="maxCopies"
+                    value={formData.maxCopies || ''}
+                    onChange={handleInputChange}
+                    min="0"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">
+                    Set a maximum number of copies for this item. Leave empty for unlimited.
+                  </p>
                 </div>
                 
                 <div>

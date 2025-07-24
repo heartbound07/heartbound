@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import jakarta.persistence.FetchType;
 
 @Data
 @Entity
@@ -172,6 +173,10 @@ public class User {
     @Builder.Default
     private Set<UserInventoryItem> inventoryItems = new HashSet<>();
     
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @Builder.Default
+    private List<ItemInstance> itemInstances = new ArrayList<>();
+
     // Add these fields to store equipped item IDs
     @Column(name = "equipped_user_color_id")
     private UUID equippedUserColorId;

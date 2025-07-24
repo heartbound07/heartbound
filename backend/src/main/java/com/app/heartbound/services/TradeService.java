@@ -1,35 +1,35 @@
 package com.app.heartbound.services;
 
-import com.app.heartbound.dtos.CreateTradeDto;
+import com.app.heartbound.dto.CreateTradeDto;
 import com.app.heartbound.entities.*;
 import com.app.heartbound.enums.TradeStatus;
-import com.app.heartbound.exceptions.InsufficientItemsException;
 import com.app.heartbound.exceptions.InvalidTradeActionException;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.TradeNotFoundException;
+import com.app.heartbound.repositories.ItemInstanceRepository;
 import com.app.heartbound.repositories.TradeRepository;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.services.shop.ShopService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import jakarta.persistence.LockModeType;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class TradeService {
 
     private final TradeRepository tradeRepository;
     private final UserRepository userRepository;
-    private final ShopService shopService;
+    private final ItemInstanceRepository itemInstanceRepository;
     private final UserInventoryService userInventoryService;
 
     public TradeService(TradeRepository tradeRepository, UserRepository userRepository,
-                        ShopService shopService, UserInventoryService userInventoryService) {
+                        ItemInstanceRepository itemInstanceRepository, ShopService shopService, UserInventoryService userInventoryService) {
         this.tradeRepository = tradeRepository;
         this.userRepository = userRepository;
-        this.shopService = shopService;
+        this.itemInstanceRepository = itemInstanceRepository;
         this.userInventoryService = userInventoryService;
     }
 
@@ -50,20 +50,20 @@ public class TradeService {
                 .status(TradeStatus.PENDING)
                 .build();
 
-        for (CreateTradeDto.TradeItemDto itemDto : tradeDto.getOfferedItems()) {
-            Shop item = shopService.findById(itemDto.getItemId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Item with id " + itemDto.getItemId() + " not found"));
+        for (UUID itemInstanceId : tradeDto.getOfferedItemInstanceIds()) {
+            ItemInstance instance = itemInstanceRepository.findById(itemInstanceId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Item instance with id " + itemInstanceId + " not found"));
 
-            int ownedQuantity = userInventoryService.getItemQuantity(initiator.getId(), item.getId());
-            if (ownedQuantity < itemDto.getQuantity()) {
-                throw new InsufficientItemsException("You do not have enough of " + item.getName() + " to trade.");
+            if (!instance.getOwner().getId().equals(initiatorId)) {
+                throw new InvalidTradeActionException("You do not own the item instance " + itemInstanceId);
             }
+            
+            // Further validation to ensure the item is tradable can be added here if needed
+            // For example, checking instance.getBaseItem().getCategory().isTradable()
 
             TradeItem tradeItem = TradeItem.builder()
                     .trade(trade)
-                    .user(initiator)
-                    .item(item)
-                    .quantity(itemDto.getQuantity())
+                    .itemInstance(instance)
                     .build();
             trade.getItems().add(tradeItem);
         }
@@ -104,7 +104,7 @@ public class TradeService {
     }
 
     @Transactional
-    public Trade addItemsToTrade(Long tradeId, String userId, List<CreateTradeDto.TradeItemDto> itemDtos) {
+    public Trade addItemsToTrade(Long tradeId, String userId, List<UUID> itemInstanceIds) {
         Trade trade = tradeRepository.findById(tradeId)
                 .orElseThrow(() -> new TradeNotFoundException("Trade not found with id: " + tradeId));
         User user = userRepository.findById(userId)
@@ -123,27 +123,25 @@ public class TradeService {
         }
 
         // Atomically remove previous items offered by this user and add new ones
-        trade.getItems().removeIf(item -> item.getUser().getId().equals(userId));
+        trade.getItems().removeIf(item -> item.getItemInstance().getOwner().getId().equals(userId));
 
-        for (CreateTradeDto.TradeItemDto itemDto : itemDtos) {
-            Shop item = shopService.findById(itemDto.getItemId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Item with id " + itemDto.getItemId() + " not found"));
-
+        for (UUID instanceId : itemInstanceIds) {
+            ItemInstance instance = itemInstanceRepository.findById(instanceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Item instance with id " + instanceId + " not found"));
+            
+            if (!instance.getOwner().getId().equals(userId)) {
+                throw new InvalidTradeActionException("You do not own one of the items you are trying to trade.");
+            }
+            
+            Shop item = instance.getBaseItem();
             // Validate the item is actually tradable
             if (item.getCategory() == null || !item.getCategory().isTradable()) {
                  throw new InvalidTradeActionException("The item '" + item.getName() + "' is not tradable.");
             }
 
-            int ownedQuantity = userInventoryService.getItemQuantity(user.getId(), item.getId());
-            if (ownedQuantity < itemDto.getQuantity()) {
-                throw new InsufficientItemsException("You do not have enough of '" + item.getName() + "' to trade. You have " + ownedQuantity + ", but offered " + itemDto.getQuantity() + ".");
-            }
-
             TradeItem tradeItem = TradeItem.builder()
                     .trade(trade)
-                    .user(user)
-                    .item(item)
-                    .quantity(itemDto.getQuantity())
+                    .itemInstance(instance)
                     .build();
             trade.getItems().add(tradeItem);
         }
@@ -212,19 +210,17 @@ public class TradeService {
             throw new InvalidTradeActionException("This trade is no longer pending.");
         }
 
-        // Lock both users to prevent concurrent inventory modifications
-        User initiator = userRepository.findByIdWithLock(trade.getInitiator().getId(), LockModeType.PESSIMISTIC_WRITE)
-            .orElseThrow(() -> new ResourceNotFoundException("Initiator not found."));
-        User receiver = userRepository.findByIdWithLock(trade.getReceiver().getId(), LockModeType.PESSIMISTIC_WRITE)
-            .orElseThrow(() -> new ResourceNotFoundException("Receiver not found."));
+        User initiator = trade.getInitiator();
+        User receiver = trade.getReceiver();
 
 
         // Atomically transfer items
         for (TradeItem item : trade.getItems()) {
-            User fromUser = item.getUser().getId().equals(initiator.getId()) ? initiator : receiver;
-            User toUser = item.getUser().getId().equals(initiator.getId()) ? receiver : initiator;
+            ItemInstance instance = item.getItemInstance();
+            User fromUser = instance.getOwner();
+            User toUser = fromUser.getId().equals(initiator.getId()) ? receiver : initiator;
 
-            Shop shopItem = item.getItem();
+            Shop shopItem = instance.getBaseItem();
             // Check for unique item ownership
             if (!shopItem.getCategory().isStackable()) {
                 if (userInventoryService.getItemQuantity(toUser.getId(), shopItem.getId()) > 0) {
@@ -232,12 +228,9 @@ public class TradeService {
                 }
             }
 
-            userInventoryService.transferItem(
-                    fromUser.getId(),
-                    toUser.getId(),
-                    item.getItem().getId(),
-                    item.getQuantity()
-            );
+            // Transfer ownership
+            instance.setOwner(toUser);
+            itemInstanceRepository.save(instance);
         }
 
         trade.setStatus(TradeStatus.ACCEPTED);
