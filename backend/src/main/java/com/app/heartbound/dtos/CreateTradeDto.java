@@ -19,10 +19,16 @@ public class CreateTradeDto {
 
     @Data
     public static class TradeItemDto {
+
         @NotNull(message = "Item ID is required")
         private UUID itemId;
 
         @NotNull(message = "Quantity is required")
         private Integer quantity;
+        
+        public TradeItemDto(UUID itemId, Integer quantity) {
+            this.itemId = itemId;
+            this.quantity = quantity;
+        }
     }
 } 

@@ -15,10 +15,14 @@ import java.util.UUID;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.util.Optional;
 
 @Service
 public class UserInventoryService {
 
+    private static final Logger logger = LoggerFactory.getLogger(UserInventoryService.class);
     private final UserInventoryItemRepository userInventoryItemRepository;
     private final UserRepository userRepository;
     private final ShopService shopService;
@@ -30,17 +34,43 @@ public class UserInventoryService {
     }
 
     public int getItemQuantity(String userId, UUID itemId) {
-        return userInventoryItemRepository.findByUserIdAndItemId(userId, itemId)
-                .map(UserInventoryItem::getQuantity)
-                .orElse(0);
+        logger.debug("Checking quantity for userId: {} and itemId: {}", userId, itemId);
+
+        // Check the new inventory system first. This handles items that can have a quantity > 1.
+        Optional<UserInventoryItem> itemInNewSystem = userInventoryItemRepository.findByUserIdAndItemId(userId, itemId);
+        if (itemInNewSystem.isPresent()) {
+            int quantity = itemInNewSystem.get().getQuantity();
+            logger.debug("Item {} found in new inventory system for user {} with quantity: {}", itemId, userId, quantity);
+            return quantity;
+        }
+
+        // If not found, check the legacy inventory system. These items always have a quantity of 1.
+        logger.debug("Item {} not in new inventory. Checking legacy system for user {}.", itemId, userId);
+        User user = userRepository.findByIdWithInventories(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        boolean inLegacyInventory = user.getInventory().stream()
+                .anyMatch(shopItem -> shopItem.getId().equals(itemId));
+
+        if (inLegacyInventory) {
+            logger.debug("Item {} found in legacy inventory system for user {}. Quantity is 1.", itemId, userId);
+            return 1;
+        }
+
+        logger.debug("Item {} not found in any inventory system for user {}.", itemId, userId);
+        return 0;
     }
 
     public List<UserInventoryItem> getUserInventory(String userId) {
-        User user = userRepository.findById(userId)
+        logger.debug("Fetching inventory for user ID: {}", userId);
+        User user = userRepository.findByIdWithInventories(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        logger.debug("User found: {}. Eagerly fetched legacy inventory size: {}, new inventory size: {}", user.getUsername(), user.getInventory().size(), user.getInventoryItems().size());
+
 
         // Eagerly fetch items from both inventory systems to prevent LazyInitializationException
         List<UserInventoryItem> inventoryItems = userInventoryItemRepository.findByUserWithItems(user);
+        logger.debug("Fetched {} items from the new inventory system (UserInventoryItem).", inventoryItems.size());
         
         // Use a map to handle potential duplicates and combine inventories
         Map<UUID, UserInventoryItem> combinedInventory = new HashMap<>();
@@ -49,8 +79,10 @@ public class UserInventoryService {
         }
 
         // Add items from the legacy inventory system if they are not already present
+        logger.debug("Processing {} items from the legacy inventory system (User.inventory).", user.getInventory().size());
         for (Shop shopItem : user.getInventory()) {
             if (!combinedInventory.containsKey(shopItem.getId())) {
+                logger.debug("Adding legacy item '{}' ({}) to combined inventory.", shopItem.getName(), shopItem.getId());
                 UserInventoryItem legacyItem = UserInventoryItem.builder()
                         .user(user)
                         .item(shopItem)
@@ -60,6 +92,7 @@ public class UserInventoryService {
             }
         }
 
+        logger.debug("Combined inventory size for user {}: {}", userId, combinedInventory.size());
         return new ArrayList<>(combinedInventory.values());
     }
 

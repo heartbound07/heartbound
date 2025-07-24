@@ -13,6 +13,6 @@ import java.util.Optional;
 public interface TradeRepository extends JpaRepository<Trade, Long> {
     List<Trade> findByInitiatorIdOrReceiverId(String initiatorId, String receiverId);
 
-    @Query("SELECT t FROM Trade t LEFT JOIN FETCH t.items WHERE t.id = :id")
+    @Query("SELECT t FROM Trade t LEFT JOIN FETCH t.items ti LEFT JOIN FETCH ti.user LEFT JOIN FETCH ti.item WHERE t.id = :id")
     Optional<Trade> findByIdWithItems(@Param("id") Long id);
 } 

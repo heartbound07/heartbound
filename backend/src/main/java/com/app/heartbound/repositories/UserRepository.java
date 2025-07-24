@@ -88,7 +88,11 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Query("SELECT u FROM User u WHERE u.id = :userId")
     Optional<User> findByIdWithLock(@Param("userId") String userId, LockModeType lockMode);
 
-    Optional<User> findByUsername(String username);
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.inventory LEFT JOIN FETCH u.inventoryItems WHERE u.id = :id")
+    Optional<User> findByIdWithInventories(@Param("id") String id);
+
+    @Query("SELECT u FROM User u WHERE u.username = :username")
+    Optional<User> findByUsername(@Param("username") String username);
     // Custom query to find users by equipped badge ID
     List<User> findByEquippedBadgeId(UUID equippedBadgeId);
 }
