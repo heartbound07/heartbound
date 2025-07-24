@@ -1,6 +1,5 @@
 package com.app.heartbound.dto;
 
-import com.app.heartbound.validation.ValidAvatarUrl;
 import com.app.heartbound.validation.ValidBannerUrl;
 import com.app.heartbound.validation.SanitizedHtml;
 import com.app.heartbound.validation.NoScript;
@@ -57,4 +56,8 @@ public class UpdateProfileDTO {
     @Schema(description = "The banner image URL", example = "https://cloudinary.com/banner.jpg")
     @ValidBannerUrl
     private String bannerUrl;
+
+    @Schema(description = "The avatar image URL", example = "https://cloudinary.com/avatar.jpg")
+    @ValidBannerUrl // You can re-use the same validation for avatar URLs
+    private String avatar;
 }

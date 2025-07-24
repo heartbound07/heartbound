@@ -506,6 +506,87 @@ public class UserService {
     }
 
     /**
+     * Updates profile information for a user by an admin.
+     *
+     * @param userId the ID of the user to update
+     * @param updateProfileDTO the profile data to update
+     * @return the updated User
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public User adminUpdateUserProfile(String userId, UpdateProfileDTO updateProfileDTO) {
+        logger.debug("Admin is updating profile for user ID: {}", userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        if (updateProfileDTO.getDisplayName() != null) {
+            user.setDisplayName(updateProfileDTO.getDisplayName());
+        }
+        if (updateProfileDTO.getPronouns() != null) {
+            user.setPronouns(updateProfileDTO.getPronouns());
+        }
+        if (updateProfileDTO.getAbout() != null) {
+            user.setAbout(updateProfileDTO.getAbout());
+        }
+        if (updateProfileDTO.getAvatar() != null) {
+            user.setAvatar(updateProfileDTO.getAvatar());
+        }
+
+        User updatedUser = userRepository.save(user);
+        logger.info("Admin updated profile for user: {}", updatedUser.getUsername());
+
+        // Invalidate user profile cache
+        cacheConfig.invalidateUserProfileCache(userId);
+        logger.debug("Invalidated user profile cache for user: {}", userId);
+
+        // Create audit entry for this sensitive operation
+        createAdminProfileUpdateAuditEntry(getCurrentAdminId(), userId, updateProfileDTO);
+
+        return updatedUser;
+    }
+
+    /**
+     * Creates an audit entry for admin profile update operations.
+     */
+    private void createAdminProfileUpdateAuditEntry(String adminId, String targetUserId, UpdateProfileDTO changes) {
+        try {
+            String description = String.format("Admin %s updated profile for user %s.", adminId, targetUserId);
+
+            Map<String, Object> details = new HashMap<>();
+            details.put("adminId", adminId);
+            details.put("targetUserId", targetUserId);
+            details.put("changes", changes);
+            details.put("timestamp", LocalDateTime.now().toString());
+
+            String detailsJson;
+            try {
+                detailsJson = objectMapper.writeValueAsString(details);
+            } catch (JsonProcessingException e) {
+                logger.error("Failed to serialize admin profile update details to JSON: {}", e.getMessage());
+                detailsJson = "{\"error\": \"Failed to serialize details\"}";
+            }
+
+            CreateAuditDTO auditDTO = CreateAuditDTO.builder()
+                .userId(adminId)
+                .action("ADMIN_UPDATE_PROFILE")
+                .entityType("User")
+                .entityId(targetUserId)
+                .description(description)
+                .severity(AuditSeverity.HIGH)
+                .category(AuditCategory.USER_MANAGEMENT)
+                .details(detailsJson)
+                .source("UserService")
+                .build();
+
+            auditService.createSystemAuditEntry(auditDTO);
+        } catch (Exception e) {
+            logger.error("Failed to create audit entry for admin profile update - adminId: {}, targetUserId: {}, error: {}",
+                adminId, targetUserId, e.getMessage(), e);
+        }
+    }
+
+    /**
      * Enhanced mapToProfileDTO method that handles the special marker for Discord avatars.
      */
     public UserProfileDTO mapToProfileDTO(User user) {
@@ -2009,5 +2090,68 @@ public class UserService {
                 .mapToDouble(multipliersMap::get)
                 .max()
                 .orElse(1.0);
+    }
+
+    /**
+     * Deletes a user permanently from the database.
+     *
+     * @param userId the ID of the user to delete
+     * @param adminId the ID of the admin performing the operation
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public void deleteUser(String userId, String adminId) {
+        // Security check: an admin cannot delete their own account
+        if (userId.equals(adminId)) {
+            throw new UnauthorizedOperationException("Admins cannot delete their own accounts.");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // The user exists, proceed with deletion
+        userRepository.delete(user);
+
+        // Create a high-severity audit log for this action
+        createDeletionAuditEntry(adminId, userId, user.getUsername());
+
+        // Invalidate any caches related to this user
+        cacheConfig.invalidateUserProfileCache(userId);
+        cacheConfig.invalidateLeaderboardCache();
+
+        logger.warn("ADMIN USER DELETION - Admin: {} permanently deleted user: {} (Username: {})",
+                adminId, userId, user.getUsername());
+    }
+
+    private void createDeletionAuditEntry(String adminId, String deletedUserId, String deletedUsername) {
+        try {
+            String description = String.format("Admin %s permanently deleted user %s (username: %s)",
+                    adminId, deletedUserId, deletedUsername);
+
+            Map<String, Object> details = new HashMap<>();
+            details.put("adminId", adminId);
+            details.put("deletedUserId", deletedUserId);
+            details.put("deletedUsername", deletedUsername);
+            details.put("timestamp", LocalDateTime.now().toString());
+
+            String detailsJson = objectMapper.writeValueAsString(details);
+
+            CreateAuditDTO auditDTO = CreateAuditDTO.builder()
+                    .userId(adminId)
+                    .action("DELETE_USER")
+                    .entityType("User")
+                    .entityId(deletedUserId)
+                    .description(description)
+                    .severity(AuditSeverity.CRITICAL)
+                    .category(AuditCategory.USER_MANAGEMENT)
+                    .details(detailsJson)
+                    .source("UserService")
+                    .build();
+
+            auditService.createSystemAuditEntry(auditDTO);
+        } catch (Exception e) {
+            logger.error("Failed to create audit entry for user deletion - adminId: {}, deletedUserId: {}, error: {}",
+                    adminId, deletedUserId, e.getMessage(), e);
+        }
     }
 }

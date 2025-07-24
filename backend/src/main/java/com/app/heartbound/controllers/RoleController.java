@@ -1,6 +1,8 @@
 package com.app.heartbound.controllers;
 
+import com.app.heartbound.dto.UpdateProfileDTO;
 import com.app.heartbound.dto.UserProfileDTO;
+import com.app.heartbound.entities.User;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.services.UserService;
 import org.springframework.http.HttpStatus;
@@ -9,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,9 +19,11 @@ import java.util.HashSet;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.app.heartbound.exceptions.ResourceNotFoundException;
+import com.app.heartbound.exceptions.UnauthorizedOperationException;
 
 @RestController
-@RequestMapping("/admin/roles")
+@RequestMapping("/admin")
 @PreAuthorize("hasRole('ADMIN')")
 public class RoleController {
     
@@ -32,7 +37,7 @@ public class RoleController {
     /**
      * Get all available roles in the system.
      */
-    @GetMapping
+    @GetMapping("/roles")
     public ResponseEntity<Role[]> getAllRoles() {
         return ResponseEntity.ok(Role.values());
     }
@@ -40,7 +45,7 @@ public class RoleController {
     /**
      * Get all users with a specific role.
      */
-    @GetMapping("/users/{role}")
+    @GetMapping("/roles/users/{role}")
     public ResponseEntity<List<UserProfileDTO>> getUsersByRole(@PathVariable Role role) {
         List<UserProfileDTO> users = userService.getUsersByRole(role);
         return ResponseEntity.ok(users);
@@ -52,7 +57,7 @@ public class RoleController {
      * 1. Setting multiple roles for a single user (replaces existing roles)
      * 2. Assigning a single role to multiple users
      */
-    @PostMapping("/batch-assign")
+    @PostMapping("/roles/batch-assign")
     public ResponseEntity<?> batchAssignRoles(
             @RequestBody Map<String, Object> request,
             Authentication authentication) {
@@ -138,5 +143,54 @@ public class RoleController {
             "userIds", userIds,
             "roles", roles
         ));
+    }
+
+    /**
+     * Admin endpoint to update a user's profile.
+     *
+     * @param userId       the ID of the user to update
+     * @param profileDTO   the profile data to update
+     * @param authentication the authentication context
+     * @return the updated user profile
+     */
+    @PutMapping("/users/{userId}/profile")
+    public ResponseEntity<UserProfileDTO> adminUpdateUserProfile(
+            @PathVariable String userId,
+            @RequestBody @Valid UpdateProfileDTO profileDTO,
+            Authentication authentication) {
+
+        try {
+            User updatedUser = userService.adminUpdateUserProfile(userId, profileDTO);
+            if (updatedUser == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(userService.mapToProfileDTO(updatedUser));
+        } catch (Exception e) {
+            logger.error("Admin failed to update profile for user {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Admin endpoint to permanently delete a user.
+     *
+     * @param userId the ID of the user to delete
+     * @param authentication the authentication context
+     * @return a confirmation message
+     */
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<?> deleteUser(@PathVariable String userId, Authentication authentication) {
+        String adminId = authentication.getName();
+        try {
+            userService.deleteUser(userId, adminId);
+            return ResponseEntity.ok(Map.of("message", "User " + userId + " has been permanently deleted."));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (UnauthorizedOperationException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Admin {} failed to delete user {}: {}", adminId, userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }
