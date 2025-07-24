@@ -274,9 +274,10 @@ public class FishCommandListener extends ListenerAdapter {
                 message.append("! +").append(finalCreditChange).append(" 🪙");
                 
                 // Update user credits and both fish counts
+                int oldFishSinceLimit = user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0;
                 user.setCredits(currentCredits + finalCreditChange);
                 int newFishCount = (user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0) + 1;
-                int newFishSinceLimit = (user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0) + 1;
+                int newFishSinceLimit = oldFishSinceLimit + 1;
                 user.setFishCaughtCount(newFishCount);
                 user.setFishCaughtSinceLimit(newFishSinceLimit);
                 
@@ -289,10 +290,13 @@ public class FishCommandListener extends ListenerAdapter {
                     message.append(String.format("\n\n🎯 **Fishing Limit Reached!** You've caught %d/%d fish and must wait **%d %s** before fishing again.", 
                         newFishSinceLimit, maxCatches, cooldownHours, hourText));
                     logger.info("User {} reached fishing limit of {} catches. Cooldown set for {} hours.", userId, maxCatches, cooldownHours);
-                } else if (newFishSinceLimit >= (maxCatches * limitWarningThreshold)) {
-                    // Send a warning if the user is approaching the limit
-                    String warningMessage = String.format("You are approaching the fishing limit! **%d/%d**", newFishSinceLimit, maxCatches);
-                    event.getHook().sendMessage(warningMessage).setEphemeral(true).queue();
+                } else {
+                    int warningMark = (int) (maxCatches * limitWarningThreshold);
+                    if (oldFishSinceLimit < warningMark && newFishSinceLimit >= warningMark) {
+                        // Send a warning if the user is approaching the limit
+                        String warningMessage = String.format("You are approaching the fishing limit! **%d/%d**", newFishSinceLimit, maxCatches);
+                        event.getHook().sendMessage(warningMessage).setEphemeral(true).queue();
+                    }
                 }
                 
                 // Save the updated user
@@ -343,9 +347,10 @@ public class FishCommandListener extends ListenerAdapter {
                 message.append("! +").append(finalCreditChange).append(" 🪙");
                 
                 // Update user credits and both fish counts
+                int oldFishSinceLimit = user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0;
                 user.setCredits(currentCredits + finalCreditChange);
                 int newFishCount = (user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0) + 1;
-                int newFishSinceLimit = (user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0) + 1;
+                int newFishSinceLimit = oldFishSinceLimit + 1;
                 user.setFishCaughtCount(newFishCount);
                 user.setFishCaughtSinceLimit(newFishSinceLimit);
                 
@@ -358,10 +363,13 @@ public class FishCommandListener extends ListenerAdapter {
                     message.append(String.format("\n\n🎯 **Fishing Limit Reached!** You've caught %d/%d fish and must wait **%d %s** before fishing again.", 
                         newFishSinceLimit, maxCatches, cooldownHours, hourText));
                     logger.info("User {} reached fishing limit of {} catches. Cooldown set for {} hours.", userId, maxCatches, cooldownHours);
-                } else if (newFishSinceLimit >= (maxCatches * limitWarningThreshold)) {
-                    // Send a warning if the user is approaching the limit
-                    String warningMessage = String.format("You are approaching the fishing limit! **%d/%d**", newFishSinceLimit, maxCatches);
-                    event.getHook().sendMessage(warningMessage).setEphemeral(true).queue();
+                } else {
+                    int warningMark = (int) (maxCatches * limitWarningThreshold);
+                    if (oldFishSinceLimit < warningMark && newFishSinceLimit >= warningMark) {
+                        // Send a warning if the user is approaching the limit
+                        String warningMessage = String.format("You are approaching the fishing limit! **%d/%d**", newFishSinceLimit, maxCatches);
+                        event.getHook().sendMessage(warningMessage).setEphemeral(true).queue();
+                    }
                 }
                 
                 // Save the updated user
