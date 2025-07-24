@@ -19,6 +19,7 @@ interface CaseItem {
     thumbnailUrl?: string;
     rarity: string;
     fishingRodMultiplier?: number;
+    gradientEndColor?: string;
   };
   dropRate: number;
 }
@@ -179,6 +180,7 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
                                   username={user?.username || "Preview"}
                                   avatar={user?.avatar || "/images/default-avatar.png"}
                                   color={item.imageUrl}
+                                  endColor={(item as any).gradientEndColor}
                                   fallbackColor={rarityColor}
                                   message="Preview of your nameplate color"
                                   size="md"

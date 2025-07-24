@@ -264,7 +264,8 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                   <NameplatePreview
                     username={user?.username || "Username"}
                     avatar={user?.avatar || "/images/default-avatar.png"}
-                    color={getNameplateColor()}
+                    color={selectedItems.nameplate.imageUrl}
+                    endColor={selectedItems.nameplate.gradientEndColor}
                     fallbackColor={rarityColor}
                     message="This is what your profile looks like"
                     className="w-full"
