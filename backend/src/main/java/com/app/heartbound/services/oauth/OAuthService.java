@@ -1,9 +1,6 @@
 package com.app.heartbound.services.oauth;
 
 import com.app.heartbound.dto.UserDTO;
-import com.app.heartbound.entities.User;
-import com.app.heartbound.enums.Role;
-import com.app.heartbound.services.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,12 +25,6 @@ public class OAuthService {
     @Value("${discord.redirect-uri}")
     private String discordRedirectUri;
 
-    private final UserService userService;
-
-    public OAuthService(UserService userService) {
-        this.userService = userService;
-    }
-
     // Removed refresh token functionality since only a singular JWT token is used.
 
     // New method to retrieve user details using the access token
@@ -52,30 +43,18 @@ public class OAuthService {
         if (userDTO != null) {
             logger.info("User information retrieved successfully for user id: {}", userDTO.getId());
 
-            // Check if user is a MONARCH. This is crucial for determining avatar permissions.
-            User user = userService.getUserById(userDTO.getId());
-            boolean isMonarch = (user != null && user.getRoles() != null && user.getRoles().contains(Role.MONARCH));
-            if (user != null) {
-                logger.debug("Checked database for user {}. Is Monarch: {}", userDTO.getId(), isMonarch);
-            } else {
-                logger.debug("User {} not found in database yet. Assuming not a Monarch.", userDTO.getId());
-            }
-
             // Build avatar URL using Discord's CDN endpoints.
+            // This logic is now simplified to remove the database call from the auth flow.
+            // The check for premium avatars (e.g., for MONARCH role) should be handled
+            // by a separate, post-authentication user profile sync if needed.
             String avatarUrl;
-            String avatarHash = userDTO.getAvatar(); // This is just the hash, not a full URL yet.
+            String avatarHash = userDTO.getAvatar(); // This is just the hash from Discord.
 
             if (avatarHash != null && !avatarHash.isEmpty()) {
-                // Custom avatar exists. Check if it's animated and if the user has permission.
-                String extension = ".png"; // Default to PNG for security
-                if (avatarHash.startsWith("a_")) { // Avatar is animated
-                    if (isMonarch) {
-                        extension = ".gif"; // User is a MONARCH, so allow GIF
-                        logger.debug("User {} is a MONARCH with an animated avatar. Using .gif extension.", userDTO.getId());
-                    } else {
-                        // User has an animated avatar but is not a Monarch. Force PNG.
-                        logger.info("User {} has an animated avatar but is not a MONARCH. Forcing .png extension as per premium feature rules.", userDTO.getId());
-                    }
+                // Default to .png for stability. Animated avatars can be handled by a post-login sync.
+                String extension = ".png";
+                if (avatarHash.startsWith("a_")) {
+                    logger.info("User {} has an animated avatar. Defaulting to .png during auth flow for stability.", userDTO.getId());
                 }
                 
                 avatarUrl = String.format("https://cdn.discordapp.com/avatars/%s/%s%s?size=1024", userDTO.getId(), avatarHash, extension);
@@ -88,8 +67,7 @@ public class OAuthService {
                     avatarUrl = "https://cdn.discordapp.com/embed/avatars/" + defaultAvatar + ".png";
                     logger.debug("Constructed legacy default avatar URL for discriminator {}: {}", userDTO.getDiscriminator(), avatarUrl);
                 } else {
-                    // New default avatar for users with no discriminator (username is 'pomelo')
-                    // The formula is: (user_id >> 22) % 6
+                    // New default avatar for users with no discriminator
                     try {
                         long userIdLong = Long.parseLong(userDTO.getId());
                         long defaultAvatarIndex = (userIdLong >> 22) % 6;
