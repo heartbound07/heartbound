@@ -70,9 +70,8 @@ public interface UserRepository extends JpaRepository<User, String> {
      * Prevents LazyInitializationException when used outside web transactions
      */
     @Query("SELECT DISTINCT u FROM User u " +
-           "LEFT JOIN FETCH u.inventory " +
-           "LEFT JOIN FETCH u.inventoryItems ii " +
-           "LEFT JOIN FETCH ii.item " +
+           "LEFT JOIN FETCH u.itemInstances ii " +
+           "LEFT JOIN FETCH ii.baseItem " +
            "WHERE u.id = :userId")
     Optional<User> findByIdWithInventory(@Param("userId") String userId);
 

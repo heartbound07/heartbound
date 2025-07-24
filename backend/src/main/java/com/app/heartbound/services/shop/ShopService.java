@@ -1069,31 +1069,18 @@ public class ShopService {
     public UserInventoryDTO getUserInventory(String userId) {
         logger.debug("Getting inventory for user {}", userId);
         
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdWithInventory(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
-        
-        // Force initialization of lazy collections within transaction
-        Set<Shop> inventory = user.getInventory();
-        inventory.size(); // Force lazy loading
-        
-        Set<UserInventoryItem> inventoryItems = user.getInventoryItems();
-        if (inventoryItems != null) {
-            inventoryItems.size(); // Force lazy loading
-        }
-        
-        Set<ShopDTO> itemDTOs = new HashSet<>();
-        
-        // Process regular inventory items (non-cases)
-        Map<UUID, List<Shop>> itemGroups = inventory.stream()
-            .filter(item -> item.getCategory() != ShopCategory.CASE) // Exclude cases from regular inventory
-            .collect(Collectors.groupingBy(Shop::getId));
-        
-        for (Map.Entry<UUID, List<Shop>> entry : itemGroups.entrySet()) {
-            Shop item = entry.getValue().get(0);
-            int quantity = entry.getValue().size();
+
+        Map<Shop, Long> itemCounts = user.getItemInstances().stream()
+            .collect(Collectors.groupingBy(ItemInstance::getBaseItem, Collectors.counting()));
+            
+        Set<ShopDTO> itemDTOs = itemCounts.entrySet().stream().map(entry -> {
+            Shop item = entry.getKey();
+            long quantity = entry.getValue();
             
             ShopDTO dto = mapToShopDTO(item, user);
-            dto.setQuantity(quantity);
+            dto.setQuantity((int) quantity);
             
             // Add equipped status
             if (item.getCategory() != null) {
@@ -1105,22 +1092,8 @@ public class ShopService {
                 }
             }
             
-            itemDTOs.add(dto);
-        }
-        
-        // Process quantity-based inventory items (cases)
-        if (inventoryItems != null) {
-            for (UserInventoryItem invItem : inventoryItems) {
-                if (invItem.getQuantity() > 0) {
-                    Shop item = invItem.getItem();
-                    ShopDTO dto = mapToShopDTO(item, user);
-                    dto.setQuantity(invItem.getQuantity());
-                    dto.setEquipped(false); // Cases cannot be equipped
-                    
-                    itemDTOs.add(dto);
-                }
-            }
-        }
+            return dto;
+        }).collect(Collectors.toSet());
         
         return UserInventoryDTO.builder()
             .items(itemDTOs)
@@ -1139,22 +1112,15 @@ public class ShopService {
         User user = userRepository.findByIdWithInventory(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         
-        Set<Shop> inventory = user.getInventory();
-        Set<UserInventoryItem> inventoryItems = user.getInventoryItems();
-        
-        Set<ShopDTO> itemDTOs = new HashSet<>();
-        
-        // Process regular inventory items (non-cases)
-        Map<UUID, List<Shop>> itemGroups = inventory.stream()
-            .filter(item -> item.getCategory() != ShopCategory.CASE) // Exclude cases from regular inventory
-            .collect(Collectors.groupingBy(Shop::getId));
-        
-        for (Map.Entry<UUID, List<Shop>> entry : itemGroups.entrySet()) {
-            Shop item = entry.getValue().get(0);
-            int quantity = entry.getValue().size();
+        Map<Shop, Long> itemCounts = user.getItemInstances().stream()
+            .collect(Collectors.groupingBy(ItemInstance::getBaseItem, Collectors.counting()));
+            
+        Set<ShopDTO> itemDTOs = itemCounts.entrySet().stream().map(entry -> {
+            Shop item = entry.getKey();
+            long quantity = entry.getValue();
             
             ShopDTO dto = mapToShopDTO(item, user);
-            dto.setQuantity(quantity);
+            dto.setQuantity((int) quantity);
             
             // Add equipped status
             if (item.getCategory() != null) {
@@ -1166,22 +1132,8 @@ public class ShopService {
                 }
             }
             
-            itemDTOs.add(dto);
-        }
-        
-        // Process quantity-based inventory items (cases)
-        if (inventoryItems != null) {
-            for (UserInventoryItem invItem : inventoryItems) {
-                if (invItem.getQuantity() > 0) {
-                    Shop item = invItem.getItem();
-                    ShopDTO dto = mapToShopDTO(item, user);
-                    dto.setQuantity(invItem.getQuantity());
-                    dto.setEquipped(false); // Cases cannot be equipped
-                    
-                    itemDTOs.add(dto);
-                }
-            }
-        }
+            return dto;
+        }).collect(Collectors.toSet());
         
         return UserInventoryDTO.builder()
             .items(itemDTOs)
@@ -1199,7 +1151,6 @@ public class ShopService {
         
         // For cases, never show as owned since they can be purchased multiple times
         if (shop.getCategory() != ShopCategory.CASE && user != null) {
-            // This accesses the lazy-loaded inventory, which works when inside @Transactional
             owned = user.getItemInstances().stream()
                 .anyMatch(instance -> instance.getBaseItem().getId().equals(shop.getId()));
         }
