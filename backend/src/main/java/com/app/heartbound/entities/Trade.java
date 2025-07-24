@@ -38,6 +38,24 @@ public class Trade {
     @Builder.Default
     private TradeStatus status = TradeStatus.PENDING;
 
+    @Builder.Default
+    private Boolean initiatorLocked = false;
+
+    @Builder.Default
+    private Boolean receiverLocked = false;
+    
+    @Builder.Default
+    private Boolean initiatorAccepted = false;
+
+    @Builder.Default
+    private Boolean receiverAccepted = false;
+
+    private Instant expiresAt;
+
+    private String discordMessageId;
+    
+    private String discordChannelId;
+
     @OneToMany(mappedBy = "trade", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<TradeItem> items = new ArrayList<>();

@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
+import com.app.heartbound.enums.TradeStatus;
 
 @Component
 @Slf4j
@@ -42,24 +43,6 @@ public class TradeCommandListener extends ListenerAdapter {
     private JDA jdaInstance;
 
     private final ConcurrentHashMap<String, Long> pendingTradeRequests = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<Long, ActiveTradeState> activeTrades = new ConcurrentHashMap<>();
-
-    public record ActiveTradeState(long messageId, long channelId, Instant expiresAt, String initiatorId, String receiverId,
-                                   boolean initiatorLocked, boolean receiverLocked,
-                                   boolean initiatorAccepted, boolean receiverAccepted) {
-        public ActiveTradeState withInitiatorLocked(boolean locked) {
-            return new ActiveTradeState(messageId, channelId, expiresAt, initiatorId, receiverId, locked, receiverLocked, initiatorAccepted, receiverAccepted);
-        }
-        public ActiveTradeState withReceiverLocked(boolean locked) {
-            return new ActiveTradeState(messageId, channelId, expiresAt, initiatorId, receiverId, initiatorLocked, locked, initiatorAccepted, receiverAccepted);
-        }
-        public ActiveTradeState withInitiatorAccepted(boolean accepted) {
-            return new ActiveTradeState(messageId, channelId, expiresAt, initiatorId, receiverId, initiatorLocked, receiverLocked, accepted, receiverAccepted);
-        }
-        public ActiveTradeState withReceiverAccepted(boolean accepted) {
-            return new ActiveTradeState(messageId, channelId, expiresAt, initiatorId, receiverId, initiatorLocked, receiverLocked, initiatorAccepted, accepted);
-        }
-    }
 
     public void registerWithJDA(JDA jda) {
         if (jda != null) {
@@ -147,37 +130,36 @@ public class TradeCommandListener extends ListenerAdapter {
         if (initiatorId != null && receiverId != null && !clickerId.equals(initiatorId) && !clickerId.equals(receiverId)) {
             event.reply("You are not part of this trade.").setEphemeral(true).queue();
             return;
-        } else if (activeTrades.containsKey(tradeId)) {
-            ActiveTradeState state = activeTrades.get(tradeId);
-            if (!clickerId.equals(state.initiatorId()) && !clickerId.equals(state.receiverId())) {
-                event.reply("You are not part of this trade.").setEphemeral(true).queue();
-                return;
-            }
         }
 
+        try {
+            // Defer the edit to acknowledge the interaction
+            event.deferEdit().queue();
 
-        event.deferEdit().queue();
-
-        // Reroute button clicks to the correct handlers.
-        switch (action) {
-            case "accept-initial":
-                handleInitialAccept(event, tradeId, initiatorId, receiverId);
-                break;
-            case "decline-initial":
-                handleInitialDecline(event, tradeId);
-                break;
-            case "add-items":
-                handleAddItem(event, tradeId, clickerId);
-                break;
-            case "lock-offer":
-                handleLockOffer(event, tradeId, clickerId);
-                break;
-            case "accept-final":
-                handleFinalAccept(event, tradeId, clickerId);
-                break;
-            case "cancel":
-                handleCancel(event, tradeId, clickerId);
-                break;
+            // Reroute button clicks to the correct handlers.
+            switch (action) {
+                case "accept-initial":
+                    handleInitialAccept(event, tradeId, initiatorId, receiverId);
+                    break;
+                case "decline-initial":
+                    handleInitialDecline(event, tradeId);
+                    break;
+                case "add-items":
+                    handleAddItem(event, tradeId, clickerId);
+                    break;
+                case "lock-offer":
+                    handleLockOffer(event, tradeId, clickerId);
+                    break;
+                case "accept-final":
+                    handleFinalAccept(event, tradeId, clickerId);
+                    break;
+                case "cancel":
+                    handleCancel(event, tradeId, clickerId);
+                    break;
+            }
+        } catch (Exception e) {
+            log.error("Error handling button interaction for tradeId: {}", tradeId, e);
+            event.getHook().sendMessage("An error occurred: " + e.getMessage()).setEphemeral(true).queue();
         }
     }
 
@@ -229,15 +211,21 @@ public class TradeCommandListener extends ListenerAdapter {
         User initiatorUser = jdaInstance.retrieveUserById(initiatorId).complete();
         User receiverUser = jdaInstance.retrieveUserById(receiverId).complete();
 
-        event.getChannel().sendMessageEmbeds(buildTradeEmbed(trade, initiatorUser, receiverUser, null))
-                .setComponents(getTradeActionRows(tradeId, false, false))
+        Instant expiresAt = Instant.now().plusSeconds(120);
+
+        event.getChannel().sendMessageEmbeds(buildTradeEmbed(trade, initiatorUser, receiverUser))
+                .setComponents(getTradeActionRows(trade))
                 .queue(message -> {
-                    activeTrades.put(tradeId, new ActiveTradeState(message.getIdLong(), message.getChannelIdLong(), Instant.now().plusSeconds(120), initiatorId, receiverId, false, false, false, false));
+                    tradeService.setTradeMessageInfo(tradeId, message.getId(), message.getChannelId(), expiresAt);
+                    // The expiration message can still be queued locally without complex state
                     message.editMessageComponents().setComponents()
                             .setEmbeds(new EmbedBuilder().setDescription("Trade has expired.").setColor(Color.RED).build())
-                            .queueAfter(2, TimeUnit.MINUTES, s -> {
-                                activeTrades.remove(tradeId);
-                                tradeService.cancelTrade(tradeId, initiatorId);
+                            .queueAfter(120, TimeUnit.SECONDS, s -> {
+                                try {
+                                     tradeService.cancelTrade(tradeId, initiatorId);
+                                } catch (Exception e) {
+                                    log.warn("Trade {} already completed or cancelled.", tradeId);
+                                }
                             });
                 });
     }
@@ -252,17 +240,15 @@ public class TradeCommandListener extends ListenerAdapter {
 
     private void handleAddItem(ButtonInteractionEvent event, long tradeId, String userId) {
         log.info("Handling 'add-items' action for tradeId: {} by userId: {}", tradeId, userId);
-        ActiveTradeState state = activeTrades.get(tradeId);
-        if (state != null) {
-            boolean isInitiator = userId.equals(state.initiatorId());
-            log.debug("Trade state found. User is initiator: {}. Initiator locked: {}, Receiver locked: {}", isInitiator, state.initiatorLocked(), state.receiverLocked());
-            if ((isInitiator && state.initiatorLocked()) || (!isInitiator && state.receiverLocked())) {
-                log.warn("User {} tried to add items to a locked trade (tradeId: {}).", userId, tradeId);
-                event.getHook().sendMessage("You have already locked your offer and cannot add more items.").setEphemeral(true).queue();
-                return;
-            }
-        } else {
-            log.warn("No active trade state found for tradeId: {}", tradeId);
+
+        // Fetch the latest trade state from the database
+        Trade trade = tradeService.getTradeDetails(tradeId);
+        boolean isInitiator = userId.equals(trade.getInitiator().getId());
+
+        if ((isInitiator && trade.getInitiatorLocked()) || (!isInitiator && trade.getReceiverLocked())) {
+            log.warn("User {} tried to add items to a locked trade (tradeId: {}).", userId, tradeId);
+            event.getHook().sendMessage("You have already locked your offer and cannot add more items.").setEphemeral(true).queue();
+            return;
         }
 
         List<UserInventoryItem> inventory = userInventoryService.getUserInventory(userId);
@@ -299,49 +285,26 @@ public class TradeCommandListener extends ListenerAdapter {
     }
 
     private void handleLockOffer(ButtonInteractionEvent event, long tradeId, String clickerId) {
-        ActiveTradeState state = activeTrades.get(tradeId);
-        if (state == null) return;
-
-        boolean isInitiator = clickerId.equals(state.initiatorId());
-        if ((isInitiator && state.initiatorLocked()) || (!isInitiator && state.receiverLocked())) {
-            event.getHook().sendMessage("You have already locked your offer.").setEphemeral(true).queue();
-            return;
-        }
-
-        if (isInitiator) {
-            activeTrades.put(tradeId, state.withInitiatorLocked(true));
-        } else {
-            activeTrades.put(tradeId, state.withReceiverLocked(true));
-        }
+        tradeService.lockOffer(tradeId, clickerId);
         updateTradeUI(event.getChannel(), tradeId);
     }
 
     private void handleFinalAccept(ButtonInteractionEvent event, long tradeId, String clickerId) {
-        ActiveTradeState state = activeTrades.get(tradeId);
-        if (state == null) return;
+        try {
+            Trade trade = tradeService.acceptFinalTrade(tradeId, clickerId);
 
-        boolean isInitiator = clickerId.equals(state.initiatorId());
-        ActiveTradeState newState;
-        if (isInitiator) {
-            newState = state.withInitiatorAccepted(true);
-        } else {
-            newState = state.withReceiverAccepted(true);
-        }
-        activeTrades.put(tradeId, newState);
-
-        if (newState.initiatorAccepted() && newState.receiverAccepted()) {
-            try {
-                tradeService.acceptTrade(tradeId, clickerId);
+            if (trade.getStatus() == TradeStatus.ACCEPTED) {
+                // The trade is complete, show success message
                 event.getHook().editOriginalEmbeds(new EmbedBuilder().setTitle("Trade Successful!").setColor(Color.GREEN).build())
                         .setComponents().queue();
-                activeTrades.remove(tradeId);
-            } catch (Exception e) {
-                event.getHook().editOriginalEmbeds(new EmbedBuilder().setTitle("Trade Failed!").setDescription(e.getMessage()).setColor(Color.RED).build())
-                        .setComponents().queue();
-                activeTrades.remove(tradeId);
+            } else {
+                // The trade is not yet complete, just update the UI
+                updateTradeUI(event.getChannel(), tradeId);
             }
-        } else {
-             updateTradeUI(event.getChannel(), tradeId);
+        } catch (Exception e) {
+            log.error("Final acceptance failed for tradeId: {}", tradeId, e);
+            event.getHook().editOriginalEmbeds(new EmbedBuilder().setTitle("Trade Failed!").setDescription(e.getMessage()).setColor(Color.RED).build())
+                    .setComponents().queue();
         }
     }
 
@@ -349,28 +312,27 @@ public class TradeCommandListener extends ListenerAdapter {
         tradeService.cancelTrade(tradeId, clickerId);
         event.getHook().editOriginalEmbeds(new EmbedBuilder().setTitle("Trade Cancelled").setColor(Color.RED).build())
                 .setComponents().queue();
-        activeTrades.remove(tradeId);
     }
 
 
     private void updateTradeUI(net.dv8tion.jda.api.entities.channel.middleman.MessageChannel channel, long tradeId) {
-        ActiveTradeState state = activeTrades.get(tradeId);
-        if (state == null) {
-            log.warn("updateTradeUI called for tradeId: {} but no active state was found.", tradeId);
+        Trade trade = tradeService.getTradeDetails(tradeId);
+        if (trade == null || trade.getStatus() != TradeStatus.PENDING) {
+            log.warn("updateTradeUI called for non-pending or non-existent tradeId: {}", tradeId);
+            // Optionally edit the message to show it's no longer active
             return;
         }
 
-        long messageId = state.messageId();
+        long messageId = Long.parseLong(trade.getDiscordMessageId());
         log.debug("Attempting to update UI for tradeId: {}, messageId: {}, in channel: {}", tradeId, messageId, channel.getId());
 
-        Trade trade = tradeService.getTradeDetails(tradeId);
-        User initiatorUser = jdaInstance.retrieveUserById(state.initiatorId()).complete();
-        User receiverUser = jdaInstance.retrieveUserById(state.receiverId()).complete();
+        User initiatorUser = jdaInstance.retrieveUserById(trade.getInitiator().getId()).complete();
+        User receiverUser = jdaInstance.retrieveUserById(trade.getReceiver().getId()).complete();
 
         channel.retrieveMessageById(messageId).queue(message -> {
             log.debug("Found message {} to update for tradeId: {}", messageId, tradeId);
-            message.editMessageEmbeds(buildTradeEmbed(trade, initiatorUser, receiverUser, state))
-                   .setComponents(getTradeActionRows(tradeId, state.initiatorLocked(), state.receiverLocked()))
+            message.editMessageEmbeds(buildTradeEmbed(trade, initiatorUser, receiverUser))
+                   .setComponents(getTradeActionRows(trade))
                    .queue(
                        success -> log.info("Successfully updated UI for tradeId: {}", tradeId),
                        failure -> log.error("Failed to update message for tradeId: {}", tradeId, failure)
@@ -380,21 +342,19 @@ public class TradeCommandListener extends ListenerAdapter {
         });
     }
 
-    private MessageEmbed buildTradeEmbed(Trade trade, User initiator, User receiver, ActiveTradeState state) {
+    private MessageEmbed buildTradeEmbed(Trade trade, User initiator, User receiver) {
         log.debug("Building trade embed for tradeId: {}. Initiator: {}, Receiver: {}", trade.getId(), initiator.getId(), receiver.getId());
         EmbedBuilder embed = new EmbedBuilder().setTitle("Trade between " + initiator.getEffectiveName() + " and " + receiver.getEffectiveName());
 
         String initiatorStatus = "";
         String receiverStatus = "";
 
-        if(state != null) {
-            if(state.initiatorLocked()) initiatorStatus += "✅ Locked ";
-            if(state.initiatorAccepted()) initiatorStatus += "Accepted";
-            if(state.receiverLocked()) receiverStatus += "✅ Locked ";
-            if(state.receiverAccepted()) receiverStatus += "Accepted";
-            if(!state.initiatorAccepted() && state.receiverAccepted()) receiverStatus += " (Waiting for you)";
-            if(state.initiatorAccepted() && !state.receiverAccepted()) initiatorStatus += " (Waiting for other user)";
-        }
+        if(trade.getInitiatorLocked()) initiatorStatus += "✅ Locked ";
+        if(trade.getInitiatorAccepted()) initiatorStatus += "Accepted";
+        if(trade.getReceiverLocked()) receiverStatus += "✅ Locked ";
+        if(trade.getReceiverAccepted()) receiverStatus += "Accepted";
+        if(!trade.getInitiatorAccepted() && trade.getReceiverAccepted()) receiverStatus += " (Waiting for you)";
+        if(trade.getInitiatorAccepted() && !trade.getReceiverAccepted()) initiatorStatus += " (Waiting for other user)";
 
 
         String initiatorItems = trade.getItems().stream()
@@ -424,21 +384,26 @@ public class TradeCommandListener extends ListenerAdapter {
         embed.addField(initiator.getEffectiveName() + "'s Offer " + initiatorStatus, initiatorItems, true);
         embed.addField(receiver.getEffectiveName() + "'s Offer " + receiverStatus, receiverItems, true);
 
-        if(state != null) {
-            embed.setFooter("This trade expires in " + (state.expiresAt().getEpochSecond() - Instant.now().getEpochSecond()) + " seconds.");
+        if(trade.getExpiresAt() != null) {
+            long remainingSeconds = trade.getExpiresAt().getEpochSecond() - Instant.now().getEpochSecond();
+            if (remainingSeconds > 0) {
+                 embed.setFooter("This trade expires in " + remainingSeconds + " seconds.");
+            } else {
+                 embed.setFooter("This trade has expired.");
+            }
         }
 
         return embed.build();
     }
 
-    private List<ActionRow> getTradeActionRows(long tradeId, boolean initiatorLocked, boolean receiverLocked) {
-        ActiveTradeState state = activeTrades.get(tradeId);
-        boolean bothLocked = initiatorLocked && receiverLocked;
+    private List<ActionRow> getTradeActionRows(Trade trade) {
+        boolean bothLocked = trade.getInitiatorLocked() && trade.getReceiverLocked();
+        boolean tradeComplete = trade.getStatus() != TradeStatus.PENDING;
 
-        Button addItems = Button.primary("trade_add-items_" + tradeId, "Add/Edit Offer");
-        Button lockOffer = Button.secondary("trade_lock-offer_" + tradeId, "Lock Offer");
-        Button acceptFinal = Button.success("trade_accept-final_" + tradeId, "Accept Trade").withDisabled(!bothLocked || (state != null && state.initiatorAccepted() && state.receiverAccepted()));
-        Button cancel = Button.danger("trade_cancel_" + tradeId, "Cancel");
+        Button addItems = Button.primary("trade_add-items_" + trade.getId(), "Add/Edit Offer").withDisabled(tradeComplete);
+        Button lockOffer = Button.secondary("trade_lock-offer_" + trade.getId(), "Lock Offer").withDisabled(tradeComplete);
+        Button acceptFinal = Button.success("trade_accept-final_" + trade.getId(), "Accept Trade").withDisabled(tradeComplete || !bothLocked);
+        Button cancel = Button.danger("trade_cancel_" + trade.getId(), "Cancel").withDisabled(tradeComplete);
 
         return List.of(
                 ActionRow.of(addItems, lockOffer),

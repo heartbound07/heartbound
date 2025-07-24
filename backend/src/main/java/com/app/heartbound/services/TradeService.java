@@ -13,6 +13,7 @@ import com.app.heartbound.services.shop.ShopService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -90,6 +91,18 @@ public class TradeService {
     }
 
     @Transactional
+    public Trade setTradeMessageInfo(long tradeId, String messageId, String channelId, Instant expiresAt) {
+        Trade trade = tradeRepository.findById(tradeId)
+            .orElseThrow(() -> new TradeNotFoundException("Trade not found with id: " + tradeId));
+        
+        trade.setDiscordMessageId(messageId);
+        trade.setDiscordChannelId(channelId);
+        trade.setExpiresAt(expiresAt);
+
+        return tradeRepository.save(trade);
+    }
+
+    @Transactional
     public Trade addItemsToTrade(Long tradeId, String userId, List<CreateTradeDto.TradeItemDto> itemDtos) {
         Trade trade = tradeRepository.findById(tradeId)
                 .orElseThrow(() -> new TradeNotFoundException("Trade not found with id: " + tradeId));
@@ -102,6 +115,10 @@ public class TradeService {
 
         if (trade.getStatus() != TradeStatus.PENDING) {
             throw new InvalidTradeActionException("This trade is no longer pending and cannot be modified.");
+        }
+
+        if ((trade.getInitiator().getId().equals(userId) && trade.getInitiatorLocked()) || (trade.getReceiver().getId().equals(userId) && trade.getReceiverLocked())) {
+            throw new InvalidTradeActionException("You have locked your offer and cannot change it.");
         }
 
         // Atomically remove previous items offered by this user and add new ones
@@ -134,8 +151,61 @@ public class TradeService {
     }
 
     @Transactional
-    public Trade acceptTrade(Long tradeId, String currentUserId) {
+    public Trade lockOffer(Long tradeId, String userId) {
         Trade trade = tradeRepository.findById(tradeId)
+            .orElseThrow(() -> new TradeNotFoundException("Trade not found with id: " + tradeId));
+        
+        if (trade.getStatus() != TradeStatus.PENDING) {
+            throw new InvalidTradeActionException("This trade is no longer pending.");
+        }
+
+        if (trade.getInitiator().getId().equals(userId)) {
+            if (trade.getInitiatorLocked()) throw new InvalidTradeActionException("You have already locked your offer.");
+            trade.setInitiatorLocked(true);
+        } else if (trade.getReceiver().getId().equals(userId)) {
+            if (trade.getReceiverLocked()) throw new InvalidTradeActionException("You have already locked your offer.");
+            trade.setReceiverLocked(true);
+        } else {
+            throw new InvalidTradeActionException("User is not part of this trade.");
+        }
+        return tradeRepository.save(trade);
+    }
+
+    @Transactional
+    public Trade acceptFinalTrade(Long tradeId, String userId) {
+        Trade trade = tradeRepository.findById(tradeId)
+            .orElseThrow(() -> new TradeNotFoundException("Trade not found with id: " + tradeId));
+        
+        if (trade.getStatus() != TradeStatus.PENDING) {
+            throw new InvalidTradeActionException("This trade is no longer pending.");
+        }
+
+        if (!trade.getInitiatorLocked() || !trade.getReceiverLocked()) {
+            throw new InvalidTradeActionException("Both parties must lock their offers before accepting.");
+        }
+
+        if (trade.getInitiator().getId().equals(userId)) {
+            if (trade.getInitiatorAccepted()) throw new InvalidTradeActionException("You have already accepted the trade.");
+            trade.setInitiatorAccepted(true);
+        } else if (trade.getReceiver().getId().equals(userId)) {
+            if (trade.getReceiverAccepted()) throw new InvalidTradeActionException("You have already accepted the trade.");
+            trade.setReceiverAccepted(true);
+        } else {
+            throw new InvalidTradeActionException("User is not part of this trade.");
+        }
+
+        // If both accepted, process the trade
+        if (trade.getInitiatorAccepted() && trade.getReceiverAccepted()) {
+            return acceptTrade(tradeId, userId); // Reuse the existing transfer logic
+        }
+
+        return tradeRepository.save(trade);
+    }
+
+
+    @Transactional
+    public Trade acceptTrade(Long tradeId, String currentUserId) {
+        Trade trade = tradeRepository.findByIdWithItems(tradeId)
                 .orElseThrow(() -> new TradeNotFoundException("Trade not found"));
 
         if (!trade.getInitiator().getId().equals(currentUserId) && !trade.getReceiver().getId().equals(currentUserId)) {

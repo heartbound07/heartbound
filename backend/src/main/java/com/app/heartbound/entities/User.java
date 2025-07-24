@@ -157,7 +157,7 @@ public class User {
     private Set<Role> roles = new HashSet<>();
     
     // Add inventory relationship
-    @ManyToMany(fetch = jakarta.persistence.FetchType.LAZY)
+    @ManyToMany(fetch = jakarta.persistence.FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
         name = "user_inventory",
         joinColumns = @JoinColumn(name = "user_id"),
