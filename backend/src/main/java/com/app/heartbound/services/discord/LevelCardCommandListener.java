@@ -22,6 +22,7 @@ import org.springframework.web.client.RestTemplate;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -52,6 +53,47 @@ public class LevelCardCommandListener extends ListenerAdapter {
     
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private static final String DEFAULT_BANNER_COLOR = "#2a2d31";
+    private static final Map<String, String> TAILWIND_COLOR_MAP;
+
+    static {
+        Map<String, String> colorMap = new HashMap<>();
+        // Grays
+        colorMap.put("bg-gray-700", "#374151");
+        colorMap.put("bg-gray-800", "#1f2937");
+        colorMap.put("bg-gray-900", "#11182c");
+        // Reds
+        colorMap.put("bg-red-500", "#ef4444");
+        colorMap.put("bg-red-600", "#dc2626");
+        // Oranges
+        colorMap.put("bg-orange-500", "#f97316");
+        colorMap.put("bg-orange-600", "#ea580c");
+        // Yellows
+        colorMap.put("bg-yellow-500", "#eab308");
+        colorMap.put("bg-yellow-600", "#ca8a04");
+        // Greens
+        colorMap.put("bg-green-500", "#22c55e");
+        colorMap.put("bg-green-600", "#16a34a");
+        // Blues
+        colorMap.put("bg-blue-500", "#3b82f6");
+        colorMap.put("bg-blue-600", "#2563eb");
+        // Indigos
+        colorMap.put("bg-indigo-500", "#6366f1");
+        colorMap.put("bg-indigo-600", "#4f46e5");
+        // Violets
+        colorMap.put("bg-violet-500", "#8b5cf6");
+        colorMap.put("bg-violet-600", "#7c3aed");
+        // Purples
+        colorMap.put("bg-purple-500", "#a855f7");
+        colorMap.put("bg-purple-600", "#9333ea");
+        // Pinks
+        colorMap.put("bg-pink-500", "#ec4899");
+        colorMap.put("bg-pink-600", "#db2777");
+        // Special with opacity
+        colorMap.put("bg-white/10", "rgba(255, 255, 255, 0.1)");
+        TAILWIND_COLOR_MAP = Collections.unmodifiableMap(colorMap);
+    }
 
     @Override
     public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
@@ -256,15 +298,24 @@ public class LevelCardCommandListener extends ListenerAdapter {
         String username = profile.getUsername() != null ? "@" + profile.getUsername() : "";
         String avatarUrl = profile.getAvatar() != null ? profile.getAvatar() : "/images/default-avatar.png";
         String bannerUrl = profile.getBannerUrl();
+        String bannerColor = profile.getBannerColor();
         int level = profile.getLevel() != null ? profile.getLevel() : 1;
         
         // Generate badges HTML
         String badgesHtml = generateBadgesHtml(profile);
         
         // Create banner background style if banner exists
-        String bannerStyle = bannerUrl != null && !bannerUrl.isEmpty() ? 
-            String.format("background-image: url('%s');", bannerUrl) : "";
-        String bannerClass = bannerUrl != null && !bannerUrl.isEmpty() ? " has-banner" : "";
+        String bannerStyle = "";
+        String bannerClass = "";
+        
+        if (bannerUrl != null && !bannerUrl.isEmpty()) {
+            bannerStyle = String.format("background-image: url('%s');", bannerUrl);
+            bannerClass = " has-banner";
+        } else if (bannerColor != null && !bannerColor.isEmpty()) {
+            String resolvedColor = resolveBannerColor(bannerColor);
+            bannerStyle = "background-color: " + resolvedColor + ";";
+            bannerClass = " has-banner"; // Also add class for consistent styling
+        }
         
         // SVG Icons matching the frontend
         String coinsIcon = "<svg viewBox='0 0 24 24' fill='currentColor' style='width: 16px; height: 16px;'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91 2.28.6 4.18 1.77 4.18 3.84 0 1.77-1.21 2.85-3.12 3.18z'/></svg>";
@@ -358,6 +409,30 @@ public class LevelCardCommandListener extends ListenerAdapter {
         );
     }
 
+    /**
+     * Converts a Tailwind CSS color class or hex code into a valid CSS color value.
+     * @param bannerColor The color string (e.g., "bg-blue-500" or "#ff0000").
+     * @return A valid CSS color string (e.g., "#3b82f6" or "rgba(255, 255, 255, 0.1)").
+     */
+    private String resolveBannerColor(String bannerColor) {
+        if (bannerColor == null || bannerColor.trim().isEmpty()) {
+            return DEFAULT_BANNER_COLOR;
+        }
+        String trimmedColor = bannerColor.trim();
+        // Return if it's already a valid hex/rgba value
+        if (trimmedColor.startsWith("#") || trimmedColor.startsWith("rgba")) {
+            return trimmedColor;
+        }
+        // Look up Tailwind class in the map
+        String resolvedColor = TAILWIND_COLOR_MAP.get(trimmedColor);
+        if (resolvedColor != null) {
+            return resolvedColor;
+        }
+        // Fallback for unknown classes
+        logger.warn("Unresolved banner color class: '{}'. Using default.", trimmedColor);
+        return DEFAULT_BANNER_COLOR;
+    }
+    
     /**
      * Generates the HTML for the equipped badge (single badge system)
      */
