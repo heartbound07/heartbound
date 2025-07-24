@@ -98,38 +98,59 @@ public class UserInventoryService {
 
     @Transactional
     public void transferItem(String fromUserId, String toUserId, UUID itemId, int quantity) {
-        userRepository.findById(fromUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("Sender not found"));
+        logger.debug("Attempting to transfer {}x item {} from user {} to user {}", quantity, itemId, fromUserId, toUserId);
+
+        User fromUser = userRepository.findByIdWithInventories(fromUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sender not found with id: " + fromUserId));
         User toUser = userRepository.findById(toUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("Receiver not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Receiver not found with id: " + toUserId));
         Shop item = shopService.findById(itemId)
-                .orElseThrow(() -> new ResourceNotFoundException("Item not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + itemId));
 
-        UserInventoryItem fromItem = userInventoryItemRepository.findByUserIdAndItemId(fromUserId, itemId)
-                .orElseThrow(() -> new IllegalStateException("Sender does not have the item to transfer."));
+        // --- Handle Sender's Inventory ---
+        Optional<UserInventoryItem> fromItemOptional = userInventoryItemRepository.findByUserIdAndItemId(fromUserId, itemId);
 
-        if (fromItem.getQuantity() < quantity) {
-            throw new IllegalStateException("Sender does not have enough quantity to transfer.");
-        }
+        if (fromItemOptional.isPresent()) {
+            // Item is in the new inventory system
+            UserInventoryItem fromItem = fromItemOptional.get();
+            logger.debug("Found item '{}' ({}) in new inventory for sender {}. Current quantity: {}, Required: {}", item.getName(), itemId, fromUserId, fromItem.getQuantity(), quantity);
 
-        fromItem.setQuantity(fromItem.getQuantity() - quantity);
-        if (fromItem.getQuantity() == 0) {
-            userInventoryItemRepository.delete(fromItem);
+            if (fromItem.getQuantity() < quantity) {
+                throw new IllegalStateException("Sender does not have enough quantity of '" + item.getName() + "' to transfer.");
+            }
+
+            fromItem.removeQuantity(quantity);
+            if (fromItem.hasQuantity()) {
+                userInventoryItemRepository.save(fromItem);
+            } else {
+                userInventoryItemRepository.delete(fromItem);
+            }
         } else {
-            userInventoryItemRepository.save(fromItem);
+            // Item not in new system, check legacy inventory
+            logger.debug("Item '{}' ({}) not found in new inventory for sender {}. Checking legacy system.", item.getName(), itemId, fromUserId);
+            if (fromUser.getInventory().stream().anyMatch(legacyItem -> legacyItem.getId().equals(itemId))) {
+                if (quantity > 1) {
+                    throw new IllegalStateException("Attempted to trade more than 1 of legacy item '" + item.getName() + "'.");
+                }
+                fromUser.getInventory().removeIf(legacyItem -> legacyItem.getId().equals(itemId));
+                userRepository.save(fromUser);
+                logger.debug("Removed legacy item '{}' ({}) from sender's inventory.", item.getName(), itemId);
+            } else {
+                throw new IllegalStateException("Sender does not have the item to transfer.");
+            }
         }
 
+        // --- Handle Receiver's Inventory (always use new system) ---
         UserInventoryItem toItem = userInventoryItemRepository.findByUserIdAndItemId(toUserId, itemId)
-                .orElseGet(() -> {
-                    UserInventoryItem newItem = UserInventoryItem.builder()
-                            .user(toUser)
-                            .item(item)
-                            .quantity(0)
-                            .build();
-                    return userInventoryItemRepository.save(newItem);
-                });
+                .orElseGet(() -> UserInventoryItem.builder()
+                        .user(toUser)
+                        .item(item)
+                        .quantity(0)
+                        .build());
 
-        toItem.setQuantity(toItem.getQuantity() + quantity);
+        toItem.addQuantity(quantity);
         userInventoryItemRepository.save(toItem);
+
+        logger.info("Successfully transferred {}x '{}' from {} to {}", quantity, item.getName(), fromUserId, toUserId);
     }
 } 
