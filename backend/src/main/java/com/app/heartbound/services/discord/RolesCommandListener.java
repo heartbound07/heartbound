@@ -186,8 +186,10 @@ public class RolesCommandListener extends ListenerAdapter {
 
         User user = userService.getUserById(member.getId());
 
-        // Check if user already has a role from this category (either in User entity or PendingRoleSelection)
-        if (hasRoleFromCategory(user, category, member)) {
+        // Check if user already has a role from this category.
+        // The 'gender' category is immutable; once selected, it cannot be changed.
+        // Other categories (age, rank, region) are mutable.
+        if ("gender".equals(category) && hasRoleFromCategory(user, category, member)) {
             event.getHook().editOriginal("You have already selected a role from this category. Your choice cannot be changed.").queue();
             return;
         }
