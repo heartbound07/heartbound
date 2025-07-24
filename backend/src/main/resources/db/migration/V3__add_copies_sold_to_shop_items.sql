@@ -1,0 +1,2 @@
+ALTER TABLE public.shop_items
+ADD COLUMN IF NOT EXISTS copies_sold INTEGER DEFAULT 0; 
