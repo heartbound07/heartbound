@@ -2109,7 +2109,17 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         
-        // The user exists, proceed with deletion
+        // --- PRE-DELETION CLEANUP ---
+        // 1. Delete associated daily message stats
+        dailyMessageStatRepository.deleteByUserId(userId);
+        
+        // 2. Delete associated daily voice activity stats
+        dailyVoiceActivityStatRepository.deleteByUserId(userId);
+
+        // 3. Delete inventory items (handled by cascade on User entity, but explicit is safer)
+        userInventoryItemRepository.deleteByUser(user);
+
+        // The user exists and related data is cleaned up, proceed with deletion
         userRepository.delete(user);
 
         // Create a high-severity audit log for this action

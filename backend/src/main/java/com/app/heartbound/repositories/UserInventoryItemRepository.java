@@ -91,4 +91,12 @@ public interface UserInventoryItemRepository extends JpaRepository<UserInventory
     @Modifying
     @Query("DELETE FROM UserInventoryItem ui WHERE ui.user.id = :userId AND ui.item.id = :itemId AND ui.quantity <= 0")
     int removeZeroQuantityItem(@Param("userId") String userId, @Param("itemId") UUID itemId);
+    
+    /**
+     * Deletes all inventory items for a given user.
+     * This is crucial for ensuring data integrity when a user is deleted.
+     *
+     * @param user The user whose inventory items are to be deleted.
+     */
+    void deleteByUser(User user);
 } 
