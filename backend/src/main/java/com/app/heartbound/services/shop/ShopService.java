@@ -10,7 +10,6 @@ import com.app.heartbound.dto.shop.RollResultDTO;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.entities.CaseItem;
-import com.app.heartbound.entities.UserInventoryItem;
 import com.app.heartbound.entities.ItemInstance;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.enums.ItemRarity;
