@@ -227,6 +227,7 @@ export function UserManagement() {
         availableRoles={availableRoles}
         onUserUpdate={handleUserUpdate}
         onUserDelete={handleUserDelete}
+        showToast={showToast}
       />
 
       {/* Toast Notifications */}
