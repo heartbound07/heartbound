@@ -6,7 +6,6 @@ import com.app.heartbound.dto.lfg.UpdatePartyRequestDTO;
 import com.app.heartbound.dto.lfg.LFGPartyEventDTO;
 import com.app.heartbound.entities.LFGParty;
 import com.app.heartbound.services.lfg.LFGPartyService;
-import com.app.heartbound.services.lfg.LFGSecurityService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -24,12 +23,10 @@ public class LFGPartyController {
 
     private final LFGPartyService partyService;
     private final SimpMessagingTemplate messagingTemplate;
-    private final LFGSecurityService lfgSecurityService;
 
-    public LFGPartyController(LFGPartyService partyService, SimpMessagingTemplate messagingTemplate, LFGSecurityService lfgSecurityService) {
+    public LFGPartyController(LFGPartyService partyService, SimpMessagingTemplate messagingTemplate) {
         this.partyService = partyService;
         this.messagingTemplate = messagingTemplate;
-        this.lfgSecurityService = lfgSecurityService;
     }
 
     /**

@@ -352,6 +352,10 @@ public class ShopService {
         
         return mapToShopDTO(item, user);
     }
+
+    public Optional<Shop> findById(UUID itemId) {
+        return shopRepository.findById(itemId);
+    }
     
     /**
      * Validates if an item can be purchased based on current shop visibility rules.

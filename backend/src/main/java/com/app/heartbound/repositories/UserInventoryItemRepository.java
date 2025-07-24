@@ -99,4 +99,6 @@ public interface UserInventoryItemRepository extends JpaRepository<UserInventory
      * @param user The user whose inventory items are to be deleted.
      */
     void deleteByUser(User user);
+
+    Optional<UserInventoryItem> findByUserIdAndItemId(String userId, UUID itemId);
 } 
