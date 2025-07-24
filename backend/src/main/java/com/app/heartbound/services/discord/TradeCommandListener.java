@@ -236,7 +236,7 @@ public class TradeCommandListener extends ListenerAdapter {
             return;
         }
 
-        com.app.heartbound.entities.User userEntity = userService.getUserById(userId);
+        com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
         List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
             .filter(invItem -> invItem.getBaseItem().getCategory().isTradable())
             .collect(Collectors.toList());

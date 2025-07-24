@@ -427,6 +427,17 @@ public class UserService {
     }
 
     /**
+     * Retrieves a user by their ID with their inventory eagerly fetched.
+     *
+     * @param id the user identifier
+     * @return the User entity with itemInstances initialized, or null if not found
+     */
+    @Transactional(readOnly = true)
+    public User getUserByIdWithInventory(String id) {
+        return userRepository.findByIdWithInventory(id).orElse(null);
+    }
+
+    /**
      * Check if a user exists by their ID.
      * @param userId The ID of the user to check.
      * @return true if the user exists, false otherwise.
