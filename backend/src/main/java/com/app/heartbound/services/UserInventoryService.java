@@ -10,7 +10,11 @@ import com.app.heartbound.services.shop.ShopService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.ArrayList;
 
 @Service
 public class UserInventoryService {
@@ -29,6 +33,34 @@ public class UserInventoryService {
         return userInventoryItemRepository.findByUserIdAndItemId(userId, itemId)
                 .map(UserInventoryItem::getQuantity)
                 .orElse(0);
+    }
+
+    public List<UserInventoryItem> getUserInventory(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        // Eagerly fetch items from both inventory systems to prevent LazyInitializationException
+        List<UserInventoryItem> inventoryItems = userInventoryItemRepository.findByUserWithItems(user);
+        
+        // Use a map to handle potential duplicates and combine inventories
+        Map<UUID, UserInventoryItem> combinedInventory = new HashMap<>();
+        for (UserInventoryItem item : inventoryItems) {
+            combinedInventory.put(item.getItem().getId(), item);
+        }
+
+        // Add items from the legacy inventory system if they are not already present
+        for (Shop shopItem : user.getInventory()) {
+            if (!combinedInventory.containsKey(shopItem.getId())) {
+                UserInventoryItem legacyItem = UserInventoryItem.builder()
+                        .user(user)
+                        .item(shopItem)
+                        .quantity(1) // Legacy items have a quantity of 1
+                        .build();
+                combinedInventory.put(shopItem.getId(), legacyItem);
+            }
+        }
+
+        return new ArrayList<>(combinedInventory.values());
     }
 
     @Transactional

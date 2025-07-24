@@ -70,12 +70,76 @@ public class TradeService {
     }
 
     @Transactional
+    public Trade initiateTrade(String initiatorId, String receiverId) {
+        User initiator = userRepository.findById(initiatorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Initiator not found with id: " + initiatorId));
+        User receiver = userRepository.findById(receiverId)
+                .orElseThrow(() -> new ResourceNotFoundException("Receiver not found with id: " + receiverId));
+
+        if (initiator.getId().equals(receiver.getId())) {
+            throw new InvalidTradeActionException("You cannot trade with yourself.");
+        }
+
+        Trade trade = Trade.builder()
+                .initiator(initiator)
+                .receiver(receiver)
+                .status(TradeStatus.PENDING)
+                .build();
+
+        return tradeRepository.save(trade);
+    }
+
+    @Transactional
+    public Trade addItemsToTrade(Long tradeId, String userId, List<CreateTradeDto.TradeItemDto> itemDtos) {
+        Trade trade = tradeRepository.findById(tradeId)
+                .orElseThrow(() -> new TradeNotFoundException("Trade not found with id: " + tradeId));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        if (!trade.getInitiator().getId().equals(userId) && !trade.getReceiver().getId().equals(userId)) {
+            throw new InvalidTradeActionException("User is not part of this trade.");
+        }
+
+        if (trade.getStatus() != TradeStatus.PENDING) {
+            throw new InvalidTradeActionException("This trade is no longer pending and cannot be modified.");
+        }
+
+        // Atomically remove previous items offered by this user and add new ones
+        trade.getItems().removeIf(item -> item.getUser().getId().equals(userId));
+
+        for (CreateTradeDto.TradeItemDto itemDto : itemDtos) {
+            Shop item = shopService.findById(itemDto.getItemId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Item with id " + itemDto.getItemId() + " not found"));
+
+            // Validate the item is actually tradable
+            if (item.getCategory() == null || !item.getCategory().isTradable()) {
+                 throw new InvalidTradeActionException("The item '" + item.getName() + "' is not tradable.");
+            }
+
+            int ownedQuantity = userInventoryService.getItemQuantity(user.getId(), item.getId());
+            if (ownedQuantity < itemDto.getQuantity()) {
+                throw new InsufficientItemsException("You do not have enough of '" + item.getName() + "' to trade. You have " + ownedQuantity + ", but offered " + itemDto.getQuantity() + ".");
+            }
+
+            TradeItem tradeItem = TradeItem.builder()
+                    .trade(trade)
+                    .user(user)
+                    .item(item)
+                    .quantity(itemDto.getQuantity())
+                    .build();
+            trade.getItems().add(tradeItem);
+        }
+
+        return tradeRepository.save(trade);
+    }
+
+    @Transactional
     public Trade acceptTrade(Long tradeId, String currentUserId) {
         Trade trade = tradeRepository.findById(tradeId)
                 .orElseThrow(() -> new TradeNotFoundException("Trade not found"));
 
-        if (!trade.getReceiver().getId().equals(currentUserId)) {
-            throw new InvalidTradeActionException("Only the receiver can accept the trade.");
+        if (!trade.getInitiator().getId().equals(currentUserId) && !trade.getReceiver().getId().equals(currentUserId)) {
+            throw new InvalidTradeActionException("Only a participant can finalize the trade.");
         }
 
         if (trade.getStatus() != TradeStatus.PENDING) {
@@ -84,9 +148,15 @@ public class TradeService {
 
         // Atomically transfer items
         for (TradeItem item : trade.getItems()) {
+            User fromUser = item.getUser();
+            // Determine the recipient
+            User toUser = trade.getInitiator().getId().equals(fromUser.getId())
+                    ? trade.getReceiver()
+                    : trade.getInitiator();
+
             userInventoryService.transferItem(
-                    item.getUser().getId(),
-                    trade.getReceiver().getId().equals(item.getUser().getId()) ? trade.getInitiator().getId() : trade.getReceiver().getId(),
+                    fromUser.getId(),
+                    toUser.getId(),
                     item.getItem().getId(),
                     item.getQuantity()
             );
@@ -101,8 +171,8 @@ public class TradeService {
         Trade trade = tradeRepository.findById(tradeId)
                 .orElseThrow(() -> new TradeNotFoundException("Trade not found"));
 
-        if (!trade.getReceiver().getId().equals(currentUserId)) {
-            throw new InvalidTradeActionException("Only the receiver can decline the trade.");
+        if (!trade.getReceiver().getId().equals(currentUserId) && !trade.getInitiator().getId().equals(currentUserId)) {
+            throw new InvalidTradeActionException("Only a participant can decline the trade.");
         }
 
         if (trade.getStatus() != TradeStatus.PENDING) {
@@ -118,8 +188,8 @@ public class TradeService {
         Trade trade = tradeRepository.findById(tradeId)
                 .orElseThrow(() -> new TradeNotFoundException("Trade not found"));
 
-        if (!trade.getInitiator().getId().equals(currentUserId)) {
-            throw new InvalidTradeActionException("Only the initiator can cancel the trade.");
+        if (!trade.getInitiator().getId().equals(currentUserId) && !trade.getReceiver().getId().equals(currentUserId)) {
+            throw new InvalidTradeActionException("Only a participant can cancel the trade.");
         }
 
         if (trade.getStatus() != TradeStatus.PENDING) {
@@ -130,9 +200,9 @@ public class TradeService {
         return tradeRepository.save(trade);
     }
 
-    public Trade getTradeDetails(Long tradeId) {
-        return tradeRepository.findById(tradeId)
-                .orElseThrow(() -> new TradeNotFoundException("Trade not found"));
+    public Trade getTradeDetails(long tradeId) {
+        return tradeRepository.findByIdWithItems(tradeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Trade not found with id: " + tradeId));
     }
 
     public List<Trade> getUserTrades(String userId) {

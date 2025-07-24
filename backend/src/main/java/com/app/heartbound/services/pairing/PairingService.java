@@ -15,6 +15,7 @@ import com.app.heartbound.services.discord.DiscordLeaderboardService;
 import com.app.heartbound.services.discord.DiscordMessageListenerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +44,7 @@ public class PairingService {
     private final MatchQueueUserRepository matchQueueUserRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    @Lazy
     private final DiscordPairingChannelService discordPairingChannelService;
     private final DiscordVoiceTimeTrackerService discordVoiceTimeTrackerService;
     private final DiscordLeaderboardService discordLeaderboardService;

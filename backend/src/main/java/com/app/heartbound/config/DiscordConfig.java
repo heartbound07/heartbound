@@ -29,6 +29,7 @@ import com.app.heartbound.services.discord.UserVoiceActivityService;
 import com.app.heartbound.services.discord.RolesCommandListener;
 import com.app.heartbound.services.discord.VerifyCommandListener;
 import com.app.heartbound.services.discord.PairCommandListener;
+import com.app.heartbound.services.discord.TradeCommandListener;
 import com.app.heartbound.services.discord.GuildEventListener;
 import com.app.heartbound.services.discord.GrabCommandListener;
 import com.app.heartbound.services.discord.challenge.ChallengeCommandListener;
@@ -155,6 +156,10 @@ public class DiscordConfig {
     @Autowired
     private PairCommandListener pairCommandListener;
 
+    @Lazy
+    @Autowired
+    private TradeCommandListener tradeCommandListener;
+
     @Autowired
     private GuildEventListener guildEventListener;
 
@@ -238,6 +243,9 @@ public class DiscordConfig {
             
             // Register pair command listener manually
             pairCommandListener.registerWithJDA(jdaInstance);
+
+            // Register trade command listener manually
+            tradeCommandListener.registerWithJDA(jdaInstance);
             
             // Register slash commands
             registerSlashCommands();
@@ -346,6 +354,10 @@ public class DiscordConfig {
                     Commands.slash("pair", "Request to pair with another user")
                         .addOptions(
                                 new OptionData(OptionType.USER, "user", "The user you want to pair with", true)
+                        ),
+                    Commands.slash("trade", "Initiate a trade with another user")
+                        .addOptions(
+                            new OptionData(OptionType.USER, "user", "The user to trade with", true)
                         ),
                     Commands.slash("grab", "Collect the credits dropped in this channel"),
                     Commands.slash("mines", "Play a game of Mines and bet credits")

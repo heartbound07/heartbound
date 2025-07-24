@@ -20,6 +20,9 @@ public interface UserInventoryItemRepository extends JpaRepository<UserInventory
      * Find all inventory items for a specific user
      */
     List<UserInventoryItem> findByUser(User user);
+
+    @Query("SELECT ui FROM UserInventoryItem ui JOIN FETCH ui.item WHERE ui.user = :user")
+    List<UserInventoryItem> findByUserWithItems(@Param("user") User user);
     
     /**
      * Find all inventory items for a specific user with quantity > 0

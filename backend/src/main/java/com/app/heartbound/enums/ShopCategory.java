@@ -9,5 +9,9 @@ public enum ShopCategory {
     ACCENT,
     BADGE,
     CASE,
-    FISHING_ROD
+    FISHING_ROD;
+
+    public boolean isTradable() {
+        return this != CASE && this != FISHING_ROD;
+    }
 } 
