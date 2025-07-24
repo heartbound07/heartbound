@@ -15,7 +15,7 @@ import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { DiscoverPage } from '@/features/dashboard/DiscoverPage';
 import { ProfilePage } from '@/features/dashboard/ProfilePage';
 import { AdminPanel } from '@/features/dashboard/admin/AdminPanel';
-import { UserManagement } from '@/features/dashboard/admin/UserManagement';
+import { UserManagement } from '@/features/dashboard/admin/usermanage/UserManagement';
 import { DiscordBotSettings } from '@/features/dashboard/admin/DiscordBotSettings';
 import { SystemStats } from '@/features/dashboard/admin/SystemStats';
 import { AuditPanel } from '@/features/dashboard/admin/AuditPanel';
