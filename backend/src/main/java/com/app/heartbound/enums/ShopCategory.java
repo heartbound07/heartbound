@@ -14,4 +14,8 @@ public enum ShopCategory {
     public boolean isTradable() {
         return this != CASE && this != FISHING_ROD;
     }
+
+    public boolean isStackable() {
+        return this == CASE;
+    }
 } 

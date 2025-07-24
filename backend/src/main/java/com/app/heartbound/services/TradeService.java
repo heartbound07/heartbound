@@ -12,6 +12,7 @@ import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.services.shop.ShopService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.LockModeType;
 
 import java.time.Instant;
 import java.util.List;
@@ -196,33 +197,40 @@ public class TradeService {
 
         // If both accepted, process the trade
         if (trade.getInitiatorAccepted() && trade.getReceiverAccepted()) {
-            return acceptTrade(tradeId, userId); // Reuse the existing transfer logic
+            return executeTrade(tradeId); 
         }
 
         return tradeRepository.save(trade);
     }
 
-
     @Transactional
-    public Trade acceptTrade(Long tradeId, String currentUserId) {
+    private Trade executeTrade(Long tradeId) {
         Trade trade = tradeRepository.findByIdWithItems(tradeId)
                 .orElseThrow(() -> new TradeNotFoundException("Trade not found"));
-
-        if (!trade.getInitiator().getId().equals(currentUserId) && !trade.getReceiver().getId().equals(currentUserId)) {
-            throw new InvalidTradeActionException("Only a participant can finalize the trade.");
-        }
 
         if (trade.getStatus() != TradeStatus.PENDING) {
             throw new InvalidTradeActionException("This trade is no longer pending.");
         }
 
+        // Lock both users to prevent concurrent inventory modifications
+        User initiator = userRepository.findByIdWithLock(trade.getInitiator().getId(), LockModeType.PESSIMISTIC_WRITE)
+            .orElseThrow(() -> new ResourceNotFoundException("Initiator not found."));
+        User receiver = userRepository.findByIdWithLock(trade.getReceiver().getId(), LockModeType.PESSIMISTIC_WRITE)
+            .orElseThrow(() -> new ResourceNotFoundException("Receiver not found."));
+
+
         // Atomically transfer items
         for (TradeItem item : trade.getItems()) {
-            User fromUser = item.getUser();
-            // Determine the recipient
-            User toUser = trade.getInitiator().getId().equals(fromUser.getId())
-                    ? trade.getReceiver()
-                    : trade.getInitiator();
+            User fromUser = item.getUser().getId().equals(initiator.getId()) ? initiator : receiver;
+            User toUser = item.getUser().getId().equals(initiator.getId()) ? receiver : initiator;
+
+            Shop shopItem = item.getItem();
+            // Check for unique item ownership
+            if (!shopItem.getCategory().isStackable()) {
+                if (userInventoryService.getItemQuantity(toUser.getId(), shopItem.getId()) > 0) {
+                    throw new InvalidTradeActionException("Trade failed: " + toUser.getUsername() + " already owns the unique item '" + shopItem.getName() + "'.");
+                }
+            }
 
             userInventoryService.transferItem(
                     fromUser.getId(),

@@ -39,10 +39,10 @@ public class TradeController {
 
     @PostMapping("/{id}/accept")
     @RateLimited(requestsPerMinute = 15, keyType = RateLimitKeyType.USER, keyPrefix = "trade_accept")
-    public ResponseEntity<Trade> acceptTrade(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<Trade> acceptFinalTrade(@PathVariable Long id, Authentication authentication) {
         String currentUserId = authentication.getName();
         logger.info("User {} is accepting trade {}", currentUserId, id);
-        Trade trade = tradeService.acceptTrade(id, currentUserId);
+        Trade trade = tradeService.acceptFinalTrade(id, currentUserId);
         return ResponseEntity.ok(trade);
     }
 
