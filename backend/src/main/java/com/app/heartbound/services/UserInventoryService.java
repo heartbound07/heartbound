@@ -76,7 +76,7 @@ public class UserInventoryService {
     public void transferItem(String fromUserId, String toUserId, UUID itemInstanceId) {
         logger.debug("Attempting to transfer item instance {} from user {} to user {}", itemInstanceId, fromUserId, toUserId);
 
-        ItemInstance itemInstance = itemInstanceRepository.findById(itemInstanceId)
+        ItemInstance itemInstance = itemInstanceRepository.findByIdWithLock(itemInstanceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item instance not found with id: " + itemInstanceId));
 
         User toUser = userRepository.findById(toUserId)
