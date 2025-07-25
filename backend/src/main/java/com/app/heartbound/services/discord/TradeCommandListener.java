@@ -168,7 +168,7 @@ public class TradeCommandListener extends ListenerAdapter {
             }
         } catch (Exception e) {
             log.error("Error handling button interaction for tradeId: {}", tradeId, e);
-            event.getHook().sendMessage("An error occurred: " + e.getMessage()).setEphemeral(true).queue();
+            event.getHook().sendMessage("An unexpected error occurred. Please try again later.").setEphemeral(true).queue();
         }
     }
 
@@ -210,40 +210,41 @@ public class TradeCommandListener extends ListenerAdapter {
 
         Trade trade = tradeService.getTradeDetails(tradeId);
 
-        User initiatorUser = jdaInstance.retrieveUserById(initiatorId).complete();
-        User receiverUser = jdaInstance.retrieveUserById(receiverId).complete();
+        jdaInstance.retrieveUserById(initiatorId).queue(initiatorUser -> {
+            jdaInstance.retrieveUserById(receiverId).queue(receiverUser -> {
+                Instant expiresAt = Instant.now().plusSeconds(120);
 
-        Instant expiresAt = Instant.now().plusSeconds(120);
+                event.getChannel().sendMessageEmbeds(buildTradeEmbed(trade, initiatorUser, receiverUser))
+                        .setComponents(getTradeActionRows(trade))
+                        .queue(message -> {
+                            tradeService.setTradeMessageInfo(tradeId, message.getId(), message.getChannelId(), expiresAt);
 
-        event.getChannel().sendMessageEmbeds(buildTradeEmbed(trade, initiatorUser, receiverUser))
-                .setComponents(getTradeActionRows(trade))
-                .queue(message -> {
-                    tradeService.setTradeMessageInfo(tradeId, message.getId(), message.getChannelId(), expiresAt);
-                    
-                    RestAction<?> editAction = message.editMessageComponents().setComponents()
-                            .setEmbeds(new EmbedBuilder().setDescription("Trade has expired.").setColor(Color.RED).build());
+                            RestAction<?> editAction = message.editMessageComponents().setComponents()
+                                    .setEmbeds(new EmbedBuilder().setDescription("Trade has expired.").setColor(Color.RED).build());
 
-                    ScheduledFuture<?> expirationTask = editAction.queueAfter(120, TimeUnit.SECONDS,
-                        s -> {
-                            try {
-                                tradeService.cancelTrade(tradeId, initiatorId);
-                            } catch (Exception e) {
-                                log.warn("Trade {} may have already been completed or cancelled.", tradeId);
-                            } finally {
-                                tradeExpirationTasks.remove(tradeId);
-                            }
-                        },
-                        failure -> {
-                            if (failure instanceof CancellationException) {
-                                log.info("Trade expiration task for trade {} was successfully cancelled.", tradeId);
-                            } else {
-                                log.warn("Failed to expire trade request message {}.", message.getId(), failure);
-                            }
-                            tradeExpirationTasks.remove(tradeId);
+                            ScheduledFuture<?> expirationTask = editAction.queueAfter(120, TimeUnit.SECONDS,
+                                s -> {
+                                    try {
+                                        tradeService.cancelTrade(tradeId, initiatorId);
+                                    } catch (Exception e) {
+                                        log.warn("Trade {} may have already been completed or cancelled.", tradeId);
+                                    } finally {
+                                        tradeExpirationTasks.remove(tradeId);
+                                    }
+                                },
+                                failure -> {
+                                    if (failure instanceof CancellationException) {
+                                        log.info("Trade expiration task for trade {} was successfully cancelled.", tradeId);
+                                    } else {
+                                        log.warn("Failed to expire trade request message {}.", message.getId(), failure);
+                                    }
+                                    tradeExpirationTasks.remove(tradeId);
+                                });
+
+                            tradeExpirationTasks.put(tradeId, expirationTask);
                         });
-
-                    tradeExpirationTasks.put(tradeId, expirationTask);
-                });
+            }, failure -> log.error("Could not retrieve receiver user {} for trade {}", receiverId, tradeId, failure));
+        }, failure -> log.error("Could not retrieve initiator user {} for trade {}", initiatorId, tradeId, failure));
     }
 
     private void handleInitialDecline(ButtonInteractionEvent event, long tradeId) {
@@ -311,42 +312,48 @@ public class TradeCommandListener extends ListenerAdapter {
                     task.cancel(true);
                     log.info("Cancelled trade expiration task for completed tradeId: {}", tradeId);
                 }
-                User initiator = jdaInstance.retrieveUserById(trade.getInitiator().getId()).complete();
-                User receiver = jdaInstance.retrieveUserById(trade.getReceiver().getId()).complete();
 
-                String itemsForInitiator = trade.getItems().stream()
-                        .map(TradeItem::getItemInstance)
-                        .filter(instance -> instance.getOwner().getId().equals(initiator.getId()))
-                        .map(this::formatItemForDisplay)
-                        .collect(Collectors.joining("\n"));
+                String initiatorId = trade.getInitiator().getId();
+                String receiverId = trade.getReceiver().getId();
 
-                String itemsForReceiver = trade.getItems().stream()
-                        .map(TradeItem::getItemInstance)
-                        .filter(instance -> instance.getOwner().getId().equals(receiver.getId()))
-                        .map(this::formatItemForDisplay)
-                        .collect(Collectors.joining("\n"));
+                jdaInstance.retrieveUserById(initiatorId).queue(initiator -> {
+                    jdaInstance.retrieveUserById(receiverId).queue(receiver -> {
+                        String itemsForInitiator = trade.getItems().stream()
+                                .map(TradeItem::getItemInstance)
+                                .filter(instance -> instance.getOwner().getId().equals(initiator.getId()))
+                                .map(this::formatItemForDisplay)
+                                .collect(Collectors.joining("\n"));
 
-                EmbedBuilder successEmbed = new EmbedBuilder()
-                        .setTitle("Trade Successful!")
-                        .setColor(Color.GREEN)
-                        .setFooter("Go to your Inventory to equip your new item!");
+                        String itemsForReceiver = trade.getItems().stream()
+                                .map(TradeItem::getItemInstance)
+                                .filter(instance -> instance.getOwner().getId().equals(receiver.getId()))
+                                .map(this::formatItemForDisplay)
+                                .collect(Collectors.joining("\n"));
 
-                if (!itemsForInitiator.isEmpty()) {
-                    successEmbed.addField(initiator.getEffectiveName() + " has Received", itemsForInitiator, true);
-                }
+                        EmbedBuilder successEmbed = new EmbedBuilder()
+                                .setTitle("Trade Successful!")
+                                .setColor(Color.GREEN)
+                                .setFooter("Go to your Inventory to equip your new item!");
 
-                if (!itemsForReceiver.isEmpty()) {
-                    successEmbed.addField(receiver.getEffectiveName() + " has Received", itemsForReceiver, true);
-                }
+                        if (!itemsForInitiator.isEmpty()) {
+                            successEmbed.addField(initiator.getEffectiveName() + " has Received", itemsForInitiator, true);
+                        }
 
-                event.getHook().editOriginalEmbeds(successEmbed.build())
-                        .setComponents().queue();
+                        if (!itemsForReceiver.isEmpty()) {
+                            successEmbed.addField(receiver.getEffectiveName() + " has Received", itemsForReceiver, true);
+                        }
+
+                        event.getHook().editOriginalEmbeds(successEmbed.build())
+                                .setComponents().queue();
+                    }, failure -> log.error("Could not retrieve receiver user {} for completed trade {}", receiverId, tradeId, failure));
+                }, failure -> log.error("Could not retrieve initiator user {} for completed trade {}", initiatorId, tradeId, failure));
+
             } else {
                 updateTradeUI(event.getChannel(), tradeId);
             }
         } catch (Exception e) {
             log.error("Final acceptance failed for tradeId: {}", tradeId, e);
-            event.getHook().editOriginalEmbeds(new EmbedBuilder().setTitle("Trade Failed!").setDescription(e.getMessage()).setColor(Color.RED).build())
+            event.getHook().editOriginalEmbeds(new EmbedBuilder().setTitle("Trade Failed!").setDescription("An internal error occurred.").setColor(Color.RED).build())
                     .setComponents().queue();
         }
     }
@@ -373,20 +380,24 @@ public class TradeCommandListener extends ListenerAdapter {
         long messageId = Long.parseLong(trade.getDiscordMessageId());
         log.debug("Attempting to update UI for tradeId: {}, messageId: {}, in channel: {}", tradeId, messageId, channel.getId());
 
-        User initiatorUser = jdaInstance.retrieveUserById(trade.getInitiator().getId()).complete();
-        User receiverUser = jdaInstance.retrieveUserById(trade.getReceiver().getId()).complete();
+        String initiatorId = trade.getInitiator().getId();
+        String receiverId = trade.getReceiver().getId();
 
-        channel.retrieveMessageById(messageId).queue(message -> {
-            log.debug("Found message {} to update for tradeId: {}", messageId, tradeId);
-            message.editMessageEmbeds(buildTradeEmbed(trade, initiatorUser, receiverUser))
-                   .setComponents(getTradeActionRows(trade))
-                   .queue(
-                       success -> log.info("Successfully updated UI for tradeId: {}", tradeId),
-                       failure -> log.error("Failed to update message for tradeId: {}", tradeId, failure)
-                   );
-        }, failure -> {
-            log.error("Failed to retrieve message with ID: {} in channel {} for tradeId: {}", messageId, channel.getId(), tradeId, failure);
-        });
+        jdaInstance.retrieveUserById(initiatorId).queue(initiatorUser -> {
+            jdaInstance.retrieveUserById(receiverId).queue(receiverUser -> {
+                channel.retrieveMessageById(messageId).queue(message -> {
+                    log.debug("Found message {} to update for tradeId: {}", messageId, tradeId);
+                    message.editMessageEmbeds(buildTradeEmbed(trade, initiatorUser, receiverUser))
+                           .setComponents(getTradeActionRows(trade))
+                           .queue(
+                               success -> log.info("Successfully updated UI for tradeId: {}", tradeId),
+                               failure -> log.error("Failed to update message for tradeId: {}", tradeId, failure)
+                           );
+                }, failure -> {
+                    log.error("Failed to retrieve message with ID: {} in channel {} for tradeId: {}", messageId, channel.getId(), tradeId, failure);
+                });
+            }, failure -> log.error("Could not retrieve receiver user {} for trade UI update {}", receiverId, tradeId, failure));
+        }, failure -> log.error("Could not retrieve initiator user {} for trade UI update {}", initiatorId, tradeId, failure));
     }
 
     private MessageEmbed buildTradeEmbed(Trade trade, User initiator, User receiver) {

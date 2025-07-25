@@ -143,7 +143,7 @@ public class TradeService {
             // Check if the item is equipped
             if (item.getCategory().isEquippable()) {
                 UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
-                if (equippedItemId != null && equippedItemId.equals(item.getId())) {
+                if (equippedItemId != null && equippedItemId.equals(instance.getId())) {
                     throw new ItemEquippedException("You cannot trade an item that is currently equipped. Please unequip '" + item.getName() + "' first.");
                 }
             }
