@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from 'framer-motion';
+import { 
+  motion, 
+  AnimatePresence, 
+  useMotionValue, 
+  useTransform, 
+  useSpring, 
+  animate,
+  useMotionValueEvent
+} from 'framer-motion';
 import { FaTimes, FaGift, FaCoins } from 'react-icons/fa';
 import { GiFishingPole } from 'react-icons/gi';
 import { Star } from 'lucide-react';
@@ -8,6 +16,10 @@ import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rar
 import NameplatePreview from '@/components/NameplatePreview';
 import BadgePreview from '@/components/BadgePreview';
 import { formatDisplayText } from '@/utils/formatters';
+
+// --- Constants for Virtualization ---
+const ITEM_WIDTH = 112; // w-24 (96px) + mx-2 (16px) = 112px
+const OVERSCAN = 5;     // Number of items to render on each side of the viewport
 
 interface RollResult {
   caseId: string;
@@ -31,6 +43,11 @@ interface RollResult {
   compensationAwarded?: boolean;
   compensatedCredits?: number;
   compensatedXp?: number;
+}
+
+interface VirtualItem {
+  index: number;
+  item: CaseItemDTO;
 }
 
 interface CaseItemDTO {
@@ -71,6 +88,95 @@ interface CaseRollModalProps {
 
 type AnimationState = 'idle' | 'loading' | 'rolling' | 'decelerating' | 'revealing' | 'reward';
 
+// --- Memoized Thumbnail Component ---
+interface CaseItemThumbnailProps {
+  item: CaseItemDTO;
+  animationState: AnimationState;
+  user?: any;
+}
+
+const CaseItemThumbnail = React.memo(({ item, animationState, user }: CaseItemThumbnailProps) => {
+  const containedItem = item.containedItem;
+  const rarityColor = getRarityColor(containedItem.rarity);
+  
+  return (
+    <motion.div
+      className="flex-shrink-0 w-24 h-24 relative"
+      style={{
+        filter: animationState === 'revealing' ? 'blur(1px) brightness(0.7)' : 'none',
+        minWidth: '96px', // Ensure consistent width
+      }}
+      transition={{ duration: 0.3 }}
+    >
+      <div 
+        className="w-full h-full rounded-lg border-2 overflow-hidden relative bg-slate-800"
+        style={{ borderColor: rarityColor }}
+      >
+        {/* Item preview based on category */}
+        {containedItem.category === 'USER_COLOR' ? (
+          <NameplatePreview
+            username={user?.username || "User"}
+            avatar={user?.avatar || "/images/default-avatar.png"}
+            color={containedItem.imageUrl}
+            endColor={containedItem.gradientEndColor}
+            fallbackColor={rarityColor}
+            message=""
+            className="h-full w-full"
+            size="sm"
+          />
+        ) : containedItem.category === 'BADGE' ? (
+          <img 
+            src={containedItem.thumbnailUrl || containedItem.imageUrl} 
+            alt={containedItem.name}
+            className="h-full w-full object-cover rounded-full"
+            style={{ padding: '8px' }}
+          />
+        ) : containedItem.category === 'FISHING_ROD' ? (
+          <div 
+            className="h-full w-full flex flex-col items-center justify-center relative overflow-hidden p-2"
+            style={{ background: `linear-gradient(to bottom right, #1f2937, ${rarityColor})` }}
+          >
+            <GiFishingPole className="absolute w-12 h-12 text-white/10 transform -rotate-12 -right-2 -bottom-2" />
+            <GiFishingPole className="relative z-10 w-12 h-12 text-white/80" />
+            <div className="relative z-10 mt-1 text-center">
+            </div>
+          </div>
+        ) : containedItem.imageUrl ? (
+          <img 
+            src={containedItem.thumbnailUrl || containedItem.imageUrl} 
+            alt={containedItem.name}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="h-full w-full bg-slate-700 flex items-center justify-center">
+            <span className="text-xs text-slate-400">No Image</span>
+          </div>
+        )}
+        
+        {/* Rarity glow effect */}
+        <div 
+          className="absolute inset-0 rounded-lg opacity-30"
+          style={{
+            boxShadow: `inset 0 0 10px ${rarityColor}`,
+          }}
+        />
+      </div>
+      
+      {/* Rarity indicator */}
+      <div 
+        className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 px-1 py-0.5 rounded text-xs font-bold"
+        style={{
+          backgroundColor: rarityColor,
+          color: 'white',
+          fontSize: '10px'
+        }}
+      >
+        {getRarityLabel(containedItem.rarity).charAt(0)}
+      </div>
+    </motion.div>
+  );
+});
+
 // Audio hook interface for future implementation
 interface AudioHooks {
   onInitiate?: () => void;
@@ -93,6 +199,7 @@ export function CaseRollModal({
   const [caseContents, setCaseContents] = useState<CaseContents | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [animationItems, setAnimationItems] = useState<CaseItemDTO[]>([]);
+  const [virtualItems, setVirtualItems] = useState<VirtualItem[]>([]);
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
@@ -104,11 +211,42 @@ export function CaseRollModal({
     mass: 0.5
   });
   
+  const totalAnimationWidth = animationItems.length * ITEM_WIDTH;
+  const x = useTransform(smoothScrollProgress, [0, 1], [0, -totalAnimationWidth]);
+
+  // --- Virtualization Logic ---
+  const updateVirtualItems = useCallback(() => {
+    if (!animationItems.length || !scrollContainerRef.current) return;
+    
+    const containerWidth = scrollContainerRef.current.offsetWidth;
+    const scrollLeft = -x.get();
+    
+    let startIndex = Math.floor(scrollLeft / ITEM_WIDTH) - OVERSCAN;
+    startIndex = Math.max(0, startIndex);
+
+    let endIndex = Math.ceil((scrollLeft + containerWidth) / ITEM_WIDTH) + OVERSCAN;
+    endIndex = Math.min(animationItems.length - 1, endIndex);
+
+    const newVirtualItems: VirtualItem[] = [];
+    for (let i = startIndex; i <= endIndex; i++) {
+        newVirtualItems.push({
+            index: i,
+            item: animationItems[i],
+        });
+    }
+    setVirtualItems(newVirtualItems);
+  }, [animationItems, x]);
+
+  useEffect(() => {
+    // Initial update and when animation items are loaded
+    updateVirtualItems();
+  }, [updateVirtualItems]);
+
+  useMotionValueEvent(x, "change", updateVirtualItems);
+  
   // Transform the smooth progress to actual pixel movement
   // Calculate total width dynamically: itemCount × 8 repetitions × 112px spacing
   // Use fallback of 3360 (30 items × 112px) if animationItems not loaded yet
-  const totalAnimationWidth = animationItems.length > 0 ? animationItems.length * 112 : 3360;
-  const x = useTransform(smoothScrollProgress, [0, 1], [0, -totalAnimationWidth]);
   
   // Audio hooks for future implementation
   const audioHooks: AudioHooks = {
@@ -155,9 +293,8 @@ export function CaseRollModal({
     
     // Calculate the final scroll progress to center the winning item
     // Item width: w-24 (96px) + mx-2 (8px each side = 16px) = 112px total spacing
-    const itemWidth = 112;
     const containerWidth = scrollContainerRef.current?.offsetWidth || 800;
-    const centerPosition = containerWidth / 2 - (itemWidth / 2);
+    const centerPosition = containerWidth / 2 - (ITEM_WIDTH / 2);
     
     // Find winning item in the animation items array
     const uniqueItemsCount = animationItems.length / 8;
@@ -175,8 +312,8 @@ export function CaseRollModal({
     }
     
     // Convert to scroll progress (0 to 1)
-    const totalWidth = animationItems.length * itemWidth;
-    const targetPosition = targetIndex * itemWidth - centerPosition;
+    const totalWidth = animationItems.length * ITEM_WIDTH;
+    const targetPosition = targetIndex * ITEM_WIDTH - centerPosition;
     const calculatedProgress = targetPosition / totalWidth;
     
     // Only apply minimum constraint if calculated position would be too close to rolling end
@@ -194,32 +331,41 @@ export function CaseRollModal({
   }, [animationItems]);
 
   const generateAnimationSequenceFromRoll = useCallback((rollValue: number, caseContents: CaseContents) => {
-    if (!animationItems.length || !caseContents?.items) return 0.85;
+    console.log('%c[Debug] Starting animation sequence calculation from roll', 'color: #3498db', { rollValue, caseContents });
+    if (!animationItems.length || !caseContents?.items) {
+        console.warn('[Debug] Cannot generate sequence, animationItems or caseContents missing.');
+        return 0.85;
+    }
     
     // Calculate the final scroll progress based on the rollValue and drop rates
     // Item width: w-24 (96px) + mx-2 (8px each side = 16px) = 112px total spacing
-    const itemWidth = 112;
+    const itemWidth = ITEM_WIDTH;
     const containerWidth = scrollContainerRef.current?.offsetWidth || 800;
     const centerPosition = containerWidth / 2 - (itemWidth / 2);
     
     // Define rolling constraints
     const rollingEndPosition = 0.7;
     
-    // Find which item corresponds to the rollValue based on cumulative drop rates
-    let cumulative = 0;
+    // --- Replicate backend logic to find the winning item from rollValue ---
+    let cumulativeWeight = 0;
     let wonItemFromRoll = null;
     
+    // Backend uses BigDecimal.multiply(10000).longValue(), which truncates.
+    // We use Math.floor to replicate this and avoid floating point issues.
     for (const caseItem of caseContents.items) {
-      cumulative += caseItem.dropRate;
-      if (rollValue / 100 < cumulative) {
+      const itemWeight = Math.floor(caseItem.dropRate * 10000);
+      cumulativeWeight += itemWeight;
+      console.log(`[Debug] Checking item: ${caseItem.containedItem.name.padEnd(20)} | DropRate: ${caseItem.dropRate.toFixed(4).padEnd(8)} | Weight: ${itemWeight.toString().padEnd(6)} | Cumulative: ${cumulativeWeight.toString().padEnd(8)} | Roll: ${rollValue}`);
+      if (rollValue < cumulativeWeight) {
         wonItemFromRoll = caseItem.containedItem;
+        console.log('%c[Debug] Frontend determined winning item from roll:', 'color: #2ecc71; font-weight: bold;', wonItemFromRoll);
         break;
       } 
     }
     
     if (!wonItemFromRoll) {
-      console.error('Could not determine winning item from roll value');
-      return 0.85;
+      console.error('[Debug] Could not determine winning item from roll value! This should not happen if drop rates sum to 100. Falling back to last item.');
+      wonItemFromRoll = caseContents.items[caseContents.items.length - 1].containedItem;
     }
     
     // Find winning item in the animation items array
@@ -240,8 +386,11 @@ export function CaseRollModal({
       }
     } else {
       // Fallback to a position further along to maintain leftward direction
+      console.error(`[Debug] Determined winning item '${wonItemFromRoll.name}' not found in animationItems array!`);
       targetIndex = Math.floor(animationItems.length * 0.75);
     }
+    
+    console.log(`[Debug] Target Index: ${targetIndex}`);
     
     // Convert to scroll progress (0 to 1)
     const totalWidth = animationItems.length * itemWidth;
@@ -308,11 +457,14 @@ export function CaseRollModal({
       
       // Wait for API response
       const apiResponse = await apiPromise;
+      console.log('%c[Debug] Received API response:', 'color: #f1c40f; font-weight: bold;', apiResponse.data);
       
       // Calculate where we should stop rolling based on the target
       const targetProgress = caseContents 
         ? generateAnimationSequenceFromRoll(apiResponse.data.rollValue, caseContents)
         : generateAnimationSequence(apiResponse.data.wonItem);
+      
+      console.log(`[Debug] Calculated target progress: ${targetProgress}`);
       
       // Determine optimal rolling end point
       // If target is early (< 0.7), stop just before it; if target is late, stop at reasonable point  
@@ -346,11 +498,14 @@ export function CaseRollModal({
   const handleDeceleration = async (rollResult: RollResult, targetProgress?: number) => {
     setAnimationState('decelerating');
     audioHooks.onDecelerate?.();
+    console.log(`[Debug] Starting deceleration. Received targetProgress: ${targetProgress}`);
     
     // Use pre-calculated target progress or calculate it
     const finalProgress = targetProgress ?? (caseContents 
       ? generateAnimationSequenceFromRoll(rollResult.rollValue, caseContents)
       : generateAnimationSequence(rollResult.wonItem)); // Fallback to old method if no case contents
+    
+    console.log(`[Debug] Final progress for deceleration: ${finalProgress}`);
     
     // Use Framer Motion's animate function for smooth deceleration
     const decelerationAnimation = animate(scrollProgress, finalProgress, {
@@ -393,89 +548,6 @@ export function CaseRollModal({
     if (e.target === e.currentTarget && animationState === 'idle') {
       handleClose();
     }
-  };
-
-  const renderItemThumbnail = (item: CaseItemDTO, index: number) => {
-    const containedItem = item.containedItem;
-    const rarityColor = getRarityColor(containedItem.rarity);
-    
-    return (
-      <motion.div
-        key={`${containedItem.id}-${index}`}
-        className="flex-shrink-0 w-24 h-24 mx-2 relative"
-        style={{
-          filter: animationState === 'revealing' ? 'blur(1px) brightness(0.7)' : 'none',
-          minWidth: '96px', // Ensure consistent width
-        }}
-        transition={{ duration: 0.3 }}
-      >
-        <div 
-          className="w-full h-full rounded-lg border-2 overflow-hidden relative bg-slate-800"
-          style={{ borderColor: rarityColor }}
-        >
-          {/* Item preview based on category */}
-          {containedItem.category === 'USER_COLOR' ? (
-            <NameplatePreview
-              username={user?.username || "User"}
-              avatar={user?.avatar || "/images/default-avatar.png"}
-              color={containedItem.imageUrl}
-              endColor={containedItem.gradientEndColor}
-              fallbackColor={rarityColor}
-              message=""
-              className="h-full w-full"
-              size="sm"
-            />
-          ) : containedItem.category === 'BADGE' ? (
-            <img 
-              src={containedItem.thumbnailUrl || containedItem.imageUrl} 
-              alt={containedItem.name}
-              className="h-full w-full object-cover rounded-full"
-              style={{ padding: '8px' }}
-            />
-          ) : containedItem.category === 'FISHING_ROD' ? (
-            <div 
-              className="h-full w-full flex flex-col items-center justify-center relative overflow-hidden p-2"
-              style={{ background: `linear-gradient(to bottom right, #1f2937, ${rarityColor})` }}
-            >
-              <GiFishingPole className="absolute w-12 h-12 text-white/10 transform -rotate-12 -right-2 -bottom-2" />
-              <GiFishingPole className="relative z-10 w-12 h-12 text-white/80" />
-              <div className="relative z-10 mt-1 text-center">
-              </div>
-            </div>
-          ) : containedItem.imageUrl ? (
-            <img 
-              src={containedItem.thumbnailUrl || containedItem.imageUrl} 
-              alt={containedItem.name}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="h-full w-full bg-slate-700 flex items-center justify-center">
-              <span className="text-xs text-slate-400">No Image</span>
-            </div>
-          )}
-          
-          {/* Rarity glow effect */}
-          <div 
-            className="absolute inset-0 rounded-lg opacity-30"
-            style={{
-              boxShadow: `inset 0 0 10px ${rarityColor}`,
-            }}
-          />
-        </div>
-        
-        {/* Rarity indicator */}
-        <div 
-          className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 px-1 py-0.5 rounded text-xs font-bold"
-          style={{
-            backgroundColor: rarityColor,
-            color: 'white',
-            fontSize: '10px'
-          }}
-        >
-          {getRarityLabel(containedItem.rarity).charAt(0)}
-        </div>
-      </motion.div>
-    );
   };
 
   if (!isOpen) return null;
@@ -837,14 +909,34 @@ export function CaseRollModal({
                     className="relative h-32 overflow-hidden"
                   >
                     <motion.div
-                      className="flex items-center h-full py-4"
+                      className="h-full"
                       style={{ 
                         x,
-                        width: 'max-content',
-                        flexWrap: 'nowrap'
+                        width: totalAnimationWidth,
+                        position: 'relative',
                       }}
                     >
-                      {animationItems.map((item, index) => renderItemThumbnail(item, index))}
+                      {virtualItems.map(({ item, index }) => (
+                        <div
+                          key={`${item.containedItem.id}-${index}`}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: `${index * ITEM_WIDTH}px`,
+                            width: `${ITEM_WIDTH}px`,
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <CaseItemThumbnail
+                            item={item}
+                            animationState={animationState}
+                            user={user}
+                          />
+                        </div>
+                      ))}
                     </motion.div>
                     
                     {/* Spotlight Effect for Revealing State */}
