@@ -24,11 +24,11 @@ interface CaseRollModalProps {
   user?: any;
 }
 
-export function CaseRollModal({
-  isOpen,
-  onClose,
-  caseId,
-  caseName,
+export function CaseRollModal({ 
+  isOpen, 
+  onClose, 
+  caseId, 
+  caseName, 
   onRollComplete,
   user,
 }: CaseRollModalProps) {
@@ -69,95 +69,89 @@ export function CaseRollModal({
             return 0;
         }
 
-        let cumulativeWeight = 0;
-        let wonItemFromRoll = null;
-
+    let cumulativeWeight = 0;
+    let wonItemFromRoll = null;
+    
         for (const caseItem of currentCaseContents.items) {
-            const itemWeight = Math.floor(caseItem.dropRate * 10000);
-            cumulativeWeight += itemWeight;
-            if (rollValue < cumulativeWeight) {
-                wonItemFromRoll = caseItem.containedItem;
-                break;
-            }
-        }
-
-        if (!wonItemFromRoll) {
+      const itemWeight = Math.floor(caseItem.dropRate * 10000);
+      cumulativeWeight += itemWeight;
+      if (rollValue < cumulativeWeight) {
+        wonItemFromRoll = caseItem.containedItem;
+        break;
+      } 
+    }
+    
+    if (!wonItemFromRoll) {
             wonItemFromRoll = currentCaseContents.items[currentCaseContents.items.length - 1].containedItem;
-        }
-
-        const uniqueItemsCount = animationItems.length / 8;
-        const winningIndex = animationItems.findIndex(item => item.containedItem.id === wonItemFromRoll.id);
-
-        let targetIndex;
-        if (winningIndex !== -1) {
+    }
+    
+    const uniqueItemsCount = animationItems.length / 8;
+    const winningIndex = animationItems.findIndex(item => item.containedItem.id === wonItemFromRoll.id);
+    
+    let targetIndex;
+    if (winningIndex !== -1) {
             const targetRepetition = 6;
-            const indexInRepetition = winningIndex % uniqueItemsCount;
-            targetIndex = targetRepetition * uniqueItemsCount + indexInRepetition;
-            if (targetIndex >= animationItems.length) {
-                targetIndex = 5 * uniqueItemsCount + indexInRepetition;
-            }
-        } else {
-            targetIndex = Math.floor(animationItems.length * 0.75);
-        }
-
+      const indexInRepetition = winningIndex % uniqueItemsCount;
+      targetIndex = targetRepetition * uniqueItemsCount + indexInRepetition;
+      if (targetIndex >= animationItems.length) {
+        targetIndex = 5 * uniqueItemsCount + indexInRepetition;
+      }
+    } else {
+      targetIndex = Math.floor(animationItems.length * 0.75);
+    }
+    
         // This calculation now correctly derives the pixel value for x
         return -(targetIndex * ITEM_WIDTH - (document.body.clientWidth / 2) + (ITEM_WIDTH / 2));
     },
     [animationItems]
   );
-  
+
   const handleOpenCase = async () => {
-    if (animationState !== 'idle') return;
+    if (animationState !== 'idle' || !caseContents?.items) return;
 
     setAnimationState('loading');
     setError(null);
+    x.set(0);
 
     try {
-      x.set(0);
-
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setAnimationState('rolling');
-      const apiPromise = httpClient.post(`/shop/cases/${caseId}/open`);
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      const rollingAnimation = animate(x, -animationItems.length * ITEM_WIDTH, {
-        duration: 10, // Increased from 8 to 10
+      setAnimationState('rolling');
+      
+      const apiPromise = httpClient.post(`/shop/cases/${caseId}/open`);
+
+      // Start a long, continuous roll that will be interrupted later.
+      animate(x, -animationItems.length * ITEM_WIDTH, {
+        duration: 12, // A long background animation
         ease: 'linear',
       });
 
       const apiResponse = await apiPromise;
       const resultData: RollResult = apiResponse.data;
       setRollResult(resultData);
-      
-      rollingAnimation.stop();
 
-      await new Promise(resolve => setTimeout(resolve, 500));
+      setAnimationState('decelerating');
+
+      const finalX = generateAnimationSequenceFromRoll(
+        resultData.rollValue,
+        caseContents
+      );
       
-      await handleDeceleration(resultData);
+      // This new animation will smoothly take over from the current one.
+      await animate(x, finalX, {
+        duration: 7, // Suspenseful deceleration
+        ease: [0.22, 1, 0.36, 1], // Custom ease-out curve
+      });
+
+      setAnimationState('revealing');
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      setAnimationState('reward');
+      onRollComplete(resultData);
 
     } catch (error: any) {
       setError(error.response?.data?.message || 'Failed to open case');
       setAnimationState('idle');
     }
-  };
-
-  const handleDeceleration = async (result: RollResult) => {
-    setAnimationState('decelerating');
-
-    const finalX = generateAnimationSequenceFromRoll(
-      result.rollValue,
-      caseContents!
-    );
-
-    const decelerationAnimation = animate(x, finalX, {
-        duration: 5, // Increased from 3 to 5
-        ease: [0.25, 0.46, 0.45, 0.94],
-    });
-
-    await decelerationAnimation;
-
-    setAnimationState('revealing');
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    setAnimationState('reward');
   };
 
   const handleClaimAndClose = () => {
@@ -181,7 +175,7 @@ export function CaseRollModal({
       handleClose();
     }
   };
-  
+
   const renderContent = () => {
     switch (animationState) {
       case 'idle':
@@ -284,7 +278,7 @@ export function CaseRollModal({
                     <h2 className="text-xl font-bold text-white">
                       {rollResult.wonItem.name}
                     </h2>
-                    <span
+                    <span 
                       className="px-2 py-1 rounded-full text-xs font-semibold"
                       style={getRarityBadgeStyle(rollResult.wonItem.rarity)}
                     >

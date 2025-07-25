@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { motion, useSpring, MotionValue } from 'framer-motion';
+import { motion, MotionValue } from 'framer-motion';
 import { CaseItemThumbnail } from './CaseItemThumbnail';
 import { CaseItemDTO, AnimationState } from './CaseTypes';
 
@@ -51,12 +51,6 @@ export const CaseRollAnimation = React.memo(({ animationItems, animationState, x
     updateVirtualItems(); // Initial call
     return unsubscribe;
   }, [x, updateVirtualItems]);
-
-  const smoothX = useSpring(x, {
-    damping: 25,
-    stiffness: 200,
-    mass: 0.5
-  });
   
   return (
     <motion.div
@@ -75,7 +69,7 @@ export const CaseRollAnimation = React.memo(({ animationItems, animationState, x
           <motion.div
             className="h-full"
             style={{ 
-              x: smoothX,
+              x,
               width: totalAnimationWidth,
               position: 'relative',
             }}

@@ -20,7 +20,7 @@ export const CaseItemThumbnail = React.memo(({ item, user, animationState }: Cas
     <motion.div
       className="flex-shrink-0 w-24 h-24 relative"
       style={{
-        filter: isRevealing ? 'blur(1px) brightness(0.7)' : 'none',
+        filter: isRevealing ? 'brightness(0.8)' : 'none',
         minWidth: '96px',
       }}
       transition={{ duration: 0.3 }}
@@ -69,14 +69,6 @@ export const CaseItemThumbnail = React.memo(({ item, user, animationState }: Cas
           </div>
         )}
         
-        {isRevealing && (
-            <div 
-              className="absolute inset-0 rounded-lg opacity-30"
-              style={{
-                boxShadow: `inset 0 0 10px ${rarityColor}`,
-              }}
-            />
-        )}
       </div>
       
       <div 
