@@ -19,6 +19,7 @@ import java.util.UUID;
 /**
  * CaseItem Entity
  * 
+ *
  * Represents an item that can be obtained from a case with a specific drop rate.
  * Links cases to their possible contents with probability weights.
  */
@@ -60,7 +61,7 @@ public class CaseItem {
      * Higher values = more likely to drop relative to other items in the same case.
      */
     @NotNull
-    @DecimalMin(value = "0.0", inclusive = false)
+    @DecimalMin(value = "1.0", message = "Drop rate must be at least 1.0")
     @Column(name = "drop_rate", nullable = false, precision = 10, scale = 4)
     private BigDecimal dropRate;
     
