@@ -94,8 +94,7 @@ public class TradeCommandListener extends ListenerAdapter {
             long tradeId = trade.getId();
 
             EmbedBuilder embed = new EmbedBuilder()
-                    .setTitle(receiverUser.getEffectiveName() + "! " + initiatorUser.getEffectiveName() + " wants to trade with you!")
-                    .setFooter("Do you want to trade with them?")
+                    .setDescription(receiverUser.getAsMention() + " " + initiatorUser.getEffectiveName() + " wants to trade with you!")
                     .setColor(new Color(0x5865F2));
 
             Button accept = Button.success("trade_accept-initial_" + tradeId + "_" + initiator.getId() + "_" + receiver.getId(), "Accept");
@@ -132,6 +131,14 @@ public class TradeCommandListener extends ListenerAdapter {
         String receiverId = parts.length > 4 ? parts[4] : null;
 
         String clickerId = event.getUser().getId();
+
+        if (action.equals("accept-initial") || action.equals("decline-initial")) {
+            // This is a security check to ensure only the receiver of the trade can accept or decline.
+            if (!clickerId.equals(receiverId)) {
+                event.reply("You cannot interact with this initial request. Please wait for the recipient to respond.").setEphemeral(true).queue();
+                return;
+            }
+        }
 
         if (initiatorId != null && receiverId != null && !clickerId.equals(initiatorId) && !clickerId.equals(receiverId)) {
             event.reply("You are not part of this trade.").setEphemeral(true).queue();
