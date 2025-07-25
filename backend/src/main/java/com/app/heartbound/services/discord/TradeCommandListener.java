@@ -426,7 +426,7 @@ public class TradeCommandListener extends ListenerAdapter {
                 .map(this::formatItemForDisplay)
                 .collect(Collectors.joining("\n"));
         if (itemsForInitiator.isEmpty()) {
-            itemsForInitiator = "Nothing yet!";
+            itemsForInitiator = "\u200B";
         }
 
         String itemsForReceiver = trade.getItems().stream()
@@ -435,7 +435,7 @@ public class TradeCommandListener extends ListenerAdapter {
                 .map(this::formatItemForDisplay)
                 .collect(Collectors.joining("\n"));
         if (itemsForReceiver.isEmpty()) {
-            itemsForReceiver = "Nothing yet!";
+            itemsForReceiver = "\u200B";
         }
 
         embed.addField("\u200B", initiator.getAsMention() + " will receive:\n" + itemsForInitiator, false);
