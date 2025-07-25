@@ -158,20 +158,20 @@ public class User {
     private Set<Role> roles = new HashSet<>();
     
     // Add inventory relationship
-    @ManyToMany(fetch = jakarta.persistence.FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinTable(
-        name = "user_inventory",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "item_id")
-    )
-    @Builder.Default
-    private Set<Shop> inventory = new HashSet<>();
+    // @ManyToMany(fetch = jakarta.persistence.FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    // @JoinTable(
+    //     name = "user_inventory",
+    //     joinColumns = @JoinColumn(name = "user_id"),
+    //     inverseJoinColumns = @JoinColumn(name = "item_id")
+    // )
+    // @Builder.Default
+    // private Set<Shop> inventory = new HashSet<>();
     
     // Add new inventory relationship with quantity support
-    @OneToMany(mappedBy = "user", fetch = jakarta.persistence.FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    @ToString.Exclude
-    @Builder.Default
-    private Set<UserInventoryItem> inventoryItems = new HashSet<>();
+    // @OneToMany(mappedBy = "user", fetch = jakarta.persistence.FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    // @ToString.Exclude
+    // @Builder.Default
+    // private Set<UserInventoryItem> inventoryItems = new HashSet<>();
     
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @Builder.Default
@@ -212,105 +212,33 @@ public class User {
         }
     }
     
-    // Helper methods for inventory management
-    public void addItem(Shop item) {
-        if (this.inventory == null) {
-            this.inventory = new HashSet<>();
-        }
-        this.inventory.add(item);
-    }
+    // Helper methods for inventory management are now based on ItemInstance
     
+    /**
+     * Checks if the user owns at least one instance of a specific base item.
+     * @param itemId The UUID of the base Shop item.
+     * @return true if the user owns the item, false otherwise.
+     */
     public boolean hasItem(UUID itemId) {
-        return this.inventory != null && 
-               this.inventory.stream()
-                   .anyMatch(item -> item.getId().equals(itemId));
-    }
-    
-    // Helper methods for new quantity-based inventory management
-    public void addItemWithQuantity(Shop item, int quantity) {
-        if (this.inventoryItems == null) {
-            this.inventoryItems = new HashSet<>();
-        }
-        
-        // Check if the item already exists in the new inventory
-        UserInventoryItem existingItem = this.inventoryItems.stream()
-            .filter(invItem -> invItem.getItem().getId().equals(item.getId()))
-            .findFirst()
-            .orElse(null);
-        
-        if (existingItem != null) {
-            // Item exists, add to quantity
-            existingItem.addQuantity(quantity);
-        } else {
-            // Create new inventory item with proper bidirectional relationship
-            UserInventoryItem newInventoryItem = new UserInventoryItem();
-            newInventoryItem.setUser(this);
-            newInventoryItem.setItem(item);
-            newInventoryItem.setQuantity(quantity);
-            
-            // Add to the collection
-            this.inventoryItems.add(newInventoryItem);
-        }
-        
-        // Also add to old inventory for backwards compatibility
-        this.addItem(item);
-    }
-    
-    public boolean hasItemWithQuantity(UUID itemId) {
-        if (this.inventoryItems == null) {
+        if (this.itemInstances == null) {
             return false;
         }
-        
-        return this.inventoryItems.stream()
-            .anyMatch(invItem -> 
-                invItem.getItem().getId().equals(itemId) && 
-                invItem.hasQuantity()
-            );
-    }
-    
-    public int getItemQuantity(UUID itemId) {
-        if (this.inventoryItems == null) {
-            return 0;
-        }
-        
-        return this.inventoryItems.stream()
-            .filter(invItem -> invItem.getItem().getId().equals(itemId))
-            .mapToInt(UserInventoryItem::getQuantity)
-            .findFirst()
-            .orElse(0);
+        return this.itemInstances.stream()
+            .anyMatch(instance -> instance.getBaseItem().getId().equals(itemId));
     }
     
     /**
-     * @deprecated This method is unsafe for concurrent operations due to race conditions.
-     * Use UserInventoryItemRepository.decrementQuantityIfEnough() for atomic operations instead.
-     * This method will be removed in a future version.
+     * Counts how many instances of a specific base item the user owns.
+     * @param itemId The UUID of the base Shop item.
+     * @return The quantity of the specified item.
      */
-    @Deprecated
-    public boolean removeItemQuantity(UUID itemId, int quantity) {
-        if (this.inventoryItems == null) {
-            return false;
+    public int getItemQuantity(UUID itemId) {
+        if (this.itemInstances == null) {
+            return 0;
         }
-        
-        UserInventoryItem inventoryItem = this.inventoryItems.stream()
-            .filter(invItem -> invItem.getItem().getId().equals(itemId))
-            .findFirst()
-            .orElse(null);
-        
-        if (inventoryItem == null) {
-            return false;
-        }
-        
-        boolean stillHasQuantity = inventoryItem.removeQuantity(quantity);
-        
-        if (!stillHasQuantity) {
-            // Remove from new inventory if no quantity left
-            this.inventoryItems.remove(inventoryItem);
-            
-            // Remove from old inventory for backwards compatibility
-            this.inventory.removeIf(item -> item.getId().equals(itemId));
-        }
-        
-        return true;
+        return (int) this.itemInstances.stream()
+            .filter(instance -> instance.getBaseItem().getId().equals(itemId))
+            .count();
     }
 
     // Add getter/setter methods for the new fields

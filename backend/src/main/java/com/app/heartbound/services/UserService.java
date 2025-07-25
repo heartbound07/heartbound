@@ -13,15 +13,14 @@ import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.entities.Shop;
-import com.app.heartbound.entities.UserInventoryItem;
 import com.app.heartbound.entities.DailyMessageStat;
 import com.app.heartbound.entities.DailyVoiceActivityStat;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
-import com.app.heartbound.repositories.UserInventoryItemRepository;
 import com.app.heartbound.repositories.DailyMessageStatRepository;
 import com.app.heartbound.repositories.DailyVoiceActivityStatRepository;
 import com.app.heartbound.repositories.PendingRoleSelectionRepository;
+import com.app.heartbound.repositories.ItemInstanceRepository;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import com.app.heartbound.config.CacheConfig;
@@ -67,13 +66,14 @@ import com.app.heartbound.dto.RegisterRequestDTO;
 import com.app.heartbound.entities.DiscordBotSettings;
 import net.dv8tion.jda.api.entities.Member;
 import java.util.Arrays;
+import com.app.heartbound.entities.ItemInstance;
 
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
     private final ShopRepository shopRepository;
-    private final UserInventoryItemRepository userInventoryItemRepository;
+    private final ItemInstanceRepository itemInstanceRepository;
     private final DailyMessageStatRepository dailyMessageStatRepository;
     private final DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository;
     private final PendingRoleSelectionRepository pendingRoleSelectionRepository;
@@ -105,10 +105,10 @@ public class UserService {
     private int levelFactor;
 
     // Constructor-based dependency injection
-    public UserService(UserRepository userRepository, ShopRepository shopRepository, UserInventoryItemRepository userInventoryItemRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, PendingRoleSelectionRepository pendingRoleSelectionRepository, PendingPrisonService pendingPrisonService, CacheConfig cacheConfig, AuditService auditService, ObjectMapper objectMapper, @Lazy JDA jda) {
+    public UserService(UserRepository userRepository, ShopRepository shopRepository, ItemInstanceRepository itemInstanceRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, PendingRoleSelectionRepository pendingRoleSelectionRepository, PendingPrisonService pendingPrisonService, CacheConfig cacheConfig, AuditService auditService, ObjectMapper objectMapper, @Lazy JDA jda) {
         this.userRepository = userRepository;
         this.shopRepository = shopRepository;
-        this.userInventoryItemRepository = userInventoryItemRepository;
+        this.itemInstanceRepository = itemInstanceRepository;
         this.dailyMessageStatRepository = dailyMessageStatRepository;
         this.dailyVoiceActivityStatRepository = dailyVoiceActivityStatRepository;
         this.pendingRoleSelectionRepository = pendingRoleSelectionRepository;
@@ -1351,73 +1351,31 @@ public class UserService {
     public List<UserInventoryItemDTO> getUserInventoryItems(String userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
-        
-        // Get items from new inventory system (with quantities)
-        List<UserInventoryItem> newInventoryItems = userInventoryItemRepository.findByUserWithQuantity(user);
-        
-        // Convert new inventory items to DTOs
-        List<UserInventoryItemDTO> dtoList = newInventoryItems.stream()
-                .map(this::mapInventoryItemToDTO)
-                .collect(Collectors.toList());
-        
-        // Get item IDs from new inventory to avoid duplicates
-        Set<UUID> newInventoryItemIds = newInventoryItems.stream()
-                .map(item -> item.getItem().getId())
-                .collect(Collectors.toSet());
-        
-        // Get items from legacy inventory system that aren't already in new system
-        Set<Shop> legacyInventoryItems = user.getInventory();
-        if (legacyInventoryItems != null) {
-            List<UserInventoryItemDTO> legacyDtos = legacyInventoryItems.stream()
-                    .filter(item -> !newInventoryItemIds.contains(item.getId())) // Avoid duplicates
-                    .map(this::mapLegacyInventoryItemToDTO)
-                    .collect(Collectors.toList());
-            
-            dtoList.addAll(legacyDtos);
-        }
-        
-        return dtoList;
-    }
 
-    /**
-     * Maps a UserInventoryItem entity to UserInventoryItemDTO.
-     * 
-     * @param inventoryItem the inventory item entity
-     * @return the corresponding DTO
-     */
-    private UserInventoryItemDTO mapInventoryItemToDTO(UserInventoryItem inventoryItem) {
-        Shop item = inventoryItem.getItem();
-        
-        return UserInventoryItemDTO.builder()
-                .itemId(item.getId())
-                .name(item.getName())
-                .description(item.getDescription())
-                .category(item.getCategory())
-                .thumbnailUrl(item.getThumbnailUrl())
-                .imageUrl(item.getImageUrl())
-                .quantity(inventoryItem.getQuantity())
-                .price(item.getPrice())
-                .build();
-    }
+        // Group item instances by their base item and count them to get quantities.
+        Map<Shop, Long> itemCounts = user.getItemInstances().stream()
+            .collect(Collectors.groupingBy(
+                ItemInstance::getBaseItem,
+                Collectors.counting()
+            ));
 
-    /**
-     * Maps a legacy Shop inventory item to UserInventoryItemDTO.
-     * Legacy items have no quantity tracking, so quantity defaults to 1.
-     * 
-     * @param item the shop item from legacy inventory
-     * @return the corresponding DTO
-     */
-    private UserInventoryItemDTO mapLegacyInventoryItemToDTO(Shop item) {
-        return UserInventoryItemDTO.builder()
-                .itemId(item.getId())
-                .name(item.getName())
-                .description(item.getDescription())
-                .category(item.getCategory())
-                .thumbnailUrl(item.getThumbnailUrl())
-                .imageUrl(item.getImageUrl())
-                .quantity(1) // Legacy items don't have quantity tracking, default to 1
-                .price(item.getPrice())
-                .build();
+        // Map the grouped items and their counts to DTOs.
+        return itemCounts.entrySet().stream()
+            .map(entry -> {
+                Shop item = entry.getKey();
+                int quantity = entry.getValue().intValue();
+                return UserInventoryItemDTO.builder()
+                        .itemId(item.getId())
+                        .name(item.getName())
+                        .description(item.getDescription())
+                        .category(item.getCategory())
+                        .thumbnailUrl(item.getThumbnailUrl())
+                        .imageUrl(item.getImageUrl())
+                        .quantity(quantity)
+                        .price(item.getPrice())
+                        .build();
+            })
+            .collect(Collectors.toList());
     }
 
     /**
@@ -1437,21 +1395,18 @@ public class UserService {
     public UserProfileDTO removeInventoryItem(String userId, UUID itemId, String adminId) {
         logger.debug("Admin {} removing item {} from user {}'s inventory", adminId, itemId, userId);
         
-        // Verify user exists
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         
-        // Get the shop item for refund calculation and validation
         Shop shopItem = shopRepository.findById(itemId)
-                .orElse(null); // Item might have been deleted from shop, but still in inventory
+                .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
         
         boolean itemRemoved = false;
         boolean wasEquipped = false;
         int refundAmount = 0;
-        String itemName = "Unknown Item";
+        String itemName = shopItem.getName();
         
-        // Check if item is equipped and unequip it first (skip for CASE items as they cannot be equipped)
-        if (shopItem != null && shopItem.getCategory() != ShopCategory.CASE) {
+        if (shopItem.getCategory() != ShopCategory.CASE) {
             UUID equippedItemId = user.getEquippedItemIdByCategory(shopItem.getCategory());
             if (equippedItemId != null && equippedItemId.equals(itemId)) {
                 user.setEquippedItemIdByCategory(shopItem.getCategory(), null);
@@ -1460,85 +1415,41 @@ public class UserService {
             }
         }
         
-        // Try to remove from new inventory system first
-        if (shopItem != null) {
-            Optional<UserInventoryItem> inventoryItemOpt = userInventoryItemRepository.findByUserAndItem(user, shopItem);
-            if (inventoryItemOpt.isPresent()) {
-                UserInventoryItem inventoryItem = inventoryItemOpt.get();
-                itemName = inventoryItem.getItem().getName();
-                
-                // Calculate refund if item has a price
-                if (inventoryItem.getItem().getPrice() != null && inventoryItem.getItem().getPrice() > 0) {
-                    refundAmount = inventoryItem.getItem().getPrice() * inventoryItem.getQuantity();
-                }
-                
-                // Remove from new inventory
-                userInventoryItemRepository.delete(inventoryItem);
-                itemRemoved = true;
-                
-                logger.debug("Removed item {} (quantity: {}) from new inventory system for user {}", 
-                        itemId, inventoryItem.getQuantity(), userId);
-            }
-        } else {
-            // Handle deleted shop items by finding the inventory item directly by item ID
-            List<UserInventoryItem> allUserItems = userInventoryItemRepository.findByUser(user);
-            Optional<UserInventoryItem> inventoryItemOpt = allUserItems.stream()
-                .filter(item -> item.getItem().getId().equals(itemId))
-                .findFirst();
+        Optional<ItemInstance> instanceToRemove = user.getItemInstances().stream()
+            .filter(instance -> instance.getBaseItem().getId().equals(itemId))
+            .findFirst();
+
+        if (instanceToRemove.isPresent()) {
+            ItemInstance itemInstance = instanceToRemove.get();
             
-            if (inventoryItemOpt.isPresent()) {
-                UserInventoryItem inventoryItem = inventoryItemOpt.get();
-                itemName = inventoryItem.getItem().getName();
-                
-                // For deleted shop items, we can't refund as we don't know the original price
-                refundAmount = 0;
-                
-                // Remove from new inventory
-                userInventoryItemRepository.delete(inventoryItem);
-                itemRemoved = true;
-                
-                logger.debug("Removed deleted item {} (quantity: {}) from new inventory system for user {} - no refund", 
-                        itemId, inventoryItem.getQuantity(), userId);
+            if (itemInstance.getBaseItem().getPrice() != null && itemInstance.getBaseItem().getPrice() > 0) {
+                refundAmount = itemInstance.getBaseItem().getPrice();
             }
+            
+            itemInstanceRepository.delete(itemInstance);
+            user.getItemInstances().remove(itemInstance);
+            itemRemoved = true;
+            
+            logger.debug("Removed item instance {} for item {} from user {}", itemInstance.getId(), itemId, userId);
         }
         
-        // Also check and remove from legacy inventory system
-        if (user.getInventory() != null && shopItem != null) {
-            boolean removedFromLegacy = user.getInventory().removeIf(item -> item.getId().equals(itemId));
-            if (removedFromLegacy && !itemRemoved) {
-                // Only calculate refund if not already calculated from new system
-                if (shopItem.getPrice() != null && shopItem.getPrice() > 0) {
-                    refundAmount = shopItem.getPrice(); // Legacy items have quantity 1
-                }
-                itemName = shopItem.getName();
-                itemRemoved = true;
-                logger.debug("Removed item {} from legacy inventory system for user {}", itemId, userId);
-            }
-        }
-        
-        // Verify that the item was actually removed
         if (!itemRemoved) {
             throw new ResourceNotFoundException("Item not found in user's inventory: " + itemId);
         }
         
-        // Process credit refund if applicable
         if (refundAmount > 0) {
             int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
             user.setCredits(currentCredits + refundAmount);
             logger.info("Refunded {} credits to user {} for removed item {}", refundAmount, userId, itemId);
         }
         
-        // Save the updated user
         User updatedUser = userRepository.save(user);
         
-        // Create audit trail for inventory removal
         createInventoryRemovalAuditEntry(adminId, userId, itemId, itemName, refundAmount, wasEquipped);
         
-        // Invalidate relevant caches
         cacheConfig.invalidateUserProfileCache(userId);
         cacheConfig.invalidateLeaderboardCache();
         
-        // Audit log
         logger.info("ADMIN INVENTORY REMOVAL - Admin: {}, User: {}, Item: {} ({}), Refund: {} credits, Was Equipped: {}", 
                 adminId, userId, itemId, itemName, refundAmount, wasEquipped);
         
@@ -2128,7 +2039,7 @@ public class UserService {
         dailyVoiceActivityStatRepository.deleteByUserId(userId);
 
         // 3. Delete inventory items (handled by cascade on User entity, but explicit is safer)
-        userInventoryItemRepository.deleteByUser(user);
+        // This is no longer needed as orphanRemoval=true on User.itemInstances will handle it.
 
         // The user exists and related data is cleaned up, proceed with deletion
         userRepository.delete(user);

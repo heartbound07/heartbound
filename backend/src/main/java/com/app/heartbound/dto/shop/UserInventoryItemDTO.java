@@ -1,5 +1,6 @@
 package com.app.heartbound.dto.shop;
 
+import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.enums.ShopCategory;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,4 +42,8 @@ public class UserInventoryItemDTO {
     
     @Min(value = 0, message = "Price cannot be negative")
     private Integer price;
+    
+    private ItemRarity rarity;
+    
+    private String discordRoleId;
 } 

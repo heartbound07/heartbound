@@ -29,7 +29,6 @@ import com.app.heartbound.exceptions.shop.InsufficientStockException;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
 import com.app.heartbound.repositories.shop.CaseItemRepository;
-import com.app.heartbound.repositories.UserInventoryItemRepository;
 import com.app.heartbound.repositories.ItemInstanceRepository;
 import com.app.heartbound.repositories.RollAuditRepository;
 import com.app.heartbound.entities.RollAudit;
@@ -77,7 +76,6 @@ public class ShopService {
     private final SecureRandomService secureRandomService;
     private final RollAuditRepository rollAuditRepository;
     private final RollVerificationService rollVerificationService;
-    private final UserInventoryItemRepository userInventoryItemRepository;
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
     private final CacheConfig cacheConfig;
@@ -95,7 +93,6 @@ public class ShopService {
         SecureRandomService secureRandomService,
         RollAuditRepository rollAuditRepository,
         RollVerificationService rollVerificationService,
-        UserInventoryItemRepository userInventoryItemRepository,
         AuditService auditService,
         CacheConfig cacheConfig,
         EntityManager entityManager
@@ -110,7 +107,6 @@ public class ShopService {
         this.secureRandomService = secureRandomService;
         this.rollAuditRepository = rollAuditRepository;
         this.rollVerificationService = rollVerificationService;
-        this.userInventoryItemRepository = userInventoryItemRepository;
         this.auditService = auditService;
         this.cacheConfig = cacheConfig;
         this.entityManager = entityManager;
@@ -1463,17 +1459,11 @@ public class ShopService {
     private void cleanupUserInventories(Shop item) {
         logger.debug("Cleaning up user inventories for item {}", item.getId());
         
-        // Clean up the new UserInventoryItem system
-        userInventoryItemRepository.deleteByItem(item);
-        
-        // Clean up the legacy User.inventory system (if still in use)
-        List<User> usersWithItem = userRepository.findByInventoryContaining(item);
-        if (!usersWithItem.isEmpty()) {
-            logger.info("Removing item {} from {} users' legacy inventory", item.getId(), usersWithItem.size());
-            for (User user : usersWithItem) {
-                user.getInventory().removeIf(i -> i.getId().equals(item.getId()));
-                userRepository.save(user);
-            }
+        // Clean up the new ItemInstance system by finding all instances of the base item and deleting them.
+        List<ItemInstance> instancesToDelete = itemInstanceRepository.findByBaseItem(item);
+        if (!instancesToDelete.isEmpty()) {
+            logger.info("Removing {} instances of item {} from user inventories.", instancesToDelete.size(), item.getId());
+            itemInstanceRepository.deleteAll(instancesToDelete);
         }
     }
     
@@ -1569,11 +1559,13 @@ public class ShopService {
         }
         
         // 3. Verify and consume one case to prevent race conditions
-        // This replaces the previous check-then-modify pattern which was vulnerable to TOCTOU attacks
-        int casesConsumed = userInventoryItemRepository.decrementQuantityIfEnough(userId, caseId, 1);
-        if (casesConsumed == 0) {
-            throw new CaseNotOwnedException("You do not own this case or have no cases left to open");
-        }
+        ItemInstance caseToConsume = user.getItemInstances().stream()
+                .filter(instance -> instance.getBaseItem().getId().equals(caseId))
+                .findFirst()
+                .orElseThrow(() -> new CaseNotOwnedException("You do not own this case or have no cases left to open"));
+
+        itemInstanceRepository.delete(caseToConsume);
+        user.getItemInstances().remove(caseToConsume);
         
         // 4. Get case contents with drop rates and validate
         List<CaseItem> caseItems = caseItemRepository.findByCaseIdOrderByDropRateDesc(caseId);
@@ -1636,12 +1628,15 @@ public class ShopService {
         }
         
         // 13. Case was already consumed atomically at the beginning (step 3) to prevent race conditions
-        // Clean up any zero-quantity items from the inventory
-        userInventoryItemRepository.removeZeroQuantityItem(userId, caseId);
+        // The specific instance has been deleted, so no zero-quantity cleanup is needed.
         
         // 14. Add won item to user inventory (only if not already owned)
         if (!alreadyOwned) {
-            user.addItem(wonItem);
+            ItemInstance newInstance = ItemInstance.builder()
+                .owner(user)
+                .baseItem(wonItem)
+                .build();
+            user.getItemInstances().add(newInstance);
         }
         
         // 15. Save user changes

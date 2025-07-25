@@ -1,23 +1,21 @@
 package com.app.heartbound.services;
 
+import com.app.heartbound.dto.shop.UserInventoryItemDTO;
+import com.app.heartbound.entities.ItemInstance;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.entities.User;
-import com.app.heartbound.entities.UserInventoryItem;
-import com.app.heartbound.entities.ItemInstance;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
-import com.app.heartbound.repositories.UserInventoryItemRepository;
-import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.ItemInstanceRepository;
-import com.app.heartbound.services.shop.ShopService;
+import com.app.heartbound.repositories.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Service
 public class UserInventoryService {
@@ -26,7 +24,7 @@ public class UserInventoryService {
     private final ItemInstanceRepository itemInstanceRepository;
     private final UserRepository userRepository;
 
-    public UserInventoryService(UserInventoryItemRepository userInventoryItemRepository, ItemInstanceRepository itemInstanceRepository, UserRepository userRepository, ShopService shopService) {
+    public UserInventoryService(ItemInstanceRepository itemInstanceRepository, UserRepository userRepository) {
         this.itemInstanceRepository = itemInstanceRepository;
         this.userRepository = userRepository;
     }
@@ -41,26 +39,36 @@ public class UserInventoryService {
                 .count();
     }
 
-    public List<UserInventoryItem> getUserInventory(String userId) {
+    public List<UserInventoryItemDTO> getUserInventory(String userId) {
         logger.debug("Fetching inventory for user ID: {}", userId);
-        User user = userRepository.findByIdWithInventories(userId)
+        User user = userRepository.findByIdWithItemInstances(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
-    
+
         // Group instances by base item and count them
         Map<Shop, Long> itemCounts = user.getItemInstances().stream()
             .collect(Collectors.groupingBy(ItemInstance::getBaseItem, Collectors.counting()));
-    
-        // Convert to the old UserInventoryItem structure for compatibility
-        List<UserInventoryItem> inventoryItems = itemCounts.entrySet().stream()
-            .map(entry -> UserInventoryItem.builder()
-                .user(user)
-                .item(entry.getKey())
-                .quantity(entry.getValue().intValue())
-                .build())
+
+        // Convert to DTOs
+        List<UserInventoryItemDTO> inventoryDTOs = itemCounts.entrySet().stream()
+            .map(entry -> {
+                Shop item = entry.getKey();
+                return UserInventoryItemDTO.builder()
+                    .itemId(item.getId())
+                    .name(item.getName())
+                    .description(item.getDescription())
+                    .category(item.getCategory())
+                    .thumbnailUrl(item.getThumbnailUrl())
+                    .imageUrl(item.getImageUrl())
+                    .price(item.getPrice())
+                    .quantity(entry.getValue().intValue())
+                    .rarity(item.getRarity())
+                    .discordRoleId(item.getDiscordRoleId())
+                    .build();
+            })
             .collect(Collectors.toList());
-    
-        logger.debug("Combined inventory size for user {}: {}", userId, inventoryItems.size());
-        return inventoryItems;
+
+        logger.debug("Combined inventory DTO size for user {}: {}", userId, inventoryDTOs.size());
+        return inventoryDTOs;
     }
 
 
