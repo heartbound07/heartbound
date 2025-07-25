@@ -22,7 +22,7 @@ public class TradeItem {
     @JoinColumn(name = "trade_id", nullable = false)
     private Trade trade;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_instance_id", nullable = false)
     private ItemInstance itemInstance;
 
