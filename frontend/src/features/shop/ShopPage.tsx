@@ -737,7 +737,7 @@ export function ShopPage() {
               </div>
               
               {/* Daily Items Section - Right Side */}
-              <div className="daily-section">
+              <div className="daily-section flex flex-col">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-white">Daily Items</h2>
                   <div className="flex items-center text-sm text-slate-400 bg-slate-800/50 px-3 py-1.5 rounded-full">
