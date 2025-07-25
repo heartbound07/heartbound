@@ -158,7 +158,8 @@ const InventoryItemCard = forwardRef(({
       style={{ borderColor: isSelected ? 'var(--color-primary, #0088cc)' : (item.equipped ? 'var(--color-primary, #0088cc)' : 'transparent') }}
       onClick={() => onSelect(item)}
     >
-      {(item.quantity && item.quantity > 1) && (
+      {/* Show quantity for non-case items */}
+      {(item.quantity && item.quantity > 1 && item.category !== 'CASE') && (
         <div className="absolute top-2 left-2 z-10 bg-indigo-600 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-lg">
           x{item.quantity}
         </div>
@@ -204,6 +205,12 @@ const InventoryItemCard = forwardRef(({
         </div>
       ) : item.category === 'CASE' ? (
         <div className="shop-item-image inventory-item-image case-preview-container">
+          {/* Show styled quantity ONLY for case items */}
+          {(item.quantity && item.quantity > 1) && (
+            <div className="absolute top-2 left-2 z-10 text-white text-lg font-bold px-2 py-1" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.7)' }}>
+              x{item.quantity}
+            </div>
+          )}
           {/* Case visual representation */}
           <div className="h-full w-full bg-gradient-to-br from-slate-700 to-slate-800 flex flex-col items-center justify-center relative overflow-hidden">
             {/* Case icon/visual */}
@@ -243,13 +250,6 @@ const InventoryItemCard = forwardRef(({
               </div>
             )}
 
-            {/* Case quantity display */}
-            {item.category === 'CASE' && item.quantity && item.quantity > 1 && (
-              <div className="mt-1 text-xs text-primary font-bold">
-                x{item.quantity} Cases
-              </div>
-            )}
-            
             {/* Mystical background effect */}
             <div 
               className="absolute inset-0 opacity-20"
@@ -259,20 +259,6 @@ const InventoryItemCard = forwardRef(({
           />
         </div>
         
-          {/* Case-specific badges */}
-          <div className="absolute top-2 left-2">
-            <div 
-              className="px-2 py-1 rounded text-xs font-semibold border"
-              style={{
-                backgroundColor: `${rarityColor}20`,
-                color: rarityColor,
-                borderColor: rarityColor
-              }}
-            >
-              Case
-            </div>
-          </div>
-          
           {/* Info icon in top right corner for cases */}
           {item.category === 'CASE' && item.caseContentsCount && item.caseContentsCount > 0 && onViewCaseContents && (
             <div className="absolute top-2 right-2">
