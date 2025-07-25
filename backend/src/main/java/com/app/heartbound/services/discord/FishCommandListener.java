@@ -65,8 +65,6 @@ public class FishCommandListener extends ListenerAdapter {
     private final AuditService auditService;
     private final ShopRepository shopRepository;
 
-    private final Map<String, LocalDateTime> userCooldowns = new ConcurrentHashMap<>();
-
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
     
@@ -176,14 +174,6 @@ public class FishCommandListener extends ListenerAdapter {
         }
         
         String userId = event.getUser().getId();
-        LocalDateTime now = LocalDateTime.now();
-
-        // 3-second cooldown to prevent spam
-        LocalDateTime lastUsed = userCooldowns.get(userId);
-        if (lastUsed != null && Duration.between(lastUsed, now).getSeconds() < 3) {
-            event.reply("You're fishing too fast! Please wait a moment.").setEphemeral(true).queue();
-            return;
-        }
 
         // Guild restriction check
         Guild guild = event.getGuild();
@@ -193,9 +183,6 @@ public class FishCommandListener extends ListenerAdapter {
                     .queue();
             return;
         }
-
-        // All checks passed, update cooldown
-        userCooldowns.put(userId, now);
         
         logger.info("User {} requested /fish", userId);
         
