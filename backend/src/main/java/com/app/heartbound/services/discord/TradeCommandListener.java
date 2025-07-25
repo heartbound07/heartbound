@@ -314,27 +314,30 @@ public class TradeCommandListener extends ListenerAdapter {
                 User initiator = jdaInstance.retrieveUserById(trade.getInitiator().getId()).complete();
                 User receiver = jdaInstance.retrieveUserById(trade.getReceiver().getId()).complete();
 
-                String initiatorReceivedItems = trade.getItems().stream()
+                String itemsForInitiator = trade.getItems().stream()
+                        .map(TradeItem::getItemInstance)
+                        .filter(instance -> instance.getOwner().getId().equals(initiator.getId()))
+                        .map(this::formatItemForDisplay)
+                        .collect(Collectors.joining("\n"));
+
+                String itemsForReceiver = trade.getItems().stream()
                         .map(TradeItem::getItemInstance)
                         .filter(instance -> instance.getOwner().getId().equals(receiver.getId()))
                         .map(this::formatItemForDisplay)
                         .collect(Collectors.joining("\n"));
 
-                String receiverReceivedItems = trade.getItems().stream()
-                        .map(TradeItem::getItemInstance)
-                        .filter(instance -> instance.getOwner().getId().equals(initiator.getId()))
-                        .map(this::formatItemForDisplay)
-                        .collect(Collectors.joining("\n"));
-                
-                if (initiatorReceivedItems.isEmpty()) initiatorReceivedItems = "\u200B";
-                if (receiverReceivedItems.isEmpty()) receiverReceivedItems = "\u200B";
-
                 EmbedBuilder successEmbed = new EmbedBuilder()
                         .setTitle("Trade Successful!")
                         .setColor(Color.GREEN)
-                        .addField(initiator.getEffectiveName() + " has Received", initiatorReceivedItems, true)
-                        .addField(receiver.getEffectiveName() + " has Received", receiverReceivedItems, true)
                         .setFooter("Go to your Inventory to equip your new item!");
+
+                if (!itemsForInitiator.isEmpty()) {
+                    successEmbed.addField(initiator.getEffectiveName() + " has Received", itemsForInitiator, true);
+                }
+
+                if (!itemsForReceiver.isEmpty()) {
+                    successEmbed.addField(receiver.getEffectiveName() + " has Received", itemsForReceiver, true);
+                }
 
                 event.getHook().editOriginalEmbeds(successEmbed.build())
                         .setComponents().queue();
