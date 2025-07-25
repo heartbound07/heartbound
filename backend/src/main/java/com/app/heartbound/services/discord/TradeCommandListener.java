@@ -23,6 +23,7 @@ import net.dv8tion.jda.api.entities.emoji.Emoji;
 import javax.annotation.Nonnull;
 import java.awt.*;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -418,15 +419,19 @@ public class TradeCommandListener extends ListenerAdapter {
         boolean bothLocked = trade.getInitiatorLocked() && trade.getReceiverLocked();
         boolean tradeComplete = trade.getStatus() != TradeStatus.PENDING;
 
-        Button addItems = Button.primary("trade_add-items_" + trade.getId(), Emoji.fromUnicode("📝")).withDisabled(tradeComplete);
-        Button lockOffer = Button.secondary("trade_lock-offer_" + trade.getId(), Emoji.fromUnicode("🔒")).withDisabled(tradeComplete);
-        Button acceptFinal = Button.success("trade_accept-final_" + trade.getId(), Emoji.fromUnicode("✅")).withDisabled(tradeComplete || !bothLocked);
-        Button cancel = Button.danger("trade_cancel_" + trade.getId(), Emoji.fromUnicode("❌")).withDisabled(tradeComplete);
+        List<Button> buttons = new ArrayList<>();
 
-        return List.of(
-                ActionRow.of(addItems, lockOffer),
-                ActionRow.of(acceptFinal, cancel)
-        );
+        buttons.add(Button.primary("trade_add-items_" + trade.getId(), Emoji.fromUnicode("📝")).withDisabled(tradeComplete));
+
+        if (bothLocked) {
+            buttons.add(Button.success("trade_accept-final_" + trade.getId(), Emoji.fromUnicode("✅")).withDisabled(tradeComplete));
+        } else {
+            buttons.add(Button.secondary("trade_lock-offer_" + trade.getId(), Emoji.fromUnicode("🔒")).withDisabled(tradeComplete));
+        }
+
+        buttons.add(Button.danger("trade_cancel_" + trade.getId(), Emoji.fromUnicode("❌")).withDisabled(tradeComplete));
+
+        return List.of(ActionRow.of(buttons));
     }
 
     private String getRequestKey(String id1, String id2) {
