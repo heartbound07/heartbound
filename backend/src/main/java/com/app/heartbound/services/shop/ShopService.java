@@ -1776,12 +1776,15 @@ public class ShopService {
             .collect(Collectors.toList());
         
         BigDecimal totalDropRate = caseItemRepository.sumDropRatesByCaseId(caseId);
+        if (totalDropRate == null) {
+            totalDropRate = BigDecimal.ZERO;
+        }
         
         return CaseContentsDTO.builder()
             .caseId(caseId)
             .caseName(caseItem.getName())
             .items(itemDTOs)
-            .totalDropRate(totalDropRate != null ? totalDropRate.doubleValue() : 0.0)
+            .totalDropRate(totalDropRate)
             .itemCount(itemDTOs.size())
             .build();
     }
@@ -1822,7 +1825,7 @@ public class ShopService {
             CaseItem newCaseItem = CaseItem.builder()
                 .caseShopItem(caseItem)
                 .containedItem(containedItem)
-                .dropRate(BigDecimal.valueOf(dto.getDropRate()))
+                .dropRate(dto.getDropRate())
                 .build();
 
             caseItemRepository.save(newCaseItem);
@@ -1852,7 +1855,7 @@ public class ShopService {
             .id(caseItem.getId())
             .caseId(caseItem.getCaseShopItem().getId())
             .containedItem(mapToShopDTO(caseItem.getContainedItem(), null))
-            .dropRate(caseItem.getDropRate().doubleValue())
+            .dropRate(caseItem.getDropRate())
             .build();
     }
     

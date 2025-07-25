@@ -22,6 +22,6 @@ public class CaseContentsDTO {
     private UUID caseId;
     private String caseName;
     private List<CaseItemDTO> items;
-    private Double totalDropRate;  // Should be 100 for valid cases
+    private java.math.BigDecimal totalDropRate;  // Should be 100 for valid cases
     private Integer itemCount;      // Number of different items in the case
 } 

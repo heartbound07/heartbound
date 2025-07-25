@@ -599,9 +599,17 @@ public class ShopController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateCaseContents(
         @PathVariable UUID caseId,
-        @RequestBody List<CaseItemDTO> caseItems
+        @RequestBody @Valid List<CaseItemDTO> caseItems
     ) {
         try {
+            // Additional validation for drop rates
+            for (CaseItemDTO item : caseItems) {
+                if (item.getDropRate() == null || item.getDropRate().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new ErrorResponse("Drop rates must be positive values."));
+                }
+            }
+
             logger.debug("Updating case {} with {} items", caseId, caseItems.size());
             shopService.updateCaseContents(caseId, caseItems);
             return ResponseEntity.ok(new SuccessResponse("Case contents updated successfully"));
