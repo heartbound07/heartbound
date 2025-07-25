@@ -63,7 +63,7 @@ public class TradeService {
             Shop item = instance.getBaseItem();
             if (item.getCategory().isEquippable()) {
                 UUID equippedItemId = initiator.getEquippedItemIdByCategory(item.getCategory());
-                if (equippedItemId != null && equippedItemId.equals(instance.getId())) {
+                if (equippedItemId != null && equippedItemId.equals(instance.getBaseItem().getId())) {
                     throw new ItemEquippedException("You cannot trade an item that is currently equipped. Please unequip '" + item.getName() + "' first.");
                 }
             }
@@ -152,7 +152,7 @@ public class TradeService {
             // Check if the item is equipped
             if (item.getCategory().isEquippable()) {
                 UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
-                if (equippedItemId != null && equippedItemId.equals(instance.getId())) {
+                if (equippedItemId != null && equippedItemId.equals(instance.getBaseItem().getId())) {
                     throw new ItemEquippedException("You cannot trade an item that is currently equipped. Please unequip '" + item.getName() + "' first.");
                 }
             }
