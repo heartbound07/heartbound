@@ -34,9 +34,6 @@ public interface UserRepository extends JpaRepository<User, String> {
     // Find users by username containing a search term (email no longer available)
     Page<User> findByUsernameContaining(String username, Pageable pageable);
 
-    // Add this method to your existing UserRepository interface
-    List<User> findByInventoryContaining(Shop item);
-
     // **OPTIMIZATION: Batch operations for QueueService performance**
     
     /**
@@ -86,9 +83,6 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u FROM User u WHERE u.id = :userId")
     Optional<User> findByIdWithLock(@Param("userId") String userId, LockModeType lockMode);
-
-    @Query("SELECT u FROM User u LEFT JOIN FETCH u.inventory LEFT JOIN FETCH u.inventoryItems WHERE u.id = :id")
-    Optional<User> findByIdWithInventories(@Param("id") String id);
 
     @Query("SELECT u FROM User u WHERE u.username = :username")
     Optional<User> findByUsername(@Param("username") String username);
