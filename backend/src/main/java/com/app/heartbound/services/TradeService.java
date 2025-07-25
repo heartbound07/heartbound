@@ -59,6 +59,15 @@ public class TradeService {
                 throw new InvalidTradeActionException("You do not own the item instance " + itemInstanceId);
             }
             
+            // Check if the item is equipped
+            Shop item = instance.getBaseItem();
+            if (item.getCategory().isEquippable()) {
+                UUID equippedItemId = initiator.getEquippedItemIdByCategory(item.getCategory());
+                if (equippedItemId != null && equippedItemId.equals(instance.getId())) {
+                    throw new ItemEquippedException("You cannot trade an item that is currently equipped. Please unequip '" + item.getName() + "' first.");
+                }
+            }
+            
             // Further validation to ensure the item is tradable can be added here if needed
             // For example, checking instance.getBaseItem().getCategory().isTradable()
 
@@ -246,6 +255,14 @@ public class TradeService {
             }
 
             Shop shopItem = instance.getBaseItem();
+            // Final check to ensure item is not equipped before transfer
+            if (shopItem.getCategory().isEquippable()) {
+                UUID equippedItemId = fromUser.getEquippedItemIdByCategory(shopItem.getCategory());
+                if (equippedItemId != null && equippedItemId.equals(instance.getId())) {
+                    throw new InvalidTradeActionException("Trade failed: The item '" + shopItem.getName() + "' is currently equipped by one of the users and cannot be traded.");
+                }
+            }
+
             // Check for unique item ownership
             if (!shopItem.getCategory().isStackable()) {
                 if (userInventoryService.getItemQuantity(toUser.getId(), shopItem.getId()) > 0) {
