@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import com.app.heartbound.dto.LeaderboardEntryDTO;
+import com.app.heartbound.entities.Shop;
 
 /**
  * Centralized Cache Configuration for Pairing System Performance Optimization.
@@ -112,7 +113,7 @@ public class CacheConfig {
     @Value("${cache.user-daily-items.max-size:10000}")
     private long userDailyItemsCacheMaxSize;
 
-    @Value("${cache.user-daily-items.expire-after-access-hours:24}")
+    @Value("${cache.user-daily-items.expire-after-write-hours:24}")
     private long userDailyItemsCacheExpireHours;
 
     // Shop Layout Cache Configuration
@@ -158,7 +159,7 @@ public class CacheConfig {
     private Cache<String, Object> countingGameCache;
     private Cache<String, Object> giveawayCache;
     private Cache<String, List<Object>> featuredItemsCache;
-    private Cache<String, List<Object>> userDailyItemsCache;
+    private Cache<String, List<Shop>> userDailyItemsCache;
     private Cache<String, List<LeaderboardEntryDTO>> leaderboardCache;
     private Cache<String, Object> pendingRoleSelectionCache;
     private Cache<String, Object> pendingPrisonCache;
@@ -323,23 +324,11 @@ public class CacheConfig {
                 .recordStats()
                 .build();
 
-        // Featured Items Cache - stores featured shop items
-        this.featuredItemsCache = Caffeine.newBuilder()
-                .maximumSize(shopLayoutCacheMaxSize)
-                .expireAfterWrite(shopLayoutCacheExpireMinutes, TimeUnit.MINUTES)
-                .removalListener((RemovalListener<String, List<Object>>) (key, value, cause) -> {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Featured items cache entry removed: key={}, cause={}", key, cause);
-                    }
-                })
-                .recordStats()
-                .build();
-
-        // User Daily Items Cache - stores daily shop items
+        // User Daily Items Cache - stores daily shop items for each user
         this.userDailyItemsCache = Caffeine.newBuilder()
                 .maximumSize(userDailyItemsCacheMaxSize)
-                .expireAfterAccess(userDailyItemsCacheExpireHours, TimeUnit.HOURS)
-                .removalListener((RemovalListener<String, List<Object>>) (key, value, cause) -> {
+                .expireAfterWrite(userDailyItemsCacheExpireHours, TimeUnit.HOURS)
+                .removalListener((RemovalListener<String, List<Shop>>) (key, value, cause) -> {
                     if (log.isDebugEnabled()) {
                         log.debug("User daily items cache entry removed: key={}, cause={}", key, cause);
                     }
@@ -556,7 +545,6 @@ public class CacheConfig {
      */
     public void invalidateShopLayoutCaches() {
         featuredItemsCache.invalidateAll();
-        userDailyItemsCache.invalidateAll();
         log.debug("Shop layout caches invalidated");
     }
 
@@ -567,7 +555,6 @@ public class CacheConfig {
     public void invalidateShopLayoutCache(String userId) {
         if (userId != null) {
             featuredItemsCache.invalidate(userId);
-            userDailyItemsCache.invalidate(userId);
             log.debug("Shop layout cache invalidated for user: {}", userId);
         }
     }

@@ -45,6 +45,7 @@ import com.app.heartbound.enums.AuditCategory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.persistence.EntityManager;
+import jakarta.annotation.PostConstruct;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +54,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -80,6 +82,7 @@ public class ShopService {
     private final ObjectMapper objectMapper;
     private final CacheConfig cacheConfig;
     private static final Logger logger = LoggerFactory.getLogger(ShopService.class);
+    private volatile List<Shop> dailyItemPool;
     
     public ShopService(
         ShopRepository shopRepository,
@@ -109,6 +112,11 @@ public class ShopService {
         this.auditService = auditService;
         this.cacheConfig = cacheConfig;
         this.objectMapper = new ObjectMapper();
+    }
+    
+    @PostConstruct
+    public void initializeDailyItems() {
+        updateDailyItemPool();
     }
     
     /**
@@ -187,31 +195,81 @@ public class ShopService {
     }
     
     /**
-     * Get daily shop items for the main layout
-     * @param userId User ID to check ownership status
-     * @return List of daily shop items
+     * Get daily shop items for the main layout.
+     * The items are unique for each user and refresh daily.
+     * @param userId User ID to check ownership status for the global items.
+     * @return List of daily shop items for the user.
      */
     @Transactional(readOnly = true)
-    @Cacheable(value = "userDailyItems", key = "#userId")
+    @SuppressWarnings("unchecked")
     public List<ShopDTO> getDailyItems(String userId) {
-        logger.debug("Generating daily items for user {}", userId);
+        // Attempt to retrieve from cache first
+        List<Shop> userDailyItems = cacheConfig.getUserDailyItemsCache().getIfPresent(userId);
 
-        // 1. Create a deterministic seed for the user and the current day (using UTC)
+        if (userDailyItems != null) {
+            logger.debug("Daily items for user {} retrieved from cache.", userId);
+            User user = userRepository.findById(userId).orElse(null);
+            final User finalUser = user;
+            return userDailyItems.stream()
+                .map(item -> mapToShopDTO(item, finalUser))
+                .collect(Collectors.toList());
+        }
+        
+        // If not in cache, generate them
+        logger.debug("Generating new daily items for user {}.", userId);
+        
+        if (dailyItemPool == null) {
+            logger.warn("Daily item pool not yet populated. Triggering selection now.");
+            synchronized (this) {
+                if (dailyItemPool == null) {
+                    updateDailyItemPool();
+                }
+            }
+        }
+        
+        // Create a deterministic seed for the user and the current day
         String seedString = userId + java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString();
         long seed = seedString.hashCode();
         Random random = new Random(seed);
 
-        // 2. Fetch all eligible items for the daily pool, excluding cases
-        List<Shop> itemPool = shopRepository.findByIsDailyTrueAndIsActiveTrueAndExpiresAtAfterOrExpiresAtIsNull(LocalDateTime.now())
-                .stream()
-                .filter(Shop::getIsActive) // Ensure only active items are in the pool
-                .filter(item -> item.getCategory() != ShopCategory.CASE)
-                .collect(Collectors.toList());
+        // Group items from the stable pool by rarity
+        Map<ItemRarity, List<Shop>> itemsByRarity = dailyItemPool.stream()
+            .collect(Collectors.groupingBy(Shop::getRarity));
+        
+        List<Shop> selectedItems = selectItemsForUser(itemsByRarity, random);
 
-        // 3. Group items by rarity
-        Map<ItemRarity, List<Shop>> itemsByRarity = itemPool.stream()
-                .collect(Collectors.groupingBy(Shop::getRarity));
+        // Cache the selected list of Shop entities for this user
+        cacheConfig.getUserDailyItemsCache().put(userId, selectedItems);
 
+        // Convert to DTOs for the response
+        User user = userRepository.findById(userId).orElse(null);
+        final User finalUser = user;
+        return selectedItems.stream()
+            .map(item -> mapToShopDTO(item, finalUser))
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Scheduled task to update the global pool of eligible daily items.
+     * This runs at midnight UTC every day.
+     */
+    @Scheduled(cron = "0 0 0 * * *", zone = "UTC")
+    public void updateDailyItemPool() {
+        logger.info("Executing scheduled task to update the global daily item pool.");
+        
+        this.dailyItemPool = shopRepository.findByIsDailyTrueAndIsActiveTrueAndExpiresAtAfterOrExpiresAtIsNull(LocalDateTime.now())
+            .stream()
+            .filter(Shop::getIsActive)
+            .filter(item -> item.getCategory() != ShopCategory.CASE)
+            .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
+
+        // Clear the cache for all users to force regeneration with the new pool
+        cacheConfig.getUserDailyItemsCache().invalidateAll();
+        
+        logger.info("Successfully updated global daily item pool with {} eligible items.", dailyItemPool.size());
+    }
+
+    private List<Shop> selectItemsForUser(Map<ItemRarity, List<Shop>> itemsByRarity, Random random) {
         // Initialize lists for each rarity, handling null cases
         List<Shop> legendaryItems = itemsByRarity.getOrDefault(ItemRarity.LEGENDARY, Collections.emptyList());
         List<Shop> epicItems = itemsByRarity.getOrDefault(ItemRarity.EPIC, Collections.emptyList());
@@ -226,18 +284,10 @@ public class ShopService {
 
         List<Shop> selectedItems = new ArrayList<>();
 
-        // 4. Select items based on rarity distribution with fallback logic
-        // Select 1 Legendary item
-        selectAndAddItem(selectedItems, legendaryItems, 1, random, 
-            Arrays.asList(epicItems, lowerTierItems));
-        
-        // Select 1 Epic item
-        selectAndAddItem(selectedItems, epicItems, 1, random, 
-            Arrays.asList(legendaryItems, lowerTierItems));
-
-        // Select 2 from lower tiers
-        selectAndAddItem(selectedItems, lowerTierItems, 2, random, 
-            Arrays.asList(epicItems, legendaryItems));
+        // Select items based on rarity distribution
+        selectAndAddItem(selectedItems, legendaryItems, 1, random, Arrays.asList(epicItems, lowerTierItems));
+        selectAndAddItem(selectedItems, epicItems, 1, random, Arrays.asList(legendaryItems, lowerTierItems));
+        selectAndAddItem(selectedItems, lowerTierItems, 2, random, Arrays.asList(epicItems, legendaryItems));
         
         // Enforce the 'max one fishing rod' rule
         long fishingRodCount = selectedItems.stream()
@@ -247,13 +297,11 @@ public class ShopService {
         if (fishingRodCount > 1) {
             List<Shop> rodsToReplace = selectedItems.stream()
                 .filter(item -> item.getCategory() == ShopCategory.FISHING_ROD)
-                .skip(1) // Keep the first one, collect the rest
+                .skip(1)
                 .collect(Collectors.toList());
 
             for (Shop rodToReplace : rodsToReplace) {
                 ItemRarity rarityToMatch = rodToReplace.getRarity();
-
-                // Attempt to find a replacement of the same rarity
                 List<Shop> replacementPool = itemsByRarity.getOrDefault(rarityToMatch, Collections.emptyList())
                     .stream()
                     .filter(item -> item.getCategory() != ShopCategory.FISHING_ROD && !selectedItems.contains(item))
@@ -263,8 +311,7 @@ public class ShopService {
                 if (!replacementPool.isEmpty()) {
                     replacement = replacementPool.get(random.nextInt(replacementPool.size()));
                 } else {
-                    // If no same-rarity replacement, try the general pool
-                    List<Shop> generalReplacementPool = itemPool.stream()
+                    List<Shop> generalReplacementPool = dailyItemPool.stream()
                         .filter(item -> item.getCategory() != ShopCategory.FISHING_ROD && !selectedItems.contains(item))
                         .collect(Collectors.toList());
                     if (!generalReplacementPool.isEmpty()) {
@@ -272,15 +319,12 @@ public class ShopService {
                     }
                 }
 
-                // Perform the replacement or removal
                 int index = selectedItems.indexOf(rodToReplace);
                 if (index != -1) {
                     if (replacement != null) {
                         selectedItems.set(index, replacement);
-                        logger.debug("Replaced extra fishing rod with {} for user {}", replacement.getName(), userId);
                     } else {
                         selectedItems.remove(index);
-                        logger.warn("Removed extra fishing rod because no replacement could be found. User {} may see fewer than 4 daily items.", userId);
                     }
                 }
             }
@@ -288,7 +332,7 @@ public class ShopService {
         
         // Final fallback to ensure 4 items if possible
         if (selectedItems.size() < 4) {
-            List<Shop> remainingPool = new ArrayList<>(itemPool);
+            List<Shop> remainingPool = new ArrayList<>(dailyItemPool);
             remainingPool.removeAll(selectedItems);
             
             while (selectedItems.size() < 4 && !remainingPool.isEmpty()) {
@@ -299,13 +343,7 @@ public class ShopService {
                 }
             }
         }
-
-        // 5. Convert to DTOs
-        User user = userRepository.findById(userId).orElse(null);
-        final User finalUser = user;
-        return selectedItems.stream()
-            .map(item -> mapToShopDTO(item, finalUser))
-            .collect(Collectors.toList());
+        return selectedItems;
     }
 
     private void selectAndAddItem(List<Shop> selectedItems, List<Shop> sourceList, int count, Random random, List<List<Shop>> fallbacks) {
@@ -404,7 +442,7 @@ public class ShopService {
      * @return Updated UserProfileDTO
      */
     @Transactional
-    @CacheEvict(value = {"featuredItems", "userDailyItems"}, allEntries = true)
+    @CacheEvict(value = "featuredItems", allEntries = true)
     public PurchaseResponseDTO purchaseItem(String userId, UUID itemId) {
         return purchaseItem(userId, itemId, 1);
     }
@@ -417,7 +455,7 @@ public class ShopService {
      * @return Updated UserProfileDTO
      */
     @Transactional
-    @CacheEvict(value = {"featuredItems", "userDailyItems"}, allEntries = true)
+    @CacheEvict(value = "featuredItems", allEntries = true)
     public PurchaseResponseDTO purchaseItem(String userId, UUID itemId, Integer quantity) {
         logger.debug("Processing purchase of item {} for user {} with quantity {}", itemId, userId, quantity);
     
@@ -1194,7 +1232,7 @@ public class ShopService {
      * @return Created shop item
      */
     @Transactional
-    @CacheEvict(value = {"featuredItems", "userDailyItems"}, allEntries = true)
+    @CacheEvict(value = "featuredItems", allEntries = true)
     public Shop createShopItem(ShopDTO shopDTO) {
         logger.debug("Creating new shop item: {} with active status: {}", shopDTO.getName(), shopDTO.isActive());
         
@@ -1271,7 +1309,7 @@ public class ShopService {
      * @return Updated shop item
      */
     @Transactional
-    @CacheEvict(value = {"featuredItems", "userDailyItems"}, allEntries = true)
+    @CacheEvict(value = "featuredItems", allEntries = true)
     public Shop updateShopItem(UUID itemId, ShopDTO shopDTO) {
         logger.debug("Updating shop item {}: {} with active status: {}", itemId, shopDTO.getName(), shopDTO.isActive());
         
@@ -1349,7 +1387,7 @@ public class ShopService {
      * @param newPrice New price
      */
     @Transactional
-    @CacheEvict(value = {"featuredItems", "userDailyItems"}, allEntries = true)
+    @CacheEvict(value = "featuredItems", allEntries = true)
     public void updateItemPrice(UUID itemId, int newPrice) {
         if (newPrice < 0) {
             throw new IllegalArgumentException("Price cannot be negative.");
@@ -1369,7 +1407,7 @@ public class ShopService {
      * @param newStatus New active status
      */
     @Transactional
-    @CacheEvict(value = {"featuredItems", "userDailyItems"}, allEntries = true)
+    @CacheEvict(value = "featuredItems", allEntries = true)
     public void updateItemStatus(UUID itemId, boolean newStatus) {
         Shop item = shopRepository.findById(itemId)
             .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
@@ -1386,7 +1424,7 @@ public class ShopService {
      * @throws ItemReferencedInCasesException if the item is referenced in cases (with cascade info)
      */
     @Transactional
-    @CacheEvict(value = {"featuredItems", "userDailyItems"}, allEntries = true)
+    @CacheEvict(value = "featuredItems", allEntries = true)
     public void deleteShopItem(UUID itemId) {
         logger.debug("Attempting to delete shop item {}", itemId);
         
