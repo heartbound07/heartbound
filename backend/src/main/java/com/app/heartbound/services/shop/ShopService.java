@@ -468,12 +468,11 @@ public class ShopService {
         // Limited stock check
         if (item.getMaxCopies() != null) {
             int currentCopiesSold = item.getCopiesSold() != null ? item.getCopiesSold() : 0;
-            if (currentCopiesSold >= item.getMaxCopies()) {
-                throw new InsufficientStockException("This item is sold out.");
-            }
             if (currentCopiesSold + quantity > item.getMaxCopies()) {
                 throw new InsufficientStockException("Not enough stock available. Only " + (item.getMaxCopies() - currentCopiesSold) + " left.");
             }
+            // Atomically update the copiesSold count before creating instances
+            item.setCopiesSold(currentCopiesSold + quantity);
         }
     
         // Check for non-stackable item ownership
@@ -493,12 +492,13 @@ public class ShopService {
         user.setCredits(creditsBeforeTransaction - totalCost);
     
         List<ItemInstance> newInstances = new ArrayList<>();
+        int initialCopiesSold = (item.getCopiesSold() != null ? item.getCopiesSold() : quantity) - quantity;
+
         for (int i = 0; i < quantity; i++) {
             Long serialNumber = null;
             if (item.getMaxCopies() != null) {
-                int currentCopiesSold = item.getCopiesSold() != null ? item.getCopiesSold() : 0;
-                item.setCopiesSold(currentCopiesSold + 1);
-                serialNumber = (long) item.getCopiesSold();
+                // The serial number is based on the updated count
+                serialNumber = (long) (initialCopiesSold + i + 1);
             }
     
             ItemInstance newInstance = ItemInstance.builder()

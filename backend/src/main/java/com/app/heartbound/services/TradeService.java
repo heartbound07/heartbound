@@ -203,22 +203,38 @@ public class TradeService {
 
     @Transactional
     private Trade executeTrade(Long tradeId) {
-        Trade trade = tradeRepository.findByIdWithItems(tradeId)
+        Trade trade = tradeRepository.findByIdWithLock(tradeId)
                 .orElseThrow(() -> new TradeNotFoundException("Trade not found"));
 
         if (trade.getStatus() != TradeStatus.PENDING) {
             throw new InvalidTradeActionException("This trade is no longer pending.");
         }
 
-        User initiator = trade.getInitiator();
-        User receiver = trade.getReceiver();
+        User initiator = userRepository.findByIdWithLock(trade.getInitiator().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Initiator not found"));
+        User receiver = userRepository.findByIdWithLock(trade.getReceiver().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Receiver not found"));
 
 
         // Atomically transfer items
         for (TradeItem item : trade.getItems()) {
             ItemInstance instance = item.getItemInstance();
+            
+            // Re-fetch and lock the item instance to ensure it hasn't been traded/sold
+            itemInstanceRepository.findByIdWithLock(instance.getId())
+                .orElseThrow(() -> new InvalidTradeActionException("An item in the trade no longer exists."));
+
             User fromUser = instance.getOwner();
-            User toUser = fromUser.getId().equals(initiator.getId()) ? receiver : initiator;
+            User toUser;
+            
+            // Determine who is receiving the item and verify ownership one last time
+            if (fromUser.getId().equals(initiator.getId())) {
+                toUser = receiver;
+            } else if (fromUser.getId().equals(receiver.getId())) {
+                toUser = initiator;
+            } else {
+                throw new InvalidTradeActionException("An item in the trade does not belong to either participant.");
+            }
 
             Shop shopItem = instance.getBaseItem();
             // Check for unique item ownership
