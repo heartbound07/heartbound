@@ -81,8 +81,8 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     // Pessimistic locking for purchase transactions
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT u FROM User u WHERE u.id = :userId")
-    Optional<User> findByIdWithLock(@Param("userId") String userId, LockModeType lockMode);
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.itemInstances ii LEFT JOIN FETCH ii.baseItem WHERE u.id = :userId")
+    Optional<User> findByIdWithLock(@Param("userId") String userId);
 
     @Query("SELECT u FROM User u WHERE u.username = :username")
     Optional<User> findByUsername(@Param("username") String username);

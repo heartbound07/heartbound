@@ -426,7 +426,7 @@ public class ShopService {
             throw new IllegalArgumentException("Quantity must be between 1 and 100");
         }
     
-        User user = userRepository.findByIdWithLock(userId, LockModeType.PESSIMISTIC_WRITE)
+        User user = userRepository.findByIdWithLock(userId)
             .orElseThrow(() -> {
                 createPurchaseAuditEntry(userId, itemId, null, quantity, 0, 0, 0,
                     "PURCHASE_FAILED", "User not found", AuditSeverity.WARNING);
@@ -1552,8 +1552,8 @@ public class ShopService {
         logger.debug("Opening case {} for user {}", caseId, userId);
         long startTime = System.currentTimeMillis();
         
-        // 1. Verify user exists
-        User user = userRepository.findById(userId)
+        // 1. Verify user exists and eagerly fetch their inventory to prevent LazyInitializationException
+        User user = userRepository.findByIdWithInventory(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         
         // 2. Verify case exists and is actually a case
