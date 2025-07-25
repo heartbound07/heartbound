@@ -45,7 +45,6 @@ import com.app.heartbound.enums.AuditCategory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.LockModeType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,7 +78,6 @@ public class ShopService {
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
     private final CacheConfig cacheConfig;
-    private final EntityManager entityManager;
     private static final Logger logger = LoggerFactory.getLogger(ShopService.class);
     
     public ShopService(
@@ -109,7 +107,6 @@ public class ShopService {
         this.rollVerificationService = rollVerificationService;
         this.auditService = auditService;
         this.cacheConfig = cacheConfig;
-        this.entityManager = entityManager;
         this.objectMapper = new ObjectMapper();
     }
     
@@ -1553,7 +1550,7 @@ public class ShopService {
         long startTime = System.currentTimeMillis();
         
         // 1. Verify user exists and eagerly fetch their inventory to prevent LazyInitializationException
-        User user = userRepository.findByIdWithInventory(userId)
+        User user = userRepository.findByIdWithLock(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         
         // 2. Verify case exists and is actually a case
@@ -1570,7 +1567,6 @@ public class ShopService {
                 .findFirst()
                 .orElseThrow(() -> new CaseNotOwnedException("You do not own this case or have no cases left to open"));
 
-        itemInstanceRepository.delete(caseToConsume);
         user.getItemInstances().remove(caseToConsume);
         
         // 4. Get case contents with drop rates and validate
@@ -1622,10 +1618,8 @@ public class ShopService {
             compensatedXp = calculateCompensationXp(wonItem.getRarity());
             
             // Atomically update credits and XP to prevent race conditions
-            userRepository.incrementCreditsAndXp(userId, compensatedCredits, compensatedXp);
-            
-            // Refresh the user entity to reflect the database changes in the persistence context
-            entityManager.refresh(user);
+            user.setCredits(user.getCredits() + compensatedCredits);
+            user.setExperience(user.getExperience() + compensatedXp);
             
             compensationAwarded = true;
             
