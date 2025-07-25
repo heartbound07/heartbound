@@ -18,6 +18,7 @@ import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import org.springframework.stereotype.Component;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
@@ -88,7 +89,7 @@ public class TradeCommandListener extends ListenerAdapter {
             EmbedBuilder embed = new EmbedBuilder()
                     .setTitle(receiverUser.getEffectiveName() + "! " + initiatorUser.getEffectiveName() + " wants to trade with you!")
                     .setFooter("Do you want to trade with them?")
-                    .setColor(Color.CYAN);
+                    .setColor(new Color(0x5865F2));
 
             Button accept = Button.success("trade_accept-initial_" + tradeId + "_" + initiator.getId() + "_" + receiver.getId(), "Accept");
             Button decline = Button.danger("trade_decline-initial_" + tradeId + "_" + initiator.getId() + "_" + receiver.getId(), "Decline");
@@ -323,17 +324,25 @@ public class TradeCommandListener extends ListenerAdapter {
 
     private MessageEmbed buildTradeEmbed(Trade trade, User initiator, User receiver) {
         log.debug("Building trade embed for tradeId: {}. Initiator: {}, Receiver: {}", trade.getId(), initiator.getId(), receiver.getId());
-        EmbedBuilder embed = new EmbedBuilder().setTitle("Trade between " + initiator.getEffectiveName() + " and " + receiver.getEffectiveName());
+        EmbedBuilder embed = new EmbedBuilder().setTitle(initiator.getEffectiveName() + " ⇌ " + receiver.getEffectiveName());
 
         String initiatorStatus = "";
-        String receiverStatus = "";
+        if (trade.getInitiatorLocked()) {
+            initiatorStatus += "🔒 ";
+        }
+        if (trade.getInitiatorAccepted()) {
+            initiatorStatus += "✅";
+        }
+        initiatorStatus = initiatorStatus.trim();
 
-        if(trade.getInitiatorLocked()) initiatorStatus += "✅ Locked ";
-        if(trade.getInitiatorAccepted()) initiatorStatus += "Accepted";
-        if(trade.getReceiverLocked()) receiverStatus += "✅ Locked ";
-        if(trade.getReceiverAccepted()) receiverStatus += "Accepted";
-        if(!trade.getInitiatorAccepted() && trade.getReceiverAccepted()) receiverStatus += " (Waiting for you)";
-        if(trade.getInitiatorAccepted() && !trade.getReceiverAccepted()) initiatorStatus += " (Waiting for other user)";
+        String receiverStatus = "";
+        if (trade.getReceiverLocked()) {
+            receiverStatus += "🔒 ";
+        }
+        if (trade.getReceiverAccepted()) {
+            receiverStatus += "✅";
+        }
+        receiverStatus = receiverStatus.trim();
 
 
         String initiatorItems = trade.getItems().stream()
@@ -348,7 +357,7 @@ public class TradeCommandListener extends ListenerAdapter {
                 })
                 .collect(Collectors.joining("\n"));
 
-        if(initiatorItems.isEmpty()) initiatorItems = "No items offered.";
+        if(initiatorItems.isEmpty()) initiatorItems = "\u200B";
 
         String receiverItems = trade.getItems().stream()
                 .map(TradeItem::getItemInstance)
@@ -362,10 +371,10 @@ public class TradeCommandListener extends ListenerAdapter {
                 })
                 .collect(Collectors.joining("\n"));
 
-        if(receiverItems.isEmpty()) receiverItems = "No items offered.";
+        if(receiverItems.isEmpty()) receiverItems = "\u200B";
 
-        embed.addField(initiator.getEffectiveName() + "'s Offer " + initiatorStatus, initiatorItems, true);
-        embed.addField(receiver.getEffectiveName() + "'s Offer " + receiverStatus, receiverItems, true);
+        embed.addField((initiator.getEffectiveName() + " " + initiatorStatus).trim(), initiatorItems, true);
+        embed.addField((receiver.getEffectiveName() + " " + receiverStatus).trim(), receiverItems, true);
 
         if(trade.getExpiresAt() != null) {
             long remainingSeconds = trade.getExpiresAt().getEpochSecond() - Instant.now().getEpochSecond();
@@ -383,10 +392,10 @@ public class TradeCommandListener extends ListenerAdapter {
         boolean bothLocked = trade.getInitiatorLocked() && trade.getReceiverLocked();
         boolean tradeComplete = trade.getStatus() != TradeStatus.PENDING;
 
-        Button addItems = Button.primary("trade_add-items_" + trade.getId(), "Add/Edit Offer").withDisabled(tradeComplete);
-        Button lockOffer = Button.secondary("trade_lock-offer_" + trade.getId(), "Lock Offer").withDisabled(tradeComplete);
-        Button acceptFinal = Button.success("trade_accept-final_" + trade.getId(), "Accept Trade").withDisabled(tradeComplete || !bothLocked);
-        Button cancel = Button.danger("trade_cancel_" + trade.getId(), "Cancel").withDisabled(tradeComplete);
+        Button addItems = Button.primary("trade_add-items_" + trade.getId(), "Add/Edit Offer").withEmoji(Emoji.fromUnicode("📝")).withDisabled(tradeComplete);
+        Button lockOffer = Button.secondary("trade_lock-offer_" + trade.getId(), "Lock Offer").withEmoji(Emoji.fromUnicode("🔒")).withDisabled(tradeComplete);
+        Button acceptFinal = Button.success("trade_accept-final_" + trade.getId(), "Accept Trade").withEmoji(Emoji.fromUnicode("✅")).withDisabled(tradeComplete || !bothLocked);
+        Button cancel = Button.danger("trade_cancel_" + trade.getId(), "Cancel").withEmoji(Emoji.fromUnicode("❌")).withDisabled(tradeComplete);
 
         return List.of(
                 ActionRow.of(addItems, lockOffer),
