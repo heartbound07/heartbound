@@ -41,7 +41,7 @@ public class UserInventoryService {
 
     public List<UserInventoryItemDTO> getUserInventory(String userId) {
         logger.debug("Fetching inventory for user ID: {}", userId);
-        User user = userRepository.findByIdWithItemInstances(userId)
+        User user = userRepository.findByIdWithInventory(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
         // Group instances by base item and count them
