@@ -203,48 +203,56 @@ public class ShopService {
     @Transactional(readOnly = true)
     @SuppressWarnings("unchecked")
     public List<ShopDTO> getDailyItems(String userId) {
-        // Attempt to retrieve from cache first
+        // Fetch the user with their inventory up-front to avoid multiple lookups and for ownership checks.
+        User user = userRepository.findByIdWithInventory(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+
+        // Attempt to retrieve the full daily item list from cache first
         List<Shop> userDailyItems = cacheConfig.getUserDailyItemsCache().getIfPresent(userId);
 
-        if (userDailyItems != null) {
-            logger.debug("Daily items for user {} retrieved from cache.", userId);
-            User user = userRepository.findById(userId).orElse(null);
-            final User finalUser = user;
-            return userDailyItems.stream()
-                .map(item -> mapToShopDTO(item, finalUser))
-                .collect(Collectors.toList());
-        }
-        
-        // If not in cache, generate them
-        logger.debug("Generating new daily items for user {}.", userId);
-        
-        if (dailyItemPool == null) {
-            logger.warn("Daily item pool not yet populated. Triggering selection now.");
-            synchronized (this) {
-                if (dailyItemPool == null) {
-                    updateDailyItemPool();
+        if (userDailyItems == null) {
+            // If not in cache, generate them
+            logger.debug("Generating new daily items for user {}.", userId);
+
+            if (dailyItemPool == null) {
+                logger.warn("Daily item pool not yet populated. Triggering selection now.");
+                synchronized (this) {
+                    if (dailyItemPool == null) {
+                        updateDailyItemPool();
+                    }
                 }
             }
+
+            // Create a deterministic seed for the user and the current day
+            String seedString = userId + java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString();
+            long seed = seedString.hashCode();
+            Random random = new Random(seed);
+
+            // Group items from the stable pool by rarity
+            Map<ItemRarity, List<Shop>> itemsByRarity = dailyItemPool.stream()
+                .collect(Collectors.groupingBy(Shop::getRarity));
+            
+            List<Shop> selectedItems = selectItemsForUser(itemsByRarity, random);
+
+            // Cache the complete, unfiltered list of Shop entities for this user
+            cacheConfig.getUserDailyItemsCache().put(userId, selectedItems);
+            userDailyItems = selectedItems;
+        } else {
+             logger.debug("Daily items for user {} retrieved from cache.", userId);
         }
-        
-        // Create a deterministic seed for the user and the current day
-        String seedString = userId + java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString();
-        long seed = seedString.hashCode();
-        Random random = new Random(seed);
 
-        // Group items from the stable pool by rarity
-        Map<ItemRarity, List<Shop>> itemsByRarity = dailyItemPool.stream()
-            .collect(Collectors.groupingBy(Shop::getRarity));
-        
-        List<Shop> selectedItems = selectItemsForUser(itemsByRarity, random);
+        // Now, filter the daily items list (from cache or newly generated) to exclude items the user owns.
+        Set<UUID> ownedItemIds = user.getItemInstances().stream()
+                .map(instance -> instance.getBaseItem().getId())
+                .collect(Collectors.toSet());
 
-        // Cache the selected list of Shop entities for this user
-        cacheConfig.getUserDailyItemsCache().put(userId, selectedItems);
+        List<Shop> filteredDailyItems = userDailyItems.stream()
+            .filter(item -> !ownedItemIds.contains(item.getId()))
+            .collect(Collectors.toList());
 
-        // Convert to DTOs for the response
-        User user = userRepository.findById(userId).orElse(null);
+        // Convert the filtered list to DTOs for the response
         final User finalUser = user;
-        return selectedItems.stream()
+        return filteredDailyItems.stream()
             .map(item -> mapToShopDTO(item, finalUser))
             .collect(Collectors.toList());
     }

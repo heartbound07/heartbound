@@ -579,12 +579,14 @@ export function ShopPage() {
       // Mark recent purchase for animation
       setRecentPurchases(prev => ({...prev, [itemId]: Date.now()}));
 
-      // Update item state locally using the authoritative response from the server
-      const updateItemInState = (items: ShopItem[]) => 
-        items.map(item => (item.id === purchasedItem.id ? purchasedItem : item));
-
-      setFeaturedItems(prevItems => updateItemInState(prevItems));
-      setDailyItems(prevItems => updateItemInState(prevItems));
+      // Update item states locally based on the authoritative response from the server.
+      // Featured items are updated to show they are "owned".
+      setFeaturedItems(prevItems =>
+        prevItems.map(item => (item.id === purchasedItem.id ? purchasedItem : item))
+      );
+      
+      // Daily items are removed from the list upon purchase to prevent re-purchase.
+      setDailyItems(prevItems => prevItems.filter(item => item.id !== purchasedItem.id));
       
       // Update user profile to refresh credits while preserving other profile data
       if (userProfile) {
