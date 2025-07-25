@@ -737,7 +737,7 @@ export function ShopPage() {
               </div>
               
               {/* Daily Items Section - Right Side */}
-              <div className="daily-section flex flex-col">
+              <div className="daily-section">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-white">Daily Items</h2>
                   <div className="flex items-center text-sm text-slate-400 bg-slate-800/50 px-3 py-1.5 rounded-full">
@@ -749,7 +749,7 @@ export function ShopPage() {
                   <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="flex-grow flex items-center justify-center"
+                    className="flex-grow flex items-center justify-center w-full"
                   >
                     <p 
                         className="text-slate-300 text-2xl" 
