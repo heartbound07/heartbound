@@ -96,7 +96,7 @@ public class TradeCommandListener extends ListenerAdapter {
             long tradeId = trade.getId();
 
             EmbedBuilder embed = new EmbedBuilder()
-                    .setDescription(receiverUser.getAsMention() + " " + initiatorUser.getEffectiveName() + " wants to trade with you!")
+                    .setDescription(receiverUser.getAsMention() + ", " + initiatorUser.getEffectiveName() + " wants to trade with you!")
                     .setColor(new Color(0x5865F2));
 
             Button accept = Button.success("trade_accept-initial_" + tradeId + "_" + initiator.getId() + "_" + receiver.getId(), "Accept");
