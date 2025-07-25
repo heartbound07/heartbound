@@ -294,6 +294,14 @@ export function ShopAdminPage() {
       showToast('Case must contain at least one item', 'error');
       return;
     }
+
+    // Validate drop rates before saving
+    for (const item of caseContents.items) {
+      if (item.dropRate <= 0) {
+        showToast(`Drop rate for "${item.containedItem.name}" must be a positive number.`, 'error');
+        return;
+      }
+    }
     
     try {
       const payload = caseContents.items.map(item => ({

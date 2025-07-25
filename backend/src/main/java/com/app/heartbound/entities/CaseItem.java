@@ -61,7 +61,7 @@ public class CaseItem {
      * Higher values = more likely to drop relative to other items in the same case.
      */
     @NotNull
-    @DecimalMin(value = "1.0", message = "Drop rate must be at least 1.0")
+    @DecimalMin(value = "0.0", inclusive = false, message = "Drop rate must be a positive value.")
     @Column(name = "drop_rate", nullable = false, precision = 10, scale = 4)
     private BigDecimal dropRate;
     

@@ -1592,7 +1592,7 @@ public class ShopService {
         // 6. Generate secure random seed and roll value for this roll
         String rollSeed = secureRandomService.generateRollSeed();
         String rollSeedHash = generateSeedHash(rollSeed);
-        int rollValue = secureRandomService.getSecureInt(100); // Generate a roll value from 0-99
+        int rollValue = secureRandomService.getSecureInt(10000); // Generate a roll value from 0-9999 for 0.01% precision
         
         // 7. Perform secure weighted random selection using the roll value for animation sync
         Shop wonItem = selectItemByDropRateSecureWithRoll(caseItems, rollValue);
@@ -1732,12 +1732,12 @@ public class ShopService {
      * Perform secure weighted random selection based on drop rates using a pre-generated roll value
      * This method ensures animation synchronization by using the same roll value for both selection and animation
      * @param caseItems List of case items with drop rates
-     * @param rollValue Pre-generated roll value (0-99)
+     * @param rollValue Pre-generated roll value (0-9999)
      * @return Selected shop item
      */
     private Shop selectItemByDropRateSecureWithRoll(List<CaseItem> caseItems, int rollValue) {
         BigDecimal cumulativeWeight = BigDecimal.ZERO;
-        BigDecimal rollValueDecimal = new BigDecimal(rollValue);
+        BigDecimal rollValueDecimal = new BigDecimal(rollValue).divide(new BigDecimal("100")); // Scale roll to match drop rates
 
         // caseItems from findByCaseIdOrderByDropRateDesc are sorted, which is important for determinism
         for (CaseItem item : caseItems) {
@@ -1747,8 +1747,8 @@ public class ShopService {
             }
         }
 
-        // Fallback for safety, e.g. if rollValue is exactly 100 and sum is 100.
-        // This should not be hit if total drop rates sum to 100 and roll is 0-99.
+        // Fallback for safety, e.g. if rollValue is exactly 10000 and sum is 100.
+        // This should not be hit if total drop rates sum to 100 and roll is 0-9999.
         logger.warn("Weighted selection algorithm fell through for case. Returning the last item. This may indicate a data issue with case contents.");
         return caseItems.get(caseItems.size() - 1).getContainedItem();
     }
