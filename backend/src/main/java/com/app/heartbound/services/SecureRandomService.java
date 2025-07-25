@@ -91,15 +91,26 @@ public class SecureRandomService {
         
         operationsCount.incrementAndGet();
         
-        // Try to use pre-generated random from pool for performance
-        Integer pooledRandom = randomPool.poll();
-        if (pooledRandom != null) {
-            // Use modulo with bias mitigation
-            return mitigateBias(pooledRandom, bound);
+        // The effective upper bound of pooled numbers is Integer.MAX_VALUE
+        int maxPooledValue = Integer.MAX_VALUE;
+        // The threshold for rejection sampling. Values >= threshold will be rejected.
+        int threshold = maxPooledValue - (maxPooledValue % bound);
+
+        while (true) {
+            Integer pooledRandom = randomPool.poll();
+            if (pooledRandom != null) {
+                // Perform rejection sampling on the pooled value to avoid modulo bias.
+                if (pooledRandom < threshold) {
+                    return pooledRandom % bound;
+                }
+                // If the value is in the biased range (>= threshold), it's rejected.
+                // The loop continues to poll the next value.
+            } else {
+                // If the pool is exhausted, fall back to direct, secure generation.
+                logger.warn("SecureRandomService pool is empty, falling back to direct generation.");
+                return secureRandom.nextInt(bound);
+            }
         }
-        
-        // Fallback to direct SecureRandom generation
-        return secureRandom.nextInt(bound);
     }
     
     /**
@@ -265,19 +276,6 @@ public class SecureRandomService {
         } catch (Exception e) {
             logger.warn("Failed to refill random pool: {}", e.getMessage());
         }
-    }
-    
-    /**
-     * Mitigate modulo bias in random number generation
-     * @param random Raw random value
-     * @param bound Desired bound
-     * @return Bias-mitigated result
-     */
-    private int mitigateBias(int random, int bound) {
-        // Use unsigned arithmetic to handle full integer range
-        long unsignedRandom = Integer.toUnsignedLong(random);
-        long result = unsignedRandom % bound;
-        return (int) result;
     }
     
     /**

@@ -1617,6 +1617,7 @@ public class ShopService {
                 .findFirst()
                 .orElseThrow(() -> new CaseNotOwnedException("You do not own this case or have no cases left to open"));
 
+        itemInstanceRepository.delete(caseToConsume);
         user.getItemInstances().remove(caseToConsume);
         
         // 4. Get case contents with drop rates and validate
@@ -1638,7 +1639,8 @@ public class ShopService {
         // 6. Generate secure random seed and roll value for this roll
         String rollSeed = secureRandomService.generateRollSeed();
         String rollSeedHash = generateSeedHash(rollSeed);
-        int rollValue = secureRandomService.getSecureInt(10000); // Generate a roll value from 0-9999 for 0.01% precision
+        // Generate a roll value from 0-999,999 to match the drop rate precision of 4 decimal places (100.0000%)
+        int rollValue = secureRandomService.getSecureInt(1000000);
         
         // 7. Perform secure weighted random selection using the roll value for animation sync
         Shop wonItem = selectItemByDropRateSecureWithRoll(caseItems, rollValue);
@@ -1775,26 +1777,30 @@ public class ShopService {
     }
     
     /**
-     * Perform secure weighted random selection based on drop rates using a pre-generated roll value
-     * This method ensures animation synchronization by using the same roll value for both selection and animation
-     * @param caseItems List of case items with drop rates
-     * @param rollValue Pre-generated roll value (0-9999)
+     * Perform secure weighted random selection based on drop rates using a pre-generated roll value.
+     * This method uses scaled integer math to prevent floating-point inaccuracies and ensure fair distribution.
+     * @param caseItems List of case items with drop rates, assumed to be sorted.
+     * @param rollValue Pre-generated roll value (0-999,999)
      * @return Selected shop item
      */
     private Shop selectItemByDropRateSecureWithRoll(List<CaseItem> caseItems, int rollValue) {
-        BigDecimal cumulativeWeight = BigDecimal.ZERO;
-        BigDecimal rollValueDecimal = new BigDecimal(rollValue).divide(new BigDecimal("100")); // Scale roll to match drop rates
+        long cumulativeWeight = 0L;
 
-        // caseItems from findByCaseIdOrderByDropRateDesc are sorted, which is important for determinism
+        // The roll is 0-999,999. Drop rates are percentages (e.g., 0.0123 for 0.0123%).
+        // We scale each drop rate by 10,000 to work with integers (e.g., 0.0123 -> 123).
         for (CaseItem item : caseItems) {
-            cumulativeWeight = cumulativeWeight.add(item.getDropRate());
-            if (rollValueDecimal.compareTo(cumulativeWeight) < 0) {
+            long itemWeight = item.getDropRate().multiply(new BigDecimal("10000")).longValue();
+            cumulativeWeight += itemWeight;
+
+            if (rollValue < cumulativeWeight) {
                 return item.getContainedItem();
             }
         }
 
-        // Fallback for safety, e.g. if rollValue is exactly 10000 and sum is 100.
-        // This should not be hit if total drop rates sum to 100 and roll is 0-9999.
+        // Fallback for safety. This should not be hit if total drop rates sum to 100
+        // and the roll is within the 0-999,999 range. This can occur if drop rates
+        // with high precision are truncated by longValue(), causing the cumulative
+        // weight to be less than the max roll. The last item gets the remainder.
         logger.warn("Weighted selection algorithm fell through for case. Returning the last item. This may indicate a data issue with case contents.");
         return caseItems.get(caseItems.size() - 1).getContainedItem();
     }
