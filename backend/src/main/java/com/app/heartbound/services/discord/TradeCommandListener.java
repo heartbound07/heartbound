@@ -30,6 +30,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import com.app.heartbound.enums.TradeStatus;
 import com.app.heartbound.entities.TradeItem;
+import com.app.heartbound.enums.ItemRarity;
+import com.app.heartbound.enums.ShopCategory;
 
 @Component
 @Slf4j
@@ -349,11 +351,23 @@ public class TradeCommandListener extends ListenerAdapter {
                 .map(TradeItem::getItemInstance)
                 .filter(instance -> instance.getOwner().getId().equals(initiator.getId()))
                 .map(instance -> {
-                    String name = instance.getBaseItem().getName();
-                    if (instance.getSerialNumber() != null) {
-                        name += " #" + instance.getSerialNumber();
+                    String namePart;
+                    if (instance.getBaseItem().getCategory() == ShopCategory.USER_COLOR && instance.getBaseItem().getDiscordRoleId() != null && !instance.getBaseItem().getDiscordRoleId().isEmpty()) {
+                        namePart = "<@&" + instance.getBaseItem().getDiscordRoleId() + ">";
+                    } else {
+                        namePart = instance.getBaseItem().getName();
+                        if (instance.getSerialNumber() != null) {
+                            namePart += " #" + instance.getSerialNumber();
+                        }
                     }
-                    return name;
+
+                    ItemRarity rarity = instance.getBaseItem().getRarity();
+                    String rarityPart = "";
+                    if (rarity != null) {
+                        rarityPart = " | **" + formatRarityLabel(rarity) + "**";
+                    }
+
+                    return namePart + rarityPart;
                 })
                 .collect(Collectors.joining("\n"));
 
@@ -363,11 +377,23 @@ public class TradeCommandListener extends ListenerAdapter {
                 .map(TradeItem::getItemInstance)
                 .filter(instance -> instance.getOwner().getId().equals(receiver.getId()))
                 .map(instance -> {
-                    String name = instance.getBaseItem().getName();
-                    if (instance.getSerialNumber() != null) {
-                        name += " #" + instance.getSerialNumber();
+                    String namePart;
+                    if (instance.getBaseItem().getCategory() == ShopCategory.USER_COLOR && instance.getBaseItem().getDiscordRoleId() != null && !instance.getBaseItem().getDiscordRoleId().isEmpty()) {
+                        namePart = "<@&" + instance.getBaseItem().getDiscordRoleId() + ">";
+                    } else {
+                        namePart = instance.getBaseItem().getName();
+                        if (instance.getSerialNumber() != null) {
+                            namePart += " #" + instance.getSerialNumber();
+                        }
                     }
-                    return name;
+
+                    ItemRarity rarity = instance.getBaseItem().getRarity();
+                    String rarityPart = "";
+                    if (rarity != null) {
+                        rarityPart = " | **" + formatRarityLabel(rarity) + "**";
+                    }
+
+                    return namePart + rarityPart;
                 })
                 .collect(Collectors.joining("\n"));
 
@@ -405,5 +431,13 @@ public class TradeCommandListener extends ListenerAdapter {
 
     private String getRequestKey(String id1, String id2) {
         return id1.compareTo(id2) < 0 ? id1 + ":" + id2 : id2 + ":" + id1;
+    }
+
+    private String formatRarityLabel(ItemRarity rarity) {
+        if (rarity == null) {
+            return "Common";
+        }
+        String rarityName = rarity.name();
+        return rarityName.charAt(0) + rarityName.substring(1).toLowerCase();
     }
 } 
