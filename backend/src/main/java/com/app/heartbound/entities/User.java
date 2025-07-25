@@ -11,8 +11,6 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.JoinTable;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.EntityListeners;
@@ -21,7 +19,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.EqualsAndHashCode;
-import lombok.ToString;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -37,7 +34,7 @@ import jakarta.persistence.FetchType;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@EqualsAndHashCode(exclude = {"inventoryItems"})
+@EqualsAndHashCode(exclude = {"itemInstances"})
 @EntityListeners(UserEntityListener.class)
 public class User {
     
