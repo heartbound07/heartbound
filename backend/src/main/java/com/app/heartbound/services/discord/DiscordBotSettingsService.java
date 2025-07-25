@@ -6,11 +6,15 @@ import com.app.heartbound.repositories.DiscordBotSettingsRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @Slf4j
@@ -21,6 +25,10 @@ public class DiscordBotSettingsService {
     private final ChatActivityListener chatActivityListener;
     private final UserVoiceActivityService userVoiceActivityService;
     private final CountingGameService countingGameService;
+    
+    @Autowired
+    @Lazy
+    private DiscordBotSettingsService self;
     
     // Import default values from application.properties
     @Value("${discord.activity.enabled:true}")
@@ -141,7 +149,7 @@ public class DiscordBotSettingsService {
     @Transactional(readOnly = true)
     public DiscordBotSettingsDTO getDiscordBotSettingsAsDTO() {
         // Try to get from cache first
-        DiscordBotSettings settings = getDiscordBotSettings();
+        DiscordBotSettings settings = self.getDiscordBotSettings();
         
         DiscordBotSettingsDTO dto = new DiscordBotSettingsDTO();
         // Map entity to DTO (this would be cleaner with ModelMapper or MapStruct)
@@ -327,49 +335,52 @@ public class DiscordBotSettingsService {
 
         repository.save(settings);
         
-        // Invalidate cache after updating settings
-        // cacheConfig.invalidateDiscordBotSettingsCache(); // This is now handled by @CacheEvict
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+            @Override
+            public void afterCommit() {
+                // Apply the updated settings to the ChatActivityListener and UserVoiceActivityService
+                chatActivityListener.updateSettings(
+                    settings.getActivityEnabled(),
+                    settings.getCreditsToAward(),
+                    settings.getMessageThreshold(),
+                    settings.getTimeWindowMinutes(),
+                    settings.getCooldownSeconds(),
+                    settings.getMinMessageLength(),
+                    settings.getLevelingEnabled(),
+                    settings.getXpToAward(),
+                    settings.getBaseXp(),
+                    settings.getLevelMultiplier(),
+                    settings.getLevelExponent(),
+                    settings.getLevelFactor(),
+                    settings.getCreditsPerLevel(),
+                    settings.getLevel5RoleId(),
+                    settings.getLevel15RoleId(),
+                    settings.getLevel30RoleId(),
+                    settings.getLevel40RoleId(),
+                    settings.getLevel50RoleId(),
+                    settings.getLevel70RoleId(),
+                    settings.getLevel100RoleId(),
+                    settings.getStarterRoleId(),
+                    settings.getRoleMultipliers(),
+                    settings.getRoleMultipliersEnabled()
+                );
+                
+                // Update voice activity service with inactivity channel setting
+                userVoiceActivityService.updateSettings(settings.getInactivityChannelId());
+                
+                // Update counting game service with new settings
+                countingGameService.updateSettings(
+                    settings.getCountingChannelId(),
+                    settings.getCountingTimeoutRoleId(),
+                    settings.getCreditsPerCount(),
+                    settings.getCountingLives(),
+                    settings.getCountingGameEnabled() != null ? settings.getCountingGameEnabled() : false
+                );
+                log.info("Discord bot settings applied to listeners after transaction commit.");
+            }
+        });
         
-        // Apply the updated settings to the ChatActivityListener and UserVoiceActivityService
-        chatActivityListener.updateSettings(
-            settings.getActivityEnabled(),
-            settings.getCreditsToAward(),
-            settings.getMessageThreshold(),
-            settings.getTimeWindowMinutes(),
-            settings.getCooldownSeconds(),
-            settings.getMinMessageLength(),
-            settings.getLevelingEnabled(),
-            settings.getXpToAward(),
-            settings.getBaseXp(),
-            settings.getLevelMultiplier(),
-            settings.getLevelExponent(),
-            settings.getLevelFactor(),
-            settings.getCreditsPerLevel(),
-            settings.getLevel5RoleId(),
-            settings.getLevel15RoleId(),
-            settings.getLevel30RoleId(),
-            settings.getLevel40RoleId(),
-            settings.getLevel50RoleId(),
-            settings.getLevel70RoleId(),
-            settings.getLevel100RoleId(),
-            settings.getStarterRoleId(),
-            settings.getRoleMultipliers(),
-            settings.getRoleMultipliersEnabled()
-        );
-        
-        // Update voice activity service with inactivity channel setting
-        userVoiceActivityService.updateSettings(settings.getInactivityChannelId());
-        
-        // Update counting game service with new settings
-        countingGameService.updateSettings(
-            settings.getCountingChannelId(),
-            settings.getCountingTimeoutRoleId(),
-            settings.getCreditsPerCount(),
-            settings.getCountingLives(),
-            settings.getCountingGameEnabled() != null ? settings.getCountingGameEnabled() : false
-        );
-        
-        log.info("Discord bot settings updated successfully");
+        log.info("Discord bot settings updated successfully in database");
         return dto;
     }
     
