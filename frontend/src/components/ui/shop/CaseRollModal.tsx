@@ -211,7 +211,7 @@ export function CaseRollModal({
     
     for (const caseItem of caseContents.items) {
       cumulative += caseItem.dropRate;
-      if (rollValue < cumulative) {
+      if (rollValue / 100 < cumulative) {
         wonItemFromRoll = caseItem.containedItem;
         break;
       } 
