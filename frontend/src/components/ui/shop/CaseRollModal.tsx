@@ -23,6 +23,7 @@ interface RollResult {
     rarity: string;
     owned: boolean;
     fishingRodMultiplier?: number;
+    gradientEndColor?: string;
   };
   rollValue: number;
   rolledAt: string;
@@ -46,6 +47,7 @@ interface CaseItemDTO {
     rarity: string;
     owned: boolean;
     fishingRodMultiplier?: number;
+    gradientEndColor?: string;
   };
   dropRate: number;
 }
@@ -417,6 +419,7 @@ export function CaseRollModal({
               username={user?.username || "User"}
               avatar={user?.avatar || "/images/default-avatar.png"}
               color={containedItem.imageUrl}
+              endColor={containedItem.gradientEndColor}
               fallbackColor={rarityColor}
               message=""
               className="h-full w-full"
@@ -612,6 +615,7 @@ export function CaseRollModal({
                                       username={user?.username || "Preview"}
                                       avatar={user?.avatar || "/images/default-avatar.png"}
                                       color={item.imageUrl}
+                                      endColor={item.gradientEndColor}
                                       fallbackColor={rarityColor}
                                       message="Preview of your nameplate color"
                                       size="md"
@@ -884,6 +888,7 @@ export function CaseRollModal({
                           username={user?.username || "Username"}
                           avatar={user?.avatar || "/images/default-avatar.png"}
                           color={rollResult.wonItem.imageUrl}
+                          endColor={rollResult.wonItem.gradientEndColor}
                           fallbackColor={getRarityColor(rollResult.wonItem.rarity)}
                           message="Your new nameplate color"
                           className=""
