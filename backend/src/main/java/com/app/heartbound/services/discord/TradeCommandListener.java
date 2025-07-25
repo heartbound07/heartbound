@@ -324,7 +324,7 @@ public class TradeCommandListener extends ListenerAdapter {
 
     private MessageEmbed buildTradeEmbed(Trade trade, User initiator, User receiver) {
         log.debug("Building trade embed for tradeId: {}. Initiator: {}, Receiver: {}", trade.getId(), initiator.getId(), receiver.getId());
-        EmbedBuilder embed = new EmbedBuilder().setTitle(initiator.getEffectiveName() + " ⇌ " + receiver.getEffectiveName());
+        EmbedBuilder embed = new EmbedBuilder().setTitle(initiator.getEffectiveName() + " and " + receiver.getEffectiveName() + " are trading");
 
         String initiatorStatus = "";
         if (trade.getInitiatorLocked()) {
@@ -392,10 +392,10 @@ public class TradeCommandListener extends ListenerAdapter {
         boolean bothLocked = trade.getInitiatorLocked() && trade.getReceiverLocked();
         boolean tradeComplete = trade.getStatus() != TradeStatus.PENDING;
 
-        Button addItems = Button.primary("trade_add-items_" + trade.getId(), "Add/Edit Offer").withEmoji(Emoji.fromUnicode("📝")).withDisabled(tradeComplete);
-        Button lockOffer = Button.secondary("trade_lock-offer_" + trade.getId(), "Lock Offer").withEmoji(Emoji.fromUnicode("🔒")).withDisabled(tradeComplete);
-        Button acceptFinal = Button.success("trade_accept-final_" + trade.getId(), "Accept Trade").withEmoji(Emoji.fromUnicode("✅")).withDisabled(tradeComplete || !bothLocked);
-        Button cancel = Button.danger("trade_cancel_" + trade.getId(), "Cancel").withEmoji(Emoji.fromUnicode("❌")).withDisabled(tradeComplete);
+        Button addItems = Button.primary("trade_add-items_" + trade.getId(), Emoji.fromUnicode("📝")).withDisabled(tradeComplete);
+        Button lockOffer = Button.secondary("trade_lock-offer_" + trade.getId(), Emoji.fromUnicode("🔒")).withDisabled(tradeComplete);
+        Button acceptFinal = Button.success("trade_accept-final_" + trade.getId(), Emoji.fromUnicode("✅")).withDisabled(tradeComplete || !bothLocked);
+        Button cancel = Button.danger("trade_cancel_" + trade.getId(), Emoji.fromUnicode("❌")).withDisabled(tradeComplete);
 
         return List.of(
                 ActionRow.of(addItems, lockOffer),
