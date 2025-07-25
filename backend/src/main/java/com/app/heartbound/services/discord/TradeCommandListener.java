@@ -411,14 +411,14 @@ public class TradeCommandListener extends ListenerAdapter {
         }
 
         String initiatorStatus = "";
-        if (trade.getInitiatorLocked()) initiatorStatus += " 🔒";
+        if (trade.getInitiatorLocked()) initiatorStatus += "🔒";
         if (trade.getInitiatorAccepted()) initiatorStatus += " ✅";
 
         String receiverStatus = "";
-        if (trade.getReceiverLocked()) receiverStatus += " 🔒";
+        if (trade.getReceiverLocked()) receiverStatus += "🔒";
         if (trade.getReceiverAccepted()) receiverStatus += " ✅";
 
-        embed.setDescription(initiator.getAsMention() + initiatorStatus + " and " + receiver.getAsMention() + receiverStatus + " are now trading!");
+        embed.setDescription(initiator.getAsMention() + " and " + receiver.getAsMention() + " are now trading!");
 
         String itemsForInitiator = trade.getItems().stream()
                 .map(TradeItem::getItemInstance)
@@ -438,8 +438,8 @@ public class TradeCommandListener extends ListenerAdapter {
             itemsForReceiver = "\u200B";
         }
 
-        embed.addField("\u200B", initiator.getAsMention() + " will receive:\n" + itemsForInitiator, false);
-        embed.addField("\u200B", receiver.getAsMention() + " will receive:\n" + itemsForReceiver, false);
+        embed.addField("\u200B", initiator.getAsMention() + " will receive:" + initiatorStatus + "\n" + itemsForInitiator, false);
+        embed.addField("\u200B", receiver.getAsMention() + " will receive:" + receiverStatus + "\n" + itemsForReceiver, false);
 
         if (trade.getExpiresAt() != null) {
             long remainingSeconds = trade.getExpiresAt().getEpochSecond() - Instant.now().getEpochSecond();
