@@ -18,4 +18,8 @@ public enum ShopCategory {
     public boolean isStackable() {
         return this == CASE;
     }
+
+    public boolean isEquippable() {
+        return this != CASE;
+    }
 } 

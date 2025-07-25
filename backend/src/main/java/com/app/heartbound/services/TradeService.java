@@ -139,6 +139,14 @@ public class TradeService {
                  throw new InvalidTradeActionException("The item '" + item.getName() + "' is not tradable.");
             }
 
+            // Check if the item is equipped
+            if (item.getCategory().isEquippable()) {
+                UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
+                if (equippedItemId != null && equippedItemId.equals(item.getId())) {
+                    throw new InvalidTradeActionException("You cannot trade an item that is currently equipped. Please unequip '" + item.getName() + "' first.");
+                }
+            }
+
             TradeItem tradeItem = TradeItem.builder()
                     .trade(trade)
                     .itemInstance(instance)

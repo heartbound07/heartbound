@@ -143,6 +143,9 @@ const InventoryItemCard = forwardRef(({
     if (item.category === 'CASE') {
       return !item.quantity || item.quantity < 1 || actionInProgress !== null;
     }
+    if (item.equipped) {
+      return true; // Cannot trade equipped items
+    }
     return actionInProgress !== null;
   };
   
@@ -156,7 +159,10 @@ const InventoryItemCard = forwardRef(({
       whileHover={{ y: -5 }}
       className={`shop-item-card inventory-item-card ${isSelected ? 'inventory-item-selected' : ''} ${item.equipped ? 'inventory-item-equipped' : ''}`}
       style={{ borderColor: isSelected ? 'var(--color-primary, #0088cc)' : (item.equipped ? 'var(--color-primary, #0088cc)' : 'transparent') }}
-      onClick={() => onSelect(item)}
+      onClick={() => {
+        if (item.equipped) return; // Prevent selecting equipped items for trade
+        onSelect(item)
+      }}
     >
       {/* Show quantity for non-case items */}
       {(item.quantity && item.quantity > 1 && item.category !== 'CASE') && (
@@ -364,6 +370,7 @@ const InventoryItemCard = forwardRef(({
         <button
           onClick={(e) => {
             e.stopPropagation();
+            if (item.equipped) return;
             handleAction();
           }}
           disabled={isActionDisabled()}
@@ -395,7 +402,7 @@ const InventoryItemCard = forwardRef(({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               )}
-              {getActionButtonText()}
+              {item.equipped ? 'Equipped' : getActionButtonText()}
             </>
           )}
         </button>
