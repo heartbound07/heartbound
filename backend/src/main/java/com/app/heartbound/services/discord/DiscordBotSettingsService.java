@@ -135,8 +135,7 @@ public class DiscordBotSettingsService {
     @Transactional(readOnly = true)
     @Cacheable(value = "discordBotSettings", key = "#root.methodName")
     public DiscordBotSettings getDiscordBotSettings() {
-        return repository.findById(1L)
-                .orElseThrow(() -> new RuntimeException("Discord bot settings not found"));
+        return repository.findById(1L).orElse(new DiscordBotSettings());
     }
 
     @Transactional(readOnly = true)
