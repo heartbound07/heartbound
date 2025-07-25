@@ -4,6 +4,7 @@ import com.app.heartbound.dto.CreateTradeDto;
 import com.app.heartbound.entities.*;
 import com.app.heartbound.enums.TradeStatus;
 import com.app.heartbound.exceptions.InvalidTradeActionException;
+import com.app.heartbound.exceptions.ItemEquippedException;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.TradeNotFoundException;
 import com.app.heartbound.repositories.ItemInstanceRepository;
@@ -143,7 +144,7 @@ public class TradeService {
             if (item.getCategory().isEquippable()) {
                 UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
                 if (equippedItemId != null && equippedItemId.equals(item.getId())) {
-                    throw new InvalidTradeActionException("You cannot trade an item that is currently equipped. Please unequip '" + item.getName() + "' first.");
+                    throw new ItemEquippedException("You cannot trade an item that is currently equipped. Please unequip '" + item.getName() + "' first.");
                 }
             }
 

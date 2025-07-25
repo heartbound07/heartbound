@@ -50,6 +50,19 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(ItemEquippedException.class)
+    public ResponseEntity<ErrorResponse> handleItemEquippedException(ItemEquippedException ex,
+                                                                          HttpServletRequest request) {
+        ErrorResponse response = new ErrorResponse(
+                Instant.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Bad Request",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(InsufficientItemsException.class)
     public ResponseEntity<ErrorResponse> handleInsufficientItemsException(InsufficientItemsException ex,
                                                                           HttpServletRequest request) {
