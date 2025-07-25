@@ -1077,14 +1077,17 @@ public class ShopService {
             ShopDTO dto = mapToShopDTO(item, user);
             dto.setQuantity((int) quantity);
             
-            // Add equipped status
-            if (item.getCategory() != null) {
+            // Add equipped status, skipping for non-equippable categories like CASE
+            if (item.getCategory() != null && item.getCategory() != ShopCategory.CASE) {
                 if (item.getCategory() == ShopCategory.BADGE) {
                     dto.setEquipped(user.isBadgeEquipped(item.getId()));
                 } else {
                     UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
                     dto.setEquipped(equippedItemId != null && equippedItemId.equals(item.getId()));
                 }
+            } else {
+                // For CASE or null category, it's not equipped
+                dto.setEquipped(false);
             }
             
             return dto;
@@ -1117,14 +1120,17 @@ public class ShopService {
             ShopDTO dto = mapToShopDTO(item, user);
             dto.setQuantity((int) quantity);
             
-            // Add equipped status
-            if (item.getCategory() != null) {
+            // Add equipped status, skipping for non-equippable categories like CASE
+            if (item.getCategory() != null && item.getCategory() != ShopCategory.CASE) {
                 if (item.getCategory() == ShopCategory.BADGE) {
                     dto.setEquipped(user.isBadgeEquipped(item.getId()));
                 } else {
                     UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
                     dto.setEquipped(equippedItemId != null && equippedItemId.equals(item.getId()));
                 }
+            } else {
+                // For CASE or null category, it's not equipped
+                dto.setEquipped(false);
             }
             
             return dto;
