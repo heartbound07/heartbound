@@ -749,11 +749,14 @@ export function ShopPage() {
                   <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-center py-12 rounded-lg border border-slate-700/50 bg-slate-800/20"
+                    className="flex-grow flex items-center justify-center"
                   >
-                    <div className="text-slate-400 mb-2">
-                      No daily items available.
-                    </div>
+                    <p 
+                        className="text-slate-300 text-2xl" 
+                        style={{ fontFamily: 'Grandstander, sans-serif' }}
+                    >
+                      You have purchased all your daily items!
+                    </p>
                   </motion.div>
                 ) : (
                   <div className="daily-grid">
