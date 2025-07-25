@@ -20,6 +20,8 @@ import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import org.springframework.stereotype.Component;
 import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
@@ -157,10 +159,10 @@ public class TradeCommandListener extends ListenerAdapter {
                     handleAddItem(event, tradeId, clickerId);
                     break;
                 case "lock-offer":
-                    handleLockOffer(event, tradeId, clickerId);
+                    handleLockOffer(event, tradeId, clickerId, event.getGuild());
                     break;
                 case "accept-final":
-                    handleFinalAccept(event, tradeId, clickerId);
+                    handleFinalAccept(event, tradeId, clickerId, event.getGuild());
                     break;
                 case "cancel":
                     handleCancel(event, tradeId, clickerId);
@@ -194,7 +196,7 @@ public class TradeCommandListener extends ListenerAdapter {
 
             tradeService.addItemsToTrade(tradeId, userId, itemInstanceUuids);
 
-            updateTradeUI(event.getChannel(), tradeId);
+            updateTradeUI(event.getChannel(), tradeId, event.getGuild());
 
         } catch (Exception e) {
             log.error("Error processing item selection for tradeId: {}", tradeId, e);
@@ -214,7 +216,7 @@ public class TradeCommandListener extends ListenerAdapter {
             jdaInstance.retrieveUserById(receiverId).queue(receiverUser -> {
                 Instant expiresAt = Instant.now().plusSeconds(120);
 
-                event.getChannel().sendMessageEmbeds(buildTradeEmbed(trade, initiatorUser, receiverUser))
+                event.getChannel().sendMessageEmbeds(buildTradeEmbed(trade, initiatorUser, receiverUser, event.getGuild()))
                         .setComponents(getTradeActionRows(trade))
                         .queue(message -> {
                             tradeService.setTradeMessageInfo(tradeId, message.getId(), message.getChannelId(), expiresAt);
@@ -297,12 +299,12 @@ public class TradeCommandListener extends ListenerAdapter {
         event.getHook().sendMessage("Please select which items you would like to offer.").setComponents(ActionRow.of(menuBuilder.build())).setEphemeral(true).queue();
     }
 
-    private void handleLockOffer(ButtonInteractionEvent event, long tradeId, String clickerId) {
+    private void handleLockOffer(ButtonInteractionEvent event, long tradeId, String clickerId, Guild guild) {
         tradeService.lockOffer(tradeId, clickerId);
-        updateTradeUI(event.getChannel(), tradeId);
+        updateTradeUI(event.getChannel(), tradeId, guild);
     }
 
-    private void handleFinalAccept(ButtonInteractionEvent event, long tradeId, String clickerId) {
+    private void handleFinalAccept(ButtonInteractionEvent event, long tradeId, String clickerId, Guild guild) {
         try {
             Trade trade = tradeService.acceptFinalTrade(tradeId, clickerId);
 
@@ -349,7 +351,7 @@ public class TradeCommandListener extends ListenerAdapter {
                 }, failure -> log.error("Could not retrieve initiator user {} for completed trade {}", initiatorId, tradeId, failure));
 
             } else {
-                updateTradeUI(event.getChannel(), tradeId);
+                updateTradeUI(event.getChannel(), tradeId, guild);
             }
         } catch (Exception e) {
             log.error("Final acceptance failed for tradeId: {}", tradeId, e);
@@ -370,7 +372,7 @@ public class TradeCommandListener extends ListenerAdapter {
     }
 
 
-    private void updateTradeUI(net.dv8tion.jda.api.entities.channel.middleman.MessageChannel channel, long tradeId) {
+    private void updateTradeUI(MessageChannel channel, long tradeId, Guild guild) {
         Trade trade = tradeService.getTradeDetails(tradeId);
         if (trade == null || trade.getStatus() != TradeStatus.PENDING) {
             log.warn("updateTradeUI called for non-pending or non-existent tradeId: {}", tradeId);
@@ -387,7 +389,7 @@ public class TradeCommandListener extends ListenerAdapter {
             jdaInstance.retrieveUserById(receiverId).queue(receiverUser -> {
                 channel.retrieveMessageById(messageId).queue(message -> {
                     log.debug("Found message {} to update for tradeId: {}", messageId, tradeId);
-                    message.editMessageEmbeds(buildTradeEmbed(trade, initiatorUser, receiverUser))
+                    message.editMessageEmbeds(buildTradeEmbed(trade, initiatorUser, receiverUser, guild))
                            .setComponents(getTradeActionRows(trade))
                            .queue(
                                success -> log.info("Successfully updated UI for tradeId: {}", tradeId),
@@ -400,54 +402,51 @@ public class TradeCommandListener extends ListenerAdapter {
         }, failure -> log.error("Could not retrieve initiator user {} for trade UI update {}", initiatorId, tradeId, failure));
     }
 
-    private MessageEmbed buildTradeEmbed(Trade trade, User initiator, User receiver) {
+    private MessageEmbed buildTradeEmbed(Trade trade, User initiator, User receiver, Guild guild) {
         log.debug("Building trade embed for tradeId: {}. Initiator: {}, Receiver: {}", trade.getId(), initiator.getId(), receiver.getId());
-        EmbedBuilder embed = new EmbedBuilder().setTitle(initiator.getEffectiveName() + " and " + receiver.getEffectiveName() + " are trading");
+        EmbedBuilder embed = new EmbedBuilder();
+
+        if (guild != null) {
+            embed.setAuthor(guild.getName(), null, guild.getIconUrl());
+        }
 
         String initiatorStatus = "";
-        if (trade.getInitiatorLocked()) {
-            initiatorStatus += "🔒 ";
-        }
-        if (trade.getInitiatorAccepted()) {
-            initiatorStatus += "✅";
-        }
-        initiatorStatus = initiatorStatus.trim();
+        if (trade.getInitiatorLocked()) initiatorStatus += " 🔒";
+        if (trade.getInitiatorAccepted()) initiatorStatus += " ✅";
 
         String receiverStatus = "";
-        if (trade.getReceiverLocked()) {
-            receiverStatus += "🔒 ";
-        }
-        if (trade.getReceiverAccepted()) {
-            receiverStatus += "✅";
-        }
-        receiverStatus = receiverStatus.trim();
+        if (trade.getReceiverLocked()) receiverStatus += " 🔒";
+        if (trade.getReceiverAccepted()) receiverStatus += " ✅";
 
+        embed.setDescription(initiator.getAsMention() + initiatorStatus + " and " + receiver.getAsMention() + receiverStatus + " are now trading!");
 
-        String initiatorItems = trade.getItems().stream()
-                .map(TradeItem::getItemInstance)
-                .filter(instance -> instance.getOwner().getId().equals(initiator.getId()))
-                .map(this::formatItemForDisplay)
-                .collect(Collectors.joining("\n"));
-
-        if(initiatorItems.isEmpty()) initiatorItems = "\u200B";
-
-        String receiverItems = trade.getItems().stream()
+        String itemsForInitiator = trade.getItems().stream()
                 .map(TradeItem::getItemInstance)
                 .filter(instance -> instance.getOwner().getId().equals(receiver.getId()))
                 .map(this::formatItemForDisplay)
                 .collect(Collectors.joining("\n"));
+        if (itemsForInitiator.isEmpty()) {
+            itemsForInitiator = "Nothing yet!";
+        }
 
-        if(receiverItems.isEmpty()) receiverItems = "\u200B";
+        String itemsForReceiver = trade.getItems().stream()
+                .map(TradeItem::getItemInstance)
+                .filter(instance -> instance.getOwner().getId().equals(initiator.getId()))
+                .map(this::formatItemForDisplay)
+                .collect(Collectors.joining("\n"));
+        if (itemsForReceiver.isEmpty()) {
+            itemsForReceiver = "Nothing yet!";
+        }
 
-        embed.addField((initiator.getEffectiveName() + " " + initiatorStatus).trim(), initiatorItems, true);
-        embed.addField((receiver.getEffectiveName() + " " + receiverStatus).trim(), receiverItems, true);
+        embed.addField("\u200B", initiator.getAsMention() + " will receive:\n" + itemsForInitiator, false);
+        embed.addField("\u200B", receiver.getAsMention() + " will receive:\n" + itemsForReceiver, false);
 
-        if(trade.getExpiresAt() != null) {
+        if (trade.getExpiresAt() != null) {
             long remainingSeconds = trade.getExpiresAt().getEpochSecond() - Instant.now().getEpochSecond();
             if (remainingSeconds > 0) {
-                 embed.setFooter("This trade expires in " + remainingSeconds + " seconds.");
+                embed.setFooter("This trade expires in " + remainingSeconds + " seconds.");
             } else {
-                 embed.setFooter("This trade has expired.");
+                embed.setFooter("This trade has expired.");
             }
         }
 
