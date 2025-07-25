@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.DecimalMin;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,6 +12,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -54,14 +56,13 @@ public class CaseItem {
     private Shop containedItem;
     
     /**
-     * Drop rate as a percentage (1-100) or weight value
-     * Higher values = more likely to drop
+     * Drop rate as a weight value.
+     * Higher values = more likely to drop relative to other items in the same case.
      */
     @NotNull
-    @Min(1)
-    @Max(100)
-    @Column(name = "drop_rate", nullable = false)
-    private Integer dropRate;
+    @DecimalMin(value = "0.0", inclusive = false)
+    @Column(name = "drop_rate", nullable = false, precision = 10, scale = 4)
+    private BigDecimal dropRate;
     
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)

@@ -20,5 +20,5 @@ public class CaseItemDTO {
     private UUID id;
     private UUID caseId;
     private ShopDTO containedItem;  // The actual item that can be won
-    private Integer dropRate;       // Drop rate percentage (1-100)
+    private Double dropRate;       // Drop rate percentage (1-100)
 } 

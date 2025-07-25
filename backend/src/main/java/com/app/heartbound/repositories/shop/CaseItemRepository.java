@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -67,5 +68,5 @@ public interface CaseItemRepository extends JpaRepository<CaseItem, UUID> {
      * Get total drop rate sum for a case (should be 100 for validation)
      */
     @Query("SELECT SUM(ci.dropRate) FROM CaseItem ci WHERE ci.caseShopItem.id = :caseId")
-    Integer sumDropRatesByCaseId(@Param("caseId") UUID caseId);
+    BigDecimal sumDropRatesByCaseId(@Param("caseId") UUID caseId);
 } 

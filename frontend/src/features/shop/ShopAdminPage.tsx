@@ -290,12 +290,6 @@ export function ShopAdminPage() {
   const saveCaseContents = async () => {
     if (!editingItem || editingItem.category !== 'CASE') return;
     
-    // Validate drop rates
-    if (caseContents.totalDropRate !== 100) {
-      showToast(`Drop rates must total 100%. Current total: ${caseContents.totalDropRate}%`, 'error');
-      return;
-    }
-    
     if (caseContents.items.length === 0) {
       showToast('Case must contain at least one item', 'error');
       return;

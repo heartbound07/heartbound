@@ -47,10 +47,10 @@ public class RollAudit {
     private String rollSeedHash;
     
     @Column(name = "drop_rate", nullable = false)
-    private Integer dropRate;
+    private Double dropRate;
     
     @Column(name = "total_drop_rates", nullable = false)
-    private Integer totalDropRates;
+    private Double totalDropRates;
     
     @Column(name = "case_items_count", nullable = false)
     private Integer caseItemsCount;
@@ -95,7 +95,7 @@ public class RollAudit {
     
     public RollAudit(String userId, UUID caseId, String caseName, UUID wonItemId, 
                     String wonItemName, Integer rollValue, String rollSeedHash,
-                    Integer dropRate, Integer totalDropRates, Integer caseItemsCount,
+                    Double dropRate, Double totalDropRates, Integer caseItemsCount,
                     Boolean alreadyOwned, String clientIp, String userAgent, 
                     String sessionId, Integer userCreditsBefore, Integer userCreditsAfter) {
         this.userId = userId;
@@ -141,11 +141,11 @@ public class RollAudit {
     public String getRollSeedHash() { return rollSeedHash; }
     public void setRollSeedHash(String rollSeedHash) { this.rollSeedHash = rollSeedHash; }
     
-    public Integer getDropRate() { return dropRate; }
-    public void setDropRate(Integer dropRate) { this.dropRate = dropRate; }
+    public Double getDropRate() { return dropRate; }
+    public void setDropRate(Double dropRate) { this.dropRate = dropRate; }
     
-    public Integer getTotalDropRates() { return totalDropRates; }
-    public void setTotalDropRates(Integer totalDropRates) { this.totalDropRates = totalDropRates; }
+    public Double getTotalDropRates() { return totalDropRates; }
+    public void setTotalDropRates(Double totalDropRates) { this.totalDropRates = totalDropRates; }
     
     public Integer getCaseItemsCount() { return caseItemsCount; }
     public void setCaseItemsCount(Integer caseItemsCount) { this.caseItemsCount = caseItemsCount; }

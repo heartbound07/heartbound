@@ -58,6 +58,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.Objects;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -550,7 +551,7 @@ public class ShopService {
     private void createCaseRollAuditEntry(String userId, UUID caseId, Shop caseItem, Shop wonItem, 
                                         boolean alreadyOwned, boolean compensationAwarded, 
                                         int compensatedCredits, int compensatedXp, int rollValue, 
-                                        int dropRate, int creditsSpent) {
+                                        double dropRate, int creditsSpent) {
         try {
             // Build human-readable description
             String description;
@@ -1578,39 +1579,38 @@ public class ShopService {
         if (caseItems.isEmpty()) {
             throw new EmptyCaseException("Case has no contents to roll");
         }
-        
-        // 5. Validate case contents (drop rates should sum to 100)
-        Integer totalDropRate = caseItemRepository.sumDropRatesByCaseId(caseId);
-        if (totalDropRate == null || totalDropRate != 100) {
-            throw new InvalidCaseContentsException(
-                "Invalid case contents - drop rates sum to " + totalDropRate + "% instead of 100%"
-            );
+
+        // 5. IMPORTANT: Validate that drop rates sum to 100 for this logic to be fair.
+        BigDecimal totalWeight = caseItems.stream()
+            .map(CaseItem::getDropRate)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (totalWeight.compareTo(new BigDecimal("100")) != 0) {
+            logger.error("Invalid case contents for case {}: total drop rate is {}, but should be 100.", caseId, totalWeight);
+            throw new InvalidCaseContentsException("Case contents are invalid. Total drop rate is not 100.");
         }
         
-        // 6. Generate secure random seed for this roll
+        // 6. Generate secure random seed and roll value for this roll
         String rollSeed = secureRandomService.generateRollSeed();
         String rollSeedHash = generateSeedHash(rollSeed);
+        int rollValue = secureRandomService.getSecureInt(100); // Generate a roll value from 0-99
         
-        // 7. Generate secure roll value for animation sync (0-99)
-        int rollValue = secureRandomService.getSecureInt(100); // Secure random for animation sync
-        
-        // 8. Perform secure weighted random selection using the pre-generated roll value
+        // 7. Perform secure weighted random selection using the roll value for animation sync
         Shop wonItem = selectItemByDropRateSecureWithRoll(caseItems, rollValue);
-        
-        // 9. Find the drop rate for the won item
-        int wonItemDropRate = caseItems.stream()
+
+        // 8. Find the drop rate for the won item for auditing purposes
+        BigDecimal wonItemDropRate = caseItems.stream()
             .filter(item -> item.getContainedItem().getId().equals(wonItem.getId()))
-            .mapToInt(CaseItem::getDropRate)
+            .map(CaseItem::getDropRate)
             .findFirst()
-            .orElse(0);
-        
-        // 10. Check if user already owns the won item
+            .orElse(BigDecimal.ZERO);
+
+        // 9. Check if user already owns the won item
         boolean alreadyOwned = user.hasItem(wonItem.getId());
         
-        // 11. Store credits and XP before operation
+        // 10. Store credits and XP before operation
         int creditsBefore = user.getCredits();
         
-        // 12. Calculate and award compensation for duplicate items
+        // 11. Calculate and award compensation for duplicate items
         boolean compensationAwarded = false;
         int compensatedCredits = 0;
         int compensatedXp = 0;
@@ -1630,10 +1630,10 @@ public class ShopService {
                        wonItem.getId(), userId, compensatedCredits, compensatedXp);
         }
         
-        // 13. Case was already consumed atomically at the beginning (step 3) to prevent race conditions
+        // 12. Case was already consumed atomically at the beginning (step 3) to prevent race conditions
         // The specific instance has been deleted, so no zero-quantity cleanup is needed.
         
-        // 14. Add won item to user inventory (only if not already owned)
+        // 13. Add won item to user inventory (only if not already owned)
         if (!alreadyOwned) {
             ItemInstance newInstance = ItemInstance.builder()
                 .owner(user)
@@ -1642,17 +1642,18 @@ public class ShopService {
             user.getItemInstances().add(newInstance);
         }
         
-        // 15. Save user changes
+        // 14. Save user changes
         user = userRepository.save(user);
         int creditsAfter = user.getCredits();
         
-        // 16. Calculate processing time
+        // 15. Calculate processing time
         long processingTime = System.currentTimeMillis() - startTime;
         
-        // 17. Create audit record
+        // 16. Create audit record
         RollAudit auditRecord = new RollAudit(
             userId, caseId, caseItem.getName(), wonItem.getId(), wonItem.getName(),
-            rollValue, rollSeedHash, wonItemDropRate, totalDropRate, caseItems.size(),
+            rollValue, // Use the generated rollValue for the audit
+            rollSeedHash, wonItemDropRate.doubleValue(), totalWeight.doubleValue(), caseItems.size(),
             alreadyOwned, getClientIp(), getUserAgent(), getSessionId(),
             creditsBefore, creditsAfter
         );
@@ -1663,28 +1664,28 @@ public class ShopService {
         auditRecord.setRollTimestamp(now);
         auditRecord.setStatisticalHash(rollVerificationService.generateStatisticalHash(auditRecord));
         
-        // 18. Save roll audit record (for specialized gambling compliance)
+        // 17. Save roll audit record (for specialized gambling compliance)
         rollAuditRepository.save(auditRecord);
         
-        // 19. Create main audit entry for admin visibility
+        // 18. Create main audit entry for admin visibility
         createCaseRollAuditEntry(userId, caseId, caseItem, wonItem, alreadyOwned, 
                                 compensationAwarded, compensatedCredits, compensatedXp, 
-                                rollValue, wonItemDropRate, creditsAfter - creditsBefore);
+                                rollValue, wonItemDropRate.doubleValue(), creditsAfter - creditsBefore);
         
-        logger.info("User {} opened case {} and won item {} (already owned: {}{}) - Roll: {}, Seed: {}", 
-                   userId, caseId, wonItem.getId(), alreadyOwned, 
+        logger.info("User {} opened case {} and won item {} (roll: {}, already owned: {}{}) - Seed: {}", 
+                   userId, caseId, wonItem.getId(), rollValue, alreadyOwned, 
                    compensationAwarded ? ", compensation awarded: " + compensatedCredits + " credits, " + compensatedXp + " XP" : "",
-                   rollValue, rollSeedHash.substring(0, 8) + "...");
+                   rollSeedHash.substring(0, 8) + "...");
         
-        // 20. Invalidate user profile cache to reflect updated credits/xp/inventory
+        // 19. Invalidate user profile cache to reflect updated credits/xp/inventory
         cacheConfig.invalidateUserProfileCache(userId);
         
-        // 21. Return result
+        // 20. Return result
         return RollResultDTO.builder()
             .caseId(caseId)
             .caseName(caseItem.getName())
             .wonItem(mapToShopDTO(wonItem, user))
-            .rollValue(rollValue)
+            .rollValue(rollValue) // Return the roll value for frontend animation
             .rolledAt(LocalDateTime.now())
             .alreadyOwned(alreadyOwned)
             .compensationAwarded(compensationAwarded)
@@ -1735,13 +1736,21 @@ public class ShopService {
      * @return Selected shop item
      */
     private Shop selectItemByDropRateSecureWithRoll(List<CaseItem> caseItems, int rollValue) {
-        // Use secure random service for weighted selection with pre-generated roll value
-        return secureRandomService.selectWeightedRandom(
-            caseItems,
-            100, // Total weight should always be 100 for drop rates
-            rollValue, // Use the pre-generated roll value
-            CaseItem::getDropRate
-        ).getContainedItem();
+        BigDecimal cumulativeWeight = BigDecimal.ZERO;
+        BigDecimal rollValueDecimal = new BigDecimal(rollValue);
+
+        // caseItems from findByCaseIdOrderByDropRateDesc are sorted, which is important for determinism
+        for (CaseItem item : caseItems) {
+            cumulativeWeight = cumulativeWeight.add(item.getDropRate());
+            if (rollValueDecimal.compareTo(cumulativeWeight) < 0) {
+                return item.getContainedItem();
+            }
+        }
+
+        // Fallback for safety, e.g. if rollValue is exactly 100 and sum is 100.
+        // This should not be hit if total drop rates sum to 100 and roll is 0-99.
+        logger.warn("Weighted selection algorithm fell through for case. Returning the last item. This may indicate a data issue with case contents.");
+        return caseItems.get(caseItems.size() - 1).getContainedItem();
     }
     
     /**
@@ -1766,13 +1775,13 @@ public class ShopService {
             .map(this::mapToCaseItemDTO)
             .collect(Collectors.toList());
         
-        Integer totalDropRate = caseItemRepository.sumDropRatesByCaseId(caseId);
+        BigDecimal totalDropRate = caseItemRepository.sumDropRatesByCaseId(caseId);
         
         return CaseContentsDTO.builder()
             .caseId(caseId)
             .caseName(caseItem.getName())
             .items(itemDTOs)
-            .totalDropRate(totalDropRate != null ? totalDropRate : 0)
+            .totalDropRate(totalDropRate != null ? totalDropRate.doubleValue() : 0.0)
             .itemCount(itemDTOs.size())
             .build();
     }
@@ -1785,49 +1794,40 @@ public class ShopService {
     @Transactional
     public void updateCaseContents(UUID caseId, List<CaseItemDTO> caseItems) {
         logger.debug("Updating contents for case {} with {} items", caseId, caseItems.size());
-        
+
         Shop caseItem = shopRepository.findById(caseId)
             .orElseThrow(() -> new ResourceNotFoundException("Case not found with ID: " + caseId));
-        
+
         if (caseItem.getCategory() != ShopCategory.CASE) {
             throw new IllegalArgumentException("Item is not a case");
         }
-        
-        // Validate drop rates sum to 100
-        int totalDropRate = caseItems.stream()
-            .mapToInt(CaseItemDTO::getDropRate)
-            .sum();
-        
-        if (totalDropRate != 100) {
-            throw new IllegalArgumentException("Drop rates must sum to 100, current sum: " + totalDropRate);
-        }
-        
+
         // Validate all contained items exist and are not cases themselves
         for (CaseItemDTO dto : caseItems) {
             Shop containedItem = shopRepository.findById(dto.getContainedItem().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Contained item not found: " + dto.getContainedItem().getId()));
-            
+
             if (containedItem.getCategory() == ShopCategory.CASE) {
                 throw new IllegalArgumentException("Cases cannot contain other cases");
             }
         }
-        
+
         // Remove existing case items
         caseItemRepository.deleteByCaseId(caseId);
-        
+
         // Add new case items
         for (CaseItemDTO dto : caseItems) {
             Shop containedItem = shopRepository.findById(dto.getContainedItem().getId()).get();
-            
+
             CaseItem newCaseItem = CaseItem.builder()
                 .caseShopItem(caseItem)
                 .containedItem(containedItem)
-                .dropRate(dto.getDropRate())
+                .dropRate(BigDecimal.valueOf(dto.getDropRate()))
                 .build();
-            
+
             caseItemRepository.save(newCaseItem);
         }
-        
+
         logger.info("Updated case {} with {} items", caseId, caseItems.size());
     }
     
@@ -1837,8 +1837,9 @@ public class ShopService {
      * @return true if valid, false otherwise
      */
     public boolean validateCaseContents(UUID caseId) {
-        Integer totalDropRate = caseItemRepository.sumDropRatesByCaseId(caseId);
-        return totalDropRate != null && totalDropRate == 100;
+        BigDecimal totalDropRate = caseItemRepository.sumDropRatesByCaseId(caseId);
+        // Use compareTo for BigDecimal comparison. The sum must be exactly 100.
+        return totalDropRate != null && totalDropRate.compareTo(new BigDecimal("100")) == 0;
     }
     
     /**
@@ -1851,7 +1852,7 @@ public class ShopService {
             .id(caseItem.getId())
             .caseId(caseItem.getCaseShopItem().getId())
             .containedItem(mapToShopDTO(caseItem.getContainedItem(), null))
-            .dropRate(caseItem.getDropRate())
+            .dropRate(caseItem.getDropRate().doubleValue())
             .build();
     }
     

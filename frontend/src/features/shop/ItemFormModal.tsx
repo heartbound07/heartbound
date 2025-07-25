@@ -588,20 +588,20 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                       <>
                         {/* Drop Rate Summary */}
                         <div className="mb-4 p-3 rounded-md border" style={{
-                          backgroundColor: caseContents.totalDropRate === 100 ? 'rgb(34 197 94 / 0.1)' : 'rgb(239 68 68 / 0.1)',
-                          borderColor: caseContents.totalDropRate === 100 ? 'rgb(34 197 94 / 0.3)' : 'rgb(239 68 68 / 0.3)'
+                          backgroundColor: caseContents.totalDropRate > 0 ? 'rgb(34 197 94 / 0.1)' : 'rgb(239 68 68 / 0.1)',
+                          borderColor: caseContents.totalDropRate > 0 ? 'rgb(34 197 94 / 0.3)' : 'rgb(239 68 68 / 0.3)'
                         }}>
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium" style={{
-                              color: caseContents.totalDropRate === 100 ? 'rgb(34 197 94)' : 'rgb(239 68 68)'
+                              color: caseContents.totalDropRate > 0 ? 'rgb(34 197 94)' : 'rgb(239 68 68)'
                             }}>
-                              Total Drop Rate: {caseContents.totalDropRate}%
+                              Total Weight: {caseContents.totalDropRate}
                             </span>
-                            {caseContents.totalDropRate === 100 ? (
+                            {caseContents.totalDropRate > 0 ? (
                               <span className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded">Valid</span>
                             ) : (
                               <span className="text-xs bg-red-500/20 text-red-300 px-2 py-1 rounded">
-                                Must equal 100%
+                                Must be greater than 0
                               </span>
                             )}
                           </div>
@@ -630,13 +630,13 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                                 
                                 {/* Drop Rate Input */}
                                 <div className="w-24">
-                                  <label className="block text-xs text-slate-400 mb-1">Drop %</label>
+                                  <label className="block text-xs text-slate-400 mb-1">Weight</label>
                                   <input
                                     type="number"
-                                    min="1"
-                                    max="100"
+                                    min="0.01"
+                                    step="0.01"
                                     value={caseItem.dropRate}
-                                    onChange={(e) => updateCaseItemDropRate(index, parseInt(e.target.value) || 1)}
+                                    onChange={(e) => updateCaseItemDropRate(index, parseFloat(e.target.value) || 0.01)}
                                     className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary"
                                   />
                                 </div>
@@ -684,7 +684,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                           <button
                             type="button"
                             onClick={saveCaseContents}
-                            disabled={caseContents.totalDropRate !== 100 || caseContents.items.length === 0}
+                            disabled={caseContents.items.length === 0}
                             className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm"
                           >
                             <HiOutlineCheck className="mr-1" size={14} />
