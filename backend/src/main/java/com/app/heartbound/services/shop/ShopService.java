@@ -203,6 +203,7 @@ public class ShopService {
         // 2. Fetch all eligible items for the daily pool, excluding cases
         List<Shop> itemPool = shopRepository.findByIsDailyTrueAndIsActiveTrueAndExpiresAtAfterOrExpiresAtIsNull(LocalDateTime.now())
                 .stream()
+                .filter(Shop::getIsActive) // Ensure only active items are in the pool
                 .filter(item -> item.getCategory() != ShopCategory.CASE)
                 .collect(Collectors.toList());
 
@@ -402,6 +403,7 @@ public class ShopService {
      * @return Updated UserProfileDTO
      */
     @Transactional
+    @CacheEvict(value = {"featuredItems", "userDailyItems"}, allEntries = true)
     public PurchaseResponseDTO purchaseItem(String userId, UUID itemId) {
         return purchaseItem(userId, itemId, 1);
     }
@@ -414,6 +416,7 @@ public class ShopService {
      * @return Updated UserProfileDTO
      */
     @Transactional
+    @CacheEvict(value = {"featuredItems", "userDailyItems"}, allEntries = true)
     public PurchaseResponseDTO purchaseItem(String userId, UUID itemId, Integer quantity) {
         logger.debug("Processing purchase of item {} for user {} with quantity {}", itemId, userId, quantity);
     
