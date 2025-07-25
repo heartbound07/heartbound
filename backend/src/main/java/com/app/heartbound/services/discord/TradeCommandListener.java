@@ -280,7 +280,32 @@ public class TradeCommandListener extends ListenerAdapter {
             Trade trade = tradeService.acceptFinalTrade(tradeId, clickerId);
 
             if (trade.getStatus() == TradeStatus.ACCEPTED) {
-                event.getHook().editOriginalEmbeds(new EmbedBuilder().setTitle("Trade Successful!").setColor(Color.GREEN).build())
+                User initiator = jdaInstance.retrieveUserById(trade.getInitiator().getId()).complete();
+                User receiver = jdaInstance.retrieveUserById(trade.getReceiver().getId()).complete();
+
+                String initiatorReceivedItems = trade.getItems().stream()
+                        .map(TradeItem::getItemInstance)
+                        .filter(instance -> instance.getOwner().getId().equals(receiver.getId()))
+                        .map(this::formatItemForDisplay)
+                        .collect(Collectors.joining("\n"));
+
+                String receiverReceivedItems = trade.getItems().stream()
+                        .map(TradeItem::getItemInstance)
+                        .filter(instance -> instance.getOwner().getId().equals(initiator.getId()))
+                        .map(this::formatItemForDisplay)
+                        .collect(Collectors.joining("\n"));
+                
+                if (initiatorReceivedItems.isEmpty()) initiatorReceivedItems = "\u200B";
+                if (receiverReceivedItems.isEmpty()) receiverReceivedItems = "\u200B";
+
+                EmbedBuilder successEmbed = new EmbedBuilder()
+                        .setTitle("Trade Successful!")
+                        .setColor(Color.GREEN)
+                        .addField(initiator.getEffectiveName() + " has Received", initiatorReceivedItems, true)
+                        .addField(receiver.getEffectiveName() + " has Received", receiverReceivedItems, true)
+                        .setFooter("Go to your Inventory to equip your new item!");
+
+                event.getHook().editOriginalEmbeds(successEmbed.build())
                         .setComponents().queue();
             } else {
                 updateTradeUI(event.getChannel(), tradeId);
@@ -351,25 +376,7 @@ public class TradeCommandListener extends ListenerAdapter {
         String initiatorItems = trade.getItems().stream()
                 .map(TradeItem::getItemInstance)
                 .filter(instance -> instance.getOwner().getId().equals(initiator.getId()))
-                .map(instance -> {
-                    String namePart;
-                    if (instance.getBaseItem().getCategory() == ShopCategory.USER_COLOR && instance.getBaseItem().getDiscordRoleId() != null && !instance.getBaseItem().getDiscordRoleId().isEmpty()) {
-                        namePart = "<@&" + instance.getBaseItem().getDiscordRoleId() + ">";
-                    } else {
-                        namePart = instance.getBaseItem().getName();
-                        if (instance.getSerialNumber() != null) {
-                            namePart += " #" + instance.getSerialNumber();
-                        }
-                    }
-
-                    ItemRarity rarity = instance.getBaseItem().getRarity();
-                    String rarityPart = "";
-                    if (rarity != null) {
-                        rarityPart = " | **" + formatRarityLabel(rarity) + "**";
-                    }
-
-                    return namePart + rarityPart;
-                })
+                .map(this::formatItemForDisplay)
                 .collect(Collectors.joining("\n"));
 
         if(initiatorItems.isEmpty()) initiatorItems = "\u200B";
@@ -377,25 +384,7 @@ public class TradeCommandListener extends ListenerAdapter {
         String receiverItems = trade.getItems().stream()
                 .map(TradeItem::getItemInstance)
                 .filter(instance -> instance.getOwner().getId().equals(receiver.getId()))
-                .map(instance -> {
-                    String namePart;
-                    if (instance.getBaseItem().getCategory() == ShopCategory.USER_COLOR && instance.getBaseItem().getDiscordRoleId() != null && !instance.getBaseItem().getDiscordRoleId().isEmpty()) {
-                        namePart = "<@&" + instance.getBaseItem().getDiscordRoleId() + ">";
-                    } else {
-                        namePart = instance.getBaseItem().getName();
-                        if (instance.getSerialNumber() != null) {
-                            namePart += " #" + instance.getSerialNumber();
-                        }
-                    }
-
-                    ItemRarity rarity = instance.getBaseItem().getRarity();
-                    String rarityPart = "";
-                    if (rarity != null) {
-                        rarityPart = " | **" + formatRarityLabel(rarity) + "**";
-                    }
-
-                    return namePart + rarityPart;
-                })
+                .map(this::formatItemForDisplay)
                 .collect(Collectors.joining("\n"));
 
         if(receiverItems.isEmpty()) receiverItems = "\u200B";
@@ -436,6 +425,26 @@ public class TradeCommandListener extends ListenerAdapter {
 
     private String getRequestKey(String id1, String id2) {
         return id1.compareTo(id2) < 0 ? id1 + ":" + id2 : id2 + ":" + id1;
+    }
+
+    private String formatItemForDisplay(ItemInstance instance) {
+        String namePart;
+        if (instance.getBaseItem().getCategory() == ShopCategory.USER_COLOR && instance.getBaseItem().getDiscordRoleId() != null && !instance.getBaseItem().getDiscordRoleId().isEmpty()) {
+            namePart = "<@&" + instance.getBaseItem().getDiscordRoleId() + ">";
+        } else {
+            namePart = instance.getBaseItem().getName();
+            if (instance.getSerialNumber() != null) {
+                namePart += " #" + instance.getSerialNumber();
+            }
+        }
+
+        ItemRarity rarity = instance.getBaseItem().getRarity();
+        String rarityPart = "";
+        if (rarity != null) {
+            rarityPart = " | **" + formatRarityLabel(rarity) + "**";
+        }
+
+        return namePart + rarityPart;
     }
 
     private String formatRarityLabel(ItemRarity rarity) {
