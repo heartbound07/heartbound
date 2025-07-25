@@ -18,6 +18,7 @@ import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import org.springframework.stereotype.Component;
+import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 
 import javax.annotation.Nonnull;
@@ -27,7 +28,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CancellationException;
 import java.util.stream.Collectors;
 import com.app.heartbound.enums.TradeStatus;
 import com.app.heartbound.entities.TradeItem;
@@ -44,6 +47,7 @@ public class TradeCommandListener extends ListenerAdapter {
     private JDA jdaInstance;
 
     private final ConcurrentHashMap<String, Long> pendingTradeRequests = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, ScheduledFuture<?>> tradeExpirationTasks = new ConcurrentHashMap<>();
 
     public void registerWithJDA(JDA jda) {
         if (jda != null) {
@@ -208,15 +212,30 @@ public class TradeCommandListener extends ListenerAdapter {
                 .setComponents(getTradeActionRows(trade))
                 .queue(message -> {
                     tradeService.setTradeMessageInfo(tradeId, message.getId(), message.getChannelId(), expiresAt);
-                    message.editMessageComponents().setComponents()
-                            .setEmbeds(new EmbedBuilder().setDescription("Trade has expired.").setColor(Color.RED).build())
-                            .queueAfter(120, TimeUnit.SECONDS, s -> {
-                                try {
-                                     tradeService.cancelTrade(tradeId, initiatorId);
-                                } catch (Exception e) {
-                                    log.warn("Trade {} already completed or cancelled.", tradeId);
-                                }
-                            });
+                    
+                    RestAction<?> editAction = message.editMessageComponents().setComponents()
+                            .setEmbeds(new EmbedBuilder().setDescription("Trade has expired.").setColor(Color.RED).build());
+
+                    ScheduledFuture<?> expirationTask = editAction.queueAfter(120, TimeUnit.SECONDS,
+                        s -> {
+                            try {
+                                tradeService.cancelTrade(tradeId, initiatorId);
+                            } catch (Exception e) {
+                                log.warn("Trade {} may have already been completed or cancelled.", tradeId);
+                            } finally {
+                                tradeExpirationTasks.remove(tradeId);
+                            }
+                        },
+                        failure -> {
+                            if (failure instanceof CancellationException) {
+                                log.info("Trade expiration task for trade {} was successfully cancelled.", tradeId);
+                            } else {
+                                log.warn("Failed to expire trade request message {}.", message.getId(), failure);
+                            }
+                            tradeExpirationTasks.remove(tradeId);
+                        });
+
+                    tradeExpirationTasks.put(tradeId, expirationTask);
                 });
     }
 
@@ -280,6 +299,11 @@ public class TradeCommandListener extends ListenerAdapter {
             Trade trade = tradeService.acceptFinalTrade(tradeId, clickerId);
 
             if (trade.getStatus() == TradeStatus.ACCEPTED) {
+                ScheduledFuture<?> task = tradeExpirationTasks.remove(tradeId);
+                if (task != null) {
+                    task.cancel(true);
+                    log.info("Cancelled trade expiration task for completed tradeId: {}", tradeId);
+                }
                 User initiator = jdaInstance.retrieveUserById(trade.getInitiator().getId()).complete();
                 User receiver = jdaInstance.retrieveUserById(trade.getReceiver().getId()).complete();
 
@@ -318,6 +342,11 @@ public class TradeCommandListener extends ListenerAdapter {
     }
 
     private void handleCancel(ButtonInteractionEvent event, long tradeId, String clickerId) {
+        ScheduledFuture<?> task = tradeExpirationTasks.remove(tradeId);
+        if (task != null) {
+            task.cancel(true);
+            log.info("Cancelled trade expiration task for cancelled tradeId: {}", tradeId);
+        }
         tradeService.cancelTrade(tradeId, clickerId);
         event.getHook().editOriginalEmbeds(new EmbedBuilder().setTitle("Trade Cancelled").setColor(Color.RED).build())
                 .setComponents().queue();
