@@ -84,6 +84,9 @@ public class ShopService {
     private static final Logger logger = LoggerFactory.getLogger(ShopService.class);
     private volatile List<Shop> dailyItemPool;
     
+    // Server-side salt for secure daily item seed generation
+    private final String serverSeedSalt;
+    
     public ShopService(
         ShopRepository shopRepository,
         UserRepository userRepository,
@@ -112,6 +115,9 @@ public class ShopService {
         this.auditService = auditService;
         this.cacheConfig = cacheConfig;
         this.objectMapper = new ObjectMapper();
+        
+        // Initialize server-side salt for secure seed generation
+        this.serverSeedSalt = secureRandomService.generateRollSeed();
     }
     
     @PostConstruct
@@ -214,17 +220,11 @@ public class ShopService {
             // If not in cache, generate them
             logger.debug("Generating new daily items for user {}.", userId);
 
-            if (dailyItemPool == null) {
-                logger.warn("Daily item pool not yet populated. Triggering selection now.");
-                synchronized (this) {
-                    if (dailyItemPool == null) {
-                        updateDailyItemPool();
-                    }
-                }
-            }
+            // Ensure daily item pool is available with thread-safe access
+            List<Shop> currentDailyPool = getDailyItemPoolSafely();
 
-            // Create a deterministic seed for the user and the current day
-            String seedString = userId + java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString();
+            // Create a secure deterministic seed for the user and the current day
+            String seedString = userId + java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString() + serverSeedSalt;
             long seed = seedString.hashCode();
             Random random = new Random(seed);
 
@@ -234,9 +234,18 @@ public class ShopService {
                 .collect(Collectors.toSet());
 
             // Create available item pool by filtering out items the user already owns
-            List<Shop> availableItemPool = dailyItemPool.stream()
+            List<Shop> availableItemPool = currentDailyPool.stream()
                 .filter(item -> !ownedItemIds.contains(item.getId()))
                 .collect(Collectors.toList());
+
+            // Handle edge case: if available pool is empty or too small, log and use original pool
+            if (availableItemPool.isEmpty()) {
+                logger.info("User {} owns all daily eligible items. Using original pool for selection.", userId);
+                availableItemPool = new ArrayList<>(currentDailyPool);
+            } else if (availableItemPool.size() < 4) {
+                logger.debug("User {} has limited available daily items ({}). May result in fewer than 4 selections.", 
+                           userId, availableItemPool.size());
+            }
 
             // Group available items by rarity for selection
             Map<ItemRarity, List<Shop>> itemsByRarity = availableItemPool.stream()  
@@ -268,11 +277,23 @@ public class ShopService {
     }
 
     /**
+     * Thread-safe method to get the daily item pool, initializing if necessary
+     * @return Current daily item pool
+     */
+    private synchronized List<Shop> getDailyItemPoolSafely() {
+        if (dailyItemPool == null) {
+            logger.warn("Daily item pool not yet populated. Triggering selection now.");
+            updateDailyItemPool();
+        }
+        return dailyItemPool;
+    }
+
+    /**
      * Scheduled task to update the global pool of eligible daily items.
      * This runs at midnight UTC every day.
      */
     @Scheduled(cron = "0 0 0 * * *", zone = "UTC")
-    public void updateDailyItemPool() {
+    public synchronized void updateDailyItemPool() {
         logger.info("Executing scheduled task to update the global daily item pool.");
         
         this.dailyItemPool = shopRepository.findByIsDailyTrueAndIsActiveTrueAndExpiresAtAfterOrExpiresAtIsNull(LocalDateTime.now())
