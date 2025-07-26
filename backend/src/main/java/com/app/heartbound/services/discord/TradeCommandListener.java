@@ -40,6 +40,7 @@ import com.app.heartbound.enums.TradeStatus;
 import com.app.heartbound.entities.TradeItem;
 import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.enums.ShopCategory;
+import com.app.heartbound.exceptions.InvalidTradeActionException;
 
 @Component
 @Slf4j
@@ -672,6 +673,14 @@ public class TradeCommandListener extends ListenerAdapter {
             } else {
                 updateTradeUI(event.getChannel(), tradeId, guild);
             }
+        } catch (InvalidTradeActionException e) {
+            log.error("Final acceptance failed for tradeId: {}: {}", tradeId, e.getMessage());
+            String errorMessage = e.getMessage();
+            if (errorMessage != null && errorMessage.contains("already owns the unique item")) {
+                errorMessage = "Trade failed! A user already has one of the unique items being offered.";
+            }
+            event.getHook().editOriginalEmbeds(new EmbedBuilder().setTitle("Trade Failed!").setDescription(errorMessage).setColor(Color.RED).build())
+                    .setComponents().queue();
         } catch (Exception e) {
             log.error("Final acceptance failed for tradeId: {}", tradeId, e);
             event.getHook().editOriginalEmbeds(new EmbedBuilder().setTitle("Trade Failed!").setDescription("An internal error occurred.").setColor(Color.RED).build())
