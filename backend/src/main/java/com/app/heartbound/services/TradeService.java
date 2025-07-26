@@ -83,13 +83,40 @@ public class TradeService {
 
     @Transactional
     public Trade initiateTrade(String initiatorId, String receiverId) {
-        User initiator = userRepository.findById(initiatorId)
-                .orElseThrow(() -> new ResourceNotFoundException("Initiator not found with id: " + initiatorId));
-        User receiver = userRepository.findById(receiverId)
-                .orElseThrow(() -> new ResourceNotFoundException("Receiver not found with id: " + receiverId));
+        // Lock users in consistent order (alphabetically) to prevent deadlocks
+        String firstUserId = initiatorId.compareTo(receiverId) < 0 ? initiatorId : receiverId;
+        String secondUserId = initiatorId.compareTo(receiverId) < 0 ? receiverId : initiatorId;
+        
+        // Lock users to prevent race conditions
+        User firstUser = userRepository.findByIdWithLock(firstUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + firstUserId));
+        User secondUser = userRepository.findByIdWithLock(secondUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + secondUserId));
+        
+        // Determine which user is initiator and which is receiver
+        User initiator = initiatorId.equals(firstUserId) ? firstUser : secondUser;
+        User receiver = receiverId.equals(firstUserId) ? firstUser : secondUser;
 
         if (initiator.getId().equals(receiver.getId())) {
             throw new InvalidTradeActionException("You cannot trade with yourself.");
+        }
+
+        // Check if initiator has any pending trades
+        List<Trade> initiatorTrades = tradeRepository.findByInitiatorIdOrReceiverId(initiator.getId(), initiator.getId());
+        boolean initiatorHasPendingTrade = initiatorTrades.stream()
+                .anyMatch(trade -> trade.getStatus() == TradeStatus.PENDING);
+        
+        if (initiatorHasPendingTrade) {
+            throw new InvalidTradeActionException("You are already in an active trade!");
+        }
+
+        // Check if receiver has any pending trades
+        List<Trade> receiverTrades = tradeRepository.findByInitiatorIdOrReceiverId(receiver.getId(), receiver.getId());
+        boolean receiverHasPendingTrade = receiverTrades.stream()
+                .anyMatch(trade -> trade.getStatus() == TradeStatus.PENDING);
+        
+        if (receiverHasPendingTrade) {
+            throw new InvalidTradeActionException(receiver.getUsername() + " is already in an active trade!");
         }
 
         Trade trade = Trade.builder()

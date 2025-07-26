@@ -148,9 +148,12 @@ public class TradeCommandListener extends ListenerAdapter {
                     });
             event.getHook().deleteOriginal().queue();
 
+        } catch (InvalidTradeActionException e) {
+            log.warn("Trade initiation blocked: {}", e.getMessage());
+            event.getHook().sendMessage(e.getMessage()).setEphemeral(true).queue();
         } catch (Exception e) {
             log.error("Error initiating trade", e);
-            event.getHook().sendMessage("An error occurred while initiating the trade.").queue();
+            event.getHook().sendMessage("An error occurred while initiating the trade.").setEphemeral(true).queue();
         }
     }
 
