@@ -594,29 +594,17 @@ public class TradeCommandListener extends ListenerAdapter {
                 menuBuilder.setDefaultValues(defaultValues);
             }
 
-            // Build pagination buttons
-            List<Button> paginationButtons = new ArrayList<>();
-            
-            paginationButtons.add(Button.secondary(buildItemPageId(tradeId, page - 1), "◀ Previous")
-                    .withDisabled(page <= 0));
-            paginationButtons.add(Button.secondary(buildItemPageId(tradeId, page + 1), "Next ▶")
-                    .withDisabled(page >= totalPages - 1));
+            // Build action buttons
+            List<Button> actionButtons = new ArrayList<>();
+            actionButtons.add(Button.secondary(buildItemPageId(tradeId, page - 1), "◀ Previous").withDisabled(page <= 0));
+            actionButtons.add(Button.secondary(buildItemPageId(tradeId, page + 1), "Next ▶").withDisabled(page >= totalPages - 1));
+            actionButtons.add(Button.success(buildConfirmItemsId(tradeId), Emoji.fromUnicode("✅")));
+            actionButtons.add(Button.danger(buildCancelSelectionId(tradeId), Emoji.fromUnicode("❌")));
 
-            // Build control buttons
-            List<Button> controlButtons = new ArrayList<>();
-            controlButtons.add(Button.success(buildConfirmItemsId(tradeId), "Confirm Selection")
-                    .withEmoji(Emoji.fromUnicode("✅")));
-            controlButtons.add(Button.danger(buildCancelSelectionId(tradeId), "Cancel")
-                    .withEmoji(Emoji.fromUnicode("❌")));
-
-            String pageInfo = String.format("Page %d of %d (%d total items, %d selected)", 
-                    page + 1, totalPages, tradableItems.size(), currentSelections.size());
-
-            event.getHook().editOriginal("**Item Selection** - " + pageInfo + "\nPlease select which items you would like to offer.")
+            event.getHook().editOriginal("Please select which items you would like to offer.")
                     .setComponents(
                             ActionRow.of(menuBuilder.build()),
-                            ActionRow.of(paginationButtons),
-                            ActionRow.of(controlButtons)
+                            ActionRow.of(actionButtons)
                     )
                     .queue(
                         success -> log.info("=== SELECTION UI SUCCESS (SELECT) === User: {}, page: {}", userId, page),
