@@ -47,7 +47,7 @@ export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollA
   }, [animationItems, x, ref]);
 
   useEffect(() => {
-    const unsubscribe = x.onChange(updateVirtualItems);
+    const unsubscribe = x.on("change", updateVirtualItems);
     updateVirtualItems(); // Initial call
     return unsubscribe;
   }, [x, updateVirtualItems]);
