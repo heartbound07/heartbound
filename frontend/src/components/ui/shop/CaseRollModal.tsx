@@ -122,7 +122,7 @@ export function CaseRollModal({
 
       // Start a long, continuous roll that will be interrupted later.
       animate(x, -animationItems.length * ITEM_WIDTH, {
-        duration: 12, // A long background animation
+        duration: 10, // A long background animation
         ease: 'linear',
       });
 
