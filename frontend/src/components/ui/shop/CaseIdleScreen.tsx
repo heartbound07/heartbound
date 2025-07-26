@@ -88,21 +88,6 @@ export const CaseIdleScreen = React.memo(({
                             size="md"
                           />
                         </div>
-                        <div className="flex items-center justify-center space-x-2">
-                          <span className="text-xs text-slate-300">Drop Rate</span>
-                          <div className="w-16 bg-slate-700 rounded-full h-1.5 overflow-hidden">
-                            <div 
-                              className="h-full transition-all duration-300"
-                              style={{ 
-                                width: `${caseItem.dropRate}%`,
-                                background: 'linear-gradient(90deg, #ff4655 0%, rgba(255, 70, 85, 0.8) 100%)'
-                              }}
-                            />
-                          </div>
-                          <span className="text-sm font-medium text-primary">
-                            {caseItem.dropRate}%
-                          </span>
-                        </div>
                         {item.description && (
                           <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
                         )}
@@ -127,21 +112,6 @@ export const CaseIdleScreen = React.memo(({
                           <div className="relative z-10 mt-1 text-center">
                             <p className="text-xl font-bold text-white">{item.name}</p>
                           </div>
-                        </div>
-                        <div className="flex items-center justify-center space-x-2">
-                          <span className="text-xs text-slate-300">Drop Rate</span>
-                          <div className="w-16 bg-slate-700 rounded-full h-1.5 overflow-hidden">
-                            <div 
-                              className="h-full transition-all duration-300"
-                              style={{ 
-                                width: `${caseItem.dropRate}%`,
-                                background: 'linear-gradient(90deg, #ff4655 0%, rgba(255, 70, 85, 0.8) 100%)'
-                              }}
-                            />
-                          </div>
-                          <span className="text-sm font-medium text-primary">
-                            {caseItem.dropRate}%
-                          </span>
                         </div>
                         {item.description && (
                           <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
@@ -184,23 +154,6 @@ export const CaseIdleScreen = React.memo(({
                           <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
                             <span>{formatDisplayText(item.category)}</span>
                             <span>{item.price} credits</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-slate-300">Drop Rate</span>
-                            <div className="flex items-center space-x-2">
-                              <div className="w-16 bg-slate-700 rounded-full h-1.5 overflow-hidden">
-                                <div 
-                                  className="h-full transition-all duration-300"
-                                  style={{ 
-                                    width: `${caseItem.dropRate}%`,
-                                    background: 'linear-gradient(90deg, #ff4655 0%, rgba(255, 70, 85, 0.8) 100%)'
-                                  }}
-                                />
-                              </div>
-                              <span className="text-sm font-medium" style={{ color: '#ff4655' }}>
-                                {caseItem.dropRate}%
-                              </span>
-                            </div>
                           </div>
                           {item.description && (
                             <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
