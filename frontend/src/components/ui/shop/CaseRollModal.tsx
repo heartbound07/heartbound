@@ -153,8 +153,6 @@ export function CaseRollModal({
       setAnimationState('revealing');
       await new Promise(resolve => setTimeout(resolve, 1200));
       setAnimationState('reward');
-      onRollComplete(resultData);
-
     } catch (error: any) {
       setError(error.response?.data?.message || 'Failed to open case');
       setAnimationState('idle');
