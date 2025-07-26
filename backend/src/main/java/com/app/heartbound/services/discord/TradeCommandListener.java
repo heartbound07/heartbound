@@ -34,6 +34,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CancellationException;
 import java.util.stream.Collectors;
+import java.util.Set;
+import java.util.HashSet;
 import com.app.heartbound.enums.TradeStatus;
 import com.app.heartbound.entities.TradeItem;
 import com.app.heartbound.enums.ItemRarity;
@@ -48,8 +50,15 @@ public class TradeCommandListener extends ListenerAdapter {
     private final UserService userService;
     private JDA jdaInstance;
 
+    // Existing state management
     private final ConcurrentHashMap<String, Long> pendingTradeRequests = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Long, ScheduledFuture<?>> tradeExpirationTasks = new ConcurrentHashMap<>();
+    
+    // New state management for paginated item selection
+    private final ConcurrentHashMap<String, Set<UUID>> userItemSelections = new ConcurrentHashMap<>();
+    
+    // Constants for pagination
+    private static final int ITEMS_PER_PAGE = 25;
 
     public void registerWithJDA(JDA jda) {
         if (jda != null) {
@@ -172,6 +181,34 @@ public class TradeCommandListener extends ListenerAdapter {
             log.error("Error handling button interaction for tradeId: {}", tradeId, e);
             event.getHook().sendMessage("An unexpected error occurred. Please try again later.").setEphemeral(true).queue();
         }
+
+        // Handle pagination and item selection buttons
+        if (parts[0].equals("trade-item-page") && parts.length >= 3) {
+            try {
+                long pageTradeId = Long.parseLong(parts[1]);
+                int targetPage = Integer.parseInt(parts[2]);
+                handleItemPageNavigation(event, pageTradeId, clickerId, targetPage);
+            } catch (Exception e) {
+                log.error("Error handling pagination for tradeId: {}", tradeId, e);
+                event.getHook().sendMessage("An error occurred while navigating pages.").setEphemeral(true).queue();
+            }
+        } else if (parts[0].equals("trade-confirm-items") && parts.length >= 2) {
+            try {
+                long confirmTradeId = Long.parseLong(parts[1]);
+                handleConfirmItemSelection(event, confirmTradeId, clickerId);
+            } catch (Exception e) {
+                log.error("Error confirming item selection for tradeId: {}", tradeId, e);
+                event.getHook().sendMessage("An error occurred while confirming your selection.").setEphemeral(true).queue();
+            }
+        } else if (parts[0].equals("trade-cancel-selection") && parts.length >= 2) {
+            try {
+                long cancelTradeId = Long.parseLong(parts[1]);
+                handleCancelItemSelection(event, cancelTradeId, clickerId);
+            } catch (Exception e) {
+                log.error("Error canceling item selection for tradeId: {}", tradeId, e);
+                event.getHook().sendMessage("An error occurred while canceling your selection.").setEphemeral(true).queue();
+            }
+        }
     }
 
     @Override
@@ -189,18 +226,63 @@ public class TradeCommandListener extends ListenerAdapter {
         List<String> selectedItemInstanceIds = event.getValues();
 
         try {
-            log.debug("User {} is adding items to trade {}", userId, tradeId);
-            List<UUID> itemInstanceUuids = selectedItemInstanceIds.stream()
-                .map(UUID::fromString)
+            log.debug("User {} is updating item selection for trade {}", userId, tradeId);
+            
+            String selectionKey = getSelectionKey(tradeId, userId);
+            
+            // Get current user's inventory to determine which page we're on
+            com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
+            List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
+                .filter(invItem -> invItem.getBaseItem().getCategory().isTradable())
                 .collect(Collectors.toList());
 
-            tradeService.addItemsToTrade(tradeId, userId, itemInstanceUuids);
-
-            updateTradeUI(event.getChannel(), tradeId, event.getGuild());
+            // Get current selections
+            Set<UUID> currentSelections = userItemSelections.getOrDefault(selectionKey, new HashSet<>());
+            
+            // Find which page these selected items belong to
+            Set<UUID> currentPageItems = new HashSet<>();
+            List<UUID> newlySelectedItems = selectedItemInstanceIds.stream()
+                .map(UUID::fromString)
+                .collect(Collectors.toList());
+            
+            // Determine current page by finding which page contains the first selected item
+            int currentPage = 0;
+            for (int page = 0; page < Math.ceil((double) tradableItems.size() / ITEMS_PER_PAGE); page++) {
+                int startIndex = page * ITEMS_PER_PAGE;
+                int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, tradableItems.size());
+                List<ItemInstance> pageItems = tradableItems.subList(startIndex, endIndex);
+                
+                Set<UUID> pageItemIds = pageItems.stream()
+                    .map(ItemInstance::getId)
+                    .collect(Collectors.toSet());
+                
+                // If any of the newly selected items are on this page, this is our current page
+                if (newlySelectedItems.stream().anyMatch(pageItemIds::contains)) {
+                    currentPage = page;
+                    currentPageItems = pageItemIds;
+                    break;
+                }
+            }
+            
+            // Remove all items from current page from the selection (to handle deselection)
+            currentSelections.removeAll(currentPageItems);
+            
+            // Add the newly selected items from this page
+            for (UUID itemId : newlySelectedItems) {
+                if (currentPageItems.contains(itemId)) {
+                    currentSelections.add(itemId);
+                }
+            }
+            
+            // Update the selection state
+            userItemSelections.put(selectionKey, currentSelections);
+            
+            log.debug("Updated selection for user {} trade {}: {} total items selected", 
+                userId, tradeId, currentSelections.size());
 
         } catch (Exception e) {
             log.error("Error processing item selection for tradeId: {}", tradeId, e);
-            event.getHook().sendMessage("An error occurred while adding your items: " + e.getMessage()).setEphemeral(true).queue();
+            event.getHook().sendMessage("An error occurred while updating your selection: " + e.getMessage()).setEphemeral(true).queue();
         }
     }
 
@@ -228,6 +310,7 @@ public class TradeCommandListener extends ListenerAdapter {
                                 s -> {
                                     try {
                                         tradeService.cancelTrade(tradeId, initiatorId);
+                                        cleanupTradeSelectionState(tradeId);
                                     } catch (Exception e) {
                                         log.warn("Trade {} may have already been completed or cancelled.", tradeId);
                                     } finally {
@@ -253,6 +336,7 @@ public class TradeCommandListener extends ListenerAdapter {
         Trade trade = tradeService.declineTrade(tradeId, event.getUser().getId());
         String requestKey = getRequestKey(trade.getInitiator().getId(), trade.getReceiver().getId());
         pendingTradeRequests.remove(requestKey);
+        cleanupTradeSelectionState(tradeId);
         event.getHook().editOriginalEmbeds(new EmbedBuilder().setDescription("Trade Declined.").setColor(Color.RED).build())
                 .setComponents().queue();
     }
@@ -269,34 +353,195 @@ public class TradeCommandListener extends ListenerAdapter {
             return;
         }
 
-        com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
-        List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
-            .filter(invItem -> invItem.getBaseItem().getCategory().isTradable())
-            .collect(Collectors.toList());
+        // Initialize selection state for this user/trade
+        String selectionKey = getSelectionKey(tradeId, userId);
+        userItemSelections.put(selectionKey, new HashSet<>());
 
-        if (tradableItems.isEmpty()) {
-            event.getHook().sendMessage("You have no tradable items in your inventory.").setEphemeral(true).queue();
-            return;
-        }
+        // Start with page 0
+        updateItemSelectionUI(event, tradeId, userId, 0);
+    }
 
-        StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("trade-item-select:" + tradeId)
-                .setPlaceholder("Select items to offer...")
-                .setRequiredRange(0, Math.min(25, tradableItems.size()))
-                .setMaxValues(Math.min(25, tradableItems.size()));
+    /**
+     * Updates the paginated item selection UI for a user
+     */
+    private void updateItemSelectionUI(ButtonInteractionEvent event, long tradeId, String userId, int page) {
+        try {
+            com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
+            List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
+                .filter(invItem -> invItem.getBaseItem().getCategory().isTradable())
+                .collect(Collectors.toList());
 
-        tradableItems.forEach(invItem -> {
-            String label = invItem.getBaseItem().getName();
-            if (invItem.getSerialNumber() != null) {
-                label += " #" + invItem.getSerialNumber();
+            if (tradableItems.isEmpty()) {
+                event.getHook().sendMessage("You have no tradable items in your inventory.").setEphemeral(true).queue();
+                return;
             }
-            menuBuilder.addOption(
-                label,
-                invItem.getId().toString(),
-                "Rarity: " + invItem.getBaseItem().getRarity()
-            );
-        });
 
-        event.getHook().sendMessage("Please select which items you would like to offer.").setComponents(ActionRow.of(menuBuilder.build())).setEphemeral(true).queue();
+            int totalPages = (int) Math.ceil((double) tradableItems.size() / ITEMS_PER_PAGE);
+            int startIndex = page * ITEMS_PER_PAGE;
+            int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, tradableItems.size());
+            List<ItemInstance> pageItems = tradableItems.subList(startIndex, endIndex);
+
+            String selectionKey = getSelectionKey(tradeId, userId);
+            Set<UUID> currentSelections = userItemSelections.getOrDefault(selectionKey, new HashSet<>());
+
+            // Build the select menu for this page
+            StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("trade-item-select:" + tradeId)
+                    .setPlaceholder("Select items to offer...")
+                    .setRequiredRange(0, pageItems.size())
+                    .setMaxValues(pageItems.size());
+
+            // Get currently selected items on this page for default values
+            List<String> defaultValues = new ArrayList<>();
+            
+            for (ItemInstance invItem : pageItems) {
+                String label = invItem.getBaseItem().getName();
+                if (invItem.getSerialNumber() != null) {
+                    label += " #" + invItem.getSerialNumber();
+                }
+                
+                String itemId = invItem.getId().toString();
+                menuBuilder.addOption(
+                    label,
+                    itemId,
+                    "Rarity: " + invItem.getBaseItem().getRarity()
+                );
+                
+                // If this item is in current selections, mark it as default
+                if (currentSelections.contains(invItem.getId())) {
+                    defaultValues.add(itemId);
+                }
+            }
+
+            // Set default values for previously selected items
+            if (!defaultValues.isEmpty()) {
+                menuBuilder.setDefaultValues(defaultValues);
+            }
+
+            // Build pagination buttons
+            List<Button> paginationButtons = new ArrayList<>();
+            
+            paginationButtons.add(Button.secondary("trade-item-page:" + tradeId + ":" + (page - 1), "◀ Previous")
+                    .withDisabled(page <= 0));
+            paginationButtons.add(Button.secondary("trade-item-page:" + tradeId + ":" + (page + 1), "Next ▶")
+                    .withDisabled(page >= totalPages - 1));
+
+            // Build control buttons
+            List<Button> controlButtons = new ArrayList<>();
+            controlButtons.add(Button.success("trade-confirm-items:" + tradeId, "Confirm Selection")
+                    .withEmoji(Emoji.fromUnicode("✅")));
+            controlButtons.add(Button.danger("trade-cancel-selection:" + tradeId, "Cancel")
+                    .withEmoji(Emoji.fromUnicode("❌")));
+
+            String pageInfo = String.format("Page %d of %d (%d total items, %d selected)", 
+                    page + 1, totalPages, tradableItems.size(), currentSelections.size());
+
+            event.getHook().sendMessage("**Item Selection** - " + pageInfo + "\nPlease select which items you would like to offer.")
+                    .setComponents(
+                            ActionRow.of(menuBuilder.build()),
+                            ActionRow.of(paginationButtons),
+                            ActionRow.of(controlButtons)
+                    )
+                    .setEphemeral(true)
+                    .queue(
+                        success -> log.debug("Successfully updated item selection UI for user {} on page {}", userId, page),
+                        failure -> log.error("Failed to update item selection UI for user {} on page {}", userId, page, failure)
+                    );
+
+        } catch (Exception e) {
+            log.error("Error updating item selection UI for user {} on page {}", userId, page, e);
+            event.getHook().sendMessage("An error occurred while loading your items. Please try again.").setEphemeral(true).queue();
+        }
+    }
+
+    /**
+     * Updates the paginated item selection UI for a user - overload for string select interactions
+     */
+    private void updateItemSelectionUI(StringSelectInteractionEvent event, long tradeId, String userId, int page) {
+        try {
+            com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
+            List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
+                .filter(invItem -> invItem.getBaseItem().getCategory().isTradable())
+                .collect(Collectors.toList());
+
+            if (tradableItems.isEmpty()) {
+                event.getHook().sendMessage("You have no tradable items in your inventory.").setEphemeral(true).queue();
+                return;
+            }
+
+            int totalPages = (int) Math.ceil((double) tradableItems.size() / ITEMS_PER_PAGE);
+            int startIndex = page * ITEMS_PER_PAGE;
+            int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, tradableItems.size());
+            List<ItemInstance> pageItems = tradableItems.subList(startIndex, endIndex);
+
+            String selectionKey = getSelectionKey(tradeId, userId);
+            Set<UUID> currentSelections = userItemSelections.getOrDefault(selectionKey, new HashSet<>());
+
+            // Build the select menu for this page
+            StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("trade-item-select:" + tradeId)
+                    .setPlaceholder("Select items to offer...")
+                    .setRequiredRange(0, pageItems.size())
+                    .setMaxValues(pageItems.size());
+
+            // Get currently selected items on this page for default values
+            List<String> defaultValues = new ArrayList<>();
+            
+            for (ItemInstance invItem : pageItems) {
+                String label = invItem.getBaseItem().getName();
+                if (invItem.getSerialNumber() != null) {
+                    label += " #" + invItem.getSerialNumber();
+                }
+                
+                String itemId = invItem.getId().toString();
+                menuBuilder.addOption(
+                    label,
+                    itemId,
+                    "Rarity: " + invItem.getBaseItem().getRarity()
+                );
+                
+                // If this item is in current selections, mark it as default
+                if (currentSelections.contains(invItem.getId())) {
+                    defaultValues.add(itemId);
+                }
+            }
+
+            // Set default values for previously selected items
+            if (!defaultValues.isEmpty()) {
+                menuBuilder.setDefaultValues(defaultValues);
+            }
+
+            // Build pagination buttons
+            List<Button> paginationButtons = new ArrayList<>();
+            
+            paginationButtons.add(Button.secondary("trade-item-page:" + tradeId + ":" + (page - 1), "◀ Previous")
+                    .withDisabled(page <= 0));
+            paginationButtons.add(Button.secondary("trade-item-page:" + tradeId + ":" + (page + 1), "Next ▶")
+                    .withDisabled(page >= totalPages - 1));
+
+            // Build control buttons
+            List<Button> controlButtons = new ArrayList<>();
+            controlButtons.add(Button.success("trade-confirm-items:" + tradeId, "Confirm Selection")
+                    .withEmoji(Emoji.fromUnicode("✅")));
+            controlButtons.add(Button.danger("trade-cancel-selection:" + tradeId, "Cancel")
+                    .withEmoji(Emoji.fromUnicode("❌")));
+
+            String pageInfo = String.format("Page %d of %d (%d total items, %d selected)", 
+                    page + 1, totalPages, tradableItems.size(), currentSelections.size());
+
+            event.getHook().editOriginal("**Item Selection** - " + pageInfo + "\nPlease select which items you would like to offer.")
+                    .setComponents(
+                            ActionRow.of(menuBuilder.build()),
+                            ActionRow.of(paginationButtons),
+                            ActionRow.of(controlButtons)
+                    )
+                    .queue(
+                        success -> log.debug("Successfully updated item selection UI for user {} on page {}", userId, page),
+                        failure -> log.error("Failed to update item selection UI for user {} on page {}", userId, page, failure)
+                    );
+
+        } catch (Exception e) {
+            log.error("Error updating item selection UI for user {} on page {}", userId, page, e);
+            event.getHook().sendMessage("An error occurred while loading your items. Please try again.").setEphemeral(true).queue();
+        }
     }
 
     private void handleLockOffer(ButtonInteractionEvent event, long tradeId, String clickerId, Guild guild) {
@@ -314,6 +559,7 @@ public class TradeCommandListener extends ListenerAdapter {
                     task.cancel(true);
                     log.info("Cancelled trade expiration task for completed tradeId: {}", tradeId);
                 }
+                cleanupTradeSelectionState(tradeId);
 
                 String initiatorId = trade.getInitiator().getId();
                 String receiverId = trade.getReceiver().getId();
@@ -366,8 +612,87 @@ public class TradeCommandListener extends ListenerAdapter {
             task.cancel(true);
             log.info("Cancelled trade expiration task for cancelled tradeId: {}", tradeId);
         }
+        cleanupTradeSelectionState(tradeId);
         tradeService.cancelTrade(tradeId, clickerId);
         event.getHook().editOriginalEmbeds(new EmbedBuilder().setTitle("Trade Cancelled").setColor(Color.RED).build())
+                .setComponents().queue();
+    }
+
+    private void handleItemPageNavigation(ButtonInteractionEvent event, long tradeId, String userId, int targetPage) {
+        log.debug("User {} navigating to page {} for tradeId {}", userId, targetPage, tradeId);
+        
+        // Validate the target page
+        com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
+        if (userEntity == null) {
+            event.getHook().editOriginal("Error: Could not load your inventory.").setComponents().queue();
+            return;
+        }
+        
+        List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
+            .filter(invItem -> invItem.getBaseItem().getCategory().isTradable())
+            .collect(Collectors.toList());
+            
+        int totalPages = (int) Math.ceil((double) tradableItems.size() / ITEMS_PER_PAGE);
+        
+        if (targetPage < 0 || targetPage >= totalPages) {
+            log.warn("Invalid page {} requested for user {} trade {} (total pages: {})", targetPage, userId, tradeId, totalPages);
+            return;
+        }
+        
+        // Create a simulated button event for the updateItemSelectionUI method  
+        try {
+            updateItemSelectionUI(event, tradeId, userId, targetPage);
+        } catch (Exception e) {
+            log.error("Error updating item selection UI during page navigation", e);
+            event.getHook().editOriginal("An error occurred while loading the page.").setComponents().queue();
+        }
+    }
+
+    private void handleConfirmItemSelection(ButtonInteractionEvent event, long tradeId, String userId) {
+        log.info("User {} confirming item selection for tradeId {}", userId, tradeId);
+        
+        String selectionKey = getSelectionKey(tradeId, userId);
+        Set<UUID> selectedItems = userItemSelections.getOrDefault(selectionKey, new HashSet<>());
+        
+        try {
+            if (selectedItems.isEmpty()) {
+                event.getHook().editOriginal("No items selected. Please select at least one item or cancel.")
+                        .setComponents().queue();
+                return;
+            }
+
+            // Convert Set to List for the service call
+            List<UUID> itemInstanceIds = new ArrayList<>(selectedItems);
+            
+            // Add items to trade
+            tradeService.addItemsToTrade(tradeId, userId, itemInstanceIds);
+            
+            // Clean up selection state
+            userItemSelections.remove(selectionKey);
+            
+            // Update the main trade UI
+            updateTradeUI(event.getChannel(), tradeId, event.getGuild());
+            
+            // Close the selection UI
+            event.getHook().editOriginal("✅ Items added to trade successfully!")
+                    .setComponents().queue();
+                    
+            log.info("Successfully added {} items to trade {} for user {}", selectedItems.size(), tradeId, userId);
+            
+        } catch (Exception e) {
+            log.error("Error confirming item selection for tradeId: {} by user: {}", tradeId, userId, e);
+            event.getHook().editOriginal("An error occurred while adding your items: " + e.getMessage())
+                    .setComponents().queue();
+        }
+    }
+
+    private void handleCancelItemSelection(ButtonInteractionEvent event, long tradeId, String userId) {
+        log.info("User {} canceling item selection for tradeId {}", userId, tradeId);
+        
+        String selectionKey = getSelectionKey(tradeId, userId);
+        userItemSelections.remove(selectionKey);
+        
+        event.getHook().editOriginal("Item selection cancelled.")
                 .setComponents().queue();
     }
 
@@ -474,6 +799,18 @@ public class TradeCommandListener extends ListenerAdapter {
 
     private String getRequestKey(String id1, String id2) {
         return id1.compareTo(id2) < 0 ? id1 + ":" + id2 : id2 + ":" + id1;
+    }
+
+    private String getSelectionKey(long tradeId, String userId) {
+        return tradeId + ":" + userId;
+    }
+
+    /**
+     * Clean up selection state for a completed or cancelled trade
+     */
+    private void cleanupTradeSelectionState(long tradeId) {
+        userItemSelections.entrySet().removeIf(entry -> entry.getKey().startsWith(tradeId + ":"));
+        log.debug("Cleaned up selection state for tradeId: {}", tradeId);
     }
 
     private String formatItemForDisplay(ItemInstance instance) {
