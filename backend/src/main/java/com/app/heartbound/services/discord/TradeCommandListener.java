@@ -507,27 +507,15 @@ public class TradeCommandListener extends ListenerAdapter {
                 log.debug("Set {} default values for page {}", defaultValues.size(), page);
             }
 
-            // Build pagination buttons
-            log.debug("Building pagination buttons...");
-            List<Button> paginationButtons = new ArrayList<>();
-            
-            paginationButtons.add(Button.secondary(buildItemPageId(tradeId, page - 1), "◀ Previous")
-                    .withDisabled(page <= 0));
-            paginationButtons.add(Button.secondary(buildItemPageId(tradeId, page + 1), "Next ▶")
-                    .withDisabled(page >= totalPages - 1));
+            // Build action buttons
+            List<Button> actionButtons = new ArrayList<>();
+            actionButtons.add(Button.secondary(buildItemPageId(tradeId, page - 1), "◀ Previous").withDisabled(page <= 0));
+            actionButtons.add(Button.secondary(buildItemPageId(tradeId, page + 1), "Next ▶").withDisabled(page >= totalPages - 1));
+            actionButtons.add(Button.success(buildConfirmItemsId(tradeId), Emoji.fromUnicode("✅")));
+            actionButtons.add(Button.danger(buildCancelSelectionId(tradeId), Emoji.fromUnicode("❌")));
 
-            // Build control buttons
-            log.debug("Building control buttons...");
-            List<Button> controlButtons = new ArrayList<>();
-            controlButtons.add(Button.success(buildConfirmItemsId(tradeId), "Confirm Selection")
-                    .withEmoji(Emoji.fromUnicode("✅")));
-            controlButtons.add(Button.danger(buildCancelSelectionId(tradeId), "Cancel")
-                    .withEmoji(Emoji.fromUnicode("❌")));
 
-            String pageInfo = String.format("Page %d of %d (%d total items, %d selected)", 
-                    page + 1, totalPages, tradableItems.size(), currentSelections.size());
-
-            String messageContent = "**Item Selection** - " + pageInfo + "\nPlease select which items you would like to offer.";
+            String messageContent = "Please select which items you would like to offer.";
             log.debug("Message content: {}", messageContent);
 
             // Always send new message for initial display from "Add Items"
@@ -535,8 +523,7 @@ public class TradeCommandListener extends ListenerAdapter {
             event.getHook().sendMessage(messageContent)
                     .setComponents(
                             ActionRow.of(menuBuilder.build()),
-                            ActionRow.of(paginationButtons),
-                            ActionRow.of(controlButtons)
+                            ActionRow.of(actionButtons)
                     )
                     .setEphemeral(true)
                     .queue(
@@ -825,27 +812,15 @@ public class TradeCommandListener extends ListenerAdapter {
                 log.debug("Set {} default values for page {}", defaultValues.size(), page);
             }
 
-            // Build pagination buttons
-            log.debug("Building pagination buttons...");
-            List<Button> paginationButtons = new ArrayList<>();
-            
-            paginationButtons.add(Button.secondary(buildItemPageId(tradeId, page - 1), "◀ Previous")
-                    .withDisabled(page <= 0));
-            paginationButtons.add(Button.secondary(buildItemPageId(tradeId, page + 1), "Next ▶")
-                    .withDisabled(page >= totalPages - 1));
+            // Build action buttons
+            log.debug("Building action buttons...");
+            List<Button> actionButtons = new ArrayList<>();
+            actionButtons.add(Button.secondary(buildItemPageId(tradeId, page - 1), "◀ Previous").withDisabled(page <= 0));
+            actionButtons.add(Button.secondary(buildItemPageId(tradeId, page + 1), "Next ▶").withDisabled(page >= totalPages - 1));
+            actionButtons.add(Button.success(buildConfirmItemsId(tradeId), Emoji.fromUnicode("✅")));
+            actionButtons.add(Button.danger(buildCancelSelectionId(tradeId), Emoji.fromUnicode("❌")));
 
-            // Build control buttons
-            log.debug("Building control buttons...");
-            List<Button> controlButtons = new ArrayList<>();
-            controlButtons.add(Button.success(buildConfirmItemsId(tradeId), "Confirm Selection")
-                    .withEmoji(Emoji.fromUnicode("✅")));
-            controlButtons.add(Button.danger(buildCancelSelectionId(tradeId), "Cancel")
-                    .withEmoji(Emoji.fromUnicode("❌")));
-
-            String pageInfo = String.format("Page %d of %d (%d total items, %d selected)", 
-                    page + 1, totalPages, tradableItems.size(), currentSelections.size());
-
-            String messageContent = "**Item Selection** - " + pageInfo + "\nPlease select which items you would like to offer.";
+            String messageContent = "Please select which items you would like to offer.";
             log.debug("Message content: {}", messageContent);
 
             // Edit existing message for pagination
@@ -853,8 +828,7 @@ public class TradeCommandListener extends ListenerAdapter {
             event.getHook().editOriginal(messageContent)
                     .setComponents(
                             ActionRow.of(menuBuilder.build()),
-                            ActionRow.of(paginationButtons),
-                            ActionRow.of(controlButtons)
+                            ActionRow.of(actionButtons)
                     )
                     .queue(
                         success -> log.info("=== SELECTION UI SUCCESS (PAGINATION) === User: {}, page: {}", userId, page),
