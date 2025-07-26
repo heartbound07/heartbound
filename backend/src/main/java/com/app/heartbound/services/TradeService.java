@@ -301,7 +301,8 @@ public class TradeService {
         Trade trade = tradeRepository.findById(tradeId)
                 .orElseThrow(() -> new TradeNotFoundException("Trade not found"));
 
-        if (!trade.getInitiator().getId().equals(currentUserId) && !trade.getReceiver().getId().equals(currentUserId)) {
+        // Allow system cancellation when currentUserId is null
+        if (currentUserId != null && !trade.getInitiator().getId().equals(currentUserId) && !trade.getReceiver().getId().equals(currentUserId)) {
             throw new InvalidTradeActionException("Only a participant can cancel the trade.");
         }
 

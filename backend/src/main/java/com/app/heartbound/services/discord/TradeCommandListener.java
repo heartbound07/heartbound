@@ -59,6 +59,30 @@ public class TradeCommandListener extends ListenerAdapter {
     
     // Constants for pagination
     private static final int ITEMS_PER_PAGE = 25;
+    
+    // Component ID constants
+    private static final String ID_SEP = ":";
+    private static final String PREFIX_ITEM_PAGE = "trade-item-page";
+    private static final String PREFIX_CONFIRM_ITEMS = "trade-confirm-items";
+    private static final String PREFIX_CANCEL_SELECTION = "trade-cancel-selection";
+    private static final String PREFIX_ITEM_SELECT = "trade-item-select";
+
+    // Helper methods for building component IDs
+    private static String buildItemPageId(long tradeId, int page) {
+        return PREFIX_ITEM_PAGE + ID_SEP + tradeId + ID_SEP + page;
+    }
+    
+    private static String buildConfirmItemsId(long tradeId) {
+        return PREFIX_CONFIRM_ITEMS + ID_SEP + tradeId;
+    }
+    
+    private static String buildCancelSelectionId(long tradeId) {
+        return PREFIX_CANCEL_SELECTION + ID_SEP + tradeId;
+    }
+    
+    private static String buildItemSelectId(long tradeId) {
+        return PREFIX_ITEM_SELECT + ID_SEP + tradeId;
+    }
 
     public void registerWithJDA(JDA jda) {
         if (jda != null) {
@@ -150,9 +174,9 @@ public class TradeCommandListener extends ListenerAdapter {
         );
 
         // Handle new colon-separated format first (trade-action:id or trade-action:id:param)
-        if (componentId.startsWith("trade-item-page")) {
+        if (componentId.startsWith(PREFIX_ITEM_PAGE)) {
             log.info("=== HANDLING PAGINATION === ComponentID: {}", componentId);
-            String[] pageParts = componentId.split(":");
+            String[] pageParts = componentId.split(ID_SEP);
             log.debug("Pagination parts: {}", String.join(", ", pageParts));
             
             if (pageParts.length >= 3) {
@@ -173,9 +197,9 @@ public class TradeCommandListener extends ListenerAdapter {
                 event.getHook().sendMessage("Invalid pagination format.").setEphemeral(true).queue();
                 return;
             }
-        } else if (componentId.startsWith("trade-confirm-items")) {
+        } else if (componentId.startsWith(PREFIX_CONFIRM_ITEMS)) {
             log.info("=== HANDLING CONFIRM SELECTION === ComponentID: {}", componentId);
-            String[] confirmParts = componentId.split(":");
+            String[] confirmParts = componentId.split(ID_SEP);
             log.debug("Confirm parts: {}", String.join(", ", confirmParts));
             
             if (confirmParts.length >= 2) {
@@ -195,9 +219,9 @@ public class TradeCommandListener extends ListenerAdapter {
                 event.getHook().sendMessage("Invalid confirmation format.").setEphemeral(true).queue();
                 return;
             }
-        } else if (componentId.startsWith("trade-cancel-selection")) {
+        } else if (componentId.startsWith(PREFIX_CANCEL_SELECTION)) {
             log.info("=== HANDLING CANCEL SELECTION === ComponentID: {}", componentId);
-            String[] cancelParts = componentId.split(":");
+            String[] cancelParts = componentId.split(ID_SEP);
             log.debug("Cancel parts: {}", String.join(", ", cancelParts));
             
             if (cancelParts.length >= 2) {
@@ -277,11 +301,12 @@ public class TradeCommandListener extends ListenerAdapter {
     @Override
     public void onStringSelectInteraction(@Nonnull StringSelectInteractionEvent event) {
         String componentId = event.getComponentId();
-        String[] parts = componentId.split(":");
-        if (!parts[0].equals("trade-item-select")) {
+        String[] parts = componentId.split(ID_SEP);
+        if (!parts[0].equals(PREFIX_ITEM_SELECT)) {
             return;
         }
 
+        // We defer the edit, and the final UI update will be handled by updateItemSelectionUI
         event.deferEdit().queue();
 
         long tradeId = Long.parseLong(parts[1]);
@@ -293,48 +318,21 @@ public class TradeCommandListener extends ListenerAdapter {
             
             String selectionKey = getSelectionKey(tradeId, userId);
             
-            // Get current user's inventory to determine which page we're on
-            com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
-            List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
-                .filter(invItem -> invItem.getBaseItem().getCategory().isTradable())
-                .collect(Collectors.toList());
+            // Get all items on the current page from the menu component itself. This is more reliable.
+            Set<UUID> pageItemIds = event.getComponent().getOptions().stream()
+                .map(option -> UUID.fromString(option.getValue()))
+                .collect(Collectors.toSet());
 
-            // Get current selections
+            // Get current selections for this trade
             Set<UUID> currentSelections = userItemSelections.getOrDefault(selectionKey, new HashSet<>());
             
-            // Find which page these selected items belong to
-            Set<UUID> currentPageItems = new HashSet<>();
-            List<UUID> newlySelectedItems = selectedItemInstanceIds.stream()
-                .map(UUID::fromString)
-                .collect(Collectors.toList());
+            // First, remove all items that could have been on this page from the master selection list.
+            // This correctly handles deselection.
+            currentSelections.removeAll(pageItemIds);
             
-            // Determine current page by finding which page contains the first selected item
-            int currentPage = 0;
-            for (int page = 0; page < Math.ceil((double) tradableItems.size() / ITEMS_PER_PAGE); page++) {
-                int startIndex = page * ITEMS_PER_PAGE;
-                int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, tradableItems.size());
-                List<ItemInstance> pageItems = tradableItems.subList(startIndex, endIndex);
-                
-                Set<UUID> pageItemIds = pageItems.stream()
-                    .map(ItemInstance::getId)
-                    .collect(Collectors.toSet());
-                
-                // If any of the newly selected items are on this page, this is our current page
-                if (newlySelectedItems.stream().anyMatch(pageItemIds::contains)) {
-                    currentPage = page;
-                    currentPageItems = pageItemIds;
-                    break;
-                }
-            }
-            
-            // Remove all items from current page from the selection (to handle deselection)
-            currentSelections.removeAll(currentPageItems);
-            
-            // Add the newly selected items from this page
-            for (UUID itemId : newlySelectedItems) {
-                if (currentPageItems.contains(itemId)) {
-                    currentSelections.add(itemId);
-                }
+            // Then, add back only the items that are currently selected.
+            for (String itemIdStr : selectedItemInstanceIds) {
+                currentSelections.add(UUID.fromString(itemIdStr));
             }
             
             // Update the selection state
@@ -343,9 +341,30 @@ public class TradeCommandListener extends ListenerAdapter {
             log.debug("Updated selection for user {} trade {}: {} total items selected", 
                 userId, tradeId, currentSelections.size());
 
+            // --- Determine the current page to refresh the UI ---
+            int currentPage = 0;
+            if (!pageItemIds.isEmpty()) {
+                 com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
+                 List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
+                    .filter(invItem -> invItem.getBaseItem().getCategory().isTradable())
+                    .collect(Collectors.toList());
+                
+                UUID firstItemOnPage = pageItemIds.iterator().next();
+                for (int i = 0; i < tradableItems.size(); i++) {
+                    if (tradableItems.get(i).getId().equals(firstItemOnPage)) {
+                        currentPage = i / ITEMS_PER_PAGE;
+                        break;
+                    }
+                }
+            }
+            
+            // Finally, call the update method to refresh the UI for the user.
+            // This fixes the "unused method" warning and provides immediate feedback.
+            updateItemSelectionUI(event, tradeId, userId, currentPage);
+
         } catch (Exception e) {
             log.error("Error processing item selection for tradeId: {}", tradeId, e);
-            event.getHook().sendMessage("An error occurred while updating your selection: " + e.getMessage()).setEphemeral(true).queue();
+            event.getHook().editOriginal("An error occurred while updating your selection: " + e.getMessage()).setComponents().queue();
         }
     }
 
@@ -455,7 +474,7 @@ public class TradeCommandListener extends ListenerAdapter {
 
             // Build the select menu for this page
             log.debug("Building select menu...");
-            StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("trade-item-select:" + tradeId)
+            StringSelectMenu.Builder menuBuilder = StringSelectMenu.create(buildItemSelectId(tradeId))
                     .setPlaceholder("Select items to offer...")
                     .setRequiredRange(0, pageItems.size())
                     .setMaxValues(pageItems.size());
@@ -492,17 +511,17 @@ public class TradeCommandListener extends ListenerAdapter {
             log.debug("Building pagination buttons...");
             List<Button> paginationButtons = new ArrayList<>();
             
-            paginationButtons.add(Button.secondary("trade-item-page:" + tradeId + ":" + (page - 1), "◀ Previous")
+            paginationButtons.add(Button.secondary(buildItemPageId(tradeId, page - 1), "◀ Previous")
                     .withDisabled(page <= 0));
-            paginationButtons.add(Button.secondary("trade-item-page:" + tradeId + ":" + (page + 1), "Next ▶")
+            paginationButtons.add(Button.secondary(buildItemPageId(tradeId, page + 1), "Next ▶")
                     .withDisabled(page >= totalPages - 1));
 
             // Build control buttons
             log.debug("Building control buttons...");
             List<Button> controlButtons = new ArrayList<>();
-            controlButtons.add(Button.success("trade-confirm-items:" + tradeId, "Confirm Selection")
+            controlButtons.add(Button.success(buildConfirmItemsId(tradeId), "Confirm Selection")
                     .withEmoji(Emoji.fromUnicode("✅")));
-            controlButtons.add(Button.danger("trade-cancel-selection:" + tradeId, "Cancel")
+            controlButtons.add(Button.danger(buildCancelSelectionId(tradeId), "Cancel")
                     .withEmoji(Emoji.fromUnicode("❌")));
 
             String pageInfo = String.format("Page %d of %d (%d total items, %d selected)", 
@@ -535,6 +554,7 @@ public class TradeCommandListener extends ListenerAdapter {
      * Updates the paginated item selection UI for a user - overload for string select interactions
      */
     private void updateItemSelectionUI(StringSelectInteractionEvent event, long tradeId, String userId, int page) {
+        log.info("=== UPDATE SELECTION UI START (SELECT) === User: {}, tradeId: {}, page: {}", userId, tradeId, page);
         try {
             com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
             List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
@@ -542,7 +562,7 @@ public class TradeCommandListener extends ListenerAdapter {
                 .collect(Collectors.toList());
 
             if (tradableItems.isEmpty()) {
-                event.getHook().sendMessage("You have no tradable items in your inventory.").setEphemeral(true).queue();
+                event.getHook().editOriginal("You have no tradable items in your inventory.").setComponents().queue();
                 return;
             }
 
@@ -555,7 +575,7 @@ public class TradeCommandListener extends ListenerAdapter {
             Set<UUID> currentSelections = userItemSelections.getOrDefault(selectionKey, new HashSet<>());
 
             // Build the select menu for this page
-            StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("trade-item-select:" + tradeId)
+            StringSelectMenu.Builder menuBuilder = StringSelectMenu.create(buildItemSelectId(tradeId))
                     .setPlaceholder("Select items to offer...")
                     .setRequiredRange(0, pageItems.size())
                     .setMaxValues(pageItems.size());
@@ -590,16 +610,16 @@ public class TradeCommandListener extends ListenerAdapter {
             // Build pagination buttons
             List<Button> paginationButtons = new ArrayList<>();
             
-            paginationButtons.add(Button.secondary("trade-item-page:" + tradeId + ":" + (page - 1), "◀ Previous")
+            paginationButtons.add(Button.secondary(buildItemPageId(tradeId, page - 1), "◀ Previous")
                     .withDisabled(page <= 0));
-            paginationButtons.add(Button.secondary("trade-item-page:" + tradeId + ":" + (page + 1), "Next ▶")
+            paginationButtons.add(Button.secondary(buildItemPageId(tradeId, page + 1), "Next ▶")
                     .withDisabled(page >= totalPages - 1));
 
             // Build control buttons
             List<Button> controlButtons = new ArrayList<>();
-            controlButtons.add(Button.success("trade-confirm-items:" + tradeId, "Confirm Selection")
+            controlButtons.add(Button.success(buildConfirmItemsId(tradeId), "Confirm Selection")
                     .withEmoji(Emoji.fromUnicode("✅")));
-            controlButtons.add(Button.danger("trade-cancel-selection:" + tradeId, "Cancel")
+            controlButtons.add(Button.danger(buildCancelSelectionId(tradeId), "Cancel")
                     .withEmoji(Emoji.fromUnicode("❌")));
 
             String pageInfo = String.format("Page %d of %d (%d total items, %d selected)", 
@@ -612,13 +632,13 @@ public class TradeCommandListener extends ListenerAdapter {
                             ActionRow.of(controlButtons)
                     )
                     .queue(
-                        success -> log.debug("Successfully updated item selection UI for user {} on page {}", userId, page),
-                        failure -> log.error("Failed to update item selection UI for user {} on page {}", userId, page, failure)
+                        success -> log.info("=== SELECTION UI SUCCESS (SELECT) === User: {}, page: {}", userId, page),
+                        failure -> log.error("=== SELECTION UI FAILED (SELECT) === User: {}, page: {}", userId, page, failure)
                     );
 
         } catch (Exception e) {
-            log.error("Error updating item selection UI for user {} on page {}", userId, page, e);
-            event.getHook().sendMessage("An error occurred while loading your items. Please try again.").setEphemeral(true).queue();
+            log.error("=== SELECTION UI ERROR (SELECT) === User: {}, page: {}", userId, page, e);
+            event.getHook().editOriginal("An error occurred while loading your items. Please try again.").setComponents().queue();
         }
     }
 
@@ -700,6 +720,13 @@ public class TradeCommandListener extends ListenerAdapter {
         log.info("=== PAGE NAVIGATION START === User: {}, tradeId: {}, targetPage: {}", userId, tradeId, targetPage);
         
         try {
+            // Authorization check
+            Trade trade = tradeService.getTradeDetails(tradeId);
+            if (!trade.getInitiator().getId().equals(userId) && !trade.getReceiver().getId().equals(userId)) {
+                event.getHook().editOriginal("You are not part of this trade.").setComponents().queue();
+                return;
+            }
+            
             // Validate the target page
             log.debug("Loading user inventory for userId: {}", userId);
             com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
@@ -765,7 +792,7 @@ public class TradeCommandListener extends ListenerAdapter {
 
             // Build the select menu for this page
             log.debug("Building select menu...");
-            StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("trade-item-select:" + tradeId)
+            StringSelectMenu.Builder menuBuilder = StringSelectMenu.create(buildItemSelectId(tradeId))
                     .setPlaceholder("Select items to offer...")
                     .setRequiredRange(0, pageItems.size())
                     .setMaxValues(pageItems.size());
@@ -802,17 +829,17 @@ public class TradeCommandListener extends ListenerAdapter {
             log.debug("Building pagination buttons...");
             List<Button> paginationButtons = new ArrayList<>();
             
-            paginationButtons.add(Button.secondary("trade-item-page:" + tradeId + ":" + (page - 1), "◀ Previous")
+            paginationButtons.add(Button.secondary(buildItemPageId(tradeId, page - 1), "◀ Previous")
                     .withDisabled(page <= 0));
-            paginationButtons.add(Button.secondary("trade-item-page:" + tradeId + ":" + (page + 1), "Next ▶")
+            paginationButtons.add(Button.secondary(buildItemPageId(tradeId, page + 1), "Next ▶")
                     .withDisabled(page >= totalPages - 1));
 
             // Build control buttons
             log.debug("Building control buttons...");
             List<Button> controlButtons = new ArrayList<>();
-            controlButtons.add(Button.success("trade-confirm-items:" + tradeId, "Confirm Selection")
+            controlButtons.add(Button.success(buildConfirmItemsId(tradeId), "Confirm Selection")
                     .withEmoji(Emoji.fromUnicode("✅")));
-            controlButtons.add(Button.danger("trade-cancel-selection:" + tradeId, "Cancel")
+            controlButtons.add(Button.danger(buildCancelSelectionId(tradeId), "Cancel")
                     .withEmoji(Emoji.fromUnicode("❌")));
 
             String pageInfo = String.format("Page %d of %d (%d total items, %d selected)", 
@@ -842,6 +869,13 @@ public class TradeCommandListener extends ListenerAdapter {
 
     private void handleConfirmItemSelection(ButtonInteractionEvent event, long tradeId, String userId) {
         log.info("=== CONFIRM SELECTION START === User: {}, tradeId: {}", userId, tradeId);
+        
+        // Authorization check
+        Trade trade = tradeService.getTradeDetails(tradeId);
+        if (!trade.getInitiator().getId().equals(userId) && !trade.getReceiver().getId().equals(userId)) {
+            event.getHook().editOriginal("You are not part of this trade.").setComponents().queue();
+            return;
+        }
         
         String selectionKey = getSelectionKey(tradeId, userId);
         Set<UUID> selectedItems = userItemSelections.getOrDefault(selectionKey, new HashSet<>());
@@ -891,6 +925,13 @@ public class TradeCommandListener extends ListenerAdapter {
     private void handleCancelItemSelection(ButtonInteractionEvent event, long tradeId, String userId) {
         log.info("=== CANCEL SELECTION START === User: {}, tradeId: {}", userId, tradeId);
         
+        // Authorization check
+        Trade trade = tradeService.getTradeDetails(tradeId);
+        if (!trade.getInitiator().getId().equals(userId) && !trade.getReceiver().getId().equals(userId)) {
+            event.getHook().editOriginal("You are not part of this trade.").setComponents().queue();
+            return;
+        }
+        
         String selectionKey = getSelectionKey(tradeId, userId);
         userItemSelections.remove(selectionKey);
         log.debug("Cleaned up selection state for cancellation");
@@ -924,7 +965,14 @@ public class TradeCommandListener extends ListenerAdapter {
                            .setComponents(getTradeActionRows(trade))
                            .queue(
                                success -> log.info("Successfully updated UI for tradeId: {}", tradeId),
-                               failure -> log.error("Failed to update message for tradeId: {}", tradeId, failure)
+                               failure -> log.error(
+                                   "Failed to update message UI for tradeId: {}. DB State: [Status: {}, InitiatorLocked: {}, ReceiverLocked: {}]",
+                                   tradeId,
+                                   trade.getStatus(),
+                                   trade.getInitiatorLocked(),
+                                   trade.getReceiverLocked(),
+                                   failure
+                               )
                            );
                 }, failure -> {
                     log.error("Failed to retrieve message with ID: {} in channel {} for tradeId: {}", messageId, channel.getId(), tradeId, failure);

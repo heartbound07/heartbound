@@ -1,6 +1,7 @@
 package com.app.heartbound.repositories;
 
 import com.app.heartbound.entities.Trade;
+import com.app.heartbound.enums.TradeStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.Lock;
 import jakarta.persistence.LockModeType;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,4 +23,6 @@ public interface TradeRepository extends JpaRepository<Trade, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM Trade t WHERE t.id = :id")
     Optional<Trade> findByIdWithLock(@Param("id") Long id);
+    
+    List<Trade> findByStatusAndExpiresAtBefore(TradeStatus status, Instant expiresAt);
 } 
