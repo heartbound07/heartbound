@@ -10,7 +10,6 @@ import com.app.heartbound.services.AuditService;
 import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
-import com.app.heartbound.services.discord.DiscordBotSettingsService;
 import com.app.heartbound.entities.DiscordBotSettings;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;

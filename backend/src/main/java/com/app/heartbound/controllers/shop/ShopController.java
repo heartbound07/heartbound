@@ -655,11 +655,16 @@ public class ShopController {
     public ResponseEntity<?> validateCaseContents(@PathVariable UUID caseId) {
         try {
             boolean isValid = shopService.validateCaseContents(caseId);
-            return ResponseEntity.ok(new ValidationResponse(isValid, 
-                isValid ? "Case contents are valid" : "Case contents are invalid - drop rates must total 100%"));
+            return ResponseEntity.ok()
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                .header("Pragma", "no-cache")
+                .header("Expires", "0")
+                .body(new ValidationResponse(isValid, 
+                    isValid ? "Case contents are valid" : "Case contents are invalid - drop rates must total 100%"));
         } catch (Exception e) {
             logger.error("Error validating case contents for case {}: {}", caseId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
                 .body(new ErrorResponse("An error occurred while validating case contents"));
         }
     }
