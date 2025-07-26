@@ -207,7 +207,6 @@ public class ShopService {
      * @return List of daily shop items for the user.
      */
     @Transactional(readOnly = true)
-    @SuppressWarnings("unchecked")
     public List<ShopDTO> getDailyItems(String userId) {
         // Fetch the user with their inventory up-front to avoid multiple lookups and for ownership checks.
         User user = userRepository.findByIdWithInventory(userId)
