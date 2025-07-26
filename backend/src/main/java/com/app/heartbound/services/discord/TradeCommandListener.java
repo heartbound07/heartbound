@@ -132,15 +132,16 @@ public class TradeCommandListener extends ListenerAdapter {
     @Override
     public void onButtonInteraction(@Nonnull ButtonInteractionEvent event) {
         String componentId = event.getComponentId();
-        log.debug("=== BUTTON INTERACTION START === ComponentID: {}, User: {}", componentId, event.getUser().getId());
+        log.info("=== ALL BUTTON INTERACTIONS === ComponentID: '{}', User: {}", componentId, event.getUser().getId());
+        
+        // Check if this is any trade-related interaction
+        if (!componentId.startsWith("trade")) {
+            log.debug("Not a trade interaction, ignoring. ComponentID: {}", componentId);
+            return;
+        }
         
         String[] parts = componentId.split("_");
         log.debug("Component ID parts: {}", String.join(", ", parts));
-        
-        if (!parts[0].equals("trade")) {
-            log.debug("Not a trade interaction, ignoring. First part: {}", parts[0]);
-            return;
-        }
 
         log.debug("Deferring edit for trade interaction...");
         event.deferEdit().queue(
@@ -148,16 +149,7 @@ public class TradeCommandListener extends ListenerAdapter {
             failure -> log.error("Failed to defer edit for componentId: {}", componentId, failure)
         );
 
-        if (parts.length < 3) {
-            log.error("Invalid component ID format. Expected at least 3 parts, got: {}", parts.length);
-            event.getHook().sendMessage("Invalid interaction format.").setEphemeral(true).queue();
-            return;
-        }
-
-        String action = parts[1];
-        log.debug("Parsed action: {}", action);
-        
-        // Handle pagination and item selection buttons FIRST (before the legacy trade actions)
+        // Handle new colon-separated format first (trade-action:id or trade-action:id:param)
         if (componentId.startsWith("trade-item-page")) {
             log.info("=== HANDLING PAGINATION === ComponentID: {}", componentId);
             String[] pageParts = componentId.split(":");
@@ -228,15 +220,17 @@ public class TradeCommandListener extends ListenerAdapter {
         }
         
         // Handle legacy trade actions (trade_action_id_initiator_receiver format)
-        log.debug("Processing legacy trade action: {}", action);
+        if (parts.length >= 3) {
+            String action = parts[1];
+            log.debug("Processing legacy trade action: {}", action);
 
-        long tradeId = Long.parseLong(parts[2]);
-        String initiatorId = parts.length > 3 ? parts[3] : null;
-        String receiverId = parts.length > 4 ? parts[4] : null;
+            long tradeId = Long.parseLong(parts[2]);
+            String initiatorId = parts.length > 3 ? parts[3] : null;
+            String receiverId = parts.length > 4 ? parts[4] : null;
 
-        String clickerId = event.getUser().getId();
+            String clickerId = event.getUser().getId();
 
-        if (action.equals("accept-initial") || action.equals("decline-initial")) {
+            if (action.equals("accept-initial") || action.equals("decline-initial")) {
             // This is a security check to ensure only the receiver of the trade can accept or decline.
             if (!clickerId.equals(receiverId)) {
                 event.reply("You cannot interact with this initial request. Please wait for the recipient to respond.").setEphemeral(true).queue();
@@ -270,9 +264,13 @@ public class TradeCommandListener extends ListenerAdapter {
                     handleCancel(event, tradeId, clickerId);
                     break;
             }
-        } catch (Exception e) {
-            log.error("Error handling button interaction for tradeId: {}", tradeId, e);
-            event.getHook().sendMessage("An unexpected error occurred. Please try again later.").setEphemeral(true).queue();
+            } catch (Exception e) {
+                log.error("Error handling button interaction for tradeId: {}", tradeId, e);
+                event.getHook().sendMessage("An unexpected error occurred. Please try again later.").setEphemeral(true).queue();
+            }
+        } else {
+            log.warn("Invalid legacy trade component ID format: {}", componentId);
+            event.getHook().sendMessage("Invalid interaction format.").setEphemeral(true).queue();
         }
     }
 
