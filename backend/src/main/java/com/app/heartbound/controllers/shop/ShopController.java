@@ -1,6 +1,7 @@
 package com.app.heartbound.controllers.shop;
 
 import com.app.heartbound.config.security.RateLimited;
+import com.app.heartbound.config.security.Views;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.dto.shop.ShopDTO;
@@ -30,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.json.MappingJacksonValue;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -519,14 +521,31 @@ public class ShopController {
     /**
      * Get case contents
      * @param caseId Case ID
-     * @return Case contents with drop rates
+     * @param authentication Authentication containing user information
+     * @return Case contents with drop rates (admin only) or without drop rates (regular users)
      */
     @GetMapping("/cases/{caseId}/contents")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<?> getCaseContents(@PathVariable UUID caseId) {
+    public ResponseEntity<?> getCaseContents(@PathVariable UUID caseId, Authentication authentication) {
         try {
             CaseContentsDTO contents = shopService.getCaseContents(caseId);
-            return ResponseEntity.ok(contents);
+            
+            // Create MappingJacksonValue to control JSON serialization based on user role
+            MappingJacksonValue mappingJacksonValue = new MappingJacksonValue(contents);
+            
+            // Check if user has admin role to determine which view to use
+            boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+            
+            if (isAdmin) {
+                // Admin users see all data including drop rates
+                mappingJacksonValue.setSerializationView(Views.Admin.class);
+            } else {
+                // Regular users see data without drop rates
+                mappingJacksonValue.setSerializationView(Views.Public.class);
+            }
+            
+            return ResponseEntity.ok(mappingJacksonValue);
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse(e.getMessage()));
