@@ -130,21 +130,8 @@ public class CoinflipCommandListener extends ListenerAdapter {
             // Perform the coin flip after 3.5 seconds delay
             CompletableFuture.delayedExecutor(3500, TimeUnit.MILLISECONDS).execute(() -> {
                 try {
-                    // Determine coin flip result with 45% user win rate / 55% user lose rate
-                    double outcomeRoll = secureRandomService.getSecureDouble(); // 0.0 to 1.0 (cryptographically secure)
-                    boolean userShouldWin = outcomeRoll <= 0.45; // 45% chance for user to win
-                    
-                    // Set coin result based on desired outcome
-                    boolean coinResult;
-                    if (userShouldWin) {
-                        // User should win: make coin result match their guess
-                        coinResult = userGuess.equals("heads");
-                    } else {
-                        // User should lose: make coin result opposite to their guess
-                        coinResult = !userGuess.equals("heads");
-                    }
-                    
-                    String coinResultString = coinResult ? "heads" : "tails";
+                    boolean coinResult = secureRandomService.getSecureInt(2) == 1; // 0 = heads, 1 = tails
+                    String coinResultString = coinResult ? "tails" : "heads";
                     boolean userWon = userGuess.equals(coinResultString);
                     
                     // Calculate credit change
