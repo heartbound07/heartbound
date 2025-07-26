@@ -228,11 +228,21 @@ public class ShopService {
             long seed = seedString.hashCode();
             Random random = new Random(seed);
 
-            // Group items from the stable pool by rarity
-            Map<ItemRarity, List<Shop>> itemsByRarity = dailyItemPool.stream()
+            // Get items the user already owns to exclude from selection
+            Set<UUID> ownedItemIds = user.getItemInstances().stream()
+                .map(instance -> instance.getBaseItem().getId())
+                .collect(Collectors.toSet());
+
+            // Create available item pool by filtering out items the user already owns
+            List<Shop> availableItemPool = dailyItemPool.stream()
+                .filter(item -> !ownedItemIds.contains(item.getId()))
+                .collect(Collectors.toList());
+
+            // Group available items by rarity for selection
+            Map<ItemRarity, List<Shop>> itemsByRarity = availableItemPool.stream()  
                 .collect(Collectors.groupingBy(Shop::getRarity));
             
-            List<Shop> selectedItems = selectItemsForUser(itemsByRarity, random);
+            List<Shop> selectedItems = selectItemsForUser(itemsByRarity, random, availableItemPool);
 
             // Cache the complete, unfiltered list of Shop entities for this user
             cacheConfig.getUserDailyItemsCache().put(userId, selectedItems);
@@ -277,7 +287,7 @@ public class ShopService {
         logger.info("Successfully updated global daily item pool with {} eligible items.", dailyItemPool.size());
     }
 
-    private List<Shop> selectItemsForUser(Map<ItemRarity, List<Shop>> itemsByRarity, Random random) {
+    private List<Shop> selectItemsForUser(Map<ItemRarity, List<Shop>> itemsByRarity, Random random, List<Shop> availableItemPool) {
         // Initialize lists for each rarity, handling null cases
         List<Shop> legendaryItems = itemsByRarity.getOrDefault(ItemRarity.LEGENDARY, Collections.emptyList());
         List<Shop> epicItems = itemsByRarity.getOrDefault(ItemRarity.EPIC, Collections.emptyList());
@@ -319,7 +329,7 @@ public class ShopService {
                 if (!replacementPool.isEmpty()) {
                     replacement = replacementPool.get(random.nextInt(replacementPool.size()));
                 } else {
-                    List<Shop> generalReplacementPool = dailyItemPool.stream()
+                    List<Shop> generalReplacementPool = availableItemPool.stream()
                         .filter(item -> item.getCategory() != ShopCategory.FISHING_ROD && !selectedItems.contains(item))
                         .collect(Collectors.toList());
                     if (!generalReplacementPool.isEmpty()) {
@@ -340,7 +350,7 @@ public class ShopService {
         
         // Final fallback to ensure 4 items if possible
         if (selectedItems.size() < 4) {
-            List<Shop> remainingPool = new ArrayList<>(dailyItemPool);
+            List<Shop> remainingPool = new ArrayList<>(availableItemPool);
             remainingPool.removeAll(selectedItems);
             
             while (selectedItems.size() < 4 && !remainingPool.isEmpty()) {
