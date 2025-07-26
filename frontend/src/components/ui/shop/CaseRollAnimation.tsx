@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, forwardRef } from 'react';
 import { motion, MotionValue } from 'framer-motion';
 import { CaseItemThumbnail } from './CaseItemThumbnail';
 import { CaseItemDTO, AnimationState } from './CaseTypes';
@@ -18,16 +18,16 @@ interface CaseRollAnimationProps {
   user?: any;
 }
 
-export const CaseRollAnimation = React.memo(({ animationItems, animationState, x, user }: CaseRollAnimationProps) => {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollAnimationProps>(({ animationItems, animationState, x, user }, ref) => {
   const [virtualItems, setVirtualItems] = useState<VirtualItem[]>([]);
   
   const totalAnimationWidth = animationItems.length * ITEM_WIDTH;
 
   const updateVirtualItems = useCallback(() => {
-    if (!animationItems.length || !scrollContainerRef.current) return;
+    const container = (ref as React.RefObject<HTMLDivElement>)?.current;
+    if (!animationItems.length || !container) return;
     
-    const containerWidth = scrollContainerRef.current.offsetWidth;
+    const containerWidth = container.offsetWidth;
     const scrollLeft = -x.get();
     
     let startIndex = Math.floor(scrollLeft / ITEM_WIDTH) - OVERSCAN;
@@ -44,7 +44,7 @@ export const CaseRollAnimation = React.memo(({ animationItems, animationState, x
         });
     }
     setVirtualItems(newVirtualItems);
-  }, [animationItems, x]);
+  }, [animationItems, x, ref]);
 
   useEffect(() => {
     const unsubscribe = x.onChange(updateVirtualItems);
@@ -65,7 +65,7 @@ export const CaseRollAnimation = React.memo(({ animationItems, animationState, x
           </div>
         </div>
         
-        <div ref={scrollContainerRef} className="relative h-32 overflow-hidden">
+        <div ref={ref} className="relative h-32 overflow-hidden">
           <motion.div
             className="h-full"
             style={{ 
@@ -103,7 +103,7 @@ export const CaseRollAnimation = React.memo(({ animationItems, animationState, x
               animate={{ opacity: 1 }}
               className="absolute inset-0 bg-gradient-radial from-transparent via-black/20 to-black/60 pointer-events-none"
               style={{
-                background: 'radial-gradient(circle at center, transparent 15%, rgba(0,0,0,0.3) 40%, rgba(0,0,0,0.7) 70%)'
+                background: 'radial-gradient(circle at center, transparent 35%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0.7) 80%)'
               }}
             />
           )}
@@ -114,6 +114,6 @@ export const CaseRollAnimation = React.memo(({ animationItems, animationState, x
       </div>
     </motion.div>
   );
-});
+}));
 
 CaseRollAnimation.displayName = 'CaseRollAnimation'; 

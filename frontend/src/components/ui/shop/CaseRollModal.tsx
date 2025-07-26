@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import { FaTimes, FaGift } from 'react-icons/fa';
 import httpClient from '@/lib/api/httpClient';
@@ -40,6 +40,7 @@ export function CaseRollModal({
   );
   const [error, setError] = useState<string | null>(null);
   const x = useMotionValue(0);
+  const animationContainerRef = useRef<HTMLDivElement>(null);
 
   const animationItems = useMemo(() => {
     if (!caseContents?.items) return [];
@@ -100,8 +101,14 @@ export function CaseRollModal({
       targetIndex = Math.floor(animationItems.length * 0.75);
     }
     
-        // This calculation now correctly derives the pixel value for x
-        return -(targetIndex * ITEM_WIDTH - (document.body.clientWidth / 2) + (ITEM_WIDTH / 2));
+        const container = animationContainerRef.current;
+        if (!container) {
+          // Fallback to the previous behavior if ref is not ready, though it shouldn't happen.
+          return -(targetIndex * ITEM_WIDTH - (document.body.clientWidth / 2) + (ITEM_WIDTH / 2));
+        }
+
+        const containerWidth = container.offsetWidth;
+        return -(targetIndex * ITEM_WIDTH - (containerWidth / 2) + (ITEM_WIDTH / 2));
     },
     [animationItems]
   );
@@ -216,6 +223,7 @@ export function CaseRollModal({
       case 'revealing':
         return (
           <CaseRollAnimation
+            ref={animationContainerRef}
             animationItems={animationItems}
             animationState={animationState}
             x={x}
