@@ -143,7 +143,18 @@ public class TradeCommandListener extends ListenerAdapter {
                         pendingTradeRequests.put(requestKey, message.getIdLong());
                         message.editMessageComponents().setComponents()
                                 .setEmbeds(new EmbedBuilder().setDescription("Trade request expired.").setColor(Color.GRAY).build())
-                                .queueAfter(15, TimeUnit.SECONDS, success -> pendingTradeRequests.remove(requestKey),
+                                .queueAfter(15, TimeUnit.SECONDS, success -> {
+                                    pendingTradeRequests.remove(requestKey);
+                                    try {
+                                        log.debug("Expiring trade request with ID: {}", tradeId);
+                                        // Use tradeService to cancel the trade, marking it as expired in the database
+                                        tradeService.cancelTrade(tradeId, null); // null for system-level cancellation
+                                        log.info("Successfully cancelled expired trade request with ID: {}", tradeId);
+                                    } catch (Exception e) {
+                                        // Log error if cancellation fails (e.g., trade was already accepted/declined)
+                                        log.error("Error cancelling expired trade request with ID: {}. It might have already been processed.", tradeId, e);
+                                    }
+                                },
                                         failure -> log.warn("Failed to expire trade request message {}.", message.getId()));
                     });
             event.getHook().deleteOriginal().queue();
