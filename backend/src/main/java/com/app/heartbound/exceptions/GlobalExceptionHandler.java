@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.app.heartbound.exceptions.shop.BadgeLimitException;
 import com.app.heartbound.exceptions.shop.ItemNotPurchasableException;
+import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
+import com.app.heartbound.exceptions.shop.ItemAlreadyOwnedException;
+import com.app.heartbound.exceptions.shop.RoleRequirementNotMetException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -140,6 +143,45 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ItemNotPurchasableException.class)
     public ResponseEntity<ErrorResponse> handleItemNotPurchasable(ItemNotPurchasableException ex,
                                                                   HttpServletRequest request) {
+        ErrorResponse response = new ErrorResponse(
+                Instant.now(),
+                HttpStatus.FORBIDDEN.value(),
+                "Forbidden",
+                sanitizeErrorMessage(ex.getMessage()),
+                request.getRequestURI()
+        );
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(InsufficientCreditsException.class)
+    public ResponseEntity<ErrorResponse> handleInsufficientCreditsException(InsufficientCreditsException ex,
+                                                                           HttpServletRequest request) {
+        ErrorResponse response = new ErrorResponse(
+                Instant.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Bad Request",
+                sanitizeErrorMessage(ex.getMessage()),
+                request.getRequestURI()
+        );
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(ItemAlreadyOwnedException.class)
+    public ResponseEntity<ErrorResponse> handleItemAlreadyOwnedException(ItemAlreadyOwnedException ex,
+                                                                        HttpServletRequest request) {
+        ErrorResponse response = new ErrorResponse(
+                Instant.now(),
+                HttpStatus.CONFLICT.value(),
+                "Conflict",
+                sanitizeErrorMessage(ex.getMessage()),
+                request.getRequestURI()
+        );
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(RoleRequirementNotMetException.class)
+    public ResponseEntity<ErrorResponse> handleRoleRequirementNotMetException(RoleRequirementNotMetException ex,
+                                                                             HttpServletRequest request) {
         ErrorResponse response = new ErrorResponse(
                 Instant.now(),
                 HttpStatus.FORBIDDEN.value(),

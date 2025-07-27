@@ -213,10 +213,8 @@ public class ShopService {
         User user = userRepository.findByIdWithInventory(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
-        // Attempt to retrieve the full daily item list from cache first
-        List<Shop> userDailyItems = cacheConfig.getUserDailyItemsCache().getIfPresent(userId);
-
-        if (userDailyItems == null) {
+        // Use computeIfAbsent to atomically check and generate daily items, preventing race conditions
+        List<Shop> userDailyItems = cacheConfig.getUserDailyItemsCache().asMap().computeIfAbsent(userId, key -> {
             // If not in cache, generate them
             logger.debug("Generating new daily items for user {}.", userId);
 
@@ -251,14 +249,8 @@ public class ShopService {
             Map<ItemRarity, List<Shop>> itemsByRarity = availableItemPool.stream()  
                 .collect(Collectors.groupingBy(Shop::getRarity));
             
-            List<Shop> selectedItems = selectItemsForUser(itemsByRarity, random, availableItemPool);
-
-            // Cache the complete, unfiltered list of Shop entities for this user
-            cacheConfig.getUserDailyItemsCache().put(userId, selectedItems);
-            userDailyItems = selectedItems;
-        } else {
-             logger.debug("Daily items for user {} retrieved from cache.", userId);
-        }
+            return selectItemsForUser(itemsByRarity, random, availableItemPool);
+        });
 
         // Now, filter the daily items list (from cache or newly generated) to exclude items the user owns.
         Set<UUID> ownedItemIds = user.getItemInstances().stream()

@@ -174,18 +174,6 @@ public class ShopController {
             PurchaseResponseDTO purchaseResponse = shopService.purchaseItem(userId, itemId, quantity);
             logger.info("Successful purchase by user {} for item {} (quantity: {})", userId, itemId, quantity);
             return ResponseEntity.ok(purchaseResponse);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (InsufficientCreditsException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (ItemAlreadyOwnedException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (RoleRequirementNotMetException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ErrorResponse(e.getMessage()));
         } catch (Exception e) {
             logger.error("Error processing purchase for user {} and item {}: {}", userId, itemId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
