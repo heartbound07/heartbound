@@ -153,7 +153,7 @@ export const CaseIdleScreen = React.memo(({
                           </div>
                           <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
                             <span>{formatDisplayText(item.category)}</span>
-                            <span>{item.price} credits</span>
+                            <span>{item.price ?? 0} credits</span>
                           </div>
                           {item.description && (
                             <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>

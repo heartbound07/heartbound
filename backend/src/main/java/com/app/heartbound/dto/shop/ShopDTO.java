@@ -1,11 +1,13 @@
 package com.app.heartbound.dto.shop;
 
+import com.app.heartbound.config.security.Views;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.validation.NoScript;
 import com.app.heartbound.validation.SanitizedHtml;
 import com.app.heartbound.services.HtmlSanitizationService;
+import com.fasterxml.jackson.annotation.JsonView;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -25,33 +27,55 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class ShopDTO {
+    @JsonView(Views.Public.class)
     private UUID id;
     
     @NotBlank(message = "Item name is required")
     @NoScript(allowPunctuation = true)
     @Size(min = 3, max = 100, message = "Item name must be between 3 and 100 characters")
+    @JsonView(Views.Public.class)
     private String name;
     
     @SanitizedHtml(policy = HtmlSanitizationService.SanitizationPolicy.BASIC, maxLength = 500)
     @Size(max = 500, message = "Description cannot exceed 500 characters")
+    @JsonView(Views.Public.class)
     private String description;
     
     @NotNull(message = "Price is required")
     @Min(value = 0, message = "Price cannot be negative")
+    @JsonView(Views.Public.class)
     private Integer price;
+    
+    @JsonView(Views.Public.class)
     private ShopCategory category;
+    
+    @JsonView(Views.Public.class)
     private String imageUrl;
+    
+    @JsonView(Views.Public.class)
     private String thumbnailUrl;
+    
+    @JsonView(Views.Public.class)
     private Role requiredRole;
+
+    @JsonView(Views.Public.class)
     private boolean owned;  // Indicates if the current user owns this item
+
     @Builder.Default
+    @JsonView(Views.Public.class)
     private ItemRarity rarity = ItemRarity.COMMON;  // Default to COMMON
+    
     @Builder.Default
     private boolean active = true;
+
     private LocalDateTime expiresAt;
+
     @Builder.Default
     private boolean expired = false;
+
+    @JsonView(Views.Public.class)
     private boolean equipped;
+
     private String discordRoleId;
     
     // Visibility flags for layout sections
@@ -62,8 +86,11 @@ public class ShopDTO {
     
     // Case-specific fields
     @Builder.Default
+    @JsonView(Views.Public.class)
     private boolean isCase = false;  // True if this is a case item
+    
     @Builder.Default
+    @JsonView(Views.Public.class)
     private Integer caseContentsCount = 0;  // Number of items in this case
     
     // Quantity field for inventory items (especially cases)
@@ -72,8 +99,10 @@ public class ShopDTO {
 
     @DecimalMin(value = "0.1", message = "Multiplier must be at least 0.1")
     @DecimalMax(value = "10.0", message = "Multiplier must not exceed 10.0")
+    @JsonView(Views.Public.class)
     private Double fishingRodMultiplier;
 
+    @JsonView(Views.Public.class)
     private String gradientEndColor;
 
     private Integer maxCopies;

@@ -263,7 +263,7 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
                                 
                                 <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
                                   <span>{formatDisplayText(item.category)}</span>
-                                  <span>{item.price} credits</span>
+                                  <span>{item.price ?? 0} credits</span>
                                 </div>
 
                                 {item.description && (
