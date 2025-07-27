@@ -106,7 +106,7 @@ public class TradeService {
             throw new InvalidTradeActionException("You cannot trade with yourself.");
         }
 
-        final Instant staleThreshold = Instant.now().minus(1, ChronoUnit.HOURS);
+        final Instant staleThreshold = Instant.now().minus(5, ChronoUnit.MINUTES);
 
         // --- Self-healing for Initiator ---
         List<Trade> initiatorPendingTrades = tradeRepository.findByInitiatorIdOrReceiverId(initiator.getId(), initiator.getId())
