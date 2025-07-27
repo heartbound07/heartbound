@@ -139,8 +139,9 @@ public class UserService {
      * This method is called during user creation to apply any roles they selected before registration.
      * 
      * @param user the user entity to sync role selections to
+     * @return true if pending selections were found and synced, false otherwise
      */
-    private void syncPendingRoleSelections(User user) {
+    private boolean syncPendingRoleSelections(User user) {
         try {
             Optional<PendingRoleSelection> pendingSelection = pendingRoleSelectionRepository.findByDiscordUserId(user.getId());
             
@@ -149,55 +150,95 @@ public class UserService {
                 boolean hasChanges = false;
                 
                 // Sync age role selection
-                if (pending.getSelectedAgeRoleId() != null && !pending.getSelectedAgeRoleId().isBlank() &&
-                    (user.getSelectedAgeRoleId() == null || user.getSelectedAgeRoleId().isBlank())) {
-                    user.setSelectedAgeRoleId(pending.getSelectedAgeRoleId());
-                    hasChanges = true;
-                    logger.debug("Synced age role selection for user {}: {}", user.getId(), pending.getSelectedAgeRoleId());
+                if (pending.getSelectedAgeRoleId() != null && !pending.getSelectedAgeRoleId().isBlank()) {
+                    // Validate role ID format (Discord IDs are 17-20 digits)
+                    if (pending.getSelectedAgeRoleId().matches("\\d{17,20}")) {
+                        if (user.getSelectedAgeRoleId() == null || user.getSelectedAgeRoleId().isBlank()) {
+                            user.setSelectedAgeRoleId(pending.getSelectedAgeRoleId());
+                            hasChanges = true;
+                            logger.info("Synced age role selection for user {}: {}", user.getId(), pending.getSelectedAgeRoleId());
+                        }
+                    } else {
+                        logger.warn("Invalid age role ID format for user {}: {}", user.getId(), pending.getSelectedAgeRoleId());
+                    }
                 }
                 
                 // Sync gender role selection
-                if (pending.getSelectedGenderRoleId() != null && !pending.getSelectedGenderRoleId().isBlank() &&
-                    (user.getSelectedGenderRoleId() == null || user.getSelectedGenderRoleId().isBlank())) {
-                    user.setSelectedGenderRoleId(pending.getSelectedGenderRoleId());
-                    hasChanges = true;
-                    logger.debug("Synced gender role selection for user {}: {}", user.getId(), pending.getSelectedGenderRoleId());
+                if (pending.getSelectedGenderRoleId() != null && !pending.getSelectedGenderRoleId().isBlank()) {
+                    // Validate role ID format (Discord IDs are 17-20 digits)
+                    if (pending.getSelectedGenderRoleId().matches("\\d{17,20}")) {
+                        if (user.getSelectedGenderRoleId() == null || user.getSelectedGenderRoleId().isBlank()) {
+                            user.setSelectedGenderRoleId(pending.getSelectedGenderRoleId());
+                            hasChanges = true;
+                            logger.info("Synced gender role selection for user {}: {}", user.getId(), pending.getSelectedGenderRoleId());
+                        }
+                    } else {
+                        logger.warn("Invalid gender role ID format for user {}: {}", user.getId(), pending.getSelectedGenderRoleId());
+                    }
                 }
                 
                 // Sync rank role selection
-                if (pending.getSelectedRankRoleId() != null && !pending.getSelectedRankRoleId().isBlank() &&
-                    (user.getSelectedRankRoleId() == null || user.getSelectedRankRoleId().isBlank())) {
-                    user.setSelectedRankRoleId(pending.getSelectedRankRoleId());
-                    hasChanges = true;
-                    logger.debug("Synced rank role selection for user {}: {}", user.getId(), pending.getSelectedRankRoleId());
+                if (pending.getSelectedRankRoleId() != null && !pending.getSelectedRankRoleId().isBlank()) {
+                    // Validate role ID format (Discord IDs are 17-20 digits)
+                    if (pending.getSelectedRankRoleId().matches("\\d{17,20}")) {
+                        if (user.getSelectedRankRoleId() == null || user.getSelectedRankRoleId().isBlank()) {
+                            user.setSelectedRankRoleId(pending.getSelectedRankRoleId());
+                            hasChanges = true;
+                            logger.info("Synced rank role selection for user {}: {}", user.getId(), pending.getSelectedRankRoleId());
+                        }
+                    } else {
+                        logger.warn("Invalid rank role ID format for user {}: {}", user.getId(), pending.getSelectedRankRoleId());
+                    }
                 }
                 
                 // Sync region role selection
-                if (pending.getSelectedRegionRoleId() != null && !pending.getSelectedRegionRoleId().isBlank() &&
-                    (user.getSelectedRegionRoleId() == null || user.getSelectedRegionRoleId().isBlank())) {
-                    user.setSelectedRegionRoleId(pending.getSelectedRegionRoleId());
-                    hasChanges = true;
-                    logger.debug("Synced region role selection for user {}: {}", user.getId(), pending.getSelectedRegionRoleId());
+                if (pending.getSelectedRegionRoleId() != null && !pending.getSelectedRegionRoleId().isBlank()) {
+                    // Validate role ID format (Discord IDs are 17-20 digits)
+                    if (pending.getSelectedRegionRoleId().matches("\\d{17,20}")) {
+                        if (user.getSelectedRegionRoleId() == null || user.getSelectedRegionRoleId().isBlank()) {
+                            user.setSelectedRegionRoleId(pending.getSelectedRegionRoleId());
+                            hasChanges = true;
+                            logger.info("Synced region role selection for user {}: {}", user.getId(), pending.getSelectedRegionRoleId());
+                        }
+                    } else {
+                        logger.warn("Invalid region role ID format for user {}: {}", user.getId(), pending.getSelectedRegionRoleId());
+                    }
                 }
                 
                 if (hasChanges) {
-                    // Delete the pending role selection after successful sync
-                    pendingRoleSelectionRepository.deleteById(user.getId());
-                    
-                    // Invalidate pending role selection cache
-                    cacheConfig.invalidatePendingRoleSelectionCache(user.getId());
-                    
-                    logger.info("Successfully synced pending role selections for user {} and deleted pending record", user.getId());
+                    logger.info("Successfully synced pending role selections for user {}", user.getId());
+                    return true;
                 } else {
-                    // No changes needed, but still delete the pending record to clean up
-                    pendingRoleSelectionRepository.deleteById(user.getId());
-                    cacheConfig.invalidatePendingRoleSelectionCache(user.getId());
-                    logger.debug("No pending role selections to sync for user {}, deleted pending record", user.getId());
+                    logger.debug("No pending role selections to sync for user {}", user.getId());
+                    return true; // Still return true to cleanup the pending record
                 }
             }
+            return false; // No pending selections found
         } catch (Exception e) {
             logger.error("Error syncing pending role selections for user {}: {}", user.getId(), e.getMessage(), e);
-            // Don't throw the exception - role sync failure shouldn't prevent user creation
+            // Re-throw critical database errors that should halt user creation
+            if (e instanceof org.springframework.dao.DataAccessException) {
+                throw new RuntimeException("Database error during role sync for user " + user.getId(), e);
+            }
+            // Log and continue for other errors
+            return false;
+        }
+    }
+
+    /**
+     * Cleans up pending role selections after successful user creation/update.
+     * This method is called only after the user has been successfully saved to avoid data loss.
+     * 
+     * @param userId the Discord user ID
+     */
+    private void cleanupPendingRoleSelections(String userId) {
+        try {
+            pendingRoleSelectionRepository.deleteById(userId);
+            cacheConfig.invalidatePendingRoleSelectionCache(userId);
+            logger.info("Cleaned up pending role selections for user {}", userId);
+        } catch (Exception e) {
+            logger.error("Failed to cleanup pending role selections for user {}: {}", userId, e.getMessage(), e);
+            // Don't throw - cleanup failure shouldn't break the flow
         }
     }
 
@@ -403,11 +444,19 @@ public class UserService {
             logger.error("An unexpected error occurred while syncing ban status for user {}: {}", id, e.getMessage(), e);
         }
         
-        // Sync pending data before saving the user
-        syncPendingRoleSelections(user);
-        syncPendingPrison(user);
-                
-        User savedUser = userRepository.save(user);
+        // Sync pending data before saving the user with user-level locking to prevent race conditions
+        User savedUser;
+        synchronized(user.getId().intern()) {
+            boolean hasPendingRoles = syncPendingRoleSelections(user);
+            syncPendingPrison(user);
+                    
+            savedUser = userRepository.save(user);
+
+            // Only cleanup pending records after successful user save
+            if (hasPendingRoles) {
+                cleanupPendingRoleSelections(savedUser.getId());
+            }
+        }
 
         // Invalidate user profile cache to ensure data consistency after login sync
         cacheConfig.invalidateUserProfileCache(id);

@@ -11,6 +11,40 @@ import com.app.heartbound.exceptions.shop.BadgeLimitException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    /**
+     * Sanitizes error messages to prevent information leakage while preserving useful information for users.
+     * This method removes potentially sensitive internal details while keeping user-friendly error descriptions.
+     * 
+     * @param originalMessage the original exception message
+     * @return sanitized message safe for public consumption
+     */
+    private String sanitizeErrorMessage(String originalMessage) {
+        if (originalMessage == null || originalMessage.isBlank()) {
+            return "An error occurred while processing your request.";
+        }
+        
+        // Remove common patterns that might leak sensitive information
+        String sanitized = originalMessage
+            // Remove SQL-related information
+            .replaceAll("(?i)\\b(sql|database|table|column|constraint|foreign key|primary key)\\b.*", "Database operation failed.")
+            // Remove file path information
+            .replaceAll("(?i)\\b[a-zA-Z]:[\\\\|/][^\\s]*", "[file path]")
+            // Remove class names and stack trace hints
+            .replaceAll("(?i)\\b[a-zA-Z]+\\.([a-zA-Z]+\\.)*[A-Z][a-zA-Z]*Exception\\b", "System error")
+            // Remove connection strings and URLs with credentials
+            .replaceAll("(?i)\\b(jdbc:|http://|https://)[^\\s]*", "[connection info]")
+            // Keep user-friendly messages that start with common patterns
+            .trim();
+        
+        // If message was heavily sanitized or is too technical, provide a generic message
+        if (sanitized.length() < 10 || sanitized.toLowerCase().contains("exception") || 
+            sanitized.toLowerCase().contains("error") && sanitized.length() > 100) {
+            return "An error occurred while processing your request. Please try again or contact support if the issue persists.";
+        }
+        
+        return sanitized;
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex,
                                                                 HttpServletRequest request) {
@@ -18,7 +52,7 @@ public class GlobalExceptionHandler {
                 Instant.now(),
                 HttpStatus.NOT_FOUND.value(),
                 "Not Found",
-                ex.getMessage(),
+                sanitizeErrorMessage(ex.getMessage()),
                 request.getRequestURI()
         );
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
@@ -31,7 +65,7 @@ public class GlobalExceptionHandler {
                 Instant.now(),
                 HttpStatus.NOT_FOUND.value(),
                 "Not Found",
-                ex.getMessage(),
+                sanitizeErrorMessage(ex.getMessage()),
                 request.getRequestURI()
         );
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
@@ -44,7 +78,7 @@ public class GlobalExceptionHandler {
                 Instant.now(),
                 HttpStatus.BAD_REQUEST.value(),
                 "Bad Request",
-                ex.getMessage(),
+                sanitizeErrorMessage(ex.getMessage()),
                 request.getRequestURI()
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -57,7 +91,7 @@ public class GlobalExceptionHandler {
                 Instant.now(),
                 HttpStatus.BAD_REQUEST.value(),
                 "Bad Request",
-                ex.getMessage(),
+                sanitizeErrorMessage(ex.getMessage()),
                 request.getRequestURI()
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -70,7 +104,7 @@ public class GlobalExceptionHandler {
                 Instant.now(),
                 HttpStatus.BAD_REQUEST.value(),
                 "Bad Request",
-                ex.getMessage(),
+                sanitizeErrorMessage(ex.getMessage()),
                 request.getRequestURI()
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -83,7 +117,7 @@ public class GlobalExceptionHandler {
                 Instant.now(),
                 HttpStatus.FORBIDDEN.value(),
                 "Forbidden",
-                ex.getMessage(),
+                sanitizeErrorMessage(ex.getMessage()),
                 request.getRequestURI()
         );
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
@@ -96,7 +130,7 @@ public class GlobalExceptionHandler {
                 Instant.now(),
                 HttpStatus.BAD_REQUEST.value(),
                 "Bad Request",
-                ex.getMessage(),
+                sanitizeErrorMessage(ex.getMessage()),
                 request.getRequestURI()
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -109,7 +143,7 @@ public class GlobalExceptionHandler {
                 Instant.now(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Internal Server Error",
-                ex.getMessage(),
+                sanitizeErrorMessage(ex.getMessage()),
                 request.getRequestURI()
         );
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -122,7 +156,7 @@ public class GlobalExceptionHandler {
                 Instant.now(),
                 HttpStatus.UNAUTHORIZED.value(),
                 "Unauthorized",
-                ex.getMessage(),
+                sanitizeErrorMessage(ex.getMessage()),
                 request.getRequestURI()
         );
         return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
@@ -135,7 +169,7 @@ public class GlobalExceptionHandler {
                 Instant.now(),
                 HttpStatus.UNAUTHORIZED.value(),
                 "Invalid Token",
-                ex.getMessage(),
+                sanitizeErrorMessage(ex.getMessage()),
                 request.getRequestURI()
         );
         return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
@@ -148,7 +182,7 @@ public class GlobalExceptionHandler {
                 Instant.now(),
                 HttpStatus.TOO_MANY_REQUESTS.value(),
                 "Too Many Requests",
-                ex.getMessage(),
+                sanitizeErrorMessage(ex.getMessage()),
                 request.getRequestURI()
         );
         
@@ -192,7 +226,7 @@ public class GlobalExceptionHandler {
                 Instant.now(),
                 HttpStatus.BAD_REQUEST.value(),
                 "Badge Limit Exceeded",
-                ex.getMessage(),
+                sanitizeErrorMessage(ex.getMessage()),
                 request.getRequestURI()
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
