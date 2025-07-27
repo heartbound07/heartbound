@@ -171,13 +171,15 @@ public class TradeCommandListener extends ListenerAdapter {
     @Override
     public void onButtonInteraction(@Nonnull ButtonInteractionEvent event) {
         String componentId = event.getComponentId();
-        log.info("=== ALL BUTTON INTERACTIONS === ComponentID: '{}', User: {}", componentId, event.getUser().getId());
         
         // Check if this is any trade-related interaction
         if (!componentId.startsWith("trade")) {
-            log.debug("Not a trade interaction, ignoring. ComponentID: {}", componentId);
+            // Not a trade interaction, ignoring. This prevents logging every button click in the server.
             return;
         }
+
+        // Now that we know it's a trade interaction, log it.
+        log.info("=== TRADE BUTTON INTERACTION === ComponentID: '{}', User: {}", componentId, event.getUser().getId());
         
         String[] parts = componentId.split("_");
         log.debug("Component ID parts: {}", String.join(", ", parts));

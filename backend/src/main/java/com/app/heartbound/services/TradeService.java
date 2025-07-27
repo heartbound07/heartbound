@@ -11,16 +11,21 @@ import com.app.heartbound.repositories.ItemInstanceRepository;
 import com.app.heartbound.repositories.TradeRepository;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.services.shop.ShopService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class TradeService {
 
+    private static final Logger log = LoggerFactory.getLogger(TradeService.class);
     private final TradeRepository tradeRepository;
     private final UserRepository userRepository;
     private final ItemInstanceRepository itemInstanceRepository;
@@ -101,22 +106,46 @@ public class TradeService {
             throw new InvalidTradeActionException("You cannot trade with yourself.");
         }
 
-        // Check if initiator has any pending trades
-        List<Trade> initiatorTrades = tradeRepository.findByInitiatorIdOrReceiverId(initiator.getId(), initiator.getId());
-        boolean initiatorHasPendingTrade = initiatorTrades.stream()
-                .anyMatch(trade -> trade.getStatus() == TradeStatus.PENDING);
+        final Instant staleThreshold = Instant.now().minus(1, ChronoUnit.HOURS);
+
+        // --- Self-healing for Initiator ---
+        List<Trade> initiatorPendingTrades = tradeRepository.findByInitiatorIdOrReceiverId(initiator.getId(), initiator.getId())
+            .stream().filter(t -> t.getStatus() == TradeStatus.PENDING).collect(Collectors.toList());
         
-        if (initiatorHasPendingTrade) {
-            throw new InvalidTradeActionException("You are already in an active trade!");
+        if (!initiatorPendingTrades.isEmpty()) {
+            List<Trade> staleTrades = initiatorPendingTrades.stream().filter(t -> t.getCreatedAt().isBefore(staleThreshold)).collect(Collectors.toList());
+            if (!staleTrades.isEmpty()) {
+                log.warn("Auto-cancelling {} stale trade(s) for user {}", staleTrades.size(), initiator.getId());
+                staleTrades.forEach(t -> t.setStatus(TradeStatus.CANCELLED));
+                tradeRepository.saveAll(staleTrades);
+                // If there were other pending trades that weren't stale, we still need to block
+                if (initiatorPendingTrades.size() > staleTrades.size()) {
+                    throw new InvalidTradeActionException("You are already in an active trade!");
+                }
+            } else {
+                // No stale trades, but recent pending ones exist.
+                throw new InvalidTradeActionException("You are already in an active trade!");
+            }
         }
 
-        // Check if receiver has any pending trades
-        List<Trade> receiverTrades = tradeRepository.findByInitiatorIdOrReceiverId(receiver.getId(), receiver.getId());
-        boolean receiverHasPendingTrade = receiverTrades.stream()
-                .anyMatch(trade -> trade.getStatus() == TradeStatus.PENDING);
+        // --- Self-healing for Receiver ---
+        List<Trade> receiverPendingTrades = tradeRepository.findByInitiatorIdOrReceiverId(receiver.getId(), receiver.getId())
+            .stream().filter(t -> t.getStatus() == TradeStatus.PENDING).collect(Collectors.toList());
         
-        if (receiverHasPendingTrade) {
-            throw new InvalidTradeActionException(receiver.getUsername() + " is already in an active trade!");
+        if (!receiverPendingTrades.isEmpty()) {
+            List<Trade> staleTrades = receiverPendingTrades.stream().filter(t -> t.getCreatedAt().isBefore(staleThreshold)).collect(Collectors.toList());
+            if (!staleTrades.isEmpty()) {
+                log.warn("Auto-cancelling {} stale trade(s) for user {}", staleTrades.size(), receiver.getId());
+                staleTrades.forEach(t -> t.setStatus(TradeStatus.CANCELLED));
+                tradeRepository.saveAll(staleTrades);
+                // If there were other pending trades that weren't stale, we still need to block
+                if (receiverPendingTrades.size() > staleTrades.size()) {
+                    throw new InvalidTradeActionException(receiver.getUsername() + " is already in an active trade!");
+                }
+            } else {
+                // No stale trades, but recent pending ones exist.
+                throw new InvalidTradeActionException(receiver.getUsername() + " is already in an active trade!");
+            }
         }
 
         Trade trade = Trade.builder()
