@@ -26,6 +26,7 @@ import com.app.heartbound.exceptions.shop.InvalidCaseContentsException;
 import com.app.heartbound.exceptions.shop.ItemDeletionException;
 import com.app.heartbound.exceptions.shop.ItemReferencedInCasesException;
 import com.app.heartbound.exceptions.shop.InsufficientStockException;
+import com.app.heartbound.exceptions.shop.ItemNotPurchasableException;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
 import com.app.heartbound.repositories.shop.CaseItemRepository;
@@ -436,41 +437,56 @@ public class ShopService {
     
     /**
      * Validates if an item can be purchased based on current shop visibility rules.
-     * An item is purchasable only if it's currently displayed in either featured or daily sections.
+     * An item is purchasable only if it's currently displayed in either featured or daily sections for a specific user.
      * This logic is critical for preventing users from purchasing expired, inactive, or unlisted items.
      * 
      * @param item The Shop item to validate
+     * @param user The User attempting the purchase
      * @return true if item can be purchased, false otherwise
      */
-    private boolean isItemPurchasable(Shop item) {
-        if (item == null) {
+    private boolean isItemPurchasable(Shop item, User user) {
+        if (item == null || user == null) {
             return false;
         }
 
         // Check if item is active
         if (!item.getIsActive()) {
-            logger.warn("Purchase validation failed: Item {} is not active", item.getId());
+            logger.warn("Purchase validation failed for user {}: Item {} is not active", user.getId(), item.getId());
             return false;
         }
         
         // Check if item has expired
         if (item.getExpiresAt() != null && item.getExpiresAt().isBefore(LocalDateTime.now())) {
-            logger.warn("Purchase validation failed: Item {} has expired", item.getId());
+            logger.warn("Purchase validation failed for user {}: Item {} has expired", user.getId(), item.getId());
             return false;
         }
         
-        // Security Check: Item must be either featured or daily to be purchasable
-        boolean isFeatured = item.getIsFeatured();
-        boolean isDaily = item.getIsDaily();
-        
-        if (!isFeatured && !isDaily) {
-            logger.warn("Purchase validation failed: Item {} is not currently displayed in shop layout (not featured or daily)", item.getId());
-            return false;
+        // Check if the item is featured
+        if (item.getIsFeatured()) {
+            logger.debug("Purchase validation passed for user {}: Item {} is a featured item.", user.getId(), item.getId());
+            return true;
+        }
+
+        // If not featured, check if it's a daily item and present in the user's daily item list
+        if (item.getIsDaily()) {
+            List<Shop> userDailyItems = cacheConfig.getUserDailyItemsCache().getIfPresent(user.getId());
+
+            if (userDailyItems != null) {
+                boolean isInDailyList = userDailyItems.stream().anyMatch(dailyItem -> dailyItem.getId().equals(item.getId()));
+                if (isInDailyList) {
+                    logger.debug("Purchase validation passed for user {}: Item {} is in their daily items list.", user.getId(), item.getId());
+                    return true;
+                }
+            } else {
+                // If cache misses, it's an invalid state. A user should have a generated daily list before trying to buy a daily item.
+                logger.warn("Purchase validation failed for user {}: Attempted to purchase daily item {} but the user has no cached daily item list.", user.getId(), item.getId());
+                return false;
+            }
         }
         
-        logger.debug("Purchase validation passed: Item {} is purchasable (featured: {}, daily: {})", 
-                    item.getId(), isFeatured, isDaily);
-        return true;
+        // If it's neither featured nor a valid daily item for the user, it's not purchasable
+        logger.warn("Purchase validation failed for user {}: Item {} is not featured and not in their active daily shop.", user.getId(), item.getId());
+        return false;
     }
     
     /**
@@ -518,11 +534,11 @@ public class ShopService {
                 return new ResourceNotFoundException("Shop item not found with ID: " + itemId);
             });
     
-        if (!isItemPurchasable(item)) {
+        if (!isItemPurchasable(item, user)) {
             createPurchaseAuditEntry(userId, itemId, item, quantity, 0,
                 user.getCredits(), user.getCredits(),
                 "PURCHASE_FAILED", "Item is not available for purchase (failed isItemPurchasable check)", AuditSeverity.HIGH);
-            throw new ResourceNotFoundException("This item is not currently available for purchase");
+            throw new ItemNotPurchasableException("This item is not currently available for purchase.");
         }
     
         int totalCost = item.getPrice() * quantity;

@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.app.heartbound.exceptions.shop.BadgeLimitException;
+import com.app.heartbound.exceptions.shop.ItemNotPurchasableException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -134,6 +135,19 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(ItemNotPurchasableException.class)
+    public ResponseEntity<ErrorResponse> handleItemNotPurchasable(ItemNotPurchasableException ex,
+                                                                  HttpServletRequest request) {
+        ErrorResponse response = new ErrorResponse(
+                Instant.now(),
+                HttpStatus.FORBIDDEN.value(),
+                "Forbidden",
+                sanitizeErrorMessage(ex.getMessage()),
+                request.getRequestURI()
+        );
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(Exception.class)
