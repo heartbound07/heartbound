@@ -100,9 +100,6 @@
   display: flex;
   gap: 2rem;
   width: 100%;
-  height: calc(100vh - 200px);
-  max-height: 800px;
-  min-height: 600px;
   /* Prevent layout shifts */
   contain: layout;
 }
@@ -117,8 +114,12 @@
   }
   
   .item-preview-container {
-    height: 400px;
-    max-height: 400px;
+    /* REMOVED: Fixed height that caused content clipping */
+    /* height: 400px; */
+    /* max-height: 400px; */
+
+    /* ADDED: Allow container to grow, but not exceed 90% of the viewport height */
+    max-height: 90vh;
   }
 }
 
@@ -526,7 +527,6 @@
   border: 1px solid var(--inventory-card-border);
   border-radius: 1rem;
   padding: 0;
-  height: 100%;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -608,6 +608,10 @@
   padding: 0 var(--inventory-section-padding);
   margin-bottom: 1.5rem;
   flex: 1;
+  min-height: 0; /* Allows this container to shrink */
+  overflow: hidden; /* Clips content if it still overflows */
+  display: flex; /* Make this a flex container */
+  flex-direction: column; /* Stack its children vertically */
 }
 
 .item-preview-visual {
@@ -616,10 +620,10 @@
   border-radius: var(--inventory-card-radius);
   border: 2px solid;
   overflow: hidden;
-  min-height: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: 1; /* Allow this to grow and shrink within the main area */
 }
 
 .item-preview-glow {
@@ -635,7 +639,6 @@
   background: rgba(30, 41, 59, 0.2);
   border-top: 1px solid var(--inventory-card-border);
   overflow-y: auto;
-  flex-shrink: 0;
   display: flex;
   flex-direction: column;
 }
@@ -1070,7 +1073,6 @@
     flex: none;
     min-width: auto;
     max-width: none;
-    height: 500px;
   }
   
   .inventory-grid-container {
@@ -1085,9 +1087,6 @@
   .item-preview-container {
     position: static;
     margin-bottom: 2rem;
-    height: auto;
-    max-height: 700px;
-    min-height: 450px;
   }
 }
 
@@ -1118,8 +1117,6 @@
   
   .item-preview-container {
     margin-bottom: 1.5rem;
-    max-height: 650px;
-    min-height: 400px;
   }
   
   .item-preview-header {
@@ -1163,8 +1160,6 @@
   
   .item-preview-container {
     margin-bottom: 1rem;
-    max-height: 550px;
-    min-height: 350px;
   }
   
   .item-preview-header {
@@ -1246,8 +1241,6 @@
   
   .item-preview-container {
     margin-bottom: 0.75rem;
-    max-height: 500px;
-    min-height: 320px;
   }
   
   .item-preview-header {
@@ -1278,9 +1271,7 @@
 /* Mobile landscape optimizations */
 @media (max-width: 767px) and (orientation: landscape) {
   .item-preview-container {
-    max-height: 400px;
     margin-bottom: 0.5rem;
-    min-height: 300px;
   }
   
   .item-preview-header {

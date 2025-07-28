@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { ShopItem } from '../../../features/inventory/InventoryPage';
+import { ShopItem } from '@/types/inventory';
 import { getRarityColor, getRarityLabel } from '@/utils/rarityHelpers';
 import { HiOutlineCheck } from 'react-icons/hi';
 

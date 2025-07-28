@@ -6,7 +6,7 @@ import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rar
 import NameplatePreview from '@/components/NameplatePreview';
 import BadgePreview from '@/components/BadgePreview';
 import { SafeText, sanitizeText } from '@/components/SafeHtmlRenderer';
-import { ShopItem } from '@/features/inventory/InventoryPage';
+import { ShopItem } from '@/types/inventory';
 
 interface ItemPreviewProps {
   selectedItems: {
