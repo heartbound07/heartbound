@@ -1,57 +1,9 @@
 /* Shop Page Specific Styles */
 .shop-container {
-  max-width: 1200px;
+  max-width: 1400px; /* Increased max-width for better layout */
   margin: 0 auto;
   font-family: 'gg sans', sans-serif;
 }
-
-/* Remove featured banner related styles */
-/* 
-.featured-banner {
-  background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
-  border-radius: 1rem;
-  position: relative;
-  overflow: hidden;
-}
-
-.featured-banner::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='rgba(255,255,255,.05)' fill-rule='evenodd'/%3E%3C/svg%3E");
-  opacity: 0.5;
-}
-
-.featured-items-container {
-  display: flex;
-  overflow-x: auto;
-  padding: 0.5rem;
-  scroll-behavior: smooth;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-  gap: 1rem;
-}
-
-.featured-items-container::-webkit-scrollbar {
-  display: none;
-}
-
-.featured-item {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.5rem;
-  min-width: 200px;
-  transition: transform 0.2s;
-}
-
-.featured-item:hover {
-  transform: translateY(-4px);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-*/
 
 /* Shop title styling to match leaderboard styling */
 .shop-title {
@@ -166,8 +118,6 @@
   font-weight: 600;
 }
 
-/* Category filters removed - using new layout */
-
 /* Enhanced purchase button */
 .purchase-button {
   width: 100%;
@@ -227,14 +177,6 @@
   cursor: wait;
 }
 
-/* No longer needed - remove or comment out */
-/*
-.purchase-button-disabled {
-  cursor: not-allowed;
-  opacity: 0.8;
-}
-*/
-
 .skeleton {
   background: linear-gradient(
     90deg,
@@ -255,56 +197,10 @@
   }
 }
 
-@media (max-width: 640px) {
-  .shop-item-grid {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 641px) and (max-width: 1024px) {
-  .shop-item-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1025px) {
-  .shop-item-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
 .shop-item-recent-purchase {
   box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.5);
   transition: box-shadow 0.3s ease-in-out;
 }
-
-/* Add these rarity border classes for thinner borders */
-.rarity-border {
-  border-width: 1px;
-  border-style: solid;
-}
-
-.rarity-border-legendary {
-  border-color: var(--rarity-legendary);
-}
-
-.rarity-border-epic {
-  border-color: var(--rarity-epic);
-}
-
-.rarity-border-rare {
-  border-color: var(--rarity-rare);
-}
-
-.rarity-border-uncommon {
-  border-color: var(--rarity-uncommon);
-}
-
-.rarity-border-common {
-  border-color: var(--rarity-common);
-}
-
-/* Sort controls removed - using new layout */
 
 /* Case-specific styles */
 .case-preview-container {
@@ -321,13 +217,11 @@
   transition: all 0.3s ease;
 }
 
-/* Case card enhancements */
 .shop-item-card:has(.case-preview-container):hover {
   box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.3);
   transform: translateY(-8px);
 }
 
-/* Case icon animation */
 @keyframes case-glow {
   0%, 100% {
     box-shadow: 0 0 5px rgba(var(--color-primary-rgb), 0.5);
@@ -341,14 +235,12 @@
   animation: case-glow 3s ease-in-out infinite;
 }
 
-/* Case badge styling */
 .case-badge {
   backdrop-filter: blur(8px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   font-family: 'gg sans', sans-serif;
 }
 
-/* Case view button */
 .case-view-button {
   backdrop-filter: blur(8px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -360,7 +252,6 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Case info icon in top right corner */
 .case-info-icon {
   width: 32px;
   height: 32px;
@@ -404,81 +295,30 @@
   align-items: stretch;
 }
 
-/* Featured Items Section - Top and Centered */
 .featured-section {
   min-height: 300px;
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
 
 .featured-grid {
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1.5rem;
-  flex-wrap: wrap;
-  max-width: 1200px;
 }
 
-.featured-grid .shop-item-card {
-  width: 320px;
-  min-width: 320px;
-  flex-shrink: 0;
-}
-
-/* Daily Items Section - Below Featured and Left Aligned */
 .daily-section {
   min-height: 500px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
 }
 
 .daily-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
-  max-height: 800px;
-  overflow-y: auto;
   padding-bottom: 1rem;
-  scroll-behavior: smooth;
   width: 100%;
-  justify-content: flex-start;
-  max-width: 1280px;
-}
-
-/* Custom scrollbar for daily items */
-.daily-grid::-webkit-scrollbar {
-  width: 8px;
-}
-
-.daily-grid::-webkit-scrollbar-track {
-  background: rgba(30, 41, 59, 0.3);
-  border-radius: 4px;
-}
-
-.daily-grid::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.4);
-  border-radius: 4px;
-  transition: background 0.2s ease;
-}
-
-.daily-grid::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.6);
-}
-
-/* Firefox scrollbar styling */
-.daily-grid {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.4) rgba(30, 41, 59, 0.3);
-}
-
-/* Responsive Design */
-@media (min-width: 1440px) {
-  .daily-grid {
-    grid-template-columns: repeat(4, 1fr);
-    max-width: 1360px;
-  }
 }
 
 @media (max-width: 1024px) {
@@ -488,18 +328,11 @@
   }
   
   .featured-grid {
-    max-width: 680px;
-  }
-  
-  .featured-grid .shop-item-card {
-    width: 300px;
-    min-width: 300px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   }
   
   .daily-grid {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    max-height: 600px;
-    max-width: 960px;
   }
 }
 
@@ -509,24 +342,16 @@
   }
   
   .featured-grid {
-    max-width: 340px;
+    grid-template-columns: 1fr;
     gap: 1rem;
-  }
-  
-  .featured-grid .shop-item-card {
-    width: 360px;
-    min-width: 280px;
-  }
-  
-  .daily-section {
-    align-items: center;
   }
   
   .daily-grid {
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-template-columns: 1fr;
     gap: 1rem;
-    max-height: none;
-    overflow-y: visible;
-    max-width: 600px;
   }
 }
+ 
+/* Removed unused styles and simplified layout classes */
+/* No more featured banner, side-by-side layout, etc. */
+/* The new flex-column layout is simpler and more responsive. */

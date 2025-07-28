@@ -9,8 +9,8 @@ import {
 } from 'react-icons/hi';
 import { FiSettings } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import { SelfAssignableRolesSettings } from '../SelfAssignableRolesSettings';
-import { CreditDropSettings } from '../CreditDropSettings';
+import { SelfAssignableRolesSettings } from './SelfAssignableRolesSettings';
+import { CreditDropSettings } from './CreditDropSettings';
 import { useDiscordBotSettings } from '@/hooks/useDiscordBotSettings';
 import { ActivitySettingsCard } from './ActivitySettingsCard';
 import { LevelingSettingsCard } from './LevelingSettingsCard';
