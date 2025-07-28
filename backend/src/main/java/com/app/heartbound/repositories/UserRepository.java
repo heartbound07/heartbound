@@ -73,7 +73,7 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     @Modifying
     @Transactional
-    @Query("UPDATE User u SET u.credits = u.credits + :credits, u.experience = u.experience + :xp WHERE u.id = :userId")
+    @Query("UPDATE User u SET u.credits = u.credits + :credits, u.experience = u.experience + :xp WHERE u.id = :userId AND u.credits + :credits >= 0")
     void incrementCreditsAndXp(@Param("userId") String userId, @Param("credits") int credits, @Param("xp") int xp);
 
     @Modifying

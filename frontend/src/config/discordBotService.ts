@@ -65,10 +65,9 @@ export interface DiscordBotSettingsDTO {
   fishingCooldownHours: number
   fishingLimitWarningThreshold: number
   fishingPenaltyCredits: number
-  [key: string]: string | number | boolean | undefined
 }
 
 export const getDiscordBotSettings = async (): Promise<DiscordBotSettingsDTO> => {
-  const response = await httpClient.get<DiscordBotSettingsDTO>("/discord/api/bot-settings")
+  const response = await httpClient.get<DiscordBotSettingsDTO>("/admin/discord/settings")
   return response.data
 } 

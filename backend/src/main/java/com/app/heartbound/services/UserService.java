@@ -476,6 +476,17 @@ public class UserService {
     }
 
     /**
+     * Retrieves a user by their ID with a pessimistic write lock to prevent race conditions.
+     *
+     * @param id the user identifier
+     * @return the locked User entity if found, otherwise null
+     */
+    @Transactional
+    public User getUserByIdWithLock(String id) {
+        return userRepository.findByIdWithLock(id).orElse(null);
+    }
+
+    /**
      * Retrieves a user by their ID with their inventory eagerly fetched.
      *
      * @param id the user identifier

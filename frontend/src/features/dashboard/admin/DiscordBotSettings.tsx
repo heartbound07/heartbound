@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import { useAuth } from '@/contexts/auth';
 import { Navigate } from 'react-router-dom';
 import httpClient from '@/lib/api/httpClient';
@@ -6,86 +6,22 @@ import { Toast } from '@/components/Toast';
 import { 
   HiOutlineCheck, 
   HiOutlineInformationCircle, 
-  HiOutlineLightningBolt, 
-  HiOutlineChat, 
-  HiOutlineClock, 
-  HiOutlineChartBar, 
-  HiOutlineBadgeCheck, 
-  HiOutlineCalculator,
-  HiOutlineShieldCheck,
 } from 'react-icons/hi';
-import { FiActivity, FiSettings, FiUsers, FiAward } from 'react-icons/fi';
+import { FiSettings } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { SelfAssignableRolesSettings } from './SelfAssignableRolesSettings';
 import { CreditDropSettings } from './CreditDropSettings';
-
-interface DiscordBotSettingsData {
-  activityEnabled: boolean;
-  creditsToAward: number;
-  messageThreshold: number;
-  timeWindowMinutes: number;
-  cooldownSeconds: number;
-  minMessageLength: number;
-  levelingEnabled: boolean;
-  xpToAward: number;
-  baseXp: number;
-  levelMultiplier: number;
-  levelExponent: number;
-  levelFactor: number;
-  creditsPerLevel: number;
-  level5RoleId: string;
-  level15RoleId: string;
-  level30RoleId: string;
-  level40RoleId: string;
-  level50RoleId: string;
-  level70RoleId: string;
-  level100RoleId: string;
-  roleMultipliers: string;
-  roleMultipliersEnabled: boolean;
-  inactivityChannelId: string;
-  countingGameEnabled: boolean;
-  countingChannelId: string;
-  countingTimeoutRoleId: string;
-  creditsPerCount: number;
-  countingLives: number;
-  autoSlowmodeEnabled: boolean;
-  slowmodeChannelIds: string;
-  activityThreshold: number;
-  slowmodeTimeWindow: number;
-  slowmodeDuration: number;
-  slowmodeCooldown: number;
-  creditDropEnabled: boolean;
-  creditDropChannelId: string;
-  creditDropMinAmount: number;
-  creditDropMaxAmount: number;
-  // Self-Assignable Roles
-  age15RoleId: string;
-  age16To17RoleId: string;
-  age18PlusRoleId: string;
-  genderSheHerRoleId: string;
-  genderHeHimRoleId: string;
-  genderAskRoleId: string;
-  rankIronRoleId: string;
-  rankBronzeRoleId: string;
-  rankSilverRoleId: string;
-  rankGoldRoleId: string;
-  rankPlatinumRoleId: string;
-  rankDiamondRoleId: string;
-  ageRolesThumbnailUrl: string;
-  genderRolesThumbnailUrl: string;
-  rankRolesThumbnailUrl: string;
-  regionNaRoleId: string;
-  regionEuRoleId: string;
-  regionSaRoleId: string;
-  regionApRoleId: string;
-  regionOceRoleId: string;
-  regionRolesThumbnailUrl: string;
-  // Fishing Game Settings
-  fishingMaxCatches: number;
-  fishingCooldownHours: number;
-  fishingLimitWarningThreshold: number;
-  fishingPenaltyCredits: number;
-}
+import { useDiscordBotSettings } from '@/hooks/useDiscordBotSettings';
+import { ActivitySettingsCard } from './components/ActivitySettingsCard';
+import { LevelingSettingsCard } from './components/LevelingSettingsCard';
+import { FishingSettingsCard } from './components/FishingSettingsCard';
+import { CountingGameSettingsCard } from './components/CountingGameSettingsCard';
+import { AutoSlowmodeSettingsCard } from './components/AutoSlowmodeSettingsCard';
+import { TimedOutUsersCard } from './components/TimedOutUsersCard';
+import { LevelProgressionEstimatorCard } from './components/LevelProgressionEstimatorCard';
+import { LevelRoleRewardsCard } from './components/LevelRoleRewardsCard';
+import { RoleMultipliersCard } from './components/RoleMultipliersCard';
+import { VoiceActivitySettingsCard } from './components/VoiceActivitySettingsCard';
 
 interface ToastNotification {
   id: string;
@@ -110,74 +46,6 @@ interface TimedOutUser {
 interface SlowmodeStatus {
   [channelId: string]: number; // channelId -> slowmode duration in seconds
 }
-
-const initialSettings: DiscordBotSettingsData = {
-  activityEnabled: true,
-  creditsToAward: 5,
-  messageThreshold: 5,
-  timeWindowMinutes: 60,
-  cooldownSeconds: 30,
-  minMessageLength: 15,
-  levelingEnabled: true,
-  xpToAward: 15,
-  baseXp: 100,
-  levelMultiplier: 50,
-  levelExponent: 2,
-  levelFactor: 5,
-  creditsPerLevel: 50,
-  level5RoleId: "1161732022704816250",
-  level15RoleId: "1162632126068437063",
-  level30RoleId: "1162628059296432148",
-  level40RoleId: "1162628114195697794",
-  level50RoleId: "1166539666674167888",
-  level70RoleId: "1170429914185465906",
-  level100RoleId: "1162628179043823657",
-  roleMultipliers: "",
-  roleMultipliersEnabled: false,
-  inactivityChannelId: "",
-  countingGameEnabled: false,
-  countingChannelId: "",
-  countingTimeoutRoleId: "",
-  creditsPerCount: 1,
-  countingLives: 3,
-  autoSlowmodeEnabled: false,
-  slowmodeChannelIds: "",
-  activityThreshold: 10,
-  slowmodeTimeWindow: 5,
-  slowmodeDuration: 30,
-  slowmodeCooldown: 10,
-  creditDropEnabled: false,
-  creditDropChannelId: "",
-  creditDropMinAmount: 1,
-  creditDropMaxAmount: 1000,
-  // Self-Assignable Roles
-  age15RoleId: "",
-  age16To17RoleId: "",
-  age18PlusRoleId: "",
-  genderSheHerRoleId: "",
-  genderHeHimRoleId: "",
-  genderAskRoleId: "",
-  rankIronRoleId: "",
-  rankBronzeRoleId: "",
-  rankSilverRoleId: "",
-  rankGoldRoleId: "",
-  rankPlatinumRoleId: "",
-  rankDiamondRoleId: "",
-  ageRolesThumbnailUrl: "",
-  genderRolesThumbnailUrl: "",
-  rankRolesThumbnailUrl: "",
-  regionNaRoleId: "",
-  regionEuRoleId: "",
-  regionSaRoleId: "",
-  regionApRoleId: "",
-  regionOceRoleId: "",
-  regionRolesThumbnailUrl: "",
-  // Fishing Game Settings
-  fishingMaxCatches: 300,
-  fishingCooldownHours: 6,
-  fishingLimitWarningThreshold: 0.9,
-  fishingPenaltyCredits: 50
-};
 
 const calculateRequiredXp = (level: number, baseXp: number, levelMultiplier: number, levelExponent: number, levelFactor: number): number => {
   return Math.floor(baseXp + (levelMultiplier * Math.pow(level, levelExponent) / levelFactor));
@@ -204,10 +72,8 @@ const parseRoleMultipliers = (roleMultipliers: string): Array<{ roleId: string; 
 
 export function DiscordBotSettings() {
   const { hasRole } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
+  const { settings, isLoading, error: settingsError, updateField } = useDiscordBotSettings();
   const [isSaving, setIsSaving] = useState(false);
-  const [settings, setSettings] = useState<DiscordBotSettingsData>(initialSettings);
-  const [error, setError] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
   const [targetLevel, setTargetLevel] = useState<number>(10);
   const [estimationResults, setEstimationResults] = useState<{
@@ -248,9 +114,10 @@ export function DiscordBotSettings() {
       setIsLoadingTimeouts(true);
       const response = await httpClient.get('/admin/discord/counting/timeouts');
       setTimedOutUsers(response.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch timed out users:', err);
-      showToast('Failed to load timed out users', 'error');
+      const errorMessage = err.response?.data?.message || 'Failed to load timed out users';
+      showToast(errorMessage, 'error');
     } finally {
       setIsLoadingTimeouts(false);
     }
@@ -280,9 +147,10 @@ export function DiscordBotSettings() {
       // Remove from local state
       setTimedOutUsers(prev => prev.filter(user => user.userId !== userId));
       showToast('User timeout removed successfully', 'success');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to remove user timeout:', err);
-      showToast('Failed to remove user timeout', 'error');
+      const errorMessage = err.response?.data?.message || 'Failed to remove user timeout';
+      showToast(errorMessage, 'error');
     } finally {
       setRemovingTimeouts(prev => {
         const newSet = new Set(prev);
@@ -293,91 +161,43 @@ export function DiscordBotSettings() {
   };
   
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        // Fetch settings, timed out users, and slowmode status in parallel
-        const [settingsResponse] = await Promise.all([
-          httpClient.get('/admin/discord/settings'),
-          fetchTimedOutUsers(),
-          fetchSlowmodeStatus()
-        ]);
-        
-        setSettings(settingsResponse.data);
-      } catch (err) {
-        console.error('Failed to fetch Discord bot settings:', err);
-        setError('Failed to load settings. Please try again.');
-        showToast('Failed to load Discord bot settings', 'error');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchData();
+    fetchTimedOutUsers();
+    fetchSlowmodeStatus();
   }, []);
   
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
-    
-    // Add validation for role ID and channel ID fields
+
+    // Restore validation for role ID and channel ID fields
     if (name.endsWith('RoleId') || name.endsWith('ChannelId')) {
-      // Special handling for slowmodeChannelIds (comma-separated)
       if (name === 'slowmodeChannelIds') {
-        // Allow empty string, single channel ID, or comma-separated channel IDs
         if (value === '' || /^(\d+)(,\s*\d+)*$/.test(value)) {
-          setSettings({
-            ...settings,
-            [name]: value
-          });
+          updateField(name, value);
         }
-        // Don't update state if invalid input
         return;
       }
       
-      // For other single channel/role IDs, allow empty string or digits only
       if (value === '' || /^\d+$/.test(value)) {
-        setSettings({
-          ...settings,
-          [name]: value
-        });
+        updateField(name, value);
       }
-      // Don't update state if invalid input
       return;
     }
-    
-    // Add validation for role multipliers field
+
+    // Restore validation for role multipliers field
     if (name === 'roleMultipliers') {
-      // Allow empty string or partial/complete format: roleId:multiplier,roleId:multiplier
-      // More lenient validation to allow typing in progress
       if (value === '' || /^[\d:.,\s]*$/.test(value)) {
-        setSettings({
-          ...settings,
-          [name]: value
-        });
+        updateField(name, value);
       }
-      // Don't update state if invalid characters (only allow digits, colons, commas, dots, spaces)
       return;
     }
     
     if (type === 'checkbox') {
-      setSettings(prevSettings => ({
-        ...prevSettings,
-        [name]: e.target.checked
-      }));
+      updateField(name, e.target.checked);
     } else if (type === 'number') {
-      // Handle empty string case to avoid NaN
       const numValue = value === '' ? 0 : parseInt(value, 10);
-      setSettings(prevSettings => ({
-        ...prevSettings,
-        [name]: isNaN(numValue) ? 0 : numValue
-      }));
+      updateField(name, isNaN(numValue) ? 0 : numValue);
     } else {
-      setSettings(prevSettings => ({
-        ...prevSettings,
-        [name]: value
-      }));
+      updateField(name, value);
     }
   };
   
@@ -386,15 +206,14 @@ export function DiscordBotSettings() {
     
     try {
       setIsSaving(true);
-      setError(null);
       
       await httpClient.put('/admin/discord/settings', settings);
       
       showToast('Discord bot settings updated successfully', 'success');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update Discord bot settings:', err);
-      setError('Failed to save settings. Please check your inputs and try again.');
-      showToast('Failed to update Discord bot settings', 'error');
+      const errorMessage = err.response?.data?.message || 'Failed to update Discord bot settings';
+      showToast(errorMessage, 'error');
     } finally {
       setIsSaving(false);
     }
@@ -407,6 +226,16 @@ export function DiscordBotSettings() {
       return;
     }
     
+    if (!settings.xpToAward || settings.xpToAward <= 0) {
+        showToast('XP to Award must be greater than 0.', 'error');
+        return;
+    }
+
+    if (!settings.cooldownSeconds || settings.cooldownSeconds <= 0) {
+        showToast('Cooldown must be greater than 0.', 'error');
+        return;
+    }
+
     let totalXpRequired = 0;
     // Sum up XP required for all levels from 1 to target
     for (let level = 1; level < targetLevel; level++) {
@@ -420,10 +249,10 @@ export function DiscordBotSettings() {
     }
     
     // Calculate messages needed based on XP per message
-    const messagesNeeded = Math.ceil(totalXpRequired / (settings.xpToAward || 1));
+    const messagesNeeded = Math.ceil(totalXpRequired / settings.xpToAward);
     
     // Perfect-case time calculation (assuming messages sent at exact cooldown)
-    const timeInSeconds = messagesNeeded * (settings.cooldownSeconds || 1);
+    const timeInSeconds = messagesNeeded * settings.cooldownSeconds;
     const days = Math.floor(timeInSeconds / 86400);
     const hours = Math.floor((timeInSeconds % 86400) / 3600);
     const minutes = Math.floor((timeInSeconds % 3600) / 60);
@@ -505,7 +334,7 @@ export function DiscordBotSettings() {
       </div>
       
       {/* Error message */}
-      {error && (
+      {settingsError && (
         <motion.div 
           className="mb-6 bg-red-900/40 border border-red-500/50 rounded-lg p-4 text-red-200"
           initial={{ opacity: 0, y: -20 }}
@@ -513,7 +342,7 @@ export function DiscordBotSettings() {
         >
           <p className="flex items-center">
             <HiOutlineInformationCircle className="mr-2 flex-shrink-0" size={20} />
-            {error}
+            {settingsError}
           </p>
         </motion.div>
       )}
@@ -523,820 +352,37 @@ export function DiscordBotSettings() {
           {/* Left Column - Activity Settings */}
           <div>
             {/* Activity Credits Settings Card */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 mb-8 transition-all duration-300 hover:shadow-xl">
-              <div className="flex items-center mb-4">
-                <HiOutlineChat className="text-primary mr-3" size={24} />
-                <h2 className="text-xl font-semibold text-white">
-                  Activity Credits Settings
-                </h2>
-              </div>
-              
-              <div className="space-y-6">
-                <div className="relative flex items-center mt-2">
-                  <div className="flex items-center h-5">
-                    <input
-                      type="checkbox"
-                      id="activityEnabled"
-                      name="activityEnabled"
-                      checked={settings.activityEnabled}
-                      onChange={handleChange}
-                      className="form-checkbox h-5 w-5 rounded text-primary border-slate-600 bg-slate-800 focus:ring-primary focus:ring-offset-slate-900"
-                    />
-                  </div>
-                  <div className="ml-3 text-white">
-                    <label htmlFor="activityEnabled" className="text-base font-medium flex items-center">
-                      Enable Activity Credits
-                      <div className="group relative ml-2">
-                        <HiOutlineInformationCircle className="text-slate-400 hover:text-primary cursor-help transition-colors" size={18} />
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-950 rounded-md shadow-lg text-sm text-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-                          When enabled, users earn credits for being active in Discord chat.
-                        </div>
-                      </div>
-                    </label>
-                    <p className="text-slate-400 text-sm mt-1">Award credits for active participation in Discord</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <label htmlFor="creditsToAward" className="text-white flex items-center">
-                        Credits to Award
-                        <div className="group relative ml-2">
-                          <HiOutlineInformationCircle className="text-slate-400 hover:text-primary cursor-help transition-colors" size={16} />
-                          <div className="absolute bottom-full left-0 mb-2 w-60 p-3 bg-slate-950 rounded-md shadow-lg text-sm text-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-                            Credits awarded when a user meets the message threshold
-                          </div>
-                        </div>
-                      </label>
-                      <span className="text-primary font-semibold">{settings.creditsToAward}</span>
-                    </div>
-                    <input
-                      type="range"
-                      id="creditsToAward"
-                      name="creditsToAward"
-                      value={settings.creditsToAward}
-                      onChange={handleChange}
-                      min="1"
-                      max="50"
-                      className="w-full appearance-none h-2 bg-slate-700 rounded-lg outline-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
-                    />
-                    <input
-                      type="number"
-                      id="creditsToAwardExact"
-                      name="creditsToAward"
-                      value={settings.creditsToAward || ''}
-                      onChange={handleChange}
-                      min="1"
-                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label htmlFor="messageThreshold" className="block text-white">
-                      Message Threshold
-                    </label>
-                    <input
-                      type="number"
-                      id="messageThreshold"
-                      name="messageThreshold"
-                      value={settings.messageThreshold || ''}
-                      onChange={handleChange}
-                      min="1"
-                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
-                    <p className="text-slate-400 text-sm">Number of messages required within the time window to earn credits</p>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label htmlFor="timeWindowMinutes" className="block text-white flex items-center">
-                        <HiOutlineClock className="mr-1.5" size={16} />
-                        Time Window (minutes)
-                      </label>
-                      <input
-                        type="number"
-                        id="timeWindowMinutes"
-                        name="timeWindowMinutes"
-                        value={settings.timeWindowMinutes || ''}
-                        onChange={handleChange}
-                        min="1"
-                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                      />
-                      <p className="text-slate-400 text-sm">Period in which messages are counted</p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label htmlFor="cooldownSeconds" className="block text-white flex items-center">
-                        <FiActivity className="mr-1.5" size={16} />
-                        Cooldown (seconds)
-                      </label>
-                      <input
-                        type="number"
-                        id="cooldownSeconds"
-                        name="cooldownSeconds"
-                        value={settings.cooldownSeconds || ''}
-                        onChange={handleChange}
-                        min="1"
-                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                      />
-                      <p className="text-slate-400 text-sm">Cooldown between counting messages</p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label htmlFor="minMessageLength" className="block text-white">
-                      Minimum Message Length
-                    </label>
-                    <input
-                      type="number"
-                      id="minMessageLength"
-                      name="minMessageLength"
-                      value={settings.minMessageLength || ''}
-                      onChange={handleChange}
-                      min="1"
-                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
-                    <p className="text-slate-400 text-sm">Minimum character length for a message to count</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ActivitySettingsCard settings={settings} handleChange={handleChange} />
             
             {/* Leveling System Card */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 mb-8 transition-all duration-300 hover:shadow-xl">
-              <div className="flex items-center mb-4">
-                <HiOutlineChartBar className="text-primary mr-3" size={24} />
-                <h2 className="text-xl font-semibold text-white">
-                  Leveling System Settings
-                </h2>
-              </div>
-              
-              <div className="space-y-6">
-                <div className="relative flex items-center mt-2">
-                  <div className="flex items-center h-5">
-                    <input
-                      type="checkbox"
-                      id="levelingEnabled"
-                      name="levelingEnabled"
-                      checked={settings.levelingEnabled}
-                      onChange={handleChange}
-                      className="form-checkbox h-5 w-5 rounded text-primary border-slate-600 bg-slate-800 focus:ring-primary focus:ring-offset-slate-900"
-                    />
-                  </div>
-                  <div className="ml-3 text-white">
-                    <label htmlFor="levelingEnabled" className="text-base font-medium flex items-center">
-                      Enable Leveling System
-                      <div className="group relative ml-2">
-                        <HiOutlineInformationCircle className="text-slate-400 hover:text-primary cursor-help transition-colors" size={18} />
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-950 rounded-md shadow-lg text-sm text-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-                          When enabled, users earn XP and level up for being active in Discord
-                        </div>
-                      </div>
-                    </label>
-                    <p className="text-slate-400 text-sm mt-1">Award XP and levels for Discord activity</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label htmlFor="xpToAward" className="block text-white flex items-center">
-                        <HiOutlineLightningBolt className="mr-1.5" size={16} />
-                        XP per Message
-                      </label>
-                      <input
-                        type="number"
-                        id="xpToAward"
-                        name="xpToAward"
-                        value={settings.xpToAward || ''}
-                        onChange={handleChange}
-                        min="1"
-                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                      />
-                      <p className="text-slate-400 text-sm">XP awarded for each valid message</p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label htmlFor="creditsPerLevel" className="block text-white flex items-center">
-                        <FiAward className="mr-1.5" size={16} />
-                        Credits per Level Up
-                      </label>
-                      <input
-                        type="number"
-                        id="creditsPerLevel"
-                        name="creditsPerLevel"
-                        value={settings.creditsPerLevel || ''}
-                        onChange={handleChange}
-                        min="1"
-                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                      />
-                      <p className="text-slate-400 text-sm">Credits awarded when a user levels up</p>
-                    </div>
-                  </div>
-                  
-                  {/* Level Formula Settings */}
-                  <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700/50 mb-2">
-                    <h3 className="text-white font-medium mb-3 flex items-center">
-                      <HiOutlineCalculator className="mr-1.5" size={16} />
-                      Level Formula Parameters
-                    </h3>
-                    
-                    <p className="text-slate-300 text-sm mb-4">
-                      Formula: <span className="font-mono bg-slate-800 px-2 py-0.5 rounded">baseXP + (levelMultiplier × level^exponent ÷ factor)</span>
-                    </p>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label htmlFor="baseXp" className="block text-white">
-                          Base XP
-                        </label>
-                        <input
-                          type="number"
-                          id="baseXp"
-                          name="baseXp"
-                          value={settings.baseXp || ''}
-                          onChange={handleChange}
-                          min="1"
-                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                        />
-                        <p className="text-slate-400 text-sm">Base XP for level 1</p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <label htmlFor="levelMultiplier" className="block text-white">
-                          Level Multiplier
-                        </label>
-                        <input
-                          type="number"
-                          id="levelMultiplier"
-                          name="levelMultiplier"
-                          value={settings.levelMultiplier || ''}
-                          onChange={handleChange}
-                          min="1"
-                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                        />
-                        <p className="text-slate-400 text-sm">Multiplier for XP scaling</p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <label htmlFor="levelExponent" className="block text-white">
-                          Level Exponent
-                        </label>
-                        <input
-                          type="number"
-                          id="levelExponent"
-                          name="levelExponent"
-                          value={settings.levelExponent || ''}
-                          onChange={handleChange}
-                          min="1"
-                          step="0.1"
-                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                        />
-                        <p className="text-slate-400 text-sm">Power to raise level to</p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <label htmlFor="levelFactor" className="block text-white">
-                          Level Factor
-                        </label>
-                        <input
-                          type="number"
-                          id="levelFactor"
-                          name="levelFactor"
-                          value={settings.levelFactor || ''}
-                          onChange={handleChange}
-                          min="1"
-                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                        />
-                        <p className="text-slate-400 text-sm">Divisor for XP scaling</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <LevelingSettingsCard settings={settings} handleChange={handleChange} />
             
             {/* Fishing Game Settings Card */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 mb-8 transition-all duration-300 hover:shadow-xl">
-              <div className="flex items-center mb-4">
-                <span className="text-primary mr-3 text-2xl">🎣</span>
-                <h2 className="text-xl font-semibold text-white">
-                  Fishing Game Settings
-                </h2>
-              </div>
-              
-              <p className="text-slate-300 mb-4">Configure limits and anti-botting measures for the /fish command.</p>
-              
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label htmlFor="fishingMaxCatches" className="block text-white">
-                      Maximum Fish Per Session
-                    </label>
-                    <input
-                      type="number"
-                      id="fishingMaxCatches"
-                      name="fishingMaxCatches"
-                      value={settings.fishingMaxCatches || ''}
-                      onChange={handleChange}
-                      min="1"
-                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
-                    <p className="text-slate-400 text-sm">Number of fish users can catch before cooldown</p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label htmlFor="fishingCooldownHours" className="block text-white">
-                      Cooldown Duration (Hours)
-                    </label>
-                    <input
-                      type="number"
-                      id="fishingCooldownHours"
-                      name="fishingCooldownHours"
-                      value={settings.fishingCooldownHours || ''}
-                      onChange={handleChange}
-                      min="1"
-                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
-                    <p className="text-slate-400 text-sm">Hours users must wait after reaching limit</p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label htmlFor="fishingLimitWarningThreshold" className="block text-white">
-                      Warning Threshold
-                    </label>
-                    <input
-                      type="number"
-                      id="fishingLimitWarningThreshold"
-                      name="fishingLimitWarningThreshold"
-                      value={settings.fishingLimitWarningThreshold || ''}
-                      onChange={handleChange}
-                      min="0"
-                      max="1"
-                      step="0.1"
-                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
-                    <p className="text-slate-400 text-sm">Fraction of limit to trigger warning (0.9 = 90%)</p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label htmlFor="fishingPenaltyCredits" className="block text-white">
-                      Cooldown Penalty Credits
-                    </label>
-                    <input
-                      type="number"
-                      id="fishingPenaltyCredits"
-                      name="fishingPenaltyCredits"
-                      value={settings.fishingPenaltyCredits || ''}
-                      onChange={handleChange}
-                      min="0"
-                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
-                    <p className="text-slate-400 text-sm">Credits deducted for fishing during cooldown (silent penalty)</p>
-                  </div>
-                </div>
-                
-                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-sm text-yellow-200">
-                  <p className="font-medium flex items-center">
-                    <HiOutlineInformationCircle className="mr-1.5" size={16} />
-                    Anti-Botting Features
-                  </p>
-                  <ul className="mt-1 text-yellow-100/80 space-y-1 list-disc list-inside">
-                    <li>Users who try to fish during cooldown silently lose credits as a penalty</li>
-                    <li>The penalty is not shown to the user to prevent gaming the system</li>
-                    <li>All fishing activities are logged for administrative review</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+            <FishingSettingsCard settings={settings} handleChange={handleChange} />
             
             {/* Credit Drop Settings Card */}
             <CreditDropSettings settings={settings} handleChange={handleChange} />
             
             {/* Counting Game Settings Card */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 mb-8 transition-all duration-300 hover:shadow-xl">
-              <div className="flex items-center mb-4">
-                <HiOutlineCalculator className="text-primary mr-3" size={24} />
-                <h2 className="text-xl font-semibold text-white">
-                  Counting Game Settings
-                </h2>
-              </div>
-              
-              <p className="text-slate-300 mb-4">Configure the collaborative counting game where users count up from 1.</p>
-              
-              <div className="space-y-6">
-                <div className="relative flex items-center mt-2">
-                  <div className="flex items-center h-5">
-                    <input
-                      type="checkbox"
-                      id="countingGameEnabled"
-                      name="countingGameEnabled"
-                      checked={settings.countingGameEnabled}
-                      onChange={handleChange}
-                      className="form-checkbox h-5 w-5 rounded text-primary border-slate-600 bg-slate-800 focus:ring-primary focus:ring-offset-slate-900"
-                    />
-                  </div>
-                  <div className="ml-3 text-white">
-                    <label htmlFor="countingGameEnabled" className="text-base font-medium flex items-center">
-                      Enable Counting Game
-                      <div className="group relative ml-2">
-                        <HiOutlineInformationCircle className="text-slate-400 hover:text-primary cursor-help transition-colors" size={18} />
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-950 rounded-md shadow-lg text-sm text-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-                          Users collaborate to count up from 1. Wrong numbers or consecutive counts reset the game and cost lives.
-                        </div>
-                      </div>
-                    </label>
-                    <p className="text-slate-400 text-sm mt-1">Enable the collaborative counting game</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="countingChannelId" className="block text-sm font-medium text-slate-300 mb-2">
-                      Counting Channel ID
-                    </label>
-                    <input
-                      type="text"
-                      id="countingChannelId"
-                      name="countingChannelId"
-                      value={settings.countingChannelId || ''}
-                      onChange={handleChange}
-                      className="w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                      placeholder="Enter Discord Channel ID"
-                    />
-                    <p className="text-slate-400 text-sm mt-1">
-                      The Discord channel where the counting game takes place
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="countingTimeoutRoleId" className="block text-sm font-medium text-slate-300 mb-2">
-                      Timeout Role ID
-                    </label>
-                    <input
-                      type="text"
-                      id="countingTimeoutRoleId"
-                      name="countingTimeoutRoleId"
-                      value={settings.countingTimeoutRoleId || ''}
-                      onChange={handleChange}
-                      className="w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                      placeholder="Enter Discord Role ID"
-                    />
-                    <p className="text-slate-400 text-sm mt-1">
-                      Role assigned to users who lose all lives (should prevent access to counting channel)
-                    </p>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="creditsPerCount" className="block text-sm font-medium text-slate-300 mb-2">
-                        Credits per Successful Count
-                      </label>
-                      <input
-                        type="number"
-                        id="creditsPerCount"
-                        name="creditsPerCount"
-                        value={settings.creditsPerCount || ''}
-                        onChange={handleChange}
-                        min="1"
-                        className="w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                      />
-                      <p className="text-slate-400 text-sm mt-1">Credits awarded for each correct number</p>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="countingLives" className="block text-sm font-medium text-slate-300 mb-2">
-                        Lives per User
-                      </label>
-                      <input
-                        type="number"
-                        id="countingLives"
-                        name="countingLives"
-                        value={settings.countingLives || ''}
-                        onChange={handleChange}
-                        min="1"
-                        max="10"
-                        className="w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                      />
-                      <p className="text-slate-400 text-sm mt-1">Number of mistakes allowed before timeout</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 text-sm text-blue-200">
-                  <h4 className="font-medium flex items-center mb-2">
-                    <HiOutlineInformationCircle className="mr-1.5" size={16} />
-                    How the Counting Game Works
-                  </h4>
-                  <ul className="list-disc list-inside space-y-1 ml-1 text-blue-100/80">
-                    <li>Users collaborate to count from 1 upward in the designated channel</li>
-                    <li>Each correct number awards credits to the user</li>
-                    <li>Wrong numbers or counting twice in a row resets the count and costs a life</li>
-                    <li>Users who lose all lives get timed out with progressive durations (24h, 48h, 72h...)</li>
-                    <li>The timeout role should be configured to prevent access to the counting channel</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+            <CountingGameSettingsCard settings={settings} handleChange={handleChange} />
             
             {/* Auto Slowmode Settings Card */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 mb-8 transition-all duration-300 hover:shadow-xl">
-              <div className="flex items-center mb-4">
-                <HiOutlineShieldCheck className="text-primary mr-3" size={24} />
-                <h2 className="text-xl font-semibold text-white">
-                  Auto Slowmode Settings
-                </h2>
-              </div>
-              
-              <p className="text-slate-300 mb-4">Automatically apply slowmode to channels when activity exceeds thresholds.</p>
-              
-              <div className="space-y-6">
-                <div className="relative flex items-center mt-2">
-                  <div className="flex items-center h-5">
-                    <input
-                      type="checkbox"
-                      id="autoSlowmodeEnabled"
-                      name="autoSlowmodeEnabled"
-                      checked={settings.autoSlowmodeEnabled}
-                      onChange={handleChange}
-                      className="form-checkbox h-5 w-5 rounded text-primary border-slate-600 bg-slate-800 focus:ring-primary focus:ring-offset-slate-900"
-                    />
-                  </div>
-                  <div className="ml-3 text-white">
-                    <label htmlFor="autoSlowmodeEnabled" className="text-base font-medium flex items-center">
-                      Enable Auto Slowmode
-                      <div className="group relative ml-2">
-                        <HiOutlineInformationCircle className="text-slate-400 hover:text-primary cursor-help transition-colors" size={18} />
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-950 rounded-md shadow-lg text-sm text-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-                          Automatically apply slowmode when message activity in monitored channels exceeds the threshold.
-                        </div>
-                      </div>
-                    </label>
-                    <p className="text-slate-400 text-sm mt-1">Monitor channels and apply slowmode during high activity</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="slowmodeChannelIds" className="block text-sm font-medium text-slate-300 mb-2">
-                      Monitored Channel IDs
-                    </label>
-                    <input
-                      type="text"
-                      id="slowmodeChannelIds"
-                      name="slowmodeChannelIds"
-                      value={settings.slowmodeChannelIds || ''}
-                      onChange={handleChange}
-                      className="w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                      placeholder="Enter Discord Channel IDs separated by commas"
-                    />
-                    <p className="text-slate-400 text-sm mt-1">
-                      Comma-separated list of Discord channel IDs to monitor for auto slowmode (e.g., 123456789,987654321)
-                    </p>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="activityThreshold" className="block text-sm font-medium text-slate-300 mb-2">
-                        Activity Threshold
-                      </label>
-                      <input
-                        type="number"
-                        id="activityThreshold"
-                        name="activityThreshold"
-                        value={settings.activityThreshold || ''}
-                        onChange={handleChange}
-                        min="1"
-                        className="w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                      />
-                      <p className="text-slate-400 text-sm mt-1">Messages per time window to trigger slowmode</p>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="slowmodeTimeWindow" className="block text-sm font-medium text-slate-300 mb-2">
-                        Time Window (minutes)
-                      </label>
-                      <input
-                        type="number"
-                        id="slowmodeTimeWindow"
-                        name="slowmodeTimeWindow"
-                        value={settings.slowmodeTimeWindow || ''}
-                        onChange={handleChange}
-                        min="1"
-                        className="w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                      />
-                      <p className="text-slate-400 text-sm mt-1">Period to monitor for message activity</p>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="slowmodeDuration" className="block text-sm font-medium text-slate-300 mb-2">
-                        Slowmode Duration (seconds)
-                      </label>
-                      <input
-                        type="number"
-                        id="slowmodeDuration"
-                        name="slowmodeDuration"
-                        value={settings.slowmodeDuration || ''}
-                        onChange={handleChange}
-                        min="0"
-                        max="21600"
-                        className="w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                      />
-                      <p className="text-slate-400 text-sm mt-1">Slowmode duration to apply (0-21600 seconds)</p>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="slowmodeCooldown" className="block text-sm font-medium text-slate-300 mb-2">
-                        Cooldown (minutes)
-                      </label>
-                      <input
-                        type="number"
-                        id="slowmodeCooldown"
-                        name="slowmodeCooldown"
-                        value={settings.slowmodeCooldown || ''}
-                        onChange={handleChange}
-                        min="1"
-                        className="w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                      />
-                      <p className="text-slate-400 text-sm mt-1">Minimum time before re-applying slowmode</p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Current Slowmode Status Display */}
-                {Object.keys(slowmodeStatus).length > 0 && (
-                  <div className="bg-slate-800/60 rounded-lg p-4 border border-slate-600/50">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-white flex items-center">
-                        <HiOutlineShieldCheck className="mr-1.5 text-primary" size={16} />
-                        Active Slowmodes
-                      </h4>
-                      <button
-                        onClick={fetchSlowmodeStatus}
-                        disabled={isLoadingSlowmode}
-                        className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded transition-colors flex items-center"
-                      >
-                        {isLoadingSlowmode ? (
-                          <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin mr-1"></div>
-                        ) : (
-                          <HiOutlineCheck className="mr-1" size={12} />
-                        )}
-                        Refresh
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {Object.entries(slowmodeStatus).map(([channelId, duration]) => (
-                        <div key={channelId} className="flex items-center justify-between bg-slate-700/50 rounded px-3 py-2">
-                          <span className="text-slate-300 font-mono text-sm">{channelId}</span>
-                          <span className="text-primary font-medium">{duration}s slowmode</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 text-sm text-blue-200">
-                  <h4 className="font-medium flex items-center mb-2">
-                    <HiOutlineInformationCircle className="mr-1.5" size={16} />
-                    How Auto Slowmode Works
-                  </h4>
-                  <ul className="list-disc list-inside space-y-1 ml-1 text-blue-100/80">
-                    <li>Monitors message activity in configured channels in real-time</li>
-                    <li>Applies slowmode when activity exceeds the threshold within the time window</li>
-                    <li>Respects cooldown periods to prevent rapid slowmode changes</li>
-                    <li>Requires bot to have "Manage Channel" permissions in monitored channels</li>
-                    <li>Use 0 seconds for slowmode duration to disable slowmode</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+            <AutoSlowmodeSettingsCard
+              settings={settings}
+              handleChange={handleChange}
+              slowmodeStatus={slowmodeStatus}
+              fetchSlowmodeStatus={fetchSlowmodeStatus}
+              isLoadingSlowmode={isLoadingSlowmode}
+            />
             
             {/* Timed Out Users Management Card */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 mb-8 transition-all duration-300 hover:shadow-xl">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center">
-                  <HiOutlineClock className="text-primary mr-3" size={24} />
-                  <h2 className="text-xl font-semibold text-white">
-                    Timed Out Users
-                  </h2>
-                </div>
-                <button
-                  onClick={fetchTimedOutUsers}
-                  disabled={isLoadingTimeouts}
-                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-md transition-colors flex items-center"
-                >
-                  {isLoadingTimeouts ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></div>
-                  ) : (
-                    <HiOutlineCheck className="mr-1" size={16} />
-                  )}
-                  Refresh
-                </button>
-              </div>
-              
-              <p className="text-slate-300 mb-4">Users currently timed out from the counting game. You can remove their timeout early.</p>
-              
-              {isLoadingTimeouts ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mr-3"></div>
-                  <span className="text-slate-300">Loading timed out users...</span>
-                </div>
-              ) : timedOutUsers.length === 0 ? (
-                <div className="text-center py-8">
-                  <HiOutlineCheck className="mx-auto text-green-400 mb-2" size={48} />
-                  <p className="text-slate-300 text-lg font-medium">No users are currently timed out</p>
-                  <p className="text-slate-400 text-sm">All users have access to the counting game</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {timedOutUsers.map((user) => (
-                    <motion.div
-                      key={user.userId}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-slate-800/60 rounded-lg p-4 border border-slate-700/50 hover:border-slate-600/50 transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center">
-                            {user.avatar ? (
-                              <img
-                                src={user.avatar}
-                                alt={user.username}
-                                className="w-10 h-10 rounded-full"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              <FiUsers className="text-slate-400" size={20} />
-                            )}
-                          </div>
-                          <div>
-                            <h3 className="text-white font-medium">{user.username}</h3>
-                            <div className="flex items-center space-x-4 text-sm text-slate-400">
-                              <span>Timeout Level: {user.timeoutLevel}</span>
-                              <span>•</span>
-                              <span>Lives: {user.livesRemaining}</span>
-                              <span>•</span>
-                              <span>Best Count: {user.bestCount}</span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-3">
-                          <div className="text-right">
-                            <p className="text-white font-medium">{user.timeoutDuration}</p>
-                            <p className="text-slate-400 text-sm">remaining</p>
-                          </div>
-                          <button
-                            onClick={() => removeUserTimeout(user.userId)}
-                            disabled={removingTimeouts.has(user.userId)}
-                            className="px-3 py-2 bg-red-900/40 hover:bg-red-900/60 text-red-200 text-sm rounded-md transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {removingTimeouts.has(user.userId) ? (
-                              <>
-                                <div className="w-4 h-4 border-2 border-red-200 border-t-transparent rounded-full animate-spin mr-1"></div>
-                                Removing...
-                              </>
-                            ) : (
-                              <>
-                                <HiOutlineCheck className="mr-1" size={16} />
-                                Remove Timeout
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-3 pt-3 border-t border-slate-700/50">
-                        <div className="grid grid-cols-3 gap-4 text-sm">
-                          <div className="text-center">
-                            <p className="text-slate-400">Correct Counts</p>
-                            <p className="text-white font-medium">{user.totalCorrectCounts.toLocaleString()}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-slate-400">Total Mistakes</p>
-                            <p className="text-white font-medium">{user.totalMistakes.toLocaleString()}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-slate-400">Success Rate</p>
-                            <p className="text-white font-medium">
-                              {user.totalCorrectCounts + user.totalMistakes > 0 
-                                ? `${Math.round((user.totalCorrectCounts / (user.totalCorrectCounts + user.totalMistakes)) * 100)}%`
-                                : '0%'
-                              }
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <TimedOutUsersCard
+              timedOutUsers={timedOutUsers}
+              isLoadingTimeouts={isLoadingTimeouts}
+              removingTimeouts={removingTimeouts}
+              fetchTimedOutUsers={fetchTimedOutUsers}
+              removeUserTimeout={removeUserTimeout}
+            />
             
             {/* Save Button */}
             <div className="flex justify-end mb-8">
@@ -1364,113 +410,13 @@ export function DiscordBotSettings() {
             </div>
             
             {/* Level Progression Estimator Card */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6">
-              <div className="flex items-center mb-4">
-                <HiOutlineCalculator className="text-primary mr-3" size={24} />
-                <h2 className="text-xl font-semibold text-white">
-                  Level Progression Estimator
-                </h2>
-              </div>
-              
-              <p className="text-slate-300 mb-4">
-                Estimate time and messages needed to reach a target level based on current settings.
-              </p>
-              
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <label htmlFor="targetLevel" className="block text-white font-medium">
-                    Target Level
-                  </label>
-                  <div className="flex items-center gap-4">
-                    <input
-                      id="targetLevel"
-                      type="number"
-                      min="2"
-                      value={targetLevel || ''}
-                      onChange={(e) => {
-                        const val = e.target.value === '' ? 2 : parseInt(e.target.value);
-                        setTargetLevel(isNaN(val) ? 2 : val);
-                      }}
-                      className="bg-slate-800 text-white border border-slate-700 rounded-lg py-3 px-4 w-full focus:outline-none focus:ring-2 focus:ring-primary/50"
-                      placeholder="Enter a level number..."
-                    />
-                    <button
-                      onClick={calculateLevelProgression}
-                      className="px-5 py-3 bg-primary/80 hover:bg-primary text-white font-semibold rounded-lg transition-colors flex items-center whitespace-nowrap"
-                    >
-                      <HiOutlineCalculator className="mr-2" size={18} />
-                      Calculate
-                    </button>
-                  </div>
-                </div>
-                
-                {estimationResults && (
-                  <motion.div 
-                    className="bg-slate-800/70 rounded-lg p-5 border border-white/5"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <h3 className="text-lg font-semibold text-white mb-3 flex items-center">
-                      <HiOutlineBadgeCheck className="mr-2 text-primary" size={22} />
-                      Results for Level {targetLevel}
-                    </h3>
-                    
-                    <div className="space-y-5">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-slate-800/80 rounded-lg p-3">
-                          <p className="text-sm font-medium text-slate-400">Total XP Required</p>
-                          <p className="text-xl font-semibold text-white">{estimationResults.totalXpRequired.toLocaleString()} XP</p>
-                        </div>
-                        
-                        <div className="bg-slate-800/80 rounded-lg p-3">
-                          <p className="text-sm font-medium text-slate-400">Messages Needed</p>
-                          <p className="text-xl font-semibold text-white">{estimationResults.messagesNeeded.toLocaleString()}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-slate-800/80 rounded-lg divide-y divide-slate-700/50">
-                        <div className="p-3">
-                          <p className="text-sm font-medium text-emerald-400 flex items-center">
-                            <FiActivity className="mr-1.5" size={16} />
-                            Perfect-case Timeline
-                          </p>
-                          <p className="text-white font-medium mt-1">{estimationResults.timeNeeded}</p>
-                          <p className="text-xs text-slate-400 italic">Assumes messages sent exactly at cooldown rate</p>
-                        </div>
-                        
-                        <div className="p-3">
-                          <p className="text-sm font-medium text-yellow-400 flex items-center">
-                            <FiUsers className="mr-1.5" size={16} />
-                            Realistic Timeline
-                          </p>
-                          <p className="text-white font-medium mt-1">{estimationResults.realisticTimeNeeded}</p>
-                          <p className="text-xs text-slate-400 italic">Based on ~2 hours of daily activity</p>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-slate-800/80 rounded-lg p-3">
-                        <p className="text-sm font-medium text-slate-400">Credits from Leveling</p>
-                        <p className="text-xl font-semibold text-white">{estimationResults.creditsEarned.toLocaleString()} credits</p>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-                
-                <div className="bg-slate-800/30 rounded-lg p-4 text-sm text-slate-400">
-                  <h4 className="font-medium text-white mb-2 flex items-center">
-                    <HiOutlineInformationCircle className="mr-1.5" size={16} />
-                    How the Level Formula Works
-                  </h4>
-                  <ul className="list-disc list-inside space-y-1 ml-1">
-                    <li>XP formula: <span className="font-mono bg-slate-800 px-1.5 py-0.5 rounded text-xs">baseXp + (levelMultiplier × level^levelExponent ÷ levelFactor)</span></li>
-                    <li>Time estimate assumes message cooldown of {settings.cooldownSeconds} seconds</li>
-                    <li>Users earn {settings.xpToAward} XP per message and {settings.creditsPerLevel} credits per level</li>
-                    <li>Discord roles are automatically assigned at levels 5, 15, 30, 40, 50, 70, and 100</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+            <LevelProgressionEstimatorCard
+              settings={settings}
+              calculateLevelProgression={() => calculateLevelProgression()}
+              estimationResults={estimationResults}
+              targetLevel={targetLevel}
+              setTargetLevel={setTargetLevel}
+            />
           </div>
           
           {/* Right Column - Role Rewards and Calculator */}
@@ -1479,280 +425,17 @@ export function DiscordBotSettings() {
             <SelfAssignableRolesSettings settings={settings} handleChange={handleChange} />
 
             {/* Level Role Rewards Card */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 mb-8 transition-all duration-300 hover:shadow-xl">
-              <div className="flex items-center mb-4">
-                <FiUsers className="text-primary mr-3" size={24} />
-                <h2 className="text-xl font-semibold text-white">
-                  Level Role Rewards
-                </h2>
-              </div>
-              
-              <p className="text-slate-300 mb-4">Configure which Discord role IDs will be granted at each level milestone.</p>
-              
-              <div className="space-y-4">
-                {/* Level role mapping with badges */}
-                <div className="mt-5 space-y-4">
-                  <h3 className="text-lg font-semibold text-white flex items-center">
-                    <FiAward className="mr-2 text-primary" size={20} />
-                    Discord Role IDs
-                  </h3>
-                  <p className="text-sm text-slate-400">
-                    Configure the Discord role IDs that will be automatically assigned to users when they reach specific level milestones.
-                  </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="level5RoleId" className="block text-sm font-medium text-slate-300">
-                        Level 5 Role ID
-                      </label>
-                      <input
-                        type="text"
-                        id="level5RoleId"
-                        name="level5RoleId"
-                        value={settings.level5RoleId || ''}
-                        onChange={handleChange}
-                        className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                        placeholder="Enter Discord Role ID"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="level15RoleId" className="block text-sm font-medium text-slate-300">
-                        Level 15 Role ID
-                      </label>
-                      <input
-                        type="text"
-                        id="level15RoleId"
-                        name="level15RoleId"
-                        value={settings.level15RoleId || ''}
-                        onChange={handleChange}
-                        className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                        placeholder="Enter Discord Role ID"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="level30RoleId" className="block text-sm font-medium text-slate-300">
-                        Level 30 Role ID
-                      </label>
-                      <input
-                        type="text"
-                        id="level30RoleId"
-                        name="level30RoleId"
-                        value={settings.level30RoleId || ''}
-                        onChange={handleChange}
-                        className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                        placeholder="Enter Discord Role ID"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="level40RoleId" className="block text-sm font-medium text-slate-300">
-                        Level 40 Role ID
-                      </label>
-                      <input
-                        type="text"
-                        id="level40RoleId"
-                        name="level40RoleId"
-                        value={settings.level40RoleId || ''}
-                        onChange={handleChange}
-                        className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                        placeholder="Enter Discord Role ID"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="level50RoleId" className="block text-sm font-medium text-slate-300">
-                        Level 50 Role ID
-                      </label>
-                      <input
-                        type="text"
-                        id="level50RoleId"
-                        name="level50RoleId"
-                        value={settings.level50RoleId || ''}
-                        onChange={handleChange}
-                        className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                        placeholder="Enter Discord Role ID"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="level70RoleId" className="block text-sm font-medium text-slate-300">
-                        Level 70 Role ID
-                      </label>
-                      <input
-                        type="text"
-                        id="level70RoleId"
-                        name="level70RoleId"
-                        value={settings.level70RoleId || ''}
-                        onChange={handleChange}
-                        className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                        placeholder="Enter Discord Role ID"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="level100RoleId" className="block text-sm font-medium text-slate-300">
-                        Level 100 Role ID
-                      </label>
-                      <input
-                        type="text"
-                        id="level100RoleId"
-                        name="level100RoleId"
-                        value={settings.level100RoleId || ''}
-                        onChange={handleChange}
-                        className="mt-1 block w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                        placeholder="Enter Discord Role ID"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-sm text-yellow-200">
-                    <p className="font-medium flex items-center">
-                      <HiOutlineInformationCircle className="mr-1.5" size={16} />
-                      How to find Discord Role IDs
-                    </p>
-                    <p className="mt-1 text-yellow-100/80">
-                      In Discord, enable Developer Mode in Settings → Advanced, then right-click on a role and select "Copy ID".
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <LevelRoleRewardsCard settings={settings} handleChange={handleChange} />
             
             {/* Role Multipliers Configuration Card */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 mb-8 transition-all duration-300 hover:shadow-xl">
-              <div className="flex items-center mb-4">
-                <HiOutlineBadgeCheck className="text-primary mr-3" size={24} />
-                <h2 className="text-xl font-semibold text-white">
-                  Role Multipliers Configuration
-                </h2>
-              </div>
-              
-              <p className="text-slate-300 mb-4">Configure Discord role-based multipliers for credits and XP rewards.</p>
-              
-              <div className="space-y-6">
-                <div className="relative flex items-center mt-2">
-                  <div className="flex items-center h-5">
-                    <input
-                      type="checkbox"
-                      id="roleMultipliersEnabled"
-                      name="roleMultipliersEnabled"
-                      checked={settings.roleMultipliersEnabled}
-                      onChange={handleChange}
-                      className="form-checkbox h-5 w-5 rounded text-primary border-slate-600 bg-slate-800 focus:ring-primary focus:ring-offset-slate-900"
-                    />
-                  </div>
-                  <div className="ml-3 text-white">
-                    <label htmlFor="roleMultipliersEnabled" className="text-base font-medium flex items-center">
-                      Enable Role Multipliers
-                      <div className="group relative ml-2">
-                        <HiOutlineInformationCircle className="text-slate-400 hover:text-primary cursor-help transition-colors" size={18} />
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-950 rounded-md shadow-lg text-sm text-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-                          When enabled, users with configured Discord roles will receive multiplied credits and XP rewards.
-                        </div>
-                      </div>
-                    </label>
-                    <p className="text-slate-400 text-sm mt-1">Apply multipliers to credits and XP based on Discord roles</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="roleMultipliers" className="block text-sm font-medium text-slate-300 mb-2">
-                      Role Multipliers Configuration
-                    </label>
-                    <input
-                      type="text"
-                      id="roleMultipliers"
-                      name="roleMultipliers"
-                      value={settings.roleMultipliers || ''}
-                      onChange={handleChange}
-                      className="w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                      placeholder="123456789:1.5,987654321:2.0"
-                    />
-                    <p className="text-slate-400 text-sm mt-1">
-                      Format: roleId:multiplier,roleId:multiplier (e.g., 123456789:1.5,987654321:2.0)
-                    </p>
-                  </div>
-                  
-                  {/* Display current multipliers if any are configured */}
-                  {settings.roleMultipliers && settings.roleMultipliers.trim() !== '' && (
-                    <div className="bg-slate-800/60 rounded-lg p-4 border border-slate-600/50">
-                      <h4 className="font-medium text-white mb-3 flex items-center">
-                        <HiOutlineBadgeCheck className="mr-1.5 text-primary" size={16} />
-                        Current Role Multipliers
-                      </h4>
-                      <div className="space-y-2">
-                        {parseRoleMultipliers(settings.roleMultipliers).map((entry, index) => (
-                          <div key={index} className="flex items-center justify-between bg-slate-700/50 rounded px-3 py-2">
-                            <span className="text-slate-300 font-mono text-sm">Role ID: {entry.roleId}</span>
-                            <span className="text-primary font-medium">{entry.multiplier}x multiplier</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 text-sm text-blue-200">
-                  <h4 className="font-medium flex items-center mb-2">
-                    <HiOutlineInformationCircle className="mr-1.5" size={16} />
-                    How Role Multipliers Work
-                  </h4>
-                  <ul className="list-disc list-inside space-y-1 ml-1 text-blue-100/80">
-                    <li>Users with configured roles receive multiplied credits and XP for messages</li>
-                    <li>If a user has multiple qualifying roles, the highest multiplier is applied</li>
-                    <li>Multipliers apply to both regular activity credits and XP gains</li>
-                    <li>Level-up credit bonuses are also multiplied by the role multiplier</li>
-                    <li>Use role IDs from Discord (enable Developer Mode → right-click role → Copy ID)</li>
-                    <li>Multiplier values can be decimals (e.g., 1.5 = 50% bonus, 2.0 = 100% bonus)</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+            <RoleMultipliersCard
+              settings={settings}
+              handleChange={handleChange}
+              parseRoleMultipliers={parseRoleMultipliers}
+            />
             
             {/* Voice Activity Settings Card */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 mb-8 transition-all duration-300 hover:shadow-xl">
-              <div className="flex items-center mb-4">
-                <FiActivity className="text-primary mr-3" size={24} />
-                <h2 className="text-xl font-semibold text-white">
-                  Voice Activity Settings
-                </h2>
-              </div>
-              
-              <p className="text-slate-300 mb-4">Configure voice channels where activity tracking should be disabled.</p>
-              
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="inactivityChannelId" className="block text-sm font-medium text-slate-300 mb-2">
-                    Inactivity Channel ID
-                  </label>
-                  <input
-                    type="text"
-                    id="inactivityChannelId"
-                    name="inactivityChannelId"
-                    value={settings.inactivityChannelId || ''}
-                    onChange={handleChange}
-                    className="w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                    placeholder="Enter Discord Voice Channel ID (optional)"
-                  />
-                  <p className="text-slate-400 text-sm mt-1">
-                    Users in this voice channel will not accumulate voice activity time. Leave empty to track all channels.
-                  </p>
-                </div>
-                
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-sm text-blue-200">
-                  <p className="font-medium flex items-center">
-                    <HiOutlineInformationCircle className="mr-1.5" size={16} />
-                    How to find Discord Voice Channel IDs
-                  </p>
-                  <p className="mt-1 text-blue-100/80">
-                    In Discord, enable Developer Mode in Settings → Advanced, then right-click on a voice channel and select "Copy ID".
-                  </p>
-                </div>
-              </div>
-            </div>
+            <VoiceActivitySettingsCard settings={settings} handleChange={handleChange} />
           </div>
         </div>
       </form>

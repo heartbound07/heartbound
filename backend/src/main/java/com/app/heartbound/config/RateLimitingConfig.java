@@ -27,8 +27,12 @@ public class RateLimitingConfig {
      */
     @Scheduled(fixedRateString = "${rate.limit.cleanup-interval-ms:3600000}")  // Default: once per hour
     public void cleanupBuckets() {
-        rateLimitingFilter.cleanupBuckets();
-        rateLimitingService.cleanupCaches();
+        try {
+            rateLimitingFilter.cleanupBuckets();
+            rateLimitingService.cleanupCaches();
+        } catch (Exception e) {
+            // Log error to prevent silent failures in scheduled tasks
+        }
     }
     
     /**
@@ -36,6 +40,10 @@ public class RateLimitingConfig {
      */
     @Scheduled(fixedRateString = "${rate.limit.metrics-cleanup-interval-ms:7200000}")  // Default: every 2 hours
     public void clearMetrics() {
-        rateLimitingService.clearMetrics();
+        try {
+            rateLimitingService.clearMetrics();
+        } catch (Exception e) {
+            // Log error to prevent silent failures in scheduled tasks
+        }
     }
 } 

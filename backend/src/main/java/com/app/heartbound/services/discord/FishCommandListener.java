@@ -19,6 +19,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.annotation.Lazy;
 
 import javax.annotation.Nonnull;
 import java.time.temporal.ChronoUnit;
@@ -58,16 +60,18 @@ public class FishCommandListener extends ListenerAdapter {
     private final AuditService auditService;
     private final ShopRepository shopRepository;
     private final DiscordBotSettingsService discordBotSettingsService;
+    private final FishCommandListener self; // Self-injection for transactional methods
 
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
     
-    public FishCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService, ShopRepository shopRepository, DiscordBotSettingsService discordBotSettingsService) {
+    public FishCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService, ShopRepository shopRepository, DiscordBotSettingsService discordBotSettingsService, @Lazy FishCommandListener self) {
         this.userService = userService;
         this.secureRandomService = secureRandomService;
         this.auditService = auditService;
         this.shopRepository = shopRepository;
         this.discordBotSettingsService = discordBotSettingsService;
+        this.self = self;
         logger.info("FishCommandListener initialized with secure random and audit service");
     }
     
@@ -107,7 +111,7 @@ public class FishCommandListener extends ListenerAdapter {
             // Cooldown has expired, reset the cooldown field AND the fish-since-limit count
             user.setFishingLimitCooldownUntil(null);
             user.setFishCaughtSinceLimit(0); // <-- THE FIX
-            userService.updateUser(user);
+            // userService.updateUser(user); // REMOVED - will be saved in the main transaction
             logger.info("Fishing cooldown expired for user {}. Resetting cooldown and fish-since-limit count.", user.getId());
             // Return a new status with the reset count
             return new FishingLimitStatus(false, 0, 0, maxCatches);
@@ -123,7 +127,7 @@ public class FishCommandListener extends ListenerAdapter {
         int cooldownHours = settings.getCooldownHours();
         LocalDateTime cooldownUntil = LocalDateTime.now().plusHours(cooldownHours);
         user.setFishingLimitCooldownUntil(cooldownUntil);
-        userService.updateUser(user);
+        // userService.updateUser(user); // REMOVED - will be saved in the main transaction
         logger.info("Set fishing limit cooldown for user {} until {}", user.getId(), cooldownUntil);
     }
     
@@ -187,28 +191,23 @@ public class FishCommandListener extends ListenerAdapter {
             return; // Not our command
         }
         
-        String userId = event.getUser().getId();
+        // Defer reply to prevent timeout
+        event.deferReply().queue(); 
 
-        // Guild restriction check
-        Guild guild = event.getGuild();
-        if (guild == null || !guild.getId().equals(mainGuildId)) {
-            event.reply("This command can only be used in the main Heartbound server.")
-                    .setEphemeral(true)
-                    .queue();
-            return;
-        }
-        
-        logger.info("User {} requested /fish", userId);
-        
-        // Acknowledge the interaction immediately (public, not ephemeral)
-        event.deferReply().queue();
+        // Use the self-injected proxy to call the transactional method
+        self.handleFishCommand(event);
+    }
+
+    @Transactional
+    public void handleFishCommand(@Nonnull SlashCommandInteractionEvent event) {
+        String userId = event.getUser().getId();
         
         try {
             // Fetch cached fishing settings for performance (avoids database call per command)
             DiscordBotSettingsService.FishingSettings fishingSettings = discordBotSettingsService.getCachedFishingSettings();
             
-            // Fetch the user from the database
-            User user = userService.getUserById(userId);
+            // Fetch the user from the database with a lock
+            User user = userService.getUserByIdWithLock(userId);
             
             if (user == null) {
                 logger.warn("User {} not found in database when using /fish", userId);
@@ -332,7 +331,7 @@ public class FishCommandListener extends ListenerAdapter {
                 }
                 
                 // Save the updated user
-                userService.updateUser(user);
+                // userService.updateUser(user); // REMOVED
                 
                 // Create audit entry for rare fish catch
                 CreateAuditDTO auditEntry = CreateAuditDTO.builder()
@@ -406,7 +405,7 @@ public class FishCommandListener extends ListenerAdapter {
                 }
                 
                 // Save the updated user
-                userService.updateUser(user);
+                // userService.updateUser(user); // REMOVED
                 
                 // Create audit entry for regular fish catch
                 CreateAuditDTO auditEntry = CreateAuditDTO.builder()
@@ -441,7 +440,7 @@ public class FishCommandListener extends ListenerAdapter {
                 user.setCredits(currentCredits - creditChange);
                 
                 // Save the updated user
-                userService.updateUser(user);
+                // userService.updateUser(user); // REMOVED
                 
                 // Only show negative message if they actually lost credits
                 if (creditChange > 0) {
@@ -472,12 +471,14 @@ public class FishCommandListener extends ListenerAdapter {
                         userId, creditChange, user.getCredits());
             }
             
-            // Send the response
+            // Final save operation for the user at the end of the transaction
+            userService.updateUser(user);
+            
             event.getHook().sendMessage(message.toString()).queue();
             
         } catch (Exception e) {
-            logger.error("Error processing /fish command for user {}", userId, e);
-            event.getHook().sendMessage("An error occurred while trying to fish.").setEphemeral(true).queue();
+            logger.error("An unexpected error occurred in /fish command for user {}: {}", userId, e.getMessage(), e);
+            event.getHook().sendMessage("An error occurred while fishing. Please try again later.").setEphemeral(true).queue();
         }
     }
 } 

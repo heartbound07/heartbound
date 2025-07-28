@@ -298,8 +298,8 @@ public class CacheConfig {
 
         // Fishing Settings Cache - stores frequently accessed fishing configuration for performance
         this.fishingSettingsCache = Caffeine.newBuilder()
-                .maximumSize(5) // Small cache for fishing settings
-                .expireAfterWrite(10, TimeUnit.MINUTES) // 10-minute TTL for Discord commands
+                .maximumSize(50) // Small cache for fishing settings
+                .expireAfterWrite(30, TimeUnit.MINUTES) // 10-minute TTL for Discord commands
                 .removalListener((RemovalListener<String, Object>) (key, value, cause) -> {
                     if (log.isDebugEnabled()) {
                         log.debug("Fishing settings cache entry removed: key={}, cause={}", key, cause);
@@ -401,6 +401,7 @@ public class CacheConfig {
                 "DailyActivity: {}/{} entries/minutes, " +
                 "DailyClaim: {}/{} entries/minutes, " +
                 "DiscordBotSettings: {}/{} entries/minutes, " +
+                "FishingSettings: 50/30 entries/minutes, " +
                 "Prison: {}/{} entries/hours, " +
                 "CountingGame: {}/{} entries/minutes, " +
                 "Giveaway: {}/{} entries/minutes, " +
@@ -690,6 +691,8 @@ public class CacheConfig {
                 .dailyClaimSize(dailyClaimCache.estimatedSize())
                 .discordBotSettingsHitRate(discordBotSettingsCache.stats().hitRate())
                 .discordBotSettingsSize(discordBotSettingsCache.estimatedSize())
+                .fishingSettingsHitRate(fishingSettingsCache.stats().hitRate())
+                .fishingSettingsSize(fishingSettingsCache.estimatedSize())
                 .prisonHitRate(prisonCache.stats().hitRate())
                 .prisonSize(prisonCache.estimatedSize())
                 .giveawayHitRate(giveawayCache.stats().hitRate())
@@ -755,6 +758,8 @@ public class CacheConfig {
         private final long dailyClaimSize;
         private final double discordBotSettingsHitRate;
         private final long discordBotSettingsSize;
+        private final double fishingSettingsHitRate;
+        private final long fishingSettingsSize;
         private final double prisonHitRate;
         private final long prisonSize;
         private final double giveawayHitRate;
