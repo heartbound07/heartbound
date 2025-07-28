@@ -20,6 +20,9 @@ public interface ItemInstanceRepository extends JpaRepository<ItemInstance, UUID
     @Query("SELECT COUNT(i) FROM ItemInstance i")
     long countTotalInstances();
 
+    @Query("SELECT i.baseItem.rarity, COUNT(i) FROM ItemInstance i WHERE i.baseItem.rarity IS NOT NULL GROUP BY i.baseItem.rarity")
+    List<Object[]> countByRarity();
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT i FROM ItemInstance i WHERE i.id = :id")
     Optional<ItemInstance> findByIdWithLock(@Param("id") UUID id);
