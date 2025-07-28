@@ -28,6 +28,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
+import com.app.heartbound.dto.PublicUserProfileDTO;
 
 @RestController
 @RequestMapping("/users")
@@ -404,6 +405,19 @@ public class UserController {
                 adminId, itemId, userId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    /**
+     * Admin endpoint to get a list of users who own a specific item.
+     *
+     * @param itemId the ID of the item to check for owners
+     * @return list of public user profiles of item owners
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin/items/{itemId}/owners")
+    public ResponseEntity<List<PublicUserProfileDTO>> getItemOwners(@PathVariable UUID itemId) {
+        List<PublicUserProfileDTO> owners = userService.getOwnersOfItem(itemId);
+        return ResponseEntity.ok(owners);
     }
 
     @GetMapping("/admin/economy-stats")

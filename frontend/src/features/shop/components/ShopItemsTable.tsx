@@ -9,6 +9,7 @@ import {
     HiOutlineTrash,
     HiOutlinePencil,
     HiOutlineStar,
+    HiOutlineUsers,
   } from 'react-icons/hi';
 import InlinePriceEditor from './InlinePriceEditor';
 import httpClient from '@/lib/api/httpClient';
@@ -41,9 +42,10 @@ import httpClient from '@/lib/api/httpClient';
     handleEdit: (item: ShopItem) => void;
     handleDelete: (itemId: string) => void;
     fetchShopItems: () => void;
+    onViewOwners: (itemId: string, itemName: string) => void;
   }
 
-const ShopItemsTable: React.FC<ShopItemsTableProps> = ({ items, handleEdit, handleDelete, fetchShopItems }) => {
+const ShopItemsTable: React.FC<ShopItemsTableProps> = ({ items, handleEdit, handleDelete, fetchShopItems, onViewOwners }) => {
 
     const handleStatusToggle = async (itemId: string, currentStatus: boolean) => {
         try {
@@ -227,6 +229,13 @@ const ShopItemsTable: React.FC<ShopItemsTableProps> = ({ items, handleEdit, hand
                     >
                       <HiOutlinePencil className="mr-1" size={16} />
                       Edit
+                    </button>
+                    <button
+                        onClick={() => onViewOwners(item.id, item.name)}
+                        className="text-cyan-400 hover:text-cyan-300 flex items-center"
+                    >
+                        <HiOutlineUsers className="mr-1" size={16} />
+                        Owners
                     </button>
                     <button
                       onClick={() => handleDelete(item.id)}

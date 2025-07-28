@@ -5,6 +5,7 @@ import { Toast } from '@/components/Toast';
 import ShopItemsTable from '@/features/shop/components/ShopItemsTable';
 import ShopFilters from '@/features/shop/components/ShopFilters';
 import ItemFormModal from '@/features/shop/components/ItemFormModal';
+import ItemOwnersModal from '@/features/shop/components/ItemOwnersModal';
 import { 
   HiOutlineShoppingCart, 
   HiOutlinePlus
@@ -83,6 +84,13 @@ export function ShopAdminPage() {
   const [availableItems, setAvailableItems] = useState<ShopItem[]>([]);
   const [loadingCaseContents, setLoadingCaseContents] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Owners modal state
+  const [isOwnersModalOpen, setIsOwnersModalOpen] = useState(false);
+  const [itemOwners, setItemOwners] = useState<any[]>([]);
+  const [loadingOwners, setLoadingOwners] = useState(false);
+  const [selectedItemName, setSelectedItemName] = useState('');
+
   const [filters, setFilters] = useState({
     search: '',
     category: '',
@@ -160,6 +168,22 @@ export function ShopAdminPage() {
     } finally {
       setLoading(false);
     }
+    };
+
+    const handleViewOwners = async (itemId: string, itemName: string) => {
+      setLoadingOwners(true);
+      setSelectedItemName(itemName);
+      setIsOwnersModalOpen(true);
+      try {
+        const response = await httpClient.get(`/users/admin/items/${itemId}/owners`);
+        setItemOwners(response.data);
+      } catch (error) {
+        console.error('Error fetching item owners:', error);
+        showToast('Failed to fetch item owners', 'error');
+        setIsOwnersModalOpen(false);
+      } finally {
+        setLoadingOwners(false);
+      }
     };
 
     const handleSearch = (query: string) => {
@@ -540,6 +564,7 @@ export function ShopAdminPage() {
         handleEdit={handleEdit}
         handleDelete={handleDelete}
         fetchShopItems={fetchShopItems}
+        onViewOwners={handleViewOwners}
       />
 
       {/* Create/Edit Modal */}
@@ -566,6 +591,15 @@ export function ShopAdminPage() {
         updateCaseItemDropRate={updateCaseItemDropRate}
         updateCaseItemSelection={updateCaseItemSelection}
         saveCaseContents={saveCaseContents}
+      />
+
+      {/* Item Owners Modal */}
+      <ItemOwnersModal
+        isOpen={isOwnersModalOpen}
+        onClose={() => setIsOwnersModalOpen(false)}
+        owners={itemOwners}
+        loading={loadingOwners}
+        itemName={selectedItemName}
       />
       
     </div>

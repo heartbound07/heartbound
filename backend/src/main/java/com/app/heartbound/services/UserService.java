@@ -2221,4 +2221,32 @@ public class UserService {
                     adminId, deletedUserId, e.getMessage(), e);
         }
     }
+
+    /**
+     * Retrieves a list of users who own a specific item.
+     * Only accessible to ADMIN users.
+     *
+     * @param itemId The ID of the shop item.
+     * @return A list of public user profiles of the owners.
+     */
+    @Transactional(readOnly = true)
+    public List<PublicUserProfileDTO> getOwnersOfItem(UUID itemId) {
+        logger.debug("Fetching owners for item ID: {}", itemId);
+
+        Shop shopItem = shopRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
+
+        List<ItemInstance> instances = itemInstanceRepository.findByBaseItem(shopItem);
+
+        List<User> owners = instances.stream()
+                .map(ItemInstance::getOwner)
+                .distinct()
+                .collect(Collectors.toList());
+
+        logger.info("Found {} unique owners for item '{}'", owners.size(), shopItem.getName());
+
+        return owners.stream()
+                .map(this::mapToPublicProfileDTO)
+                .collect(Collectors.toList());
+    }
 }
