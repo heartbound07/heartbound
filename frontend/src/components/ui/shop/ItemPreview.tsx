@@ -231,7 +231,10 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
           {/* ADDED: Special preview for FISHING_ROD */}
           {primaryItem?.category === 'FISHING_ROD' ? (
             <div className="item-preview-visual fishing-rod-preview-container">
-              <div className="h-full w-full bg-gradient-to-br from-blue-800 to-cyan-700 flex flex-col items-center justify-center relative overflow-hidden p-4">
+              <div 
+                className="h-full w-full flex flex-col items-center justify-center relative overflow-hidden p-4"
+                style={{ background: `linear-gradient(to bottom right, #1f2937, ${rarityColor})` }}
+              >
                 <GiFishingPole className="absolute w-32 h-32 text-white/10 transform -rotate-12 -right-6 -bottom-6" />
                 <GiFishingPole className="relative z-10 w-20 h-20 text-white/80 drop-shadow-lg" />
                 <div className="relative z-10 mt-3 text-center">
@@ -395,18 +398,6 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
           </div>
         )}
         
-        {/* ADDED: Fishing Rod Multiplier Details */}
-        {primaryItem?.category === 'FISHING_ROD' && (
-          <div className="text-center my-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-            <p className="text-lg font-bold text-cyan-400">
-              {primaryItem.fishingRodMultiplier}x Credit Multiplier
-            </p>
-            <p className="text-xs text-slate-400 mt-1">
-              With this rod equipped, a <strong>20</strong> credit fish will now award <strong>{20 * (primaryItem.fishingRodMultiplier || 1)}</strong> credits!
-            </p>
-          </div>
-        )}
-
         {/* Show selected items list */}
         <div className="item-preview-selected-items">
           <div className="space-y-2">
@@ -418,6 +409,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
               const truncatedName = sanitizedName.length > 50 ? sanitizedName.substring(0, 50) : sanitizedName;
               const categoryLabel = category === 'nameplate' ? 'Nameplate' : 
                                  category === 'badge' ? 'Badge' : 
+                                 category === 'fishing_rod' ? 'Fishing Rod' : 
                                  category.charAt(0).toUpperCase() + category.slice(1);
               
               return (
@@ -427,7 +419,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                       <span className="text-xs text-slate-400">{categoryLabel}:</span>
                       <SafeText 
                         text={truncatedName}
-                        tag="span"
+                        tag="span" 
                         className="text-sm text-white font-medium"
                         maxLength={50}
                         showTooltip={true}
