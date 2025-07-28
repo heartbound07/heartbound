@@ -146,6 +146,7 @@ public class ShopService {
                 items = shopRepository.findByCategoryAndIsActiveTrue(category)
                     .stream()
                     .filter(item -> item.getExpiresAt() == null || item.getExpiresAt().isAfter(now))
+                    .filter(item -> item.getMaxCopies() == null || item.getCopiesSold() == null || item.getCopiesSold() < item.getMaxCopies())
                     .collect(Collectors.toList());
             } catch (IllegalArgumentException e) {
                 // Invalid category string, return empty list
@@ -157,6 +158,7 @@ public class ShopService {
             items = shopRepository.findByIsActiveTrue()
                 .stream()
                 .filter(item -> item.getExpiresAt() == null || item.getExpiresAt().isAfter(now))
+                .filter(item -> item.getMaxCopies() == null || item.getCopiesSold() == null || item.getCopiesSold() < item.getMaxCopies())
                 .collect(Collectors.toList());
         }
         
@@ -188,6 +190,7 @@ public class ShopService {
         List<Shop> items = shopRepository.findByIsFeaturedTrueAndIsActiveTrueOrderByCreatedAtDesc()
             .stream()
             .filter(item -> item.getExpiresAt() == null || item.getExpiresAt().isAfter(now))
+            .filter(item -> item.getMaxCopies() == null || item.getCopiesSold() == null || item.getCopiesSold() < item.getMaxCopies())
             .collect(Collectors.toList());
         
         // Get user for ownership checking
@@ -224,6 +227,7 @@ public class ShopService {
 
         List<Shop> filteredDailyItems = userDailyItems.stream()
             .filter(item -> !finalOwnedItemIds.contains(item.getId()))
+            .filter(item -> item.getMaxCopies() == null || item.getCopiesSold() == null || item.getCopiesSold() < item.getMaxCopies())
             .collect(Collectors.toList());
 
         // Convert the filtered list to DTOs for the response
