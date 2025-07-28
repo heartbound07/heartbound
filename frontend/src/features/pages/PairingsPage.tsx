@@ -104,7 +104,7 @@ export function PairingsPage() {
   } = useAllPairingHistory(hasRole("ADMIN"))
 
   // Get Discord bot settings for the queue form
-  const { botSettings } = useDiscordBotSettings()
+  const { settings: botSettings } = useDiscordBotSettings()
 
   // Use optimized modal manager
   const modalManager = useModalManager()
