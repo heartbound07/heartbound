@@ -5,6 +5,8 @@ import com.app.heartbound.entities.Shop;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.SecureRandomService;
 import com.app.heartbound.services.AuditService;
+import com.app.heartbound.services.discord.DiscordBotSettingsService;
+import com.app.heartbound.entities.DiscordBotSettings;
 import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
@@ -32,15 +34,7 @@ public class FishCommandListener extends ListenerAdapter {
     private static final double SUCCESS_CHANCE = 0.8; // 80% total success rate
     private static final double RARE_FISH_CHANCE = 0.05; // 5% chance for rare fish
     
-    // Fishing limit system configuration
-    @Value("${fishing.max-catches:300}")
-    private int maxCatches;
-    
-    @Value("${fishing.cooldown-hours:6}")
-    private int cooldownHours;
-    
-    @Value("${fishing.limit-warning-threshold:0.9}")
-    private double limitWarningThreshold;
+
     
     // Rare catches that give bonus credits
     private static final List<String> RARE_CATCHES = Arrays.asList(
@@ -61,25 +55,29 @@ public class FishCommandListener extends ListenerAdapter {
     private final SecureRandomService secureRandomService;
     private final AuditService auditService;
     private final ShopRepository shopRepository;
+    private final DiscordBotSettingsService discordBotSettingsService;
 
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
     
-    public FishCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService, ShopRepository shopRepository) {
+    public FishCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService, ShopRepository shopRepository, DiscordBotSettingsService discordBotSettingsService) {
         this.userService = userService;
         this.secureRandomService = secureRandomService;
         this.auditService = auditService;
         this.shopRepository = shopRepository;
+        this.discordBotSettingsService = discordBotSettingsService;
         logger.info("FishCommandListener initialized with secure random and audit service");
     }
     
     /**
      * Check if user has reached fishing limit and is on cooldown
      * @param user The user to check
+     * @param settings The Discord bot settings containing fishing configuration
      * @return FishingLimitStatus containing the result and any remaining time
      */
-    private FishingLimitStatus checkFishingLimit(User user) {
+    private FishingLimitStatus checkFishingLimit(User user, DiscordBotSettings settings) {
         int currentCatches = user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0;
+        int maxCatches = settings.getFishingMaxCatches() != null ? settings.getFishingMaxCatches() : 300;
         
         // If user hasn't reached the limit, they can fish
         if (currentCatches < maxCatches) {
@@ -117,8 +115,10 @@ public class FishCommandListener extends ListenerAdapter {
     /**
      * Set fishing limit cooldown for user who has reached the maximum catches
      * @param user The user to set cooldown for
+     * @param settings The Discord bot settings containing fishing configuration
      */
-    private void setFishingLimitCooldown(User user) {
+    private void setFishingLimitCooldown(User user, DiscordBotSettings settings) {
+        int cooldownHours = settings.getFishingCooldownHours() != null ? settings.getFishingCooldownHours() : 6;
         LocalDateTime cooldownUntil = LocalDateTime.now().plusHours(cooldownHours);
         user.setFishingLimitCooldownUntil(cooldownUntil);
         userService.updateUser(user);
@@ -187,6 +187,9 @@ public class FishCommandListener extends ListenerAdapter {
         event.deferReply().queue();
         
         try {
+            // Fetch Discord bot settings from database
+            DiscordBotSettings settings = discordBotSettingsService.getDiscordBotSettings();
+            
             // Fetch the user from the database
             User user = userService.getUserById(userId);
             
@@ -197,8 +200,39 @@ public class FishCommandListener extends ListenerAdapter {
             }
             
             // Check fishing limit and cooldown
-            FishingLimitStatus limitStatus = checkFishingLimit(user);
+            FishingLimitStatus limitStatus = checkFishingLimit(user, settings);
             if (limitStatus.isOnCooldown()) {
+                // Silent penalty: Deduct credits from user for attempting to fish on cooldown
+                int penaltyCredits = settings.getFishingPenaltyCredits() != null ? settings.getFishingPenaltyCredits() : 50;
+                int currentUserCredits = user.getCredits() != null ? user.getCredits() : 0;
+                int finalPenalty = Math.min(penaltyCredits, currentUserCredits); // Don't go below 0
+                
+                if (finalPenalty > 0) {
+                    user.setCredits(currentUserCredits - finalPenalty);
+                    userService.updateUser(user);
+                    
+                    // Create audit entry for the penalty (silent to user)
+                    try {
+                        CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                            .userId(userId)
+                            .action("FISHING_LIMIT_PENALTY")
+                            .entityType("USER_CREDITS")
+                            .entityId(userId)
+                            .description(String.format("Silent credit penalty for fishing on cooldown: -%d credits", finalPenalty))
+                            .severity(AuditSeverity.WARNING)
+                            .category(AuditCategory.FINANCIAL)
+                            .details(String.format("{\"game\":\"fishing\",\"action\":\"cooldown_penalty\",\"penalty\":%d,\"newBalance\":%d,\"remainingCooldownMinutes\":%d}", 
+                                finalPenalty, user.getCredits(), limitStatus.getRemainingMinutes()))
+                            .source("DISCORD_BOT")
+                            .build();
+                        
+                        auditService.createSystemAuditEntry(auditEntry);
+                        logger.info("Applied silent penalty of {} credits to user {} for fishing on cooldown", finalPenalty, userId);
+                    } catch (Exception e) {
+                        logger.error("Failed to create audit entry for fishing penalty for user {}: {}", userId, e.getMessage());
+                    }
+                }
+                
                 long hoursRemaining = limitStatus.getRemainingMinutes() / 60;
                 long minutesRemaining = limitStatus.getRemainingMinutes() % 60;
                 
@@ -266,8 +300,12 @@ public class FishCommandListener extends ListenerAdapter {
                 user.setFishCaughtSinceLimit(newFishSinceLimit);
                 
                 // Check if user has reached the fishing limit
+                int maxCatches = settings.getFishingMaxCatches() != null ? settings.getFishingMaxCatches() : 300;
+                int cooldownHours = settings.getFishingCooldownHours() != null ? settings.getFishingCooldownHours() : 6;
+                double limitWarningThreshold = settings.getFishingLimitWarningThreshold() != null ? settings.getFishingLimitWarningThreshold() : 0.9;
+                
                 if (newFishSinceLimit >= maxCatches && user.getFishingLimitCooldownUntil() == null) {
-                    setFishingLimitCooldown(user);
+                    setFishingLimitCooldown(user, settings);
                     
                     // Improved grammar for the cooldown message
                     String hourText = cooldownHours == 1 ? "hour" : "hours";
@@ -339,8 +377,12 @@ public class FishCommandListener extends ListenerAdapter {
                 user.setFishCaughtSinceLimit(newFishSinceLimit);
                 
                 // Check if user has reached the fishing limit
+                int maxCatches = settings.getFishingMaxCatches() != null ? settings.getFishingMaxCatches() : 300;
+                int cooldownHours = settings.getFishingCooldownHours() != null ? settings.getFishingCooldownHours() : 6;
+                double limitWarningThreshold = settings.getFishingLimitWarningThreshold() != null ? settings.getFishingLimitWarningThreshold() : 0.9;
+                
                 if (newFishSinceLimit >= maxCatches && user.getFishingLimitCooldownUntil() == null) {
-                    setFishingLimitCooldown(user);
+                    setFishingLimitCooldown(user, settings);
                     
                     // Improved grammar for the cooldown message
                     String hourText = cooldownHours == 1 ? "hour" : "hours";

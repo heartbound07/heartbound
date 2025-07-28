@@ -187,4 +187,21 @@ public class DiscordBotSettingsDTO {
     @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
     private String regionOceRoleId;
     private String regionRolesThumbnailUrl;
+
+    // Fishing Game Configuration
+    @NotNull
+    @Min(1)
+    private Integer fishingMaxCatches;
+
+    @NotNull
+    @Min(1)
+    private Integer fishingCooldownHours;
+
+    @NotNull
+    @Min(0)
+    private Double fishingLimitWarningThreshold;
+
+    @NotNull
+    @Min(0)
+    private Integer fishingPenaltyCredits;
 } 

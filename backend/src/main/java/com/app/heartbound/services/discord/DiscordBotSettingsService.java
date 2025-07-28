@@ -133,6 +133,12 @@ public class DiscordBotSettingsService {
             settings.setCreditDropMinAmount(1);
             settings.setCreditDropMaxAmount(1000);
 
+            // Initialize fishing game settings with defaults
+            settings.setFishingMaxCatches(300);
+            settings.setFishingCooldownHours(6);
+            settings.setFishingLimitWarningThreshold(0.9);
+            settings.setFishingPenaltyCredits(50);
+
             repository.save(settings);
         }
         
@@ -238,6 +244,12 @@ public class DiscordBotSettingsService {
         dto.setRegionOceRoleId(settings.getRegionOceRoleId());
         dto.setRegionRolesThumbnailUrl(settings.getRegionRolesThumbnailUrl());
 
+        // Map fishing game settings
+        dto.setFishingMaxCatches(settings.getFishingMaxCatches());
+        dto.setFishingCooldownHours(settings.getFishingCooldownHours());
+        dto.setFishingLimitWarningThreshold(settings.getFishingLimitWarningThreshold());
+        dto.setFishingPenaltyCredits(settings.getFishingPenaltyCredits());
+
         return dto;
     }
     
@@ -332,6 +344,12 @@ public class DiscordBotSettingsService {
         settings.setRegionApRoleId(dto.getRegionApRoleId());
         settings.setRegionOceRoleId(dto.getRegionOceRoleId());
         settings.setRegionRolesThumbnailUrl(dto.getRegionRolesThumbnailUrl());
+
+        // Update fishing game settings
+        settings.setFishingMaxCatches(dto.getFishingMaxCatches());
+        settings.setFishingCooldownHours(dto.getFishingCooldownHours());
+        settings.setFishingLimitWarningThreshold(dto.getFishingLimitWarningThreshold());
+        settings.setFishingPenaltyCredits(dto.getFishingPenaltyCredits());
 
         repository.save(settings);
         

@@ -99,6 +99,12 @@ public class DiscordBotSettings {
     private String regionOceRoleId;
     private String regionRolesThumbnailUrl;
 
+    // Fishing Game Configuration
+    private Integer fishingMaxCatches = 300;
+    private Integer fishingCooldownHours = 6;
+    private Double fishingLimitWarningThreshold = 0.9;
+    private Integer fishingPenaltyCredits = 50;
+
     // Getters and setters
     public Long getId() {
         return id;
@@ -617,5 +623,38 @@ public class DiscordBotSettings {
 
     public void setRegionRolesThumbnailUrl(String regionRolesThumbnailUrl) {
         this.regionRolesThumbnailUrl = regionRolesThumbnailUrl;
+    }
+
+    // Fishing Game getters and setters
+    public Integer getFishingMaxCatches() {
+        return fishingMaxCatches;
+    }
+
+    public void setFishingMaxCatches(Integer fishingMaxCatches) {
+        this.fishingMaxCatches = fishingMaxCatches;
+    }
+
+    public Integer getFishingCooldownHours() {
+        return fishingCooldownHours;
+    }
+
+    public void setFishingCooldownHours(Integer fishingCooldownHours) {
+        this.fishingCooldownHours = fishingCooldownHours;
+    }
+
+    public Double getFishingLimitWarningThreshold() {
+        return fishingLimitWarningThreshold;
+    }
+
+    public void setFishingLimitWarningThreshold(Double fishingLimitWarningThreshold) {
+        this.fishingLimitWarningThreshold = fishingLimitWarningThreshold;
+    }
+
+    public Integer getFishingPenaltyCredits() {
+        return fishingPenaltyCredits;
+    }
+
+    public void setFishingPenaltyCredits(Integer fishingPenaltyCredits) {
+        this.fishingPenaltyCredits = fishingPenaltyCredits;
     }
 } 

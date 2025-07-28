@@ -61,6 +61,10 @@ export interface DiscordBotSettingsDTO {
   regionApRoleId: string
   regionOceRoleId: string
   regionRolesThumbnailUrl: string
+  fishingMaxCatches: number
+  fishingCooldownHours: number
+  fishingLimitWarningThreshold: number
+  fishingPenaltyCredits: number
   [key: string]: string | number | boolean | undefined
 }
 
