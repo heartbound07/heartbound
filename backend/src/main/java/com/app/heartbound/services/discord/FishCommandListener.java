@@ -300,9 +300,11 @@ public class FishCommandListener extends ListenerAdapter {
                 message.append("**WOW!** You caught a rare ").append(fishEmoji);
                 message.append("! +").append(finalCreditChange).append(" 🪙");
                 
-                // Update user credits and both fish counts
+                // Atomically update credits
+                userService.updateCreditsAtomic(userId, finalCreditChange);
+
+                // Update non-credit user stats
                 int oldFishSinceLimit = user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0;
-                user.setCredits(currentCredits + finalCreditChange);
                 int newFishCount = (user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0) + 1;
                 int newFishSinceLimit = oldFishSinceLimit + 1;
                 user.setFishCaughtCount(newFishCount);
@@ -374,9 +376,11 @@ public class FishCommandListener extends ListenerAdapter {
                 message.append("You caught ").append(fishEmoji);
                 message.append("! +").append(finalCreditChange).append(" 🪙");
                 
-                // Update user credits and both fish counts
+                // Atomically update credits
+                userService.updateCreditsAtomic(userId, finalCreditChange);
+
+                // Update non-credit user stats
                 int oldFishSinceLimit = user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0;
-                user.setCredits(currentCredits + finalCreditChange);
                 int newFishCount = (user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0) + 1;
                 int newFishSinceLimit = oldFishSinceLimit + 1;
                 user.setFishCaughtCount(newFishCount);
@@ -436,11 +440,10 @@ public class FishCommandListener extends ListenerAdapter {
                     creditChange = currentCredits;
                 }
                 
-                // Update user credits
-                user.setCredits(currentCredits - creditChange);
-                
-                // Save the updated user
-                // userService.updateUser(user); // REMOVED
+                // Atomically update credits
+                if (creditChange > 0) {
+                    userService.updateCreditsAtomic(userId, -creditChange);
+                }
                 
                 // Only show negative message if they actually lost credits
                 if (creditChange > 0) {
@@ -456,7 +459,7 @@ public class FishCommandListener extends ListenerAdapter {
                         .severity(AuditSeverity.INFO)
                         .category(AuditCategory.FINANCIAL)
                         .details(String.format("{\"game\":\"fishing\",\"catchType\":\"failure\",\"lost\":%d,\"newBalance\":%d}", 
-                            creditChange, user.getCredits()))
+                            creditChange, currentCredits - creditChange))
                         .source("DISCORD_BOT")
                         .build();
                     
@@ -468,10 +471,10 @@ public class FishCommandListener extends ListenerAdapter {
                 }
                 
                 logger.debug("User {} failed fishing: -{} credits. New balance: {}", 
-                        userId, creditChange, user.getCredits());
+                        userId, creditChange, currentCredits - creditChange);
             }
             
-            // Final save operation for the user at the end of the transaction
+            // Final save operation for non-credit user stats
             userService.updateUser(user);
             
             event.getHook().sendMessage(message.toString()).queue();

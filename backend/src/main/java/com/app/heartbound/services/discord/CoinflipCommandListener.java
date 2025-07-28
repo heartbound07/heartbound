@@ -135,19 +135,25 @@ public class CoinflipCommandListener extends ListenerAdapter {
                     boolean userWon = userGuess.equals(coinResultString);
                     
                     // Calculate credit change
-                    int creditChange = betAmount; // 1:1 payout
-                    int newCredits;
+                    int creditChange = userWon ? betAmount : -betAmount;
+                    
+                    // Atomically update user's credits
+                    boolean success = userService.updateCreditsAtomic(userId, creditChange);
+                    
+                    if (!success) {
+                        logger.error("Failed to atomically update credits for user {} in coinflip. Amount: {}", userId, creditChange);
+                        event.getHook().editOriginal("An error occurred while updating your credits. Please contact support.").queue();
+                        return;
+                    }
+
+                    // Fetch the updated user to get the new balance for the embed
+                    User updatedUser = userService.getUserById(userId);
+                    int newCredits = (updatedUser != null && updatedUser.getCredits() != null) ? updatedUser.getCredits() : 0;
                     
                     EmbedBuilder resultEmbed = new EmbedBuilder();
                     
                     if (userWon) {
                         // User won
-                        newCredits = currentCredits + creditChange;
-                        user.setCredits(newCredits);
-                        
-                        // Save the updated user
-                        userService.updateUser(user);
-                        
                         // Create audit entry for win
                         try {
                             CreateAuditDTO auditEntry = CreateAuditDTO.builder()
@@ -156,11 +162,11 @@ public class CoinflipCommandListener extends ListenerAdapter {
                                 .entityType("USER_CREDITS")
                                 .entityId(userId)
                                 .description(String.format("Won %d credits in coinflip (bet: %d, guess: %s, result: %s)", 
-                                    creditChange, betAmount, userGuess, coinResultString))
-                                .severity(creditChange > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO)
+                                    betAmount, betAmount, userGuess, coinResultString))
+                                .severity(betAmount > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO)
                                 .category(AuditCategory.FINANCIAL)
                                 .details(String.format("{\"game\":\"coinflip\",\"bet\":%d,\"guess\":\"%s\",\"result\":\"%s\",\"won\":%d,\"newBalance\":%d}", 
-                                    betAmount, userGuess, coinResultString, creditChange, newCredits))
+                                    betAmount, userGuess, coinResultString, betAmount, newCredits))
                                 .source("DISCORD_BOT")
                                 .build();
                             
@@ -172,18 +178,12 @@ public class CoinflipCommandListener extends ListenerAdapter {
                         resultEmbed
                             .setColor(SUCCESS_COLOR)
                             .setTitle(String.format("🎉 You got it right, it was %s!", coinResultString))
-                            .setDescription(String.format("You have earned **🪙 %d credits**!", creditChange))
+                            .setDescription(String.format("You have earned **🪙 %d credits**!", betAmount))
                             .setFooter(event.getUser().getEffectiveName() + ", you now have " + newCredits + " credits", null);
                         
-                        logger.info("User {} won coinflip: +{} credits. New balance: {}", userId, creditChange, newCredits);
+                        logger.info("User {} won coinflip: +{} credits. New balance: {}", userId, betAmount, newCredits);
                     } else {
                         // User lost
-                        newCredits = currentCredits - creditChange;
-                        user.setCredits(newCredits);
-                        
-                        // Save the updated user
-                        userService.updateUser(user);
-                        
                         // Create audit entry for loss
                         try {
                             CreateAuditDTO auditEntry = CreateAuditDTO.builder()
@@ -192,11 +192,11 @@ public class CoinflipCommandListener extends ListenerAdapter {
                                 .entityType("USER_CREDITS")
                                 .entityId(userId)
                                 .description(String.format("Lost %d credits in coinflip (bet: %d, guess: %s, result: %s)", 
-                                    creditChange, betAmount, userGuess, coinResultString))
-                                .severity(creditChange > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO)
+                                    betAmount, betAmount, userGuess, coinResultString))
+                                .severity(betAmount > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO)
                                 .category(AuditCategory.FINANCIAL)
                                 .details(String.format("{\"game\":\"coinflip\",\"bet\":%d,\"guess\":\"%s\",\"result\":\"%s\",\"lost\":%d,\"newBalance\":%d}", 
-                                    betAmount, userGuess, coinResultString, creditChange, newCredits))
+                                    betAmount, userGuess, coinResultString, betAmount, newCredits))
                                 .source("DISCORD_BOT")
                                 .build();
                             
@@ -208,10 +208,10 @@ public class CoinflipCommandListener extends ListenerAdapter {
                         resultEmbed
                             .setColor(FAILURE_COLOR)
                             .setTitle(String.format("💸 Whoops, it was %s.", coinResultString))
-                            .setDescription(String.format("You lost **🪙 %d credits**!", creditChange))
+                            .setDescription(String.format("You lost **🪙 %d credits**!", betAmount))
                             .setFooter(event.getUser().getEffectiveName() + ", you now have " + newCredits + " credits", null);
                         
-                        logger.info("User {} lost coinflip: -{} credits. New balance: {}", userId, creditChange, newCredits);
+                        logger.info("User {} lost coinflip: -{} credits. New balance: {}", userId, betAmount, newCredits);
                     }
                     
                     // Invalidate user profile cache to ensure fresh data
@@ -219,7 +219,7 @@ public class CoinflipCommandListener extends ListenerAdapter {
                     
                     // Update the embed with the result
                     event.getHook().editOriginalEmbeds(resultEmbed.build()).queue(
-                        success -> logger.debug("Coinflip result sent to user {}", userId),
+                        v -> logger.debug("Coinflip result sent to user {}", userId),
                         error -> logger.error("Failed to send coinflip result to user {}: {}", userId, error.getMessage())
                     );
                     

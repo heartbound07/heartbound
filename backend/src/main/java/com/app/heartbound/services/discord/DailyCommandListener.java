@@ -113,9 +113,16 @@ public class DailyCommandListener extends ListenerAdapter {
                 return;
             }
             
-            // Update user data
-            int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
-            user.setCredits(currentCredits + creditsToAward);
+            // Update user data: Atomically update credits first.
+            boolean creditsAwardedSuccess = userService.updateCreditsAtomic(userId, creditsToAward);
+            
+            if (!creditsAwardedSuccess) {
+                event.getHook().editOriginal("An error occurred while awarding your daily credits. Please try again.").queue();
+                logger.error("Failed to award daily credits to user {}", userId);
+                return;
+            }
+
+            // After credits are secure, update the non-critical streak and timestamp info.
             user.setDailyStreak(newStreak);
             user.setLastDailyClaim(now);
             
@@ -134,7 +141,7 @@ public class DailyCommandListener extends ListenerAdapter {
                     .severity(creditsToAward > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO)
                     .category(AuditCategory.FINANCIAL)
                     .details(String.format("{\"game\":\"daily\",\"streak\":%d,\"reward\":%d,\"newBalance\":%d}", 
-                        newStreak, creditsToAward, user.getCredits()))
+                        newStreak, creditsToAward, user.getCredits() + creditsToAward)) // Approximate new balance for audit
                     .source("DISCORD_BOT")
                     .build();
                 

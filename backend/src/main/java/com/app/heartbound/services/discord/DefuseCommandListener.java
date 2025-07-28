@@ -752,23 +752,41 @@ public class DefuseCommandListener extends ListenerAdapter {
             logger.debug("Winner user: {} ({})", winnerUser.getId(), winnerUser.getUsername());
             logger.debug("Loser user: {} ({})", loserUser.getId(), loserUser.getUsername());
             
-            // Update credits
-            int winnerCredits = (winnerUser.getCredits() == null) ? 0 : winnerUser.getCredits();
-            int loserCredits = (loserUser.getCredits() == null) ? 0 : loserUser.getCredits();
+            // Atomically update credits for both winner and loser
+            boolean winnerSuccess = userService.updateCreditsAtomic(winnerUser.getId(), game.getBetAmount());
+            boolean loserSuccess = userService.updateCreditsAtomic(loserUser.getId(), -game.getBetAmount());
+
+            if (!winnerSuccess || !loserSuccess) {
+                logger.error("Critical error during credit transfer in Defuse game {}. Winner success: {}, Loser success: {}. Manual intervention may be required.",
+                    gameKey, winnerSuccess, loserSuccess);
+                
+                // Attempt to send an error message to the channel
+                event.getHook().editOriginal("A critical error occurred during credit transfer. Please contact an admin.").queue();
+                
+                // Create a high-severity audit log for this failure
+                CreateAuditDTO errorAudit = CreateAuditDTO.builder()
+                    .userId("SYSTEM")
+                    .action("DEFUSE_CREDIT_TRANSFER_FAILURE")
+                    .entityType("GAME")
+                    .entityId(gameKey)
+                    .description("Failed to atomically transfer credits for defuse game.")
+                    .severity(AuditSeverity.CRITICAL)
+                    .category(AuditCategory.SYSTEM)
+                    .details(String.format("{\"gameKey\":\"%s\",\"winnerId\":\"%s\",\"loserId\":\"%s\",\"betAmount\":%d,\"winnerSuccess\":%b,\"loserSuccess\":%b}",
+                        gameKey, winnerUser.getId(), loserUser.getId(), game.getBetAmount(), winnerSuccess, loserSuccess))
+                    .source("DefuseCommandListener")
+                    .build();
+                auditService.createSystemAuditEntry(errorAudit);
+                
+                return; // Stop further processing
+            }
             
-            logger.debug("Winner credits before transaction: {}", winnerCredits);
-            logger.debug("Loser credits before transaction: {}", loserCredits);
-            
-            winnerUser.setCredits(winnerCredits + game.getBetAmount());
-            loserUser.setCredits(loserCredits - game.getBetAmount());
-            
-            logger.debug("Winner credits after transaction: {}", winnerUser.getCredits());
-            logger.debug("Loser credits after transaction: {}", loserUser.getCredits());
-            
-            // Save both users
-            userService.updateUser(winnerUser);
-            userService.updateUser(loserUser);
-            
+            // Fetch updated balances for audit logging
+            User updatedWinner = userService.getUserById(winnerUser.getId());
+            User updatedLoser = userService.getUserById(loserUser.getId());
+            int winnerNewBalance = (updatedWinner != null && updatedWinner.getCredits() != null) ? updatedWinner.getCredits() : 0;
+            int loserNewBalance = (updatedLoser != null && updatedLoser.getCredits() != null) ? updatedLoser.getCredits() : 0;
+
             logger.debug("Users saved successfully");
             
             // Create audit entries for both participants
@@ -784,7 +802,7 @@ public class DefuseCommandListener extends ListenerAdapter {
                     .severity(game.getBetAmount() > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO)
                     .category(AuditCategory.FINANCIAL)
                     .details(String.format("{\"game\":\"defuse\",\"bet\":%d,\"opponent\":\"%s\",\"endReason\":\"%s\",\"won\":%d,\"newBalance\":%d}", 
-                        game.getBetAmount(), loserId, endReason, game.getBetAmount(), winnerUser.getCredits()))
+                        game.getBetAmount(), loserId, endReason, game.getBetAmount(), winnerNewBalance))
                     .source("DISCORD_BOT")
                     .build();
                 
@@ -801,7 +819,7 @@ public class DefuseCommandListener extends ListenerAdapter {
                     .severity(game.getBetAmount() > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO)
                     .category(AuditCategory.FINANCIAL)
                     .details(String.format("{\"game\":\"defuse\",\"bet\":%d,\"opponent\":\"%s\",\"endReason\":\"%s\",\"lost\":%d,\"newBalance\":%d}", 
-                        game.getBetAmount(), winnerId, endReason, game.getBetAmount(), loserUser.getCredits()))
+                        game.getBetAmount(), winnerId, endReason, game.getBetAmount(), loserNewBalance))
                     .source("DISCORD_BOT")
                     .build();
                 

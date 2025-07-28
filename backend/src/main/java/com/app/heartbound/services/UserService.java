@@ -975,10 +975,12 @@ public class UserService {
      * @throws ResourceNotFoundException if the user is not found
      */
     @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
     public User updateUserCredits(String userId, Integer credits, String adminId) {
         logger.debug("Updating credits for user {} to {} by admin {}", userId, credits, adminId);
         
-        User user = userRepository.findById(userId)
+        // Use a pessimistic lock to ensure atomicity for both the update and the audit log
+        User user = userRepository.findByIdWithLock(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         
         // Capture previous credits for audit trail
@@ -990,26 +992,36 @@ public class UserService {
         }
         
         user.setCredits(credits);
-        User updatedUser = userRepository.save(user);
         
         // Create audit trail for credit update
         createCreditUpdateAuditEntry(adminId, userId, previousCredits, credits);
         
-        // Invalidate leaderboard cache since credits affect ranking
+        // Invalidate caches since credits affect ranking and user profile
         cacheConfig.invalidateLeaderboardCache();
+        cacheConfig.invalidateUserProfileCache(userId);
         
         logger.info("Updated credits for user {} from {} to {} by admin {}", userId, previousCredits, credits, adminId);
         
-        return updatedUser;
+        // The transaction will handle saving the updated user entity
+        return user;
     }
 
     /**
-     * Overloaded method for backward compatibility - extracts admin ID from security context
+     * Atomically increment user credits and experience in a single transaction.
+     * This method is designed to prevent race conditions.
+     *
+     * @param userId The ID of the user to update.
+     * @param credits The amount of credits to add (can be negative).
+     * @param xp The amount of experience (XP) to add.
      */
-    @PreAuthorize("hasRole('ADMIN')")
-    public User updateUserCredits(String userId, Integer credits) {
-        String adminId = getCurrentAdminId();
-        return updateUserCredits(userId, credits, adminId);
+    @Transactional
+    public void incrementCreditsAndXp(String userId, int credits, int xp) {
+        if (credits == 0 && xp == 0) {
+            return; // No operation needed
+        }
+        userRepository.incrementCreditsAndXp(userId, credits, xp);
+        cacheConfig.invalidateUserProfileCache(userId);
+        logger.debug("Atomically updated credits by {} and xp by {} for user {}", credits, xp, userId);
     }
 
     /**

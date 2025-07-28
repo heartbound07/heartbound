@@ -266,18 +266,29 @@ public class ChatActivityListener extends ListenerAdapter {
             int newLevel = currentLevel + 1;
             log.debug("[XP DEBUG] LEVEL UP! User {} is leveling up from {} to {}", 
                         userId, currentLevel, newLevel);
-            user.setLevel(newLevel);
-            user.setExperience(currentXp - requiredXp);
             
-            // Award credits for leveling up
-            int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
+            // Calculate rewards
             int multipliedCredits = (int) Math.round(creditsPerLevel * roleMultiplier);
-            user.setCredits(currentCredits + multipliedCredits);
-            log.info("Awarded {} credits to user {} for leveling up to {}. New balance: {}",
-                        multipliedCredits, userId, newLevel, user.getCredits());
             
-            // Save user with updated credits and level
-            userService.updateUser(user);
+            // Atomically update user state for level up:
+            // - Decrement XP by the required amount for the level up.
+            // - Award credits for leveling up.
+            // The level itself is not stored in the DB, it's derived. But we update the core stats.
+            userService.incrementCreditsAndXp(userId, multipliedCredits, -requiredXp);
+            
+            // After the atomic update, we need to refresh the user object to get the latest state
+            User updatedUser = userService.getUserById(userId);
+            if (updatedUser == null) {
+                log.error("User {} not found after level up update. Aborting.", userId);
+                return;
+            }
+            
+            // Now, update the level on the in-memory object for this transaction.
+            updatedUser.setLevel(newLevel);
+            userService.updateUser(updatedUser); // This now only saves the new level, not credits/xp.
+
+            log.info("Awarded {} credits to user {} for leveling up to {}. New balance: {}",
+                        multipliedCredits, userId, newLevel, updatedUser.getCredits());
             
             // Create audit entry for leveling up credits
             try {
@@ -290,7 +301,7 @@ public class ChatActivityListener extends ListenerAdapter {
                     .severity(multipliedCredits > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO)
                     .category(AuditCategory.FINANCIAL)
                     .details(String.format("{\"activity\":\"level_up\",\"newLevel\":%d,\"creditsAwarded\":%d,\"roleMultiplier\":%.2f,\"newBalance\":%d}", 
-                        newLevel, multipliedCredits, roleMultiplier, user.getCredits()))
+                        newLevel, multipliedCredits, roleMultiplier, updatedUser.getCredits()))
                     .source("DISCORD_BOT")
                     .build();
                 
@@ -300,8 +311,6 @@ public class ChatActivityListener extends ListenerAdapter {
             }
             
             try {
-                userService.updateUser(user);
-                
                 // Check if user reached a level milestone and assign role
                 checkAndAssignRoleForLevel(newLevel, userId, channel);
                 
@@ -321,7 +330,7 @@ public class ChatActivityListener extends ListenerAdapter {
                     
                     // Add XP progress information
                     int nextLevelXp = calculateRequiredXp(newLevel);
-                    embed.addField("Experience", String.format("%d/%d XP to next level", user.getExperience(), nextLevelXp), true);
+                    embed.addField("Experience", String.format("%d/%d XP to next level", updatedUser.getExperience(), nextLevelXp), true);
                     
                     // Add credits information
                     embed.addField("Credits Awarded", String.format("🪙 %d", multipliedCredits), true);
@@ -357,11 +366,11 @@ public class ChatActivityListener extends ListenerAdapter {
                 }
                 
                 log.info("User {} leveled up to {} (XP: {} -> {}, Credits: +{})", 
-                           userId, newLevel, currentXp, user.getExperience(), multipliedCredits);
+                           userId, newLevel, currentXp, updatedUser.getExperience(), multipliedCredits);
                 
                 // Check for additional level ups
                 log.debug("[XP DEBUG] Checking for additional level ups");
-                checkAndProcessLevelUp(user, userId, channel, roleMultiplier);
+                checkAndProcessLevelUp(updatedUser, userId, channel, roleMultiplier);
                 
             } catch (Exception e) {
                 log.error("Error updating user level for {}: {}", userId, e.getMessage(), e);
@@ -598,51 +607,68 @@ public class ChatActivityListener extends ListenerAdapter {
             // Get role multiplier for this user
             double roleMultiplier = getUserRoleMultiplier(userId, event);
             
+            int xpToAwardAtomic = 0;
+            int creditsToAwardAtomic = 0;
+
             if (levelingEnabled) {
                 log.debug("[XP DEBUG] About to award XP to {}: Current XP={}, Level={}, Adding {} XP (base) with {}x multiplier",
                     userId, user.getExperience(), user.getLevel(), xpToAward, roleMultiplier);
-                int currentXp = user.getExperience();
-                int multipliedXp = (int) Math.round(xpToAward * roleMultiplier);
-                user.setExperience(currentXp + multipliedXp);
-                userUpdated = true; // Mark user for update
-                log.debug("[XP DEBUG] Awarded {} XP ({}x{}) to user {}. New XP: {}", multipliedXp, xpToAward, roleMultiplier, userId, user.getExperience());
-                
-                // Award credits alongside XP for each eligible message
-                if (activityEnabled && creditsToAward > 0) {
-                    int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
-                    int multipliedCredits = (int) Math.round(creditsToAward * roleMultiplier);
-                    user.setCredits(currentCredits + multipliedCredits);
-                    log.debug("[CREDITS DEBUG] Awarded {} credits ({}x{}) to user {}. New balance: {}", 
-                        multipliedCredits, creditsToAward, roleMultiplier, userId, user.getCredits());
-                    
-                    // Create audit entry for chat activity credits
-                    try {
-                        CreateAuditDTO auditEntry = CreateAuditDTO.builder()
-                            .userId(userId)
-                            .action("CHAT_ACTIVITY_REWARD")
-                            .entityType("USER_CREDITS")
-                            .entityId(userId)
-                            .description(String.format("Earned %d credits for chat activity", multipliedCredits))
-                            .severity(AuditSeverity.INFO)
-                            .category(AuditCategory.FINANCIAL)
-                            .details(String.format("{\"activity\":\"chat\",\"creditsAwarded\":%d,\"roleMultiplier\":%.2f,\"newBalance\":%d}", 
-                                multipliedCredits, roleMultiplier, user.getCredits()))
-                            .source("DISCORD_BOT")
-                            .build();
-                        
-                        auditService.createSystemAuditEntry(auditEntry);
-                    } catch (Exception e) {
-                        log.error("Failed to create audit entry for chat activity reward for user {}: {}", userId, e.getMessage());
-                    }
-                }
-                
-                // Add right before calling checkAndProcessLevelUp method
-                log.debug("[XP DEBUG] Checking for level up: User={}, Level={}, XP={}",
-                    userId, user.getLevel(), user.getExperience());
-                checkAndProcessLevelUp(user, userId, event.getChannel(), roleMultiplier); // Note: checkAndProcessLevelUp calls updateUser internally on level up
-                
-                // XP notifications removed to reduce chat spam - only level-up notifications are shown
+                xpToAwardAtomic = (int) Math.round(xpToAward * roleMultiplier);
             }
+            
+            // Award credits alongside XP for each eligible message
+            if (activityEnabled && creditsToAward > 0) {
+                creditsToAwardAtomic = (int) Math.round(creditsToAward * roleMultiplier);
+                log.debug("[CREDITS DEBUG] Awarding {} credits ({}x{}) to user {}.", 
+                    creditsToAwardAtomic, creditsToAward, roleMultiplier, userId);
+            }
+
+            // Perform atomic update for XP and credits from message activity
+            if (xpToAwardAtomic > 0 || creditsToAwardAtomic > 0) {
+                userService.incrementCreditsAndXp(userId, creditsToAwardAtomic, xpToAwardAtomic);
+                log.debug("[ATOMIC UPDATE] Awarded {} XP and {} credits to user {}.", xpToAwardAtomic, creditsToAwardAtomic, userId);
+                userUpdated = true;
+            }
+            
+            // Create audit entry for chat activity credits
+            if (creditsToAwardAtomic > 0) {
+                try {
+                    // We need the new balance for the audit log, so we have to fetch the user again.
+                    User updatedUserForAudit = userService.getUserById(userId);
+                    int newBalance = updatedUserForAudit != null ? (updatedUserForAudit.getCredits() != null ? updatedUserForAudit.getCredits() : 0) : 0;
+
+                    CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                        .userId(userId)
+                        .action("CHAT_ACTIVITY_REWARD")
+                        .entityType("USER_CREDITS")
+                        .entityId(userId)
+                        .description(String.format("Earned %d credits for chat activity", creditsToAwardAtomic))
+                        .severity(AuditSeverity.INFO)
+                        .category(AuditCategory.FINANCIAL)
+                        .details(String.format("{\"activity\":\"chat\",\"creditsAwarded\":%d,\"roleMultiplier\":%.2f,\"newBalance\":%d}", 
+                            creditsToAwardAtomic, roleMultiplier, newBalance))
+                        .source("DISCORD_BOT")
+                        .build();
+                    
+                    auditService.createSystemAuditEntry(auditEntry);
+                } catch (Exception e) {
+                    log.error("Failed to create audit entry for chat activity reward for user {}: {}", userId, e.getMessage());
+                }
+            }
+
+            // Fetch the latest user state to check for level up
+            User updatedUser = userService.getUserById(userId);
+            if (updatedUser == null) {
+                log.error("User {} not found after activity update. Aborting level up check.", userId);
+                return;
+            }
+
+            // Add right before calling checkAndProcessLevelUp method
+            log.debug("[XP DEBUG] Checking for level up: User={}, Level={}, XP={}",
+                userId, updatedUser.getLevel(), updatedUser.getExperience());
+            checkAndProcessLevelUp(updatedUser, userId, event.getChannel(), roleMultiplier); // Note: checkAndProcessLevelUp calls updateUser internally on level up
+            
+            // XP notifications removed to reduce chat spam - only level-up notifications are shown
             
             // Track message in activity window (for stats purposes only, not for credits)
             if (activityEnabled) {
@@ -659,12 +685,25 @@ public class ChatActivityListener extends ListenerAdapter {
                             userId, userMessages.size(), timeWindowMinutes);
             }
             
-            // Persist changes if user was updated (message count, XP, credits) but no level up happened
-            // Level-up already saves changes internally in checkAndProcessLevelUp
-            if (userUpdated && initialLevel == user.getLevel().intValue()) {
+            // Persist changes if user was updated (e.g., message count) but no level up happened
+            // and no atomic update was performed.
+            // The atomic update handles its own persistence. Level-up handles its own.
+            // This now primarily saves message count updates.
+            if (userUpdated) {
                 try {
-                    userService.updateUser(user);
-                    log.debug("Persisted user {} state after activity processing.", userId);
+                    // Fetch the latest state again to avoid overwriting level-up changes
+                    User finalUser = userService.getUserById(userId);
+                    if(finalUser != null) {
+                        finalUser.setMessageCount(user.getMessageCount());
+                        finalUser.setMessagesToday(user.getMessagesToday());
+                        finalUser.setMessagesThisWeek(user.getMessagesThisWeek());
+                        finalUser.setMessagesThisTwoWeeks(user.getMessagesThisTwoWeeks());
+                        finalUser.setLastDailyReset(user.getLastDailyReset());
+                        finalUser.setLastWeeklyReset(user.getLastWeeklyReset());
+                        finalUser.setLastBiWeeklyReset(user.getLastBiWeeklyReset());
+                        userService.updateUser(finalUser);
+                        log.debug("Persisted user {} non-atomic state (e.g., message counts) after activity processing.", userId);
+                    }
                 } catch (Exception e) {
                     log.error("Error saving user state for {} after activity processing: {}", userId, e.getMessage(), e);
                 }

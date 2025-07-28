@@ -44,9 +44,14 @@ public class GrabCommandListener extends ListenerAdapter {
                     return;
                 }
                 
-                int newCredits = user.getCredits() + activeDrop.amount();
-                user.setCredits(newCredits);
-                userService.updateUser(user);
+                boolean success = userService.updateCreditsAtomic(user.getId(), activeDrop.amount());
+
+                if (!success) {
+                    event.reply("An error occurred while adding credits to your account.").setEphemeral(true).queue();
+                    // Since the update failed, we should put the drop back.
+                    creditDropStateService.startDrop(event.getChannel().getId(), activeDrop.messageId(), activeDrop.amount());
+                    return;
+                }
 
                 event.reply("You grabbed " + activeDrop.amount() + " credits!").queue();
 

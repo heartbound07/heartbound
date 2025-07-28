@@ -399,10 +399,17 @@ public class CountingGameService {
     }
     
     protected void awardCredits(String userId, int credits) {
+        if (credits <= 0) return;
         try {
+            boolean success = userService.updateCreditsAtomic(userId, credits);
+            if (!success) {
+                log.error("Failed to award {} credits to user {} in counting game.", credits, userId);
+                return;
+            }
+            
+            // For audit log, we need the new balance.
             User user = userService.getUserById(userId);
-                user.setCredits((user.getCredits() != null ? user.getCredits() : 0) + credits);
-                userService.updateUser(user);
+            int newBalance = (user != null && user.getCredits() != null) ? user.getCredits() : 0;
             
             // Create audit entry for counting credits
             try {
@@ -415,7 +422,7 @@ public class CountingGameService {
                     .severity(AuditSeverity.INFO)
                     .category(AuditCategory.FINANCIAL)
                     .details(String.format("{\"game\":\"counting\",\"creditsAwarded\":%d,\"newBalance\":%d}", 
-                        credits, user.getCredits()))
+                        credits, newBalance))
                     .source("DISCORD_BOT")
                     .build();
                 
@@ -684,17 +691,23 @@ public class CountingGameService {
         
         int saveCost = gameState.getSaveCost();
         
-        // Check if user has enough credits
-        if (user.getCredits() == null || user.getCredits() < saveCost) {
-            return SaveCountResult.INSUFFICIENT_CREDITS.withCreditData(user.getCredits() != null ? user.getCredits() : 0, saveCost);
+        // Atomically deduct credits for the save cost
+        boolean success = userService.updateCreditsAtomic(userId, -saveCost);
+
+        if (!success) {
+            // This can happen if the user doesn't have enough credits.
+            // Refetch user to get current balance for the error message.
+            User latestUser = userService.getUserById(userId);
+            int currentCredits = (latestUser != null && latestUser.getCredits() != null) ? latestUser.getCredits() : 0;
+            return SaveCountResult.INSUFFICIENT_CREDITS.withCreditData(currentCredits, saveCost);
         }
         
         // Get the count that was lost
         int savedCount = gameState.getLastFailedCount();
-        
-        // Deduct credits
-        user.setCredits(user.getCredits() - saveCost);
-        userService.updateUser(user);
+
+        // Fetch user again to get the new balance for logging and auditing
+        User updatedUser = userService.getUserById(userId);
+        int newBalance = (updatedUser != null && updatedUser.getCredits() != null) ? updatedUser.getCredits() : 0;
         
         // Create audit entry for save cost
         try {
@@ -703,11 +716,11 @@ public class CountingGameService {
                 .action("COUNTING_SAVE_COST")
                 .entityType("USER_CREDITS")
                 .entityId(userId)
-                .description(String.format("Paid %d credits to save counting progress at %d", saveCost, savedCount))
+                .description(String.format("Paid %d credits to save counting progress at %d", savedCount, savedCount))
                 .severity(AuditSeverity.INFO)
                 .category(AuditCategory.FINANCIAL)
                 .details(String.format("{\"game\":\"counting\",\"saveCount\":%d,\"costPaid\":%d,\"newBalance\":%d}", 
-                    savedCount, saveCost, user.getCredits()))
+                    savedCount, saveCost, newBalance))
                 .source("DISCORD_BOT")
                 .build();
             
@@ -735,7 +748,7 @@ public class CountingGameService {
         log.info("User {} saved count at {} for {} credits (new save cost: {})", 
                 userId, savedCount, saveCost, gameState.getSaveCost());
         
-        return SaveCountResult.SUCCESS.withSaveData(savedCount, saveCost, user.getCredits());
+        return SaveCountResult.SUCCESS.withSaveData(savedCount, saveCost, newBalance);
     }
     
     /**

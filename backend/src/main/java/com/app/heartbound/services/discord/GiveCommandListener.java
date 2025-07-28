@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Nonnull;
 import java.time.Instant;
@@ -64,6 +65,12 @@ public class GiveCommandListener extends ListenerAdapter {
         // Acknowledge the interaction immediately to prevent timeout (public response)
         event.deferReply().queue();
         
+        // Delegate to a transactional method to ensure atomicity
+        handleGiveCommand(event);
+    }
+
+    @Transactional
+    public void handleGiveCommand(@Nonnull SlashCommandInteractionEvent event) {
         try {
             String giverUserId = event.getUser().getId();
             
@@ -137,16 +144,24 @@ public class GiveCommandListener extends ListenerAdapter {
             
             // Deduct credits from giver
             int newGiverCredits = currentGiverCredits - amount;
-            giverUser.setCredits(newGiverCredits);
             
             // Add credits to recipient
             Integer currentRecipientCredits = recipientUser.getCredits();
             int newRecipientCredits = (currentRecipientCredits != null ? currentRecipientCredits : 0) + amount;
-            recipientUser.setCredits(newRecipientCredits);
             
-            // Save both users
-            userService.updateUser(giverUser);
-            userService.updateUser(recipientUser);
+            // Atomically update both users' credits
+            boolean giverSuccess = userService.updateCreditsAtomic(giverUserId, -amount);
+            boolean recipientSuccess = userService.updateCreditsAtomic(targetUserId, amount);
+
+            if (!giverSuccess || !recipientSuccess) {
+                logger.error("Critical error during credit transfer from {} to {}. Giver success: {}, Recipient success: {}. Manual intervention may be required.",
+                    giverUserId, targetUserId, giverSuccess, recipientSuccess);
+                
+                event.getHook().editOriginal("A critical error occurred during credit transfer. Please contact an admin.").queue();
+                
+                // This transaction will be rolled back by the exception, so no need to manually revert.
+                throw new IllegalStateException("Credit transfer failed between " + giverUserId + " and " + targetUserId);
+            }
             
             // Create audit entries for both participants
             try {

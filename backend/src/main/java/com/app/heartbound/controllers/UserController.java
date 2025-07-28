@@ -276,14 +276,16 @@ public class UserController {
     @PatchMapping("/{userId}/credits")
     public ResponseEntity<UserProfileDTO> updateUserCredits(
             @PathVariable String userId,
-            @RequestBody Map<String, Integer> request) {
+            @RequestBody Map<String, Integer> request,
+            Authentication authentication) {
         
         Integer credits = request.get("credits");
         if (credits == null) {
             return ResponseEntity.badRequest().build();
         }
         
-        User updatedUser = userService.updateUserCredits(userId, credits);
+        String adminId = authentication.getName();
+        User updatedUser = userService.updateUserCredits(userId, credits, adminId);
         return ResponseEntity.ok(userService.mapToProfileDTO(updatedUser));
     }
     

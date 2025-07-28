@@ -137,16 +137,14 @@ public class BlackjackCommandListener extends ListenerAdapter {
             
             logger.info("User {} current credits: {}, bet amount: {}", userId, currentCredits, betAmount);
             
-            if (currentCredits < betAmount) {
+            // Deduct the bet amount from user's credits
+            boolean betDeducted = userService.deductCreditsIfSufficient(userId, betAmount);
+            if (!betDeducted) {
                 event.getHook().sendMessage("You don't have enough credits! You have " + currentCredits + " credits but tried to bet " + betAmount + ".")
                         .setEphemeral(true)
                         .queue();
                 return;
             }
-            
-            // Deduct the bet amount from user's credits
-            user.setCredits(currentCredits - betAmount);
-            userService.updateUser(user);
             
             // Fetch Discord bot settings to get role multipliers
             DiscordBotSettings settings = discordBotSettingsService.getDiscordBotSettings();
@@ -371,8 +369,7 @@ public class BlackjackCommandListener extends ListenerAdapter {
         int payout = game.calculatePayout();
         BlackjackGame.GameResult result = game.getResult();
         
-        // Update user credits
-        Integer currentCredits = user.getCredits();
+        // Atomically update user credits
         int creditChange = 0;
         
         switch (result) {
@@ -386,17 +383,24 @@ public class BlackjackCommandListener extends ListenerAdapter {
                 creditChange = game.getBetAmount(); // Return bet only
                 break;
             case DEALER_WIN:
-                creditChange = 0; // Bet already deducted, no return
+                // Bet was already deducted, so no change here. The initial bet is lost.
+                creditChange = 0;
                 break;
             case IN_PROGRESS:
             default:
                 logger.warn("handleGameEnd called with unexpected game result '{}' for user {}", result, user.getId());
-                break;
+                activeGames.remove(game.getUserId());
+                return; // Exit early
         }
         
-        int newCredits = (currentCredits == null ? 0 : currentCredits) + creditChange;
-        user.setCredits(newCredits);
-        userService.updateUser(user);
+        // The initial bet was already deducted. This call adds back the bet and any winnings.
+        if (creditChange > 0) {
+            userService.updateCreditsAtomic(user.getId(), creditChange);
+        }
+        
+        // Fetch updated user for accurate balance in logs and embeds
+        User updatedUser = userService.getUserById(user.getId());
+        int newCredits = (updatedUser != null && updatedUser.getCredits() != null) ? updatedUser.getCredits() : 0;
         
         // Create audit entry for blackjack game result
         try {
