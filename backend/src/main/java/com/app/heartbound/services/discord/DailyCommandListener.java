@@ -122,15 +122,26 @@ public class DailyCommandListener extends ListenerAdapter {
                 return;
             }
 
-            // After credits are secure, update the non-critical streak and timestamp info.
-            user.setDailyStreak(newStreak);
-            user.setLastDailyClaim(now);
+            // FIX: Re-fetch the user to get the updated credit balance and avoid stale state.
+            User updatedUser = userService.getUserById(userId);
+            if (updatedUser == null) {
+                // This is an unlikely edge case, but it's a good practice to handle it.
+                // It means the atomic update may have succeeded, but the user was deleted immediately after.
+                event.getHook().editOriginal("Could not find your account after awarding credits. Please contact support.").queue();
+                logger.error("User {} not found after successful atomic credit update during daily claim.", userId);
+                return;
+            }
+
+            // After credits are secure, update the non-critical streak and timestamp info on the fresh user object.
+            updatedUser.setDailyStreak(newStreak);
+            updatedUser.setLastDailyClaim(now);
             
             // Save to database
-            userService.updateUser(user);
+            userService.updateUser(updatedUser);
             
             // Create audit entry for daily claim
             try {
+                // FIX: Use the accurate new balance from the re-fetched user object.
                 CreateAuditDTO auditEntry = CreateAuditDTO.builder()
                     .userId(userId)
                     .action("DAILY_CLAIM")
@@ -141,7 +152,7 @@ public class DailyCommandListener extends ListenerAdapter {
                     .severity(creditsToAward > 1000 ? AuditSeverity.WARNING : AuditSeverity.INFO)
                     .category(AuditCategory.FINANCIAL)
                     .details(String.format("{\"game\":\"daily\",\"streak\":%d,\"reward\":%d,\"newBalance\":%d}", 
-                        newStreak, creditsToAward, user.getCredits() + creditsToAward)) // Approximate new balance for audit
+                        newStreak, creditsToAward, updatedUser.getCredits()))
                     .source("DISCORD_BOT")
                     .build();
                 

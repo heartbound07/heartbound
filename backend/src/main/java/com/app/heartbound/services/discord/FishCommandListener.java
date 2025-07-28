@@ -205,6 +205,7 @@ public class FishCommandListener extends ListenerAdapter {
         try {
             // Fetch cached fishing settings for performance (avoids database call per command)
             DiscordBotSettingsService.FishingSettings fishingSettings = discordBotSettingsService.getCachedFishingSettings();
+            String warningMessage = null; // To be sent as a followup message
             
             // Fetch the user from the database with a lock
             User user = userService.getUserByIdWithLock(userId);
@@ -303,6 +304,9 @@ public class FishCommandListener extends ListenerAdapter {
                 // Atomically update credits
                 userService.updateCreditsAtomic(userId, finalCreditChange);
 
+                // FIX: Manually synchronize the managed User entity's state with the atomic DB update.
+                user.setCredits(currentCredits + finalCreditChange);
+
                 // Update non-credit user stats
                 int oldFishSinceLimit = user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0;
                 int newFishCount = (user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0) + 1;
@@ -326,9 +330,8 @@ public class FishCommandListener extends ListenerAdapter {
                 } else {
                     int warningMark = (int) (maxCatches * limitWarningThreshold);
                     if (oldFishSinceLimit < warningMark && newFishSinceLimit >= warningMark) {
-                        // Send a warning if the user is approaching the limit
-                        String warningMessage = String.format("You are approaching the fishing limit! **%d/%d**", newFishSinceLimit, maxCatches);
-                        event.getHook().sendMessage(warningMessage).setEphemeral(true).queue();
+                        // Prepare a warning to be sent as a followup message
+                        warningMessage = String.format("You are approaching the fishing limit! **%d/%d**", newFishSinceLimit, maxCatches);
                     }
                 }
                 
@@ -379,6 +382,9 @@ public class FishCommandListener extends ListenerAdapter {
                 // Atomically update credits
                 userService.updateCreditsAtomic(userId, finalCreditChange);
 
+                // FIX: Manually synchronize the managed User entity's state with the atomic DB update.
+                user.setCredits(currentCredits + finalCreditChange);
+
                 // Update non-credit user stats
                 int oldFishSinceLimit = user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0;
                 int newFishCount = (user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0) + 1;
@@ -402,9 +408,8 @@ public class FishCommandListener extends ListenerAdapter {
                 } else {
                     int warningMark = (int) (maxCatches * limitWarningThreshold);
                     if (oldFishSinceLimit < warningMark && newFishSinceLimit >= warningMark) {
-                        // Send a warning if the user is approaching the limit
-                        String warningMessage = String.format("You are approaching the fishing limit! **%d/%d**", newFishSinceLimit, maxCatches);
-                        event.getHook().sendMessage(warningMessage).setEphemeral(true).queue();
+                        // Prepare a warning to be sent as a followup message
+                        warningMessage = String.format("You are approaching the fishing limit! **%d/%d**", newFishSinceLimit, maxCatches);
                     }
                 }
                 
@@ -443,6 +448,8 @@ public class FishCommandListener extends ListenerAdapter {
                 // Atomically update credits
                 if (creditChange > 0) {
                     userService.updateCreditsAtomic(userId, -creditChange);
+                    // FIX: Manually synchronize the managed User entity's state with the atomic DB update.
+                    user.setCredits(currentCredits - creditChange);
                 }
                 
                 // Only show negative message if they actually lost credits
@@ -478,6 +485,11 @@ public class FishCommandListener extends ListenerAdapter {
             userService.updateUser(user);
             
             event.getHook().sendMessage(message.toString()).queue();
+
+            // Send a followup message if a warning was generated
+            if (warningMessage != null) {
+                event.getHook().sendMessage(warningMessage).setEphemeral(true).queue();
+            }
             
         } catch (Exception e) {
             logger.error("An unexpected error occurred in /fish command for user {}: {}", userId, e.getMessage(), e);
