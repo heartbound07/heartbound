@@ -9,19 +9,19 @@ import {
 } from 'react-icons/hi';
 import { FiSettings } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import { SelfAssignableRolesSettings } from './SelfAssignableRolesSettings';
-import { CreditDropSettings } from './CreditDropSettings';
+import { SelfAssignableRolesSettings } from '../SelfAssignableRolesSettings';
+import { CreditDropSettings } from '../CreditDropSettings';
 import { useDiscordBotSettings } from '@/hooks/useDiscordBotSettings';
-import { ActivitySettingsCard } from './components/ActivitySettingsCard';
-import { LevelingSettingsCard } from './components/LevelingSettingsCard';
-import { FishingSettingsCard } from './components/FishingSettingsCard';
-import { CountingGameSettingsCard } from './components/CountingGameSettingsCard';
-import { AutoSlowmodeSettingsCard } from './components/AutoSlowmodeSettingsCard';
-import { TimedOutUsersCard } from './components/TimedOutUsersCard';
-import { LevelProgressionEstimatorCard } from './components/LevelProgressionEstimatorCard';
-import { LevelRoleRewardsCard } from './components/LevelRoleRewardsCard';
-import { RoleMultipliersCard } from './components/RoleMultipliersCard';
-import { VoiceActivitySettingsCard } from './components/VoiceActivitySettingsCard';
+import { ActivitySettingsCard } from './ActivitySettingsCard';
+import { LevelingSettingsCard } from './LevelingSettingsCard';
+import { FishingSettingsCard } from './FishingSettingsCard';
+import { CountingGameSettingsCard } from './CountingGameSettingsCard';
+import { AutoSlowmodeSettingsCard } from './AutoSlowmodeSettingsCard';
+import { TimedOutUsersCard } from './TimedOutUsersCard';
+import { LevelProgressionEstimatorCard } from './LevelProgressionEstimatorCard';
+import { LevelRoleRewardsCard } from './LevelRoleRewardsCard';
+import { RoleMultipliersCard } from './RoleMultipliersCard';
+import { VoiceActivitySettingsCard } from './VoiceActivitySettingsCard';
 
 interface ToastNotification {
   id: string;
