@@ -339,6 +339,40 @@ export function InventoryPage() {
     }
   };
   
+  // Handle unequipping multiple items in a single batch operation
+  const handleUnequipMultipleItems = async (itemIds: string[]) => {
+    if (actionInProgress !== null) return;
+
+    if (!itemIds || itemIds.length === 0) {
+      showToast("No items selected for unequipping", "error");
+      return;
+    }
+
+    setActionInProgress("batch-unequip");
+
+    try {
+      const response = await httpClient.post('/shop/unequip/batch', {
+        itemIds: itemIds
+      });
+
+      if (response.data) {
+        const itemCount = itemIds.length;
+        showToast(
+          `Successfully unequipped ${itemCount} item${itemCount > 1 ? 's' : ''}!`,
+          'success'
+        );
+        setSelectedItems({});
+        await fetchInventory();
+      }
+    } catch (error: any) {
+      console.error('Error batch unequipping items:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to unequip selected items';
+      showToast(errorMessage, 'error');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
   // Handle item selection for preview
   const handleSelectItem = (item: ShopItem) => {
     setSelectedItems(prev => {
@@ -417,6 +451,7 @@ export function InventoryPage() {
               onViewCaseContents={openCasePreview}
               actionInProgress={actionInProgress}
               onEquipMultipleItems={handleEquipMultipleItems}
+              onUnequipMultipleItems={handleUnequipMultipleItems}
             />
           </div>
 

@@ -1999,4 +1999,59 @@ public class ShopService {
         // For now, return a placeholder
         return "unknown";
     }
+    
+    /**
+     * Unequips multiple items for a user in a single atomic transaction.
+     * @param userId User ID
+     * @param itemIds List of item IDs to unequip
+     * @return Updated UserProfileDTO
+     */
+    @Transactional
+    public UserProfileDTO unequipBatch(String userId, List<UUID> itemIds) {
+        logger.debug("Batch unequipping {} items for user {}", itemIds.size(), userId);
+
+        if (itemIds == null || itemIds.isEmpty()) {
+            throw new IllegalArgumentException("Item IDs list cannot be empty");
+        }
+
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        List<Shop> itemsToUnequip = shopRepository.findAllById(itemIds);
+
+        if (itemsToUnequip.size() != itemIds.size()) {
+            logger.warn("Some items for batch unequip were not found. Requested: {}, Found: {}", itemIds.size(), itemsToUnequip.size());
+        }
+
+        for (Shop item : itemsToUnequip) {
+            ShopCategory category = item.getCategory();
+            if (category == null) continue;
+
+            boolean wasEquipped = false;
+            if (category == ShopCategory.BADGE) {
+                if (user.isBadgeEquipped(item.getId())) {
+                    user.removeEquippedBadge();
+                    wasEquipped = true;
+                }
+            } else {
+                UUID equippedId = user.getEquippedItemIdByCategory(category);
+                if (equippedId != null && equippedId.equals(item.getId())) {
+                    user.setEquippedItemIdByCategory(category, null);
+                    wasEquipped = true;
+                }
+            }
+
+            if (wasEquipped && item.getDiscordRoleId() != null && !item.getDiscordRoleId().isEmpty()) {
+                logger.debug("Removing Discord role {} from user {} for unequipped item {}", 
+                            item.getDiscordRoleId(), userId, item.getId());
+                discordService.removeRole(userId, item.getDiscordRoleId());
+            }
+        }
+
+        userRepository.save(user);
+
+        logger.info("Successfully batch unequipped {} items for user {}", itemsToUnequip.size(), userId);
+
+        return userService.mapToProfileDTO(user);
+    }
 }

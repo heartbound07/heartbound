@@ -21,6 +21,7 @@ interface ItemPreviewProps {
   onOpenCase?: (caseId: string, caseName: string) => void;
   onViewCaseContents?: (caseId: string, caseName: string) => void;
   onEquipMultipleItems?: (itemIds: string[]) => void;
+  onUnequipMultipleItems?: (itemIds: string[]) => void;
   actionInProgress?: string | null;
 }
 
@@ -33,6 +34,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
   onOpenCase,
   onViewCaseContents,
   onEquipMultipleItems,
+  onUnequipMultipleItems,
   actionInProgress
 }) => {
   // Get the primary selected item (for action buttons)
@@ -47,6 +49,9 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
   // Get unequipped items from selection (for batch equip)
   const unequippedSelectedItems = allSelectedItems.filter(item => !item.equipped);
   
+  // Get equipped items from selection (for batch unequip)
+  const equippedSelectedItems = allSelectedItems.filter(item => item.equipped);
+
   // Determine what action is available
   const getActionMode = () => {
     if (hasMultipleItems) {
@@ -54,7 +59,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
       if (unequippedSelectedItems.length > 0) {
         return 'batch-equip'; // At least one unequipped item
       } else {
-        return 'mixed-equipped'; // All selected items are equipped
+        return 'batch-unequip'; // All selected items are equipped
       }
     } else if (primaryItem) {
       // Single item selected
@@ -141,6 +146,9 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
     if (actionMode === 'batch-equip' && onEquipMultipleItems && unequippedSelectedItems.length > 0) {
       const itemIds = unequippedSelectedItems.map(item => item.id);
       onEquipMultipleItems(itemIds);
+    } else if (actionMode === 'batch-unequip' && onUnequipMultipleItems && equippedSelectedItems.length > 0) {
+      const itemIds = equippedSelectedItems.map(item => item.id);
+      onUnequipMultipleItems(itemIds);
     } else if (actionMode === 'case-open' && primaryItem) {
       handleAction(primaryItem);
     } else if (actionMode === 'equip' && primaryItem) {
@@ -155,6 +163,9 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
       case 'batch-equip':
         const count = unequippedSelectedItems.length;
         return count === 1 ? 'Equip' : `Equip ${count} Items`;
+      case 'batch-unequip':
+        const unequipCount = equippedSelectedItems.length;
+        return `Unequip ${unequipCount} Items`;
       case 'case-open':
         return (!primaryItem?.quantity || primaryItem.quantity < 1) ? 'No Cases' : 'Open Case';
       case 'equip':
@@ -165,8 +176,6 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
         return 'Equip';
       case 'unequip':
         return 'Unequip';
-      case 'mixed-equipped':
-        return 'All Equipped';
       default:
         return 'Select Items';
     }
@@ -176,7 +185,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
     if (actionMode === 'case-open' && primaryItem) {
       return !primaryItem.quantity || primaryItem.quantity < 1 || actionInProgress !== null;
     }
-    if (actionMode === 'mixed-equipped' || actionMode === 'none') {
+    if (actionMode === 'none') {
       return true;
     }
     return actionInProgress !== null;
@@ -355,7 +364,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
       {/* Details Section */}
       <div className="item-preview-details">
         {/* Show selected items list */}
-        {actionMode !== 'unequip' && actionMode !== 'mixed-equipped' && (
+        {actionMode !== 'unequip' && (
           <div className="item-preview-selected-items">
             <div className="space-y-2">
               {Object.entries(selectedItems).map(([category, item]) => {
@@ -407,10 +416,10 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
               disabled={isActionDisabled()}
               className={`item-preview-action-btn ${
                 actionMode === 'batch-equip' ? 'batch-equip-action-btn' :
+                actionMode === 'batch-unequip' ? 'unequip-action-btn' :
                 actionMode === 'case-open' ? 'case-action-btn' :
                 actionMode === 'equip' ? 'equip-action-btn' :
                 actionMode === 'unequip' ? 'unequip-action-btn' :
-                actionMode === 'mixed-equipped' ? 'mixed-equipped-action-btn' :
                 'action-btn-disabled'
               } ${isActionDisabled() ? 'action-btn-disabled' : ''}`}
             >
@@ -438,9 +447,9 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                     <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                  ) : actionMode === 'mixed-equipped' ? (
+                  ) : actionMode === 'batch-unequip' ? (
                     <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   ) : (
                     <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
