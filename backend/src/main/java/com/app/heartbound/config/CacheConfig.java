@@ -116,13 +116,6 @@ public class CacheConfig {
     @Value("${cache.featured-items.expire-after-write-minutes:60}")
     private long featuredItemsCacheExpireMinutes;
 
-    // User Daily Items Cache Configuration  
-    @Value("${cache.user-daily-items.max-size:10000}")
-    private long userDailyItemsCacheMaxSize;
-
-    @Value("${cache.user-daily-items.expire-after-write-hours:24}")
-    private long userDailyItemsCacheExpireHours;
-
     // Shop Layout Cache Configuration
     @Value("${cache.shop-layout.max-size:100}")
     private long shopLayoutCacheMaxSize;
@@ -167,7 +160,6 @@ public class CacheConfig {
     private Cache<String, Object> countingGameCache;
     private Cache<String, Object> giveawayCache;
     private Cache<String, List<Object>> featuredItemsCache;
-    private Cache<String, List<Shop>> userDailyItemsCache;
     private Cache<String, List<LeaderboardEntryDTO>> leaderboardCache;
     private Cache<String, Object> pendingRoleSelectionCache;
     private Cache<String, Object> pendingPrisonCache;
@@ -344,18 +336,18 @@ public class CacheConfig {
                 .recordStats()
                 .build();
 
-        // User Daily Items Cache - stores daily shop items for each user
-        this.userDailyItemsCache = Caffeine.newBuilder()
-                .maximumSize(userDailyItemsCacheMaxSize)
-                .expireAfterWrite(userDailyItemsCacheExpireHours, TimeUnit.HOURS)
-                .removalListener((RemovalListener<String, List<Shop>>) (key, value, cause) -> {
+        // Featured Items Cache - stores featured shop items
+        this.featuredItemsCache = Caffeine.newBuilder()
+                .maximumSize(featuredItemsCacheMaxSize)
+                .expireAfterWrite(featuredItemsCacheExpireMinutes, TimeUnit.MINUTES)
+                .removalListener((RemovalListener<String, List<Object>>) (key, value, cause) -> {
                     if (log.isDebugEnabled()) {
-                        log.debug("User daily items cache entry removed: key={}, cause={}", key, cause);
+                        log.debug("Featured items cache entry removed: key={}, cause={}", key, cause);
                     }
                 })
                 .recordStats()
                 .build();
-        
+
         // Leaderboard Cache - stores leaderboard data
         this.leaderboardCache = Caffeine.newBuilder()
                 .maximumSize(leaderboardCacheMaxSize)
@@ -406,7 +398,6 @@ public class CacheConfig {
                 "CountingGame: {}/{} entries/minutes, " +
                 "Giveaway: {}/{} entries/minutes, " +
                 "ShopLayout: {}/{} entries/minutes, " +
-                "UserDailyItems: {}/{} entries/hours, " +
                 "PendingRoleSelection: {}/{} entries/minutes, " +
                 "PendingPrison: {}/{} entries/days",
                 pairLevelCacheMaxSize, pairLevelCacheExpireMinutes,
@@ -421,7 +412,6 @@ public class CacheConfig {
                 countingGameCacheMaxSize, countingGameCacheExpireMinutes,
                 giveawayCacheMaxSize, giveawayCacheExpireMinutes,
                 shopLayoutCacheMaxSize, shopLayoutCacheExpireMinutes,
-                userDailyItemsCacheMaxSize, userDailyItemsCacheExpireHours,
                 pendingRoleSelectionCacheMaxSize, pendingRoleSelectionCacheExpireMinutes,
                 pendingPrisonCacheMaxSize, pendingPrisonCacheExpireDays);
     }
@@ -659,7 +649,6 @@ public class CacheConfig {
         countingGameCache.invalidateAll();
         giveawayCache.invalidateAll();
         featuredItemsCache.invalidateAll();
-        userDailyItemsCache.invalidateAll();
         leaderboardCache.invalidateAll();
         pendingRoleSelectionCache.invalidateAll();
         pendingPrisonCache.invalidateAll();
@@ -725,7 +714,6 @@ public class CacheConfig {
         countingGameCache.cleanUp();
         giveawayCache.cleanUp();
         featuredItemsCache.cleanUp();
-        userDailyItemsCache.cleanUp();
         leaderboardCache.cleanUp();
         pendingRoleSelectionCache.cleanUp();
         pendingPrisonCache.cleanUp();

@@ -65,6 +65,7 @@ import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 public class ShopService {
@@ -85,8 +86,8 @@ public class ShopService {
     private static final Logger logger = LoggerFactory.getLogger(ShopService.class);
     private volatile List<Shop> dailyItemPool;
     
-    // Server-side salt for secure daily item seed generation
-    private final String serverSeedSalt;
+    @Value("${shop.daily.seed-salt}")
+    private String serverSeedSalt;
     
     public ShopService(
         ShopRepository shopRepository,
@@ -117,8 +118,8 @@ public class ShopService {
         this.cacheConfig = cacheConfig;
         this.objectMapper = new ObjectMapper();
         
-        // Initialize server-side salt for secure seed generation
-        this.serverSeedSalt = secureRandomService.generateRollSeed();
+        // Initialize server-side salt for secure seed generation - REMOVED
+        // this.serverSeedSalt = secureRandomService.generateRollSeed();
     }
     
     @PostConstruct
@@ -213,52 +214,16 @@ public class ShopService {
         User user = userRepository.findByIdWithInventory(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
-        // Use computeIfAbsent to atomically check and generate daily items, preventing race conditions
-        List<Shop> userDailyItems = cacheConfig.getUserDailyItemsCache().asMap().computeIfAbsent(userId, key -> {
-            // If not in cache, generate them
-            logger.debug("Generating new daily items for user {}.", userId);
+        List<Shop> userDailyItems = generateDailyItemsForUser(user);
 
-            // Ensure daily item pool is available with thread-safe access
-            List<Shop> currentDailyPool = getDailyItemPoolSafely();
-
-            // Create a secure deterministic seed for the user and the current day
-            String seedString = userId + java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString() + serverSeedSalt;
-            long seed = seedString.hashCode();
-            Random random = new Random(seed);
-
-            // Get items the user already owns to exclude from selection
-            Set<UUID> ownedItemIds = user.getItemInstances().stream()
-                .map(instance -> instance.getBaseItem().getId())
-                .collect(Collectors.toSet());
-
-            // Create available item pool by filtering out items the user already owns
-            List<Shop> availableItemPool = currentDailyPool.stream()
-                .filter(item -> !ownedItemIds.contains(item.getId()))
-                .collect(Collectors.toList());
-
-            // Handle edge case: if available pool is empty or too small, log and use original pool
-            if (availableItemPool.isEmpty()) {
-                logger.info("User {} owns all daily eligible items. Using original pool for selection.", userId);
-                availableItemPool = new ArrayList<>(currentDailyPool);
-            } else if (availableItemPool.size() < 4) {
-                logger.debug("User {} has limited available daily items ({}). May result in fewer than 4 selections.", 
-                           userId, availableItemPool.size());
-            }
-
-            // Group available items by rarity for selection
-            Map<ItemRarity, List<Shop>> itemsByRarity = availableItemPool.stream()  
-                .collect(Collectors.groupingBy(Shop::getRarity));
-            
-            return selectItemsForUser(itemsByRarity, random, availableItemPool);
-        });
-
-        // Now, filter the daily items list (from cache or newly generated) to exclude items the user owns.
-        Set<UUID> ownedItemIds = user.getItemInstances().stream()
+        // Now, filter the daily items list to exclude any items the user owns.
+        // This is necessary because of the fallback logic where the original pool might be used.
+        Set<UUID> finalOwnedItemIds = user.getItemInstances().stream()
                 .map(instance -> instance.getBaseItem().getId())
                 .collect(Collectors.toSet());
 
         List<Shop> filteredDailyItems = userDailyItems.stream()
-            .filter(item -> !ownedItemIds.contains(item.getId()))
+            .filter(item -> !finalOwnedItemIds.contains(item.getId()))
             .collect(Collectors.toList());
 
         // Convert the filtered list to DTOs for the response
@@ -293,11 +258,43 @@ public class ShopService {
             .filter(Shop::getIsActive)
             .filter(item -> item.getCategory() != ShopCategory.CASE)
             .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
-
-        // Clear the cache for all users to force regeneration with the new pool
-        cacheConfig.getUserDailyItemsCache().invalidateAll();
         
         logger.info("Successfully updated global daily item pool with {} eligible items.", dailyItemPool.size());
+    }
+
+    private List<Shop> generateDailyItemsForUser(User user) {
+        // Ensure daily item pool is available with thread-safe access
+        List<Shop> currentDailyPool = getDailyItemPoolSafely();
+
+        // Create a secure deterministic seed for the user and the current day
+        String seedString = user.getId() + java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString() + serverSeedSalt;
+        long seed = seedString.hashCode();
+        Random random = new Random(seed);
+
+        // Get items the user already owns to exclude from selection
+        Set<UUID> ownedItemIds = user.getItemInstances().stream()
+            .map(instance -> instance.getBaseItem().getId())
+            .collect(Collectors.toSet());
+
+        // Create available item pool by filtering out items the user already owns
+        List<Shop> availableItemPool = currentDailyPool.stream()
+            .filter(item -> !ownedItemIds.contains(item.getId()))
+            .collect(Collectors.toList());
+
+        // Handle edge case: if available pool is empty or too small, log and use original pool
+        if (availableItemPool.isEmpty()) {
+            logger.info("User {} owns all daily eligible items. Using original pool for selection.", user.getId());
+            availableItemPool = new ArrayList<>(currentDailyPool);
+        } else if (availableItemPool.size() < 4) {
+            logger.debug("User {} has limited available daily items ({}). May result in fewer than 4 selections.", 
+                       user.getId(), availableItemPool.size());
+        }
+
+        // Group available items by rarity for selection
+        Map<ItemRarity, List<Shop>> itemsByRarity = availableItemPool.stream()  
+            .collect(Collectors.groupingBy(Shop::getRarity));
+        
+        return selectItemsForUser(itemsByRarity, random, availableItemPool);
     }
 
     private List<Shop> selectItemsForUser(Map<ItemRarity, List<Shop>> itemsByRarity, Random random, List<Shop> availableItemPool) {
@@ -461,18 +458,11 @@ public class ShopService {
 
         // If not featured, check if it's a daily item and present in the user's daily item list
         if (item.getIsDaily()) {
-            List<Shop> userDailyItems = cacheConfig.getUserDailyItemsCache().getIfPresent(user.getId());
-
-            if (userDailyItems != null) {
-                boolean isInDailyList = userDailyItems.stream().anyMatch(dailyItem -> dailyItem.getId().equals(item.getId()));
-                if (isInDailyList) {
-                    logger.debug("Purchase validation passed for user {}: Item {} is in their daily items list.", user.getId(), item.getId());
-                    return true;
-                }
-            } else {
-                // If cache misses, it's an invalid state. A user should have a generated daily list before trying to buy a daily item.
-                logger.warn("Purchase validation failed for user {}: Attempted to purchase daily item {} but the user has no cached daily item list.", user.getId(), item.getId());
-                return false;
+            List<Shop> userDailyItems = generateDailyItemsForUser(user);
+            boolean isInDailyList = userDailyItems.stream().anyMatch(dailyItem -> dailyItem.getId().equals(item.getId()));
+            if (isInDailyList) {
+                logger.debug("Purchase validation passed for user {}: Item {} is in their daily items list.", user.getId(), item.getId());
+                return true;
             }
         }
         
