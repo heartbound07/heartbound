@@ -121,7 +121,7 @@ public class BlackjackHand {
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append("<:backside:1387852561402429580>"); // Card back for first card
+        sb.append("<:backside:1399248667054964807>"); // Card back for first card
 
         if (cards.size() > 1) {
             sb.append(" ");
