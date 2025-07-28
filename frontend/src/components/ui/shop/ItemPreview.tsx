@@ -379,25 +379,6 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
 
       {/* Details Section */}
       <div className="item-preview-details">
-        {/* Item Name */}
-        {primaryItem && (
-          <div className="item-preview-name-section">
-            <SafeText
-              text={primaryItem.name}
-              tag="h3"
-              className="item-preview-name"
-              maxLength={100}
-              showTooltip={true}
-            />
-            <div
-              className="px-2 py-0.5 rounded text-xs font-semibold"
-              style={getRarityBadgeStyle(primaryItem.rarity)}
-            >
-              {getRarityLabel(primaryItem.rarity)}
-            </div>
-          </div>
-        )}
-        
         {/* Show selected items list */}
         <div className="item-preview-selected-items">
           <div className="space-y-2">
