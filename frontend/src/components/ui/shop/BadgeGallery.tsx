@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import BadgeItem from './BadgeItem';    
 import { motion } from 'framer-motion';
-import { ShopItem } from '../../../features/shop/InventoryPage';
+import { ShopItem } from '../../../features/inventory/InventoryPage';
 
 interface BadgeGalleryProps {
   badges: ShopItem[];

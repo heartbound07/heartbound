@@ -27,7 +27,7 @@ import { SettingsPage } from '@/features/settings/SettingsPage';
 import { ShopPage } from '@/features/shop/ShopPage';
 import { useEffect } from 'react';
 import { ShopAdminPage } from '@/features/shop/ShopAdminPage';
-import { InventoryPage } from '@/features/shop/InventoryPage';
+import { InventoryPage } from '@/features/inventory/InventoryPage';
 import { PairingsPage } from '@/features/pages/PairingsPage';
 import QueueUpdatesProvider from '@/contexts/QueueUpdates';
 import PairingUpdatesProvider from '@/contexts/PairingUpdates';
