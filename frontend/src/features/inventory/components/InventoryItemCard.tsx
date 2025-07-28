@@ -1,6 +1,5 @@
 import { forwardRef } from 'react';
 import { motion } from 'framer-motion';
-import { FaInfoCircle } from 'react-icons/fa';
 import { GiFishingPole } from 'react-icons/gi';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 import NameplatePreview from '@/components/NameplatePreview';
