@@ -71,34 +71,45 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
   
   const actionMode = getActionMode();
   
-  // Get selected nameplate or fall back to equipped/default
-  const getNameplateColor = () => {
-    if (selectedItems.nameplate) {
-      return selectedItems.nameplate.imageUrl;
-    }
-    // Debug logging for development
-    if (import.meta.env.DEV && user?.nameplateColor) {
-      console.log('[ItemPreview] Using equipped nameplate color:', user.nameplateColor);
-    }
-    // Fall back to user's equipped nameplate color or default (white instead of blue)
-    return user?.nameplateColor || '#ffffff';
-  };
-
-  // Get selected badge or fall back to equipped badge
-  const getBadgeUrl = () => {
+  // Determine what badge to show in the preview
+  const getPreviewBadgeUrl = () => {
+    // If a badge is selected...
     if (selectedItems.badge) {
+      // ...and it's equipped, we're previewing its removal, so show no badge.
+      if (selectedItems.badge.equipped) {
+        return null;
+      }
+      // ...and it's not equipped, we're previewing adding it.
       return selectedItems.badge.thumbnailUrl || selectedItems.badge.imageUrl;
     }
-    // Fall back to user's equipped badge if available
+    // If no badge is selected, just show the user's currently equipped badge.
     return user?.badgeUrl || null;
   };
 
-  // Check if user has equipped badge for default state
-  const hasEquippedBadge = () => {
-    return user?.badgeUrl && user.badgeUrl.length > 0;
+  // Determine what nameplate color to show in the preview
+  const getPreviewNameplate = () => {
+    // Start with the user's currently equipped colors, or defaults.
+    let color = user?.nameplateColor || '#ffffff';
+    let endColor = user?.gradientEndColor;
+
+    // If a nameplate is selected...
+    if (selectedItems.nameplate) {
+      // ...and it's equipped, we're previewing its removal. Show default white.
+      if (selectedItems.nameplate.equipped) {
+        color = '#ffffff';
+        endColor = undefined;
+      } else {
+        // ...and it's not equipped, we're previewing adding it.
+        color = selectedItems.nameplate.imageUrl;
+        endColor = selectedItems.nameplate.gradientEndColor;
+      }
+    }
+    
+    return { color, endColor };
   };
 
-  // Get the rarity color for the primary selected item (white when no items selected)
+  const previewBadgeUrl = getPreviewBadgeUrl();
+  const { color: previewNameplateColor, endColor: previewNameplateEndColor } = getPreviewNameplate();
   const rarityColor = primaryItem ? getRarityColor(primaryItem.rarity) : '#ffffff';
 
   const handleAction = (item: ShopItem) => {
@@ -240,54 +251,29 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
             <>
               {/* Combined Profile Preview */}
               <div className="item-preview-combined">
-                {selectedItems.badge ? (
-                  // Show badge preview with nameplate color
+                {previewBadgeUrl ? (
+                  // If we have a badge to show, render BadgePreview
                   <BadgePreview
                     username={user?.username || "Username"}
                     avatar={user?.avatar || "/images/default-avatar.png"}
-                    badgeUrl={getBadgeUrl() || ''}
+                    badgeUrl={previewBadgeUrl}
                     message="This is what your profile looks like"
                     className="w-full"
                     size="lg"
-                    nameplateColor={getNameplateColor()} // Pass the nameplate color
+                    nameplateColor={previewNameplateColor}
                   />
-                ) : selectedItems.nameplate ? (
-                  // Show nameplate preview only
+                ) : (
+                  // Otherwise, render NameplatePreview
                   <NameplatePreview
                     username={user?.username || "Username"}
                     avatar={user?.avatar || "/images/default-avatar.png"}
-                    color={selectedItems.nameplate.imageUrl}
-                    endColor={selectedItems.nameplate.gradientEndColor}
+                    color={previewNameplateColor}
+                    endColor={previewNameplateEndColor}
                     fallbackColor={rarityColor}
                     message="This is what your profile looks like"
                     className="w-full"
                     size="lg"
                   />
-                ) : (
-                  // Default profile preview - show equipped badge if available, otherwise nameplate
-                  <div className="item-preview-default-profile">
-                    {hasEquippedBadge() ? (
-                      <BadgePreview
-                        username={user?.username || "Username"}
-                        avatar={user?.avatar || "/images/default-avatar.png"}
-                        badgeUrl={getBadgeUrl() || ''}
-                        message="This is what your profile looks like"
-                        className="w-full"
-                        size="lg"
-                        nameplateColor={getNameplateColor()} // Show both equipped badge and nameplate color
-                      />
-                    ) : (
-                      <NameplatePreview
-                        username={user?.username || "Username"}
-                        avatar={user?.avatar || "/images/default-avatar.png"}
-                        color={getNameplateColor()}
-                        fallbackColor="#ffffff"
-                        message="This is what your profile looks like"
-                        className="w-full"
-                        size="lg"
-                      />
-                    )}
-                  </div>
                 )}
               </div>
             </>
