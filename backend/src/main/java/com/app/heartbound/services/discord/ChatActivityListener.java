@@ -602,7 +602,6 @@ public class ChatActivityListener extends ListenerAdapter {
                 userUpdated = true;
             }
             
-            int initialLevel = user.getLevel(); // Safe to access now, guaranteed to be non-null
             
             // Get role multiplier for this user
             double roleMultiplier = getUserRoleMultiplier(userId, event);
