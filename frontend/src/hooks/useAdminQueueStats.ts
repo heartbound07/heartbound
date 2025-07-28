@@ -114,31 +114,6 @@ export const useAdminQueueStats = (): AdminQueueStatsHookReturn => {
     }
   }, [isAdmin]);
 
-  // Reduced frequency fallback refresh (only when no WebSocket updates)
-  // This is now primarily a safety net rather than the main data source
-  useEffect(() => {
-    if (!isAdmin || !isConnected) {
-      return;
-    }
-
-    const refreshInterval = setInterval(async () => {
-      // Only do fallback refresh if we haven't had recent updates
-      try {
-        console.log('[AdminQueueStats] Fallback refresh of queue statistics');
-        const stats = await getQueueStatistics();
-        setQueueStats(stats);
-        setError(null);
-      } catch (err: any) {
-        console.warn('[AdminQueueStats] Fallback refresh failed:', err);
-        // Don't set error on fallback refresh failures to avoid noise
-      }
-    }, 120000); // Reduced to every 2 minutes as fallback only
-
-    return () => {
-      clearInterval(refreshInterval);
-    };
-  }, [isAdmin, isConnected]);
-
   const clearError = useCallback(() => {
     setError(null);
   }, []);

@@ -108,7 +108,6 @@ public class QueueService {
     private static final long BROADCAST_DEBOUNCE_MS = 1000; // 1 second debounce
 
     // **OPTIMIZATION 3: Intelligent Cache Invalidation Tracking**
-    private final AtomicBoolean cacheInvalidated = new AtomicBoolean(false);
     private volatile LocalDateTime lastCacheInvalidation = LocalDateTime.now();
 
     @Transactional
@@ -681,7 +680,6 @@ public class QueueService {
             queueStatsCache.invalidateAll();
             queueUserDetailsCache.invalidateAll();
             lastCacheInvalidation = LocalDateTime.now();
-            cacheInvalidated.set(true);
             log.debug("Invalidated expensive caches due to: {}", reason);
         }
     }
@@ -722,22 +720,6 @@ public class QueueService {
 
     public void broadcastAdminQueueUpdate() {
         broadcastAdminQueueUpdateIfNeeded();
-    }
-
-    /**
-     * **OPTIMIZATION: Scheduled admin broadcasting with intelligent triggers**
-     */
-    @Scheduled(fixedRate = 60000) // Every minute instead of every 10 seconds
-    public void scheduledAdminQueueBroadcast() {
-        // Only broadcast if there are admin subscribers and cache was invalidated
-        if (hasAdminSubscriptions() && cacheInvalidated.compareAndSet(true, false)) {
-            try {
-                broadcastAdminQueueUpdate();
-                log.debug("Scheduled admin broadcast triggered (cache was invalidated)");
-            } catch (Exception e) {
-                log.error("Error in scheduled admin broadcast", e);
-            }
-        }
     }
 
     /**
@@ -791,7 +773,6 @@ public class QueueService {
         ));
         
         status.put("lastCacheInvalidation", lastCacheInvalidation.toString());
-        status.put("cacheInvalidated", cacheInvalidated.get());
         
         return status;
     }
@@ -807,7 +788,6 @@ public class QueueService {
         queueUserDetailsCache.invalidateAll();
         queueSizeCache.invalidateAll();
         lastCacheInvalidation = LocalDateTime.now();
-        cacheInvalidated.set(true);
         
         // **OPTIMIZATION: Immediate admin update for match events**
         broadcastAdminQueueUpdateIfNeeded();
@@ -870,7 +850,6 @@ public class QueueService {
         queueUserDetailsCache.invalidateAll();
         queueSizeCache.invalidateAll();
         lastCacheInvalidation = LocalDateTime.now();
-        cacheInvalidated.set(true);
         
         // Immediate broadcast to any connected admin clients
         broadcastAdminQueueUpdateIfNeeded();
