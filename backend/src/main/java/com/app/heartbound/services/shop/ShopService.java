@@ -430,6 +430,12 @@ public class ShopService {
             return false;
         }
 
+        // Check for stock availability
+        if (item.getMaxCopies() != null && item.getCopiesSold() != null && item.getCopiesSold() >= item.getMaxCopies()) {
+            logger.warn("Purchase validation failed for user {}: Item {} is sold out", user.getId(), item.getId());
+            return false;
+        }
+
         // Check if item is active
         if (!item.getIsActive()) {
             logger.warn("Purchase validation failed for user {}: Item {} is not active", user.getId(), item.getId());
@@ -574,10 +580,6 @@ public class ShopService {
                 .serialNumber(serialNumber)
                 .build();
             newInstances.add(newInstance);
-        }
-    
-        if (item.getMaxCopies() != null && item.getCopiesSold() >= item.getMaxCopies()) {
-            item.setIsActive(false);
         }
     
         itemInstanceRepository.saveAll(newInstances);
