@@ -247,7 +247,9 @@ public class DiscordBotSettingsService {
         dto.setRegionRolesThumbnailUrl(settings.getRegionRolesThumbnailUrl());
 
         // Map fishing game settings
+        dto.setFishingMinCatches(settings.getFishingMinCatches());
         dto.setFishingMaxCatches(settings.getFishingMaxCatches());
+        dto.setFishingDefaultMaxCatches(settings.getFishingDefaultMaxCatches());
         dto.setFishingCooldownHours(settings.getFishingCooldownHours());
         dto.setFishingLimitWarningThreshold(settings.getFishingLimitWarningThreshold());
         dto.setFishingPenaltyCredits(settings.getFishingPenaltyCredits());
@@ -348,7 +350,9 @@ public class DiscordBotSettingsService {
         settings.setRegionRolesThumbnailUrl(dto.getRegionRolesThumbnailUrl());
 
         // Update fishing game settings
+        settings.setFishingMinCatches(dto.getFishingMinCatches());
         settings.setFishingMaxCatches(dto.getFishingMaxCatches());
+        settings.setFishingDefaultMaxCatches(dto.getFishingDefaultMaxCatches());
         settings.setFishingCooldownHours(dto.getFishingCooldownHours());
         settings.setFishingLimitWarningThreshold(dto.getFishingLimitWarningThreshold());
         settings.setFishingPenaltyCredits(dto.getFishingPenaltyCredits());
@@ -476,7 +480,9 @@ public class DiscordBotSettingsService {
         // Cache miss - fetch from database
         DiscordBotSettings settings = self.getDiscordBotSettings();
         FishingSettings fishingSettings = new FishingSettings(
-            settings.getFishingMaxCatches() != null ? settings.getFishingMaxCatches() : 300,
+            settings.getFishingMinCatches() != null ? settings.getFishingMinCatches() : 500,
+            settings.getFishingMaxCatches() != null ? settings.getFishingMaxCatches() : 1500,
+            settings.getFishingDefaultMaxCatches() != null ? settings.getFishingDefaultMaxCatches() : 300,
             settings.getFishingCooldownHours() != null ? settings.getFishingCooldownHours() : 6,
             settings.getFishingLimitWarningThreshold() != null ? settings.getFishingLimitWarningThreshold() : 0.9,
             settings.getFishingPenaltyCredits() != null ? settings.getFishingPenaltyCredits() : 50
@@ -493,19 +499,25 @@ public class DiscordBotSettingsService {
      * Data class for fishing settings to avoid fetching entire DiscordBotSettings for performance
      */
     public static class FishingSettings {
+        private final int minCatches;
         private final int maxCatches;
+        private final int defaultMaxCatches;
         private final int cooldownHours;
         private final double limitWarningThreshold;
         private final int penaltyCredits;
         
-        public FishingSettings(int maxCatches, int cooldownHours, double limitWarningThreshold, int penaltyCredits) {
+        public FishingSettings(int minCatches, int maxCatches, int defaultMaxCatches, int cooldownHours, double limitWarningThreshold, int penaltyCredits) {
+            this.minCatches = minCatches;
             this.maxCatches = maxCatches;
+            this.defaultMaxCatches = defaultMaxCatches;
             this.cooldownHours = cooldownHours;
             this.limitWarningThreshold = limitWarningThreshold;
             this.penaltyCredits = penaltyCredits;
         }
         
+        public int getMinCatches() { return minCatches; }
         public int getMaxCatches() { return maxCatches; }
+        public int getDefaultMaxCatches() { return defaultMaxCatches; }
         public int getCooldownHours() { return cooldownHours; }
         public double getLimitWarningThreshold() { return limitWarningThreshold; }
         public int getPenaltyCredits() { return penaltyCredits; }

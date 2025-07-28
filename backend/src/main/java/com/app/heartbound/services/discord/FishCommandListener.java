@@ -80,11 +80,32 @@ public class FishCommandListener extends ListenerAdapter {
      */
     private FishingLimitStatus checkFishingLimit(User user, DiscordBotSettingsService.FishingSettings settings) {
         int currentCatches = user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0;
-        int maxCatches = settings.getMaxCatches();
+        Integer currentFishingLimit = user.getCurrentFishingLimit();
+        int min = settings.getMinCatches();
+        int max = settings.getMaxCatches();
         
+        // A user's limit is invalid if it's null or falls outside the admin-configured range.
+        boolean isLimitInvalid = currentFishingLimit == null || currentFishingLimit < min || currentFishingLimit > max;
+
+        if (isLimitInvalid) {
+            // If the limit is invalid, start a new session for the user with a new random limit.
+            if (min > 0 && max >= min) {
+                currentFishingLimit = secureRandomService.getSecureInt(max - min + 1) + min;
+                logger.info("User {} limit was invalid or null. Assigned new random limit: {}. Resetting catch count.", user.getId(), currentFishingLimit);
+            } else {
+                currentFishingLimit = settings.getDefaultMaxCatches();
+                logger.warn("Invalid min/max fishing settings. Assigning fallback limit {} to user {}.", currentFishingLimit, user.getId());
+            }
+            user.setCurrentFishingLimit(currentFishingLimit);
+            
+            // Reset their progress for this new session.
+            user.setFishCaughtSinceLimit(0);
+            currentCatches = 0;
+        }
+
         // If user hasn't reached the limit, they can fish
-        if (currentCatches < maxCatches) {
-            return new FishingLimitStatus(false, 0, currentCatches, maxCatches);
+        if (currentCatches < currentFishingLimit) {
+            return new FishingLimitStatus(false, 0, currentCatches, currentFishingLimit);
         }
         
         // User has reached the limit, check cooldown
@@ -94,8 +115,8 @@ public class FishCommandListener extends ListenerAdapter {
             // This can happen for legacy users who had high fish counts before the limit system
             // Allow them to fish but set a cooldown after their next successful catch
             logger.info("User {} has {} catches (exceeds limit of {}) but no cooldown set. Allowing fishing.", 
-                       user.getId(), currentCatches, maxCatches);
-            return new FishingLimitStatus(false, 0, currentCatches, maxCatches);
+                       user.getId(), currentCatches, currentFishingLimit);
+            return new FishingLimitStatus(false, 0, currentCatches, currentFishingLimit);
         }
         
         LocalDateTime now = LocalDateTime.now();
@@ -103,15 +124,19 @@ public class FishCommandListener extends ListenerAdapter {
             // Still on cooldown, calculate remaining time
             long totalRemainingMinutes = ChronoUnit.MINUTES.between(now, cooldownUntil);
             
-            return new FishingLimitStatus(true, totalRemainingMinutes, currentCatches, maxCatches);
+            return new FishingLimitStatus(true, totalRemainingMinutes, currentCatches, currentFishingLimit);
         } else {
             // Cooldown has expired, reset the cooldown field AND the fish-since-limit count
             user.setFishingLimitCooldownUntil(null);
             user.setFishCaughtSinceLimit(0); // <-- THE FIX
-            // userService.updateUser(user); // REMOVED - will be saved in the main transaction
-            logger.info("Fishing cooldown expired for user {}. Resetting cooldown and fish-since-limit count.", user.getId());
-            // Return a new status with the reset count
-            return new FishingLimitStatus(false, 0, 0, maxCatches);
+            
+            // Generate a new random fishing limit for the user for their next "session"
+            int newLimit = secureRandomService.getSecureInt(max - min + 1) + min;
+            user.setCurrentFishingLimit(newLimit);
+
+            logger.info("Fishing cooldown expired for user {}. Resetting cooldown and fish-since-limit count. New limit: {}", user.getId(), newLimit);
+            // Return a new status with the reset count and new limit
+            return new FishingLimitStatus(false, 0, 0, newLimit);
         }
     }
     
@@ -299,7 +324,7 @@ public class FishCommandListener extends ListenerAdapter {
                 message.append("! +").append(finalCreditChange).append(" 🪙");
                 
                 // Atomically update credits
-                userService.updateCreditsAtomic(userId, finalCreditChange);
+                // userService.updateCreditsAtomic(userId, finalCreditChange);
 
                 // FIX: Manually synchronize the managed User entity's state with the atomic DB update.
                 user.setCredits(currentCredits + finalCreditChange);
@@ -312,7 +337,7 @@ public class FishCommandListener extends ListenerAdapter {
                 user.setFishCaughtSinceLimit(newFishSinceLimit);
                 
                 // Check if user has reached the fishing limit
-                int maxCatches = fishingSettings.getMaxCatches();
+                int maxCatches = user.getCurrentFishingLimit();
                 int cooldownHours = fishingSettings.getCooldownHours();
                 double limitWarningThreshold = fishingSettings.getLimitWarningThreshold();
                 
@@ -377,7 +402,7 @@ public class FishCommandListener extends ListenerAdapter {
                 message.append("! +").append(finalCreditChange).append(" 🪙");
                 
                 // Atomically update credits
-                userService.updateCreditsAtomic(userId, finalCreditChange);
+                // userService.updateCreditsAtomic(userId, finalCreditChange);
 
                 // FIX: Manually synchronize the managed User entity's state with the atomic DB update.
                 user.setCredits(currentCredits + finalCreditChange);
@@ -390,7 +415,7 @@ public class FishCommandListener extends ListenerAdapter {
                 user.setFishCaughtSinceLimit(newFishSinceLimit);
                 
                 // Check if user has reached the fishing limit
-                int maxCatches = fishingSettings.getMaxCatches();
+                int maxCatches = user.getCurrentFishingLimit();
                 int cooldownHours = fishingSettings.getCooldownHours();
                 double limitWarningThreshold = fishingSettings.getLimitWarningThreshold();
                 
@@ -444,7 +469,7 @@ public class FishCommandListener extends ListenerAdapter {
                 
                 // Atomically update credits
                 if (creditChange > 0) {
-                    userService.updateCreditsAtomic(userId, -creditChange);
+                    // userService.updateCreditsAtomic(userId, -creditChange);
                     // FIX: Manually synchronize the managed User entity's state with the atomic DB update.
                     user.setCredits(currentCredits - creditChange);
                 }

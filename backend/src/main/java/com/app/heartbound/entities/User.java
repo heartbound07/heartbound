@@ -191,6 +191,9 @@ public class User {
     @Column(name = "equipped_fishing_rod_id")
     private UUID equippedFishingRodId;
     
+    // Add a field to store the user's current randomized fishing limit
+    private Integer currentFishingLimit;
+
     // Helper methods for role management
     public void addRole(Role role) {
         if (this.roles == null) {
@@ -290,6 +293,14 @@ public class User {
 
     public boolean hasEquippedBadge() {
         return this.equippedBadgeId != null;
+    }
+
+    public Integer getCurrentFishingLimit() {
+        return currentFishingLimit;
+    }
+
+    public void setCurrentFishingLimit(Integer currentFishingLimit) {
+        this.currentFishingLimit = currentFishingLimit;
     }
 
     public String getSelectedAgeRoleId() {

@@ -100,7 +100,9 @@ public class DiscordBotSettings {
     private String regionRolesThumbnailUrl;
 
     // Fishing Game Configuration
-    private Integer fishingMaxCatches = 300;
+    private Integer fishingMinCatches;
+    private Integer fishingMaxCatches;
+    private Integer fishingDefaultMaxCatches = 300;
     private Integer fishingCooldownHours = 6;
     private Double fishingLimitWarningThreshold = 0.9;
     private Integer fishingPenaltyCredits = 50;
@@ -626,12 +628,28 @@ public class DiscordBotSettings {
     }
 
     // Fishing Game getters and setters
+    public Integer getFishingMinCatches() {
+        return fishingMinCatches;
+    }
+
+    public void setFishingMinCatches(Integer fishingMinCatches) {
+        this.fishingMinCatches = fishingMinCatches;
+    }
+
     public Integer getFishingMaxCatches() {
         return fishingMaxCatches;
     }
 
     public void setFishingMaxCatches(Integer fishingMaxCatches) {
         this.fishingMaxCatches = fishingMaxCatches;
+    }
+
+    public Integer getFishingDefaultMaxCatches() {
+        return fishingDefaultMaxCatches;
+    }
+
+    public void setFishingDefaultMaxCatches(Integer fishingDefaultMaxCatches) {
+        this.fishingDefaultMaxCatches = fishingDefaultMaxCatches;
     }
 
     public Integer getFishingCooldownHours() {

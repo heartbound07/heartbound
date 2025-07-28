@@ -205,8 +205,18 @@ public class DiscordBotSettingsDTO {
     // Fishing Game Configuration
     @NotNull
     @Min(1)
-    @Max(10000) // Reasonable upper limit to prevent abuse
+    @Max(10000)
+    private Integer fishingMinCatches;
+    
+    @NotNull
+    @Min(1)
+    @Max(10000)
     private Integer fishingMaxCatches;
+
+    @NotNull
+    @Min(1)
+    @Max(10000) // Reasonable upper limit to prevent abuse
+    private Integer fishingDefaultMaxCatches;
 
     @NotNull
     @Min(1)

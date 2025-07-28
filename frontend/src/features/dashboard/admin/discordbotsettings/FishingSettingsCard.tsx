@@ -22,8 +22,24 @@ export const FishingSettingsCard = ({ settings, handleChange }: FishingSettingsC
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
+            <label htmlFor="fishingMinCatches" className="block text-white">
+              Minimum Catches per Session
+            </label>
+            <input
+              type="number"
+              id="fishingMinCatches"
+              name="fishingMinCatches"
+              value={settings.fishingMinCatches || ''}
+              onChange={handleChange}
+              min="1"
+              className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+            />
+            <p className="text-slate-400 text-sm">The minimum fish a user can catch before a cooldown.</p>
+          </div>
+
+          <div className="space-y-2">
             <label htmlFor="fishingMaxCatches" className="block text-white">
-              Maximum Fish Per Session
+              Maximum Catches per Session
             </label>
             <input
               type="number"
@@ -34,9 +50,25 @@ export const FishingSettingsCard = ({ settings, handleChange }: FishingSettingsC
               min="1"
               className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
             />
-            <p className="text-slate-400 text-sm">Number of fish users can catch before cooldown</p>
+            <p className="text-slate-400 text-sm">The maximum fish a user can catch before a cooldown.</p>
           </div>
           
+          <div className="space-y-2">
+            <label htmlFor="fishingDefaultMaxCatches" className="block text-white">
+              Fallback Max Catches
+            </label>
+            <input
+              type="number"
+              id="fishingDefaultMaxCatches"
+              name="fishingDefaultMaxCatches"
+              value={settings.fishingDefaultMaxCatches || ''}
+              onChange={handleChange}
+              min="1"
+              className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:border-primary focus:ring-1 focus:ring-primary"
+            />
+            <p className="text-slate-400 text-sm">Default limit for users who don't have a random limit set yet.</p>
+          </div>
+
           <div className="space-y-2">
             <label htmlFor="fishingCooldownHours" className="block text-white">
               Cooldown Duration (Hours)
@@ -94,6 +126,7 @@ export const FishingSettingsCard = ({ settings, handleChange }: FishingSettingsC
             Anti-Botting Features
           </p>
           <ul className="mt-1 text-yellow-100/80 space-y-1 list-disc list-inside">
+            <li>A user's fishing limit is randomized between the min and max values each time their cooldown resets.</li>
             <li>Users who try to fish during cooldown silently lose credits as a penalty</li>
             <li>The penalty is not shown to the user to prevent gaming the system</li>
             <li>All fishing activities are logged for administrative review</li>
