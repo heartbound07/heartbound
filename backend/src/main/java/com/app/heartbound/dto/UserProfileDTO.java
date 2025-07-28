@@ -78,6 +78,9 @@ public class UserProfileDTO {
     // Add resolved nameplate color for frontend preview
     private String nameplateColor;
     
+    // Add gradient end color for nameplate preview
+    private String gradientEndColor;
+
     // Daily claim system fields
     private Integer dailyStreak;
     private java.time.LocalDateTime lastDailyClaim;

@@ -699,22 +699,19 @@ public class UserService {
             }
         }
         
-        // Resolve equipped nameplate color
+        // Resolve equipped nameplate color and gradient
         String nameplateColor = null;
+        String gradientEndColor = null;
         UUID equippedUserColorId = user.getEquippedUserColorId();
         if (equippedUserColorId != null) {
             try {
-                shopRepository.findById(equippedUserColorId).ifPresent(userColorItem -> {
-                    // For USER_COLOR items, the imageUrl contains the hex color value
-                    if (userColorItem.getImageUrl() != null && !userColorItem.getImageUrl().isEmpty()) {
-                        // The imageUrl for USER_COLOR items should be a hex color like "#FF5733"
-                        logger.debug("Resolved nameplate color for user {}: {}", user.getId(), userColorItem.getImageUrl());
-                    }
-                });
-                // Use a more direct approach to get the color
-                nameplateColor = shopRepository.findById(equippedUserColorId)
-                    .map(item -> item.getImageUrl())
-                    .orElse(null);
+                Optional<Shop> userColorItemOpt = shopRepository.findById(equippedUserColorId);
+                if (userColorItemOpt.isPresent()) {
+                    Shop userColorItem = userColorItemOpt.get();
+                    nameplateColor = userColorItem.getImageUrl();
+                    gradientEndColor = userColorItem.getGradientEndColor();
+                    logger.debug("Resolved nameplate for user {}: color={}, gradientEnd={}", user.getId(), nameplateColor, gradientEndColor);
+                }
             } catch (Exception e) {
                 logger.warn("Failed to resolve nameplate color for user {}: {}", user.getId(), e.getMessage());
             }
@@ -757,6 +754,7 @@ public class UserService {
                 .badgeUrl(badgeUrl)
                 .badgeName(badgeName) // Add the badge name
                 .nameplateColor(nameplateColor) // Add resolved nameplate color
+                .gradientEndColor(gradientEndColor)
                 .dailyStreak(user.getDailyStreak()) // Add daily claim fields
                 .lastDailyClaim(user.getLastDailyClaim())
                 .selectedAgeRoleId(user.getSelectedAgeRoleId())
@@ -2033,11 +2031,20 @@ public class UserService {
         }
 
         String nameplateColor = null;
+        String gradientEndColor = null;
         UUID equippedUserColorId = user.getEquippedUserColorId();
         if (equippedUserColorId != null) {
-            nameplateColor = shopRepository.findById(equippedUserColorId)
-                .map(item -> item.getImageUrl())
-                .orElse(null);
+            try {
+                Optional<Shop> userColorItemOpt = shopRepository.findById(equippedUserColorId);
+                if (userColorItemOpt.isPresent()) {
+                    Shop userColorItem = userColorItemOpt.get();
+                    nameplateColor = userColorItem.getImageUrl();
+                    gradientEndColor = userColorItem.getGradientEndColor();
+                    logger.debug("Resolved nameplate for user {}: color={}, gradientEnd={}", user.getId(), nameplateColor, gradientEndColor);
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to resolve nameplate color for user {}: {}", user.getId(), e.getMessage());
+            }
         }
 
         return PublicUserProfileDTO.builder()
@@ -2053,6 +2060,7 @@ public class UserService {
                 .badgeUrl(badgeUrl)
                 .badgeName(badgeName)
                 .nameplateColor(nameplateColor)
+                .gradientEndColor(gradientEndColor)
                 .build();
     }
 

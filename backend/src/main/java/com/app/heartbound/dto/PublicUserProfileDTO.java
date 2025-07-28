@@ -21,4 +21,5 @@ public class PublicUserProfileDTO {
     private String badgeUrl;
     private String badgeName;
     private String nameplateColor;
+    private String gradientEndColor;
 } 
