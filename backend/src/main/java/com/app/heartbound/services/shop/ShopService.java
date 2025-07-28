@@ -1531,13 +1531,55 @@ public class ShopService {
      */
     private void cleanupUserInventories(Shop item) {
         logger.debug("Cleaning up user inventories for item {}", item.getId());
-        
-        // Clean up the new ItemInstance system by finding all instances of the base item and deleting them.
+
         List<ItemInstance> instancesToDelete = itemInstanceRepository.findByBaseItem(item);
-        if (!instancesToDelete.isEmpty()) {
-            logger.info("Removing {} instances of item {} from user inventories.", instancesToDelete.size(), item.getId());
-            itemInstanceRepository.deleteAll(instancesToDelete);
+        if (instancesToDelete.isEmpty()) {
+            return;
         }
+
+        Integer refundAmount = item.getPrice();
+        boolean needsRefund = refundAmount != null && refundAmount > 0;
+
+        // Group instances by user ID to process refunds and unequip logic.
+        Map<String, List<ItemInstance>> instancesByUser = instancesToDelete.stream()
+            .collect(Collectors.groupingBy(instance -> instance.getOwner().getId()));
+
+        if (!instancesByUser.isEmpty()) {
+            List<User> affectedUsers = userRepository.findAllById(instancesByUser.keySet());
+
+            for (User user : affectedUsers) {
+                long ownedCount = instancesByUser.get(user.getId()).size();
+                
+                // 1. Issue refund if necessary
+                if (needsRefund) {
+                    int totalRefund = (int) (refundAmount * ownedCount);
+                    user.setCredits(user.getCredits() + totalRefund);
+                }
+
+                // 2. Unequip the item if it was equipped
+                if (item.getCategory() != null && item.getCategory().isEquippable()) {
+                    UUID equippedId = user.getEquippedItemIdByCategory(item.getCategory());
+                    if (item.getId().equals(equippedId)) {
+                        user.setEquippedItemIdByCategory(item.getCategory(), null);
+                        logger.debug("Unequipped deleted item {} for user {}", item.getId(), user.getId());
+
+                        // Also handle Discord role removal if applicable
+                        if (item.getDiscordRoleId() != null && !item.getDiscordRoleId().isEmpty()) {
+                            discordService.removeRole(user.getId(), item.getDiscordRoleId());
+                            logger.debug("Removed Discord role {} for deleted item from user {}", item.getDiscordRoleId(), user.getId());
+                        }
+                    }
+                }
+            }
+
+            // Save all user changes in a batch.
+            userRepository.saveAll(affectedUsers);
+            logger.info("Processed refunds and unequips for {} users affected by deletion of item '{}'.", affectedUsers.size(), item.getName());
+        }
+
+        // Finally, remove all instances of the item from the inventory.
+        itemInstanceRepository.deleteAllInBatch(instancesToDelete);
+        logger.info("Removing {} instances of item {} from all user inventories.", instancesToDelete.size(), item.getId());
     }
     
     /**
