@@ -389,6 +389,22 @@ export function InventoryPage() {
         newSelected[categoryKey] = newSelected[categoryKey]?.id === item.id ? null : item;
       }
       
+      // Check for mixed selection (equipped and unequipped items)
+      const selectionAsArray = Object.values(newSelected).filter(i => i !== null) as ShopItem[];
+      const hasEquippedItems = selectionAsArray.some(i => i.equipped);
+      const hasUnequippedItems = selectionAsArray.some(i => !i.equipped);
+
+      // If selection is mixed, deselect all equipped items, keeping only the unequipped ones.
+      if (hasEquippedItems && hasUnequippedItems) {
+        const unequippedOnlySelection: typeof newSelected = {};
+        Object.entries(newSelected).forEach(([key, value]) => {
+          if (value && !value.equipped) {
+            unequippedOnlySelection[key as keyof typeof newSelected] = value;
+          }
+        });
+        return unequippedOnlySelection;
+      }
+
       return newSelected;
     });
   };
