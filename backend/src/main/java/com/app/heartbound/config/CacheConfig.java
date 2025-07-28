@@ -109,7 +109,14 @@ public class CacheConfig {
     @Value("${cache.giveaway.expire-after-write-minutes:10}")
     private long giveawayCacheExpireMinutes;
 
-    // User Daily Items Cache Configuration
+    // Featured Items Cache Configuration
+    @Value("${cache.featured-items.max-size:50}")
+    private long featuredItemsCacheMaxSize;
+
+    @Value("${cache.featured-items.expire-after-write-minutes:60}")
+    private long featuredItemsCacheExpireMinutes;
+
+    // User Daily Items Cache Configuration  
     @Value("${cache.user-daily-items.max-size:10000}")
     private long userDailyItemsCacheMaxSize;
 
@@ -155,6 +162,7 @@ public class CacheConfig {
     private Cache<String, List<Object>> dailyMessageActivityCache;
     private Cache<String, Object> dailyClaimCache;
     private Cache<Long, Object> discordBotSettingsCache;
+    private Cache<String, Object> fishingSettingsCache;
     private Cache<String, List<String>> prisonCache;
     private Cache<String, Object> countingGameCache;
     private Cache<String, Object> giveawayCache;
@@ -283,6 +291,18 @@ public class CacheConfig {
                 .removalListener((RemovalListener<Long, Object>) (key, value, cause) -> {
                     if (log.isDebugEnabled()) {
                         log.debug("Discord bot settings cache entry removed: key={}, cause={}", key, cause);
+                    }
+                })
+                .recordStats()
+                .build();
+
+        // Fishing Settings Cache - stores frequently accessed fishing configuration for performance
+        this.fishingSettingsCache = Caffeine.newBuilder()
+                .maximumSize(5) // Small cache for fishing settings
+                .expireAfterWrite(10, TimeUnit.MINUTES) // 10-minute TTL for Discord commands
+                .removalListener((RemovalListener<String, Object>) (key, value, cause) -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Fishing settings cache entry removed: key={}, cause={}", key, cause);
                     }
                 })
                 .recordStats()
@@ -489,6 +509,15 @@ public class CacheConfig {
     }
 
     /**
+     * Invalidates fishing settings cache.
+     * Use when fishing-related Discord bot settings are updated.
+     */
+    public void invalidateFishingSettingsCache() {
+        fishingSettingsCache.invalidateAll();
+        log.debug("Fishing settings cache invalidated");
+    }
+
+    /**
      * Invalidates prison cache for a specific user.
      * Use when a user's prison status is updated externally.
      */
@@ -624,6 +653,7 @@ public class CacheConfig {
         dailyMessageActivityCache.invalidateAll();
         dailyClaimCache.invalidateAll();
         discordBotSettingsCache.invalidateAll();
+        fishingSettingsCache.invalidateAll();
         prisonCache.invalidateAll();
         countingGameCache.invalidateAll();
         giveawayCache.invalidateAll();
@@ -687,6 +717,7 @@ public class CacheConfig {
         dailyMessageActivityCache.cleanUp();
         dailyClaimCache.cleanUp();
         discordBotSettingsCache.cleanUp();
+        fishingSettingsCache.cleanUp();
         prisonCache.cleanUp();
         countingGameCache.cleanUp();
         giveawayCache.cleanUp();

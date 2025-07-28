@@ -5,10 +5,12 @@ import com.app.heartbound.services.RateLimitingService;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.Scheduled;
 
 @Configuration
 @EnableScheduling
+@EnableAsync(proxyTargetClass = true)
 public class RateLimitingConfig {
 
     private final RateLimitingFilter rateLimitingFilter;

@@ -3,6 +3,7 @@ package com.app.heartbound.services.discord;
 import com.app.heartbound.dto.discord.DiscordBotSettingsDTO;
 import com.app.heartbound.entities.DiscordBotSettings;
 import com.app.heartbound.repositories.DiscordBotSettingsRepository;
+import com.app.heartbound.config.CacheConfig;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,7 @@ public class DiscordBotSettingsService {
     private final ChatActivityListener chatActivityListener;
     private final UserVoiceActivityService userVoiceActivityService;
     private final CountingGameService countingGameService;
+    private final CacheConfig cacheConfig;
     
     @Autowired
     @Lazy
@@ -353,6 +355,9 @@ public class DiscordBotSettingsService {
 
         repository.save(settings);
         
+        // Invalidate related caches after successful save
+        cacheConfig.invalidateFishingSettingsCache();
+        
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
@@ -450,5 +455,59 @@ public class DiscordBotSettingsService {
         } catch (Exception e) {
             log.error("Error applying Discord bot settings: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Gets fishing-related settings with caching for performance optimization.
+     * This method is specifically designed for Discord commands that frequently access fishing settings.
+     * 
+     * @return FishingSettings containing the current fishing configuration
+     */
+    public FishingSettings getCachedFishingSettings() {
+        // Try to get from cache first
+        String cacheKey = "fishing_settings";
+        FishingSettings cachedSettings = (FishingSettings) cacheConfig.getFishingSettingsCache().getIfPresent(cacheKey);
+        
+        if (cachedSettings != null) {
+            log.debug("Retrieved fishing settings from cache");
+            return cachedSettings;
+        }
+        
+        // Cache miss - fetch from database
+        DiscordBotSettings settings = self.getDiscordBotSettings();
+        FishingSettings fishingSettings = new FishingSettings(
+            settings.getFishingMaxCatches() != null ? settings.getFishingMaxCatches() : 300,
+            settings.getFishingCooldownHours() != null ? settings.getFishingCooldownHours() : 6,
+            settings.getFishingLimitWarningThreshold() != null ? settings.getFishingLimitWarningThreshold() : 0.9,
+            settings.getFishingPenaltyCredits() != null ? settings.getFishingPenaltyCredits() : 50
+        );
+        
+        // Store in cache
+        cacheConfig.getFishingSettingsCache().put(cacheKey, fishingSettings);
+        log.debug("Cached fishing settings from database");
+        
+        return fishingSettings;
+    }
+    
+    /**
+     * Data class for fishing settings to avoid fetching entire DiscordBotSettings for performance
+     */
+    public static class FishingSettings {
+        private final int maxCatches;
+        private final int cooldownHours;
+        private final double limitWarningThreshold;
+        private final int penaltyCredits;
+        
+        public FishingSettings(int maxCatches, int cooldownHours, double limitWarningThreshold, int penaltyCredits) {
+            this.maxCatches = maxCatches;
+            this.cooldownHours = cooldownHours;
+            this.limitWarningThreshold = limitWarningThreshold;
+            this.penaltyCredits = penaltyCredits;
+        }
+        
+        public int getMaxCatches() { return maxCatches; }
+        public int getCooldownHours() { return cooldownHours; }
+        public double getLimitWarningThreshold() { return limitWarningThreshold; }
+        public int getPenaltyCredits() { return penaltyCredits; }
     }
 } 

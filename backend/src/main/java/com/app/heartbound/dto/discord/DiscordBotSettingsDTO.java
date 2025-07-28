@@ -1,5 +1,8 @@
 package com.app.heartbound.dto.discord;
 
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -14,22 +17,27 @@ public class DiscordBotSettingsDTO {
     
     @NotNull
     @Min(1)
+    @Max(1000) // Reasonable upper limit
     private Integer creditsToAward;
     
     @NotNull
     @Min(1)
+    @Max(100) // Reasonable upper limit
     private Integer messageThreshold;
     
     @NotNull
     @Min(1)
+    @Max(1440) // Maximum 24 hours
     private Integer timeWindowMinutes;
     
     @NotNull
     @Min(1)
+    @Max(3600) // Maximum 1 hour cooldown
     private Integer cooldownSeconds;
     
     @NotNull
     @Min(1)
+    @Max(500) // Reasonable message length limit
     private Integer minMessageLength;
     
     @NotNull
@@ -37,26 +45,32 @@ public class DiscordBotSettingsDTO {
     
     @NotNull
     @Min(1)
+    @Max(1000) // Reasonable XP limit
     private Integer xpToAward;
     
     @NotNull
     @Min(1)
+    @Max(10000) // Reasonable base XP limit
     private Integer baseXp;
     
     @NotNull
     @Min(1)
+    @Max(1000) // Reasonable multiplier limit
     private Integer levelMultiplier;
     
     @NotNull
     @Min(1)
+    @Max(5) // Reasonable exponent limit
     private Integer levelExponent;
     
     @NotNull
     @Min(1)
+    @Max(100) // Reasonable factor limit
     private Integer levelFactor;
     
     @NotNull
     @Min(1)
+    @Max(10000) // Reasonable credits per level limit
     private Integer creditsPerLevel;
     
     @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
@@ -191,17 +205,21 @@ public class DiscordBotSettingsDTO {
     // Fishing Game Configuration
     @NotNull
     @Min(1)
+    @Max(10000) // Reasonable upper limit to prevent abuse
     private Integer fishingMaxCatches;
 
     @NotNull
     @Min(1)
+    @Max(168) // Maximum 1 week cooldown to prevent indefinite lockout
     private Integer fishingCooldownHours;
 
     @NotNull
-    @Min(0)
+    @DecimalMin(value = "0.0", inclusive = true)
+    @DecimalMax(value = "1.0", inclusive = true)
     private Double fishingLimitWarningThreshold;
 
     @NotNull
     @Min(0)
+    @Max(50000) // Reasonable upper limit to prevent excessive penalties
     private Integer fishingPenaltyCredits;
 } 

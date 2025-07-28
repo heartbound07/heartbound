@@ -2,7 +2,6 @@ package com.app.heartbound.repositories;
 
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
-import com.app.heartbound.entities.Shop;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.app.heartbound.dto.LeaderboardEntryDTO;
@@ -76,6 +75,21 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Transactional
     @Query("UPDATE User u SET u.credits = u.credits + :credits, u.experience = u.experience + :xp WHERE u.id = :userId")
     void incrementCreditsAndXp(@Param("userId") String userId, @Param("credits") int credits, @Param("xp") int xp);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE User u SET u.credits = u.credits + :amount WHERE u.id = :userId AND u.credits >= 0")
+    int incrementCredits(@Param("userId") String userId, @Param("amount") int amount);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE User u SET u.credits = u.credits - :amount WHERE u.id = :userId AND u.credits >= :amount")
+    int deductCredits(@Param("userId") String userId, @Param("amount") int amount);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE User u SET u.credits = GREATEST(u.credits - :amount, 0) WHERE u.id = :userId")
+    int deductCreditsWithFloor(@Param("userId") String userId, @Param("amount") int amount);
 
     List<User> findByPrisonReleaseAtIsNotNull();
 

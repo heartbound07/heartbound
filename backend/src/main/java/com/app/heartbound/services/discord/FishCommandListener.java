@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.scheduling.annotation.Async;
 
 import javax.annotation.Nonnull;
 import java.time.temporal.ChronoUnit;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Optional;
 import java.time.LocalDateTime;
 import java.text.DecimalFormat;
+import java.util.concurrent.CompletableFuture;
 
 @Component
 public class FishCommandListener extends ListenerAdapter {
@@ -75,9 +77,9 @@ public class FishCommandListener extends ListenerAdapter {
      * @param settings The Discord bot settings containing fishing configuration
      * @return FishingLimitStatus containing the result and any remaining time
      */
-    private FishingLimitStatus checkFishingLimit(User user, DiscordBotSettings settings) {
+    private FishingLimitStatus checkFishingLimit(User user, DiscordBotSettingsService.FishingSettings settings) {
         int currentCatches = user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0;
-        int maxCatches = settings.getFishingMaxCatches() != null ? settings.getFishingMaxCatches() : 300;
+        int maxCatches = settings.getMaxCatches();
         
         // If user hasn't reached the limit, they can fish
         if (currentCatches < maxCatches) {
@@ -117,8 +119,8 @@ public class FishCommandListener extends ListenerAdapter {
      * @param user The user to set cooldown for
      * @param settings The Discord bot settings containing fishing configuration
      */
-    private void setFishingLimitCooldown(User user, DiscordBotSettings settings) {
-        int cooldownHours = settings.getFishingCooldownHours() != null ? settings.getFishingCooldownHours() : 6;
+    private void setFishingLimitCooldown(User user, DiscordBotSettingsService.FishingSettings settings) {
+        int cooldownHours = settings.getCooldownHours();
         LocalDateTime cooldownUntil = LocalDateTime.now().plusHours(cooldownHours);
         user.setFishingLimitCooldownUntil(cooldownUntil);
         userService.updateUser(user);
@@ -164,6 +166,21 @@ public class FishCommandListener extends ListenerAdapter {
         return 1.0;
     }
 
+    /**
+     * Asynchronously creates audit entries for fishing activities to prevent blocking the main command flow
+     * @param auditEntry The audit entry to create
+     */
+    @Async
+    private CompletableFuture<Void> createAuditEntryAsync(CreateAuditDTO auditEntry) {
+        try {
+            auditService.createSystemAuditEntry(auditEntry);
+            logger.debug("Async audit entry created successfully for action: {}", auditEntry.getAction());
+        } catch (Exception e) {
+            logger.error("Failed to create async audit entry for action {}: {}", auditEntry.getAction(), e.getMessage());
+        }
+        return CompletableFuture.completedFuture(null);
+    }
+
     @Override
     public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("fish")) {
@@ -187,8 +204,8 @@ public class FishCommandListener extends ListenerAdapter {
         event.deferReply().queue();
         
         try {
-            // Fetch Discord bot settings from database
-            DiscordBotSettings settings = discordBotSettingsService.getDiscordBotSettings();
+            // Fetch cached fishing settings for performance (avoids database call per command)
+            DiscordBotSettingsService.FishingSettings fishingSettings = discordBotSettingsService.getCachedFishingSettings();
             
             // Fetch the user from the database
             User user = userService.getUserById(userId);
@@ -199,38 +216,31 @@ public class FishCommandListener extends ListenerAdapter {
                 return;
             }
             
-            // Check fishing limit and cooldown
-            FishingLimitStatus limitStatus = checkFishingLimit(user, settings);
+            // Check fishing limit and cooldown using cached settings
+            FishingLimitStatus limitStatus = checkFishingLimit(user, fishingSettings);
             if (limitStatus.isOnCooldown()) {
-                // Silent penalty: Deduct credits from user for attempting to fish on cooldown
-                int penaltyCredits = settings.getFishingPenaltyCredits() != null ? settings.getFishingPenaltyCredits() : 50;
-                int currentUserCredits = user.getCredits() != null ? user.getCredits() : 0;
-                int finalPenalty = Math.min(penaltyCredits, currentUserCredits); // Don't go below 0
+                // Silent penalty: Atomically deduct credits from user for attempting to fish on cooldown
+                int penaltyCredits = fishingSettings.getPenaltyCredits();
+                boolean penaltyApplied = userService.deductCreditsIfSufficient(userId, penaltyCredits);
                 
-                if (finalPenalty > 0) {
-                    user.setCredits(currentUserCredits - finalPenalty);
-                    userService.updateUser(user);
+                if (penaltyApplied) {
+                    // Create audit entry for the penalty (silent to user) - sanitized details
+                    CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                        .userId(userId)
+                        .action("FISHING_LIMIT_PENALTY")
+                        .entityType("USER_CREDITS")
+                        .entityId(userId)
+                        .description("Silent credit penalty applied for fishing during cooldown")
+                        .severity(AuditSeverity.WARNING)
+                        .category(AuditCategory.FINANCIAL)
+                        .details(String.format("{\"penalty\":%d,\"cooldownMinutes\":%d}", 
+                            penaltyCredits, limitStatus.getRemainingMinutes()))
+                        .source("DISCORD_BOT")
+                        .build();
                     
-                    // Create audit entry for the penalty (silent to user)
-                    try {
-                        CreateAuditDTO auditEntry = CreateAuditDTO.builder()
-                            .userId(userId)
-                            .action("FISHING_LIMIT_PENALTY")
-                            .entityType("USER_CREDITS")
-                            .entityId(userId)
-                            .description(String.format("Silent credit penalty for fishing on cooldown: -%d credits", finalPenalty))
-                            .severity(AuditSeverity.WARNING)
-                            .category(AuditCategory.FINANCIAL)
-                            .details(String.format("{\"game\":\"fishing\",\"action\":\"cooldown_penalty\",\"penalty\":%d,\"newBalance\":%d,\"remainingCooldownMinutes\":%d}", 
-                                finalPenalty, user.getCredits(), limitStatus.getRemainingMinutes()))
-                            .source("DISCORD_BOT")
-                            .build();
-                        
-                        auditService.createSystemAuditEntry(auditEntry);
-                        logger.info("Applied silent penalty of {} credits to user {} for fishing on cooldown", finalPenalty, userId);
-                    } catch (Exception e) {
-                        logger.error("Failed to create audit entry for fishing penalty for user {}: {}", userId, e.getMessage());
-                    }
+                    // Use async audit logging to prevent blocking the Discord response
+                    createAuditEntryAsync(auditEntry);
+                    logger.info("Applied silent penalty of {} credits to user {} for fishing on cooldown", penaltyCredits, userId);
                 }
                 
                 long hoursRemaining = limitStatus.getRemainingMinutes() / 60;
@@ -300,12 +310,12 @@ public class FishCommandListener extends ListenerAdapter {
                 user.setFishCaughtSinceLimit(newFishSinceLimit);
                 
                 // Check if user has reached the fishing limit
-                int maxCatches = settings.getFishingMaxCatches() != null ? settings.getFishingMaxCatches() : 300;
-                int cooldownHours = settings.getFishingCooldownHours() != null ? settings.getFishingCooldownHours() : 6;
-                double limitWarningThreshold = settings.getFishingLimitWarningThreshold() != null ? settings.getFishingLimitWarningThreshold() : 0.9;
+                int maxCatches = fishingSettings.getMaxCatches();
+                int cooldownHours = fishingSettings.getCooldownHours();
+                double limitWarningThreshold = fishingSettings.getLimitWarningThreshold();
                 
                 if (newFishSinceLimit >= maxCatches && user.getFishingLimitCooldownUntil() == null) {
-                    setFishingLimitCooldown(user, settings);
+                    setFishingLimitCooldown(user, fishingSettings);
                     
                     // Improved grammar for the cooldown message
                     String hourText = cooldownHours == 1 ? "hour" : "hours";
@@ -325,24 +335,21 @@ public class FishCommandListener extends ListenerAdapter {
                 userService.updateUser(user);
                 
                 // Create audit entry for rare fish catch
-                try {
-                    CreateAuditDTO auditEntry = CreateAuditDTO.builder()
-                        .userId(userId)
-                        .action("FISHING_RARE_CATCH")
-                        .entityType("USER_CREDITS")
-                        .entityId(userId)
-                        .description(String.format("Caught rare fish %s and earned %d credits", fishEmoji, finalCreditChange))
-                        .severity(AuditSeverity.INFO)
-                        .category(AuditCategory.FINANCIAL)
-                        .details(String.format("{\"game\":\"fishing\",\"catchType\":\"rare\",\"fish\":\"%s\",\"won\":%d,\"newBalance\":%d,\"fishCaughtCount\":%d,\"multiplier\":%.2f}", 
-                            fishEmoji, finalCreditChange, user.getCredits(), newFishCount, multiplier))
-                        .source("DISCORD_BOT")
-                        .build();
-                    
-                    auditService.createSystemAuditEntry(auditEntry);
-                } catch (Exception e) {
-                    logger.error("Failed to create audit entry for rare fish catch by user {}: {}", userId, e.getMessage());
-                }
+                CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                    .userId(userId)
+                    .action("FISHING_RARE_CATCH")
+                    .entityType("USER_CREDITS")
+                    .entityId(userId)
+                    .description(String.format("Caught rare fish %s and earned %d credits", fishEmoji, finalCreditChange))
+                    .severity(AuditSeverity.INFO)
+                    .category(AuditCategory.FINANCIAL)
+                    .details(String.format("{\"game\":\"fishing\",\"catchType\":\"rare\",\"fish\":\"%s\",\"won\":%d,\"newBalance\":%d,\"fishCaughtCount\":%d,\"multiplier\":%.2f}", 
+                        fishEmoji, finalCreditChange, user.getCredits(), newFishCount, multiplier))
+                    .source("DISCORD_BOT")
+                    .build();
+                
+                // Use async audit logging to prevent blocking the Discord response
+                createAuditEntryAsync(auditEntry);
                 
                 logger.debug("User {} fished successfully: +{} credits. New balance: {}", 
                         userId, finalCreditChange, user.getCredits());
@@ -377,12 +384,12 @@ public class FishCommandListener extends ListenerAdapter {
                 user.setFishCaughtSinceLimit(newFishSinceLimit);
                 
                 // Check if user has reached the fishing limit
-                int maxCatches = settings.getFishingMaxCatches() != null ? settings.getFishingMaxCatches() : 300;
-                int cooldownHours = settings.getFishingCooldownHours() != null ? settings.getFishingCooldownHours() : 6;
-                double limitWarningThreshold = settings.getFishingLimitWarningThreshold() != null ? settings.getFishingLimitWarningThreshold() : 0.9;
+                int maxCatches = fishingSettings.getMaxCatches();
+                int cooldownHours = fishingSettings.getCooldownHours();
+                double limitWarningThreshold = fishingSettings.getLimitWarningThreshold();
                 
                 if (newFishSinceLimit >= maxCatches && user.getFishingLimitCooldownUntil() == null) {
-                    setFishingLimitCooldown(user, settings);
+                    setFishingLimitCooldown(user, fishingSettings);
                     
                     // Improved grammar for the cooldown message
                     String hourText = cooldownHours == 1 ? "hour" : "hours";
@@ -402,24 +409,21 @@ public class FishCommandListener extends ListenerAdapter {
                 userService.updateUser(user);
                 
                 // Create audit entry for regular fish catch
-                try {
-                    CreateAuditDTO auditEntry = CreateAuditDTO.builder()
-                        .userId(userId)
-                        .action("FISHING_CATCH")
-                        .entityType("USER_CREDITS")
-                        .entityId(userId)
-                        .description(String.format("Caught fish %s and earned %d credits", fishEmoji, finalCreditChange))
-                        .severity(AuditSeverity.INFO)
-                        .category(AuditCategory.FINANCIAL)
-                        .details(String.format("{\"game\":\"fishing\",\"catchType\":\"regular\",\"fish\":\"%s\",\"won\":%d,\"newBalance\":%d,\"fishCaughtCount\":%d,\"multiplier\":%.2f}", 
-                            fishEmoji, finalCreditChange, user.getCredits(), newFishCount, multiplier))
-                        .source("DISCORD_BOT")
-                        .build();
-                    
-                    auditService.createSystemAuditEntry(auditEntry);
-                } catch (Exception e) {
-                    logger.error("Failed to create audit entry for regular fish catch by user {}: {}", userId, e.getMessage());
-                }
+                CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                    .userId(userId)
+                    .action("FISHING_CATCH")
+                    .entityType("USER_CREDITS")
+                    .entityId(userId)
+                    .description(String.format("Caught fish %s and earned %d credits", fishEmoji, finalCreditChange))
+                    .severity(AuditSeverity.INFO)
+                    .category(AuditCategory.FINANCIAL)
+                    .details(String.format("{\"game\":\"fishing\",\"catchType\":\"regular\",\"fish\":\"%s\",\"won\":%d,\"newBalance\":%d,\"fishCaughtCount\":%d,\"multiplier\":%.2f}", 
+                        fishEmoji, finalCreditChange, user.getCredits(), newFishCount, multiplier))
+                    .source("DISCORD_BOT")
+                    .build();
+                
+                // Use async audit logging to prevent blocking the Discord response
+                createAuditEntryAsync(auditEntry);
                 
                 logger.debug("User {} fished successfully: +{} credits. New balance: {}", 
                         userId, finalCreditChange, user.getCredits());
@@ -444,24 +448,21 @@ public class FishCommandListener extends ListenerAdapter {
                     message.append("🎣 | You got caught 🦀 and it snipped you! -").append(creditChange).append(" 🪙");
                     
                     // Create audit entry for fishing failure with credit loss
-                    try {
-                        CreateAuditDTO auditEntry = CreateAuditDTO.builder()
-                            .userId(userId)
-                            .action("FISHING_FAILURE")
-                            .entityType("USER_CREDITS")
-                            .entityId(userId)
-                            .description(String.format("Got caught by crab and lost %d credits", creditChange))
-                            .severity(AuditSeverity.INFO)
-                            .category(AuditCategory.FINANCIAL)
-                            .details(String.format("{\"game\":\"fishing\",\"catchType\":\"failure\",\"lost\":%d,\"newBalance\":%d}", 
-                                creditChange, user.getCredits()))
-                            .source("DISCORD_BOT")
-                            .build();
-                        
-                        auditService.createSystemAuditEntry(auditEntry);
-                    } catch (Exception e) {
-                        logger.error("Failed to create audit entry for fishing failure by user {}: {}", userId, e.getMessage());
-                    }
+                    CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                        .userId(userId)
+                        .action("FISHING_FAILURE")
+                        .entityType("USER_CREDITS")
+                        .entityId(userId)
+                        .description(String.format("Got caught by crab and lost %d credits", creditChange))
+                        .severity(AuditSeverity.INFO)
+                        .category(AuditCategory.FINANCIAL)
+                        .details(String.format("{\"game\":\"fishing\",\"catchType\":\"failure\",\"lost\":%d,\"newBalance\":%d}", 
+                            creditChange, user.getCredits()))
+                        .source("DISCORD_BOT")
+                        .build();
+                    
+                    // Use async audit logging to prevent blocking the Discord response
+                    createAuditEntryAsync(auditEntry);
                 } else {
                     // Special message for users with 0 credits
                     message.append("🎣 | You got caught 🦀 but it had mercy on you since you have no credits!");

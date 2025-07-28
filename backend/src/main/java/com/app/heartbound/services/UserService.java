@@ -1002,6 +1002,61 @@ public class UserService {
     }
 
     /**
+     * Atomically increment user credits - prevents race conditions
+     * @param userId the user ID
+     * @param amount the amount to add (can be negative for deduction)
+     * @return true if operation succeeded, false if user not found or insufficient credits
+     */
+    @Transactional
+    public boolean updateCreditsAtomic(String userId, int amount) {
+        logger.debug("Atomically updating credits for user {} by amount {}", userId, amount);
+        
+        int rowsAffected;
+        if (amount >= 0) {
+            rowsAffected = userRepository.incrementCredits(userId, amount);
+        } else {
+            // For negative amounts, use deduction with floor to prevent negative balances
+            rowsAffected = userRepository.deductCreditsWithFloor(userId, Math.abs(amount));
+        }
+        
+        if (rowsAffected > 0) {
+            cacheConfig.invalidateUserProfileCache(userId);
+            logger.debug("Successfully updated credits for user {} by amount {}", userId, amount);
+            return true;
+        } else {
+            logger.warn("Failed to update credits for user {} by amount {} - user not found or insufficient credits", userId, amount);
+            return false;
+        }
+    }
+
+    /**
+     * Atomically deduct credits with validation - ensures sufficient balance
+     * @param userId the user ID
+     * @param amount the amount to deduct (positive value)
+     * @return true if deduction succeeded, false if insufficient credits or user not found
+     */
+    @Transactional
+    public boolean deductCreditsIfSufficient(String userId, int amount) {
+        logger.debug("Attempting to deduct {} credits from user {}", amount, userId);
+        
+        if (amount <= 0) {
+            logger.warn("Invalid deduction amount: {} for user {}", amount, userId);
+            return false;
+        }
+        
+        int rowsAffected = userRepository.deductCredits(userId, amount);
+        
+        if (rowsAffected > 0) {
+            cacheConfig.invalidateUserProfileCache(userId);
+            logger.debug("Successfully deducted {} credits from user {}", amount, userId);
+            return true;
+        } else {
+            logger.warn("Failed to deduct {} credits from user {} - insufficient balance or user not found", amount, userId);
+            return false;
+        }
+    }
+
+    /**
      * Utility method to get the current admin's ID from the security context
      */
     private String getCurrentAdminId() {
