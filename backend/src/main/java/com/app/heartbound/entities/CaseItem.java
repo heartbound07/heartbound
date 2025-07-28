@@ -1,8 +1,6 @@
 package com.app.heartbound.entities;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.DecimalMin;
 import lombok.AllArgsConstructor;
