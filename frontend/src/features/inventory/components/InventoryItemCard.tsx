@@ -8,7 +8,7 @@ import BadgePreview from '@/components/BadgePreview';
 import { SafeText } from '@/components/SafeHtmlRenderer';
 import { useSanitizedContent } from '@/hooks/useSanitizedContent';
 import React from 'react';
-import { ShopItem } from '../../../types/inventory';
+import { ShopItem } from '@/types/inventory';
 
 // Inventory Item Card Component (based on ShopItemCard design)
 export const InventoryItemCard = forwardRef(({ 

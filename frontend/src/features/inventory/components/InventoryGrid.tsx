@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { InventoryItemCard, InventoryItemSkeleton } from './InventoryItemCard';
-import { ShopItem } from '../../../types/inventory';
+import { ShopItem } from '@/types/inventory';
 import { formatDisplayText } from '@/utils/formatters';
 
 interface InventoryGridProps {
