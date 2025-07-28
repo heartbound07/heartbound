@@ -87,27 +87,23 @@ public class MinesCommandListener extends ListenerAdapter {
             return;
         }
 
-        User user = userService.getUserById(userId);
-        
-        // Handle case where user is not registered with the bot
-        if (user == null) {
-            event.reply("You must be registered with the bot to use this command. Please log in to the web application first.").setEphemeral(true).queue();
-            return;
-        }
-        
-        // Handle case where user does not have enough credits
-        int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
-        if (currentCredits < bet) {
-            event.reply(String.format("You do not have enough credits to place this bet. You tried to bet **%d** but only have **%d** credits.", bet, currentCredits))
-                 .setEphemeral(true).queue();
+        // Atomically check for and deduct credits. This also implicitly checks if the user exists.
+        boolean sufficientCredits = userService.deductCreditsIfSufficient(userId, bet);
+
+        if (!sufficientCredits) {
+            // Since deduction failed, we fetch the user to give a more specific error message.
+            User user = userService.getUserById(userId);
+            if (user == null) {
+                event.reply("You must be registered with the bot to use this command. Please log in to the web application first.").setEphemeral(true).queue();
+            } else {
+                int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
+                event.reply(String.format("You do not have enough credits to place this bet. You tried to bet **🪙 %d** but only have **🪙 %d** credits.", bet, currentCredits))
+                     .setEphemeral(true).queue();
+            }
             return;
         }
 
         event.deferReply().queue();
-
-        // Deduct bet amount
-        user.setCredits(user.getCredits() - bet);
-        userService.updateUser(user);
 
         MinesGame game = new MinesGame(userId, event.getHook(), bet, mines);
         placeMines(game);
@@ -218,11 +214,15 @@ public class MinesCommandListener extends ListenerAdapter {
                 game.getExpirationTask().cancel(false);
             }
 
-            User user = userService.getUserById(game.getUserId());
             int totalPayout = (int) Math.round(game.getBetAmount() * game.getCurrentMultiplier());
             int profit = totalPayout - game.getBetAmount();
-            user.setCredits(user.getCredits() + totalPayout);
-            userService.updateUser(user);
+
+            // Atomically increment credits for the payout.
+            userService.updateCreditsAtomic(game.getUserId(), totalPayout);
+
+            // Re-fetch the user to get the updated balance for the embed.
+            User user = userService.getUserById(game.getUserId());
+            int newBalance = user != null && user.getCredits() != null ? user.getCredits() : 0;
 
             EmbedBuilder embed = new EmbedBuilder()
                     .setTitle("🎉 You Won!")
@@ -230,7 +230,7 @@ public class MinesCommandListener extends ListenerAdapter {
                     .appendDescription(String.format("You cashed out successfully!%n%n"))
                     .appendDescription(String.format("**Bet Amount:** 🪙 %d credits%n", game.getBetAmount()))
                     .appendDescription(String.format("**Winnings:** 🪙 +%d credits (%.2fx)%n%n", profit, game.getCurrentMultiplier()))
-                    .appendDescription(String.format("**New Balance:** 🪙 %d credits", user.getCredits()));
+                    .appendDescription(String.format("**New Balance:** 🪙 %d credits", newBalance));
 
             List<ActionRow> components = createRevealedGrid(game, -1, -1, true);
             game.getHook().editOriginalEmbeds(embed.build()).setComponents(components).queue();
@@ -245,14 +245,16 @@ public class MinesCommandListener extends ListenerAdapter {
                 game.getExpirationTask().cancel(false);
             }
             
+            // Re-fetch user to display the correct balance after the initial bet was deducted.
             User user = userService.getUserById(game.getUserId());
+            int newBalance = user != null && user.getCredits() != null ? user.getCredits() : 0;
 
             EmbedBuilder embed = new EmbedBuilder()
                     .setTitle("💔 You Lost!")
                     .setColor(LOSE_COLOR)
                     .appendDescription(String.format("You hit a mine and lost your bet. Better luck next time!%n%n"))
                     .appendDescription(String.format("**Bet Amount:** 🪙 %d credits%n", game.getBetAmount()))
-                    .appendDescription(String.format("**New Balance:** 🪙 %d credits", user.getCredits()));
+                    .appendDescription(String.format("**New Balance:** 🪙 %d credits", newBalance));
 
             List<ActionRow> components = createRevealedGrid(game, hitRow, hitCol, true);
             game.getHook().editOriginalEmbeds(embed.build()).setComponents(components).queue();
@@ -372,27 +374,30 @@ public class MinesCommandListener extends ListenerAdapter {
             if (game.getSafeTilesRevealed() == 0) {
                 // Scenario 1: No moves made. Refund the bet and show a timeout message.
                 logger.info("Mines game for user {} timed out with no moves. Refunding bet.", userId);
-                User user = userService.getUserById(userId);
-                if (user != null) {
-                    user.setCredits(user.getCredits() + game.getBetAmount());
-                    userService.updateUser(user);
-                }
+                
+                // Atomically refund the bet amount.
+                userService.updateCreditsAtomic(userId, game.getBetAmount());
 
                 EmbedBuilder embed = new EmbedBuilder()
                         .setTitle("⏳ Mines Timed Out")
                         .setColor(TIMEOUT_COLOR)
-                        .setDescription("The mines session has timed out.\nIf you want to try again, simply start a new mines game.");
+                        .setDescription("The mines session has timed out and your bet has been refunded.\nIf you want to try again, simply start a new mines game.");
 
                 // Remove all buttons, leaving only the timeout embed.
                 game.getHook().editOriginalEmbeds(embed.build()).setComponents().queue();
             } else {
                 // Scenario 2: At least one move made. Auto-cashout.
                 logger.info("Mines game for user {} timed out with {} tiles revealed. Auto-cashing out.", userId, game.getSafeTilesRevealed());
-                User user = userService.getUserById(userId);
+                
                 int totalPayout = (int) Math.round(game.getBetAmount() * game.getCurrentMultiplier());
                 int profit = totalPayout - game.getBetAmount();
-                user.setCredits(user.getCredits() + totalPayout);
-                userService.updateUser(user);
+
+                // Atomically process the cashout.
+                userService.updateCreditsAtomic(userId, totalPayout);
+
+                // Re-fetch the user to get the updated balance for the embed.
+                User user = userService.getUserById(userId);
+                int newBalance = user != null && user.getCredits() != null ? user.getCredits() : 0;
 
                 EmbedBuilder embed = new EmbedBuilder()
                         .setTitle("🎉 Auto Cashed Out!")
@@ -400,7 +405,7 @@ public class MinesCommandListener extends ListenerAdapter {
                         .appendDescription(String.format("The game timed out, so you were automatically cashed out!%n%n"))
                         .appendDescription(String.format("**Bet Amount:** 🪙 %d credits%n", game.getBetAmount()))
                         .appendDescription(String.format("**Winnings:** 🪙 +%d credits (%.2fx)%n%n", profit, game.getCurrentMultiplier()))
-                        .appendDescription(String.format("**New Balance:** 🪙 %d credits", user.getCredits()));
+                        .appendDescription(String.format("**New Balance:** 🪙 %d credits", newBalance));
 
                 List<ActionRow> components = createRevealedGrid(game, -1, -1, true);
                 game.getHook().editOriginalEmbeds(embed.build()).setComponents(components).queue();
