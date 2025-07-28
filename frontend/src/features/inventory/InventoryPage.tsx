@@ -221,7 +221,8 @@ export function InventoryPage() {
 
       showToast('Item equipped successfully!', 'success');
       
-      // Refresh inventory to show updated equipped status
+      // Clear selection and refresh inventory to show updated equipped status
+      setSelectedItems({});
       await fetchInventory();
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to equip item';
@@ -250,7 +251,8 @@ export function InventoryPage() {
       showToast('Item unequipped successfully!', 'success');
 
       
-      // Refresh inventory to show updated equipped status
+      // Clear selection and refresh inventory to show updated equipped status
+      setSelectedItems({});
       await fetchInventory();
     } catch (error: any) {
       console.error('Error unequipping item:', error);
@@ -276,9 +278,12 @@ export function InventoryPage() {
         updateProfile(response.data);
       }
       
+      showToast("Badge unequipped successfully!", "success");
+      
+      // Clear selection and refresh inventory
+      setSelectedItems({});
       await fetchInventory();
       
-      showToast("Badge unequipped successfully!", "success");
     } catch (error) {
       console.error("Failed to unequip badge:", error);
       showToast("Failed to unequip badge", "error");
