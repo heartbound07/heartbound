@@ -8,8 +8,10 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.Setter;
+import com.app.heartbound.validation.ValidFishingLimit;
 
 @Getter @Setter
+@ValidFishingLimit
 public class DiscordBotSettingsDTO {
     
     @NotNull

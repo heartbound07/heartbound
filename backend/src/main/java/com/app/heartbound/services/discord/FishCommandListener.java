@@ -79,31 +79,32 @@ public class FishCommandListener extends ListenerAdapter {
      * @return FishingLimitStatus containing the result and any remaining time
      */
     private FishingLimitStatus checkFishingLimit(User user, DiscordBotSettingsService.FishingSettings settings) {
-        int currentCatches = user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0;
-        Integer currentFishingLimit = user.getCurrentFishingLimit();
         int min = settings.getMinCatches();
         int max = settings.getMaxCatches();
-        
-        // A user's limit is invalid if it's null or falls outside the admin-configured range.
-        boolean isLimitInvalid = currentFishingLimit == null || currentFishingLimit < min || currentFishingLimit > max;
+        Integer currentFishingLimit = user.getCurrentFishingLimit();
 
-        if (isLimitInvalid) {
+        // A user's limit is invalid if it's null or falls outside the admin-configured range.
+        if (currentFishingLimit == null || currentFishingLimit < min || currentFishingLimit > max) {
+            int newLimit;
             // If the limit is invalid, start a new session for the user with a new random limit.
             if (min > 0 && max >= min) {
-                currentFishingLimit = secureRandomService.getSecureInt(max - min + 1) + min;
-                logger.info("User {} limit was invalid or null. Assigned new random limit: {}. Resetting catch count.", user.getId(), currentFishingLimit);
+                newLimit = secureRandomService.getSecureInt(max - min + 1) + min;
+                logger.info("User {} limit was invalid or null. Assigned new random limit: {}.", user.getId(), newLimit);
             } else {
-                currentFishingLimit = settings.getDefaultMaxCatches();
-                logger.warn("Invalid min/max fishing settings. Assigning fallback limit {} to user {}.", currentFishingLimit, user.getId());
+                newLimit = settings.getDefaultMaxCatches();
+                logger.warn("Invalid min/max fishing settings (min: {}, max: {}). Assigning fallback limit {} to user {}.", min, max, newLimit, user.getId());
             }
-            user.setCurrentFishingLimit(currentFishingLimit);
+            user.setCurrentFishingLimit(newLimit);
             
             // Reset their progress for this new session.
             user.setFishCaughtSinceLimit(0);
-            currentCatches = 0;
+            return new FishingLimitStatus(false, 0, 0, newLimit);
         }
 
-        // If user hasn't reached the limit, they can fish
+        int currentCatches = user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0;
+
+        // If user hasn't reached the limit, they can fish.
+        // At this point, currentFishingLimit is guaranteed to be non-null.
         if (currentCatches < currentFishingLimit) {
             return new FishingLimitStatus(false, 0, currentCatches, currentFishingLimit);
         }

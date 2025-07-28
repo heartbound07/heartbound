@@ -204,6 +204,12 @@ export function DiscordBotSettings() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Client-side validation for fishing limits
+    if (settings.fishingMinCatches && settings.fishingMaxCatches && settings.fishingMinCatches > settings.fishingMaxCatches) {
+      showToast('Minimum fishing catches cannot be greater than the maximum.', 'error');
+      return; // Prevent submission
+    }
+    
     try {
       setIsSaving(true);
       
