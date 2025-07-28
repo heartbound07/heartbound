@@ -184,15 +184,6 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
             <h2 className="item-preview-title">Profile Preview</h2>
             {/* Removed rarity badge - no longer showing rarity information */}
           </div>
-          
-          {primaryItem?.equipped && (
-            <div className="item-preview-equipped-badge">
-              <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Equipped
-            </div>
-          )}
         </div>
       </div>
 
@@ -201,9 +192,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
         <div 
           className="item-preview-visual"
           style={{ 
-            borderColor: primaryItem?.equipped 
-              ? 'var(--color-primary, #0088cc)' 
-              : 'transparent' // Always transparent - no rarity outline
+            borderColor: 'transparent'
           }}
         >
           {/* Rarity glow effect - only show when an item is selected */}
@@ -380,47 +369,49 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
       {/* Details Section */}
       <div className="item-preview-details">
         {/* Show selected items list */}
-        <div className="item-preview-selected-items">
-          <div className="space-y-2">
-            {Object.entries(selectedItems).map(([category, item]) => {
-              if (!item) return null;
-              
-              // Use direct sanitization instead of hook
-              const sanitizedName = sanitizeText(item.name || '');
-              const truncatedName = sanitizedName.length > 50 ? sanitizedName.substring(0, 50) : sanitizedName;
-              const categoryLabel = category === 'nameplate' ? 'Nameplate' : 
-                                 category === 'badge' ? 'Badge' : 
-                                 category === 'fishing_rod' ? 'Fishing Rod' : 
-                                 category.charAt(0).toUpperCase() + category.slice(1);
-              
-              return (
-                <div key={category} className="selected-item-row">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-slate-400">{categoryLabel}:</span>
-                      <SafeText 
-                        text={truncatedName}
-                        tag="span" 
-                        className="text-sm text-white font-medium"
-                        maxLength={50}
-                        showTooltip={true}
-                      />
-                      <div 
-                        className="px-1.5 py-0.5 rounded text-xs font-semibold"
-                        style={getRarityBadgeStyle(item.rarity)}
-                      >
-                        {getRarityLabel(item.rarity)}
+        {actionMode !== 'unequip' && actionMode !== 'mixed-equipped' && (
+          <div className="item-preview-selected-items">
+            <div className="space-y-2">
+              {Object.entries(selectedItems).map(([category, item]) => {
+                if (!item) return null;
+                
+                // Use direct sanitization instead of hook
+                const sanitizedName = sanitizeText(item.name || '');
+                const truncatedName = sanitizedName.length > 50 ? sanitizedName.substring(0, 50) : sanitizedName;
+                const categoryLabel = category === 'nameplate' ? 'Nameplate' : 
+                                   category === 'badge' ? 'Badge' : 
+                                   category === 'fishing_rod' ? 'Fishing Rod' : 
+                                   category.charAt(0).toUpperCase() + category.slice(1);
+                
+                return (
+                  <div key={category} className="selected-item-row">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-slate-400">{categoryLabel}:</span>
+                        <SafeText 
+                          text={truncatedName}
+                          tag="span" 
+                          className="text-sm text-white font-medium"
+                          maxLength={50}
+                          showTooltip={true}
+                        />
+                        <div 
+                          className="px-1.5 py-0.5 rounded text-xs font-semibold"
+                          style={getRarityBadgeStyle(item.rarity)}
+                        >
+                          {getRarityLabel(item.rarity)}
+                        </div>
                       </div>
+                      {item.equipped && (
+                        <span className="text-xs text-primary font-medium">Equipped</span>
+                      )}
                     </div>
-                    {item.equipped && (
-                      <span className="text-xs text-primary font-medium">Equipped</span>
-                    )}
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Action button for primary item */}
         {primaryItem && (

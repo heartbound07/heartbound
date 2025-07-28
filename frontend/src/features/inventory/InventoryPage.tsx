@@ -440,15 +440,9 @@ export function InventoryPage() {
               loading={loading}
               items={items}
               selectedCategory={selectedCategory}
-              handleEquip={handleEquipItem}
-              handleUnequip={handleUnequipItem}
-              handleUnequipBadge={handleUnequipBadge}
-              handleOpenCase={openCaseRoll}
-              actionInProgress={actionInProgress}
               user={profile || user}
               isItemSelected={isItemSelected}
               onSelectItem={handleSelectItem}
-              onViewCaseContents={openCasePreview}
             />
           </div>
         </motion.div>

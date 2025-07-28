@@ -13,65 +13,20 @@ import { ShopItem } from '@/types/inventory';
 // Inventory Item Card Component (based on ShopItemCard design)
 export const InventoryItemCard = forwardRef(({ 
   item, 
-  handleEquip, 
-  handleUnequip,
-  handleUnequipBadge,
-  handleOpenCase,
-  actionInProgress, 
   user,
   isSelected = false,
-  onSelect,
-  onViewCaseContents
+  onSelect
 }: { 
   item: ShopItem; 
-  handleEquip: (id: string) => void;
-  handleUnequip: (category: string) => void;
-  handleUnequipBadge: (badgeId: string) => void;
-  handleOpenCase: (caseId: string, caseName: string) => void;
-  actionInProgress: string | null;
   user: any;
   isSelected?: boolean;
   onSelect: (item: ShopItem) => void;
-  onViewCaseContents?: (caseId: string, caseName: string) => void;
 }, ref) => {
   // Get rarity color for border
   const rarityColor = getRarityColor(item.rarity);
   
   // Sanitize content for safe display
   const nameContent = useSanitizedContent(item.name, { maxLength: 100, stripHtml: true });
-  const descriptionContent = useSanitizedContent(item.description, { maxLength: 500, stripHtml: true });
-  
-  const handleAction = () => {
-    if (item.category === 'CASE') {
-      handleOpenCase(item.id, nameContent.sanitized);
-    } else if (item.category === 'BADGE') {
-      if (item.equipped) {
-        handleUnequipBadge(item.id);
-      } else {
-        handleEquip(item.id);
-      }
-    } else {
-      if (item.equipped) {
-        handleUnequip(item.category);
-      } else {
-        handleEquip(item.id);
-      }
-    }
-  };
-
-  const getActionButtonText = () => {
-    if (item.category === 'CASE') {
-      return (!item.quantity || item.quantity < 1) ? 'No Cases' : 'Open Case';
-    }
-    return item.equipped ? 'Unequip' : 'Equip';
-  };
-
-  const isActionDisabled = () => {
-    if (item.category === 'CASE') {
-      return !item.quantity || item.quantity < 1 || actionInProgress !== null;
-    }
-    return actionInProgress !== null;
-  };
   
   return (
     <motion.div
@@ -187,12 +142,12 @@ export const InventoryItemCard = forwardRef(({
         </div>
         
           {/* Info icon in top right corner for cases */}
-          {item.category === 'CASE' && item.caseContentsCount && item.caseContentsCount > 0 && onViewCaseContents && (
+          {item.category === 'CASE' && item.caseContentsCount && item.caseContentsCount > 0 && (
             <div className="absolute top-2 right-2">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onViewCaseContents(item.id, nameContent.sanitized);
+                  // Directly call a prop if needed for viewing contents, but not for primary action
                 }}
                 className="case-info-icon"
                 title="View case contents and drop rates"
@@ -277,55 +232,15 @@ export const InventoryItemCard = forwardRef(({
           )}
         </div>
         
-        {descriptionContent.sanitized && (
+        {item.description && (
           <SafeText 
-            text={descriptionContent.sanitized}
+            text={item.description}
             tag="p"
             className="text-slate-300 text-sm mb-3 line-clamp-2"
             maxLength={200}
             showTooltip={true}
           />
         )}
-        
-        {/* Action button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleAction();
-          }}
-          disabled={isActionDisabled()}
-          className={`purchase-button ${
-            item.category === 'CASE' ? 'purchase-button-active' :
-            item.equipped ? 'purchase-button-owned' : 'purchase-button-active'
-          } ${isActionDisabled() ? 'purchase-button-processing' : ''}`}
-        >
-          {actionInProgress !== null && (actionInProgress === item.id || actionInProgress === item.category) ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Processing...
-            </>
-          ) : (
-            <>
-              {item.category === 'CASE' ? (
-                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-              ) : item.equipped ? (
-                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-              {getActionButtonText()}
-            </>
-          )}
-        </button>
         </div>
     </motion.div>
   );

@@ -7,15 +7,9 @@ interface InventoryGridProps {
   loading: boolean;
   items: ShopItem[];
   selectedCategory: string | null;
-  handleEquip: (id: string) => void;
-  handleUnequip: (category: string) => void;
-  handleUnequipBadge: (badgeId: string) => void;
-  handleOpenCase: (caseId: string, caseName: string) => void;
-  actionInProgress: string | null;
   user: any;
   isItemSelected: (item: ShopItem) => boolean;
   onSelectItem: (item: ShopItem) => void;
-  onViewCaseContents: (caseId: string, caseName: string) => void;
 }
 
 // Add category mapping for special cases
@@ -37,7 +31,9 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
   loading,
   items,
   selectedCategory,
-  ...props
+  user,
+  isItemSelected,
+  onSelectItem
 }) => {
   return (
     <div className="inventory-grid-container">
@@ -93,15 +89,9 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
               <InventoryItemCard
                 key={item.id}
                 item={item}
-                handleEquip={props.handleEquip}
-                handleUnequip={props.handleUnequip}
-                handleUnequipBadge={props.handleUnequipBadge}
-                handleOpenCase={props.handleOpenCase}
-                actionInProgress={props.actionInProgress}
-                user={props.user}
-                isSelected={props.isItemSelected(item)}
-                onSelect={props.onSelectItem}
-                onViewCaseContents={props.onViewCaseContents}
+                user={user}
+                isSelected={isItemSelected(item)}
+                onSelect={onSelectItem}
               />
             ))}
           </AnimatePresence>
