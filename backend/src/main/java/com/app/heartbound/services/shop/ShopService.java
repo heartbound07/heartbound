@@ -268,33 +268,25 @@ public class ShopService {
 
         // Create a secure deterministic seed for the user and the current day
         String seedString = user.getId() + java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString() + serverSeedSalt;
-        long seed = seedString.hashCode();
+        long seed = new Random(seedString.hashCode()).nextLong();
         Random random = new Random(seed);
 
-        // Get items the user already owns to exclude from selection
-        Set<UUID> ownedItemIds = user.getItemInstances().stream()
-            .map(instance -> instance.getBaseItem().getId())
-            .collect(Collectors.toSet());
-
-        // Create available item pool by filtering out items the user already owns
-        List<Shop> availableItemPool = currentDailyPool.stream()
-            .filter(item -> !ownedItemIds.contains(item.getId()))
-            .collect(Collectors.toList());
-
-        // Handle edge case: if available pool is empty or too small, log and use original pool
-        if (availableItemPool.isEmpty()) {
-            logger.info("User {} owns all daily eligible items. Using original pool for selection.", user.getId());
-            availableItemPool = new ArrayList<>(currentDailyPool);
-        } else if (availableItemPool.size() < 4) {
-            logger.debug("User {} has limited available daily items ({}). May result in fewer than 4 selections.", 
-                       user.getId(), availableItemPool.size());
+        // The entire logic of pre-filtering based on ownership is removed.
+        // We now operate on the full pool to ensure the daily selection is stable.
+        if (currentDailyPool.isEmpty()) {
+            return Collections.emptyList();
+        }
+        
+        if (currentDailyPool.size() < 4) {
+            logger.warn("Daily item pool has fewer than 4 items ({}), selection may be smaller.", currentDailyPool.size());
         }
 
-        // Group available items by rarity for selection
-        Map<ItemRarity, List<Shop>> itemsByRarity = availableItemPool.stream()  
+        // Group the full pool by rarity for selection
+        Map<ItemRarity, List<Shop>> itemsByRarity = currentDailyPool.stream()  
             .collect(Collectors.groupingBy(Shop::getRarity));
         
-        return selectItemsForUser(itemsByRarity, random, availableItemPool);
+        // selectItemsForUser will now deterministically pick from the full pool.
+        return selectItemsForUser(itemsByRarity, random, currentDailyPool);
     }
 
     private List<Shop> selectItemsForUser(Map<ItemRarity, List<Shop>> itemsByRarity, Random random, List<Shop> availableItemPool) {
