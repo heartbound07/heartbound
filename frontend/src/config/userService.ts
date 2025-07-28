@@ -32,6 +32,7 @@ export interface UserProfileDTO {
   badgeUrl?: string; // URL of the single equipped badge
   badgeName?: string; // Name of the single equipped badge
   nameplateColor?: string; // Resolved hex color for equipped nameplate
+  gradientEndColor?: string; // Resolved hex color for equipped nameplate gradient end
   banned: boolean;
   selectedAgeRoleId?: string;
   selectedGenderRoleId?: string;
