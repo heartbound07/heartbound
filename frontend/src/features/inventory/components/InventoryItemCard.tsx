@@ -140,23 +140,6 @@ export const InventoryItemCard = forwardRef(({
               }}
           />
         </div>
-        
-          {/* Info icon in top right corner for cases */}
-          {item.category === 'CASE' && item.caseContentsCount && item.caseContentsCount > 0 && (
-            <div className="absolute top-2 right-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Directly call a prop if needed for viewing contents, but not for primary action
-                }}
-                className="case-info-icon"
-                title="View case contents and drop rates"
-                aria-label="View case contents and drop rates"
-              >
-                <FaInfoCircle size={16} />
-              </button>
-            </div>
-          )}
         </div>
       ) : item.category === 'FISHING_ROD' ? (
         <div className="shop-item-image inventory-item-image fishing-rod-preview-container">
