@@ -17,6 +17,9 @@ import java.util.UUID;
 public interface ItemInstanceRepository extends JpaRepository<ItemInstance, UUID> {
     List<ItemInstance> findByBaseItem(Shop baseItem);
 
+    @Query("SELECT COUNT(i) FROM ItemInstance i")
+    long countTotalInstances();
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT i FROM ItemInstance i WHERE i.id = :id")
     Optional<ItemInstance> findByIdWithLock(@Param("id") UUID id);

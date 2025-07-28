@@ -15,6 +15,7 @@ import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { DiscoverPage } from '@/features/dashboard/DiscoverPage';
 import { ProfilePage } from '@/features/dashboard/ProfilePage';
 import { AdminPanel } from '@/features/dashboard/admin/AdminPanel';
+import { EconomyPage } from '@/features/dashboard/admin/EconomyPage';
 import { UserManagement } from '@/features/dashboard/admin/usermanage/UserManagement';
 import { DiscordBotSettings } from '@/features/dashboard/admin/discordbotsettings/DiscordBotSettings';
 import { SystemStats } from '@/features/dashboard/admin/SystemStats';
@@ -132,6 +133,14 @@ export function AppRoutes() {
                 <AdminPanel />
               </AdminRoute>
             } 
+          />
+          <Route
+            path="economy"
+            element={
+              <AdminRoute>
+                <EconomyPage />
+              </AdminRoute>
+            }
           />
           <Route 
             path="users"

@@ -31,6 +31,18 @@ export function AdminPanel() {
               Manage Users
             </button>
           </div>
+
+          {/* Economy Management Card */}
+          <div className="bg-slate-800/50 rounded-lg p-5 border border-white/5 hover:border-primary/20 transition-all duration-300">
+            <h2 className="text-lg font-semibold text-white mb-3">Economy Management</h2>
+            <p className="text-slate-300 mb-4">Monitor and manage the application's economy</p>
+            <button
+              className="px-4 py-2 bg-primary/20 text-primary hover:bg-primary/30 rounded-md transition-colors"
+              onClick={() => navigateTo('/admin/economy')}
+            >
+              Manage Economy
+            </button>
+          </div>
           
           {/* Shop Management Card */}
           <div className="bg-slate-800/50 rounded-lg p-5 border border-white/5 hover:border-primary/20 transition-all duration-300">

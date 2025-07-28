@@ -61,6 +61,9 @@ public interface UserRepository extends JpaRepository<User, String> {
            ") FROM User u WHERE u.banned = false OR u.banned IS NULL")
     Page<LeaderboardEntryDTO> findLeaderboardEntries(Pageable pageable);
 
+    @Query("SELECT COALESCE(SUM(u.credits), 0) FROM User u")
+    long getTotalCredits();
+
     /**
      * Find user with eagerly loaded inventory collections for Discord commands
      * Prevents LazyInitializationException when used outside web transactions

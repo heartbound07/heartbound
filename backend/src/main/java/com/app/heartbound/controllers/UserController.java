@@ -9,6 +9,7 @@ import com.app.heartbound.dto.shop.UserInventoryItemDTO;
 import com.app.heartbound.enums.RateLimitKeyType;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.entities.User;
+import com.app.heartbound.services.EconomyService;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.UserSecurityService;
 import org.springframework.data.domain.Page;
@@ -36,10 +37,12 @@ public class UserController {
 
     private final UserService userService;
     private final UserSecurityService userSecurityService;
-    
-    public UserController(UserService userService, UserSecurityService userSecurityService) {
+    private final EconomyService economyService;
+
+    public UserController(UserService userService, UserSecurityService userSecurityService, EconomyService economyService) {
         this.userService = userService;
         this.userSecurityService = userSecurityService;
+        this.economyService = economyService;
     }
     
     /**
@@ -401,5 +404,11 @@ public class UserController {
                 adminId, itemId, userId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    @GetMapping("/admin/economy-stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<com.app.heartbound.dto.EconomyStatsDTO> getEconomyStats() {
+        return ResponseEntity.ok(economyService.getEconomyStats());
     }
 }
