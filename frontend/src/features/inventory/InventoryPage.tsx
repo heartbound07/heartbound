@@ -10,14 +10,15 @@ import '@/assets/shoppage.css';
 import { CasePreviewModal } from '@/components/ui/shop/CasePreviewModal';
 import { CaseRollModal } from '@/components/ui/shop/CaseRollModal';
 import { ItemPreview } from '@/components/ui/shop/ItemPreview';
-import { ShopItem, ToastNotification, RollResult } from '../../types/inventory';
+import { ShopItem, ToastNotification, RollResult } from '@/types/inventory';
+import { UserProfileDTO } from '@/config/userService';
 import { InventoryFilters } from './components/InventoryFilters';
 import { InventoryControls } from './components/InventoryControls';
 import { InventoryGrid } from './components/InventoryGrid';
 
 
 export function InventoryPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ShopItem[]>([]);
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
@@ -212,7 +213,12 @@ export function InventoryPage() {
     
     setActionInProgress(itemId);
     try {
-      await httpClient.post(`/shop/equip/${itemId}`);
+      const response = await httpClient.post<UserProfileDTO>(`/shop/equip/${itemId}`);
+      
+      if (response.data) {
+        updateProfile(response.data);
+      }
+
       showToast('Item equipped successfully!', 'success');
       
       // Refresh inventory to show updated equipped status
@@ -236,7 +242,11 @@ export function InventoryPage() {
     
     setActionInProgress(category);
     try {
-      await httpClient.post(`/shop/unequip/${category}`);
+      const response = await httpClient.post<UserProfileDTO>(`/shop/unequip/${category}`);
+
+      if (response.data) {
+        updateProfile(response.data);
+      }
       showToast('Item unequipped successfully!', 'success');
 
       
@@ -260,16 +270,13 @@ export function InventoryPage() {
     setActionInProgress(badgeId);
     
     try {
-      await httpClient.post(`/shop/unequip/badge/${badgeId}`);
+      const response = await httpClient.post<UserProfileDTO>(`/shop/unequip/badge/${badgeId}`);
       
-      // Update equipped status in the items state
-      const updatedItems = items.map(item => {
-        if (item.id === badgeId && item.category === 'BADGE') {
-          return { ...item, equipped: false };
-        }
-        return item;
-      });
-      setItems(updatedItems);
+      if (response.data) {
+        updateProfile(response.data);
+      }
+      
+      await fetchInventory();
       
       showToast("Badge unequipped successfully!", "success");
     } catch (error) {
@@ -301,11 +308,12 @@ export function InventoryPage() {
     setActionInProgress("batch-equip");
     
     try {
-      const response = await httpClient.post('/shop/equip/batch', {
+      const response = await httpClient.post<UserProfileDTO>('/shop/equip/batch', {
         itemIds: itemIds
       });
       
       if (response.data) {
+        updateProfile(response.data);
         // The shop batch equip endpoint already updates the user profile internally
         // No need for additional profile update call that causes rate limiting
         
@@ -351,11 +359,12 @@ export function InventoryPage() {
     setActionInProgress("batch-unequip");
 
     try {
-      const response = await httpClient.post('/shop/unequip/batch', {
+      const response = await httpClient.post<UserProfileDTO>('/shop/unequip/batch', {
         itemIds: itemIds
       });
 
       if (response.data) {
+        updateProfile(response.data);
         const itemCount = itemIds.length;
         showToast(
           `Successfully unequipped ${itemCount} item${itemCount > 1 ? 's' : ''}!`,
