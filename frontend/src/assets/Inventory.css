@@ -329,10 +329,6 @@
   transform: translateY(-3px) translateZ(0);
 }
 
-.inventory-item-card.inventory-item-equipped {
-  border-color: var(--color-primary) !important;
-}
-
 /* Item image container */
 .inventory-item-image {
   height: var(--inventory-item-height);

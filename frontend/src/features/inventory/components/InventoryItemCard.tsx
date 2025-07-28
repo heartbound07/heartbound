@@ -37,7 +37,7 @@ export const InventoryItemCard = forwardRef(({
       exit={{ opacity: 0, scale: 0.95 }}
       whileHover={{ y: -5 }}
       className={`shop-item-card inventory-item-card ${isSelected ? 'inventory-item-selected' : ''} ${item.equipped ? 'inventory-item-equipped' : ''}`}
-      style={{ borderColor: isSelected ? 'var(--color-primary, #0088cc)' : (item.equipped ? 'var(--color-primary, #0088cc)' : 'transparent') }}
+      style={{ borderColor: isSelected ? 'var(--color-primary, #0088cc)' : 'transparent' }}
       onClick={() => onSelect(item)}
     >
       {/* Show quantity for non-case items */}
