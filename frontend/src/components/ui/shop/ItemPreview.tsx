@@ -91,7 +91,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
     return user?.badgeUrl || null;
   };
 
-  // Determine what nameplate color to show in the preview
+  // Determine what nameplate colors to show in the preview
   const getPreviewNameplate = () => {
     // Start with the user's currently equipped colors, or defaults.
     let color = user?.nameplateColor || '#ffffff';
@@ -270,6 +270,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                     className="w-full"
                     size="lg"
                     nameplateColor={previewNameplateColor}
+                    nameplateEndColor={previewNameplateEndColor}
                   />
                 ) : (
                   // Otherwise, render NameplatePreview

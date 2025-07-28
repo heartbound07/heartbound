@@ -8,6 +8,7 @@ interface BadgePreviewProps {
   size?: 'sm' | 'md' | 'lg';
   message?: string;
   nameplateColor?: string; // Add nameplate color support
+  nameplateEndColor?: string; // Add nameplate gradient end color support
 }
 
 /**
@@ -21,7 +22,8 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
   className = '',
   size = 'md',
   message = 'This is how the badge will appear!',
-  nameplateColor // Add nameplate color prop
+  nameplateColor, // Add nameplate color prop
+  nameplateEndColor // Add nameplate end color prop
 }) => {
   // Set sizes based on the size prop
   const avatarSizes = {
@@ -48,6 +50,22 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
     lg: 'text-sm'
   };
   
+  // Define username style
+  const usernameStyle: React.CSSProperties = {
+    fontWeight: 600,
+    fontFamily: '"gg sans", sans-serif',
+  };
+
+  // Apply gradient if both start and end colors are provided
+  if (nameplateColor && nameplateEndColor) {
+    usernameStyle.background = `linear-gradient(to right, ${nameplateColor}, ${nameplateEndColor})`;
+    usernameStyle.WebkitBackgroundClip = 'text';
+    usernameStyle.WebkitTextFillColor = 'transparent';
+    usernameStyle.display = 'inline-block';
+  } else {
+    usernameStyle.color = nameplateColor || '#ffffff'; // Fallback to single color
+  }
+
   return (
     <div className={`flex items-center justify-center w-full p-4 rounded-lg ${className}`}>
       {/* User avatar */}
@@ -62,11 +80,7 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
         <div className="flex items-center gap-2">
           <span 
             className={`font-medium ${textSizes[size]}`} 
-            style={{ 
-              fontWeight: 600,
-              fontFamily: '"gg sans", sans-serif',
-              color: nameplateColor || '#ffffff' // Use nameplate color or default to white
-            }}
+            style={usernameStyle}
           >
             {username}
           </span>
