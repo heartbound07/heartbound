@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth';
 import { motion } from 'framer-motion';
 import httpClient from '@/lib/api/httpClient';
@@ -35,10 +35,10 @@ export function ShopPage() {
 
   const MIN_LOADING_TIME = 800;
 
-  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info') => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts(prev => [...prev, { id, message, type }]);
-  };
+  }, []);
 
   const removeToast = (id: string) => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
@@ -60,35 +60,49 @@ export function ShopPage() {
     });
   };
 
-  useEffect(() => {
-    const fetchShopLayout = async () => {
-      const startTime = Date.now();
-      setLoading(true);
+  const fetchShopLayout = useCallback(async () => {
+    const startTime = Date.now();
+    setLoading(true);
 
-      try {
-        const response = await httpClient.get('/shop/layout');
-        const data: ShopLayoutResponse = response.data;
+    try {
+      const response = await httpClient.get('/shop/layout');
+      const data: ShopLayoutResponse = response.data;
 
-        setFeaturedItems(data.featuredItems);
-        setDailyItems(data.dailyItems);
+      setFeaturedItems(data.featuredItems);
+      setDailyItems(data.dailyItems);
 
-      } catch (error) {
-        console.error('Error fetching shop layout:', error);
-        showToast('Failed to load shop items', 'error');
-      } finally {
-        const elapsedTime = Date.now() - startTime;
-        if (elapsedTime < MIN_LOADING_TIME) {
-          setTimeout(() => {
-            setLoading(false);
-          }, MIN_LOADING_TIME - elapsedTime);
-        } else {
+    } catch (error) {
+      console.error('Error fetching shop layout:', error);
+      showToast('Failed to load shop items', 'error');
+    } finally {
+      const elapsedTime = Date.now() - startTime;
+      if (elapsedTime < MIN_LOADING_TIME) {
+        setTimeout(() => {
           setLoading(false);
-        }
+        }, MIN_LOADING_TIME - elapsedTime);
+      } else {
+        setLoading(false);
       }
-    };
+    }
+  }, [showToast]);
 
+  useEffect(() => {
     fetchShopLayout();
-  }, []);
+  }, [fetchShopLayout]);
+
+  useEffect(() => {
+    const now = new Date();
+    // Set the target to 2 seconds past the next midnight UTC to ensure the backend has time to update.
+    const midnightUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 2, 0));
+    const msUntilMidnight = midnightUTC.getTime() - now.getTime();
+
+    const timerId = setTimeout(() => {
+      showToast('Daily items have been refreshed!', 'info');
+      fetchShopLayout();
+    }, msUntilMidnight);
+
+    return () => clearTimeout(timerId);
+  }, [fetchShopLayout, showToast]);
 
   const handlePurchase = async (itemId: string, quantity?: number) => {
     if (purchaseInProgress) return;
