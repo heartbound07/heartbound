@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth';
 import { motion } from 'framer-motion';
 import httpClient from '@/lib/api/httpClient';
@@ -16,6 +16,13 @@ import { InventoryFilters } from './components/InventoryFilters';
 import { InventoryControls } from './components/InventoryControls';
 import { InventoryGrid } from './components/InventoryGrid';
 import { FishingRodPartsModal } from './components/FishingRodPartsModal';
+import {
+  getFishingRodRepairCost,
+  repairFishingRod,
+} from '@/config/userService';
+import toast from 'react-hot-toast';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
+import { FaCoins } from 'react-icons/fa';
 
 
 export function InventoryPage() {
@@ -63,6 +70,10 @@ export function InventoryPage() {
     isOpen: false,
     rod: null,
   });
+  const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [itemToConfirm, setItemToConfirm] = useState<ShopItem | null>(null);
+  const [repairCost, setRepairCost] = useState<number | null>(null);
+
 
   // Define rarity order for sorting
   const RARITY_ORDER: Record<string, number> = {
@@ -143,7 +154,7 @@ export function InventoryPage() {
       setActionInProgress(null);
     }
   };
-  
+
   const handleRollComplete = async (result: RollResult) => {
     // Show enhanced success toast with compensation info
     if (result.alreadyOwned && result.compensationAwarded) {
@@ -166,7 +177,43 @@ export function InventoryPage() {
     // Refresh inventory to show updated items
     await fetchInventory();
   };
-  
+
+  const handleRepair = async (item: ShopItem) => {
+    if (!item.instanceId) return;
+    setActionInProgress('repair-cost');
+    try {
+      const { repairCost } = await getFishingRodRepairCost(item.instanceId);
+      setRepairCost(repairCost);
+      setItemToConfirm(item);
+      setConfirmModalOpen(true);
+    } catch (error) {
+      console.error("Error fetching repair cost:", error);
+      toast.error("Could not fetch repair cost. Please try again.");
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const confirmRepair = async () => {
+    if (!itemToConfirm || !itemToConfirm.instanceId) return;
+    setActionInProgress('repair');
+    try {
+      const updatedProfile = await repairFishingRod(itemToConfirm.instanceId);
+      updateProfile(updatedProfile);
+      toast.success("Fishing rod repaired successfully!");
+      fetchInventory(); // Refresh inventory
+    } catch (error: any) {
+      console.error("Error repairing rod:", error);
+      toast.error(error?.response?.data?.message || "Failed to repair fishing rod.");
+    } finally {
+      setActionInProgress(null);
+      setConfirmModalOpen(false);
+      setItemToConfirm(null);
+      setRepairCost(null);
+    }
+  };
+
+
   // Simplified sort function without price sorting options
   const sortItems = (itemsToSort: ShopItem[]): ShopItem[] => {
     // Make a copy to avoid mutating the original
@@ -206,7 +253,7 @@ export function InventoryPage() {
     }
   };
   
-  const fetchInventory = async () => {
+  const fetchInventory = useCallback(async () => {
     setLoading(true);
     try {
       const response = await httpClient.get('/shop/inventory');
@@ -238,11 +285,11 @@ export function InventoryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, sortOrder, selectedCategory]);
   
   useEffect(() => {
     fetchInventory();
-  }, [selectedCategory]);
+  }, [fetchInventory]);
   
   // Modify useEffect for sorting when the sort order changes
   useEffect(() => {
@@ -561,6 +608,7 @@ export function InventoryPage() {
               isItemSelected={isItemSelected}
               onSelectItem={handleSelectItem}
               onOpenPartsModal={openPartsModal}
+              onRepair={handleRepair}
             />
           </div>
         </motion.div>
@@ -592,7 +640,26 @@ export function InventoryPage() {
         parts={availablePartsForModal}
         onEquipPart={handleEquipRodPart}
     />
-    </div>
+
+    <ConfirmationModal
+      isOpen={isConfirmModalOpen}
+      onClose={() => setConfirmModalOpen(false)}
+      onConfirm={confirmRepair}
+      message={
+        <div className="text-center">
+          <p>Are you sure you want to repair this rod?</p>
+          {repairCost !== null && (
+            <div className="flex items-center justify-center mt-4 text-lg">
+                <FaCoins className="mr-2 text-yellow-400" />
+                <span className="font-semibold text-white">{new Intl.NumberFormat().format(repairCost)}</span>
+                <span className="ml-1.5 text-slate-300 text-base">credits</span>
+            </div>
+          )}
+        </div>
+      }
+    />
+
+  </div>
   );
 }
 

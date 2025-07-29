@@ -11,6 +11,7 @@ interface InventoryGridProps {
   isItemSelected: (item: ShopItem) => boolean;
   onSelectItem: (item: ShopItem) => void;
   onOpenPartsModal: (item: ShopItem) => void;
+  onRepair: (item: ShopItem) => void;
 }
 
 // Add category mapping for special cases
@@ -36,7 +37,8 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
   user,
   isItemSelected,
   onSelectItem,
-  onOpenPartsModal
+  onOpenPartsModal,
+  onRepair
 }) => {
   return (
     <div className="inventory-grid-container">
@@ -96,6 +98,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                 isSelected={isItemSelected(item)}
                 onSelect={onSelectItem}
                 onOpenPartsModal={onOpenPartsModal}
+                onRepair={onRepair}
               />
             ))}
           </AnimatePresence>

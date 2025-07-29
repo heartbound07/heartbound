@@ -12,6 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -23,6 +24,39 @@ public class InventoryController {
 
     public InventoryController(UserInventoryService userInventoryService) {
         this.userInventoryService = userInventoryService;
+    }
+
+    @GetMapping("/rod/{rodInstanceId}/repair-cost")
+    @PreAuthorize("isAuthenticated()")
+    @RateLimited(
+            requestsPerMinute = 20,
+            keyType = RateLimitKeyType.USER,
+            keyPrefix = "rod-repair-cost"
+    )
+    public ResponseEntity<Map<String, Integer>> getRepairCost(
+            @PathVariable UUID rodInstanceId,
+            Authentication authentication) {
+        String userId = authentication.getName();
+        logger.info("User {} is requesting repair cost for rod {}", userId, rodInstanceId);
+        int cost = userInventoryService.getRepairCost(userId, rodInstanceId);
+        return ResponseEntity.ok(Map.of("repairCost", cost));
+    }
+
+    @PostMapping("/rod/{rodInstanceId}/repair")
+    @PreAuthorize("isAuthenticated()")
+    @RateLimited(
+            requestsPerMinute = 10,
+            requestsPerHour = 60,
+            keyType = RateLimitKeyType.USER,
+            keyPrefix = "rod-repair"
+    )
+    public ResponseEntity<UserProfileDTO> repairRod(
+            @PathVariable UUID rodInstanceId,
+            Authentication authentication) {
+        String userId = authentication.getName();
+        logger.info("User {} is attempting to repair rod {}", userId, rodInstanceId);
+        UserProfileDTO updatedProfile = userInventoryService.repairFishingRod(userId, rodInstanceId);
+        return ResponseEntity.ok(updatedProfile);
     }
 
     @PostMapping("/rod/{rodInstanceId}/equip-part")

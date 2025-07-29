@@ -16,6 +16,7 @@ interface InventoryItemCardProps {
     isSelected?: boolean;
     onSelect: (item: ShopItem) => void;
     onOpenPartsModal: (item: ShopItem) => void;
+    onRepair: (item: ShopItem) => void;
 }
 
 // Inventory Item Card Component (based on ShopItemCard design)
@@ -24,7 +25,8 @@ export const InventoryItemCard = forwardRef<HTMLDivElement, InventoryItemCardPro
   user,
   isSelected = false,
   onSelect,
-  onOpenPartsModal
+  onOpenPartsModal,
+  onRepair
 }, ref) => {
   // Get rarity color for border
   const rarityColor = getRarityColor(item.rarity);
@@ -249,6 +251,17 @@ export const InventoryItemCard = forwardRef<HTMLDivElement, InventoryItemCardPro
                 ></div>
               </div>
             </div>
+            {item.durability === 0 && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onRepair(item);
+                    }}
+                    className="w-full mt-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition-colors"
+                >
+                    Repair Rod
+                </button>
+            )}
           </div>
         )}
 

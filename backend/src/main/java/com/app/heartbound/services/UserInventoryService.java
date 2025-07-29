@@ -24,6 +24,10 @@ import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.exceptions.InvalidOperationException;
 import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
 
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
+
 @Service
 public class UserInventoryService {
 
@@ -36,6 +40,99 @@ public class UserInventoryService {
         this.itemInstanceRepository = itemInstanceRepository;
         this.userRepository = userRepository;
         this.userService = userService;
+    }
+
+    private int getBaseRepairCost(ItemRarity rarity) {
+        switch (rarity) {
+            case COMMON: return 100;
+            case UNCOMMON: return 300;
+            case RARE: return 800;
+            case EPIC: return 2500;
+            case LEGENDARY: return 7000;
+            default: return 0;
+        }
+    }
+
+    private int getPartSurcharge(ItemRarity rarity) {
+        switch (rarity) {
+            case COMMON: return 20;
+            case UNCOMMON: return 60;
+            case RARE: return 200;
+            case EPIC: return 800;
+            case LEGENDARY: return 3000;
+            default: return 0;
+        }
+    }
+
+    private List<ItemInstance> getEquippedParts(ItemInstance rodInstance) {
+        List<ItemInstance> parts = new ArrayList<>();
+        if (rodInstance.getEquippedRodShaft() != null) parts.add(rodInstance.getEquippedRodShaft());
+        if (rodInstance.getEquippedReel() != null) parts.add(rodInstance.getEquippedReel());
+        if (rodInstance.getEquippedFishingLine() != null) parts.add(rodInstance.getEquippedFishingLine());
+        if (rodInstance.getEquippedHook() != null) parts.add(rodInstance.getEquippedHook());
+        if (rodInstance.getEquippedGrip() != null) parts.add(rodInstance.getEquippedGrip());
+        return parts;
+    }
+
+    @Transactional(readOnly = true)
+    public int getRepairCost(String userId, UUID rodInstanceId) {
+        ItemInstance rodInstance = itemInstanceRepository.findById(rodInstanceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Fishing rod instance not found with id: " + rodInstanceId));
+
+        if (!rodInstance.getOwner().getId().equals(userId)) {
+            throw new IllegalStateException("User does not own the fishing rod.");
+        }
+
+        Shop rodBaseItem = rodInstance.getBaseItem();
+        int baseCost = getBaseRepairCost(rodBaseItem.getRarity());
+
+        int partsSurcharge = 0;
+        for (ItemInstance partInstance : getEquippedParts(rodInstance)) {
+            partsSurcharge += getPartSurcharge(partInstance.getBaseItem().getRarity());
+        }
+
+        int rodLevel = rodInstance.getLevel() != null ? rodInstance.getLevel() : 1;
+        double levelMultiplier = 1 + (rodLevel * 0.10);
+
+        double finalCost = (baseCost + partsSurcharge) * levelMultiplier;
+
+        return (int) Math.round(finalCost);
+    }
+
+    @Transactional
+    public UserProfileDTO repairFishingRod(String userId, UUID rodInstanceId) {
+        User user = userRepository.findByIdWithLock(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        ItemInstance rodInstance = itemInstanceRepository.findByIdWithLock(rodInstanceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Fishing rod instance not found with id: " + rodInstanceId));
+
+        if (!rodInstance.getOwner().getId().equals(userId)) {
+            throw new IllegalStateException("User does not own the fishing rod.");
+        }
+
+        if (rodInstance.getDurability() == null || rodInstance.getDurability() > 0) {
+            throw new InvalidOperationException("This fishing rod does not need repairs.");
+        }
+
+        int cost = getRepairCost(userId, rodInstanceId);
+
+        boolean success = userService.deductCreditsIfSufficient(userId, cost);
+        if (!success) {
+            throw new InsufficientCreditsException("You do not have enough credits to repair this rod. Required: " + cost + " credits.");
+        }
+
+        Integer maxDurability = rodInstance.getMaxDurability() != null ? rodInstance.getMaxDurability() : rodInstance.getBaseItem().getMaxDurability();
+        if (maxDurability == null) {
+            throw new InvalidOperationException("Rod does not have maximum durability set.");
+        }
+
+        rodInstance.setDurability(maxDurability);
+        itemInstanceRepository.save(rodInstance);
+
+        logger.info("User {} successfully repaired rod {} for {} credits.", userId, rodInstanceId, cost);
+
+        return userService.mapToProfileDTO(user);
     }
 
     public int getItemQuantity(String userId, UUID itemId) {
