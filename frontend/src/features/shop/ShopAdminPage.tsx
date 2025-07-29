@@ -33,6 +33,7 @@ interface ShopItem {
   maxCopies?: number;
   copiesSold?: number;
   maxDurability?: number;
+  fishingRodPartType?: string;
 }
 
 interface ShopFormData {
@@ -50,6 +51,7 @@ interface ShopFormData {
   isFeatured: boolean;
   isDaily: boolean;
   fishingRodMultiplier?: number;
+  fishingRodPartType?: string;
   colorType: 'solid' | 'gradient';
   gradientEndColor?: string;
   maxCopies?: number;
@@ -117,6 +119,7 @@ export function ShopAdminPage() {
     isFeatured: false,
     isDaily: false,
     fishingRodMultiplier: 1.0,
+    fishingRodPartType: '',
     colorType: 'solid',
     gradientEndColor: '',
     maxCopies: undefined,
@@ -124,14 +127,15 @@ export function ShopAdminPage() {
   });
   
   // Available categories
-  const categories = ['USER_COLOR', 'LISTING', 'ACCENT', 'BADGE', 'CASE', 'FISHING_ROD'];
+  const categories = ['USER_COLOR', 'LISTING', 'ACCENT', 'BADGE', 'CASE', 'FISHING_ROD', 'FISHING_ROD_PART'];
   
   // Available roles for role-restricted items
   const roles = ['ADMIN', 'MODERATOR', 'MONARCH'];
   
   // Add this after the roles array
   const rarities = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY'];
-  
+  const fishingRodParts = ['ROD_SHAFT', 'REEL', 'FISHING_LINE', 'HOOK', 'GRIP'];
+
   useEffect(() => {
     fetchShopItems();
   }, []);
@@ -424,6 +428,7 @@ export function ShopAdminPage() {
       isFeatured: item.isFeatured,
       isDaily: item.isDaily,
       fishingRodMultiplier: item.fishingRodMultiplier || 1.0,
+      fishingRodPartType: item.fishingRodPartType || '',
       colorType: item.gradientEndColor ? 'gradient' : 'solid',
       gradientEndColor: item.gradientEndColor || '',
       maxCopies: item.maxCopies,
@@ -491,6 +496,7 @@ export function ShopAdminPage() {
       isFeatured: false,
       isDaily: false,
       fishingRodMultiplier: 1.0,
+      fishingRodPartType: '',
       colorType: 'solid',
       gradientEndColor: '',
       maxCopies: undefined,
@@ -590,6 +596,7 @@ export function ShopAdminPage() {
         categories={categories}
         roles={roles}
         rarities={rarities}
+        fishingRodParts={fishingRodParts}
         handleImageUpload={handleImageUpload}
         handleImageRemove={handleImageRemove}
         caseContents={caseContents}

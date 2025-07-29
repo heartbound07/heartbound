@@ -3,6 +3,7 @@ package com.app.heartbound.entities;
 import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.enums.ShopCategory;
+import com.app.heartbound.enums.FishingRodPart;
 import com.app.heartbound.validation.NoScript;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
@@ -89,6 +90,10 @@ public class Shop {
     @DecimalMax(value = "10.0", message = "Multiplier must not exceed 10.0")
     @Column(name = "fishing_rod_multiplier")
     private Double fishingRodMultiplier;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fishing_rod_part_type")
+    private FishingRodPart fishingRodPartType;
 
     @Column(name = "gradient_end_color")
     private String gradientEndColor;

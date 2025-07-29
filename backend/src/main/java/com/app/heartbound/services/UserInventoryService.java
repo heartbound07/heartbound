@@ -18,6 +18,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.app.heartbound.enums.ItemRarity;
+import com.app.heartbound.enums.FishingRodPart;
+import com.app.heartbound.dto.UserProfileDTO;
+import com.app.heartbound.exceptions.InvalidOperationException;
 
 @Service
 public class UserInventoryService {
@@ -25,10 +29,12 @@ public class UserInventoryService {
     private static final Logger logger = LoggerFactory.getLogger(UserInventoryService.class);
     private final ItemInstanceRepository itemInstanceRepository;
     private final UserRepository userRepository;
+    private final UserService userService;
 
-    public UserInventoryService(ItemInstanceRepository itemInstanceRepository, UserRepository userRepository) {
+    public UserInventoryService(ItemInstanceRepository itemInstanceRepository, UserRepository userRepository, UserService userService) {
         this.itemInstanceRepository = itemInstanceRepository;
         this.userRepository = userRepository;
+        this.userService = userService;
     }
 
     public int getItemQuantity(String userId, UUID itemId) {
@@ -125,5 +131,89 @@ public class UserInventoryService {
         itemInstanceRepository.save(itemInstance);
 
         logger.info("Successfully transferred item instance '{}' from {} to {}", itemInstance.getBaseItem().getName(), fromUserId, toUserId);
+    }
+
+    @Transactional
+    public UserProfileDTO repairFishingRod(String userId, UUID rodInstanceId, UUID partItemId) {
+        User user = userRepository.findByIdWithLock(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        ItemInstance rodInstance = itemInstanceRepository.findByIdWithLock(rodInstanceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Fishing rod instance not found with id: " + rodInstanceId));
+
+        if (!rodInstance.getOwner().getId().equals(userId)) {
+            throw new IllegalStateException("User does not own the fishing rod.");
+        }
+        
+        ItemInstance partInstance = user.getItemInstances().stream()
+                .filter(instance -> instance.getBaseItem().getId().equals(partItemId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Fishing rod part not found in user inventory with id: " + partItemId));
+
+        Shop rodBaseItem = rodInstance.getBaseItem();
+        if (rodBaseItem.getCategory() != ShopCategory.FISHING_ROD) {
+            throw new InvalidOperationException("Item is not a fishing rod.");
+        }
+
+        Shop partBaseItem = partInstance.getBaseItem();
+        if (partBaseItem.getCategory() != ShopCategory.FISHING_ROD_PART) {
+            throw new InvalidOperationException("Item is not a fishing rod part.");
+        }
+
+        Integer maxDurability = rodBaseItem.getMaxDurability();
+        if (maxDurability == null || rodInstance.getDurability() >= maxDurability) {
+            throw new InvalidOperationException("Rod is already at maximum durability.");
+        }
+
+        double rarityPercentage = getRarityPercentage(partBaseItem.getRarity());
+        double partTypeMultiplier = getPartTypeMultiplier(partBaseItem.getFishingRodPartType());
+
+        int durabilityToRestore = (int) Math.round(maxDurability * rarityPercentage * partTypeMultiplier);
+
+        if (durabilityToRestore <= 0) {
+            itemInstanceRepository.delete(partInstance); // Still consume the part even if it does nothing
+            throw new InvalidOperationException("This part does not restore durability.");
+        }
+
+        int newDurability = Math.min(rodInstance.getDurability() + durabilityToRestore, maxDurability);
+        rodInstance.setDurability(newDurability);
+
+        itemInstanceRepository.delete(partInstance);
+        itemInstanceRepository.save(rodInstance);
+
+        return userService.mapToProfileDTO(user);
+    }
+
+    private double getRarityPercentage(ItemRarity rarity) {
+        switch (rarity) {
+            case COMMON:
+                return 0.05;
+            case UNCOMMON:
+                return 0.10;
+            case RARE:
+                return 0.25;
+            case EPIC:
+                return 0.50;
+            case LEGENDARY:
+                return 1.0;
+            default:
+                return 0.0;
+        }
+    }
+
+    private double getPartTypeMultiplier(FishingRodPart partType) {
+        if (partType == null) return 0.0;
+        switch (partType) {
+            case ROD_SHAFT:
+                return 1.5;
+            case REEL:
+                return 1.0;
+            case GRIP:
+                return 0.5;
+            case HOOK:
+            case FISHING_LINE:
+            default:
+                return 0.0;
+        }
     }
 } 

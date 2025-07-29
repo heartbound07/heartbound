@@ -1326,6 +1326,7 @@ public class ShopService {
             .maxCopies(shop.getMaxCopies())
             .copiesSold(shop.getCopiesSold())
             .maxDurability(shop.getMaxDurability())
+            .fishingRodPartType(shop.getFishingRodPartType())
             .build();
     }
 
@@ -1412,6 +1413,7 @@ public class ShopService {
             .gradientEndColor(sanitizedGradientEndColor)
             .maxCopies(shopDTO.getMaxCopies())
             .maxDurability(shopDTO.getMaxDurability())
+            .fishingRodPartType(shopDTO.getFishingRodPartType())
             .build();
         
         logger.debug("Creating new shop item with sanitized content");
@@ -1493,6 +1495,7 @@ public class ShopService {
         existingItem.setGradientEndColor(sanitizedGradientEndColor);
         existingItem.setMaxCopies(shopDTO.getMaxCopies());
         existingItem.setMaxDurability(shopDTO.getMaxDurability());
+        existingItem.setFishingRodPartType(shopDTO.getFishingRodPartType());
         
         logger.debug("Updating shop item with ID: {} with sanitized content", existingItem.getId());
         

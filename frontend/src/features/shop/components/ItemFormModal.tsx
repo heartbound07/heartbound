@@ -55,6 +55,7 @@ interface ShopItem {
     isFeatured: boolean;
     isDaily: boolean;
     fishingRodMultiplier?: number;
+    fishingRodPartType?: string;
     colorType: 'solid' | 'gradient';
     gradientEndColor?: string;
     maxCopies?: number;
@@ -85,6 +86,7 @@ interface ShopItem {
     categories: string[];
     roles: string[];
     rarities: string[];
+    fishingRodParts: string[];
     handleImageUpload: (url: string) => void;
     handleImageRemove: () => void;
     // Case related props
@@ -111,6 +113,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
     categories,
     roles,
     rarities,
+    fishingRodParts,
     handleImageUpload,
     handleImageRemove,
     caseContents,
@@ -255,6 +258,26 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                   </p>
                 </div>
                 
+                {formData.category === 'FISHING_ROD_PART' && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                      Part Type
+                    </label>
+                    <select
+                      name="fishingRodPartType"
+                      value={formData.fishingRodPartType || ''}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                    >
+                      <option value="">Select Part Type</option>
+                      {fishingRodParts.map(part => (
+                        <option key={part} value={part}>{part}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">
                     <div className="flex items-center">
@@ -367,6 +390,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
             )}
 
             {/* Image & Appearance */}
+            {formData.category !== 'FISHING_ROD_PART' && (
             <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
               <h3 className="text-md font-medium text-slate-200 mb-4 flex items-center">
                 <HiOutlineColorSwatch className="mr-2 text-primary" size={18} />
@@ -545,6 +569,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                 </div>
               )}
             </div>
+            )}
             
             {/* In the form, add this conditional thumbnail upload field */}
             {formData.category === 'BADGE' && (

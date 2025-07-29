@@ -4,6 +4,7 @@ import com.app.heartbound.config.security.Views;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.enums.ItemRarity;
+import com.app.heartbound.enums.FishingRodPart;
 import com.app.heartbound.validation.NoScript;
 import com.app.heartbound.validation.SanitizedHtml;
 import com.app.heartbound.services.HtmlSanitizationService;
@@ -108,6 +109,9 @@ public class ShopDTO {
     @DecimalMax(value = "10.0", message = "Multiplier must not exceed 10.0")
     @JsonView(Views.Public.class)
     private Double fishingRodMultiplier;
+
+    @JsonView(Views.Public.class)
+    private FishingRodPart fishingRodPartType;
 
     @JsonView(Views.Public.class)
     private String gradientEndColor;

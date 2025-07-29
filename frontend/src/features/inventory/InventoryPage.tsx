@@ -125,10 +125,23 @@ export function InventoryPage() {
     setPartsModal({ isOpen: false, rod: null });
   };
 
-  const handleEquipPart = (rodId: string, partId: string) => {
-    // This is where the logic to equip a part would go.
-    // For now, we can just show a toast.
-    showToast(`Equipping part ${partId} to rod ${rodId}`, 'info');
+  const handleEquipPart = async (rodId: string, partId: string) => {
+    if (actionInProgress) return;
+    setActionInProgress(`repair-${rodId}`);
+    try {
+      const response = await httpClient.post<UserProfileDTO>(`/inventory/rod/${rodId}/repair`, { partItemId: partId });
+      if (response.data) {
+        updateProfile(response.data);
+      }
+      showToast('Fishing rod repaired successfully!', 'success');
+      await fetchInventory(); // Refresh inventory
+      closePartsModal(); // Close the modal on success
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to repair fishing rod';
+      showToast(errorMessage, 'error');
+    } finally {
+      setActionInProgress(null);
+    }
   };
   
   const handleRollComplete = async (result: RollResult) => {

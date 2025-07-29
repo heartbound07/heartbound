@@ -100,6 +100,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/shop/purchase/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/shop/inventory").authenticated()
                 
+                // Inventory endpoints
+                .requestMatchers("/inventory/**").authenticated()
+
                 // All other requests require authentication
                 .anyRequest().authenticated()
             )

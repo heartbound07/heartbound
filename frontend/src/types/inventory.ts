@@ -22,6 +22,7 @@ export interface ShopItem {
   experience?: number;
   level?: number;
   xpForNextLevel?: number;
+  fishingRodPartType?: string;
 }
 
 export interface ToastNotification {
