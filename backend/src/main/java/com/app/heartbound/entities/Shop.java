@@ -104,6 +104,9 @@ public class Shop {
     @Column(name = "max_durability")
     private Integer maxDurability;
 
+    @Column(name = "durability_increase")
+    private Integer durabilityIncrease;
+
     @Builder.Default
     @Column(name = "copies_sold")
     private Integer copiesSold = 0;

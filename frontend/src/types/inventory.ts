@@ -23,6 +23,7 @@ export interface ShopItem {
   level?: number;
   xpForNextLevel?: number;
   fishingRodPartType?: string;
+  durabilityIncrease?: number;
 }
 
 export interface ToastNotification {

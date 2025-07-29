@@ -82,7 +82,7 @@ public class UserInventoryService {
                             .rarity(item.getRarity())
                             .discordRoleId(item.getDiscordRoleId())
                             .durability(instance.getDurability())
-                            .maxDurability(item.getMaxDurability())
+                            .maxDurability(instance.getMaxDurability() != null ? instance.getMaxDurability() : item.getMaxDurability())
                             .experience(instance.getExperience())
                             .level(level)
                             .xpForNextLevel(LevelingUtil.calculateXpForRodLevel(level))
@@ -160,25 +160,30 @@ public class UserInventoryService {
             throw new InvalidOperationException("Item is not a fishing rod part.");
         }
 
-        Integer maxDurability = rodBaseItem.getMaxDurability();
-        if (maxDurability == null || rodInstance.getDurability() >= maxDurability) {
+        Integer currentMaxDurability = rodInstance.getMaxDurability() != null ? rodInstance.getMaxDurability() : rodBaseItem.getMaxDurability();
+        if (currentMaxDurability == null) {
+            throw new InvalidOperationException("Rod does not have maximum durability set.");
+        }
+
+        if (rodInstance.getDurability() >= currentMaxDurability) {
             throw new InvalidOperationException("Rod is already at maximum durability.");
+        }
+        
+        if (partBaseItem.getRarity() == ItemRarity.EPIC || partBaseItem.getRarity() == ItemRarity.LEGENDARY) {
+            if (partBaseItem.getDurabilityIncrease() != null && partBaseItem.getDurabilityIncrease() > 0) {
+                currentMaxDurability += partBaseItem.getDurabilityIncrease();
+                rodInstance.setMaxDurability(currentMaxDurability);
+            }
         }
 
         double rarityPercentage = getRarityPercentage(partBaseItem.getRarity());
-        double partTypeMultiplier = getPartTypeMultiplier(partBaseItem.getFishingRodPartType());
+        int durabilityToRestore = (int) Math.round(currentMaxDurability * rarityPercentage);
 
-        int durabilityToRestore = (int) Math.round(maxDurability * rarityPercentage * partTypeMultiplier);
-
-        if (durabilityToRestore <= 0) {
-            itemInstanceRepository.delete(partInstance); // Still consume the part even if it does nothing
-            throw new InvalidOperationException("This part does not restore durability.");
-        }
-
-        int newDurability = Math.min(rodInstance.getDurability() + durabilityToRestore, maxDurability);
+        int newDurability = Math.min(rodInstance.getDurability() + durabilityToRestore, currentMaxDurability);
         rodInstance.setDurability(newDurability);
 
         itemInstanceRepository.delete(partInstance);
+        user.getItemInstances().remove(partInstance);
         itemInstanceRepository.save(rodInstance);
 
         return userService.mapToProfileDTO(user);
@@ -201,19 +206,4 @@ public class UserInventoryService {
         }
     }
 
-    private double getPartTypeMultiplier(FishingRodPart partType) {
-        if (partType == null) return 0.0;
-        switch (partType) {
-            case ROD_SHAFT:
-                return 1.5;
-            case REEL:
-                return 1.0;
-            case GRIP:
-                return 0.5;
-            case HOOK:
-            case FISHING_LINE:
-            default:
-                return 0.0;
-        }
-    }
 } 

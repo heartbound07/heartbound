@@ -38,6 +38,7 @@ interface ShopItem {
     maxCopies?: number;
     copiesSold?: number;
     maxDurability?: number;
+    durabilityIncrease?: number;
   }
   
   interface ShopFormData {
@@ -60,6 +61,7 @@ interface ShopItem {
     gradientEndColor?: string;
     maxCopies?: number;
     maxDurability?: number;
+    durabilityIncrease?: number;
   }
   
   interface CaseItemData {
@@ -383,6 +385,34 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                     />
                     <p className="text-xs text-slate-400 mt-1">
                       The starting and maximum durability for this fishing rod.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {formData.category === 'FISHING_ROD_PART' && (formData.rarity === 'EPIC' || formData.rarity === 'LEGENDARY') && (
+              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
+                <h3 className="text-md font-medium text-slate-200 mb-4 flex items-center">
+                  <HiOutlineColorSwatch className="mr-2 text-primary" size={18} />
+                  Part Properties
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                      Durability Increase
+                    </label>
+                    <input
+                      type="number"
+                      name="durabilityIncrease"
+                      value={formData.durabilityIncrease || ''}
+                      onChange={handleInputChange}
+                      min="1"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="e.g., 50"
+                    />
+                    <p className="text-xs text-slate-400 mt-1">
+                      Increases the rod's max durability by this amount.
                     </p>
                   </div>
                 </div>

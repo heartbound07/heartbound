@@ -123,6 +123,9 @@ public class ShopDTO {
     @JsonView(Views.Public.class)
     private Integer maxDurability;
 
+    @JsonView(Views.Public.class)
+    private Integer durabilityIncrease;
+
     // Instance-specific fields
     @JsonView(Views.Public.class)
     private UUID instanceId;

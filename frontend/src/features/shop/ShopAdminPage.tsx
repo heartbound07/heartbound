@@ -34,6 +34,7 @@ interface ShopItem {
   copiesSold?: number;
   maxDurability?: number;
   fishingRodPartType?: string;
+  durabilityIncrease?: number;
 }
 
 interface ShopFormData {
@@ -56,6 +57,7 @@ interface ShopFormData {
   gradientEndColor?: string;
   maxCopies?: number;
   maxDurability?: number;
+  durabilityIncrease?: number;
 }
 
 interface CaseItemData {
@@ -123,7 +125,8 @@ export function ShopAdminPage() {
     colorType: 'solid',
     gradientEndColor: '',
     maxCopies: undefined,
-    maxDurability: undefined
+    maxDurability: undefined,
+    durabilityIncrease: undefined
   });
   
   // Available categories
@@ -355,7 +358,7 @@ export function ShopAdminPage() {
     // Handle numeric conversion for price, maxCopies, and maxDurability
     if (name === 'price') {
       setFormData({ ...formData, [name]: parseInt(value, 10) || 0 });
-    } else if (name === 'maxCopies' || name === 'maxDurability') {
+    } else if (name === 'maxCopies' || name === 'maxDurability' || name === 'durabilityIncrease') {
       const numValue = parseInt(value, 10);
       setFormData({ ...formData, [name]: isNaN(numValue) ? undefined : numValue });
     } else if (name === 'expiresAt') {
@@ -379,6 +382,7 @@ export function ShopAdminPage() {
         ...formData,
         expiresAt: formData.expiresAt ? new Date(formData.expiresAt).toISOString() : null,
         maxCopies: formData.maxCopies ? Number(formData.maxCopies) : null,
+        durabilityIncrease: formData.durabilityIncrease ? Number(formData.durabilityIncrease) : null,
       };
       
       if (editingItem) {
@@ -432,7 +436,8 @@ export function ShopAdminPage() {
       colorType: item.gradientEndColor ? 'gradient' : 'solid',
       gradientEndColor: item.gradientEndColor || '',
       maxCopies: item.maxCopies,
-      maxDurability: item.maxDurability
+      maxDurability: item.maxDurability,
+      durabilityIncrease: item.durabilityIncrease
     });
     
     // Load case contents if this is a case
@@ -500,7 +505,8 @@ export function ShopAdminPage() {
       colorType: 'solid',
       gradientEndColor: '',
       maxCopies: undefined,
-      maxDurability: undefined
+      maxDurability: undefined,
+      durabilityIncrease: undefined
     });
     setEditingItem(null);
     setCaseContents({ items: [], totalDropRate: 0 });

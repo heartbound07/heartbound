@@ -36,6 +36,9 @@ public class ItemInstance {
     @Column(name = "durability")
     private Integer durability;
 
+    @Column(name = "max_durability")
+    private Integer maxDurability;
+
     @Column(name = "experience")
     private Long experience;
 
