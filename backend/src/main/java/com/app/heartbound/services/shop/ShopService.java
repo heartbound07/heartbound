@@ -1621,13 +1621,14 @@ public class ShopService {
 
         // Group instances by user ID to process refunds and unequip logic.
         Map<String, List<ItemInstance>> instancesByUser = instancesToDelete.stream()
-            .collect(Collectors.groupingBy(instance -> instance.getOwner().getId()));
+                .collect(Collectors.groupingBy(instance -> instance.getOwner().getId()));
 
         if (!instancesByUser.isEmpty()) {
             List<User> affectedUsers = userRepository.findAllById(instancesByUser.keySet());
 
             for (User user : affectedUsers) {
-                long ownedCount = instancesByUser.get(user.getId()).size();
+                List<ItemInstance> userInstances = instancesByUser.get(user.getId());
+                long ownedCount = userInstances.size();
                 
                 // 1. Issue refund if necessary
                 if (needsRefund) {
@@ -1637,18 +1638,30 @@ public class ShopService {
 
                 // 2. Unequip the item if it was equipped
                 if (item.getCategory() != null && item.getCategory().isEquippable()) {
-                    UUID equippedId = user.getEquippedItemIdByCategory(item.getCategory());
-                    if (item.getId().equals(equippedId)) {
-                        user.setEquippedItemIdByCategory(item.getCategory(), null);
-                        logger.debug("Unequipped deleted item {} for user {}", item.getId(), user.getId());
-
-                        // Also handle Discord role removal if applicable
-                        if (item.getDiscordRoleId() != null && !item.getDiscordRoleId().isEmpty()) {
-                            discordService.removeRole(user.getId(), item.getDiscordRoleId());
-                            logger.debug("Removed Discord role {} for deleted item from user {}", item.getDiscordRoleId(), user.getId());
+                    // For non-instanced items, we check the base item ID
+                    if (!item.getCategory().equals(ShopCategory.FISHING_ROD)) {
+                        UUID equippedId = user.getEquippedItemIdByCategory(item.getCategory());
+                        if (item.getId().equals(equippedId)) {
+                            user.setEquippedItemIdByCategory(item.getCategory(), null);
+                            logger.debug("Unequipped deleted item {} for user {}", item.getId(), user.getId());
+                        }
+                    } else { // For fishing rods, we check the instance ID
+                        UUID equippedInstanceId = user.getEquippedFishingRodInstanceId();
+                        if (equippedInstanceId != null && userInstances.stream().anyMatch(inst -> inst.getId().equals(equippedInstanceId))) {
+                            user.setEquippedFishingRodInstanceId(null);
+                            logger.debug("Unequipped deleted fishing rod instance for user {}", user.getId());
                         }
                     }
+                    
+                    // Also handle Discord role removal if applicable
+                    if (item.getDiscordRoleId() != null && !item.getDiscordRoleId().isEmpty()) {
+                        discordService.removeRole(user.getId(), item.getDiscordRoleId());
+                        logger.debug("Removed Discord role {} for deleted item from user {}", item.getDiscordRoleId(), user.getId());
+                    }
                 }
+                
+                // 3. Remove the instances from the user's collection to prevent TransientObjectException
+                user.getItemInstances().removeAll(userInstances);
             }
 
             // Save all user changes in a batch.

@@ -37,6 +37,7 @@ interface ShopItem {
     gradientEndColor?: string;
     maxCopies?: number;
     copiesSold?: number;
+    maxDurability?: number;
   }
   
   interface ShopFormData {
@@ -57,6 +58,7 @@ interface ShopItem {
     colorType: 'solid' | 'gradient';
     gradientEndColor?: string;
     maxCopies?: number;
+    maxDurability?: number;
   }
   
   interface CaseItemData {
@@ -335,6 +337,35 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
               </div>
             </div>
             
+            {/* Category-Specific Properties */}
+            {formData.category === 'FISHING_ROD' && (
+              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
+                <h3 className="text-md font-medium text-slate-200 mb-4 flex items-center">
+                  <HiOutlineColorSwatch className="mr-2 text-primary" size={18} />
+                  Fishing Rod Properties
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                      Max Durability
+                    </label>
+                    <input
+                      type="number"
+                      name="maxDurability"
+                      value={formData.maxDurability || ''}
+                      onChange={handleInputChange}
+                      min="1"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="e.g., 100"
+                    />
+                    <p className="text-xs text-slate-400 mt-1">
+                      The starting and maximum durability for this fishing rod.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Image & Appearance */}
             <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
               <h3 className="text-md font-medium text-slate-200 mb-4 flex items-center">

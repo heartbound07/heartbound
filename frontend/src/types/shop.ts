@@ -19,6 +19,7 @@ export interface ShopItem {
   gradientEndColor?: string;
   maxCopies?: number;
   copiesSold?: number;
+  maxDurability?: number;
 }
 
 export interface ToastNotification {

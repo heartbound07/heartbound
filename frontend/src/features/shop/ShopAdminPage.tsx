@@ -32,6 +32,7 @@ interface ShopItem {
   gradientEndColor?: string;
   maxCopies?: number;
   copiesSold?: number;
+  maxDurability?: number;
 }
 
 interface ShopFormData {
@@ -52,6 +53,7 @@ interface ShopFormData {
   colorType: 'solid' | 'gradient';
   gradientEndColor?: string;
   maxCopies?: number;
+  maxDurability?: number;
 }
 
 interface CaseItemData {
@@ -116,7 +118,9 @@ export function ShopAdminPage() {
     isDaily: false,
     fishingRodMultiplier: 1.0,
     colorType: 'solid',
-    gradientEndColor: ''
+    gradientEndColor: '',
+    maxCopies: undefined,
+    maxDurability: undefined
   });
   
   // Available categories
@@ -344,9 +348,12 @@ export function ShopAdminPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
-    // Handle numeric conversion for price
+    // Handle numeric conversion for price, maxCopies, and maxDurability
     if (name === 'price') {
-      setFormData({ ...formData, [name]: parseInt(value) || 0 });
+      setFormData({ ...formData, [name]: parseInt(value, 10) || 0 });
+    } else if (name === 'maxCopies' || name === 'maxDurability') {
+      const numValue = parseInt(value, 10);
+      setFormData({ ...formData, [name]: isNaN(numValue) ? undefined : numValue });
     } else if (name === 'expiresAt') {
       // Handle empty value for expiresAt
       setFormData({ ...formData, [name]: value || null });
@@ -419,7 +426,8 @@ export function ShopAdminPage() {
       fishingRodMultiplier: item.fishingRodMultiplier || 1.0,
       colorType: item.gradientEndColor ? 'gradient' : 'solid',
       gradientEndColor: item.gradientEndColor || '',
-      maxCopies: item.maxCopies
+      maxCopies: item.maxCopies,
+      maxDurability: item.maxDurability
     });
     
     // Load case contents if this is a case
@@ -485,7 +493,8 @@ export function ShopAdminPage() {
       fishingRodMultiplier: 1.0,
       colorType: 'solid',
       gradientEndColor: '',
-      maxCopies: undefined
+      maxCopies: undefined,
+      maxDurability: undefined
     });
     setEditingItem(null);
     setCaseContents({ items: [], totalDropRate: 0 });
