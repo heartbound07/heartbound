@@ -120,19 +120,15 @@ public class UserVoiceActivityService extends ListenerAdapter {
             
             // Only count sessions longer than 1 minute to avoid spam
             if (sessionMinutes >= 1) {
-                User user = userService.getUserById(userId);
-                if (user != null) {
-                    // Update voice time counters
-                    userService.incrementVoiceTimeCounters(user, (int) sessionMinutes);
-                    
-                    // 📊 Track daily voice activity for chart display
-                    userService.trackDailyVoiceActivityStat(userId, (int) sessionMinutes);
-                    
-                    log.info("Ended voice session for user {} (duration: {} minutes)", 
-                        userId, sessionMinutes);
-                } else {
-                    log.warn("User {} not found in database, cannot update voice time", userId);
-                }
+                // The user existence check is now handled within the transactional method.
+                // Update voice time counters transactionally.
+                userService.incrementVoiceTimeCounters(userId, (int) sessionMinutes);
+                
+                // 📊 Track daily voice activity for chart display
+                userService.trackDailyVoiceActivityStat(userId, (int) sessionMinutes);
+                
+                log.info("Ended voice session for user {} (duration: {} minutes)", 
+                    userId, sessionMinutes);
             } else {
                 log.debug("Voice session for user {} too short ({} minutes), not counting", 
                     userId, sessionMinutes);

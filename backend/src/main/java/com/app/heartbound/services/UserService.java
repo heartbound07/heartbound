@@ -1230,12 +1230,22 @@ public class UserService {
     /**
      * Increments the time-based voice counters for a user.
      * Handles resetting counters if the time periods have elapsed.
+     * This method is transactional and uses a pessimistic lock to prevent race conditions.
      *
-     * @param user the user to update
+     * @param userId the ID of the user to update
      * @param sessionMinutes the minutes to add to the voice time
      */
-    public void incrementVoiceTimeCounters(User user, int sessionMinutes) {
+    @Transactional
+    public void incrementVoiceTimeCounters(String userId, int sessionMinutes) {
         LocalDateTime now = LocalDateTime.now();
+
+        // Fetch user with a lock to ensure atomic update
+        User user = userRepository.findByIdWithLock(userId).orElse(null);
+
+        if (user == null) {
+            logger.warn("User {} not found in database, cannot increment voice time", userId);
+            return;
+        }
         
         // Update total voice time
         int currentTotal = user.getVoiceTimeMinutesTotal() != null ? user.getVoiceTimeMinutesTotal() : 0;
@@ -1265,18 +1275,12 @@ public class UserService {
         int biWeekMinutes = user.getVoiceTimeMinutesThisTwoWeeks() != null ? user.getVoiceTimeMinutesThisTwoWeeks() : 0;
         user.setVoiceTimeMinutesThisTwoWeeks(biWeekMinutes + sessionMinutes);
         
-        // Save the updated user
-        try {
-            userRepository.save(user);
-            
-            // Invalidate user profile cache to ensure fresh data
-            cacheConfig.invalidateUserProfileCache(user.getId());
-            
-            logger.debug("Updated voice time for user {} - added {} minutes (total: {})", 
-                user.getId(), sessionMinutes, user.getVoiceTimeMinutesTotal());
-        } catch (Exception e) {
-            logger.error("Failed to save voice time update for user {}: {}", user.getId(), e.getMessage(), e);
-        }
+        // The transaction will handle saving the updated user entity.
+        // We still need to invalidate cache.
+        cacheConfig.invalidateUserProfileCache(user.getId());
+        
+        logger.debug("Updated voice time for user {} - added {} minutes (total: {})", 
+            user.getId(), sessionMinutes, user.getVoiceTimeMinutesTotal());
     }
 
     /**
