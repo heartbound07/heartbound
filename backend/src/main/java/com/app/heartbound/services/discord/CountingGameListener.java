@@ -101,16 +101,15 @@ public class CountingGameListener extends ListenerAdapter {
             
             switch (result.getType()) {
                 case SUCCESS:
-                    // Acknowledge button click and send success message
-                    int nextNumber = result.getSavedCount() + 1;
-                    event.reply(String.format("✅ <@%s> saved the count at **%d** for **%d** credits! The next number is **%d**.",
-                            userId, result.getSavedCount(), result.getCostPaid(), nextNumber))
-                            .setEphemeral(false)
-                            .queue();
-                    
-                    // Disable the button since it was used
+                    // Acknowledge the interaction by removing the button from the original message.
                     event.editComponents().queue();
-                    
+
+                    // Send a new public message to announce the success.
+                    int nextNumber = result.getSavedCount() + 1;
+                    event.getChannel().sendMessage(String.format("✅ <@%s> saved the count at **%d** for **%d** credits! The next number is **%d**.",
+                            userId, result.getSavedCount(), result.getCostPaid(), nextNumber))
+                            .queue();
+
                     log.info("User {} successfully saved count at {} for {} credits", userId, result.getSavedCount(), result.getCostPaid());
                     break;
                     
