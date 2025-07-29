@@ -58,7 +58,6 @@ public class FishCommandListener extends ListenerAdapter {
     private final UserService userService;
     private final SecureRandomService secureRandomService;
     private final AuditService auditService;
-    private final ShopRepository shopRepository;
     private final DiscordBotSettingsService discordBotSettingsService;
     private final FishCommandListener self; // Self-injection for transactional methods
     private final ItemInstanceRepository itemInstanceRepository;
@@ -71,7 +70,6 @@ public class FishCommandListener extends ListenerAdapter {
         this.userService = userService;
         this.secureRandomService = secureRandomService;
         this.auditService = auditService;
-        this.shopRepository = shopRepository;
         this.discordBotSettingsService = discordBotSettingsService;
         this.self = self;
         this.itemInstanceRepository = itemInstanceRepository;
@@ -374,7 +372,7 @@ public class FishCommandListener extends ListenerAdapter {
                         long xpGained = secureRandomService.getSecureInt(5) + 1; // 1-5 XP
                         equippedRodInstance.setExperience((equippedRodInstance.getExperience() == null ? 0L : equippedRodInstance.getExperience()) + xpGained);
                         shopService.handleRodLevelUp(equippedRodInstance);
-                        message.append(" `(Rod +").append(xpGained).append(" XP)`");
+                        message.append(" +").append(xpGained).append(" XP");
                     }
 
                     if (equippedRodInstance.getDurability() <= 0) {
@@ -470,7 +468,7 @@ public class FishCommandListener extends ListenerAdapter {
                         long xpGained = secureRandomService.getSecureInt(5) + 1; // 1-5 XP
                         equippedRodInstance.setExperience((equippedRodInstance.getExperience() == null ? 0L : equippedRodInstance.getExperience()) + xpGained);
                         shopService.handleRodLevelUp(equippedRodInstance);
-                        message.append(" `(Rod +").append(xpGained).append(" XP)`");
+                        message.append(" +").append(xpGained).append(" XP");
                     }
 
                     if (equippedRodInstance.getDurability() <= 0) {
