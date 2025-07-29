@@ -382,7 +382,9 @@ export function ShopAdminPage() {
         ...formData,
         expiresAt: formData.expiresAt ? new Date(formData.expiresAt).toISOString() : null,
         maxCopies: formData.maxCopies ? Number(formData.maxCopies) : null,
+        maxDurability: formData.maxDurability ? Number(formData.maxDurability) : null,
         durabilityIncrease: formData.durabilityIncrease ? Number(formData.durabilityIncrease) : null,
+        fishingRodPartType: formData.fishingRodPartType || null,
       };
       
       if (editingItem) {

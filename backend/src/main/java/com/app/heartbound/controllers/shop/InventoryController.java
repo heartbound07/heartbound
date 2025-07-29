@@ -25,43 +25,25 @@ public class InventoryController {
         this.userInventoryService = userInventoryService;
     }
 
-    @PostMapping("/rod/{rodInstanceId}/repair")
+    @PostMapping("/rod/{rodInstanceId}/equip-part")
     @PreAuthorize("isAuthenticated()")
     @RateLimited(
             requestsPerMinute = 10,
             requestsPerHour = 60,
             keyType = RateLimitKeyType.USER,
-            keyPrefix = "rod-repair"
+            keyPrefix = "rod-equip"
     )
-    public ResponseEntity<UserProfileDTO> repairFishingRod(
+    public ResponseEntity<UserProfileDTO> equipAndRepairRodPart(
             @PathVariable UUID rodInstanceId,
-            @RequestBody RepairRequest request,
+            @RequestBody EquipRequest request,
             Authentication authentication) {
         String userId = authentication.getName();
-        logger.info("User {} is attempting to repair rod {} with part {}", userId, rodInstanceId, request.getPartInstanceId());
-        UserProfileDTO updatedProfile = userInventoryService.repairFishingRod(userId, rodInstanceId, request.getPartInstanceId());
+        logger.info("User {} is attempting to equip part {} on rod {}", userId, request.getPartInstanceId(), rodInstanceId);
+        UserProfileDTO updatedProfile = userInventoryService.equipAndRepairFishingRodPart(userId, rodInstanceId, request.getPartInstanceId());
         return ResponseEntity.ok(updatedProfile);
     }
 
-    @PostMapping("/rod/{rodInstanceId}/unequip-part")
-    @PreAuthorize("isAuthenticated()")
-    @RateLimited(
-            requestsPerMinute = 10,
-            requestsPerHour = 60,
-            keyType = RateLimitKeyType.USER,
-            keyPrefix = "rod-unequip"
-    )
-    public ResponseEntity<UserProfileDTO> unequipRodPart(
-            @PathVariable UUID rodInstanceId,
-            @RequestBody UnequipRequest request,
-            Authentication authentication) {
-        String userId = authentication.getName();
-        logger.info("User {} is attempting to unequip part type {} from rod {}", userId, request.getPartType(), rodInstanceId);
-        UserProfileDTO updatedProfile = userInventoryService.unequipRodPart(userId, rodInstanceId, request.getPartType());
-        return ResponseEntity.ok(updatedProfile);
-    }
-
-    public static class RepairRequest {
+    public static class EquipRequest {
         private UUID partInstanceId;
 
         public UUID getPartInstanceId() {
@@ -70,18 +52,6 @@ public class InventoryController {
 
         public void setPartInstanceId(UUID partInstanceId) {
             this.partInstanceId = partInstanceId;
-        }
-    }
-
-    public static class UnequipRequest {
-        private FishingRodPart partType;
-
-        public FishingRodPart getPartType() {
-            return partType;
-        }
-
-        public void setPartType(FishingRodPart partType) {
-            this.partType = partType;
         }
     }
 } 

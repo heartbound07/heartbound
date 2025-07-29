@@ -125,11 +125,11 @@ export function InventoryPage() {
     setPartsModal({ isOpen: false, rod: null });
   };
 
-  const handleEquipPart = async (rodId: string, partInstanceId: string) => {
+  const handleEquipRodPart = async (rodId: string, partInstanceId: string) => {
     if (actionInProgress) return;
-    setActionInProgress(`repair-${rodId}`);
+    setActionInProgress(`equip-part-${rodId}`);
     try {
-      const response = await httpClient.post<UserProfileDTO>(`/inventory/rod/${rodId}/repair`, { partInstanceId });
+      const response = await httpClient.post<UserProfileDTO>(`/inventory/rod/${rodId}/equip-part`, { partInstanceId });
       if (response.data) {
         updateProfile(response.data);
       }
@@ -141,25 +141,6 @@ export function InventoryPage() {
       showToast(errorMessage, 'error');
     } finally {
       setActionInProgress(null);
-    }
-  };
-
-  const handleUnequipPart = async (rodId: string, partType: string) => {
-    if (actionInProgress) return;
-    setActionInProgress(`unequip-${rodId}-${partType}`);
-    try {
-        const response = await httpClient.post<UserProfileDTO>(`/inventory/rod/${rodId}/unequip-part`, { partType });
-        if (response.data) {
-            updateProfile(response.data);
-        }
-        showToast('Fishing rod part unequipped successfully!', 'success');
-        await fetchInventory();
-        closePartsModal();
-    } catch (error: any) {
-        const errorMessage = error.response?.data?.message || 'Failed to unequip fishing rod part';
-        showToast(errorMessage, 'error');
-    } finally {
-        setActionInProgress(null);
     }
   };
   
@@ -609,8 +590,7 @@ export function InventoryPage() {
         onClose={closePartsModal}
         rod={partsModal.rod}
         parts={availablePartsForModal}
-        onEquipPart={handleEquipPart}
-        onUnequipPart={handleUnequipPart}
+        onEquipPart={handleEquipRodPart}
     />
     </div>
   );

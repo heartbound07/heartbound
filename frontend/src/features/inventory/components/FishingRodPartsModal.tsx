@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HiOutlineX } from 'react-icons/hi';
 import { ShopItem } from '@/types/inventory';
 import { GiFishingPole, GiHook, GiGearStick, GiTireIron, GiSpoon, GiGps } from 'react-icons/gi';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 
 interface FishingRodPartsModalProps {
   isOpen: boolean;
@@ -10,7 +11,6 @@ interface FishingRodPartsModalProps {
   rod: ShopItem | null;
   parts: ShopItem[];
   onEquipPart: (rodId: string, partInstanceId: string) => void;
-  onUnequipPart: (rodId: string, partType: string) => void;
 }
 
 const partIcons: Record<string, React.ElementType> = {
@@ -35,9 +35,22 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
   rod,
   parts,
   onEquipPart,
-  onUnequipPart,
 }) => {
+  const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [partToEquip, setPartToEquip] = useState<ShopItem | null>(null);
+
   if (!isOpen || !rod) return null;
+
+  const handleEquipClick = (part: ShopItem) => {
+    setPartToEquip(part);
+    setConfirmModalOpen(true);
+  };
+
+  const handleConfirmEquip = () => {
+    if (partToEquip && rod.instanceId) {
+      onEquipPart(rod.instanceId, partToEquip.instanceId!);
+    }
+  };
 
   const getRarityClass = (rarity: string) => {
     switch (rarity) {
@@ -96,14 +109,6 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                           )}
                         </div>
                       </div>
-                      {equippedPart && (
-                        <button
-                          onClick={() => onUnequipPart(rod.instanceId!, type)}
-                          className="px-3 py-1 bg-red-600/80 hover:bg-red-600 text-white text-xs font-semibold rounded-md transition-colors"
-                        >
-                          Unequip
-                        </button>
-                      )}
                     </div>
                   );
                 })}
@@ -127,7 +132,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                               <p className="text-xs text-slate-400">{part.description}</p>
                             </div>
                             <button
-                              onClick={() => onEquipPart(rod.instanceId!, part.instanceId!)}
+                              onClick={() => handleEquipClick(part)}
                               className="px-3 py-1 bg-primary/80 hover:bg-primary text-white text-xs font-semibold rounded-md transition-colors"
                               disabled={!!equippedPartsMap[type]}
                             >
@@ -148,6 +153,13 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
           </div>
         </motion.div>
       </div>
+      <ConfirmationModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setConfirmModalOpen(false)}
+        onConfirm={handleConfirmEquip}
+        title="Confirm Part Equip"
+        message="Are you sure you want to equip this? You won't be able to unequip this part."
+      />
     </AnimatePresence>
   );
 }; 
