@@ -1,12 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HiOutlineExclamation, HiOutlineX } from 'react-icons/hi';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  title: string;
   message: string | React.ReactNode;
 }
 
@@ -14,7 +12,6 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
-  title,
   message,
 }) => {
   if (!isOpen) return null;
@@ -28,19 +25,8 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           exit={{ opacity: 0, scale: 0.95 }}
           className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 m-4 max-w-md w-full"
         >
-          <div className="flex justify-between items-start mb-4">
-            <div className="flex items-center">
-              <div className="mr-3 flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-500/20">
-                <HiOutlineExclamation className="h-6 w-6 text-red-400" aria-hidden="true" />
-              </div>
-              <h2 className="text-xl font-semibold text-white">{title}</h2>
-            </div>
-            <button onClick={onClose} className="text-slate-400 hover:text-white">
-              <HiOutlineX size={24} />
-            </button>
-          </div>
           
-          <div className="text-slate-300 mb-6">
+          <div className="text-slate-300 my-6">
             {message}
           </div>
 

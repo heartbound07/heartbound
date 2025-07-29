@@ -168,7 +168,6 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
         isOpen={isConfirmModalOpen}
         onClose={() => setConfirmModalOpen(false)}
         onConfirm={handleConfirmEquip}
-        title="Confirm Upgrade"
         message={
           partToEquip ? (
             <div className="text-center">
