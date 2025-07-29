@@ -44,7 +44,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             {message}
           </div>
 
-          <div className="flex justify-end space-x-4">
+          <div className="flex justify-center space-x-4">
             <button
               onClick={onClose}
               className="px-4 py-2 rounded-md bg-slate-700 text-white font-semibold hover:bg-slate-600 transition-colors"

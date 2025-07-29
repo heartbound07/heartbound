@@ -4,6 +4,7 @@ import { HiOutlineX } from 'react-icons/hi';
 import { ShopItem } from '@/types/inventory';
 import { GiFishingPole, GiHook, GiGearStick, GiTireIron, GiSpoon, GiGps } from 'react-icons/gi';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
+import { FaCoins } from 'react-icons/fa';
 
 interface FishingRodPartsModalProps {
   isOpen: boolean;
@@ -146,7 +147,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                               className="px-3 py-1 bg-primary/80 hover:bg-primary text-white text-xs font-semibold rounded-md transition-colors"
                               disabled={!!equippedPartsMap[type]}
                             >
-                              Equip ({cost} Credits)
+                              Equip ( <FaCoins className="inline-block -mt-px mr-1" />{cost} )
                             </button>
                           </div>
                         )})}
@@ -169,9 +170,18 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
         onConfirm={handleConfirmEquip}
         title="Confirm Upgrade"
         message={
-          partToEquip ? 
-          `Are you sure you want to equip ${partToEquip.name} for ${RARITY_COSTS[partToEquip.rarity] || 0} credits? This part cannot be unequipped.` 
-          : 'Are you sure you want to equip this? You won\'t be able to unequip this part.'
+          partToEquip ? (
+            <div className="text-center">
+              <p>Are you sure you want to equip this? This part cannot be unequipped.</p>
+              <div className="flex items-center justify-center mt-4 text-lg">
+                  <FaCoins className="mr-2 text-yellow-400" />
+                  <span className="font-semibold text-white">{new Intl.NumberFormat().format(RARITY_COSTS[partToEquip.rarity] || 0)}</span>
+                  <span className="ml-1.5 text-slate-300 text-base">credits</span>
+              </div>
+            </div>
+          ) : (
+            'Are you sure you want to equip this? You won\'t be able to unequip this part.'
+          )
         }
       />
     </AnimatePresence>
