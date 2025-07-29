@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HiOutlineX } from 'react-icons/hi';
 import { ShopItem } from '@/types/inventory';
-import { GiFishingPole, GiHook, GiGearStick, GiTireIron, GiSpoon, GiGps } from 'react-icons/gi';
+import { GiFishingPole, GiSewingString, GiFishingHook, GiGearStick } from 'react-icons/gi';
+import { PiFilmReel, PiHandPalm } from 'react-icons/pi';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { FaCoins } from 'react-icons/fa';
 
@@ -23,11 +24,11 @@ const RARITY_COSTS: Record<string, number> = {
 };
 
 const partIcons: Record<string, React.ElementType> = {
-  ROD_SHAFT: GiGearStick,
-  REEL: GiSpoon,
-  FISHING_LINE: GiTireIron,
-  HOOK: GiHook,
-  GRIP: GiGps,
+  ROD_SHAFT: GiFishingPole,
+  REEL: PiFilmReel,
+  FISHING_LINE: GiSewingString,
+  HOOK: GiFishingHook,
+  GRIP: PiHandPalm,
 };
 
 const partSlots: Array<{ type: string; name: string }> = [
