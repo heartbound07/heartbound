@@ -53,22 +53,22 @@ public class ItemInstance {
 
     // Equipped Parts for Fishing Rods
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "equipped_rod_shaft_id")
+    @JoinColumn(name = "equipped_rod_shaft_id", unique = true)
     private ItemInstance equippedRodShaft;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "equipped_reel_id")
+    @JoinColumn(name = "equipped_reel_id", unique = true)
     private ItemInstance equippedReel;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "equipped_fishing_line_id")
+    @JoinColumn(name = "equipped_fishing_line_id", unique = true)
     private ItemInstance equippedFishingLine;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "equipped_hook_id")
+    @JoinColumn(name = "equipped_hook_id", unique = true)
     private ItemInstance equippedHook;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "equipped_grip_id")
+    @JoinColumn(name = "equipped_grip_id", unique = true)
     private ItemInstance equippedGrip;
 } 
