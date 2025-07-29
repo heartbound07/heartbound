@@ -262,7 +262,8 @@ export function InventoryPage() {
         // Extract unique categories
         const allItems: ShopItem[] = response.data.items;
         const displayableItems = allItems.filter(item => item.category !== 'FISHING_ROD_PART');
-        const parts = allItems.filter(item => item.category === 'FISHING_ROD_PART');
+        // Filter out parts that are already equipped on ANY rod.
+        const parts = allItems.filter(item => item.category === 'FISHING_ROD_PART' && !item.equipped);
         
         setFishingRodParts(parts);
 

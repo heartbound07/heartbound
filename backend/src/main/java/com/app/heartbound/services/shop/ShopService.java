@@ -1209,8 +1209,9 @@ public class ShopService {
                     if (item.getCategory() == ShopCategory.FISHING_ROD) {
                         UUID equippedInstanceId = user.getEquippedFishingRodInstanceId();
                         dto.setEquipped(instance.getId().equals(equippedInstanceId));
-                    } else {
-                        dto.setEquipped(false); // Parts aren't directly equipped to a user
+                    } else { // This implies FISHING_ROD_PART
+                        // Check if the part is equipped on ANY rod.
+                        dto.setEquipped(itemInstanceRepository.isPartAlreadyEquipped(instance.getId()));
                     }
                     itemDTOs.add(dto);
                 }
