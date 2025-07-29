@@ -34,4 +34,12 @@ public interface ItemInstanceRepository extends JpaRepository<ItemInstance, UUID
            "i.equippedHook IN :parts OR " +
            "i.equippedGrip IN :parts")
     List<ItemInstance> findRodsWithEquippedParts(@Param("parts") List<ItemInstance> parts);
+
+    @Query("SELECT COUNT(i) > 0 FROM ItemInstance i WHERE " +
+           "i.equippedRodShaft.id = :partInstanceId OR " +
+           "i.equippedReel.id = :partInstanceId OR " +
+           "i.equippedFishingLine.id = :partInstanceId OR " +
+           "i.equippedHook.id = :partInstanceId OR " +
+           "i.equippedGrip.id = :partInstanceId")
+    boolean isPartAlreadyEquipped(@Param("partInstanceId") UUID partInstanceId);
 } 

@@ -151,6 +151,10 @@ public class UserInventoryService {
                 .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("Fishing rod part not found in user inventory with id: " + partInstanceId));
 
+        if (itemInstanceRepository.isPartAlreadyEquipped(partInstanceId)) {
+            throw new InvalidOperationException("This part is already equipped on another fishing rod.");
+        }
+
         Shop rodBaseItem = rodInstance.getBaseItem();
         if (rodBaseItem.getCategory() != ShopCategory.FISHING_ROD) {
             throw new InvalidOperationException("Item is not a fishing rod.");
@@ -179,20 +183,18 @@ public class UserInventoryService {
             partBaseItem.getDurabilityIncrease() != null &&
             partBaseItem.getDurabilityIncrease() > 0;
 
-        if (rodInstance.getDurability() >= currentMaxDurability && !isMaxDurabilityIncreasePart) {
-            throw new InvalidOperationException("Rod is already at maximum durability.");
-        }
-
         if (isMaxDurabilityIncreasePart) {
             currentMaxDurability += partBaseItem.getDurabilityIncrease();
             rodInstance.setMaxDurability(currentMaxDurability);
         }
 
-        double rarityPercentage = getRarityPercentage(partBaseItem.getRarity());
-        int durabilityToRestore = (int) Math.round(currentMaxDurability * rarityPercentage);
+        if (rodInstance.getDurability() < currentMaxDurability) {
+            double rarityPercentage = getRarityPercentage(partBaseItem.getRarity());
+            int durabilityToRestore = (int) Math.round(currentMaxDurability * rarityPercentage);
 
-        int newDurability = Math.min(rodInstance.getDurability() + durabilityToRestore, currentMaxDurability);
-        rodInstance.setDurability(newDurability);
+            int newDurability = Math.min(rodInstance.getDurability() + durabilityToRestore, currentMaxDurability);
+            rodInstance.setDurability(newDurability);
+        }
 
         switch (partBaseItem.getFishingRodPartType()) {
             case ROD_SHAFT:
