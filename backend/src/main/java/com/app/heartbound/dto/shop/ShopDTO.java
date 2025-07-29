@@ -22,6 +22,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -137,6 +138,9 @@ public class ShopDTO {
     private Integer level;
     @JsonView(Views.Public.class)
     private Long xpForNextLevel;
+
+    @JsonView(Views.Public.class)
+    private Map<FishingRodPart, ShopDTO> equippedParts;
 
     public boolean isEquipped() {
         return equipped;

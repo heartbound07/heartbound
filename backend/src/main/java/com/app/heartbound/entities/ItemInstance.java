@@ -9,6 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.Map;
 
 @Data
 @Builder
@@ -49,4 +50,25 @@ public class ItemInstance {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    // Equipped Parts for Fishing Rods
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "equipped_rod_shaft_id")
+    private ItemInstance equippedRodShaft;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "equipped_reel_id")
+    private ItemInstance equippedReel;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "equipped_fishing_line_id")
+    private ItemInstance equippedFishingLine;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "equipped_hook_id")
+    private ItemInstance equippedHook;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "equipped_grip_id")
+    private ItemInstance equippedGrip;
 } 

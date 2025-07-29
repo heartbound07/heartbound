@@ -134,7 +134,7 @@ public class UserInventoryService {
     }
 
     @Transactional
-    public UserProfileDTO repairFishingRod(String userId, UUID rodInstanceId, UUID partItemId) {
+    public UserProfileDTO repairFishingRod(String userId, UUID rodInstanceId, UUID partInstanceId) {
         User user = userRepository.findByIdWithLock(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
@@ -146,9 +146,9 @@ public class UserInventoryService {
         }
         
         ItemInstance partInstance = user.getItemInstances().stream()
-                .filter(instance -> instance.getBaseItem().getId().equals(partItemId))
+                .filter(instance -> instance.getId().equals(partInstanceId))
                 .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("Fishing rod part not found in user inventory with id: " + partItemId));
+                .orElseThrow(() -> new ResourceNotFoundException("Fishing rod part not found in user inventory with id: " + partInstanceId));
 
         Shop rodBaseItem = rodInstance.getBaseItem();
         if (rodBaseItem.getCategory() != ShopCategory.FISHING_ROD) {
@@ -182,8 +182,59 @@ public class UserInventoryService {
         int newDurability = Math.min(rodInstance.getDurability() + durabilityToRestore, currentMaxDurability);
         rodInstance.setDurability(newDurability);
 
-        itemInstanceRepository.delete(partInstance);
-        user.getItemInstances().remove(partInstance);
+        switch (partBaseItem.getFishingRodPartType()) {
+            case ROD_SHAFT:
+                rodInstance.setEquippedRodShaft(partInstance);
+                break;
+            case REEL:
+                rodInstance.setEquippedReel(partInstance);
+                break;
+            case FISHING_LINE:
+                rodInstance.setEquippedFishingLine(partInstance);
+                break;
+            case HOOK:
+                rodInstance.setEquippedHook(partInstance);
+                break;
+            case GRIP:
+                rodInstance.setEquippedGrip(partInstance);
+                break;
+        }
+
+        itemInstanceRepository.save(rodInstance);
+
+        return userService.mapToProfileDTO(user);
+    }
+
+    @Transactional
+    public UserProfileDTO unequipRodPart(String userId, UUID rodInstanceId, FishingRodPart partType) {
+        User user = userRepository.findByIdWithLock(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        ItemInstance rodInstance = itemInstanceRepository.findByIdWithLock(rodInstanceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Fishing rod instance not found with id: " + rodInstanceId));
+
+        if (!rodInstance.getOwner().getId().equals(userId)) {
+            throw new IllegalStateException("User does not own the fishing rod.");
+        }
+
+        switch (partType) {
+            case ROD_SHAFT:
+                rodInstance.setEquippedRodShaft(null);
+                break;
+            case REEL:
+                rodInstance.setEquippedReel(null);
+                break;
+            case FISHING_LINE:
+                rodInstance.setEquippedFishingLine(null);
+                break;
+            case HOOK:
+                rodInstance.setEquippedHook(null);
+                break;
+            case GRIP:
+                rodInstance.setEquippedGrip(null);
+                break;
+        }
+
         itemInstanceRepository.save(rodInstance);
 
         return userService.mapToProfileDTO(user);

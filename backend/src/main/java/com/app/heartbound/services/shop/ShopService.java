@@ -43,6 +43,7 @@ import com.app.heartbound.config.CacheConfig;
 import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
+import com.app.heartbound.enums.FishingRodPart;
 import com.app.heartbound.utils.LevelingUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -1198,15 +1199,19 @@ public class ShopService {
             Shop item = entry.getKey();
             List<ItemInstance> instances = entry.getValue();
 
-            if (item.getCategory() == ShopCategory.FISHING_ROD) {
-                // For fishing rods, create a DTO for each unique instance.
+            if (item.getCategory() == ShopCategory.FISHING_ROD || item.getCategory() == ShopCategory.FISHING_ROD_PART) {
+                // For fishing rods and parts, create a DTO for each unique instance.
                 for (ItemInstance instance : instances) {
                     ShopDTO dto = mapToShopDTO(item, user, instance);
                     dto.setQuantity(1); // Each instance is unique
 
-                    // Set equipped status based on the instance ID
-                    UUID equippedInstanceId = user.getEquippedFishingRodInstanceId();
-                    dto.setEquipped(instance.getId().equals(equippedInstanceId));
+                    // Set equipped status based on the instance ID for rods
+                    if (item.getCategory() == ShopCategory.FISHING_ROD) {
+                        UUID equippedInstanceId = user.getEquippedFishingRodInstanceId();
+                        dto.setEquipped(instance.getId().equals(equippedInstanceId));
+                    } else {
+                        dto.setEquipped(false); // Parts aren't directly equipped to a user
+                    }
                     itemDTOs.add(dto);
                 }
             } else {
@@ -1216,7 +1221,7 @@ public class ShopService {
                 dto.setQuantity((int) quantity);
 
                 // Add equipped status, skipping for non-equippable categories like CASE
-                if (item.getCategory() != null && item.getCategory() != ShopCategory.CASE) {
+                if (item.getCategory() != null && item.getCategory() != ShopCategory.CASE && item.getCategory() != ShopCategory.FISHING_ROD_PART) {
                     if (item.getCategory() == ShopCategory.BADGE) {
                         dto.setEquipped(user.isBadgeEquipped(item.getId()));
                     } else {
@@ -1258,7 +1263,7 @@ public class ShopService {
             dto.setQuantity((int) quantity);
             
             // Add equipped status, skipping for non-equippable categories like CASE
-            if (item.getCategory() != null && item.getCategory() != ShopCategory.CASE) {
+            if (item.getCategory() != null && item.getCategory() != ShopCategory.CASE && item.getCategory() != ShopCategory.FISHING_ROD_PART) {
                 if (item.getCategory() == ShopCategory.BADGE) {
                     dto.setEquipped(user.isBadgeEquipped(item.getId()));
                 } else if (item.getCategory() == ShopCategory.FISHING_ROD) {
@@ -1333,14 +1338,35 @@ public class ShopService {
 
     private ShopDTO mapToShopDTO(Shop shop, User user, ItemInstance instance) {
         ShopDTO dto = mapToShopDTO(shop, user);
-        if (instance != null && shop.getCategory() == ShopCategory.FISHING_ROD) {
-            int level = instance.getLevel() != null ? instance.getLevel() : 1;
+        if (instance != null) {
             dto.setInstanceId(instance.getId());
-            dto.setDurability(instance.getDurability());
-            dto.setMaxDurability(instance.getMaxDurability() != null ? instance.getMaxDurability() : shop.getMaxDurability());
-            dto.setExperience(instance.getExperience());
-            dto.setLevel(level);
-            dto.setXpForNextLevel(LevelingUtil.calculateXpForRodLevel(level));
+
+            if (shop.getCategory() == ShopCategory.FISHING_ROD) {
+                int level = instance.getLevel() != null ? instance.getLevel() : 1;
+                dto.setDurability(instance.getDurability());
+                dto.setMaxDurability(instance.getMaxDurability() != null ? instance.getMaxDurability() : shop.getMaxDurability());
+                dto.setExperience(instance.getExperience());
+                dto.setLevel(level);
+                dto.setXpForNextLevel(LevelingUtil.calculateXpForRodLevel(level));
+
+                Map<FishingRodPart, ShopDTO> equippedParts = new HashMap<>();
+                if (instance.getEquippedRodShaft() != null) {
+                    equippedParts.put(FishingRodPart.ROD_SHAFT, mapToShopDTO(instance.getEquippedRodShaft().getBaseItem(), user, instance.getEquippedRodShaft()));
+                }
+                if (instance.getEquippedReel() != null) {
+                    equippedParts.put(FishingRodPart.REEL, mapToShopDTO(instance.getEquippedReel().getBaseItem(), user, instance.getEquippedReel()));
+                }
+                if (instance.getEquippedFishingLine() != null) {
+                    equippedParts.put(FishingRodPart.FISHING_LINE, mapToShopDTO(instance.getEquippedFishingLine().getBaseItem(), user, instance.getEquippedFishingLine()));
+                }
+                if (instance.getEquippedHook() != null) {
+                    equippedParts.put(FishingRodPart.HOOK, mapToShopDTO(instance.getEquippedHook().getBaseItem(), user, instance.getEquippedHook()));
+                }
+                if (instance.getEquippedGrip() != null) {
+                    equippedParts.put(FishingRodPart.GRIP, mapToShopDTO(instance.getEquippedGrip().getBaseItem(), user, instance.getEquippedGrip()));
+                }
+                dto.setEquippedParts(equippedParts);
+            }
         }
         return dto;
     }

@@ -24,6 +24,7 @@ export interface ShopItem {
   xpForNextLevel?: number;
   fishingRodPartType?: string;
   durabilityIncrease?: number;
+  equippedParts?: Record<string, ShopItem>;
 }
 
 export interface ToastNotification {

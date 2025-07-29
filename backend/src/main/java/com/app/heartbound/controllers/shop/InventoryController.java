@@ -4,6 +4,7 @@ import com.app.heartbound.config.security.RateLimited;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.enums.RateLimitKeyType;
 import com.app.heartbound.services.UserInventoryService;
+import com.app.heartbound.enums.FishingRodPart;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -37,20 +38,50 @@ public class InventoryController {
             @RequestBody RepairRequest request,
             Authentication authentication) {
         String userId = authentication.getName();
-        logger.info("User {} is attempting to repair rod {} with part {}", userId, rodInstanceId, request.getPartItemId());
-        UserProfileDTO updatedProfile = userInventoryService.repairFishingRod(userId, rodInstanceId, request.getPartItemId());
+        logger.info("User {} is attempting to repair rod {} with part {}", userId, rodInstanceId, request.getPartInstanceId());
+        UserProfileDTO updatedProfile = userInventoryService.repairFishingRod(userId, rodInstanceId, request.getPartInstanceId());
+        return ResponseEntity.ok(updatedProfile);
+    }
+
+    @PostMapping("/rod/{rodInstanceId}/unequip-part")
+    @PreAuthorize("isAuthenticated()")
+    @RateLimited(
+            requestsPerMinute = 10,
+            requestsPerHour = 60,
+            keyType = RateLimitKeyType.USER,
+            keyPrefix = "rod-unequip"
+    )
+    public ResponseEntity<UserProfileDTO> unequipRodPart(
+            @PathVariable UUID rodInstanceId,
+            @RequestBody UnequipRequest request,
+            Authentication authentication) {
+        String userId = authentication.getName();
+        logger.info("User {} is attempting to unequip part type {} from rod {}", userId, request.getPartType(), rodInstanceId);
+        UserProfileDTO updatedProfile = userInventoryService.unequipRodPart(userId, rodInstanceId, request.getPartType());
         return ResponseEntity.ok(updatedProfile);
     }
 
     public static class RepairRequest {
-        private UUID partItemId;
+        private UUID partInstanceId;
 
-        public UUID getPartItemId() {
-            return partItemId;
+        public UUID getPartInstanceId() {
+            return partInstanceId;
         }
 
-        public void setPartItemId(UUID partItemId) {
-            this.partItemId = partItemId;
+        public void setPartInstanceId(UUID partInstanceId) {
+            this.partInstanceId = partInstanceId;
+        }
+    }
+
+    public static class UnequipRequest {
+        private FishingRodPart partType;
+
+        public FishingRodPart getPartType() {
+            return partType;
+        }
+
+        public void setPartType(FishingRodPart partType) {
+            this.partType = partType;
         }
     }
 } 

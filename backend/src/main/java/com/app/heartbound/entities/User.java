@@ -348,6 +348,7 @@ public class User {
                 return getEquippedBadgeId();
             case FISHING_ROD:
                 return getEquippedFishingRodInstanceId();
+            case FISHING_ROD_PART:
             case CASE:
                 throw new UnsupportedOperationException("CASE category items cannot be equipped. Cases are purchased and stored in inventory.");
             default:
@@ -373,6 +374,7 @@ public class User {
             case FISHING_ROD:
                 setEquippedFishingRodInstanceId(itemId);
                 break;
+            case FISHING_ROD_PART:
             case CASE:
                 throw new UnsupportedOperationException("CASE category items cannot be equipped. Cases are purchased and stored in inventory.");
             default:

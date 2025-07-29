@@ -2,15 +2,32 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HiOutlineX } from 'react-icons/hi';
 import { ShopItem } from '@/types/inventory';
-import { GiFishingPole } from 'react-icons/gi';
+import { GiFishingPole, GiHook, GiGearStick, GiTireIron, GiSpoon, GiGps } from 'react-icons/gi';
 
 interface FishingRodPartsModalProps {
   isOpen: boolean;
   onClose: () => void;
   rod: ShopItem | null;
   parts: ShopItem[];
-  onEquipPart: (rodId: string, partId: string) => void;
+  onEquipPart: (rodId: string, partInstanceId: string) => void;
+  onUnequipPart: (rodId: string, partType: string) => void;
 }
+
+const partIcons: Record<string, React.ElementType> = {
+  ROD_SHAFT: GiGearStick,
+  REEL: GiSpoon,
+  FISHING_LINE: GiTireIron,
+  HOOK: GiHook,
+  GRIP: GiGps,
+};
+
+const partSlots: Array<{ type: string; name: string }> = [
+  { type: 'ROD_SHAFT', name: 'Rod Shaft' },
+  { type: 'REEL', name: 'Reel' },
+  { type: 'FISHING_LINE', name: 'Fishing Line' },
+  { type: 'HOOK', name: 'Hook' },
+  { type: 'GRIP', name: 'Grip' },
+];
 
 export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
   isOpen,
@@ -18,8 +35,21 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
   rod,
   parts,
   onEquipPart,
+  onUnequipPart,
 }) => {
   if (!isOpen || !rod) return null;
+
+  const getRarityClass = (rarity: string) => {
+    switch (rarity) {
+      case 'UNCOMMON': return 'border-green-500';
+      case 'RARE': return 'border-blue-500';
+      case 'EPIC': return 'border-purple-500';
+      case 'LEGENDARY': return 'border-amber-400';
+      default: return 'border-slate-600';
+    }
+  };
+
+  const equippedPartsMap = rod.equippedParts || {};
 
   return (
     <AnimatePresence>
@@ -28,7 +58,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 m-4 max-h-[90vh] w-full max-w-2xl"
+          className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 m-4 max-h-[90vh] w-full max-w-4xl"
         >
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-white flex items-center">
@@ -46,62 +76,74 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left side: Rod Stats */}
+            {/* Left side: Rod Slots */}
             <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-              <h3 className="text-lg font-medium text-slate-200 mb-4">Rod Stats</h3>
+              <h3 className="text-lg font-medium text-slate-200 mb-4">Equipped Parts</h3>
               <div className="space-y-3">
-                {/* Durability */}
-                <div>
-                  <div className="flex justify-between text-sm text-slate-300 mb-1">
-                    <span>Durability</span>
-                    <span>{rod.durability} / {rod.maxDurability}</span>
-                  </div>
-                  <div className="w-full bg-slate-700 rounded-full h-2.5">
-                    <div
-                      className="bg-green-500 h-2.5 rounded-full"
-                      style={{ width: `${(rod.durability || 0) / (rod.maxDurability || 1) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-                {/* Experience */}
-                <div>
-                  <div className="flex justify-between text-sm text-slate-300 mb-1">
-                    <span>Experience</span>
-                    <span>{rod.experience} / {rod.xpForNextLevel && rod.xpForNextLevel !== 9223372036854775807 ? rod.xpForNextLevel : 'MAX'} XP</span>
-                  </div>
-                  <div className="w-full bg-slate-700 rounded-full h-2.5">
-                    <div
-                      className="bg-sky-500 h-2.5 rounded-full"
-                      style={{ width: `${(rod.experience && rod.xpForNextLevel) ? (rod.experience / rod.xpForNextLevel) * 100 : 0}%` }}
-                    ></div>
-                  </div>
-                </div>
+                {partSlots.map(({ type, name }) => {
+                  const equippedPart = equippedPartsMap[type];
+                  const Icon = partIcons[type] || GiGearStick;
+                  return (
+                    <div key={type} className={`bg-slate-800 p-3 rounded-md border-l-4 flex items-center justify-between ${getRarityClass(equippedPart?.rarity || 'COMMON')}`}>
+                      <div className="flex items-center">
+                        <Icon className="mr-3 text-slate-400" size={20} />
+                        <div>
+                          <p className="font-semibold text-white">{name}</p>
+                          {equippedPart ? (
+                            <p className="text-sm text-slate-300">{equippedPart.name}</p>
+                          ) : (
+                            <p className="text-sm text-slate-500 italic">Empty Slot</p>
+                          )}
+                        </div>
+                      </div>
+                      {equippedPart && (
+                        <button
+                          onClick={() => onUnequipPart(rod.instanceId!, type)}
+                          className="px-3 py-1 bg-red-600/80 hover:bg-red-600 text-white text-xs font-semibold rounded-md transition-colors"
+                        >
+                          Unequip
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             {/* Right side: Parts Inventory */}
             <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-                <h3 className="text-lg font-medium text-slate-200 mb-4">Available Parts</h3>
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-                    {parts.length > 0 ? (
-                        parts.map(part => (
-                            <div key={part.id} className="bg-slate-800 p-2 rounded-md flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium text-white">{part.name}</p>
-                                    <p className="text-xs text-slate-400">{part.description}</p>
-                                </div>
-                                <button
-                                    onClick={() => onEquipPart(rod.instanceId!, part.id)}
-                                    className="px-3 py-1 bg-primary/80 hover:bg-primary text-white text-xs font-semibold rounded-md transition-colors"
-                                >
-                                    Equip
-                                </button>
+              <h3 className="text-lg font-medium text-slate-200 mb-4">Available Parts</h3>
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
+                {parts.length > 0 ? (
+                  partSlots.map(({ type, name }) => (
+                    <div key={`inventory-${type}`}>
+                      <h4 className="text-md font-semibold text-slate-400 my-2">{name}</h4>
+                      {parts
+                        .filter(p => p.fishingRodPartType === type)
+                        .map(part => (
+                          <div key={part.instanceId} className={`bg-slate-800 p-2 rounded-md flex items-center justify-between mb-2 border-l-4 ${getRarityClass(part.rarity)}`}>
+                            <div>
+                              <p className="font-medium text-white">{part.name}</p>
+                              <p className="text-xs text-slate-400">{part.description}</p>
                             </div>
-                        ))
-                    ) : (
-                        <p className="text-slate-400 text-sm text-center py-8">No fishing rod parts in your inventory.</p>
-                    )}
-                </div>
+                            <button
+                              onClick={() => onEquipPart(rod.instanceId!, part.instanceId!)}
+                              className="px-3 py-1 bg-primary/80 hover:bg-primary text-white text-xs font-semibold rounded-md transition-colors"
+                              disabled={!!equippedPartsMap[type]}
+                            >
+                              Equip
+                            </button>
+                          </div>
+                        ))}
+                      {parts.filter(p => p.fishingRodPartType === type).length === 0 && (
+                        <p className="text-slate-500 text-sm italic">No available parts of this type.</p>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-slate-400 text-sm text-center py-8">No fishing rod parts in your inventory.</p>
+                )}
+              </div>
             </div>
           </div>
         </motion.div>

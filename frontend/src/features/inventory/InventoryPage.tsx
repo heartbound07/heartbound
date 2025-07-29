@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/auth';
 import { motion } from 'framer-motion';
 import httpClient from '@/lib/api/httpClient';
@@ -125,22 +125,41 @@ export function InventoryPage() {
     setPartsModal({ isOpen: false, rod: null });
   };
 
-  const handleEquipPart = async (rodId: string, partId: string) => {
+  const handleEquipPart = async (rodId: string, partInstanceId: string) => {
     if (actionInProgress) return;
     setActionInProgress(`repair-${rodId}`);
     try {
-      const response = await httpClient.post<UserProfileDTO>(`/inventory/rod/${rodId}/repair`, { partItemId: partId });
+      const response = await httpClient.post<UserProfileDTO>(`/inventory/rod/${rodId}/repair`, { partInstanceId });
       if (response.data) {
         updateProfile(response.data);
       }
-      showToast('Fishing rod repaired successfully!', 'success');
+      showToast('Fishing rod part equipped successfully!', 'success');
       await fetchInventory(); // Refresh inventory
       closePartsModal(); // Close the modal on success
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to repair fishing rod';
+      const errorMessage = error.response?.data?.message || 'Failed to equip fishing rod part';
       showToast(errorMessage, 'error');
     } finally {
       setActionInProgress(null);
+    }
+  };
+
+  const handleUnequipPart = async (rodId: string, partType: string) => {
+    if (actionInProgress) return;
+    setActionInProgress(`unequip-${rodId}-${partType}`);
+    try {
+        const response = await httpClient.post<UserProfileDTO>(`/inventory/rod/${rodId}/unequip-part`, { partType });
+        if (response.data) {
+            updateProfile(response.data);
+        }
+        showToast('Fishing rod part unequipped successfully!', 'success');
+        await fetchInventory();
+        closePartsModal();
+    } catch (error: any) {
+        const errorMessage = error.response?.data?.message || 'Failed to unequip fishing rod part';
+        showToast(errorMessage, 'error');
+    } finally {
+        setActionInProgress(null);
     }
   };
   
@@ -250,6 +269,14 @@ export function InventoryPage() {
       setItems(sortItems([...items]));
     }
   }, [sortOrder]);
+
+  const availablePartsForModal = useMemo(() => {
+    if (!partsModal.rod) return [];
+    const equippedInstanceIds = new Set(
+        Object.values(partsModal.rod.equippedParts || {}).map(p => p.instanceId)
+    );
+    return fishingRodParts.filter(p => !equippedInstanceIds.has(p.instanceId));
+  }, [partsModal.rod, fishingRodParts]);
   
   const handleEquipItem = async (itemId: string, instanceId?: string) => {
     if (actionInProgress) return;
@@ -581,8 +608,9 @@ export function InventoryPage() {
         isOpen={partsModal.isOpen}
         onClose={closePartsModal}
         rod={partsModal.rod}
-        parts={fishingRodParts}
+        parts={availablePartsForModal}
         onEquipPart={handleEquipPart}
+        onUnequipPart={handleUnequipPart}
     />
     </div>
   );
