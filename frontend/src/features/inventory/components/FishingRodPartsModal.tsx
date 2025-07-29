@@ -13,6 +13,14 @@ interface FishingRodPartsModalProps {
   onEquipPart: (rodId: string, partInstanceId: string) => void;
 }
 
+const RARITY_COSTS: Record<string, number> = {
+  COMMON: 60,
+  UNCOMMON: 280,
+  RARE: 1450,
+  EPIC: 6200,
+  LEGENDARY: 30000,
+};
+
 const partIcons: Record<string, React.ElementType> = {
   ROD_SHAFT: GiGearStick,
   REEL: GiSpoon,
@@ -125,7 +133,9 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                       <h4 className="text-md font-semibold text-slate-400 my-2">{name}</h4>
                       {parts
                         .filter(p => p.fishingRodPartType === type)
-                        .map(part => (
+                        .map(part => {
+                          const cost = RARITY_COSTS[part.rarity] || 0;
+                          return (
                           <div key={part.instanceId} className={`bg-slate-800 p-2 rounded-md flex items-center justify-between mb-2 border-l-4 ${getRarityClass(part.rarity)}`}>
                             <div>
                               <p className="font-medium text-white">{part.name}</p>
@@ -136,10 +146,10 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                               className="px-3 py-1 bg-primary/80 hover:bg-primary text-white text-xs font-semibold rounded-md transition-colors"
                               disabled={!!equippedPartsMap[type]}
                             >
-                              Equip
+                              Equip ({cost} Credits)
                             </button>
                           </div>
-                        ))}
+                        )})}
                       {parts.filter(p => p.fishingRodPartType === type).length === 0 && (
                         <p className="text-slate-500 text-sm italic">No available parts of this type.</p>
                       )}
@@ -157,8 +167,12 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
         isOpen={isConfirmModalOpen}
         onClose={() => setConfirmModalOpen(false)}
         onConfirm={handleConfirmEquip}
-        title="Confirm Part Equip"
-        message="Are you sure you want to equip this? You won't be able to unequip this part."
+        title="Confirm Upgrade"
+        message={
+          partToEquip ? 
+          `Are you sure you want to equip ${partToEquip.name} for ${RARITY_COSTS[partToEquip.rarity] || 0} credits? This part cannot be unequipped.` 
+          : 'Are you sure you want to equip this? You won\'t be able to unequip this part.'
+        }
       />
     </AnimatePresence>
   );

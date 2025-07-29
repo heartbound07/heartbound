@@ -201,3 +201,15 @@ export const getCombinedDailyActivity = async (days: number = 30): Promise<Combi
     throw error;
   }
 };
+
+export const equipAndRepairFishingRodPart = async (rodInstanceId: string, partInstanceId: string): Promise<UserProfileDTO> => {
+  try {
+    const response = await httpClient.post(`/inventory/rod/${rodInstanceId}/equip-part`, {
+      partInstanceId
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error equipping fishing rod part:', error);
+    throw error;
+  }
+};

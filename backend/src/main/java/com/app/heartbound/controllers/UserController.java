@@ -28,6 +28,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
+
 import com.app.heartbound.dto.PublicUserProfileDTO;
 
 @RestController

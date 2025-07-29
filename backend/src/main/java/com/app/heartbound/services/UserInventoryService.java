@@ -22,6 +22,7 @@ import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.enums.FishingRodPart;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.exceptions.InvalidOperationException;
+import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
 
 @Service
 public class UserInventoryService {
@@ -160,6 +161,14 @@ public class UserInventoryService {
             throw new InvalidOperationException("Item is not a fishing rod part.");
         }
 
+        int cost = getPartUpgradeCost(partBaseItem.getRarity());
+        if (cost > 0) {
+            boolean success = userService.deductCreditsIfSufficient(userId, cost);
+            if (!success) {
+                throw new InsufficientCreditsException("You do not have enough credits to apply this part. Required: " + cost + " credits.");
+            }
+        }
+
         Integer currentMaxDurability = rodInstance.getMaxDurability() != null ? rodInstance.getMaxDurability() : rodBaseItem.getMaxDurability();
         if (currentMaxDurability == null) {
             throw new InvalidOperationException("Rod does not have maximum durability set.");
@@ -222,6 +231,23 @@ public class UserInventoryService {
                 return 1.0;
             default:
                 return 0.0;
+        }
+    }
+
+    private int getPartUpgradeCost(ItemRarity rarity) {
+        switch (rarity) {
+            case COMMON:
+                return 60;
+            case UNCOMMON:
+                return 280;
+            case RARE:
+                return 1450;
+            case EPIC:
+                return 6200;
+            case LEGENDARY:
+                return 30000;
+            default:
+                return 0;
         }
     }
 
