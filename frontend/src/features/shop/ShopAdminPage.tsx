@@ -35,6 +35,10 @@ interface ShopItem {
   maxDurability?: number;
   fishingRodPartType?: string;
   durabilityIncrease?: number;
+  bonusLootChance?: number;
+  rarityChanceIncrease?: number;
+  multiplierIncrease?: number;
+  negationChance?: number;
 }
 
 interface ShopFormData {
@@ -58,6 +62,10 @@ interface ShopFormData {
   maxCopies?: number;
   maxDurability?: number;
   durabilityIncrease?: number;
+  bonusLootChance?: number;
+  rarityChanceIncrease?: number;
+  multiplierIncrease?: number;
+  negationChance?: number;
 }
 
 interface CaseItemData {
@@ -126,7 +134,11 @@ export function ShopAdminPage() {
     gradientEndColor: '',
     maxCopies: undefined,
     maxDurability: undefined,
-    durabilityIncrease: undefined
+    durabilityIncrease: undefined,
+    bonusLootChance: undefined,
+    rarityChanceIncrease: undefined,
+    multiplierIncrease: undefined,
+    negationChance: undefined
   });
   
   // Available categories
@@ -358,7 +370,7 @@ export function ShopAdminPage() {
     // Handle numeric conversion for price, maxCopies, and maxDurability
     if (name === 'price') {
       setFormData({ ...formData, [name]: parseInt(value, 10) || 0 });
-    } else if (name === 'maxCopies' || name === 'maxDurability' || name === 'durabilityIncrease') {
+    } else if (name === 'maxCopies' || name === 'maxDurability' || name === 'durabilityIncrease' || name === 'bonusLootChance' || name === 'rarityChanceIncrease' || name === 'multiplierIncrease' || name === 'negationChance') {
       const numValue = parseInt(value, 10);
       setFormData({ ...formData, [name]: isNaN(numValue) ? undefined : numValue });
     } else if (name === 'expiresAt') {
@@ -384,6 +396,10 @@ export function ShopAdminPage() {
         maxCopies: formData.maxCopies ? Number(formData.maxCopies) : null,
         maxDurability: formData.maxDurability ? Number(formData.maxDurability) : null,
         durabilityIncrease: formData.durabilityIncrease ? Number(formData.durabilityIncrease) : null,
+        bonusLootChance: formData.bonusLootChance ? Number(formData.bonusLootChance) : null,
+        rarityChanceIncrease: formData.rarityChanceIncrease ? Number(formData.rarityChanceIncrease) : null,
+        multiplierIncrease: formData.multiplierIncrease ? Number(formData.multiplierIncrease) : null,
+        negationChance: formData.negationChance ? Number(formData.negationChance) : null,
         fishingRodPartType: formData.fishingRodPartType || null,
       };
       
@@ -439,7 +455,11 @@ export function ShopAdminPage() {
       gradientEndColor: item.gradientEndColor || '',
       maxCopies: item.maxCopies,
       maxDurability: item.maxDurability,
-      durabilityIncrease: item.durabilityIncrease
+      durabilityIncrease: item.durabilityIncrease,
+      bonusLootChance: item.bonusLootChance,
+      rarityChanceIncrease: item.rarityChanceIncrease,
+      multiplierIncrease: item.multiplierIncrease,
+      negationChance: item.negationChance
     });
     
     // Load case contents if this is a case
@@ -508,7 +528,11 @@ export function ShopAdminPage() {
       gradientEndColor: '',
       maxCopies: undefined,
       maxDurability: undefined,
-      durabilityIncrease: undefined
+      durabilityIncrease: undefined,
+      bonusLootChance: undefined,
+      rarityChanceIncrease: undefined,
+      multiplierIncrease: undefined,
+      negationChance: undefined
     });
     setEditingItem(null);
     setCaseContents({ items: [], totalDropRate: 0 });

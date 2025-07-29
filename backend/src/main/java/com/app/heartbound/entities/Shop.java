@@ -110,4 +110,24 @@ public class Shop {
     @Builder.Default
     @Column(name = "copies_sold")
     private Integer copiesSold = 0;
+
+    @DecimalMin(value = "0.0", message = "Bonus loot chance must be non-negative")
+    @DecimalMax(value = "100.0", message = "Bonus loot chance cannot exceed 100")
+    @Column(name = "bonus_loot_chance")
+    private Double bonusLootChance;
+
+    @DecimalMin(value = "0.0", message = "Rarity chance increase must be non-negative")
+    @DecimalMax(value = "100.0", message = "Rarity chance increase cannot exceed 100")
+    @Column(name = "rarity_chance_increase")
+    private Double rarityChanceIncrease;
+
+    @DecimalMin(value = "0.0", message = "Multiplier increase must be non-negative")
+    @DecimalMax(value = "5.0", message = "Multiplier increase cannot exceed 5.0")
+    @Column(name = "multiplier_increase")
+    private Double multiplierIncrease;
+
+    @DecimalMin(value = "0.0", message = "Negation chance must be non-negative")
+    @DecimalMax(value = "100.0", message = "Negation chance cannot exceed 100")
+    @Column(name = "negation_chance")
+    private Double negationChance;
 }

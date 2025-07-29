@@ -30,6 +30,9 @@ import java.text.DecimalFormat;
 import java.util.concurrent.CompletableFuture;
 import com.app.heartbound.entities.ItemInstance;
 import com.app.heartbound.repositories.ItemInstanceRepository;
+import com.app.heartbound.enums.FishingRodPart;
+
+import java.util.Map;
 
 @Component
 public class FishCommandListener extends ListenerAdapter {
@@ -180,6 +183,46 @@ public class FishCommandListener extends ListenerAdapter {
         public int getCurrentCatches() { return currentCatches; }
         public int getMaxCatches() { return maxCatches; }
     }
+
+    private static class PartBonuses {
+        double totalBonusLootChance = 0.0;
+        double totalRarityChanceIncrease = 0.0;
+        double totalMultiplierIncrease = 0.0;
+        double totalNegationChance = 0.0;
+    }
+
+    private PartBonuses getPartBonuses(ItemInstance rodInstance) {
+        PartBonuses bonuses = new PartBonuses();
+        if (rodInstance == null) {
+            return bonuses;
+        }
+
+        Map<FishingRodPart, ItemInstance> equippedParts = Map.of(
+            FishingRodPart.REEL, rodInstance.getEquippedReel(),
+            FishingRodPart.HOOK, rodInstance.getEquippedHook(),
+            FishingRodPart.FISHING_LINE, rodInstance.getEquippedFishingLine(),
+            FishingRodPart.GRIP, rodInstance.getEquippedGrip()
+        );
+
+        for (ItemInstance partInstance : equippedParts.values()) {
+            if (partInstance != null) {
+                Shop part = partInstance.getBaseItem();
+                if (part.getBonusLootChance() != null) {
+                    bonuses.totalBonusLootChance += part.getBonusLootChance();
+                }
+                if (part.getRarityChanceIncrease() != null) {
+                    bonuses.totalRarityChanceIncrease += part.getRarityChanceIncrease();
+                }
+                if (part.getMultiplierIncrease() != null) {
+                    bonuses.totalMultiplierIncrease += part.getMultiplierIncrease();
+                }
+                if (part.getNegationChance() != null) {
+                    bonuses.totalNegationChance += part.getNegationChance();
+                }
+            }
+        }
+        return bonuses;
+    }
     
     private double getEquippedRodMultiplier(User user) {
         if (user.getEquippedFishingRodInstanceId() != null) {
@@ -253,6 +296,8 @@ public class FishCommandListener extends ListenerAdapter {
                     user.setEquippedFishingRodInstanceId(null);
                 }
             }
+
+            PartBonuses bonuses = getPartBonuses(equippedRodInstance);
 
             if (equippedRodInstance != null) {
                 // Backward Compatibility: Initialize durability for legacy rods
@@ -335,9 +380,11 @@ public class FishCommandListener extends ListenerAdapter {
             
             StringBuilder message = new StringBuilder();
             int creditChange;
-            double multiplier = getEquippedRodMultiplier(user);
+            double multiplier = getEquippedRodMultiplier(user) + bonuses.totalMultiplierIncrease;
             
-            if (roll <= RARE_FISH_CHANCE) {
+            double effectiveRareFishChance = RARE_FISH_CHANCE + (bonuses.totalRarityChanceIncrease / 100.0);
+
+            if (roll <= effectiveRareFishChance) {
                 // 5% chance: rare fish
                 String fishEmoji = RARE_CATCHES.get(secureRandomService.getSecureInt(RARE_CATCHES.size()));
                 int baseCreditChange = 50 + secureRandomService.getSecureInt(21); // 50-70 range for rare catches
@@ -362,6 +409,14 @@ public class FishCommandListener extends ListenerAdapter {
                 userService.updateCreditsAtomic(userId, finalCreditChange);
                 user.setCredits(user.getCredits() + finalCreditChange);
 
+
+                // Bonus Loot Chance
+                if (bonuses.totalBonusLootChance > 0 && secureRandomService.getSecureDouble() <= (bonuses.totalBonusLootChance / 100.0)) {
+                    int bonusCredits = 5 + secureRandomService.getSecureInt(11); // 5-15 bonus credits
+                    userService.updateCreditsAtomic(userId, bonusCredits);
+                    user.setCredits(user.getCredits() + bonusCredits);
+                    message.append(" Your reel snagged some extra loot! +").append(bonusCredits).append(" 🪙");
+                }
 
                 // Durability and XP Logic
                 if (equippedRodInstance != null && equippedRodInstance.getDurability() != null) {
@@ -459,6 +514,14 @@ public class FishCommandListener extends ListenerAdapter {
                 userService.updateCreditsAtomic(userId, finalCreditChange);
                 user.setCredits(user.getCredits() + finalCreditChange);
 
+                // Bonus Loot Chance
+                if (bonuses.totalBonusLootChance > 0 && secureRandomService.getSecureDouble() <= (bonuses.totalBonusLootChance / 100.0)) {
+                    int bonusCredits = 5 + secureRandomService.getSecureInt(11); // 5-15 bonus credits
+                    userService.updateCreditsAtomic(userId, bonusCredits);
+                    user.setCredits(user.getCredits() + bonusCredits);
+                    message.append(" Your reel snagged some extra loot! +").append(bonusCredits).append(" 🪙");
+                }
+
                 // Durability and XP Logic
                 if (equippedRodInstance != null && equippedRodInstance.getDurability() != null) {
                     equippedRodInstance.setDurability(equippedRodInstance.getDurability() - 1);
@@ -531,47 +594,65 @@ public class FishCommandListener extends ListenerAdapter {
                         userId, finalCreditChange, user.getCredits());
                 
             } else {
-                // 20% chance: failure - lose 1-50 credits
-                creditChange = secureRandomService.getSecureInt(50) + 1;
-                
-                // Ensure credits don't go below 0
-                if (creditChange > currentCredits) {
-                    creditChange = currentCredits;
-                }
-                
-                // Atomically update credits
-                if (creditChange > 0) {
-                    userService.updateCreditsAtomic(userId, -creditChange);
-                    user.setCredits(currentCredits - creditChange);
-                }
-                
-                // Only show negative message if they actually lost credits
-                if (creditChange > 0) {
-                    message.append("🎣 | You got caught 🦀 and it snipped you! -").append(creditChange).append(" 🪙");
-                    
-                    // Create audit entry for fishing failure with credit loss
+                if (bonuses.totalNegationChance > 0 && secureRandomService.getSecureDouble() <= (bonuses.totalNegationChance / 100.0)) {
+                    message.append("🎣 | A crab tried to snip you, but your grip helped you get away safely!");
+                    // Create audit entry for negated failure
                     CreateAuditDTO auditEntry = CreateAuditDTO.builder()
                         .userId(userId)
-                        .action("FISHING_FAILURE")
+                        .action("FISHING_FAILURE_NEGATED")
                         .entityType("USER_CREDITS")
                         .entityId(userId)
-                        .description(String.format("Got caught by crab and lost %d credits", creditChange))
+                        .description("Fishing failure was negated by equipped gear.")
                         .severity(AuditSeverity.INFO)
-                        .category(AuditCategory.FINANCIAL)
-                        .details(String.format("{\"game\":\"fishing\",\"catchType\":\"failure\",\"lost\":%d,\"newBalance\":%d}", 
-                            creditChange, currentCredits - creditChange))
+                        .category(AuditCategory.SYSTEM)
+                        .details(String.format("{\"game\":\"fishing\",\"catchType\":\"negated_failure\",\"negationChance\":%.2f}", bonuses.totalNegationChance))
                         .source("DISCORD_BOT")
                         .build();
-                    
-                    // Use async audit logging to prevent blocking the Discord response
                     createAuditEntryAsync(auditEntry);
+                    logger.debug("User {}'s fishing failure was negated.", userId);
                 } else {
-                    // Special message for users with 0 credits
-                    message.append("🎣 | You got caught 🦀 but it had mercy on you since you have no credits!");
+                    // 20% chance: failure - lose 1-50 credits
+                    creditChange = secureRandomService.getSecureInt(50) + 1;
+                    
+                    // Ensure credits don't go below 0
+                    if (creditChange > currentCredits) {
+                        creditChange = currentCredits;
+                    }
+                    
+                    // Atomically update credits
+                    if (creditChange > 0) {
+                        userService.updateCreditsAtomic(userId, -creditChange);
+                        user.setCredits(currentCredits - creditChange);
+                    }
+                    
+                    // Only show negative message if they actually lost credits
+                    if (creditChange > 0) {
+                        message.append("🎣 | You got caught 🦀 and it snipped you! -").append(creditChange).append(" 🪙");
+                        
+                        // Create audit entry for fishing failure with credit loss
+                        CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+                            .userId(userId)
+                            .action("FISHING_FAILURE")
+                            .entityType("USER_CREDITS")
+                            .entityId(userId)
+                            .description(String.format("Got caught by crab and lost %d credits", creditChange))
+                            .severity(AuditSeverity.INFO)
+                            .category(AuditCategory.FINANCIAL)
+                            .details(String.format("{\"game\":\"fishing\",\"catchType\":\"failure\",\"lost\":%d,\"newBalance\":%d}", 
+                                creditChange, currentCredits - creditChange))
+                            .source("DISCORD_BOT")
+                            .build();
+                        
+                        // Use async audit logging to prevent blocking the Discord response
+                        createAuditEntryAsync(auditEntry);
+                    } else {
+                        // Special message for users with 0 credits
+                        message.append("🎣 | You got caught 🦀 but it had mercy on you since you have no credits!");
+                    }
+                    
+                    logger.debug("User {} failed fishing: -{} credits. New balance: {}", 
+                            userId, creditChange, currentCredits - creditChange);
                 }
-                
-                logger.debug("User {} failed fishing: -{} credits. New balance: {}", 
-                        userId, creditChange, currentCredits - creditChange);
             }
             
             // Final save operation for non-credit user stats

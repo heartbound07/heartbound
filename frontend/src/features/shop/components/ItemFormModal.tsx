@@ -62,6 +62,10 @@ interface ShopItem {
     maxCopies?: number;
     maxDurability?: number;
     durabilityIncrease?: number;
+    bonusLootChance?: number;
+    rarityChanceIncrease?: number;
+    multiplierIncrease?: number;
+    negationChance?: number;
   }
   
   interface CaseItemData {
@@ -391,13 +395,14 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
               </div>
             )}
 
-            {formData.category === 'FISHING_ROD_PART' && (formData.rarity === 'EPIC' || formData.rarity === 'LEGENDARY') && (
+            {formData.category === 'FISHING_ROD_PART' && (
               <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
                 <h3 className="text-md font-medium text-slate-200 mb-4 flex items-center">
                   <HiOutlineColorSwatch className="mr-2 text-primary" size={18} />
                   Part Properties
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {(formData.rarity === 'EPIC' || formData.rarity === 'LEGENDARY') && (
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-1">
                       Durability Increase
@@ -415,6 +420,35 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                       Increases the rod's max durability by this amount.
                     </p>
                   </div>
+                  )}
+                  {formData.fishingRodPartType === 'REEL' && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1">Bonus Loot Chance (%)</label>
+                      <input type="number" name="bonusLootChance" value={formData.bonusLootChance || ''} onChange={handleInputChange} min="0" max="100" className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g., 5"/>
+                      <p className="text-xs text-slate-400 mt-1">Percentage chance to grant bonus loot on a successful catch.</p>
+                    </div>
+                  )}
+                  {formData.fishingRodPartType === 'HOOK' && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1">Rarity Chance Increase (%)</label>
+                      <input type="number" name="rarityChanceIncrease" value={formData.rarityChanceIncrease || ''} onChange={handleInputChange} min="0" max="100" className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g., 2"/>
+                      <p className="text-xs text-slate-400 mt-1">Increases the chance to catch higher-rarity fish.</p>
+                    </div>
+                  )}
+                  {formData.fishingRodPartType === 'FISHING_LINE' && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1">Added Multiplier</label>
+                      <input type="number" name="multiplierIncrease" value={formData.multiplierIncrease || ''} onChange={handleInputChange} min="0" step="0.1" className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g., 0.5"/>
+                      <p className="text-xs text-slate-400 mt-1">Flat amount to add to the fishing rod's multiplier.</p>
+                    </div>
+                  )}
+                  {formData.fishingRodPartType === 'GRIP' && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1">Negation Chance (%)</label>
+                      <input type="number" name="negationChance" value={formData.negationChance || ''} onChange={handleInputChange} min="0" max="100" className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g., 10"/>
+                      <p className="text-xs text-slate-400 mt-1">Chance to negate a negative event (e.g., crab snip).</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

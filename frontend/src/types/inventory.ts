@@ -25,6 +25,10 @@ export interface ShopItem {
   fishingRodPartType?: string;
   durabilityIncrease?: number;
   equippedParts?: Record<string, ShopItem>;
+  bonusLootChance?: number;
+  rarityChanceIncrease?: number;
+  multiplierIncrease?: number;
+  negationChance?: number;
 }
 
 export interface ToastNotification {

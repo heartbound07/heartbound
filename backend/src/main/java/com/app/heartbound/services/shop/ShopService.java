@@ -1333,6 +1333,10 @@ public class ShopService {
             .maxDurability(shop.getMaxDurability())
             .fishingRodPartType(shop.getFishingRodPartType())
             .durabilityIncrease(shop.getDurabilityIncrease())
+            .bonusLootChance(shop.getBonusLootChance())
+            .rarityChanceIncrease(shop.getRarityChanceIncrease())
+            .multiplierIncrease(shop.getMultiplierIncrease())
+            .negationChance(shop.getNegationChance())
             .build();
     }
 
@@ -1443,6 +1447,10 @@ public class ShopService {
             .maxDurability(shopDTO.getMaxDurability())
             .fishingRodPartType(shopDTO.getFishingRodPartType())
             .durabilityIncrease(shopDTO.getDurabilityIncrease())
+            .bonusLootChance(shopDTO.getBonusLootChance())
+            .rarityChanceIncrease(shopDTO.getRarityChanceIncrease())
+            .multiplierIncrease(shopDTO.getMultiplierIncrease())
+            .negationChance(shopDTO.getNegationChance())
             .build();
         
         logger.debug("Creating new shop item with sanitized content");
@@ -1526,6 +1534,10 @@ public class ShopService {
         existingItem.setMaxDurability(shopDTO.getMaxDurability());
         existingItem.setFishingRodPartType(shopDTO.getFishingRodPartType());
         existingItem.setDurabilityIncrease(shopDTO.getDurabilityIncrease());
+        existingItem.setBonusLootChance(shopDTO.getBonusLootChance());
+        existingItem.setRarityChanceIncrease(shopDTO.getRarityChanceIncrease());
+        existingItem.setMultiplierIncrease(shopDTO.getMultiplierIncrease());
+        existingItem.setNegationChance(shopDTO.getNegationChance());
         
         logger.debug("Updating shop item with ID: {} with sanitized content", existingItem.getId());
         
@@ -1658,6 +1670,29 @@ public class ShopService {
         List<ItemInstance> instancesToDelete = itemInstanceRepository.findByBaseItem(item);
         if (instancesToDelete.isEmpty()) {
             return;
+        }
+
+        // Unequip parts from any rods that have them equipped
+        if (item.getCategory() == ShopCategory.FISHING_ROD_PART) {
+            List<ItemInstance> rodsToUpdate = itemInstanceRepository.findRodsWithEquippedParts(instancesToDelete);
+            for (ItemInstance rod : rodsToUpdate) {
+                if (rod.getEquippedRodShaft() != null && instancesToDelete.contains(rod.getEquippedRodShaft())) {
+                    rod.setEquippedRodShaft(null);
+                }
+                if (rod.getEquippedReel() != null && instancesToDelete.contains(rod.getEquippedReel())) {
+                    rod.setEquippedReel(null);
+                }
+                if (rod.getEquippedFishingLine() != null && instancesToDelete.contains(rod.getEquippedFishingLine())) {
+                    rod.setEquippedFishingLine(null);
+                }
+                if (rod.getEquippedHook() != null && instancesToDelete.contains(rod.getEquippedHook())) {
+                    rod.setEquippedHook(null);
+                }
+                if (rod.getEquippedGrip() != null && instancesToDelete.contains(rod.getEquippedGrip())) {
+                    rod.setEquippedGrip(null);
+                }
+            }
+            itemInstanceRepository.saveAll(rodsToUpdate);
         }
 
         Integer refundAmount = item.getPrice();

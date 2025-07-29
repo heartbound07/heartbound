@@ -127,6 +127,26 @@ public class ShopDTO {
     @JsonView(Views.Public.class)
     private Integer durabilityIncrease;
 
+    @DecimalMin(value = "0.0", message = "Bonus loot chance must be non-negative")
+    @DecimalMax(value = "100.0", message = "Bonus loot chance cannot exceed 100")
+    @JsonView(Views.Public.class)
+    private Double bonusLootChance;
+
+    @DecimalMin(value = "0.0", message = "Rarity chance increase must be non-negative")
+    @DecimalMax(value = "100.0", message = "Rarity chance increase cannot exceed 100")
+    @JsonView(Views.Public.class)
+    private Double rarityChanceIncrease;
+
+    @DecimalMin(value = "0.0", message = "Multiplier increase must be non-negative")
+    @DecimalMax(value = "5.0", message = "Multiplier increase cannot exceed 5.0")
+    @JsonView(Views.Public.class)
+    private Double multiplierIncrease;
+
+    @DecimalMin(value = "0.0", message = "Negation chance must be non-negative")
+    @DecimalMax(value = "100.0", message = "Negation chance cannot exceed 100")
+    @JsonView(Views.Public.class)
+    private Double negationChance;
+
     // Instance-specific fields
     @JsonView(Views.Public.class)
     private UUID instanceId;

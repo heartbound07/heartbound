@@ -26,4 +26,12 @@ public interface ItemInstanceRepository extends JpaRepository<ItemInstance, UUID
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT i FROM ItemInstance i WHERE i.id = :id")
     Optional<ItemInstance> findByIdWithLock(@Param("id") UUID id);
+
+    @Query("SELECT i FROM ItemInstance i WHERE " +
+           "i.equippedRodShaft IN :parts OR " +
+           "i.equippedReel IN :parts OR " +
+           "i.equippedFishingLine IN :parts OR " +
+           "i.equippedHook IN :parts OR " +
+           "i.equippedGrip IN :parts")
+    List<ItemInstance> findRodsWithEquippedParts(@Param("parts") List<ItemInstance> parts);
 } 
