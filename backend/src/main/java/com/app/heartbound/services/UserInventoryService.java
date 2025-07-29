@@ -8,6 +8,7 @@ import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.repositories.ItemInstanceRepository;
 import com.app.heartbound.repositories.UserRepository;
+import com.app.heartbound.utils.LevelingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -61,6 +62,7 @@ public class UserInventoryService {
                     // Create a DTO for each unique instance of a fishing rod
                     return instances.stream().map(instance -> {
                         UUID equippedInstanceId = user.getEquippedFishingRodInstanceId();
+                        int level = instance.getLevel() != null ? instance.getLevel() : 1;
                         return UserInventoryItemDTO.builder()
                             .itemId(item.getId())
                             .instanceId(instance.getId())
@@ -76,6 +78,8 @@ public class UserInventoryService {
                             .durability(instance.getDurability())
                             .maxDurability(item.getMaxDurability())
                             .experience(instance.getExperience())
+                            .level(level)
+                            .xpForNextLevel(LevelingUtil.calculateXpForRodLevel(level))
                             .equipped(instance.getId().equals(equippedInstanceId))
                             .build();
                     });

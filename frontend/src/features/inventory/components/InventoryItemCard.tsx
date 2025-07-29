@@ -157,13 +157,12 @@ export const InventoryItemCard = forwardRef<HTMLDivElement, InventoryItemCardPro
             <GiFishingPole
               className="relative z-10 w-16 h-16 text-white/80 drop-shadow-lg"
             />
-             <div className="relative z-10 mt-2 text-center">
-              <p className="text-xl font-bold text-white drop-shadow-md">
-                {item.fishingRodMultiplier}x
-              </p>
-              <p className="text-xs font-semibold text-cyan-200 drop-shadow-sm">
-                Credit Bonus
-              </p>
+             <div className="relative z-10 mt-2 flex items-center justify-center">
+              {item.level && (
+                <div className="text-sm font-bold text-white drop-shadow-md">
+                  LVL {item.level}
+                </div>
+              )}
             </div>
           </div>
           {item.equipped && (
@@ -222,11 +221,6 @@ export const InventoryItemCard = forwardRef<HTMLDivElement, InventoryItemCardPro
               {getRarityLabel(item.rarity)}
             </div>
           </div>
-          {item.category === 'FISHING_ROD' && (
-            <div className="text-lg font-bold text-cyan-400">
-              {item.fishingRodMultiplier}x
-            </div>
-          )}
         </div>
         
         {item.category === 'FISHING_ROD' && (
@@ -251,7 +245,7 @@ export const InventoryItemCard = forwardRef<HTMLDivElement, InventoryItemCardPro
               <div className="w-full bg-slate-700 rounded-full h-2">
                 <div 
                   className="bg-sky-500 h-2 rounded-full"
-                  style={{ width: `50%`}} // Placeholder until we have max XP
+                  style={{ width: `${(item.experience && item.xpForNextLevel) ? (item.experience / item.xpForNextLevel) * 100 : 0}%`}}
                 ></div>
               </div>
             </div>

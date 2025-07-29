@@ -52,4 +52,6 @@ public class UserInventoryItemDTO {
     private Integer maxDurability;
     private Long experience;
     private boolean equipped;
+    private Integer level;
+    private Long xpForNextLevel;
 } 

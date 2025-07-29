@@ -43,6 +43,7 @@ import com.app.heartbound.config.CacheConfig;
 import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
+import com.app.heartbound.utils.LevelingUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.persistence.EntityManager;
@@ -1200,10 +1201,7 @@ public class ShopService {
             if (item.getCategory() == ShopCategory.FISHING_ROD) {
                 // For fishing rods, create a DTO for each unique instance.
                 for (ItemInstance instance : instances) {
-                    ShopDTO dto = mapToShopDTO(item, user);
-                    dto.setInstanceId(instance.getId());
-                    dto.setDurability(instance.getDurability());
-                    dto.setExperience(instance.getExperience());
+                    ShopDTO dto = mapToShopDTO(item, user, instance);
                     dto.setQuantity(1); // Each instance is unique
 
                     // Set equipped status based on the instance ID
@@ -1329,6 +1327,19 @@ public class ShopService {
             .copiesSold(shop.getCopiesSold())
             .maxDurability(shop.getMaxDurability())
             .build();
+    }
+
+    private ShopDTO mapToShopDTO(Shop shop, User user, ItemInstance instance) {
+        ShopDTO dto = mapToShopDTO(shop, user);
+        if (instance != null && shop.getCategory() == ShopCategory.FISHING_ROD) {
+            int level = instance.getLevel() != null ? instance.getLevel() : 1;
+            dto.setInstanceId(instance.getId());
+            dto.setDurability(instance.getDurability());
+            dto.setExperience(instance.getExperience());
+            dto.setLevel(level);
+            dto.setXpForNextLevel(LevelingUtil.calculateXpForRodLevel(level));
+        }
+        return dto;
     }
     
     /**
@@ -2182,5 +2193,50 @@ public class ShopService {
         logger.info("Successfully batch unequipped {} items for user {}", itemsToUnequip.size(), userId);
 
         return userService.mapToProfileDTO(user);
+    }
+
+    /**
+     * Handles the level-up logic for a fishing rod instance.
+     * This method checks if the rod has enough experience to level up and does so,
+     * handling multiple level-ups in a single call if necessary.
+     *
+     * @param rodInstance The ItemInstance of the fishing rod to process.
+     */
+    public void handleRodLevelUp(ItemInstance rodInstance) {
+        if (rodInstance == null || rodInstance.getBaseItem() == null || rodInstance.getBaseItem().getCategory() != ShopCategory.FISHING_ROD) {
+            return;
+        }
+
+        Integer currentLevel = rodInstance.getLevel();
+        if (currentLevel == null) {
+            currentLevel = 1; // Default to level 1 if null
+        }
+
+        if (currentLevel >= LevelingUtil.MAX_ROD_LEVEL) {
+            return; // Already at max level
+        }
+
+        Long currentXp = rodInstance.getExperience();
+        if (currentXp == null) {
+            currentXp = 0L;
+        }
+
+        long xpForNextLevel = LevelingUtil.calculateXpForRodLevel(currentLevel);
+
+        // Loop to handle multiple level-ups at once
+        while (currentXp >= xpForNextLevel && currentLevel < LevelingUtil.MAX_ROD_LEVEL) {
+            currentLevel++;
+            currentXp -= xpForNextLevel;
+
+            logger.info("Fishing rod instance {} leveled up to {} for user {}. Remaining XP: {}",
+                    rodInstance.getId(), currentLevel, rodInstance.getOwner().getId(), currentXp);
+
+            // Calculate XP for the *new* next level
+            xpForNextLevel = LevelingUtil.calculateXpForRodLevel(currentLevel);
+        }
+
+        rodInstance.setLevel(currentLevel);
+        rodInstance.setExperience(currentXp);
+        // The calling method is responsible for saving the updated instance
     }
 }

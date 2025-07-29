@@ -39,6 +39,10 @@ public class ItemInstance {
     @Column(name = "experience")
     private Long experience;
 
+    @Builder.Default
+    @Column(name = "level")
+    private Integer level = 1;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

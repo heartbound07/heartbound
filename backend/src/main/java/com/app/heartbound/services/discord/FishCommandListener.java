@@ -9,6 +9,7 @@ import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
 import com.app.heartbound.repositories.shop.ShopRepository;
+import com.app.heartbound.services.shop.ShopService;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
@@ -61,11 +62,12 @@ public class FishCommandListener extends ListenerAdapter {
     private final DiscordBotSettingsService discordBotSettingsService;
     private final FishCommandListener self; // Self-injection for transactional methods
     private final ItemInstanceRepository itemInstanceRepository;
+    private final ShopService shopService;
 
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
     
-    public FishCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService, ShopRepository shopRepository, DiscordBotSettingsService discordBotSettingsService, @Lazy FishCommandListener self, ItemInstanceRepository itemInstanceRepository) {
+    public FishCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService, ShopRepository shopRepository, DiscordBotSettingsService discordBotSettingsService, @Lazy FishCommandListener self, ItemInstanceRepository itemInstanceRepository, @Lazy ShopService shopService) {
         this.userService = userService;
         this.secureRandomService = secureRandomService;
         this.auditService = auditService;
@@ -73,6 +75,7 @@ public class FishCommandListener extends ListenerAdapter {
         this.discordBotSettingsService = discordBotSettingsService;
         this.self = self;
         this.itemInstanceRepository = itemInstanceRepository;
+        this.shopService = shopService;
         logger.info("FishCommandListener initialized with secure random and audit service");
     }
     
@@ -370,6 +373,7 @@ public class FishCommandListener extends ListenerAdapter {
                     if (secureRandomService.getSecureDouble() <= 0.25) {
                         long xpGained = secureRandomService.getSecureInt(5) + 1; // 1-5 XP
                         equippedRodInstance.setExperience((equippedRodInstance.getExperience() == null ? 0L : equippedRodInstance.getExperience()) + xpGained);
+                        shopService.handleRodLevelUp(equippedRodInstance);
                         message.append(" `(Rod +").append(xpGained).append(" XP)`");
                     }
 
@@ -465,6 +469,7 @@ public class FishCommandListener extends ListenerAdapter {
                     if (secureRandomService.getSecureDouble() <= 0.25) {
                         long xpGained = secureRandomService.getSecureInt(5) + 1; // 1-5 XP
                         equippedRodInstance.setExperience((equippedRodInstance.getExperience() == null ? 0L : equippedRodInstance.getExperience()) + xpGained);
+                        shopService.handleRodLevelUp(equippedRodInstance);
                         message.append(" `(Rod +").append(xpGained).append(" XP)`");
                     }
 

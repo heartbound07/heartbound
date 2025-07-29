@@ -35,6 +35,11 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
             <h2 className="text-xl font-semibold text-white flex items-center">
               <GiFishingPole className="mr-2 text-primary" size={22} />
               Customize: {rod.name}
+              {rod.level && (
+                <span className="ml-3 text-sm font-bold text-white bg-amber-500 px-2.5 py-1 rounded-full shadow-md">
+                  LVL {rod.level}
+                </span>
+              )}
             </h2>
             <button onClick={onClose} className="text-slate-400 hover:text-white">
               <HiOutlineX size={24} />
@@ -63,12 +68,12 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                 <div>
                   <div className="flex justify-between text-sm text-slate-300 mb-1">
                     <span>Experience</span>
-                    <span>{rod.experience} XP</span>
+                    <span>{rod.experience} / {rod.xpForNextLevel && rod.xpForNextLevel !== 9223372036854775807 ? rod.xpForNextLevel : 'MAX'} XP</span>
                   </div>
                   <div className="w-full bg-slate-700 rounded-full h-2.5">
                     <div
                       className="bg-sky-500 h-2.5 rounded-full"
-                      style={{ width: `50%` }} // Placeholder
+                      style={{ width: `${(rod.experience && rod.xpForNextLevel) ? (rod.experience / rod.xpForNextLevel) * 100 : 0}%` }}
                     ></div>
                   </div>
                 </div>

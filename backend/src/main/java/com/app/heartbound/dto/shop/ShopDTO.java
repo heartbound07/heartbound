@@ -126,6 +126,10 @@ public class ShopDTO {
     private Integer durability;
     @JsonView(Views.Public.class)
     private Long experience;
+    @JsonView(Views.Public.class)
+    private Integer level;
+    @JsonView(Views.Public.class)
+    private Long xpForNextLevel;
 
     public boolean isEquipped() {
         return equipped;

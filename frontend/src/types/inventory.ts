@@ -20,6 +20,8 @@ export interface ShopItem {
   durability?: number;
   maxDurability?: number;
   experience?: number;
+  level?: number;
+  xpForNextLevel?: number;
 }
 
 export interface ToastNotification {
