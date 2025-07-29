@@ -15,7 +15,7 @@ interface ItemPreviewProps {
     [key: string]: ShopItem | null | undefined;
   };
   user: any;
-  onEquip?: (itemId: string) => void;
+  onEquip?: (itemId: string, instanceId?: string) => void;
   onUnequip?: (category: string) => void;
   onUnequipBadge?: (badgeId: string) => void;
   onOpenCase?: (caseId: string, caseName: string) => void;
@@ -130,13 +130,13 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
       if (item.equipped) {
         onUnequipBadge(item.id);
       } else {
-        onEquip(item.id);
+        onEquip(item.id, item.instanceId);
       }
     } else {
       if (item.equipped) {
         onUnequip(item.category);
       } else {
-        onEquip(item.id);
+        onEquip(item.id, item.instanceId);
       }
     }
   };

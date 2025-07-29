@@ -1,5 +1,6 @@
 export interface ShopItem {
   id: string;
+  instanceId?: string;
   name: string;
   description: string;
   price: number;
@@ -16,6 +17,9 @@ export interface ShopItem {
   gradientEndColor?: string;
   maxCopies?: number;
   copiesSold?: number;
+  durability?: number;
+  maxDurability?: number;
+  experience?: number;
 }
 
 export interface ToastNotification {

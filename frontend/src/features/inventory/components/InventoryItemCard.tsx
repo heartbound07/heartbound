@@ -8,18 +8,23 @@ import { SafeText } from '@/components/SafeHtmlRenderer';
 import { useSanitizedContent } from '@/hooks/useSanitizedContent';
 import React from 'react';
 import { ShopItem } from '@/types/inventory';
+import { HiOutlinePlus } from 'react-icons/hi';
+
+interface InventoryItemCardProps {
+    item: ShopItem;
+    user: any;
+    isSelected?: boolean;
+    onSelect: (item: ShopItem) => void;
+    onOpenPartsModal: (item: ShopItem) => void;
+}
 
 // Inventory Item Card Component (based on ShopItemCard design)
-export const InventoryItemCard = forwardRef(({ 
+export const InventoryItemCard = forwardRef<HTMLDivElement, InventoryItemCardProps>(({ 
   item, 
   user,
   isSelected = false,
-  onSelect
-}: { 
-  item: ShopItem; 
-  user: any;
-  isSelected?: boolean;
-  onSelect: (item: ShopItem) => void;
+  onSelect,
+  onOpenPartsModal
 }, ref) => {
   // Get rarity color for border
   const rarityColor = getRarityColor(item.rarity);
@@ -166,6 +171,16 @@ export const InventoryItemCard = forwardRef(({
               Equipped
             </div>
           )}
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenPartsModal(item);
+            }}
+            className="absolute top-2 left-2 z-20 w-8 h-8 bg-slate-800/50 hover:bg-slate-700/80 rounded-full flex items-center justify-center text-white transition-all duration-200"
+            title="Customize Rod"
+          >
+            <HiOutlinePlus size={20} />
+          </button>
         </div>
       ) : (
         <div className="shop-item-image inventory-item-image">
@@ -214,6 +229,35 @@ export const InventoryItemCard = forwardRef(({
           )}
         </div>
         
+        {item.category === 'FISHING_ROD' && (
+          <div className="mt-2 space-y-2">
+            <div>
+              <div className="flex justify-between text-xs text-slate-400 mb-1">
+                <span>Durability</span>
+                <span>{item.durability} / {item.maxDurability}</span>
+              </div>
+              <div className="w-full bg-slate-700 rounded-full h-2">
+                <div 
+                  className="bg-green-500 h-2 rounded-full"
+                  style={{ width: `${(item.durability || 0) / (item.maxDurability || 1) * 100}%`}}
+                ></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-xs text-slate-400 mb-1">
+                <span>Experience</span>
+                <span>{item.experience} XP</span>
+              </div>
+              <div className="w-full bg-slate-700 rounded-full h-2">
+                <div 
+                  className="bg-sky-500 h-2 rounded-full"
+                  style={{ width: `50%`}} // Placeholder until we have max XP
+                ></div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {item.description && (
           <SafeText 
             text={item.description}

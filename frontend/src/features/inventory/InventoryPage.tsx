@@ -15,12 +15,14 @@ import { UserProfileDTO } from '@/config/userService';
 import { InventoryFilters } from './components/InventoryFilters';
 import { InventoryControls } from './components/InventoryControls';
 import { InventoryGrid } from './components/InventoryGrid';
+import { FishingRodPartsModal } from './components/FishingRodPartsModal';
 
 
 export function InventoryPage() {
   const { user, profile, updateProfile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ShopItem[]>([]);
+  const [fishingRodParts, setFishingRodParts] = useState<ShopItem[]>([]);
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -54,6 +56,14 @@ export function InventoryPage() {
     caseName: ''
   });
   
+  const [partsModal, setPartsModal] = useState<{
+    isOpen: boolean;
+    rod: ShopItem | null;
+  }>({
+    isOpen: false,
+    rod: null,
+  });
+
   // Define rarity order for sorting
   const RARITY_ORDER: Record<string, number> = {
     'COMMON': 0,
@@ -105,6 +115,20 @@ export function InventoryPage() {
       caseId: '',
       caseName: ''
     });
+  };
+
+  const openPartsModal = (rod: ShopItem) => {
+    setPartsModal({ isOpen: true, rod });
+  };
+
+  const closePartsModal = () => {
+    setPartsModal({ isOpen: false, rod: null });
+  };
+
+  const handleEquipPart = (rodId: string, partId: string) => {
+    // This is where the logic to equip a part would go.
+    // For now, we can just show a toast.
+    showToast(`Equipping part ${partId} to rod ${rodId}`, 'info');
   };
   
   const handleRollComplete = async (result: RollResult) => {
@@ -176,13 +200,19 @@ export function InventoryPage() {
       
       if (response.data && response.data.items) {
         // Extract unique categories
-        const uniqueCategories = [...new Set(response.data.items.map((item: ShopItem) => item.category))] as string[];
+        const allItems: ShopItem[] = response.data.items;
+        const displayableItems = allItems.filter(item => item.category !== 'FISHING_ROD_PART');
+        const parts = allItems.filter(item => item.category === 'FISHING_ROD_PART');
+        
+        setFishingRodParts(parts);
+
+        const uniqueCategories = [...new Set(displayableItems.map((item: ShopItem) => item.category))] as string[];
         setCategories(uniqueCategories);
         
         // Filter items by category if selected
         const categoryFiltered = selectedCategory 
-          ? response.data.items.filter((item: ShopItem) => item.category === selectedCategory)
-          : response.data.items;
+          ? displayableItems.filter((item: ShopItem) => item.category === selectedCategory)
+          : displayableItems;
         
         // Apply sorting
         setItems(sortItems(categoryFiltered));
@@ -208,12 +238,13 @@ export function InventoryPage() {
     }
   }, [sortOrder]);
   
-  const handleEquipItem = async (itemId: string) => {
+  const handleEquipItem = async (itemId: string, instanceId?: string) => {
     if (actionInProgress) return;
     
-    setActionInProgress(itemId);
+    setActionInProgress(instanceId || itemId);
     try {
-      const response = await httpClient.post<UserProfileDTO>(`/shop/equip/${itemId}`);
+      const endpoint = instanceId ? `/shop/equip/instance/${instanceId}` : `/shop/equip/${itemId}`;
+      const response = await httpClient.post<UserProfileDTO>(endpoint);
       
       if (response.data) {
         updateProfile(response.data);
@@ -508,6 +539,7 @@ export function InventoryPage() {
               user={profile || user}
               isItemSelected={isItemSelected}
               onSelectItem={handleSelectItem}
+              onOpenPartsModal={openPartsModal}
             />
           </div>
         </motion.div>
@@ -530,6 +562,14 @@ export function InventoryPage() {
       caseName={caseRollModal.caseName}
       onRollComplete={handleRollComplete}
       user={profile || user}
+    />
+
+    <FishingRodPartsModal
+        isOpen={partsModal.isOpen}
+        onClose={closePartsModal}
+        rod={partsModal.rod}
+        parts={fishingRodParts}
+        onEquipPart={handleEquipPart}
     />
     </div>
   );

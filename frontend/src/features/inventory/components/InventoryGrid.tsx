@@ -10,6 +10,7 @@ interface InventoryGridProps {
   user: any;
   isItemSelected: (item: ShopItem) => boolean;
   onSelectItem: (item: ShopItem) => void;
+  onOpenPartsModal: (item: ShopItem) => void;
 }
 
 // Add category mapping for special cases
@@ -19,7 +20,8 @@ const categoryDisplayMapping: Record<string, string> = {
     'ACCENT': 'Profile Accent',
     'BADGE': 'Badge',
     'CASE': 'Case',
-    'FISHING_ROD': 'Fishing Rod'
+    'FISHING_ROD': 'Fishing Rod',
+    'FISHING_ROD_PART': 'Fishing Rod Part'
 };
 
 // Format category for display with custom mappings
@@ -33,7 +35,8 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
   selectedCategory,
   user,
   isItemSelected,
-  onSelectItem
+  onSelectItem,
+  onOpenPartsModal
 }) => {
   return (
     <div className="inventory-grid-container">
@@ -87,11 +90,12 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
           <AnimatePresence mode="popLayout">
             {items.map((item) => (
               <InventoryItemCard
-                key={item.id}
+                key={item.instanceId || item.id}
                 item={item}
                 user={user}
                 isSelected={isItemSelected(item)}
                 onSelect={onSelectItem}
+                onOpenPartsModal={onOpenPartsModal}
               />
             ))}
           </AnimatePresence>

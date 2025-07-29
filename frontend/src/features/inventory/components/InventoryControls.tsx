@@ -15,7 +15,8 @@ const categoryDisplayMapping: Record<string, string> = {
     'ACCENT': 'Profile Accent',
     'BADGE': 'Badge',
     'CASE': 'Case',
-    'FISHING_ROD': 'Fishing Rod'
+    'FISHING_ROD': 'Fishing Rod',
+    'FISHING_ROD_PART': 'Fishing Rod Part'
 };
 
 // Format category for display with custom mappings
