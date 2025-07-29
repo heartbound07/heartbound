@@ -165,15 +165,18 @@ public class UserInventoryService {
             throw new InvalidOperationException("Rod does not have maximum durability set.");
         }
 
-        if (rodInstance.getDurability() >= currentMaxDurability) {
+        boolean isMaxDurabilityIncreasePart =
+            (partBaseItem.getRarity() == ItemRarity.EPIC || partBaseItem.getRarity() == ItemRarity.LEGENDARY) &&
+            partBaseItem.getDurabilityIncrease() != null &&
+            partBaseItem.getDurabilityIncrease() > 0;
+
+        if (rodInstance.getDurability() >= currentMaxDurability && !isMaxDurabilityIncreasePart) {
             throw new InvalidOperationException("Rod is already at maximum durability.");
         }
-        
-        if (partBaseItem.getRarity() == ItemRarity.EPIC || partBaseItem.getRarity() == ItemRarity.LEGENDARY) {
-            if (partBaseItem.getDurabilityIncrease() != null && partBaseItem.getDurabilityIncrease() > 0) {
-                currentMaxDurability += partBaseItem.getDurabilityIncrease();
-                rodInstance.setMaxDurability(currentMaxDurability);
-            }
+
+        if (isMaxDurabilityIncreasePart) {
+            currentMaxDurability += partBaseItem.getDurabilityIncrease();
+            rodInstance.setMaxDurability(currentMaxDurability);
         }
 
         double rarityPercentage = getRarityPercentage(partBaseItem.getRarity());
