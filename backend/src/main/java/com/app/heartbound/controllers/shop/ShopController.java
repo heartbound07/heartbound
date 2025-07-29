@@ -87,13 +87,25 @@ public class ShopController {
      */
     @GetMapping("/items")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<List<ShopDTO>> getShopItems(
+    public ResponseEntity<MappingJacksonValue> getShopItems(
         @RequestParam(required = false) String category,
         Authentication authentication
     ) {
         String userId = authentication != null ? authentication.getName() : null;
         List<ShopDTO> items = shopService.getAvailableShopItems(userId, category);
-        return ResponseEntity.ok(items);
+        
+        MappingJacksonValue mappingJacksonValue = new MappingJacksonValue(items);
+        
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+            .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+            
+        if (isAdmin) {
+            mappingJacksonValue.setSerializationView(Views.Admin.class);
+        } else {
+            mappingJacksonValue.setSerializationView(Views.Public.class);
+        }
+        
+        return ResponseEntity.ok(mappingJacksonValue);
     }
     
     /**

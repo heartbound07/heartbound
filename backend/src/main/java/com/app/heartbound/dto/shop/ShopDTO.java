@@ -55,7 +55,7 @@ public class ShopDTO {
     @JsonView(Views.Public.class)
     private String thumbnailUrl;
     
-    @JsonView(Views.Public.class)
+    @JsonView(Views.Admin.class)
     private Role requiredRole;
 
     @JsonView(Views.Public.class)
@@ -66,22 +66,28 @@ public class ShopDTO {
     private ItemRarity rarity = ItemRarity.COMMON;  // Default to COMMON
     
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private boolean active = true;
 
+    @JsonView(Views.Admin.class)
     private LocalDateTime expiresAt;
 
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private boolean expired = false;
 
     @JsonView(Views.Public.class)
     private boolean equipped;
 
+    @JsonView(Views.Admin.class)
     private String discordRoleId;
     
     // Visibility flags for layout sections
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private boolean isFeatured = false;
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private boolean isDaily = false;
     
     // Case-specific fields
@@ -95,6 +101,7 @@ public class ShopDTO {
     
     // Quantity field for inventory items (especially cases)
     @Builder.Default
+    @JsonView(Views.Public.class)
     private Integer quantity = 1;  // Default to 1 for compatibility
 
     @DecimalMin(value = "0.1", message = "Multiplier must be at least 0.1")
@@ -105,7 +112,9 @@ public class ShopDTO {
     @JsonView(Views.Public.class)
     private String gradientEndColor;
 
+    @JsonView(Views.Admin.class)
     private Integer maxCopies;
+    @JsonView(Views.Admin.class)
     private Integer copiesSold;
 
     public boolean isEquipped() {
