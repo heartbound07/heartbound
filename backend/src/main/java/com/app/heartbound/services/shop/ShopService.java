@@ -1337,6 +1337,7 @@ public class ShopService {
             int level = instance.getLevel() != null ? instance.getLevel() : 1;
             dto.setInstanceId(instance.getId());
             dto.setDurability(instance.getDurability());
+            dto.setMaxDurability(instance.getMaxDurability() != null ? instance.getMaxDurability() : shop.getMaxDurability());
             dto.setExperience(instance.getExperience());
             dto.setLevel(level);
             dto.setXpForNextLevel(LevelingUtil.calculateXpForRodLevel(level));
