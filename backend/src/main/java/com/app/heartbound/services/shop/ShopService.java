@@ -583,6 +583,12 @@ public class ShopService {
                 .baseItem(item)
                 .serialNumber(serialNumber)
                 .build();
+
+            if (item.getCategory() == ShopCategory.FISHING_ROD) {
+                newInstance.setDurability(item.getMaxDurability());
+                newInstance.setExperience(0L);
+            }
+
             newInstances.add(newInstance);
         }
     
@@ -787,14 +793,49 @@ public class ShopService {
         
         Shop item = shopRepository.findById(itemId)
             .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
+
+        // For fishing rods, this endpoint is deprecated. Use equipItemInstance instead.
+        if (item.getCategory() == ShopCategory.FISHING_ROD) {
+            throw new UnsupportedOperationException("Fishing rods must be equipped by their instance ID. Please use the new equip endpoint.");
+        }
         
         // Perform equip logic
-        performEquipItem(user, item);
+        performEquipItem(user, item, null);
         
         // Save user changes
         user = userRepository.save(user);
         
         // Return updated profile
+        return userService.mapToProfileDTO(user);
+    }
+    
+    /**
+     * Equips an item for a user by its instance ID.
+     * This is the new standard for equippable items with unique properties.
+     * @param userId User ID
+     * @param instanceId Item Instance ID
+     * @return Updated UserProfileDTO
+     */
+    @Transactional
+    public UserProfileDTO equipItemInstance(String userId, UUID instanceId) {
+        logger.debug("Equipping item instance {} for user {}", instanceId, userId);
+
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        ItemInstance instance = itemInstanceRepository.findById(instanceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Item instance not found with ID: " + instanceId));
+
+        if (!instance.getOwner().getId().equals(userId)) {
+            throw new ItemNotOwnedException("You do not own this item instance.");
+        }
+
+        Shop item = instance.getBaseItem();
+
+        performEquipItem(user, item, instanceId);
+
+        user = userRepository.save(user);
+
         return userService.mapToProfileDTO(user);
     }
     
@@ -854,7 +895,7 @@ public class ShopService {
         // Perform equip operations for all items
         for (Shop item : itemsToEquip) {
             try {
-                performEquipItem(user, item);
+                performEquipItem(user, item, null);
                 logger.debug("Successfully equipped item {} for user {}", item.getId(), userId);
             } catch (Exception e) {
                 logger.error("Failed to equip item {} for user {}: {}", item.getId(), userId, e.getMessage(), e);
@@ -901,8 +942,9 @@ public class ShopService {
      * This method contains the core equip logic shared between single and batch operations
      * @param user User to equip item for
      * @param item Item to equip
+     * @param instanceId The specific instance ID to equip (optional, for items like fishing rods)
      */
-    private void performEquipItem(User user, Shop item) {
+    private void performEquipItem(User user, Shop item, UUID instanceId) {
         // Validate the item can be equipped
         validateItemForEquipping(user, item);
         
@@ -992,12 +1034,15 @@ public class ShopService {
                 }
             }
         } else if (category == ShopCategory.FISHING_ROD) {
+            if (instanceId == null) {
+                throw new IllegalArgumentException("Fishing rod must be equipped by its instance ID.");
+            }
             // Handle Discord role management for FISHING_ROD items
             // Check if there was a previously equipped item of the same category
-            UUID previousItemId = user.getEquippedItemIdByCategory(category);
-            if (previousItemId != null && !previousItemId.equals(item.getId())) {
-                // Find the previous item to get its Discord role ID and handle removal synchronously
-                shopRepository.findById(previousItemId).ifPresent(previousItem -> {
+            UUID previousInstanceId = user.getEquippedFishingRodInstanceId();
+            if (previousInstanceId != null && !previousInstanceId.equals(instanceId)) {
+                itemInstanceRepository.findById(previousInstanceId).ifPresent(previousInstance -> {
+                    Shop previousItem = previousInstance.getBaseItem();
                     String previousRoleId = previousItem.getDiscordRoleId();
                     if (previousRoleId != null && !previousRoleId.isEmpty()) {
                         logger.debug("Removing previous Discord role {} from user {} before equipping new item", 
@@ -1018,7 +1063,7 @@ public class ShopService {
             }
             
             // Now unequip the previous item and set the new one
-            user.setEquippedItemIdByCategory(category, item.getId());
+            user.setEquippedFishingRodInstanceId(instanceId);
             
             // Grant the new role if it has a discordRoleId
             String newRoleId = item.getDiscordRoleId();
@@ -1136,38 +1181,59 @@ public class ShopService {
     @Transactional(readOnly = true)
     public UserInventoryDTO getUserInventory(String userId) {
         logger.debug("Getting inventory for user {}", userId);
-        
+
         User user = userRepository.findByIdWithInventory(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
 
-        Map<Shop, Long> itemCounts = user.getItemInstances().stream()
-            .collect(Collectors.groupingBy(ItemInstance::getBaseItem, Collectors.counting()));
-            
-        Set<ShopDTO> itemDTOs = itemCounts.entrySet().stream().map(entry -> {
+        // This method needs significant changes to support instance-specific data.
+        // We'll create a new list of DTOs.
+        List<ShopDTO> itemDTOs = new ArrayList<>();
+
+        // Group all instances by their base item to get counts for stackable items.
+        Map<Shop, List<ItemInstance>> groupedInstances = user.getItemInstances().stream()
+                .collect(Collectors.groupingBy(ItemInstance::getBaseItem));
+
+        for (Map.Entry<Shop, List<ItemInstance>> entry : groupedInstances.entrySet()) {
             Shop item = entry.getKey();
-            long quantity = entry.getValue();
-            
-            ShopDTO dto = mapToShopDTO(item, user);
-            dto.setQuantity((int) quantity);
-            
-            // Add equipped status, skipping for non-equippable categories like CASE
-            if (item.getCategory() != null && item.getCategory() != ShopCategory.CASE) {
-                if (item.getCategory() == ShopCategory.BADGE) {
-                    dto.setEquipped(user.isBadgeEquipped(item.getId()));
-                } else {
-                    UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
-                    dto.setEquipped(equippedItemId != null && equippedItemId.equals(item.getId()));
+            List<ItemInstance> instances = entry.getValue();
+
+            if (item.getCategory() == ShopCategory.FISHING_ROD) {
+                // For fishing rods, create a DTO for each unique instance.
+                for (ItemInstance instance : instances) {
+                    ShopDTO dto = mapToShopDTO(item, user);
+                    dto.setInstanceId(instance.getId());
+                    dto.setDurability(instance.getDurability());
+                    dto.setExperience(instance.getExperience());
+                    dto.setQuantity(1); // Each instance is unique
+
+                    // Set equipped status based on the instance ID
+                    UUID equippedInstanceId = user.getEquippedFishingRodInstanceId();
+                    dto.setEquipped(instance.getId().equals(equippedInstanceId));
+                    itemDTOs.add(dto);
                 }
             } else {
-                // For CASE or null category, it's not equipped
-                dto.setEquipped(false);
+                // For all other items, use the existing stacking logic.
+                long quantity = instances.size();
+                ShopDTO dto = mapToShopDTO(item, user);
+                dto.setQuantity((int) quantity);
+
+                // Add equipped status, skipping for non-equippable categories like CASE
+                if (item.getCategory() != null && item.getCategory() != ShopCategory.CASE) {
+                    if (item.getCategory() == ShopCategory.BADGE) {
+                        dto.setEquipped(user.isBadgeEquipped(item.getId()));
+                    } else {
+                        UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
+                        dto.setEquipped(equippedItemId != null && equippedItemId.equals(item.getId()));
+                    }
+                } else {
+                    dto.setEquipped(false);
+                }
+                itemDTOs.add(dto);
             }
-            
-            return dto;
-        }).collect(Collectors.toSet());
+        }
         
         return UserInventoryDTO.builder()
-            .items(itemDTOs)
+            .items(new HashSet<>(itemDTOs))
             .build();
     }
     
@@ -1197,6 +1263,10 @@ public class ShopService {
             if (item.getCategory() != null && item.getCategory() != ShopCategory.CASE) {
                 if (item.getCategory() == ShopCategory.BADGE) {
                     dto.setEquipped(user.isBadgeEquipped(item.getId()));
+                } else if (item.getCategory() == ShopCategory.FISHING_ROD) {
+                    // This is tricky because we don't have instance info here.
+                    // The main inventory endpoint is better. For Discord, we can just show if ANY rod is equipped.
+                    dto.setEquipped(user.getEquippedFishingRodInstanceId() != null);
                 } else {
                     UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
                     dto.setEquipped(equippedItemId != null && equippedItemId.equals(item.getId()));
@@ -1257,6 +1327,7 @@ public class ShopService {
             .gradientEndColor(shop.getGradientEndColor())
             .maxCopies(shop.getMaxCopies())
             .copiesSold(shop.getCopiesSold())
+            .maxDurability(shop.getMaxDurability())
             .build();
     }
     
@@ -1329,6 +1400,7 @@ public class ShopService {
             .fishingRodMultiplier(shopDTO.getFishingRodMultiplier())
             .gradientEndColor(sanitizedGradientEndColor)
             .maxCopies(shopDTO.getMaxCopies())
+            .maxDurability(shopDTO.getMaxDurability())
             .build();
         
         logger.debug("Creating new shop item with sanitized content");
@@ -1409,6 +1481,7 @@ public class ShopService {
         existingItem.setFishingRodMultiplier(shopDTO.getFishingRodMultiplier());
         existingItem.setGradientEndColor(sanitizedGradientEndColor);
         existingItem.setMaxCopies(shopDTO.getMaxCopies());
+        existingItem.setMaxDurability(shopDTO.getMaxDurability());
         
         logger.debug("Updating shop item with ID: {} with sanitized content", existingItem.getId());
         
@@ -2062,6 +2135,19 @@ public class ShopService {
                 if (user.isBadgeEquipped(item.getId())) {
                     user.removeEquippedBadge();
                     wasEquipped = true;
+                }
+            } else if (category == ShopCategory.FISHING_ROD) {
+                // Unequipping a fishing rod means unequipping the instance.
+                // The client should send the instance ID, but here we can only unequip whatever is equipped.
+                // This batch unequip is by item ID, not instance ID, so we just clear the equipped slot.
+                UUID equippedInstanceId = user.getEquippedFishingRodInstanceId();
+                if (equippedInstanceId != null) {
+                    // Find which item this instance belongs to
+                    Optional<ItemInstance> instanceOpt = itemInstanceRepository.findById(equippedInstanceId);
+                    if (instanceOpt.isPresent() && instanceOpt.get().getBaseItem().getId().equals(item.getId())) {
+                        user.setEquippedFishingRodInstanceId(null);
+                        wasEquipped = true;
+                    }
                 }
             } else {
                 UUID equippedId = user.getEquippedItemIdByCategory(category);

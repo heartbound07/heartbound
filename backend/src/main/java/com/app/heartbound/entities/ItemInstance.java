@@ -33,6 +33,12 @@ public class ItemInstance {
     @Column(name = "serial_number")
     private Long serialNumber;
 
+    @Column(name = "durability")
+    private Integer durability;
+
+    @Column(name = "experience")
+    private Long experience;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

@@ -9,17 +9,18 @@ public enum ShopCategory {
     ACCENT,
     BADGE,
     CASE,
-    FISHING_ROD;
+    FISHING_ROD,
+    FISHING_ROD_PART;
 
     public boolean isTradable() {
         return this != CASE;
     }
 
     public boolean isStackable() {
-        return this == CASE;
+        return this == CASE || this == FISHING_ROD_PART;
     }
 
     public boolean isEquippable() {
-        return this != CASE;
+        return this != CASE && this != FISHING_ROD_PART;
     }
 } 

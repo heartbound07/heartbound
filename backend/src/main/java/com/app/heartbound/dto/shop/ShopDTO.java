@@ -116,6 +116,16 @@ public class ShopDTO {
     private Integer maxCopies;
     @JsonView(Views.Admin.class)
     private Integer copiesSold;
+    @JsonView(Views.Public.class)
+    private Integer maxDurability;
+
+    // Instance-specific fields
+    @JsonView(Views.Public.class)
+    private UUID instanceId;
+    @JsonView(Views.Public.class)
+    private Integer durability;
+    @JsonView(Views.Public.class)
+    private Long experience;
 
     public boolean isEquipped() {
         return equipped;

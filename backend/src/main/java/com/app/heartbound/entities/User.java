@@ -188,8 +188,8 @@ public class User {
     @Column(name = "equipped_badge_id")
     private UUID equippedBadgeId;
 
-    @Column(name = "equipped_fishing_rod_id")
-    private UUID equippedFishingRodId;
+    @Column(name = "equipped_fishing_rod_instance_id")
+    private UUID equippedFishingRodInstanceId;
     
     // Add a field to store the user's current randomized fishing limit
     private Integer currentFishingLimit;
@@ -266,12 +266,12 @@ public class User {
         this.equippedAccentId = equippedAccentId;
     }
 
-    public UUID getEquippedFishingRodId() {
-        return equippedFishingRodId;
+    public UUID getEquippedFishingRodInstanceId() {
+        return equippedFishingRodInstanceId;
     }
 
-    public void setEquippedFishingRodId(UUID equippedFishingRodId) {
-        this.equippedFishingRodId = equippedFishingRodId;
+    public void setEquippedFishingRodInstanceId(UUID equippedFishingRodInstanceId) {
+        this.equippedFishingRodInstanceId = equippedFishingRodInstanceId;
     }
 
     // Helper methods for badge management - updated for single badge
@@ -347,7 +347,7 @@ public class User {
             case BADGE:
                 return getEquippedBadgeId();
             case FISHING_ROD:
-                return getEquippedFishingRodId();
+                return getEquippedFishingRodInstanceId();
             case CASE:
                 throw new UnsupportedOperationException("CASE category items cannot be equipped. Cases are purchased and stored in inventory.");
             default:
@@ -371,7 +371,7 @@ public class User {
                 setEquippedBadge(itemId);
                 break;
             case FISHING_ROD:
-                setEquippedFishingRodId(itemId);
+                setEquippedFishingRodInstanceId(itemId);
                 break;
             case CASE:
                 throw new UnsupportedOperationException("CASE category items cannot be equipped. Cases are purchased and stored in inventory.");

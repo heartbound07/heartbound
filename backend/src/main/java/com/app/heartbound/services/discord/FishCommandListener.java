@@ -27,6 +27,8 @@ import java.util.Optional;
 import java.time.LocalDateTime;
 import java.text.DecimalFormat;
 import java.util.concurrent.CompletableFuture;
+import com.app.heartbound.entities.ItemInstance;
+import com.app.heartbound.repositories.ItemInstanceRepository;
 
 @Component
 public class FishCommandListener extends ListenerAdapter {
@@ -58,17 +60,19 @@ public class FishCommandListener extends ListenerAdapter {
     private final ShopRepository shopRepository;
     private final DiscordBotSettingsService discordBotSettingsService;
     private final FishCommandListener self; // Self-injection for transactional methods
+    private final ItemInstanceRepository itemInstanceRepository;
 
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
     
-    public FishCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService, ShopRepository shopRepository, DiscordBotSettingsService discordBotSettingsService, @Lazy FishCommandListener self) {
+    public FishCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService, ShopRepository shopRepository, DiscordBotSettingsService discordBotSettingsService, @Lazy FishCommandListener self, ItemInstanceRepository itemInstanceRepository) {
         this.userService = userService;
         this.secureRandomService = secureRandomService;
         this.auditService = auditService;
         this.shopRepository = shopRepository;
         this.discordBotSettingsService = discordBotSettingsService;
         this.self = self;
+        this.itemInstanceRepository = itemInstanceRepository;
         logger.info("FishCommandListener initialized with secure random and audit service");
     }
     
@@ -177,11 +181,11 @@ public class FishCommandListener extends ListenerAdapter {
     }
     
     private double getEquippedRodMultiplier(User user) {
-        if (user.getEquippedFishingRodId() != null) {
+        if (user.getEquippedFishingRodInstanceId() != null) {
             try {
-                Optional<Shop> rodOpt = shopRepository.findById(user.getEquippedFishingRodId());
-                if (rodOpt.isPresent()) {
-                    Shop rod = rodOpt.get();
+                Optional<ItemInstance> rodInstanceOpt = itemInstanceRepository.findById(user.getEquippedFishingRodInstanceId());
+                if (rodInstanceOpt.isPresent()) {
+                    Shop rod = rodInstanceOpt.get().getBaseItem();
                     if (rod.getFishingRodMultiplier() != null && rod.getFishingRodMultiplier() > 1.0) {
                         return rod.getFishingRodMultiplier();
                     }
@@ -237,6 +241,35 @@ public class FishCommandListener extends ListenerAdapter {
                 logger.warn("User {} not found in database when using /fish", userId);
                 event.getHook().sendMessage("Could not find your account. Please log in to the web application first.").queue();
                 return;
+            }
+
+            // New Fishing Rod Logic
+            ItemInstance equippedRodInstance = null;
+            if (user.getEquippedFishingRodInstanceId() != null) {
+                equippedRodInstance = itemInstanceRepository.findById(user.getEquippedFishingRodInstanceId()).orElse(null);
+                if (equippedRodInstance == null) {
+                    logger.warn("User {} has an equipped rod instance ID ({}) that does not exist. Unequipping.", userId, user.getEquippedFishingRodInstanceId());
+                    user.setEquippedFishingRodInstanceId(null);
+                }
+            }
+
+            if (equippedRodInstance != null) {
+                // Backward Compatibility: Initialize durability for legacy rods
+                if (equippedRodInstance.getDurability() == null) {
+                    Shop baseRod = equippedRodInstance.getBaseItem();
+                    if (baseRod.getMaxDurability() != null) {
+                        equippedRodInstance.setDurability(baseRod.getMaxDurability());
+                        equippedRodInstance.setExperience(0L); // Initialize XP as well
+                        itemInstanceRepository.save(equippedRodInstance);
+                        logger.info("Initialized durability for legacy rod instance {} for user {}", equippedRodInstance.getId(), userId);
+                    }
+                }
+
+                // Durability Check
+                if (equippedRodInstance.getDurability() != null && equippedRodInstance.getDurability() <= 0) {
+                    event.getHook().sendMessage("🎣 | Your equipped fishing rod is broken and needs to be repaired before you can fish again.").queue();
+                    return;
+                }
             }
             
             // Check fishing limit and cooldown using cached settings
@@ -325,10 +358,28 @@ public class FishCommandListener extends ListenerAdapter {
                 message.append("! +").append(finalCreditChange).append(" 🪙");
                 
                 // Atomically update credits
-                // userService.updateCreditsAtomic(userId, finalCreditChange);
+                userService.updateCreditsAtomic(userId, finalCreditChange);
+                user.setCredits(user.getCredits() + finalCreditChange);
 
-                // FIX: Manually synchronize the managed User entity's state with the atomic DB update.
-                user.setCredits(currentCredits + finalCreditChange);
+
+                // Durability and XP Logic
+                if (equippedRodInstance != null && equippedRodInstance.getDurability() != null) {
+                    equippedRodInstance.setDurability(equippedRodInstance.getDurability() - 1);
+
+                    // XP Gain Logic (25% chance)
+                    if (secureRandomService.getSecureDouble() <= 0.25) {
+                        long xpGained = secureRandomService.getSecureInt(5) + 1; // 1-5 XP
+                        equippedRodInstance.setExperience((equippedRodInstance.getExperience() == null ? 0L : equippedRodInstance.getExperience()) + xpGained);
+                        message.append(" `(Rod +").append(xpGained).append(" XP)`");
+                    }
+
+                    if (equippedRodInstance.getDurability() <= 0) {
+                        user.setEquippedFishingRodInstanceId(null);
+                        message.append("\n\n**Oh no!** Your fishing rod broke and has been unequipped. You'll need to repair it.");
+                        logger.info("Fishing rod instance {} broke for user {}", equippedRodInstance.getId(), userId);
+                    }
+                    itemInstanceRepository.save(equippedRodInstance);
+                }
 
                 // Update non-credit user stats
                 int oldFishSinceLimit = user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0;
@@ -403,10 +454,27 @@ public class FishCommandListener extends ListenerAdapter {
                 message.append("! +").append(finalCreditChange).append(" 🪙");
                 
                 // Atomically update credits
-                // userService.updateCreditsAtomic(userId, finalCreditChange);
+                userService.updateCreditsAtomic(userId, finalCreditChange);
+                user.setCredits(user.getCredits() + finalCreditChange);
 
-                // FIX: Manually synchronize the managed User entity's state with the atomic DB update.
-                user.setCredits(currentCredits + finalCreditChange);
+                // Durability and XP Logic
+                if (equippedRodInstance != null && equippedRodInstance.getDurability() != null) {
+                    equippedRodInstance.setDurability(equippedRodInstance.getDurability() - 1);
+
+                    // XP Gain Logic (25% chance)
+                    if (secureRandomService.getSecureDouble() <= 0.25) {
+                        long xpGained = secureRandomService.getSecureInt(5) + 1; // 1-5 XP
+                        equippedRodInstance.setExperience((equippedRodInstance.getExperience() == null ? 0L : equippedRodInstance.getExperience()) + xpGained);
+                        message.append(" `(Rod +").append(xpGained).append(" XP)`");
+                    }
+
+                    if (equippedRodInstance.getDurability() <= 0) {
+                        user.setEquippedFishingRodInstanceId(null);
+                        message.append("\n\n**Oh no!** Your fishing rod broke and has been unequipped. You'll need to repair it.");
+                        logger.info("Fishing rod instance {} broke for user {}", equippedRodInstance.getId(), userId);
+                    }
+                    itemInstanceRepository.save(equippedRodInstance);
+                }
 
                 // Update non-credit user stats
                 int oldFishSinceLimit = user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0;
@@ -470,8 +538,7 @@ public class FishCommandListener extends ListenerAdapter {
                 
                 // Atomically update credits
                 if (creditChange > 0) {
-                    // userService.updateCreditsAtomic(userId, -creditChange);
-                    // FIX: Manually synchronize the managed User entity's state with the atomic DB update.
+                    userService.updateCreditsAtomic(userId, -creditChange);
                     user.setCredits(currentCredits - creditChange);
                 }
                 

@@ -19,6 +19,7 @@ import java.util.UUID;
 public class UserInventoryItemDTO {
     @NotNull
     private UUID itemId;
+    private UUID instanceId;
     
     @NotNull
     @Size(max = 100, message = "Item name cannot exceed 100 characters")
@@ -46,4 +47,9 @@ public class UserInventoryItemDTO {
     private ItemRarity rarity;
     
     private String discordRoleId;
+    
+    private Integer durability;
+    private Integer maxDurability;
+    private Long experience;
+    private boolean equipped;
 } 

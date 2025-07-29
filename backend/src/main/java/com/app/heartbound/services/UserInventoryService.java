@@ -4,6 +4,7 @@ import com.app.heartbound.dto.shop.UserInventoryItemDTO;
 import com.app.heartbound.entities.ItemInstance;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.entities.User;
+import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.repositories.ItemInstanceRepository;
 import com.app.heartbound.repositories.UserRepository;
@@ -50,20 +51,50 @@ public class UserInventoryService {
 
         // Convert to DTOs
         List<UserInventoryItemDTO> inventoryDTOs = itemCounts.entrySet().stream()
-            .map(entry -> {
+            .flatMap(entry -> {
                 Shop item = entry.getKey();
-                return UserInventoryItemDTO.builder()
-                    .itemId(item.getId())
-                    .name(item.getName())
-                    .description(item.getDescription())
-                    .category(item.getCategory())
-                    .thumbnailUrl(item.getThumbnailUrl())
-                    .imageUrl(item.getImageUrl())
-                    .price(item.getPrice())
-                    .quantity(entry.getValue().intValue())
-                    .rarity(item.getRarity())
-                    .discordRoleId(item.getDiscordRoleId())
-                    .build();
+                List<ItemInstance> instances = user.getItemInstances().stream()
+                    .filter(i -> i.getBaseItem().getId().equals(item.getId()))
+                    .collect(Collectors.toList());
+
+                if (item.getCategory() == ShopCategory.FISHING_ROD) {
+                    // Create a DTO for each unique instance of a fishing rod
+                    return instances.stream().map(instance -> {
+                        UUID equippedInstanceId = user.getEquippedFishingRodInstanceId();
+                        return UserInventoryItemDTO.builder()
+                            .itemId(item.getId())
+                            .instanceId(instance.getId())
+                            .name(item.getName())
+                            .description(item.getDescription())
+                            .category(item.getCategory())
+                            .thumbnailUrl(item.getThumbnailUrl())
+                            .imageUrl(item.getImageUrl())
+                            .price(item.getPrice())
+                            .quantity(1)
+                            .rarity(item.getRarity())
+                            .discordRoleId(item.getDiscordRoleId())
+                            .durability(instance.getDurability())
+                            .maxDurability(item.getMaxDurability())
+                            .experience(instance.getExperience())
+                            .equipped(instance.getId().equals(equippedInstanceId))
+                            .build();
+                    });
+                } else {
+                    // For other items, create a single stacked DTO
+                    return List.of(UserInventoryItemDTO.builder()
+                        .itemId(item.getId())
+                        .name(item.getName())
+                        .description(item.getDescription())
+                        .category(item.getCategory())
+                        .thumbnailUrl(item.getThumbnailUrl())
+                        .imageUrl(item.getImageUrl())
+                        .price(item.getPrice())
+                        .quantity(entry.getValue().intValue())
+                        .rarity(item.getRarity())
+                        .discordRoleId(item.getDiscordRoleId())
+                        .equipped(item.getId().equals(user.getEquippedItemIdByCategory(item.getCategory())))
+                        .build()).stream();
+                }
             })
             .collect(Collectors.toList());
 

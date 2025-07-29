@@ -379,6 +379,48 @@ public class ShopController {
         } catch (ItemNotEquippableException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(e.getMessage()));
+        } catch (UnsupportedOperationException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An error occurred while equipping the item"));
+        }
+    }
+
+    /**
+     * Equip an item by its instance ID.
+     * @param instanceId The UUID of the ItemInstance to equip.
+     * @param authentication Authentication containing user ID
+     * @return Updated user profile
+     */
+    @RateLimited(
+        requestsPerMinute = 30,
+        requestsPerHour = 200,
+        keyType = RateLimitKeyType.USER,
+        keyPrefix = "equip-instance",
+        burstCapacity = 35
+    )
+    @PostMapping("/equip/instance/{instanceId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> equipItemInstance(
+        @PathVariable UUID instanceId,
+        Authentication authentication
+    ) {
+        String userId = authentication.getName();
+        
+        try {
+            UserProfileDTO updatedProfile = shopService.equipItemInstance(userId, instanceId);
+            return ResponseEntity.ok(updatedProfile);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (ItemNotOwnedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (ItemNotEquippableException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse("An error occurred while equipping the item"));
