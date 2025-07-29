@@ -33,6 +33,7 @@ import com.app.heartbound.repositories.ItemInstanceRepository;
 import com.app.heartbound.enums.FishingRodPart;
 
 import java.util.Map;
+import java.util.HashMap;
 
 @Component
 public class FishCommandListener extends ListenerAdapter {
@@ -197,12 +198,12 @@ public class FishCommandListener extends ListenerAdapter {
             return bonuses;
         }
 
-        Map<FishingRodPart, ItemInstance> equippedParts = Map.of(
-            FishingRodPart.REEL, rodInstance.getEquippedReel(),
-            FishingRodPart.HOOK, rodInstance.getEquippedHook(),
-            FishingRodPart.FISHING_LINE, rodInstance.getEquippedFishingLine(),
-            FishingRodPart.GRIP, rodInstance.getEquippedGrip()
-        );
+        Map<FishingRodPart, ItemInstance> equippedParts = new HashMap<>();
+        equippedParts.put(FishingRodPart.ROD_SHAFT, rodInstance.getEquippedRodShaft());
+        equippedParts.put(FishingRodPart.REEL, rodInstance.getEquippedReel());
+        equippedParts.put(FishingRodPart.HOOK, rodInstance.getEquippedHook());
+        equippedParts.put(FishingRodPart.FISHING_LINE, rodInstance.getEquippedFishingLine());
+        equippedParts.put(FishingRodPart.GRIP, rodInstance.getEquippedGrip());
 
         for (ItemInstance partInstance : equippedParts.values()) {
             if (partInstance != null) {
