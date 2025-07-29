@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { HiOutlineX } from 'react-icons/hi';
 import { ShopItem } from '@/types/inventory';
 import { GiFishingPole } from 'react-icons/gi';
-import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 
 interface FishingRodPartsModalProps {
   isOpen: boolean;
