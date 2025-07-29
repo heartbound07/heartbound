@@ -9,10 +9,11 @@ import { useSanitizedContent } from '@/hooks/useSanitizedContent';
 import React from 'react';
 import { ShopItem } from '@/types/inventory';
 import { HiOutlinePlus } from 'react-icons/hi';
+import { UserProfileDTO } from '@/config/userService';
 
 interface InventoryItemCardProps {
     item: ShopItem;
-    user: any;
+    user: UserProfileDTO | null;
     isSelected?: boolean;
     onSelect: (item: ShopItem) => void;
     onOpenPartsModal: (item: ShopItem) => void;
@@ -42,7 +43,7 @@ export const InventoryItemCard = forwardRef<HTMLDivElement, InventoryItemCardPro
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       whileHover={{ y: -5 }}
-      className={`shop-item-card inventory-item-card ${isSelected ? 'inventory-item-selected' : ''} ${item.equipped ? 'inventory-item-equipped' : ''}`}
+      className={`shop-item-card inventory-item-card flex flex-col ${isSelected ? 'inventory-item-selected' : ''} ${item.equipped ? 'inventory-item-equipped' : ''}`}
       style={{ borderColor: isSelected ? 'var(--color-primary, #0088cc)' : 'transparent' }}
       onClick={() => onSelect(item)}
     >
@@ -206,7 +207,7 @@ export const InventoryItemCard = forwardRef<HTMLDivElement, InventoryItemCardPro
         </div>
       )}
       
-      <div className="shop-item-content">
+      <div className="shop-item-content flex flex-col flex-grow">
         <div className="flex justify-between items-center mb-2">
           <div className="flex items-center">
             <SafeText 
