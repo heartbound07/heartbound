@@ -20,8 +20,12 @@ public interface ShopRepository extends JpaRepository<Shop, UUID> {
     
     List<Shop> findByIsActiveTrue();
     
+    List<Shop> findByIsActiveTrueAndIsDailyTrue();
+
     List<Shop> findByCategoryAndIsActiveTrue(ShopCategory category);
     
+    List<Shop> findByCategoryAndIsActiveTrueAndIsDailyTrue(ShopCategory category);
+
     List<Shop> findByRequiredRoleIsNullAndIsActiveTrue();
 
     List<Shop> findByIsActiveTrueAndExpiresAtBeforeAndExpiresAtIsNotNull(LocalDateTime dateTime);

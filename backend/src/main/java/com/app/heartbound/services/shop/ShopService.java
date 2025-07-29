@@ -143,7 +143,7 @@ public class ShopService {
             try {
                 ShopCategory category = ShopCategory.valueOf(categoryStr);
                 // Get active items that either have no expiry or haven't expired yet
-                items = shopRepository.findByCategoryAndIsActiveTrue(category)
+                items = shopRepository.findByCategoryAndIsActiveTrueAndIsDailyTrue(category)
                     .stream()
                     .filter(item -> item.getExpiresAt() == null || item.getExpiresAt().isAfter(now))
                     .filter(item -> item.getMaxCopies() == null || item.getCopiesSold() == null || item.getCopiesSold() < item.getMaxCopies())
@@ -155,7 +155,7 @@ public class ShopService {
             }
         } else {
             // Get all active items that either have no expiry or haven't expired yet
-            items = shopRepository.findByIsActiveTrue()
+            items = shopRepository.findByIsActiveTrueAndIsDailyTrue()
                 .stream()
                 .filter(item -> item.getExpiresAt() == null || item.getExpiresAt().isAfter(now))
                 .filter(item -> item.getMaxCopies() == null || item.getCopiesSold() == null || item.getCopiesSold() < item.getMaxCopies())
