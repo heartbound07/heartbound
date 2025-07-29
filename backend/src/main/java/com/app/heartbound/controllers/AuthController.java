@@ -15,6 +15,7 @@ import com.app.heartbound.config.security.JWTTokenProvider;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.services.discord.DiscordBotSettingsService;
 import com.app.heartbound.entities.DiscordBotSettings;
+import jakarta.validation.Valid;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.UserSnowflake;
@@ -74,7 +75,7 @@ public class AuthController {
         @ApiResponse(responseCode = "404", description = "User not found", content = @Content)
     })
     @PostMapping("/login")
-    public ResponseEntity<OAuthTokenResponse> login(@RequestBody LoginRequestDTO loginRequest) {
+    public ResponseEntity<OAuthTokenResponse> login(@Valid @RequestBody LoginRequestDTO loginRequest) {
         OAuthTokenResponse tokenResponse = authService.login(loginRequest);
         return ResponseEntity.ok(tokenResponse);
     }
@@ -87,7 +88,7 @@ public class AuthController {
         @ApiResponse(responseCode = "409", description = "Username is already taken", content = @Content)
     })
     @PostMapping("/register")
-    public ResponseEntity<User> register(@RequestBody RegisterRequestDTO registerRequest) {
+    public ResponseEntity<User> register(@Valid @RequestBody RegisterRequestDTO registerRequest) {
         User newUser = authService.register(registerRequest);
         return ResponseEntity.ok(newUser);
     }
@@ -130,7 +131,7 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "New token pair issued")
     @ApiResponse(responseCode = "401", description = "Invalid or expired refresh token")
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@RequestBody OAuthRefreshRequest refreshRequest) {
+    public ResponseEntity<?> refresh(@Valid @RequestBody OAuthRefreshRequest refreshRequest) {
         try {
             OAuthTokenResponse tokenResponse = authService.refreshToken(refreshRequest.getRefreshToken());
             return ResponseEntity.ok(tokenResponse);
@@ -149,7 +150,7 @@ public class AuthController {
                      content = @Content(examples = @ExampleObject(value = "{\"error\": \"Invalid or expired code\"}")))
     })
     @PostMapping("/discord/exchange-code")
-    public ResponseEntity<?> exchangeDiscordCode(@RequestBody DiscordCodeExchangeRequest request) {
+    public ResponseEntity<?> exchangeDiscordCode(@Valid @RequestBody DiscordCodeExchangeRequest request) {
         // Log the raw request body code
         logger.info("Received request to exchange Discord code. Raw code from request: [{}]", request.getCode());
 
