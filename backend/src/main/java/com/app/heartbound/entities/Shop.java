@@ -101,6 +101,9 @@ public class Shop {
     @Column(name = "max_copies")
     private Integer maxCopies;
 
+    @Column(name = "max_repairs")
+    private Integer maxRepairs;
+
     @Column(name = "max_durability")
     private Integer maxDurability;
 

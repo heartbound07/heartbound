@@ -39,6 +39,7 @@ interface ShopItem {
   rarityChanceIncrease?: number;
   multiplierIncrease?: number;
   negationChance?: number;
+  maxRepairs?: number;
 }
 
 interface ShopFormData {
@@ -66,6 +67,7 @@ interface ShopFormData {
   rarityChanceIncrease?: number;
   multiplierIncrease?: number;
   negationChance?: number;
+  maxRepairs?: number;
 }
 
 interface CaseItemData {
@@ -138,7 +140,8 @@ export function ShopAdminPage() {
     bonusLootChance: undefined,
     rarityChanceIncrease: undefined,
     multiplierIncrease: undefined,
-    negationChance: undefined
+    negationChance: undefined,
+    maxRepairs: undefined
   });
   
   // Available categories
@@ -370,7 +373,7 @@ export function ShopAdminPage() {
     // Handle numeric conversion for price, maxCopies, and maxDurability
     if (name === 'price') {
       setFormData({ ...formData, [name]: parseInt(value, 10) || 0 });
-    } else if (name === 'maxCopies' || name === 'maxDurability' || name === 'durabilityIncrease' || name === 'bonusLootChance' || name === 'rarityChanceIncrease' || name === 'multiplierIncrease' || name === 'negationChance') {
+    } else if (name === 'maxCopies' || name === 'maxDurability' || name === 'durabilityIncrease' || name === 'bonusLootChance' || name === 'rarityChanceIncrease' || name === 'multiplierIncrease' || name === 'negationChance' || name === 'maxRepairs') {
       const numValue = parseInt(value, 10);
       setFormData({ ...formData, [name]: isNaN(numValue) ? undefined : numValue });
     } else if (name === 'expiresAt') {
@@ -400,6 +403,7 @@ export function ShopAdminPage() {
         rarityChanceIncrease: formData.rarityChanceIncrease ? Number(formData.rarityChanceIncrease) : null,
         multiplierIncrease: formData.multiplierIncrease ? Number(formData.multiplierIncrease) : null,
         negationChance: formData.negationChance ? Number(formData.negationChance) : null,
+        maxRepairs: formData.maxRepairs ? Number(formData.maxRepairs) : null,
         fishingRodPartType: formData.fishingRodPartType || null,
       };
       
@@ -459,7 +463,8 @@ export function ShopAdminPage() {
       bonusLootChance: item.bonusLootChance,
       rarityChanceIncrease: item.rarityChanceIncrease,
       multiplierIncrease: item.multiplierIncrease,
-      negationChance: item.negationChance
+      negationChance: item.negationChance,
+      maxRepairs: item.maxRepairs
     });
     
     // Load case contents if this is a case
@@ -532,7 +537,8 @@ export function ShopAdminPage() {
       bonusLootChance: undefined,
       rarityChanceIncrease: undefined,
       multiplierIncrease: undefined,
-      negationChance: undefined
+      negationChance: undefined,
+      maxRepairs: undefined
     });
     setEditingItem(null);
     setCaseContents({ items: [], totalDropRate: 0 });

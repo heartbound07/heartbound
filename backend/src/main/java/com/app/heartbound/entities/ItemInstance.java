@@ -47,6 +47,10 @@ public class ItemInstance {
     @Column(name = "level")
     private Integer level = 1;
 
+    @Builder.Default
+    @Column(name = "repair_count")
+    private Integer repairCount = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

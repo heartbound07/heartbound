@@ -29,6 +29,8 @@ export interface ShopItem {
   rarityChanceIncrease?: number;
   multiplierIncrease?: number;
   negationChance?: number;
+  repairCount?: number;
+  maxRepairs?: number;
 }
 
 export interface ToastNotification {

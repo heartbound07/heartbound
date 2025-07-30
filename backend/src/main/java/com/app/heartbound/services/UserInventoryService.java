@@ -165,6 +165,13 @@ public class UserInventoryService {
             throw new InvalidOperationException("This part does not need repairs.");
         }
 
+        // Check if the part has reached its maximum repair limit
+        if (partInstance.getRepairCount() != null &&
+            partInstance.getBaseItem().getMaxRepairs() != null &&
+            partInstance.getRepairCount() >= partInstance.getBaseItem().getMaxRepairs()) {
+            throw new InvalidOperationException("This part has reached its maximum repair limit.");
+        }
+
         int cost = getPartRepairCost(partInstanceId);
 
         boolean success = userService.deductCreditsIfSufficient(user, cost);
@@ -178,9 +185,10 @@ public class UserInventoryService {
         }
 
         partInstance.setDurability(maxDurability);
+        partInstance.setRepairCount(partInstance.getRepairCount() + 1);
         itemInstanceRepository.save(partInstance);
 
-        logger.info("User {} successfully repaired part {} for {} credits.", userId, partInstanceId, cost);
+        logger.info("User {} successfully repaired part {} for {} credits. Repair count: {}", userId, partInstanceId, cost, partInstance.getRepairCount());
 
         return userService.mapToProfileDTO(user);
     }

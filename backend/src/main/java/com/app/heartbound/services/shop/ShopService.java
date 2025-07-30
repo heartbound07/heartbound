@@ -1341,6 +1341,7 @@ public class ShopService {
             .rarityChanceIncrease(shop.getRarityChanceIncrease())
             .multiplierIncrease(shop.getMultiplierIncrease())
             .negationChance(shop.getNegationChance())
+            .maxRepairs(shop.getMaxRepairs())
             .build();
     }
 
@@ -1350,6 +1351,7 @@ public class ShopService {
             dto.setInstanceId(instance.getId());
             dto.setDurability(instance.getDurability());
             dto.setMaxDurability(instance.getMaxDurability());
+            dto.setRepairCount(instance.getRepairCount());
 
             if (shop.getCategory() == ShopCategory.FISHING_ROD) {
                 int level = instance.getLevel() != null ? instance.getLevel() : 1;
@@ -1455,6 +1457,7 @@ public class ShopService {
             .rarityChanceIncrease(shopDTO.getRarityChanceIncrease())
             .multiplierIncrease(shopDTO.getMultiplierIncrease())
             .negationChance(shopDTO.getNegationChance())
+            .maxRepairs(shopDTO.getMaxRepairs())
             .build();
         
         logger.debug("Creating new shop item with sanitized content");
@@ -1542,6 +1545,7 @@ public class ShopService {
         existingItem.setRarityChanceIncrease(shopDTO.getRarityChanceIncrease());
         existingItem.setMultiplierIncrease(shopDTO.getMultiplierIncrease());
         existingItem.setNegationChance(shopDTO.getNegationChance());
+        existingItem.setMaxRepairs(shopDTO.getMaxRepairs());
         
         logger.debug("Updating shop item with ID: {} with sanitized content", existingItem.getId());
         

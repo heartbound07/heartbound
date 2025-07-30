@@ -124,6 +124,9 @@ public class ShopDTO {
     @JsonView(Views.Public.class)
     private Integer maxDurability;
 
+    @JsonView(Views.Admin.class)
+    private Integer maxRepairs;
+
     @JsonView(Views.Public.class)
     private Integer durabilityIncrease;
 
@@ -156,6 +159,8 @@ public class ShopDTO {
     private Long experience;
     @JsonView(Views.Public.class)
     private Integer level;
+    @JsonView(Views.Public.class)
+    private Integer repairCount;
     @JsonView(Views.Public.class)
     private Long xpForNextLevel;
 

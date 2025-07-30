@@ -66,6 +66,7 @@ interface ShopItem {
     rarityChanceIncrease?: number;
     multiplierIncrease?: number;
     negationChance?: number;
+    maxRepairs?: number;
   }
   
   interface CaseItemData {
@@ -438,6 +439,23 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                     </p>
                   </div>
                   )}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                      Max Repairs
+                    </label>
+                    <input
+                      type="number"
+                      name="maxRepairs"
+                      value={formData.maxRepairs || ''}
+                      onChange={handleInputChange}
+                      min="0"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="e.g., 5"
+                    />
+                    <p className="text-xs text-slate-400 mt-1">
+                      Number of times this part can be repaired. Leave empty for infinite.
+                    </p>
+                  </div>
                   {formData.fishingRodPartType === 'REEL' && (
                     <div>
                       <label className="block text-sm font-medium text-slate-300 mb-1">Bonus Loot Chance (%)</label>
