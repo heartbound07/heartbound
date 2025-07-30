@@ -569,48 +569,51 @@ export function InventoryPage() {
           transition={{ duration: 0.4, delay: 0.2 }}
           className="inventory-layout-container"
         >
-          {/* Right Column - Item Preview Panel (moved before left column for mobile UX) */}
-          <div className="inventory-right-column">
-            <ItemPreview
-              selectedItems={selectedItems}
-              user={profile || user}
-              onEquip={handleEquipItem}
-              onUnequip={handleUnequipItem}
-              onUnequipBadge={handleUnequipBadge}
-              onOpenCase={openCaseRoll}
-              onViewCaseContents={openCasePreview}
-              actionInProgress={actionInProgress}
-              onEquipMultipleItems={handleEquipMultipleItems}
-              onUnequipMultipleItems={handleUnequipMultipleItems}
-            />
-          </div>
-
-          {/* Left Column - Inventory Grid with Fixed Height and Scroll */}
-          <div className="inventory-left-column">
+          {/* Main content area with filters, controls, grid, and preview */}
+          <div className="inventory-main-content">
             <InventoryFilters
               categories={categories}
               selectedCategory={selectedCategory}
               onSelectCategory={setSelectedCategory}
             />
             
-            <InventoryControls
-              selectedCategory={selectedCategory}
-              sortOrder={sortOrder}
-              onSortChange={setSortOrder}
-              itemCount={items.length}
-              loading={loading}
-            />
-            
-            <InventoryGrid
-              loading={loading}
-              items={items}
-              selectedCategory={selectedCategory}
-              user={profile || user}
-              isItemSelected={isItemSelected}
-              onSelectItem={handleSelectItem}
-              onOpenPartsModal={openPartsModal}
-              onRepair={handleRepair}
-            />
+            <div className="inventory-grid-and-preview-container">
+              <div className="inventory-grid-with-controls">
+                <InventoryControls
+                  selectedCategory={selectedCategory}
+                  sortOrder={sortOrder}
+                  onSortChange={setSortOrder}
+                  itemCount={items.length}
+                  loading={loading}
+                />
+                
+                <InventoryGrid
+                  loading={loading}
+                  items={items}
+                  selectedCategory={selectedCategory}
+                  user={profile || user}
+                  isItemSelected={isItemSelected}
+                  onSelectItem={handleSelectItem}
+                  onOpenPartsModal={openPartsModal}
+                  onRepair={handleRepair}
+                />
+              </div>
+
+              <div className="item-preview-wrapper">
+                <ItemPreview
+                  selectedItems={selectedItems}
+                  user={profile || user}
+                  onEquip={handleEquipItem}
+                  onUnequip={handleUnequipItem}
+                  onUnequipBadge={handleUnequipBadge}
+                  onOpenCase={openCaseRoll}
+                  onViewCaseContents={openCasePreview}
+                  actionInProgress={actionInProgress}
+                  onEquipMultipleItems={handleEquipMultipleItems}
+                  onUnequipMultipleItems={handleUnequipMultipleItems}
+                />
+              </div>
+            </div>
           </div>
         </motion.div>
     </div>

@@ -107,7 +107,7 @@
 /* Desktop layout optimizations */
 @media (min-width: 1201px) {
   .inventory-layout-container {
-    flex-direction: row-reverse;
+    /* REMOVED: flex-direction: row-reverse; */
     max-width: 1400px;
     margin: 0 auto;
     padding: 0 2rem;
@@ -127,26 +127,38 @@
    COLUMN LAYOUT DEFINITIONS
    ============================================================================ */
 
-/* Left column - Inventory grid */
-.inventory-left-column {
+/* NEW: Main content area that holds filters, controls, and the grid/preview container */
+.inventory-main-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  max-width: 920px;  /* Increased from 900px for better 3-column fit */
-  min-width: 600px;
-  /* Prevent content jumping */
-  contain: layout;
-  
-  /* Ensure consistent available width */
-  width: 100%;
+  min-width: 0; /* Prevents flexbox overflow issues */
 }
 
-/* Right column - Item preview */
-.inventory-right-column {
+/* NEW: Flex container for the grid and the preview panel */
+.inventory-grid-and-preview-container {
+  display: flex;
+  gap: 2rem;
+  flex: 1;
+  min-height: 0; /* Allows container to shrink vertically if needed */
+}
+
+/* NEW: Container for the grid and its controls to keep them together */
+.inventory-grid-with-controls {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* NEW: Wrapper for the item preview to control its size */
+.item-preview-wrapper {
   flex: 0 0 var(--inventory-preview-width);
   min-width: var(--inventory-preview-width);
   max-width: var(--inventory-preview-width-large);
+  position: relative; /* Needed for sticky child */
 }
+
 
 /* ============================================================================
    CATEGORY FILTERS - OPTIMIZED
@@ -1042,8 +1054,12 @@
   .inventory-layout-container {
     gap: 1.5rem;
   }
+
+  .inventory-grid-and-preview-container {
+    gap: 1.5rem;
+  }
   
-  .inventory-right-column {
+  .item-preview-wrapper {
     flex: 0 0 350px;
     min-width: 350px;
     max-width: 380px;
@@ -1060,18 +1076,18 @@
     contain: layout;
   }
   
-  .inventory-left-column {
-    max-width: none;
-    min-width: auto;
+  .inventory-grid-and-preview-container {
+    flex-direction: column;
+    order: 2; /* Show preview above the grid on mobile */
   }
-  
-  .inventory-right-column {
-    flex: none;
-    min-width: auto;
-    max-width: none;
+
+  .item-preview-wrapper {
+    order: 1; /* Ensure preview comes first visually */
+    margin-bottom: 2rem;
   }
   
   .inventory-grid-container {
+    order: 2;
     max-height: 600px;
   }
   
@@ -1082,7 +1098,7 @@
   /* Mobile fixes for item preview */
   .item-preview-container {
     position: static;
-    margin-bottom: 2rem;
+    /* margin-bottom is now on the wrapper */
   }
 }
 
@@ -1113,6 +1129,10 @@
   
   .item-preview-container {
     margin-bottom: 1.5rem;
+  }
+
+  .item-preview-wrapper {
+    margin-bottom: 0; /* Reset margin, it's now on the container */
   }
   
   .item-preview-header {
