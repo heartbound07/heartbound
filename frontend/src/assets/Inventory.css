@@ -1078,7 +1078,10 @@
   
   .inventory-grid-and-preview-container {
     flex-direction: column;
-    order: 2; /* Show preview above the grid on mobile */
+  }
+
+  .inventory-grid-with-controls {
+    order: 2; /* Make grid appear after the preview */
   }
 
   .item-preview-wrapper {
@@ -1087,7 +1090,6 @@
   }
   
   .inventory-grid-container {
-    order: 2;
     max-height: 600px;
   }
   
