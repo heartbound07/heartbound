@@ -80,7 +80,7 @@ public class UserInventoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Fishing rod instance not found with id: " + rodInstanceId));
 
         if (!rodInstance.getOwner().getId().equals(userId)) {
-            throw new IllegalStateException("User does not own the fishing rod.");
+            throw new ResourceNotFoundException("User does not own the fishing rod.");
         }
 
         Shop rodBaseItem = rodInstance.getBaseItem();
@@ -108,7 +108,7 @@ public class UserInventoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Fishing rod instance not found with id: " + rodInstanceId));
 
         if (!rodInstance.getOwner().getId().equals(userId)) {
-            throw new IllegalStateException("User does not own the fishing rod.");
+            throw new ResourceNotFoundException("User does not own the fishing rod.");
         }
 
         if (rodInstance.getDurability() == null || rodInstance.getDurability() > 0) {
@@ -117,7 +117,7 @@ public class UserInventoryService {
 
         int cost = getRepairCost(userId, rodInstanceId);
 
-        boolean success = userService.deductCreditsIfSufficient(userId, cost);
+        boolean success = userService.deductCreditsIfSufficient(user, cost);
         if (!success) {
             throw new InsufficientCreditsException("You do not have enough credits to repair this rod. Required: " + cost + " credits.");
         }
@@ -222,7 +222,7 @@ public class UserInventoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Receiver not found with id: " + toUserId));
 
         if (!itemInstance.getOwner().getId().equals(fromUserId)) {
-            throw new IllegalStateException("Sender does not own this item instance.");
+            throw new ResourceNotFoundException("Sender does not own this item instance.");
         }
 
         itemInstance.setOwner(toUser);
@@ -240,7 +240,7 @@ public class UserInventoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Fishing rod instance not found with id: " + rodInstanceId));
 
         if (!rodInstance.getOwner().getId().equals(userId)) {
-            throw new IllegalStateException("User does not own the fishing rod.");
+            throw new ResourceNotFoundException("User does not own the fishing rod.");
         }
         
         ItemInstance partInstance = user.getItemInstances().stream()
@@ -262,9 +262,28 @@ public class UserInventoryService {
             throw new InvalidOperationException("Item is not a fishing rod part.");
         }
 
+        // Prevent equipping a part to a slot that is already occupied
+        switch (partBaseItem.getFishingRodPartType()) {
+            case ROD_SHAFT:
+                if (rodInstance.getEquippedRodShaft() != null) throw new InvalidOperationException("A part is already equipped in this slot.");
+                break;
+            case REEL:
+                if (rodInstance.getEquippedReel() != null) throw new InvalidOperationException("A part is already equipped in this slot.");
+                break;
+            case FISHING_LINE:
+                if (rodInstance.getEquippedFishingLine() != null) throw new InvalidOperationException("A part is already equipped in this slot.");
+                break;
+            case HOOK:
+                if (rodInstance.getEquippedHook() != null) throw new InvalidOperationException("A part is already equipped in this slot.");
+                break;
+            case GRIP:
+                if (rodInstance.getEquippedGrip() != null) throw new InvalidOperationException("A part is already equipped in this slot.");
+                break;
+        }
+
         int cost = getPartUpgradeCost(partBaseItem.getRarity());
         if (cost > 0) {
-            boolean success = userService.deductCreditsIfSufficient(userId, cost);
+            boolean success = userService.deductCreditsIfSufficient(user, cost);
             if (!success) {
                 throw new InsufficientCreditsException("You do not have enough credits to apply this part. Required: " + cost + " credits.");
             }

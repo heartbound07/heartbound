@@ -1064,17 +1064,42 @@ public class UserService {
             logger.warn("Invalid deduction amount: {} for user {}", amount, userId);
             return false;
         }
-        
-        int rowsAffected = userRepository.deductCredits(userId, amount);
-        
-        if (rowsAffected > 0) {
-            cacheConfig.invalidateUserProfileCache(userId);
-            logger.debug("Successfully deducted {} credits from user {}", amount, userId);
-            return true;
-        } else {
-            logger.warn("Failed to deduct {} credits from user {} - insufficient balance or user not found", amount, userId);
+
+        User user = userRepository.findByIdWithLock(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        return deductCreditsIfSufficient(user, amount);
+    }
+
+    /**
+     * Overloaded method to deduct credits from a pre-fetched/locked User entity.
+     * This is the core logic that should be used within larger transactions.
+     * @param user the locked User entity
+     * @param amount the amount to deduct
+     * @return true if deduction succeeded, false otherwise
+     */
+    @Transactional
+    public boolean deductCreditsIfSufficient(User user, int amount) {
+        if (user == null) {
+            logger.warn("User object is null, cannot deduct credits.");
             return false;
         }
+        if (amount <= 0) {
+            logger.warn("Invalid deduction amount: {} for user {}", amount, user.getId());
+            return false;
+        }
+
+        if (user.getCredits() < amount) {
+            logger.warn("Failed to deduct {} credits from user {} - insufficient balance.", amount, user.getId());
+            return false;
+        }
+
+        user.setCredits(user.getCredits() - amount);
+        userRepository.save(user);
+
+        cacheConfig.invalidateUserProfileCache(user.getId());
+        logger.debug("Successfully deducted {} credits from user {}", amount, user.getId());
+        return true;
     }
 
     /**
