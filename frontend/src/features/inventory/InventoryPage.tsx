@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth';
-import { motion } from 'framer-motion';
+import { motion, useAnimation } from 'framer-motion';
 import httpClient from '@/lib/api/httpClient';
 import { Toast } from '@/components/Toast';
 import '@/assets/dashboard.css';
@@ -73,6 +73,29 @@ export function InventoryPage() {
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [itemToConfirm, setItemToConfirm] = useState<ShopItem | null>(null);
   const [repairCost, setRepairCost] = useState<number | null>(null);
+  const subtitleControls = useAnimation();
+
+  useEffect(() => {
+    const sequence = async () => {
+      // Fade in with a delay
+      await subtitleControls.start({
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.5, delay: 0.2 }
+      });
+
+      // Wait 8 seconds
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      // Fade out
+      await subtitleControls.start({
+        opacity: 0,
+        y: -10, // Animate upwards on fade-out
+        transition: { duration: 0.5 }
+      });
+    };
+    sequence();
+  }, [subtitleControls]);
 
 
   // Define rarity order for sorting
@@ -551,16 +574,23 @@ export function InventoryPage() {
         </div>
         
         {/* Page Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8 text-center"
-        >
-          <h1 className="shop-title inventory-title">My Inventory</h1>
-          <p className="text-slate-300 text-lg">
+        <div className="mb-8 text-center">
+          <motion.h1 
+            className="shop-title inventory-title"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.1, type: "spring" }}
+          >
+            My Inventory
+          </motion.h1>
+          <motion.p 
+            className="text-slate-300 text-lg"
+            initial={{ opacity: 0, y: 10 }}
+            animate={subtitleControls}
+          >
             View and manage all items you've purchased from the shop.
-          </p>
-        </motion.div>
+          </motion.p>
+        </div>
 
         {/* Two-Column Layout */}
         <motion.div
