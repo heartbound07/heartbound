@@ -156,13 +156,13 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                       </div>
                       {equippedPart && rod && (
                         <>
-                          {equippedPart.durability === 0 ? (
+                          {equippedPart.durability === 0 && (
                             (equippedPart.maxRepairs != null && (equippedPart.repairCount || 0) >= equippedPart.maxRepairs) ? (
                               <button
                                 onClick={() => onUnequipPart(rod, equippedPart)}
                                 className="ml-4 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-md transition-colors"
                               >
-                                Unequip
+                                Max Repairs
                               </button>
                             ) : (
                               <button
@@ -170,15 +170,6 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                                 className="ml-4 px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-md transition-colors"
                               >
                                 Repair
-                              </button>
-                            )
-                          ) : (
-                            (equippedPart.maxRepairs != null && (equippedPart.repairCount || 0) >= equippedPart.maxRepairs) && (
-                              <button
-                                className="ml-4 px-3 py-1 bg-slate-700 text-slate-400 text-xs font-semibold rounded-md cursor-not-allowed"
-                                disabled
-                              >
-                                Max Repairs
                               </button>
                             )
                           )}

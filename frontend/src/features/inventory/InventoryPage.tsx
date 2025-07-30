@@ -788,11 +788,7 @@ export function InventoryPage() {
       onConfirm={confirmUnequipPart}
       message={
         <div className="text-center">
-          <p className="font-bold text-red-500">This action is irreversible!</p>
-          <p>Are you sure you want to unequip and permanently delete this part?</p>
-          {partToConfirm && (
-            <p className="mt-2 text-slate-400">{partToConfirm.name}</p>
-          )}
+          <p>Unequipping this part will permanently remove it from your fishing rod. Continue?</p>
         </div>
       }
     />
