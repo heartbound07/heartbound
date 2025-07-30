@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaDice } from 'react-icons/fa';
-import { GiFishingPole } from 'react-icons/gi';
+import { GiFishingPole, GiSewingString, GiFishingHook, GiGearStick } from 'react-icons/gi';
+import { PiFilmReel, PiHandPalm } from 'react-icons/pi';
 import httpClient from '@/lib/api/httpClient';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle, RARITY_ORDER } from '@/utils/rarityHelpers';
 import NameplatePreview from '@/components/NameplatePreview';
@@ -20,6 +21,7 @@ interface CaseItem {
     rarity: string;
     fishingRodMultiplier?: number;
     gradientEndColor?: string;
+    fishingRodPartType?: string;
   };
   dropRate: number;
 }
@@ -44,6 +46,14 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
   const [loading, setLoading] = useState(false);
   const [caseContents, setCaseContents] = useState<CaseContents | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const partIcons: Record<string, React.ElementType> = {
+    ROD_SHAFT: GiFishingPole,
+    REEL: PiFilmReel,
+    FISHING_LINE: GiSewingString,
+    HOOK: GiFishingHook,
+    GRIP: PiHandPalm,
+  };
 
   useEffect(() => {
     if (isOpen && caseId) {
@@ -191,7 +201,36 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
                                 <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
                               )}
                             </div>
-                          ) : item.category === 'FISHING_ROD' ? (
+                          ) : item.category === 'FISHING_ROD_PART' ? (() => {
+                            const PartIcon = item.fishingRodPartType ? partIcons[item.fishingRodPartType] || GiGearStick : GiGearStick;
+                            return (
+                              <div className="space-y-3">
+                                {/* Header with name and rarity */}
+                                <div className="flex items-center justify-center space-x-2 mb-2">
+                                  <h3 className="font-medium text-white text-sm">{item.name}</h3>
+                                  <span
+                                    className="px-2 py-0.5 rounded text-xs font-semibold"
+                                    style={getRarityBadgeStyle(item.rarity)}
+                                  >
+                                    {getRarityLabel(item.rarity)}
+                                  </span>
+                                </div>
+
+                                {/* Fishing Rod Part Visual Preview */}
+                                <div
+                                  className="h-24 w-full flex flex-col items-center justify-center relative overflow-hidden rounded-lg p-2"
+                                  style={{ background: `linear-gradient(to bottom right, #1f2937, ${rarityColor})` }}
+                                >
+                                  <PartIcon className="absolute w-20 h-20 text-white/10 transform -rotate-12 -right-4 -bottom-4" />
+                                  <PartIcon className="relative z-10 w-12 h-12 text-white/80 drop-shadow-lg" />
+                                </div>
+
+                                {item.description && (
+                                  <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
+                                )}
+                              </div>
+                            )
+                          })() : item.category === 'FISHING_ROD' ? (
                             // FISHING_ROD - Full preview layout
                             <div className="space-y-3">
                               {/* Header with name and rarity */}

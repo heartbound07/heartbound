@@ -13,6 +13,7 @@ export interface RollResult {
     owned: boolean;
     fishingRodMultiplier?: number;
     gradientEndColor?: string;
+    fishingRodPartType?: string;
   };
   rollValue: number;
   rolledAt: string;
@@ -37,6 +38,7 @@ export interface CaseItemDTO {
     owned: boolean;
     fishingRodMultiplier?: number;
     gradientEndColor?: string;
+    fishingRodPartType?: string;
   };
   dropRate: number;
 }

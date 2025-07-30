@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { GiFishingPole } from 'react-icons/gi';
+import { GiFishingPole, GiSewingString, GiFishingHook, GiGearStick } from 'react-icons/gi';
+import { PiFilmReel, PiHandPalm } from 'react-icons/pi';
 import NameplatePreview from '@/components/NameplatePreview';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 import { formatDisplayText } from '@/utils/formatters';
@@ -23,6 +24,15 @@ export const CaseIdleScreen = React.memo(({
   onFetchCaseContents,
   onClose,
 }: CaseIdleScreenProps) => {
+
+  const partIcons: Record<string, React.ElementType> = {
+    ROD_SHAFT: GiFishingPole,
+    REEL: PiFilmReel,
+    FISHING_LINE: GiSewingString,
+    HOOK: GiFishingHook,
+    GRIP: PiHandPalm,
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -92,7 +102,35 @@ export const CaseIdleScreen = React.memo(({
                           <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
                         )}
                       </div>
-                    ) : item.category === 'FISHING_ROD' ? (
+                    ) : item.category === 'FISHING_ROD_PART' ? (() => {
+                      const PartIcon = item.fishingRodPartType ? partIcons[item.fishingRodPartType] || GiGearStick : GiGearStick;
+                      return (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-center space-x-2 mb-2">
+                            <h3 className="font-medium text-white text-sm">{item.name}</h3>
+                            <span 
+                              className="px-2 py-0.5 rounded text-xs font-semibold"
+                              style={getRarityBadgeStyle(item.rarity)}
+                            >
+                              {getRarityLabel(item.rarity)}
+                            </span>
+                          </div>
+                          <div 
+                            className="h-24 w-full flex flex-col items-center justify-center relative overflow-hidden rounded-lg p-2"
+                            style={{ background: `linear-gradient(to bottom right, #1f2937, ${rarityColor})` }}
+                          >
+                            <PartIcon className="absolute w-20 h-20 text-white/10 transform -rotate-12 -right-4 -bottom-4" />
+                            <PartIcon className="relative z-10 w-12 h-12 text-white/80" />
+                            <div className="relative z-10 mt-1 text-center">
+                              <p className="text-xl font-bold text-white">{item.name}</p>
+                            </div>
+                          </div>
+                          {item.description && (
+                            <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
+                          )}
+                        </div>
+                      )
+                    })() : item.category === 'FISHING_ROD' ? (
                       <div className="space-y-3">
                         <div className="flex items-center justify-center space-x-2 mb-2">
                           <h3 className="font-medium text-white text-sm">{item.name}</h3>

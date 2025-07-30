@@ -16,6 +16,7 @@ export interface ShopItem {
   isFeatured?: boolean;
   isDaily?: boolean;
   fishingRodMultiplier?: number;
+  fishingRodPartType?: string;
   gradientEndColor?: string;
   maxCopies?: number;
   copiesSold?: number;

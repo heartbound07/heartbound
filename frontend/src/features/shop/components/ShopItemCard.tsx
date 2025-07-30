@@ -1,7 +1,8 @@
 import React, { useState, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { FaCoins, FaInfoCircle } from 'react-icons/fa';
-import { GiFishingPole } from 'react-icons/gi';
+import { GiFishingPole, GiSewingString, GiFishingHook, GiGearStick } from 'react-icons/gi';
+import { PiFilmReel, PiHandPalm } from 'react-icons/pi';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 import NameplatePreview from '@/components/NameplatePreview';
 import BadgePreview from '@/components/BadgePreview';
@@ -46,6 +47,14 @@ const ShopItemCard = forwardRef<HTMLDivElement, ShopItemCardProps>(({
     } else {
       handlePurchase(item.id, item.category === 'CASE' ? quantity : undefined);
     }
+  };
+
+  const partIcons: Record<string, React.ElementType> = {
+    ROD_SHAFT: GiFishingPole,
+    REEL: PiFilmReel,
+    FISHING_LINE: GiSewingString,
+    HOOK: GiFishingHook,
+    GRIP: PiHandPalm,
   };
   
   return (
@@ -193,7 +202,33 @@ const ShopItemCard = forwardRef<HTMLDivElement, ShopItemCardProps>(({
             />
           )}
         </div>
-      ) : item.category === 'FISHING_ROD' ? (
+      ) : item.category === 'FISHING_ROD_PART' ? (() => {
+          const PartIcon = item.fishingRodPartType ? partIcons[item.fishingRodPartType] || GiGearStick : GiGearStick;
+          return (
+            <div className="shop-item-image fishing-rod-preview-container">
+              <div 
+                className="h-full w-full flex flex-col items-center justify-center relative overflow-hidden p-4"
+                style={{ background: `linear-gradient(to bottom right, #1f2937, ${rarityColor})` }}
+              >
+                <PartIcon
+                  className="absolute w-24 h-24 text-white/10 transform -rotate-12 -right-4 -bottom-4"
+                />
+                <PartIcon
+                  className="relative z-10 w-16 h-16 text-white/80 drop-shadow-lg"
+                />
+              </div>
+              {isRecentlyPurchased && (
+                <motion.div
+                  initial={{ opacity: 0.8 }}
+                  animate={{ opacity: 0 }}
+                  transition={{ duration: 2 }}
+                  className="absolute inset-0 bg-green-500/20 rounded-t-lg z-10"
+                />
+              )}
+            </div>
+          );
+        })()
+       : item.category === 'FISHING_ROD' ? (
         <div className="shop-item-image fishing-rod-preview-container">
           <div 
             className="h-full w-full flex flex-col items-center justify-center relative overflow-hidden p-4"
