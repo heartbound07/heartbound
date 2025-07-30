@@ -2,6 +2,7 @@ package com.app.heartbound.services;
 
 import com.app.heartbound.dto.CreateTradeDto;
 import com.app.heartbound.entities.*;
+import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.enums.TradeStatus;
 import com.app.heartbound.exceptions.InvalidTradeActionException;
 import com.app.heartbound.exceptions.ItemEquippedException;
@@ -192,7 +193,7 @@ public class TradeService {
         trade.getItems().removeIf(item -> item.getItemInstance().getOwner().getId().equals(userId));
 
         for (UUID instanceId : itemInstanceIds) {
-            ItemInstance instance = itemInstanceRepository.findById(instanceId)
+            ItemInstance instance = itemInstanceRepository.findByIdWithLock(instanceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item instance with id " + instanceId + " not found"));
             
             if (!instance.getOwner().getId().equals(userId)) {
@@ -205,9 +206,19 @@ public class TradeService {
                  throw new InvalidTradeActionException("The item '" + item.getName() + "' is not tradable.");
             }
 
-            // Check if the item is equipped
-            if (item.getCategory().isEquippable()) {
-                UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
+            // Enhanced check for equipped items
+            ShopCategory category = item.getCategory();
+
+            if (category == ShopCategory.FISHING_ROD) {
+                if (instance.getId().equals(user.getEquippedFishingRodInstanceId())) {
+                    throw new ItemEquippedException("You cannot trade an item that is currently equipped. Please unequip '" + item.getName() + "' first.");
+                }
+            } else if (category == ShopCategory.FISHING_ROD_PART) {
+                if (itemInstanceRepository.isPartAlreadyEquipped(instance.getId())) {
+                    throw new ItemEquippedException("You cannot trade a part that is currently equipped on a fishing rod. Please unequip '" + item.getName() + "' first.");
+                }
+            } else if (category.isEquippable()) {
+                UUID equippedItemId = user.getEquippedItemIdByCategory(category);
                 if (equippedItemId != null && equippedItemId.equals(instance.getBaseItem().getId())) {
                     throw new ItemEquippedException("You cannot trade an item that is currently equipped. Please unequip '" + item.getName() + "' first.");
                 }
@@ -312,10 +323,20 @@ public class TradeService {
 
             Shop shopItem = instance.getBaseItem();
             // Final check to ensure item is not equipped before transfer
-            if (shopItem.getCategory().isEquippable()) {
-                UUID equippedItemId = fromUser.getEquippedItemIdByCategory(shopItem.getCategory());
-                if (equippedItemId != null && equippedItemId.equals(instance.getId())) {
-                    throw new InvalidTradeActionException("Trade failed: The item '" + shopItem.getName() + "' is currently equipped by one of the users and cannot be traded.");
+            ShopCategory category = shopItem.getCategory();
+
+            if (category == ShopCategory.FISHING_ROD) {
+                if (instance.getId().equals(fromUser.getEquippedFishingRodInstanceId())) {
+                    throw new InvalidTradeActionException("Trade failed: The item '" + shopItem.getName() + "' is currently equipped by " + fromUser.getUsername() + " and cannot be traded.");
+                }
+            } else if (category == ShopCategory.FISHING_ROD_PART) {
+                if (itemInstanceRepository.isPartAlreadyEquipped(instance.getId())) {
+                    throw new InvalidTradeActionException("Trade failed: The item '" + shopItem.getName() + "' is currently equipped on a rod by " + fromUser.getUsername() + " and cannot be traded.");
+                }
+            } else if (category.isEquippable()) {
+                UUID equippedItemId = fromUser.getEquippedItemIdByCategory(category);
+                if (equippedItemId != null && equippedItemId.equals(instance.getBaseItem().getId())) {
+                    throw new InvalidTradeActionException("Trade failed: The item '" + shopItem.getName() + "' is currently equipped by " + fromUser.getUsername() + " and cannot be traded.");
                 }
             }
 

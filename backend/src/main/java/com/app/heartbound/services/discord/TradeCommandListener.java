@@ -363,7 +363,7 @@ public class TradeCommandListener extends ListenerAdapter {
             if (!pageItemIds.isEmpty()) {
                  com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
                  List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
-                    .filter(invItem -> invItem.getBaseItem().getCategory().isTradable())
+                    .filter(invItem -> invItem.getBaseItem().getCategory().isTradable() && invItem.getBaseItem().getCategory() != ShopCategory.FISHING_ROD_PART)
                     .collect(Collectors.toList());
                 
                 UUID firstItemOnPage = pageItemIds.iterator().next();
@@ -470,7 +470,7 @@ public class TradeCommandListener extends ListenerAdapter {
             log.debug("Loading user inventory...");
             com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
             List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
-                .filter(invItem -> invItem.getBaseItem().getCategory().isTradable())
+                .filter(invItem -> invItem.getBaseItem().getCategory().isTradable() && invItem.getBaseItem().getCategory() != ShopCategory.FISHING_ROD_PART)
                 .collect(Collectors.toList());
 
             if (tradableItems.isEmpty()) {
@@ -562,7 +562,7 @@ public class TradeCommandListener extends ListenerAdapter {
         try {
             com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
             List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
-                .filter(invItem -> invItem.getBaseItem().getCategory().isTradable())
+                .filter(invItem -> invItem.getBaseItem().getCategory().isTradable() && invItem.getBaseItem().getCategory() != ShopCategory.FISHING_ROD_PART)
                 .collect(Collectors.toList());
 
             if (tradableItems.isEmpty()) {
@@ -738,7 +738,7 @@ public class TradeCommandListener extends ListenerAdapter {
             log.debug("User entity loaded successfully");
             
             List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
-                .filter(invItem -> invItem.getBaseItem().getCategory().isTradable())
+                .filter(invItem -> invItem.getBaseItem().getCategory().isTradable() && invItem.getBaseItem().getCategory() != ShopCategory.FISHING_ROD_PART)
                 .collect(Collectors.toList());
             log.debug("Found {} tradable items for user {}", tradableItems.size(), userId);
                 
@@ -771,7 +771,7 @@ public class TradeCommandListener extends ListenerAdapter {
             log.debug("Loading user inventory...");
             com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
             List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
-                .filter(invItem -> invItem.getBaseItem().getCategory().isTradable())
+                .filter(invItem -> invItem.getBaseItem().getCategory().isTradable() && invItem.getBaseItem().getCategory() != ShopCategory.FISHING_ROD_PART)
                 .collect(Collectors.toList());
 
             if (tradableItems.isEmpty()) {
