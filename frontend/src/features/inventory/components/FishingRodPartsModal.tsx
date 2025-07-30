@@ -141,7 +141,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                                   </div>
                                 </div>
                               )}
-                              {equippedPart.maxRepairs && equippedPart.maxRepairs > 0 && (
+                              {equippedPart.repairCount && equippedPart.repairCount > 0 && (
                                 <p className="text-xs text-slate-400 mt-1">
                                   Repairs: {equippedPart.repairCount || 0} / {equippedPart.maxRepairs}
                                 </p>
@@ -184,11 +184,6 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                             <div>
                               <p className="font-medium text-white">{part.name}</p>
                               <p className="text-xs text-slate-400">{part.description}</p>
-                              {part.maxRepairs && part.maxRepairs > 0 && (
-                                <p className="text-xs text-slate-400 mt-1">
-                                  Repairs: {part.repairCount || 0} / {part.maxRepairs}
-                                </p>
-                              )}
                             </div>
                             <button
                               onClick={() => handleEquipClick(part)}
