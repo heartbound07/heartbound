@@ -71,7 +71,7 @@ export const InventoryItemCard = forwardRef<HTMLDivElement, InventoryItemCardPro
             color={item.imageUrl}
             endColor={item.gradientEndColor}
             fallbackColor={rarityColor}
-            message="Your nameplate color"
+            message=""
             className="h-full w-full rounded-t-lg"
             size="md"
           />

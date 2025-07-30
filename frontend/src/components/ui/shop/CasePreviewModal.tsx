@@ -61,6 +61,37 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
     }
   }, [isOpen, caseId]);
 
+  const sortCaseItems = (items: CaseItem[]) => {
+    return items.sort((a, b) => {
+      const aIndex = RARITY_ORDER.indexOf(a.containedItem.rarity);
+      const bIndex = RARITY_ORDER.indexOf(b.containedItem.rarity);
+      if (aIndex !== bIndex) {
+        return aIndex - bIndex;
+      }
+      return b.dropRate - a.dropRate;
+    });
+  };
+
+  const fishingRelatedItems = caseContents
+    ? sortCaseItems(
+        caseContents.items.filter(
+          (caseItem) =>
+            caseItem.containedItem.category === 'FISHING_ROD' ||
+            caseItem.containedItem.category === 'FISHING_ROD_PART'
+        )
+      )
+    : [];
+
+  const otherItems = caseContents
+    ? sortCaseItems(
+        caseContents.items.filter(
+          (caseItem) =>
+            caseItem.containedItem.category !== 'FISHING_ROD' &&
+            caseItem.containedItem.category !== 'FISHING_ROD_PART'
+        )
+      )
+    : [];
+
   const fetchCaseContents = async () => {
     setLoading(true);
     setError(null);
@@ -101,28 +132,15 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
           className="relative bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-2xl border border-slate-700/50 max-w-4xl w-full max-h-[90vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-slate-700/50">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-primary/20 rounded-lg">
-                <FaDice className="text-primary" size={20} />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">{caseName}</h2>
-                <p className="text-slate-400 text-sm">Case Contents & Drop Rates</p>
-              </div>
-            </div>
-            
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors text-slate-400 hover:text-white"
-            >
-              <FaTimes size={20} />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 hover:bg-slate-700/50 rounded-lg transition-colors text-slate-400 hover:text-white z-10"
+          >
+            <FaTimes size={20} />
+          </button>
 
           {/* Content */}
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+          <div className="p-6 pt-12 overflow-y-auto max-h-[90vh]">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -142,20 +160,9 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
               </div>
             ) : caseContents ? (
               <>
-
-
                 {/* Items Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {caseContents.items
-                    .sort((a, b) => {
-                      const aIndex = RARITY_ORDER.indexOf(a.containedItem.rarity);
-                      const bIndex = RARITY_ORDER.indexOf(b.containedItem.rarity);
-                      if (aIndex !== bIndex) {
-                        return aIndex - bIndex;
-                      }
-                      return b.dropRate - a.dropRate;
-                    })
-                    .map((caseItem) => {
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {otherItems.map((caseItem) => {
                       const item = caseItem.containedItem;
                       const rarityColor = getRarityColor(item.rarity);
 
@@ -192,69 +199,9 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
                                   color={item.imageUrl}
                                   endColor={item.gradientEndColor}
                                   fallbackColor={rarityColor}
-                                  message="Preview of your nameplate color"
+                                  message=""
                                   size="md"
                                 />
-                              </div>
-
-                              {item.description && (
-                                <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
-                              )}
-                            </div>
-                          ) : item.category === 'FISHING_ROD_PART' ? (() => {
-                            const PartIcon = item.fishingRodPartType ? partIcons[item.fishingRodPartType] || GiGearStick : GiGearStick;
-                            return (
-                              <div className="space-y-3">
-                                {/* Header with name and rarity */}
-                                <div className="flex items-center justify-center space-x-2 mb-2">
-                                  <h3 className="font-medium text-white text-sm">{item.name}</h3>
-                                  <span
-                                    className="px-2 py-0.5 rounded text-xs font-semibold"
-                                    style={getRarityBadgeStyle(item.rarity)}
-                                  >
-                                    {getRarityLabel(item.rarity)}
-                                  </span>
-                                </div>
-
-                                {/* Fishing Rod Part Visual Preview */}
-                                <div
-                                  className="h-24 w-full flex flex-col items-center justify-center relative overflow-hidden rounded-lg p-2"
-                                  style={{ background: `linear-gradient(to bottom right, #1f2937, ${rarityColor})` }}
-                                >
-                                  <PartIcon className="absolute w-20 h-20 text-white/10 transform -rotate-12 -right-4 -bottom-4" />
-                                  <PartIcon className="relative z-10 w-12 h-12 text-white/80 drop-shadow-lg" />
-                                </div>
-
-                                {item.description && (
-                                  <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
-                                )}
-                              </div>
-                            )
-                          })() : item.category === 'FISHING_ROD' ? (
-                            // FISHING_ROD - Full preview layout
-                            <div className="space-y-3">
-                              {/* Header with name and rarity */}
-                              <div className="flex items-center justify-center space-x-2 mb-2">
-                                <h3 className="font-medium text-white text-sm">{item.name}</h3>
-                                <span 
-                                  className="px-2 py-0.5 rounded text-xs font-semibold"
-                                  style={getRarityBadgeStyle(item.rarity)}
-                                >
-                                  {getRarityLabel(item.rarity)}
-                                </span>
-                              </div>
-                              
-                              {/* Fishing Rod Visual Preview */}
-                              <div 
-                                className="h-24 w-full flex flex-col items-center justify-center relative overflow-hidden rounded-lg p-2"
-                                style={{ background: `linear-gradient(to bottom right, #1f2937, ${rarityColor})` }}
-                              >
-                                <GiFishingPole className="absolute w-20 h-20 text-white/10 transform -rotate-12 -right-4 -bottom-4" />
-                                <GiFishingPole className="relative z-10 w-12 h-12 text-white/80 drop-shadow-lg" />
-                                <div className="relative z-10 mt-1 text-center">
-                                  <p className="text-xl font-bold text-white drop-shadow-md">{item.fishingRodMultiplier}x</p>
-                                  <p className="text-xs font-semibold text-cyan-200 drop-shadow-sm">Credit Bonus</p>
-                                </div>
                               </div>
 
                               {item.description && (
@@ -313,17 +260,76 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
                           )}
                         </motion.div>
                       );
-                    })
-                  }
+                    })}
                 </div>
 
-                {/* Footer Note */}
-                <div className="mt-6 p-3 bg-slate-800/30 border border-slate-700/30 rounded-lg">
-                  <p className="text-xs text-slate-400 text-center">
-                    💡 <strong>Note:</strong> Cases are purchased and stored in your inventory. 
-                    Future updates will allow you to open cases and receive random items based on these drop rates.
-                  </p>
-                </div>
+                {fishingRelatedItems.length > 0 && (
+                  <>
+                    <div className="mt-8 mb-4">
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                <div className="w-full border-t border-slate-700" />
+                            </div>
+                            <div className="relative flex justify-center">
+                                <span className="bg-slate-800 px-3 text-lg font-medium text-white rounded-md">
+                                    Fishing Gear
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {fishingRelatedItems.map((caseItem) => {
+                        const item = caseItem.containedItem;
+                        const rarityColor = getRarityColor(item.rarity);
+
+                        return (
+                          <motion.div
+                            key={caseItem.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 hover:bg-slate-800/50 transition-colors flex flex-col"
+                            style={{
+                                borderTopColor: rarityColor,
+                                borderTopWidth: '4px'
+                            }}
+                          >
+                            <div className="h-20 w-full flex flex-col items-center justify-center relative overflow-hidden rounded-lg mb-2">
+                              {item.category === 'FISHING_ROD_PART' ? 
+                                (() => {
+                                  const PartIcon = item.fishingRodPartType ? partIcons[item.fishingRodPartType] || GiGearStick : GiGearStick;
+                                  return <PartIcon className="w-10 h-10 text-white/80 drop-shadow-lg" />;
+                                })() :
+                                (<>
+                                  <GiFishingPole className="w-10 h-10 text-white/80 drop-shadow-lg" />
+                                  {item.fishingRodMultiplier && (
+                                    <div className="mt-1 text-center">
+                                      <p className="text-sm font-bold text-white drop-shadow-md">{item.fishingRodMultiplier}x</p>
+                                    </div>
+                                  )}
+                                </>)
+                              }
+                            </div>
+                            <div className="flex-grow flex flex-col justify-between">
+                                <div>
+                                    <h3 className="font-medium text-white text-xs truncate" title={item.name}>{item.name}</h3>
+                                    {item.description && <p className="text-xs text-slate-400 mt-1 line-clamp-2">{item.description}</p>}
+                                </div>
+                                <div className="flex items-center justify-between mt-2">
+                                    <span 
+                                      style={getRarityBadgeStyle(item.rarity)}
+                                      className="px-1.5 py-0.5 rounded text-xs font-semibold"
+                                    >
+                                      {getRarityLabel(item.rarity)}
+                                    </span>
+                                </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </>
             ) : (
               <div className="flex flex-col items-center justify-center py-12">
