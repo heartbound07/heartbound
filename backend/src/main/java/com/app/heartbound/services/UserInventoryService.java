@@ -393,6 +393,72 @@ public class UserInventoryService {
         return userService.mapToProfileDTO(user);
     }
 
+    @Transactional
+    public UserProfileDTO unequipAndRemoveBrokenPart(String userId, UUID rodInstanceId, UUID partInstanceId) {
+        User user = userRepository.findByIdWithLock(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        ItemInstance rodInstance = itemInstanceRepository.findByIdWithLock(rodInstanceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Fishing rod instance not found with id: " + rodInstanceId));
+
+        if (!rodInstance.getOwner().getId().equals(userId)) {
+            throw new ResourceNotFoundException("User does not own the fishing rod.");
+        }
+
+        ItemInstance partInstance = user.getItemInstances().stream()
+                .filter(instance -> instance.getId().equals(partInstanceId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Fishing rod part not found in user inventory with id: " + partInstanceId));
+
+        if (partInstance.getBaseItem().getMaxRepairs() == null || partInstance.getRepairCount() == null || partInstance.getRepairCount() < partInstance.getBaseItem().getMaxRepairs()) {
+            throw new InvalidOperationException("This part has not reached its maximum repair limit and cannot be unequipped.");
+        }
+
+        // Check if the part is actually equipped on this rod
+        boolean isPartEquippedOnThisRod = (rodInstance.getEquippedRodShaft() != null && rodInstance.getEquippedRodShaft().getId().equals(partInstanceId)) ||
+                                        (rodInstance.getEquippedReel() != null && rodInstance.getEquippedReel().getId().equals(partInstanceId)) ||
+                                        (rodInstance.getEquippedFishingLine() != null && rodInstance.getEquippedFishingLine().getId().equals(partInstanceId)) ||
+                                        (rodInstance.getEquippedHook() != null && rodInstance.getEquippedHook().getId().equals(partInstanceId)) ||
+                                        (rodInstance.getEquippedGrip() != null && rodInstance.getEquippedGrip().getId().equals(partInstanceId));
+
+        if (!isPartEquippedOnThisRod) {
+            throw new InvalidOperationException("This part is not equipped on the specified fishing rod.");
+        }
+
+
+        // Unequip the part from the rod
+        switch (partInstance.getBaseItem().getFishingRodPartType()) {
+            case ROD_SHAFT:
+                rodInstance.setEquippedRodShaft(null);
+                break;
+            case REEL:
+                rodInstance.setEquippedReel(null);
+                break;
+            case FISHING_LINE:
+                rodInstance.setEquippedFishingLine(null);
+                break;
+            case HOOK:
+                rodInstance.setEquippedHook(null);
+                break;
+            case GRIP:
+                rodInstance.setEquippedGrip(null);
+                break;
+        }
+
+        // Remove the part from the user's inventory, which will delete it due to orphanRemoval=true
+        user.getItemInstances().remove(partInstance);
+        
+        // Explicitly delete part instance for clarity and immediate removal
+        itemInstanceRepository.delete(partInstance);
+
+        itemInstanceRepository.save(rodInstance);
+        userRepository.save(user);
+        
+        logger.info("User {} successfully unequipped and removed broken part {} from rod {}.", userId, partInstanceId, rodInstanceId);
+
+        return userService.mapToProfileDTO(user);
+    }
+
     private double getRarityPercentage(ItemRarity rarity) {
         switch (rarity) {
             case COMMON:

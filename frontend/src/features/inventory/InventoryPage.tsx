@@ -20,7 +20,8 @@ import {
   getFishingRodRepairCost,
   repairFishingRod,
   getFishingRodPartRepairCost,
-  repairFishingRodPart
+  repairFishingRodPart,
+  unequipAndRemoveBrokenPart
 } from '@/config/userService';
 import toast from 'react-hot-toast';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
@@ -74,8 +75,10 @@ export function InventoryPage() {
   });
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [isPartConfirmModalOpen, setPartConfirmModalOpen] = useState(false);
+  const [isUnequipConfirmModalOpen, setUnequipConfirmModalOpen] = useState(false);
   const [itemToConfirm, setItemToConfirm] = useState<ShopItem | null>(null);
   const [partToConfirm, setPartToConfirm] = useState<ShopItem | null>(null);
+  const [rodForUnequip, setRodForUnequip] = useState<ShopItem | null>(null);
   const [repairCost, setRepairCost] = useState<number | null>(null);
   const subtitleControls = useAnimation();
 
@@ -276,6 +279,32 @@ export function InventoryPage() {
     }
   };
 
+  const handleUnequipPart = async (rod: ShopItem, part: ShopItem) => {
+    setRodForUnequip(rod);
+    setPartToConfirm(part);
+    setUnequipConfirmModalOpen(true);
+  };
+
+  const confirmUnequipPart = async () => {
+    if (!rodForUnequip || !partToConfirm || !rodForUnequip.instanceId || !partToConfirm.instanceId) return;
+
+    setActionInProgress('unequip-part');
+    try {
+      const updatedProfile = await unequipAndRemoveBrokenPart(rodForUnequip.instanceId, partToConfirm.instanceId);
+      updateProfile(updatedProfile);
+      toast.success("Part has been permanently removed.");
+      fetchInventory(); // Refresh inventory
+      closePartsModal(); // Close the modal on success
+    } catch (error: any) {
+      console.error("Error a part:", error);
+      toast.error(error?.response?.data?.message || "Failed to unequip part.");
+    } finally {
+      setActionInProgress(null);
+      setUnequipConfirmModalOpen(false);
+      setPartToConfirm(null);
+      setRodForUnequip(null);
+    }
+  };
 
   // Simplified sort function without price sorting options
   const sortItems = (itemsToSort: ShopItem[]): ShopItem[] => {
@@ -714,6 +743,7 @@ export function InventoryPage() {
         parts={availablePartsForModal}
         onEquipPart={handleEquipRodPart}
         onRepairPart={handleRepairPart}
+        onUnequipPart={handleUnequipPart}
     />
 
     <ConfirmationModal
@@ -747,6 +777,21 @@ export function InventoryPage() {
                 <span className="font-semibold text-white">{new Intl.NumberFormat().format(repairCost)}</span>
                 <span className="ml-1.5 text-slate-300 text-base">credits</span>
             </div>
+          )}
+        </div>
+      }
+    />
+
+    <ConfirmationModal
+      isOpen={isUnequipConfirmModalOpen}
+      onClose={() => setUnequipConfirmModalOpen(false)}
+      onConfirm={confirmUnequipPart}
+      message={
+        <div className="text-center">
+          <p className="font-bold text-red-500">This action is irreversible!</p>
+          <p>Are you sure you want to unequip and permanently delete this part?</p>
+          {partToConfirm && (
+            <p className="mt-2 text-slate-400">{partToConfirm.name}</p>
           )}
         </div>
       }

@@ -253,3 +253,13 @@ export const repairFishingRodPart = async (partInstanceId: string): Promise<User
     throw error;
   }
 };
+
+export const unequipAndRemoveBrokenPart = async (rodInstanceId: string, partInstanceId: string): Promise<UserProfileDTO> => {
+  try {
+    const response = await httpClient.post(`/inventory/rod/${rodInstanceId}/unequip-part`, { partInstanceId });
+    return response.data;
+  } catch (error) {
+    console.error('Error unequipping and removing broken part:', error);
+    throw error;
+  }
+};

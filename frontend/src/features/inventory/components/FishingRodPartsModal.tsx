@@ -14,6 +14,7 @@ interface FishingRodPartsModalProps {
   parts: ShopItem[];
   onEquipPart: (rodId: string, partInstanceId: string) => void;
   onRepairPart: (part: ShopItem) => void;
+  onUnequipPart: (rod: ShopItem, part: ShopItem) => void;
 }
 
 const RARITY_COSTS: Record<string, number> = {
@@ -47,6 +48,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
   parts,
   onEquipPart,
   onRepairPart,
+  onUnequipPart,
 }) => {
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [partToEquip, setPartToEquip] = useState<ShopItem | null>(null);
@@ -152,14 +154,35 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                           )}
                         </div>
                       </div>
-                      {equippedPart && equippedPart.durability === 0 && (
-                        <button
-                          onClick={() => onRepairPart(equippedPart)}
-                          className="ml-4 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          disabled={equippedPart.maxRepairs != null && (equippedPart.repairCount || 0) >= equippedPart.maxRepairs}
-                        >
-                          {equippedPart.maxRepairs != null && (equippedPart.repairCount || 0) >= equippedPart.maxRepairs ? 'Max Repairs' : 'Repair'}
-                        </button>
+                      {equippedPart && rod && (
+                        <>
+                          {equippedPart.durability === 0 ? (
+                            (equippedPart.maxRepairs != null && (equippedPart.repairCount || 0) >= equippedPart.maxRepairs) ? (
+                              <button
+                                onClick={() => onUnequipPart(rod, equippedPart)}
+                                className="ml-4 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-md transition-colors"
+                              >
+                                Unequip
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => onRepairPart(equippedPart)}
+                                className="ml-4 px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-md transition-colors"
+                              >
+                                Repair
+                              </button>
+                            )
+                          ) : (
+                            (equippedPart.maxRepairs != null && (equippedPart.repairCount || 0) >= equippedPart.maxRepairs) && (
+                              <button
+                                className="ml-4 px-3 py-1 bg-slate-700 text-slate-400 text-xs font-semibold rounded-md cursor-not-allowed"
+                                disabled
+                              >
+                                Max Repairs
+                              </button>
+                            )
+                          )}
+                        </>
                       )}
                     </div>
                   );

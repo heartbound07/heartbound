@@ -121,4 +121,33 @@ public class InventoryController {
             this.partInstanceId = partInstanceId;
         }
     }
+
+    @PostMapping("/rod/{rodInstanceId}/unequip-part")
+    @PreAuthorize("isAuthenticated()")
+    @RateLimited(
+            requestsPerMinute = 10,
+            keyType = RateLimitKeyType.USER,
+            keyPrefix = "rod-unequip-part"
+    )
+    public ResponseEntity<UserProfileDTO> unequipBrokenPart(
+            @PathVariable UUID rodInstanceId,
+            @RequestBody UnequipPartRequest request,
+            Authentication authentication) {
+        String userId = authentication.getName();
+        logger.info("User {} is attempting to unequip broken part {} from rod {}", userId, request.getPartInstanceId(), rodInstanceId);
+        UserProfileDTO updatedProfile = userInventoryService.unequipAndRemoveBrokenPart(userId, rodInstanceId, request.getPartInstanceId());
+        return ResponseEntity.ok(updatedProfile);
+    }
+
+    public static class UnequipPartRequest {
+        private UUID partInstanceId;
+
+        public UUID getPartInstanceId() {
+            return partInstanceId;
+        }
+
+        public void setPartInstanceId(UUID partInstanceId) {
+            this.partInstanceId = partInstanceId;
+        }
+    }
 } 
