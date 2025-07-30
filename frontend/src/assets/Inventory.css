@@ -1086,7 +1086,11 @@
 
   .item-preview-wrapper {
     order: 1; /* Ensure preview comes first visually */
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem; /* Reduced from 2rem for a smaller gap */
+    /* Reset width constraints for mobile view to ensure full width */
+    flex: none;
+    min-width: auto;
+    max-width: none;
   }
   
   .inventory-grid-container {
