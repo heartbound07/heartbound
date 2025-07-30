@@ -509,7 +509,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
         )}
 
         {aggregatedStats && (Object.values(aggregatedStats).some(v => v > 0)) && (
-    <div className="mt-4 pt-4 border-t border-slate-700/50">
+    <div className="item-preview-stats">
         <h4 className="text-sm font-semibold text-slate-300 mb-3">Stats</h4>
         <div className="space-y-2 text-sm">
             

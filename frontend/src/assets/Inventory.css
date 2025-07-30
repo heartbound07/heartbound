@@ -651,6 +651,10 @@
   flex-direction: column;
 }
 
+.item-preview-stats {
+  order: -1; /* This will move the stats block before the action buttons */
+}
+
 .item-preview-selected-items {
   margin-bottom: 1.5rem;
 }
