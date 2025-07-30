@@ -64,9 +64,7 @@ export const CaseRewardScreen = React.memo(({ rollResult, user, onClaimAndClose 
               return (
                 <div 
                   className="h-32 w-full flex flex-col items-center justify-center relative overflow-hidden rounded-lg p-4"
-                  style={{ background: `linear-gradient(to bottom right, #1f2937, ${getRarityColor(rollResult.wonItem.rarity)})` }}
                 >
-                  <PartIcon className="absolute w-24 h-24 text-white/10 transform -rotate-12 -right-4 -bottom-4" />
                   <PartIcon className="relative z-10 w-16 h-16 text-white/80" />
                   <div className="relative z-10 mt-2 text-center">
                     <p className="text-sm font-semibold text-white-200">{rollResult.wonItem.name}</p>
@@ -113,16 +111,9 @@ export const CaseRewardScreen = React.memo(({ rollResult, user, onClaimAndClose 
       {rollResult.alreadyOwned && rollResult.compensationAwarded && (
         <div className="space-y-3">
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ 
-              opacity: [0, 1, 1, 0],
-              y: [20, 0, 0, -10]
-            }}
-            transition={{ 
-              duration: 3,
-              times: [0, 0.3, 0.7, 1],
-              delay: 0.4
-            }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
             className="flex justify-center"
           >
             <span className="text-slate-300 text-sm font-medium">Duplicate!</span>
