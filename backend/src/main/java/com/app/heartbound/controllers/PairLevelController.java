@@ -163,6 +163,8 @@ public class PairLevelController {
         }
     }
 
+    // ===== ADMIN ENDPOINTS =====
+
     @Operation(summary = "Check achievements manually", description = "Manually trigger achievement checking for a pairing (admin only)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Achievements checked successfully"),
@@ -190,8 +192,6 @@ public class PairLevelController {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to check achievements");
         }
     }
-
-    // ===== ADMIN ENDPOINTS =====
 
     @Operation(summary = "Admin: Update pair level and XP", description = "Admin-only endpoint to directly modify pair level and XP")
     @ApiResponses(value = {
