@@ -125,22 +125,20 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                       <div className="flex items-center flex-grow">
                         <Icon className="mr-3 text-slate-400" size={20} />
                         <div className="flex-grow">
-                          <p className="font-semibold text-white">{name}</p>
                           {equippedPart ? (
                             <>
-                              <p className="text-sm text-slate-300">{equippedPart.name}</p>
+                              <div className="flex justify-between items-center">
+                                <p className="font-semibold text-white">{equippedPart.name}</p>
+                                {equippedPart.maxDurability && (
+                                  <span className="text-xs text-slate-400">{equippedPart.durability} / {equippedPart.maxDurability}</span>
+                                )}
+                              </div>
                               {equippedPart.maxDurability && (
-                                <div className="mt-1.5">
-                                  <div className="flex justify-between text-xs text-slate-400 mb-0.5">
-                                    <span>Durability</span>
-                                    <span>{equippedPart.durability} / {equippedPart.maxDurability}</span>
-                                  </div>
-                                  <div className="w-full bg-slate-700 rounded-full h-1.5">
-                                    <div 
-                                      className={`${getDurabilityColor(equippedPart.durability, equippedPart.maxDurability)} h-1.5 rounded-full`}
-                                      style={{ width: `${(equippedPart.durability || 0) / (equippedPart.maxDurability || 1) * 100}%`}}
-                                    ></div>
-                                  </div>
+                                <div className="w-full bg-slate-700 rounded-full h-1.5 mt-1">
+                                  <div
+                                    className={`${getDurabilityColor(equippedPart.durability, equippedPart.maxDurability)} h-1.5 rounded-full`}
+                                    style={{ width: `${(equippedPart.durability || 0) / (equippedPart.maxDurability || 1) * 100}%` }}
+                                  ></div>
                                 </div>
                               )}
                               {equippedPart.repairCount != null && equippedPart.repairCount > 0 && (
@@ -150,7 +148,10 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                               )}
                             </>
                           ) : (
-                            <p className="text-sm text-slate-500 italic">Empty Slot</p>
+                            <>
+                              <p className="font-semibold text-white">{name}</p>
+                              <p className="text-sm text-slate-500 italic">Empty Slot</p>
+                            </>
                           )}
                         </div>
                       </div>
