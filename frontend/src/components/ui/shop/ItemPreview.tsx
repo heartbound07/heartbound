@@ -7,6 +7,12 @@ import NameplatePreview from '@/components/NameplatePreview';
 import BadgePreview from '@/components/BadgePreview';
 import { SafeText, sanitizeText } from '@/components/SafeHtmlRenderer';
 import { ShopItem } from '@/types/inventory';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/valorant/popover';
+import { useMemo } from 'react';
 
 interface ItemPreviewProps {
   selectedItems: {
@@ -43,6 +49,44 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
   // Get all selected items (for batch operations)
   const allSelectedItems = Object.values(selectedItems).filter(item => item !== null) as ShopItem[];
   
+  const aggregatedStats = useMemo(() => {
+    if (!primaryItem) return null;
+
+    if (primaryItem.category === 'FISHING_ROD' || primaryItem.category === 'FISHING_ROD_PART') {
+      let totalBonusLootChance = 0;
+      let totalRarityChanceIncrease = 0;
+      let totalMultiplierIncrease = 0;
+      let totalNegationChance = 0;
+
+      if (primaryItem.category === 'FISHING_ROD') {
+        if (primaryItem.equippedParts) {
+          for (const part of Object.values(primaryItem.equippedParts)) {
+            if (part) {
+              totalBonusLootChance += part.bonusLootChance || 0;
+              totalRarityChanceIncrease += part.rarityChanceIncrease || 0;
+              totalMultiplierIncrease += part.multiplierIncrease || 0;
+              totalNegationChance += part.negationChance || 0;
+            }
+          }
+        }
+      } else { // FISHING_ROD_PART
+        totalBonusLootChance = primaryItem.bonusLootChance || 0;
+        totalRarityChanceIncrease = primaryItem.rarityChanceIncrease || 0;
+        totalMultiplierIncrease = primaryItem.multiplierIncrease || 0;
+        totalNegationChance = primaryItem.negationChance || 0;
+      }
+
+      return {
+        bonusLootChance: totalBonusLootChance,
+        rarityChanceIncrease: totalRarityChanceIncrease,
+        multiplierIncrease: totalMultiplierIncrease,
+        negationChance: totalNegationChance,
+      };
+    }
+
+    return null;
+  }, [primaryItem]);
+
   // Determine if we have multiple items selected
   const hasMultipleItems = allSelectedItems.length > 1;
   
@@ -463,6 +507,88 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
             </button>
           </div>
         )}
+
+        {aggregatedStats && (Object.values(aggregatedStats).some(v => v > 0)) && (
+    <div className="mt-4 pt-4 border-t border-slate-700/50">
+        <h4 className="text-sm font-semibold text-slate-300 mb-3">Stats</h4>
+        <div className="space-y-2 text-sm">
+            
+                {aggregatedStats.bonusLootChance > 0 && (
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-1.5">
+                            <span className="font-medium text-slate-300">Fortune</span>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <button className="flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400 hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    </button>
+                                </PopoverTrigger>
+                                <PopoverContent><p>Increases the chance of finding bonus loot with each catch.</p></PopoverContent>
+                            </Popover>
+                        </div>
+                        <span className="font-semibold text-yellow-400">{`+${aggregatedStats.bonusLootChance.toFixed(1)}%`}</span>
+                    </div>
+                )}
+                {aggregatedStats.rarityChanceIncrease > 0 && (
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-1.5">
+                            <span className="font-medium text-slate-300">Rarity</span>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <button className="flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400 hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    </button>
+                                </PopoverTrigger>
+                                <PopoverContent><p>Increases the chance of catching higher-tier fish and items.</p></PopoverContent>
+                            </Popover>
+                        </div>
+                        <span className="font-semibold text-purple-400">{`+${aggregatedStats.rarityChanceIncrease.toFixed(1)}%`}</span>
+                    </div>
+                )}
+                {aggregatedStats.multiplierIncrease > 0 && (
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-1.5">
+                            <span className="font-medium text-slate-300">Reward Boost</span>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <button className="flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400 hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    </button>
+                                </PopoverTrigger>
+                                <PopoverContent><p>Provides a flat boost to the credits earned from fishing.</p></PopoverContent>
+                            </Popover>
+                        </div>
+                        <span className="font-semibold text-cyan-400">{`+${aggregatedStats.multiplierIncrease.toFixed(2)}x`}</span>
+                    </div>
+                )}
+                {aggregatedStats.negationChance > 0 && (
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-1.5">
+                            <span className="font-medium text-slate-300">Stability</span>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <button className="flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400 hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    </button>
+                                </PopoverTrigger>
+                                <PopoverContent><p>Increases resistance to negative events, like having your line snipped.</p></PopoverContent>
+                            </Popover>
+                        </div>
+                        <span className="font-semibold text-red-500">{`+${aggregatedStats.negationChance.toFixed(1)}%`}</span>
+                    </div>
+                )}
+            
+        </div>
+    </div>
+)}
       </div>
     </motion.div>
   );
