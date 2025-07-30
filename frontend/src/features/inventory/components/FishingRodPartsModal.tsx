@@ -143,9 +143,9 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                                   </div>
                                 </div>
                               )}
-                              {equippedPart.repairCount && equippedPart.repairCount > 0 && (
+                              {equippedPart.repairCount != null && equippedPart.repairCount > 0 && (
                                 <p className="text-xs text-slate-400 mt-1">
-                                  Repairs: {equippedPart.repairCount || 0} / {equippedPart.maxRepairs}
+                                  Repairs: {equippedPart.repairCount} / {equippedPart.maxRepairs}
                                 </p>
                               )}
                             </>

@@ -4,7 +4,6 @@ import com.app.heartbound.config.security.RateLimited;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.enums.RateLimitKeyType;
 import com.app.heartbound.services.UserInventoryService;
-import com.app.heartbound.enums.FishingRodPart;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
