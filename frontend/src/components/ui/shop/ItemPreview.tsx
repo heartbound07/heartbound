@@ -579,7 +579,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                                     </svg>
                                     </button>
                                 </PopoverTrigger>
-                                <PopoverContent><p>Increases resistance to negative events, like having your line snipped.</p></PopoverContent>
+                                <PopoverContent><p>Increases resistance to negative events, like crabs snipping you</p></PopoverContent>
                             </Popover>
                         </div>
                         <span className="font-semibold text-red-500">{`+${aggregatedStats.negationChance.toFixed(1)}%`}</span>
