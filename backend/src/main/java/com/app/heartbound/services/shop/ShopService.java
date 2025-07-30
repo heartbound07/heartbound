@@ -586,9 +586,12 @@ public class ShopService {
                 .serialNumber(serialNumber)
                 .build();
 
-            if (item.getCategory() == ShopCategory.FISHING_ROD) {
+            if (item.getCategory() == ShopCategory.FISHING_ROD || item.getCategory() == ShopCategory.FISHING_ROD_PART) {
                 newInstance.setDurability(item.getMaxDurability());
-                newInstance.setExperience(0L);
+                newInstance.setMaxDurability(item.getMaxDurability());
+                if (item.getCategory() == ShopCategory.FISHING_ROD) {
+                    newInstance.setExperience(0L);
+                }
             }
 
             newInstances.add(newInstance);
@@ -1345,11 +1348,11 @@ public class ShopService {
         ShopDTO dto = mapToShopDTO(shop, user);
         if (instance != null) {
             dto.setInstanceId(instance.getId());
+            dto.setDurability(instance.getDurability());
+            dto.setMaxDurability(instance.getMaxDurability());
 
             if (shop.getCategory() == ShopCategory.FISHING_ROD) {
                 int level = instance.getLevel() != null ? instance.getLevel() : 1;
-                dto.setDurability(instance.getDurability());
-                dto.setMaxDurability(instance.getMaxDurability() != null ? instance.getMaxDurability() : shop.getMaxDurability());
                 dto.setExperience(instance.getExperience());
                 dto.setLevel(level);
                 dto.setXpForNextLevel(LevelingUtil.calculateXpForRodLevel(level));

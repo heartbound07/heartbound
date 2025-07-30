@@ -13,6 +13,7 @@ interface FishingRodPartsModalProps {
   rod: ShopItem | null;
   parts: ShopItem[];
   onEquipPart: (rodId: string, partInstanceId: string) => void;
+  onRepairPart: (part: ShopItem) => void;
 }
 
 const RARITY_COSTS: Record<string, number> = {
@@ -45,6 +46,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
   rod,
   parts,
   onEquipPart,
+  onRepairPart,
 }) => {
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [partToEquip, setPartToEquip] = useState<ShopItem | null>(null);
@@ -70,6 +72,16 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
       case 'LEGENDARY': return 'border-amber-400';
       default: return 'border-slate-600';
     }
+  };
+  
+  const getDurabilityColor = (durability?: number, maxDurability?: number) => {
+    if (durability === undefined || maxDurability === undefined || maxDurability === 0) {
+      return 'bg-slate-500';
+    }
+    const percentage = (durability / maxDurability) * 100;
+    if (percentage > 50) return 'bg-green-500';
+    if (percentage > 20) return 'bg-yellow-500';
+    return 'bg-red-500';
   };
 
   const equippedPartsMap = rod.equippedParts || {};
@@ -108,17 +120,41 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                   const Icon = partIcons[type] || GiGearStick;
                   return (
                     <div key={type} className={`bg-slate-800 p-3 rounded-md border-l-4 flex items-center justify-between ${getRarityClass(equippedPart?.rarity || 'COMMON')}`}>
-                      <div className="flex items-center">
+                      <div className="flex items-center flex-grow">
                         <Icon className="mr-3 text-slate-400" size={20} />
-                        <div>
+                        <div className="flex-grow">
                           <p className="font-semibold text-white">{name}</p>
                           {equippedPart ? (
-                            <p className="text-sm text-slate-300">{equippedPart.name}</p>
+                            <>
+                              <p className="text-sm text-slate-300">{equippedPart.name}</p>
+                              {equippedPart.maxDurability && (
+                                <div className="mt-1.5">
+                                  <div className="flex justify-between text-xs text-slate-400 mb-0.5">
+                                    <span>Durability</span>
+                                    <span>{equippedPart.durability} / {equippedPart.maxDurability}</span>
+                                  </div>
+                                  <div className="w-full bg-slate-700 rounded-full h-1.5">
+                                    <div 
+                                      className={`${getDurabilityColor(equippedPart.durability, equippedPart.maxDurability)} h-1.5 rounded-full`}
+                                      style={{ width: `${(equippedPart.durability || 0) / (equippedPart.maxDurability || 1) * 100}%`}}
+                                    ></div>
+                                  </div>
+                                </div>
+                              )}
+                            </>
                           ) : (
                             <p className="text-sm text-slate-500 italic">Empty Slot</p>
                           )}
                         </div>
                       </div>
+                      {equippedPart && equippedPart.durability === 0 && (
+                        <button
+                          onClick={() => onRepairPart(equippedPart)}
+                          className="ml-4 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-md transition-colors"
+                        >
+                          Repair
+                        </button>
+                      )}
                     </div>
                   );
                 })}

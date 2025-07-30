@@ -233,3 +233,23 @@ export const repairFishingRod = async (rodInstanceId: string): Promise<UserProfi
     throw error;
   }
 };
+
+export const getFishingRodPartRepairCost = async (partInstanceId: string): Promise<{ repairCost: number }> => {
+  try {
+    const response = await httpClient.get(`/inventory/part/${partInstanceId}/repair-cost`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching fishing rod part repair cost:', error);
+    throw error;
+  }
+};
+
+export const repairFishingRodPart = async (partInstanceId: string): Promise<UserProfileDTO> => {
+  try {
+    const response = await httpClient.post(`/inventory/part/${partInstanceId}/repair`);
+    return response.data;
+  } catch (error) {
+    console.error('Error repairing fishing rod part:', error);
+    throw error;
+  }
+};

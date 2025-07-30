@@ -59,6 +59,39 @@ public class InventoryController {
         return ResponseEntity.ok(updatedProfile);
     }
 
+    @GetMapping("/part/{partInstanceId}/repair-cost")
+    @PreAuthorize("isAuthenticated()")
+    @RateLimited(
+            requestsPerMinute = 20,
+            keyType = RateLimitKeyType.USER,
+            keyPrefix = "part-repair-cost"
+    )
+    public ResponseEntity<Map<String, Integer>> getPartRepairCost(
+            @PathVariable UUID partInstanceId,
+            Authentication authentication) {
+        String userId = authentication.getName();
+        logger.info("User {} is requesting repair cost for part {}", userId, partInstanceId);
+        int cost = userInventoryService.getPartRepairCost(partInstanceId);
+        return ResponseEntity.ok(Map.of("repairCost", cost));
+    }
+
+    @PostMapping("/part/{partInstanceId}/repair")
+    @PreAuthorize("isAuthenticated()")
+    @RateLimited(
+            requestsPerMinute = 10,
+            requestsPerHour = 60,
+            keyType = RateLimitKeyType.USER,
+            keyPrefix = "part-repair"
+    )
+    public ResponseEntity<UserProfileDTO> repairPart(
+            @PathVariable UUID partInstanceId,
+            Authentication authentication) {
+        String userId = authentication.getName();
+        logger.info("User {} is attempting to repair part {}", userId, partInstanceId);
+        UserProfileDTO updatedProfile = userInventoryService.repairFishingRodPart(userId, partInstanceId);
+        return ResponseEntity.ok(updatedProfile);
+    }
+
     @PostMapping("/rod/{rodInstanceId}/equip-part")
     @PreAuthorize("isAuthenticated()")
     @RateLimited(

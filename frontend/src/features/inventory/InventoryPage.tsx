@@ -19,6 +19,8 @@ import { FishingRodPartsModal } from './components/FishingRodPartsModal';
 import {
   getFishingRodRepairCost,
   repairFishingRod,
+  getFishingRodPartRepairCost,
+  repairFishingRodPart
 } from '@/config/userService';
 import toast from 'react-hot-toast';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
@@ -71,7 +73,9 @@ export function InventoryPage() {
     rod: null,
   });
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [isPartConfirmModalOpen, setPartConfirmModalOpen] = useState(false);
   const [itemToConfirm, setItemToConfirm] = useState<ShopItem | null>(null);
+  const [partToConfirm, setPartToConfirm] = useState<ShopItem | null>(null);
   const [repairCost, setRepairCost] = useState<number | null>(null);
   const subtitleControls = useAnimation();
 
@@ -232,6 +236,42 @@ export function InventoryPage() {
       setActionInProgress(null);
       setConfirmModalOpen(false);
       setItemToConfirm(null);
+      setRepairCost(null);
+    }
+  };
+
+  const handleRepairPart = async (part: ShopItem) => {
+    if (!part.instanceId) return;
+    setActionInProgress('repair-part-cost');
+    try {
+      const { repairCost } = await getFishingRodPartRepairCost(part.instanceId);
+      setRepairCost(repairCost);
+      setPartToConfirm(part);
+      setPartConfirmModalOpen(true);
+    } catch (error) {
+      console.error("Error fetching part repair cost:", error);
+      toast.error("Could not fetch repair cost. Please try again.");
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const confirmRepairPart = async () => {
+    if (!partToConfirm || !partToConfirm.instanceId) return;
+    setActionInProgress('repair-part');
+    try {
+      const updatedProfile = await repairFishingRodPart(partToConfirm.instanceId);
+      updateProfile(updatedProfile);
+      toast.success("Fishing rod part repaired successfully!");
+      fetchInventory(); // Refresh inventory
+      closePartsModal(); // Close the modal on success
+    } catch (error: any) {
+      console.error("Error repairing part:", error);
+      toast.error(error?.response?.data?.message || "Failed to repair fishing rod part.");
+    } finally {
+      setActionInProgress(null);
+      setPartConfirmModalOpen(false);
+      setPartToConfirm(null);
       setRepairCost(null);
     }
   };
@@ -673,6 +713,7 @@ export function InventoryPage() {
         rod={partsModal.rod}
         parts={availablePartsForModal}
         onEquipPart={handleEquipRodPart}
+        onRepairPart={handleRepairPart}
     />
 
     <ConfirmationModal
@@ -682,6 +723,24 @@ export function InventoryPage() {
       message={
         <div className="text-center">
           <p>Are you sure you want to repair this rod?</p>
+          {repairCost !== null && (
+            <div className="flex items-center justify-center mt-4 text-lg">
+                <FaCoins className="mr-2 text-yellow-400" />
+                <span className="font-semibold text-white">{new Intl.NumberFormat().format(repairCost)}</span>
+                <span className="ml-1.5 text-slate-300 text-base">credits</span>
+            </div>
+          )}
+        </div>
+      }
+    />
+
+    <ConfirmationModal
+      isOpen={isPartConfirmModalOpen}
+      onClose={() => setPartConfirmModalOpen(false)}
+      onConfirm={confirmRepairPart}
+      message={
+        <div className="text-center">
+          <p>Are you sure you want to repair this part?</p>
           {repairCost !== null && (
             <div className="flex items-center justify-center mt-4 text-lg">
                 <FaCoins className="mr-2 text-yellow-400" />

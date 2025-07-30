@@ -402,6 +402,23 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                   Part Properties
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-1">
+                            Max Durability
+                        </label>
+                        <input
+                            type="number"
+                            name="maxDurability"
+                            value={formData.maxDurability || ''}
+                            onChange={handleInputChange}
+                            min="1"
+                            className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                            placeholder="e.g., 100"
+                        />
+                         <p className="text-xs text-slate-400 mt-1">
+                           The starting and maximum durability for this part.
+                         </p>
+                    </div>
                   {(formData.rarity === 'EPIC' || formData.rarity === 'LEGENDARY') && (
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-1">

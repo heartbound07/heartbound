@@ -135,6 +135,56 @@ public class UserInventoryService {
         return userService.mapToProfileDTO(user);
     }
 
+    @Transactional(readOnly = true)
+    public int getPartRepairCost(UUID partInstanceId) {
+        ItemInstance partInstance = itemInstanceRepository.findById(partInstanceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Fishing rod part instance not found with id: " + partInstanceId));
+        
+        Shop partBaseItem = partInstance.getBaseItem();
+        if (partBaseItem.getCategory() != ShopCategory.FISHING_ROD_PART) {
+            throw new InvalidOperationException("Item is not a fishing rod part.");
+        }
+
+        // Using getPartUpgradeCost as a reference for cost structure
+        return getPartUpgradeCost(partBaseItem.getRarity());
+    }
+
+    @Transactional
+    public UserProfileDTO repairFishingRodPart(String userId, UUID partInstanceId) {
+        User user = userRepository.findByIdWithLock(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        ItemInstance partInstance = itemInstanceRepository.findByIdWithLock(partInstanceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Fishing rod part instance not found with id: " + partInstanceId));
+
+        if (!partInstance.getOwner().getId().equals(userId)) {
+            throw new ResourceNotFoundException("User does not own this fishing rod part.");
+        }
+
+        if (partInstance.getDurability() != null && partInstance.getDurability() > 0) {
+            throw new InvalidOperationException("This part does not need repairs.");
+        }
+
+        int cost = getPartRepairCost(partInstanceId);
+
+        boolean success = userService.deductCreditsIfSufficient(user, cost);
+        if (!success) {
+            throw new InsufficientCreditsException("You do not have enough credits to repair this part. Required: " + cost + " credits.");
+        }
+
+        Integer maxDurability = partInstance.getMaxDurability() != null ? partInstance.getMaxDurability() : partInstance.getBaseItem().getMaxDurability();
+        if (maxDurability == null) {
+            throw new InvalidOperationException("Part does not have maximum durability set.");
+        }
+
+        partInstance.setDurability(maxDurability);
+        itemInstanceRepository.save(partInstance);
+
+        logger.info("User {} successfully repaired part {} for {} credits.", userId, partInstanceId, cost);
+
+        return userService.mapToProfileDTO(user);
+    }
+
     public int getItemQuantity(String userId, UUID itemId) {
         logger.debug("Checking quantity for userId: {} and itemId: {}", userId, itemId);
         User user = userRepository.findById(userId)

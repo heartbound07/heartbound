@@ -190,6 +190,18 @@ public class FishCommandListener extends ListenerAdapter {
         double totalRarityChanceIncrease = 0.0;
         double totalMultiplierIncrease = 0.0;
         double totalNegationChance = 0.0;
+
+        public Map<FishingRodPart, ItemInstance> getEquippedParts(ItemInstance rodInstance) {
+            Map<FishingRodPart, ItemInstance> equippedParts = new HashMap<>();
+            if (rodInstance != null) {
+                equippedParts.put(FishingRodPart.ROD_SHAFT, rodInstance.getEquippedRodShaft());
+                equippedParts.put(FishingRodPart.REEL, rodInstance.getEquippedReel());
+                equippedParts.put(FishingRodPart.HOOK, rodInstance.getEquippedHook());
+                equippedParts.put(FishingRodPart.FISHING_LINE, rodInstance.getEquippedFishingLine());
+                equippedParts.put(FishingRodPart.GRIP, rodInstance.getEquippedGrip());
+            }
+            return equippedParts;
+        }
     }
 
     private PartBonuses getPartBonuses(ItemInstance rodInstance) {
@@ -198,27 +210,33 @@ public class FishCommandListener extends ListenerAdapter {
             return bonuses;
         }
 
-        Map<FishingRodPart, ItemInstance> equippedParts = new HashMap<>();
-        equippedParts.put(FishingRodPart.ROD_SHAFT, rodInstance.getEquippedRodShaft());
-        equippedParts.put(FishingRodPart.REEL, rodInstance.getEquippedReel());
-        equippedParts.put(FishingRodPart.HOOK, rodInstance.getEquippedHook());
-        equippedParts.put(FishingRodPart.FISHING_LINE, rodInstance.getEquippedFishingLine());
-        equippedParts.put(FishingRodPart.GRIP, rodInstance.getEquippedGrip());
+        Map<FishingRodPart, ItemInstance> equippedParts = bonuses.getEquippedParts(rodInstance);
 
         for (ItemInstance partInstance : equippedParts.values()) {
             if (partInstance != null) {
-                Shop part = partInstance.getBaseItem();
-                if (part.getBonusLootChance() != null) {
-                    bonuses.totalBonusLootChance += part.getBonusLootChance();
+                // Backward compatibility for parts without durability
+                if (partInstance.getDurability() == null) {
+                    Shop basePart = partInstance.getBaseItem();
+                    if (basePart.getMaxDurability() != null) {
+                        partInstance.setDurability(basePart.getMaxDurability());
+                        itemInstanceRepository.save(partInstance);
+                    }
                 }
-                if (part.getRarityChanceIncrease() != null) {
-                    bonuses.totalRarityChanceIncrease += part.getRarityChanceIncrease();
-                }
-                if (part.getMultiplierIncrease() != null) {
-                    bonuses.totalMultiplierIncrease += part.getMultiplierIncrease();
-                }
-                if (part.getNegationChance() != null) {
-                    bonuses.totalNegationChance += part.getNegationChance();
+
+                if (partInstance.getDurability() != null && partInstance.getDurability() > 0) {
+                    Shop part = partInstance.getBaseItem();
+                    if (part.getBonusLootChance() != null) {
+                        bonuses.totalBonusLootChance += part.getBonusLootChance();
+                    }
+                    if (part.getRarityChanceIncrease() != null) {
+                        bonuses.totalRarityChanceIncrease += part.getRarityChanceIncrease();
+                    }
+                    if (part.getMultiplierIncrease() != null) {
+                        bonuses.totalMultiplierIncrease += part.getMultiplierIncrease();
+                    }
+                    if (part.getNegationChance() != null) {
+                        bonuses.totalNegationChance += part.getNegationChance();
+                    }
                 }
             }
         }
@@ -309,6 +327,18 @@ public class FishCommandListener extends ListenerAdapter {
                         equippedRodInstance.setExperience(0L); // Initialize XP as well
                         itemInstanceRepository.save(equippedRodInstance);
                         logger.info("Initialized durability for legacy rod instance {} for user {}", equippedRodInstance.getId(), userId);
+                    }
+                }
+
+                // Initialize durability for legacy parts
+                for (ItemInstance partInstance : bonuses.getEquippedParts(equippedRodInstance).values()) {
+                    if (partInstance != null && partInstance.getDurability() == null) {
+                        Shop basePart = partInstance.getBaseItem();
+                        if (basePart.getMaxDurability() != null) {
+                            partInstance.setDurability(basePart.getMaxDurability());
+                            itemInstanceRepository.save(partInstance);
+                            logger.info("Initialized durability for legacy part instance {} for user {}", partInstance.getId(), userId);
+                        }
                     }
                 }
 
@@ -420,8 +450,14 @@ public class FishCommandListener extends ListenerAdapter {
                 }
 
                 // Durability and XP Logic
-                if (equippedRodInstance != null && equippedRodInstance.getDurability() != null) {
+                if (equippedRodInstance != null && equippedRodInstance.getDurability() != null && equippedRodInstance.getDurability() > 0) {
                     equippedRodInstance.setDurability(equippedRodInstance.getDurability() - 1);
+
+                    for (ItemInstance partInstance : bonuses.getEquippedParts(equippedRodInstance).values()) {
+                        if (partInstance != null && partInstance.getDurability() != null && partInstance.getDurability() > 0) {
+                            partInstance.setDurability(partInstance.getDurability() - 1);
+                        }
+                    }
 
                     // XP Gain Logic (25% chance)
                     if (secureRandomService.getSecureDouble() <= 0.25) {
@@ -524,8 +560,14 @@ public class FishCommandListener extends ListenerAdapter {
                 }
 
                 // Durability and XP Logic
-                if (equippedRodInstance != null && equippedRodInstance.getDurability() != null) {
+                if (equippedRodInstance != null && equippedRodInstance.getDurability() != null && equippedRodInstance.getDurability() > 0) {
                     equippedRodInstance.setDurability(equippedRodInstance.getDurability() - 1);
+
+                    for (ItemInstance partInstance : bonuses.getEquippedParts(equippedRodInstance).values()) {
+                        if (partInstance != null && partInstance.getDurability() != null && partInstance.getDurability() > 0) {
+                            partInstance.setDurability(partInstance.getDurability() - 1);
+                        }
+                    }
 
                     // XP Gain Logic (25% chance)
                     if (secureRandomService.getSecureDouble() <= 0.25) {
@@ -595,7 +637,9 @@ public class FishCommandListener extends ListenerAdapter {
                         userId, finalCreditChange, user.getCredits());
                 
             } else {
-                if (bonuses.totalNegationChance > 0 && secureRandomService.getSecureDouble() <= (bonuses.totalNegationChance / 100.0)) {
+                // Failure logic
+                double negationRoll = secureRandomService.getSecureDouble();
+                if (bonuses.totalNegationChance > 0 && negationRoll <= (bonuses.totalNegationChance / 100.0)) {
                     message.append("🎣 | A crab tried to snip you, but your grip helped you get away safely!");
                     // Create audit entry for negated failure
                     CreateAuditDTO auditEntry = CreateAuditDTO.builder()
