@@ -291,12 +291,16 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                 <GiFishingPole className="absolute w-32 h-32 text-white/10 transform -rotate-12 -right-6 -bottom-6" />
                 <GiFishingPole className="relative z-10 w-20 h-20 text-white/80 drop-shadow-lg" />
                 <div className="relative z-10 mt-3 text-center">
-                  <p className="text-3xl font-bold text-white drop-shadow-md">
-                    {primaryItem.fishingRodMultiplier}x
-                  </p>
-                  <p className="text-md font-semibold text-cyan-200 drop-shadow-sm">
-                    Credit Bonus
-                  </p>
+                  {primaryItem.level && (
+                    <p className="text-lg font-bold text-white drop-shadow-md">
+                      LVL {primaryItem.level}
+                    </p>
+                  )}
+                  <SafeText
+                    text={primaryItem.name}
+                    tag="p"
+                    className="text-md font-semibold text-white drop-shadow-sm mt-1"
+                  />
                 </div>
               </div>
             </div>
@@ -414,6 +418,11 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
             <div className="space-y-2">
               {Object.entries(selectedItems).map(([category, item]) => {
                 if (!item || item.category === 'CASE') return null;
+
+                // Don't show the main rod entry if it has parts, as they'll be listed below.
+                if (item.category === 'FISHING_ROD' && item.equippedParts && Object.keys(item.equippedParts).length > 0) {
+                  return null;
+                }
                 
                 // Use direct sanitization instead of hook
                 const sanitizedName = sanitizeText(item.name || '');
@@ -510,7 +519,6 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
 
         {aggregatedStats && (Object.values(aggregatedStats).some(v => v > 0)) && (
     <div className="item-preview-stats">
-        <h4 className="text-sm font-semibold text-slate-300 mb-3">Stats</h4>
         <div className="space-y-2 text-sm">
             
                 {aggregatedStats.bonusLootChance > 0 && (
