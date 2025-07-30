@@ -31,6 +31,7 @@ import java.util.concurrent.CompletableFuture;
 import com.app.heartbound.entities.ItemInstance;
 import com.app.heartbound.repositories.ItemInstanceRepository;
 import com.app.heartbound.enums.FishingRodPart;
+import java.util.ArrayList;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -296,6 +297,7 @@ public class FishCommandListener extends ListenerAdapter {
             // Fetch cached fishing settings for performance (avoids database call per command)
             DiscordBotSettingsService.FishingSettings fishingSettings = discordBotSettingsService.getCachedFishingSettings();
             String warningMessage = null; // To be sent as a followup message
+            List<String> brokenParts = new ArrayList<>();
             
             // Fetch the user from the database with a lock
             User user = userService.getUserByIdWithLock(userId);
@@ -456,6 +458,9 @@ public class FishCommandListener extends ListenerAdapter {
                     for (ItemInstance partInstance : bonuses.getEquippedParts(equippedRodInstance).values()) {
                         if (partInstance != null && partInstance.getDurability() != null && partInstance.getDurability() > 0) {
                             partInstance.setDurability(partInstance.getDurability() - 1);
+                            if (partInstance.getDurability() == 0) {
+                                brokenParts.add(partInstance.getBaseItem().getName());
+                            }
                         }
                     }
 
@@ -566,6 +571,9 @@ public class FishCommandListener extends ListenerAdapter {
                     for (ItemInstance partInstance : bonuses.getEquippedParts(equippedRodInstance).values()) {
                         if (partInstance != null && partInstance.getDurability() != null && partInstance.getDurability() > 0) {
                             partInstance.setDurability(partInstance.getDurability() - 1);
+                            if (partInstance.getDurability() == 0) {
+                                brokenParts.add(partInstance.getBaseItem().getName());
+                            }
                         }
                     }
 
@@ -708,6 +716,18 @@ public class FishCommandListener extends ListenerAdapter {
             // Send a followup message if a warning was generated
             if (warningMessage != null) {
                 event.getHook().sendMessage(warningMessage).setEphemeral(true).queue();
+            }
+
+            if (!brokenParts.isEmpty()) {
+                String brokenPartsMessage;
+                if (brokenParts.size() == 1) {
+                    brokenPartsMessage = String.format("Your **%s** has broken! Repair it in your inventory!", brokenParts.get(0));
+                } else {
+                    String lastPart = brokenParts.remove(brokenParts.size() - 1);
+                    String otherParts = String.join("**, **", brokenParts);
+                    brokenPartsMessage = String.format("Your **%s** and **%s** have broken! Repair them in your inventory!", otherParts, lastPart);
+                }
+                event.getHook().sendMessage(brokenPartsMessage).setEphemeral(true).queue();
             }
             
         } catch (Exception e) {
