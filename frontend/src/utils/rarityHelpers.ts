@@ -7,7 +7,7 @@ export const RARITY_COLORS = {
   COMMON: '#6c757d',    // Grey
 };
 
-export const RARITY_ORDER = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY'];
+export const RARITY_ORDER = ['LEGENDARY', 'EPIC', 'RARE', 'UNCOMMON', 'COMMON'];
 
 // Helper function to get color based on rarity
 export const getRarityColor = (rarity: string): string => {

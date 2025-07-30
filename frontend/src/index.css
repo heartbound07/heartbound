@@ -14,5 +14,18 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  --color-background-light: #f9fafb;
+  --color-text: #e2e8f0;
+  --color-text-muted: #94a3b8;
+  --font-sans: 'gg sans', sans-serif;
+  --font-display: 'Grandstander', sans-serif;
+}
+
+.font-grandstander {
+    font-family: var(--font-display);
+}
+
+body {
+    background-color: var(--color-background);
 }
 
