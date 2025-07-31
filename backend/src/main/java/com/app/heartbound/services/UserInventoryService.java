@@ -47,6 +47,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.time.Instant;
 
 @Service
 public class UserInventoryService {
@@ -72,6 +73,33 @@ public class UserInventoryService {
         this.auditService = auditService;
         this.cacheConfig = cacheConfig;
         this.objectMapper = objectMapper;
+    }
+
+    @Transactional
+    public String giveItemToUser(String userId, UUID itemId) {
+        User user = userRepository.findByIdWithLock(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        Shop item = shopRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with id: " + itemId));
+
+        ItemInstance newInstance = new ItemInstance();
+        newInstance.setOwner(user);
+        newInstance.setBaseItem(item);
+        newInstance.setCreatedAt(Instant.now());
+        newInstance.setDurability(item.getMaxDurability());
+        newInstance.setMaxDurability(item.getMaxDurability());
+        newInstance.setLevel(1);
+        newInstance.setExperience(0L);
+        newInstance.setRepairCount(0);
+        
+        itemInstanceRepository.save(newInstance);
+
+        user.getItemInstances().add(newInstance);
+        userRepository.save(user);
+
+        logger.info("Gave item '{}' (instance {}) to user {}", item.getName(), newInstance.getId(), userId);
+        return item.getName();
     }
 
     private int getBaseRepairCost(ItemRarity rarity) {

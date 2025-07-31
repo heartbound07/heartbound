@@ -1,18 +1,37 @@
 package com.app.heartbound.services.discord;
 
+import lombok.Getter;
 import org.springframework.stereotype.Service;
-import java.util.concurrent.ConcurrentHashMap;
+
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
-public class CreditDropStateService {
+public class DropStateService {
 
-    public record ActiveDrop(String messageId, int amount) {}
+    public enum DropType {
+        CREDIT,
+        ITEM
+    }
+
+    @Getter
+    public static class ActiveDrop {
+        private final String messageId;
+        private final DropType type;
+        private final Object value; // Integer for credits, UUID for item ID
+
+        public ActiveDrop(String messageId, DropType type, Object value) {
+            this.messageId = messageId;
+            this.type = type;
+            this.value = value;
+        }
+    }
 
     private final ConcurrentHashMap<String, ActiveDrop> activeDrops = new ConcurrentHashMap<>();
 
-    public void startDrop(String channelId, String messageId, int amount) {
-        activeDrops.put(channelId, new ActiveDrop(messageId, amount));
+    public void startDrop(String channelId, String messageId, DropType type, Object value) {
+        activeDrops.put(channelId, new ActiveDrop(messageId, type, value));
     }
 
     public Optional<ActiveDrop> claimDrop(String channelId) {
@@ -22,7 +41,7 @@ public class CreditDropStateService {
     public Optional<ActiveDrop> expireDrop(String channelId, String messageId) {
         final ActiveDrop[] removedDrop = {null};
         activeDrops.computeIfPresent(channelId, (key, existingDrop) -> {
-            if (existingDrop.messageId().equals(messageId)) {
+            if (existingDrop.getMessageId().equals(messageId)) {
                 removedDrop[0] = existingDrop;
                 return null; // remove the mapping
             }

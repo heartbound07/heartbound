@@ -40,6 +40,9 @@ export interface DiscordBotSettingsDTO {
   creditDropChannelId: string;
   creditDropMinAmount: number;
   creditDropMaxAmount: number;
+  partDropEnabled: boolean;
+  partDropChannelId: string;
+  partDropChance: number;
   age15RoleId: string
   age16To17RoleId: string
   age18PlusRoleId: string

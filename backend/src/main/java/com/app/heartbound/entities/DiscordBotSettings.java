@@ -1,10 +1,13 @@
 package com.app.heartbound.entities;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import jakarta.validation.constraints.NotNull;
+import lombok.Builder;
 
 @Entity
 @Table(name = "discord_bot_settings")
@@ -67,6 +70,20 @@ public class DiscordBotSettings {
     private String creditDropChannelId;
     private Integer creditDropMinAmount = 1;
     private Integer creditDropMaxAmount = 1000;
+
+    // New fields for part drops
+    @NotNull
+    @Column(name = "part_drop_enabled")
+    @Builder.Default
+    private Boolean partDropEnabled = false;
+
+    @Column(name = "part_drop_channel_id")
+    private String partDropChannelId;
+
+    @NotNull
+    @Column(name = "part_drop_chance")
+    @Builder.Default
+    private Double partDropChance = 0.05;
 
     // Self-Assignable Roles Configuration
     private String age15RoleId;
@@ -416,6 +433,31 @@ public class DiscordBotSettings {
 
     public void setCreditDropMaxAmount(Integer creditDropMaxAmount) {
         this.creditDropMaxAmount = creditDropMaxAmount;
+    }
+
+    // New fields for part drops
+    public Boolean getPartDropEnabled() {
+        return partDropEnabled;
+    }
+
+    public void setPartDropEnabled(Boolean partDropEnabled) {
+        this.partDropEnabled = partDropEnabled;
+    }
+
+    public String getPartDropChannelId() {
+        return partDropChannelId;
+    }
+
+    public void setPartDropChannelId(String partDropChannelId) {
+        this.partDropChannelId = partDropChannelId;
+    }
+
+    public Double getPartDropChance() {
+        return partDropChance;
+    }
+
+    public void setPartDropChance(Double partDropChance) {
+        this.partDropChance = partDropChance;
     }
 
     // Role Multipliers getters and setters

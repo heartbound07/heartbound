@@ -11,6 +11,7 @@ import { FiSettings } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { SelfAssignableRolesSettings } from './SelfAssignableRolesSettings';
 import { CreditDropSettings } from './CreditDropSettings';
+import { PartDropSettings } from './PartDropSettings';
 import { useDiscordBotSettings } from '@/hooks/useDiscordBotSettings';
 import { ActivitySettingsCard } from './ActivitySettingsCard';
 import { LevelingSettingsCard } from './LevelingSettingsCard';
@@ -182,20 +183,17 @@ export function DiscordBotSettings() {
       }
       return;
     }
-
-    // Restore validation for role multipliers field
-    if (name === 'roleMultipliers') {
-      if (value === '' || /^[\d:.,\s]*$/.test(value)) {
-        updateField(name, value);
-      }
-      return;
-    }
     
     if (type === 'checkbox') {
       updateField(name, e.target.checked);
     } else if (type === 'number') {
-      const numValue = value === '' ? 0 : parseInt(value, 10);
-      updateField(name, isNaN(numValue) ? 0 : numValue);
+      if (name === 'partDropChance') {
+        const floatValue = value === '' ? 0 : parseFloat(value);
+        updateField(name, isNaN(floatValue) ? 0 : floatValue);
+      } else {
+        const numValue = value === '' ? 0 : parseInt(value, 10);
+        updateField(name, isNaN(numValue) ? 0 : numValue);
+      }
     } else {
       updateField(name, value);
     }
@@ -368,6 +366,9 @@ export function DiscordBotSettings() {
             
             {/* Credit Drop Settings Card */}
             <CreditDropSettings settings={settings} handleChange={handleChange} />
+
+            {/* Part Drop Settings Card */}
+            <PartDropSettings settings={settings} handleChange={handleChange} />
             
             {/* Counting Game Settings Card */}
             <CountingGameSettingsCard settings={settings} handleChange={handleChange} />

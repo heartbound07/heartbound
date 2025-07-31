@@ -135,6 +135,11 @@ public class DiscordBotSettingsService {
             settings.setCreditDropMinAmount(1);
             settings.setCreditDropMaxAmount(1000);
 
+            // Initialize part drop settings
+            settings.setPartDropEnabled(false);
+            settings.setPartDropChannelId("");
+            settings.setPartDropChance(0.05);
+
             // Initialize fishing game settings with defaults
             settings.setFishingMaxCatches(300);
             settings.setFishingCooldownHours(6);
@@ -213,6 +218,11 @@ public class DiscordBotSettingsService {
         dto.setCreditDropChannelId(settings.getCreditDropChannelId());
         dto.setCreditDropMinAmount(settings.getCreditDropMinAmount());
         dto.setCreditDropMaxAmount(settings.getCreditDropMaxAmount());
+
+        // Map part drop settings
+        dto.setPartDropEnabled(settings.getPartDropEnabled());
+        dto.setPartDropChannelId(settings.getPartDropChannelId());
+        dto.setPartDropChance(settings.getPartDropChance());
 
         // Map self-assignable roles
         dto.setAge15RoleId(settings.getAge15RoleId());
@@ -316,6 +326,11 @@ public class DiscordBotSettingsService {
         settings.setCreditDropChannelId(dto.getCreditDropChannelId());
         settings.setCreditDropMinAmount(dto.getCreditDropMinAmount());
         settings.setCreditDropMaxAmount(dto.getCreditDropMaxAmount());
+
+        // Update part drop settings
+        settings.setPartDropEnabled(dto.getPartDropEnabled());
+        settings.setPartDropChannelId(dto.getPartDropChannelId());
+        settings.setPartDropChance(dto.getPartDropChance());
 
         // Update self-assignable roles
         settings.setAge15RoleId(dto.getAge15RoleId());

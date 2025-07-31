@@ -153,6 +153,18 @@ public class DiscordBotSettingsDTO {
     @Min(1)
     private Integer creditDropMaxAmount;
 
+    // Part Drop Configuration
+    @NotNull
+    private Boolean partDropEnabled;
+
+    @Pattern(regexp = "^\\d*$", message = "Channel ID must contain only digits")
+    private String partDropChannelId;
+
+    @NotNull
+    @DecimalMin(value = "0.0", inclusive = false)
+    @DecimalMax(value = "1.0")
+    private Double partDropChance;
+
     // Self-Assignable Roles Configuration
     @Pattern(regexp = "^\\d*$", message = "Role ID must contain only digits")
     private String age15RoleId;

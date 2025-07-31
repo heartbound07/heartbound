@@ -22,7 +22,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class CreditDropSchedulerService {
 
     private final DiscordBotSettingsService discordBotSettingsService;
-    private final CreditDropStateService creditDropStateService;
+    private final DropStateService dropStateService;
     private final JDA jda;
     private final Random random = new Random();
     private final ReentrantLock creditDropLock = new ReentrantLock();
@@ -53,7 +53,7 @@ public class CreditDropSchedulerService {
                 return;
             }
 
-            if (creditDropStateService.hasActiveDrop(channelId)) {
+            if (dropStateService.hasActiveDrop(channelId)) {
                 log.debug("[CreditDropScheduler] An active drop already exists in channel {}. Skipping.", channelId);
                 return;
             }
@@ -74,12 +74,12 @@ public class CreditDropSchedulerService {
                 .setColor(new Color(52, 152, 219)); // A pleasant blue color
 
             channel.sendMessageEmbeds(embed.build()).queue(message -> {
-                creditDropStateService.startDrop(channelId, message.getId(), amount);
+                dropStateService.startDrop(channelId, message.getId(), DropStateService.DropType.CREDIT, amount);
                 log.info("[CreditDropScheduler] Dropped {} credits in channel {}.", amount, channelId);
 
                 // Schedule expiration
                 expirationScheduler.schedule(() -> {
-                    creditDropStateService.expireDrop(channelId, message.getId()).ifPresent(expiredDrop -> {
+                    dropStateService.expireDrop(channelId, message.getId()).ifPresent(expiredDrop -> {
                         message.delete().queue(
                             success -> log.info("[CreditDropScheduler] Expired and deleted credit drop message {}.", message.getId()),
                             error -> log.error("[CreditDropScheduler] Failed to delete expired drop message {}: {}", message.getId(), error.getMessage())
