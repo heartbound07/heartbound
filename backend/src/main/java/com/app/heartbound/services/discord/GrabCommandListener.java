@@ -99,14 +99,14 @@ public class GrabCommandListener extends ListenerAdapter {
             // We will need to create it.
             String itemName = userInventoryService.giveItemToUser(user.getId(), itemId);
 
-            event.reply("You grabbed a **" + itemName + "**!").queue();
+            event.reply("You have collected a **" + itemName + "**!").setEphemeral(true).queue();
 
             // Edit original message
             event.getChannel().retrieveMessageById(activeDrop.getMessageId()).queue(message -> {
                 EmbedBuilder embed = new EmbedBuilder()
-                    .setDescription("The **" + itemName + "** was claimed by " + event.getUser().getAsMention() + "!")
+                    .setDescription(event.getUser().getAsMention() + " collected a **" + itemName + "**!")
                     .setColor(Color.GRAY);
-                message.editMessageEmbeds(embed.build()).queue();
+                message.editMessageEmbeds(embed.build()).setComponents().queue();
             });
         } catch (Exception e) {
             log.error("Error giving item {} to user {}: {}", itemId, user.getId(), e.getMessage(), e);

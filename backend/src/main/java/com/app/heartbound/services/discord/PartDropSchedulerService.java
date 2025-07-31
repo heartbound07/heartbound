@@ -78,7 +78,7 @@ public class PartDropSchedulerService {
             }
 
             EmbedBuilder embed = new EmbedBuilder()
-                .setDescription("A wild **" + partToDrop.getName() + "** has appeared!")
+                .setDescription("A Fishing Rod part has washed up on shore!")
                 .setFooter("do /grab to claim the item!")
                 .setColor(new Color(46, 204, 113)); // A pleasant green color
 
