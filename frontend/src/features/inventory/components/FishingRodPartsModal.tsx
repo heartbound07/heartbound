@@ -111,14 +111,6 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
           className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 m-4 max-h-[90vh] w-full max-w-4xl"
         >
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-white flex items-center">
-              {rod.name}
-              {rod.level && (
-                <span className="ml-3 text-sm font-bold text-white bg-amber-500 px-2.5 py-1 rounded-full shadow-md">
-                  LVL {rod.level}
-                </span>
-              )}
-            </h2>
             <button onClick={onClose} className="text-slate-400 hover:text-white">
               <HiOutlineX size={24} />
             </button>
