@@ -17,7 +17,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/trades")
+@RequestMapping("/trades")
 @PreAuthorize("isAuthenticated()")
 public class TradeController {
 

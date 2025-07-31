@@ -163,6 +163,58 @@ public class PairLevelController {
         }
     }
 
+    @Operation(summary = "Get level leaderboard", description = "Get top pairs by level")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Leaderboard retrieved successfully")
+    })
+    @GetMapping("/leaderboard/levels")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<List<PairLevelDTO>> getLevelLeaderboard(
+            @Parameter(description = "Number of top pairs to return")
+            @RequestParam(defaultValue = "10") int limit) {
+        log.info("Getting level leaderboard with limit {}", limit);
+
+        try {
+            List<PairLevel> topPairs = pairLevelService.getTopLevelPairs(Math.min(limit, 50)); // Cap at 50
+            List<PairLevelDTO> leaderboard = topPairs.stream()
+                    .map(this::mapToPairLevelDTO)
+                    .toList();
+
+            return ResponseEntity.ok(leaderboard);
+
+        } catch (Exception e) {
+            log.error("Error retrieving level leaderboard", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to retrieve leaderboard");
+        }
+    }
+
+    @Operation(summary = "Get XP leaderboard", description = "Get top pairs by total XP")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Leaderboard retrieved successfully")
+    })
+    @GetMapping("/leaderboard/xp")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<List<PairLevelDTO>> getXPLeaderboard(
+            @Parameter(description = "Number of top pairs to return")
+            @RequestParam(defaultValue = "10") int limit) {
+        log.info("Getting XP leaderboard with limit {}", limit);
+
+        try {
+            List<PairLevel> topPairs = pairLevelService.getTopXPPairs(Math.min(limit, 50)); // Cap at 50
+            List<PairLevelDTO> leaderboard = topPairs.stream()
+                    .map(this::mapToPairLevelDTO)
+                    .toList();
+
+            return ResponseEntity.ok(leaderboard);
+
+        } catch (Exception e) {
+            log.error("Error retrieving XP leaderboard", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to retrieve leaderboard");
+        }
+    }
+
+    // ===== ADMIN ENDPOINTS =====
+
     @Operation(summary = "Check achievements manually", description = "Manually trigger achievement checking for a pairing (admin only)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Achievements checked successfully"),
@@ -190,8 +242,6 @@ public class PairLevelController {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to check achievements");
         }
     }
-
-    // ===== ADMIN ENDPOINTS =====
 
     @Operation(summary = "Admin: Update pair level and XP", description = "Admin-only endpoint to directly modify pair level and XP")
     @ApiResponses(value = {
@@ -326,56 +376,6 @@ public class PairLevelController {
         } catch (Exception e) {
             log.error("Error deleting voice streak {}", streakId, e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to delete voice streak");
-        }
-    }
-
-    @Operation(summary = "Get level leaderboard", description = "Get top pairs by level")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Leaderboard retrieved successfully")
-    })
-    @GetMapping("/leaderboard/levels")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<List<PairLevelDTO>> getLevelLeaderboard(
-            @Parameter(description = "Number of top pairs to return") 
-            @RequestParam(defaultValue = "10") int limit) {
-        log.info("Getting level leaderboard with limit {}", limit);
-        
-        try {
-            List<PairLevel> topPairs = pairLevelService.getTopLevelPairs(Math.min(limit, 50)); // Cap at 50
-            List<PairLevelDTO> leaderboard = topPairs.stream()
-                    .map(this::mapToPairLevelDTO)
-                    .toList();
-            
-            return ResponseEntity.ok(leaderboard);
-            
-        } catch (Exception e) {
-            log.error("Error retrieving level leaderboard", e);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to retrieve leaderboard");
-        }
-    }
-
-    @Operation(summary = "Get XP leaderboard", description = "Get top pairs by total XP")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Leaderboard retrieved successfully")
-    })
-    @GetMapping("/leaderboard/xp")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<List<PairLevelDTO>> getXPLeaderboard(
-            @Parameter(description = "Number of top pairs to return") 
-            @RequestParam(defaultValue = "10") int limit) {
-        log.info("Getting XP leaderboard with limit {}", limit);
-        
-        try {
-            List<PairLevel> topPairs = pairLevelService.getTopXPPairs(Math.min(limit, 50)); // Cap at 50
-            List<PairLevelDTO> leaderboard = topPairs.stream()
-                    .map(this::mapToPairLevelDTO)
-                    .toList();
-            
-            return ResponseEntity.ok(leaderboard);
-            
-        } catch (Exception e) {
-            log.error("Error retrieving XP leaderboard", e);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to retrieve leaderboard");
         }
     }
 
