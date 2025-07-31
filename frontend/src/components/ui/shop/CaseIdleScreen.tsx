@@ -4,7 +4,6 @@ import { GiFishingPole, GiSewingString, GiFishingHook, GiGearStick } from 'react
 import { PiFilmReel, PiHandPalm } from 'react-icons/pi';
 import NameplatePreview from '@/components/NameplatePreview';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle, RARITY_ORDER } from '@/utils/rarityHelpers';
-import { formatDisplayText } from '@/utils/formatters';
 import { CaseContents } from './CaseTypes';
 
 interface CaseIdleScreenProps {
@@ -124,7 +123,7 @@ export const CaseIdleScreen = React.memo(({
                           color={item.imageUrl}
                           endColor={item.gradientEndColor}
                           fallbackColor={rarityColor}
-                          message="Preview of your nameplate color"
+                          message=""
                           size="md"
                         />
                       </div>
