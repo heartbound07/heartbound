@@ -80,8 +80,6 @@ public class GrabCommandListener extends ListenerAdapter {
             return;
         }
 
-        event.getMessage().reply("You grabbed " + amount + " credits!").queue();
-
         // Edit original message
         event.getChannel().retrieveMessageById(activeDrop.getMessageId()).queue(message -> {
             EmbedBuilder embed = new EmbedBuilder()
@@ -99,8 +97,6 @@ public class GrabCommandListener extends ListenerAdapter {
             // For now, let's assume a method like `giveItemToUser(userId, itemId)` exists.
             // We will need to create it.
             String itemName = userInventoryService.giveItemToUser(user.getId(), itemId);
-
-            event.getMessage().reply("You have collected a **" + itemName + "**!").queue();
 
             // Edit original message
             event.getChannel().retrieveMessageById(activeDrop.getMessageId()).queue(message -> {
