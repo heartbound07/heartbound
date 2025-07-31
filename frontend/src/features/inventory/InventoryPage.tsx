@@ -196,6 +196,9 @@ export function InventoryPage() {
       );
     }
     
+    // Clear selection after case roll is complete
+    setSelectedItems({});
+
     // Refresh inventory to show updated items
     await fetchInventory();
   };
