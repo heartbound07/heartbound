@@ -577,17 +577,45 @@ export function InventoryPage() {
   // Handle item selection for preview
   const handleSelectItem = (item: ShopItem) => {
     setSelectedItems(prev => {
+      // If the clicked item is a case, it's an exclusive selection
+      if (item.category === 'CASE') {
+        // If the case is already the only thing selected, deselect it. Otherwise, make it the only selection.
+        if (prev.case?.id === item.id) {
+          return { ...prev, case: null }; // Deselect case
+        } else {
+          return { case: item }; // Select case and deselect everything else
+        }
+      }
+
+      // If the clicked item is NOT a case
       const newSelected = { ...prev };
+
+      // If a case is currently selected, deselect it since we're selecting another item.
+      if (newSelected.case) {
+        newSelected.case = null;
+      }
       
+      // Proceed with the normal toggle logic for the clicked item
       if (item.category === 'USER_COLOR') {
         newSelected.nameplate = newSelected.nameplate?.id === item.id ? null : item;
       } else if (item.category === 'BADGE') {
-        // For badges, only allow one selection at a time - replace any existing badge selection
         newSelected.badge = newSelected.badge?.id === item.id ? null : item;
       } else {
-        // For other categories, use the category as the key
         const categoryKey = item.category.toLowerCase();
         newSelected[categoryKey] = newSelected[categoryKey]?.id === item.id ? null : item;
+      }
+      
+      // Enforce mutual exclusivity for NAMEPLATE ('USER_COLOR') and 'FISHING_ROD'.
+      // If both are selected after the toggle, one was just added. Deselect the other.
+      const fishingRodKey = 'fishing_rod';
+      if (newSelected.nameplate && newSelected[fishingRodKey]) {
+        if (item.category === 'USER_COLOR') {
+          // A nameplate was just selected, so deselect the fishing rod.
+          newSelected[fishingRodKey] = null;
+        } else if (item.category === 'FISHING_ROD') {
+          // A fishing rod was just selected, so deselect the nameplate.
+          newSelected.nameplate = null;
+        }
       }
       
       // Check for mixed selection (equipped and unequipped items)

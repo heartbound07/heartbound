@@ -652,11 +652,11 @@
 }
 
 .item-preview-selected-items {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
 }
 
 .item-preview-selected-items h4 {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0;
 }
 
 .selected-item-row {
