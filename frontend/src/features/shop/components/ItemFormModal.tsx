@@ -421,7 +421,6 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                            The starting and maximum durability for this part.
                          </p>
                     </div>
-                  {(formData.rarity === 'EPIC' || formData.rarity === 'LEGENDARY') && (
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-1">
                       Durability Increase
@@ -439,7 +438,6 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                       Increases the rod's max durability by this amount.
                     </p>
                   </div>
-                  )}
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-1">
                       Max Repairs

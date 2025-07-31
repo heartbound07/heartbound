@@ -353,7 +353,6 @@ public class UserInventoryService {
         }
 
         boolean isMaxDurabilityIncreasePart =
-            (partBaseItem.getRarity() == ItemRarity.EPIC || partBaseItem.getRarity() == ItemRarity.LEGENDARY) &&
             partBaseItem.getDurabilityIncrease() != null &&
             partBaseItem.getDurabilityIncrease() > 0;
 
