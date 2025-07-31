@@ -186,6 +186,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                       onChange={handleInputChange}
                       required
                       min="0"
+                      step="0.01"
                       className="w-full bg-slate-800 border border-slate-700 rounded-md pl-9 pr-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                     />
                   </div>
@@ -459,14 +460,14 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                   {formData.fishingRodPartType === 'REEL' && (
                     <div>
                       <label className="block text-sm font-medium text-slate-300 mb-1">Bonus Loot Chance (%)</label>
-                      <input type="number" name="bonusLootChance" value={formData.bonusLootChance || ''} onChange={handleInputChange} min="0" max="100" className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g., 5"/>
+                      <input type="number" name="bonusLootChance" value={formData.bonusLootChance || ''} onChange={handleInputChange} min="0" max="100" step="any" className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g., 5"/>
                       <p className="text-xs text-slate-400 mt-1">Percentage chance to grant bonus loot on a successful catch.</p>
                     </div>
                   )}
                   {formData.fishingRodPartType === 'HOOK' && (
                     <div>
                       <label className="block text-sm font-medium text-slate-300 mb-1">Rarity Chance Increase (%)</label>
-                      <input type="number" name="rarityChanceIncrease" value={formData.rarityChanceIncrease || ''} onChange={handleInputChange} min="0" max="100" className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g., 2"/>
+                      <input type="number" name="rarityChanceIncrease" value={formData.rarityChanceIncrease || ''} onChange={handleInputChange} min="0" max="100" step="any" className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g., 2"/>
                       <p className="text-xs text-slate-400 mt-1">Increases the chance to catch higher-rarity fish.</p>
                     </div>
                   )}
@@ -480,7 +481,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                   {formData.fishingRodPartType === 'GRIP' && (
                     <div>
                       <label className="block text-sm font-medium text-slate-300 mb-1">Negation Chance (%)</label>
-                      <input type="number" name="negationChance" value={formData.negationChance || ''} onChange={handleInputChange} min="0" max="100" className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g., 10"/>
+                      <input type="number" name="negationChance" value={formData.negationChance || ''} onChange={handleInputChange} min="0" max="100" step="any" className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g., 10"/>
                       <p className="text-xs text-slate-400 mt-1">Chance to negate a negative event (e.g., crab snip).</p>
                     </div>
                   )}

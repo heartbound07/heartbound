@@ -521,7 +521,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                               <PopoverContent><p>Increases the chance of finding bonus loot with each catch.</p></PopoverContent>
                           </Popover>
                       </div>
-                      <span className="font-semibold text-yellow-400">{`+${aggregatedStats.bonusLootChance.toFixed(1)}%`}</span>
+                      <span className="font-semibold text-yellow-400">{aggregatedStats.bonusLootChance > 0 ? `+${aggregatedStats.bonusLootChance.toFixed(0)}%` : '0%'}</span>
                   </div>
                   <div className="flex justify-between items-center">
                       <div className="flex items-center space-x-1.5">
@@ -537,7 +537,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                               <PopoverContent><p>Increases the chance of catching higher-tier fish and items.</p></PopoverContent>
                           </Popover>
                       </div>
-                      <span className="font-semibold text-purple-400">{`+${aggregatedStats.rarityChanceIncrease.toFixed(1)}%`}</span>
+                      <span className="font-semibold text-purple-400">{aggregatedStats.rarityChanceIncrease > 0 ? `+${aggregatedStats.rarityChanceIncrease.toFixed(0)}%` : '0%'}</span>
                   </div>
                   <div className="flex justify-between items-center">
                       <div className="flex items-center space-x-1.5">
@@ -553,7 +553,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                               <PopoverContent><p>Provides a flat boost to the credits earned from fishing.</p></PopoverContent>
                           </Popover>
                       </div>
-                      <span className="font-semibold text-cyan-400">{`+${aggregatedStats.multiplierIncrease.toFixed(2)}x`}</span>
+                      <span className="font-semibold text-cyan-400">{`+${aggregatedStats.multiplierIncrease.toFixed(1)}x`}</span>
                   </div>
                   <div className="flex justify-between items-center">
                       <div className="flex items-center space-x-1.5">
@@ -569,7 +569,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                               <PopoverContent><p>Increases resistance to negative events, like crabs snipping you</p></PopoverContent>
                           </Popover>
                       </div>
-                      <span className="font-semibold text-red-500">{`+${aggregatedStats.negationChance.toFixed(1)}%`}</span>
+                      <span className="font-semibold text-red-500">{aggregatedStats.negationChance > 0 ? `+${aggregatedStats.negationChance.toFixed(0)}%` : '0%'}</span>
                   </div>
               </div>
           </div>

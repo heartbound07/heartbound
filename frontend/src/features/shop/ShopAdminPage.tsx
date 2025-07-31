@@ -370,10 +370,26 @@ export function ShopAdminPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
-    // Handle numeric conversion for price, maxCopies, and maxDurability
-    if (name === 'price') {
-      setFormData({ ...formData, [name]: parseInt(value, 10) || 0 });
-    } else if (name === 'maxCopies' || name === 'maxDurability' || name === 'durabilityIncrease' || name === 'bonusLootChance' || name === 'rarityChanceIncrease' || name === 'multiplierIncrease' || name === 'negationChance' || name === 'maxRepairs') {
+    const floatFields = [
+      'price',
+      'fishingRodMultiplier',
+      'bonusLootChance',
+      'rarityChanceIncrease',
+      'multiplierIncrease',
+      'negationChance'
+    ];
+    const intFields = ['maxCopies', 'maxDurability', 'durabilityIncrease', 'maxRepairs'];
+
+    if (floatFields.includes(name)) {
+      // Use parseFloat for fields that can have decimal values
+      const numValue = parseFloat(value);
+      if (name === 'price') {
+        setFormData({ ...formData, [name]: isNaN(numValue) ? 0 : numValue });
+      } else {
+        setFormData({ ...formData, [name]: isNaN(numValue) ? undefined : numValue });
+      }
+    } else if (intFields.includes(name)) {
+      // Use parseInt for integer fields
       const numValue = parseInt(value, 10);
       setFormData({ ...formData, [name]: isNaN(numValue) ? undefined : numValue });
     } else if (name === 'expiresAt') {
