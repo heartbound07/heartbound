@@ -275,7 +275,7 @@ export function CaseRollModal({
               className={`${
                 animationState === 'reward'
                   ? 'flex-1 flex justify-center py-2'
-                  : 'absolute left-1/2 transform -translate-x-1/2'
+                  : 'absolute left-1/2 transform -translate-x-1/2 w-full px-100'
               }`}
             >
               {animationState === 'reward' && rollResult ? (
@@ -296,14 +296,19 @@ export function CaseRollModal({
                   </p>
                 </div>
               ) : (
-                <h2 className="text-xl font-bold text-white whitespace-nowrap">
-                  {animationState === 'idle' && `Open ${caseName}`}
-                  {animationState === 'loading' && 'Preparing Case...'}
-                  {(animationState === 'rolling' ||
-                    animationState === 'decelerating' ||
-                    animationState === 'revealing') &&
-                    ' '}
-                </h2>
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-white tracking-tight sm:text-3xl font-grandstander">
+                    {animationState === 'idle' && `Open ${caseName}`}
+                    {animationState === 'loading' && 'Preparing Case...'}
+                    {(animationState === 'rolling' ||
+                      animationState === 'decelerating' ||
+                      animationState === 'revealing') &&
+                      ' '}
+                  </h2>
+                  {animationState === 'idle' && (
+                    <p className="mt-2 text-base text-slate-400">Contains one of the following items:</p>
+                  )}
+                </div>
               )}
             </div>
             <div className="flex items-center space-x-2 ml-auto">
