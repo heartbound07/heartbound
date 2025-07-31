@@ -32,7 +32,6 @@ import com.app.heartbound.mappers.ShopMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.persistence.EntityManager;
-import jakarta.annotation.PostConstruct;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,13 +40,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.scheduling.annotation.Scheduled;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.Objects;
 import java.time.LocalDateTime;
-import org.springframework.beans.factory.annotation.Value;
 
 @Service
 public class ShopService {
@@ -63,10 +60,6 @@ public class ShopService {
     private final ObjectMapper objectMapper;
     private final ShopMapper shopMapper;
     private static final Logger logger = LoggerFactory.getLogger(ShopService.class);
-    private volatile List<Shop> dailyItemPool;
-    
-    @Value("${shop.daily.seed-salt}")
-    private String serverSeedSalt;
     
     public ShopService(
         ShopRepository shopRepository,
@@ -91,11 +84,6 @@ public class ShopService {
         this.objectMapper = new ObjectMapper();
         this.shopMapper = shopMapper;
 
-    }
-    
-    @PostConstruct
-    public void initializeDailyItems() {
-        updateDailyItemPool();
     }
     
     /**
@@ -178,197 +166,42 @@ public class ShopService {
     
     /**
      * Get daily shop items for the main layout.
-     * The items are unique for each user and refresh daily.
-     * @param userId User ID to check ownership status for the global items.
-     * @return List of daily shop items for the user.
+     * Returns all items that are marked as daily, active, not owned by the user, not expired, and in stock.
+     * @param userId User ID to check ownership status for the items.
+     * @return List of daily shop items available to the user.
      */
     @Transactional(readOnly = true)
     public List<ShopDTO> getDailyItems(String userId) {
+        logger.debug("Getting daily items for user {}", userId);
+        
         // Fetch the user with their inventory up-front to avoid multiple lookups and for ownership checks.
         User user = userRepository.findByIdWithInventory(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
-        List<Shop> userDailyItems = generateDailyItemsForUser(user);
+        LocalDateTime now = LocalDateTime.now();
 
-        // Now, filter the daily items list to exclude any items the user owns.
-        // This is necessary because of the fallback logic where the original pool might be used.
-        Set<UUID> finalOwnedItemIds = user.getItemInstances().stream()
-                .map(instance -> instance.getBaseItem().getId())
-                .collect(Collectors.toSet());
-
-        List<Shop> filteredDailyItems = userDailyItems.stream()
-            .filter(item -> !finalOwnedItemIds.contains(item.getId()))
+        // Get all daily items that are active
+        List<Shop> dailyItems = shopRepository.findByIsActiveTrueAndIsDailyTrue()
+            .stream()
+            .filter(item -> item.getExpiresAt() == null || item.getExpiresAt().isAfter(now))
             .filter(item -> item.getMaxCopies() == null || item.getCopiesSold() == null || item.getCopiesSold() < item.getMaxCopies())
             .collect(Collectors.toList());
 
-        // Convert the filtered list to DTOs for the response
-        final User finalUser = user;
-        return filteredDailyItems.stream()
-            .map(item -> mapToShopDTO(item, finalUser))
+        // Filter out items the user already owns
+        Set<UUID> ownedItemIds = user.getItemInstances().stream()
+                .map(instance -> instance.getBaseItem().getId())
+                .collect(Collectors.toSet());
+
+        List<Shop> availableDailyItems = dailyItems.stream()
+            .filter(item -> !ownedItemIds.contains(item.getId()))
+            .collect(Collectors.toList());
+
+        // Convert to DTOs for the response
+        return availableDailyItems.stream()
+            .map(item -> mapToShopDTO(item, user))
             .collect(Collectors.toList());
     }
 
-    /**
-     * Thread-safe method to get the daily item pool, initializing if necessary
-     * @return Current daily item pool
-     */
-    private synchronized List<Shop> getDailyItemPoolSafely() {
-        if (dailyItemPool == null) {
-            logger.warn("Daily item pool not yet populated. Triggering selection now.");
-            updateDailyItemPool();
-        }
-        return dailyItemPool;
-    }
-
-    /**
-     * Scheduled task to update the global pool of eligible daily items.
-     * This runs at midnight UTC every day.
-     */
-    @Scheduled(cron = "0 0 0 * * *", zone = "UTC")
-    public synchronized void updateDailyItemPool() {
-        logger.info("Executing scheduled task to update the global daily item pool.");
-        
-        this.dailyItemPool = shopRepository.findByIsDailyTrueAndIsActiveTrueAndExpiresAtAfterOrExpiresAtIsNull(LocalDateTime.now())
-            .stream()
-            .filter(Shop::getIsActive)
-            .filter(item -> item.getCategory() != ShopCategory.CASE)
-            .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
-        
-        logger.info("Successfully updated global daily item pool with {} eligible items.", dailyItemPool.size());
-    }
-
-    private List<Shop> generateDailyItemsForUser(User user) {
-        // Ensure daily item pool is available with thread-safe access
-        List<Shop> currentDailyPool = getDailyItemPoolSafely();
-
-        // Create a secure deterministic seed for the user and the current day
-        String seedString = user.getId() + java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString() + serverSeedSalt;
-        long seed = new Random(seedString.hashCode()).nextLong();
-        Random random = new Random(seed);
-
-        // The entire logic of pre-filtering based on ownership is removed.
-        // We now operate on the full pool to ensure the daily selection is stable.
-        if (currentDailyPool.isEmpty()) {
-            return Collections.emptyList();
-        }
-        
-        if (currentDailyPool.size() < 4) {
-            logger.warn("Daily item pool has fewer than 4 items ({}), selection may be smaller.", currentDailyPool.size());
-        }
-
-        // Group the full pool by rarity for selection
-        Map<ItemRarity, List<Shop>> itemsByRarity = currentDailyPool.stream()  
-            .collect(Collectors.groupingBy(Shop::getRarity));
-        
-        // selectItemsForUser will now deterministically pick from the full pool.
-        return selectItemsForUser(itemsByRarity, random, currentDailyPool);
-    }
-
-    private List<Shop> selectItemsForUser(Map<ItemRarity, List<Shop>> itemsByRarity, Random random, List<Shop> availableItemPool) {
-        // Initialize lists for each rarity, handling null cases
-        List<Shop> legendaryItems = itemsByRarity.getOrDefault(ItemRarity.LEGENDARY, Collections.emptyList());
-        List<Shop> epicItems = itemsByRarity.getOrDefault(ItemRarity.EPIC, Collections.emptyList());
-        List<Shop> rareItems = itemsByRarity.getOrDefault(ItemRarity.RARE, Collections.emptyList());
-        List<Shop> uncommonItems = itemsByRarity.getOrDefault(ItemRarity.UNCOMMON, Collections.emptyList());
-        List<Shop> commonItems = itemsByRarity.getOrDefault(ItemRarity.COMMON, Collections.emptyList());
-
-        List<Shop> lowerTierItems = new ArrayList<>();
-        lowerTierItems.addAll(rareItems);
-        lowerTierItems.addAll(uncommonItems);
-        lowerTierItems.addAll(commonItems);
-
-        List<Shop> selectedItems = new ArrayList<>();
-
-        // Select items based on rarity distribution
-        selectAndAddItem(selectedItems, legendaryItems, 1, random, Arrays.asList(epicItems, lowerTierItems));
-        selectAndAddItem(selectedItems, epicItems, 1, random, Arrays.asList(legendaryItems, lowerTierItems));
-        selectAndAddItem(selectedItems, lowerTierItems, 2, random, Arrays.asList(epicItems, legendaryItems));
-        
-        // Enforce the 'max one fishing rod' rule
-        long fishingRodCount = selectedItems.stream()
-            .filter(item -> item.getCategory() == ShopCategory.FISHING_ROD)
-            .count();
-
-        if (fishingRodCount > 1) {
-            List<Shop> rodsToReplace = selectedItems.stream()
-                .filter(item -> item.getCategory() == ShopCategory.FISHING_ROD)
-                .skip(1)
-                .collect(Collectors.toList());
-
-            for (Shop rodToReplace : rodsToReplace) {
-                ItemRarity rarityToMatch = rodToReplace.getRarity();
-                List<Shop> replacementPool = itemsByRarity.getOrDefault(rarityToMatch, Collections.emptyList())
-                    .stream()
-                    .filter(item -> item.getCategory() != ShopCategory.FISHING_ROD && !selectedItems.contains(item))
-                    .collect(Collectors.toList());
-
-                Shop replacement = null;
-                if (!replacementPool.isEmpty()) {
-                    replacement = replacementPool.get(random.nextInt(replacementPool.size()));
-                } else {
-                    List<Shop> generalReplacementPool = availableItemPool.stream()
-                        .filter(item -> item.getCategory() != ShopCategory.FISHING_ROD && !selectedItems.contains(item))
-                        .collect(Collectors.toList());
-                    if (!generalReplacementPool.isEmpty()) {
-                        replacement = generalReplacementPool.get(random.nextInt(generalReplacementPool.size()));
-                    }
-                }
-
-                int index = selectedItems.indexOf(rodToReplace);
-                if (index != -1) {
-                    if (replacement != null) {
-                        selectedItems.set(index, replacement);
-                    } else {
-                        selectedItems.remove(index);
-                    }
-                }
-            }
-        }
-        
-        // Final fallback to ensure 4 items if possible
-        if (selectedItems.size() < 4) {
-            List<Shop> remainingPool = new ArrayList<>(availableItemPool);
-            remainingPool.removeAll(selectedItems);
-            
-            while (selectedItems.size() < 4 && !remainingPool.isEmpty()) {
-                int randomIndex = random.nextInt(remainingPool.size());
-                Shop item = remainingPool.remove(randomIndex);
-                if (!selectedItems.contains(item)) {
-                    selectedItems.add(item);
-                }
-            }
-        }
-        return selectedItems;
-    }
-
-    private void selectAndAddItem(List<Shop> selectedItems, List<Shop> sourceList, int count, Random random, List<List<Shop>> fallbacks) {
-        List<Shop> pool = new ArrayList<>(sourceList);
-        for (int i = 0; i < count; i++) {
-            if (!pool.isEmpty()) {
-                int randomIndex = random.nextInt(pool.size());
-                Shop selected = pool.remove(randomIndex);
-                if (!selectedItems.contains(selected)) {
-                    selectedItems.add(selected);
-                }
-            } else {
-                // Fallback logic
-                for (List<Shop> fallbackPool : fallbacks) {
-                    List<Shop> availableFallbacks = new ArrayList<>(fallbackPool);
-                    availableFallbacks.removeAll(selectedItems);
-                    if (!availableFallbacks.isEmpty()) {
-                        int fallbackIndex = random.nextInt(availableFallbacks.size());
-                        Shop fallbackItem = availableFallbacks.get(fallbackIndex);
-                        if (!selectedItems.contains(fallbackItem)) {
-                             selectedItems.add(fallbackItem);
-                             // We found one, so break from the fallback loop
-                             break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
     /**
      * Get a shop item by ID
      * @param itemId Item ID
@@ -429,18 +262,19 @@ public class ShopService {
             return true;
         }
 
-        // If not featured, check if it's a daily item and present in the user's daily item list
+        // If not featured, check if it's a daily item and the user doesn't own it
         if (item.getIsDaily()) {
-            List<Shop> userDailyItems = generateDailyItemsForUser(user);
-            boolean isInDailyList = userDailyItems.stream().anyMatch(dailyItem -> dailyItem.getId().equals(item.getId()));
-            if (isInDailyList) {
-                logger.debug("Purchase validation passed for user {}: Item {} is in their daily items list.", user.getId(), item.getId());
+            boolean userOwnsItem = user.getItemInstances().stream()
+                .anyMatch(instance -> instance.getBaseItem().getId().equals(item.getId()));
+            
+            if (!userOwnsItem) {
+                logger.debug("Purchase validation passed for user {}: Item {} is a daily item that user doesn't own.", user.getId(), item.getId());
                 return true;
             }
         }
         
         // If it's neither featured nor a valid daily item for the user, it's not purchasable
-        logger.warn("Purchase validation failed for user {}: Item {} is not featured and not in their active daily shop.", user.getId(), item.getId());
+        logger.warn("Purchase validation failed for user {}: Item {} is not featured and not a valid daily item for this user.", user.getId(), item.getId());
         return false;
     }
     
