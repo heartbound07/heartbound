@@ -1,5 +1,7 @@
 package com.app.heartbound.entities;
 
+import com.app.heartbound.config.security.Views;
+import com.fasterxml.jackson.annotation.JsonView;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,6 +18,7 @@ public class TradeItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonView(Views.Public.class)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -24,6 +27,7 @@ public class TradeItem {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_instance_id", nullable = false)
+    @JsonView(Views.Public.class)
     private ItemInstance itemInstance;
 
 } 

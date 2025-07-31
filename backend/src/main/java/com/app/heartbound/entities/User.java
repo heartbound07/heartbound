@@ -1,8 +1,10 @@
 package com.app.heartbound.entities;
 
+import com.app.heartbound.config.security.Views;
 import com.app.heartbound.enums.Role;
 import com.app.heartbound.enums.ShopCategory;
 
+import com.fasterxml.jackson.annotation.JsonView;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -42,82 +44,117 @@ public class User {
     // private static final int MAX_BADGES = 5; // Deprecated - now using single badge
     
     @Id
+    @JsonView(Views.Public.class)
     private String id; // External (OAuth) user id
 
+    @JsonView(Views.Public.class)
     private String username;
+    @JsonView(Views.Public.class)
     private String discriminator;
+    @JsonView(Views.Public.class)
     private String avatar;
+    @JsonView(Views.Admin.class)
     private String email;
+    @JsonView(Views.Admin.class)
     private String password;
     
     // Add this field to cache the Discord avatar URL
+    @JsonView(Views.Public.class)
     private String discordAvatarUrl;
     
     // Profile Update Fields
     
+    @JsonView(Views.Public.class)
     private String displayName;
+    @JsonView(Views.Public.class)
     private String pronouns;
+    @JsonView(Views.Public.class)
     private String about;
+    @JsonView(Views.Public.class)
     private String bannerColor;
+    @JsonView(Views.Public.class)
     private String bannerUrl;
     
     // Add credits field with default value
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private Integer credits = 0;
     
     // Add level and experience fields with default values
     @Builder.Default
+    @JsonView(Views.Public.class)
     private Integer level = 1;
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private Integer experience = 0;
     
     // Add message count field to track total messages sent by user
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private Long messageCount = 0L;
 
     // Add fish caught count field
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private Integer fishCaughtCount = 0;
 
     // Add field to track catches for the current fishing limit period
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private Integer fishCaughtSinceLimit = 0;
     
     // Add fishing limit cooldown field to track 6-hour cooldown after 300 catches
+    @JsonView(Views.Admin.class)
     private LocalDateTime fishingLimitCooldownUntil;
     
     // Add time-based message count fields
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private Integer messagesToday = 0;
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private Integer messagesThisWeek = 0;
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private Integer messagesThisTwoWeeks = 0;
     
     // Add timestamp fields for tracking when to reset counters
+    @JsonView(Views.Admin.class)
     private LocalDateTime lastDailyReset;
+    @JsonView(Views.Admin.class)
     private LocalDateTime lastWeeklyReset;
+    @JsonView(Views.Admin.class)
     private LocalDateTime lastBiWeeklyReset;
     
     // Add voice activity tracking fields
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private Integer voiceTimeMinutesTotal = 0;
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private Integer voiceTimeMinutesToday = 0;
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private Integer voiceTimeMinutesThisWeek = 0;
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private Integer voiceTimeMinutesThisTwoWeeks = 0;
+    @JsonView(Views.Admin.class)
     private Integer voiceRank;
     
     // Add voice activity timestamp fields for tracking when to reset counters
+    @JsonView(Views.Admin.class)
     private LocalDateTime lastVoiceDailyReset;
+    @JsonView(Views.Admin.class)
     private LocalDateTime lastVoiceWeeklyReset;
+    @JsonView(Views.Admin.class)
     private LocalDateTime lastVoiceBiWeeklyReset;
     
     // Daily claim system fields
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private Integer dailyStreak = 0;
+    @JsonView(Views.Admin.class)
     private LocalDateTime lastDailyClaim;
 
     // Prison system fields
@@ -125,25 +162,34 @@ public class User {
     @CollectionTable(name = "user_prison_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role_id")
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private List<String> originalRoleIds = new ArrayList<>();
 
+    @JsonView(Views.Admin.class)
     private LocalDateTime prisonedAt;
     
+    @JsonView(Views.Admin.class)
     private LocalDateTime prisonReleaseAt;
     
     // Self-assignable role selections
+    @JsonView(Views.Admin.class)
     private String selectedAgeRoleId;
+    @JsonView(Views.Admin.class)
     private String selectedGenderRoleId;
+    @JsonView(Views.Admin.class)
     private String selectedRankRoleId;
+    @JsonView(Views.Admin.class)
     private String selectedRegionRoleId;
     
     // User active status field
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private Boolean active = true;
 
     // Add banned field
     @Builder.Default
     @Column(name = "is_banned")
+    @JsonView(Views.Public.class)
     private Boolean banned = false;
     
     // Role-based security addition
@@ -152,6 +198,7 @@ public class User {
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role")
     @Builder.Default
+    @JsonView(Views.Public.class)
     private Set<Role> roles = new HashSet<>();
     
     // Add inventory relationship
@@ -172,26 +219,33 @@ public class User {
     
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @Builder.Default
+    @JsonView(Views.Admin.class)
     private List<ItemInstance> itemInstances = new ArrayList<>();
 
     // Add these fields to store equipped item IDs
     @Column(name = "equipped_user_color_id")
+    @JsonView(Views.Public.class)
     private UUID equippedUserColorId;
 
     @Column(name = "equipped_listing_id")
+    @JsonView(Views.Public.class)
     private UUID equippedListingId;
 
     @Column(name = "equipped_accent_id")
+    @JsonView(Views.Public.class)
     private UUID equippedAccentId;
     
     // Updated field to store single equipped badge ID instead of multiple
     @Column(name = "equipped_badge_id")
+    @JsonView(Views.Public.class)
     private UUID equippedBadgeId;
 
     @Column(name = "equipped_fishing_rod_instance_id")
+    @JsonView(Views.Public.class)
     private UUID equippedFishingRodInstanceId;
     
     // Add a field to store the user's current randomized fishing limit
+    @JsonView(Views.Admin.class)
     private Integer currentFishingLimit;
 
     // Helper methods for role management

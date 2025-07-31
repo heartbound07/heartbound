@@ -1,11 +1,13 @@
 package com.app.heartbound.controllers;
 
 import com.app.heartbound.config.security.RateLimited;
+import com.app.heartbound.config.security.Views;
 import com.app.heartbound.dto.CreateTradeDto;
 import com.app.heartbound.entities.Trade;
 import com.app.heartbound.enums.RateLimitKeyType;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import com.app.heartbound.services.TradeService;
+import com.fasterxml.jackson.annotation.JsonView;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -65,6 +67,7 @@ public class TradeController {
     }
 
     @GetMapping("/{id}")
+    @JsonView(Views.Public.class)
     public ResponseEntity<Trade> getTradeDetails(@PathVariable Long id, Authentication authentication) {
         String currentUserId = authentication.getName();
         Trade trade = tradeService.getTradeDetails(id);
@@ -82,6 +85,7 @@ public class TradeController {
     }
 
     @GetMapping
+    @JsonView(Views.Public.class)
     public ResponseEntity<List<Trade>> getUserTrades(Authentication authentication) {
         String currentUserId = authentication.getName();
         logger.debug("Fetching trades for user {}", currentUserId);
