@@ -6,6 +6,11 @@ import { GiFishingPole, GiSewingString, GiFishingHook, GiGearStick } from 'react
 import { PiFilmReel, PiHandPalm } from 'react-icons/pi';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { FaCoins } from 'react-icons/fa';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/valorant/popover';
 
 interface FishingRodPartsModalProps {
   isOpen: boolean;
@@ -40,6 +45,14 @@ const partSlots: Array<{ type: string; name: string }> = [
   { type: 'HOOK', name: 'Hook' },
   { type: 'GRIP', name: 'Grip' },
 ];
+
+const partTypeDescriptions: Record<string, string> = {
+  ROD_SHAFT: 'Increases the durability of your rod.',
+  REEL: 'Bonus loot chance (credits, parts, etc.)',
+  FISHING_LINE: 'Percentage increase to credit or XP rewards',
+  HOOK: 'Chance of catching higher-tier fish/items',
+  GRIP: 'Resistance to crab snips.',
+};
 
 export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
   isOpen,
@@ -185,7 +198,21 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
               <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
                 {partSlots.map(({ type, name }) => (
                   <div key={`inventory-${type}`}>
-                    <h4 className="text-md font-semibold text-slate-400 my-2">{name}</h4>
+                    <div className="flex items-center space-x-2">
+                      <h4 className="text-md font-semibold text-slate-400 my-2">{name}</h4>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent>
+                          <p>{partTypeDescriptions[type]}</p>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                     {parts
                       .filter(p => p.fishingRodPartType === type)
                       .map(part => {
