@@ -183,37 +183,33 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
             {/* Right side: Parts Inventory */}
             <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
               <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
-                {parts.length > 0 ? (
-                  partSlots.map(({ type, name }) => (
-                    <div key={`inventory-${type}`}>
-                      <h4 className="text-md font-semibold text-slate-400 my-2">{name}</h4>
-                      {parts
-                        .filter(p => p.fishingRodPartType === type)
-                        .map(part => {
-                          const cost = RARITY_COSTS[part.rarity] || 0;
-                          return (
-                          <div key={part.instanceId} className={`bg-slate-800 p-2 rounded-md flex items-center justify-between mb-2 border-l-4 ${getRarityClass(part.rarity)}`}>
-                            <div>
-                              <p className="font-medium text-white">{part.name}</p>
-                              <p className="text-xs text-slate-400">{part.description}</p>
-                            </div>
-                            <button
-                              onClick={() => handleEquipClick(part)}
-                              className="px-3 py-1 bg-primary/80 hover:bg-primary text-white text-xs font-semibold rounded-md transition-colors"
-                              disabled={!!equippedPartsMap[type]}
-                            >
-                              Equip ( <FaCoins className="inline-block -mt-px mr-1" />{cost} )
-                            </button>
+                {partSlots.map(({ type, name }) => (
+                  <div key={`inventory-${type}`}>
+                    <h4 className="text-md font-semibold text-slate-400 my-2">{name}</h4>
+                    {parts
+                      .filter(p => p.fishingRodPartType === type)
+                      .map(part => {
+                        const cost = RARITY_COSTS[part.rarity] || 0;
+                        return (
+                        <div key={part.instanceId} className={`bg-slate-800 p-2 rounded-md flex items-center justify-between mb-2 border-l-4 ${getRarityClass(part.rarity)}`}>
+                          <div>
+                            <p className="font-medium text-white">{part.name}</p>
+                            <p className="text-xs text-slate-400">{part.description}</p>
                           </div>
-                        )})}
-                      {parts.filter(p => p.fishingRodPartType === type).length === 0 && (
-                        <p className="text-slate-500 text-sm italic">No available parts of this type.</p>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-slate-400 text-sm text-center py-8">No fishing rod parts in your inventory.</p>
-                )}
+                          <button
+                            onClick={() => handleEquipClick(part)}
+                            className="px-3 py-1 bg-primary/80 hover:bg-primary text-white text-xs font-semibold rounded-md transition-colors"
+                            disabled={!!equippedPartsMap[type]}
+                          >
+                            Equip ( <FaCoins className="inline-block -mt-px mr-1" />{cost} )
+                          </button>
+                        </div>
+                      )})}
+                    {parts.filter(p => p.fishingRodPartType === type).length === 0 && (
+                      <p className="text-slate-500 text-sm italic">No available parts of this type.</p>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
