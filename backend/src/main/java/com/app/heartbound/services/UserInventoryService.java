@@ -19,14 +19,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import com.app.heartbound.enums.ItemRarity;
-import com.app.heartbound.enums.FishingRodPart;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.exceptions.InvalidOperationException;
 import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
 
 import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
 
 @Service
 public class UserInventoryService {
