@@ -1,27 +1,11 @@
 import { motion } from 'framer-motion';
-import { formatDisplayText } from '@/utils/formatters';
+import { formatCategoryDisplay } from '@/utils/formatters';
 
 interface InventoryFiltersProps {
   categories: string[];
   selectedCategory: string | null;
   onSelectCategory: (category: string | null) => void;
 }
-
-// Add category mapping for special cases
-const categoryDisplayMapping: Record<string, string> = {
-    'USER_COLOR': 'Nameplate',
-    'LISTING': 'Listing Color',
-    'ACCENT': 'Profile Accent',
-    'BADGE': 'Badge',
-    'CASE': 'Case',
-    'FISHING_ROD': 'Fishing Rod',
-    'FISHING_ROD_PART': 'Fishing Rod Part'
-};
-
-// Format category for display with custom mappings
-const formatCategoryDisplay = (category: string): string => {
-    return categoryDisplayMapping[category] || formatDisplayText(category);
-};
 
 export const InventoryFilters: React.FC<InventoryFiltersProps> = ({
   categories,

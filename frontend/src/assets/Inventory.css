@@ -34,7 +34,6 @@
   --inventory-scale-active: scale(0.95);
   
   /* Spacing and sizing */
-  --inventory-grid-gap: 1.5rem;
   --inventory-card-radius: 0.75rem;
   --inventory-section-padding: 1.5rem;
   --inventory-button-padding: 0.75rem 1.5rem;
@@ -47,17 +46,14 @@
   --inventory-max-width: 1600px;
   --inventory-preview-width: 400px;
   --inventory-preview-width-large: 450px;
-  --inventory-grid-min-width: 280px;
   --inventory-item-height: 160px;
   
   /* Refined grid sizing for consistent columns */
   --inventory-grid-min-width-desktop: 300px;  /* Increased from 280px */
-  --inventory-grid-min-width-tablet: 280px;   /* Tablet size */
   --inventory-grid-min-width-mobile: 260px;   /* Mobile size */
   
   /* Consistent gaps */
   --inventory-grid-gap-desktop: 1.5rem;
-  --inventory-grid-gap-tablet: 1.25rem;       /* Intermediate gap */
   --inventory-grid-gap-mobile: 1rem;
 }
 
@@ -1123,7 +1119,7 @@
   }
   
   .inventory-grid {
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(var(--inventory-grid-min-width-mobile), 1fr));
     gap: 1rem;
   }
   

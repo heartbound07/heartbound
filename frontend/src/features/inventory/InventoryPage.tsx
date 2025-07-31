@@ -124,14 +124,6 @@ export function InventoryPage() {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
   
-  // Case preview modal functions
-  const openCasePreview = (caseId: string, caseName: string) => {
-    setCasePreviewModal({
-      isOpen: true,
-      caseId,
-      caseName
-    });
-  };
   
   const closeCasePreview = () => {
     setCasePreviewModal({
@@ -706,7 +698,6 @@ export function InventoryPage() {
                   onUnequip={handleUnequipItem}
                   onUnequipBadge={handleUnequipBadge}
                   onOpenCase={openCaseRoll}
-                  onViewCaseContents={openCasePreview}
                   actionInProgress={actionInProgress}
                   onEquipMultipleItems={handleEquipMultipleItems}
                   onUnequipMultipleItems={handleUnequipMultipleItems}

@@ -27,4 +27,20 @@ export const formatVoiceTime = (minutes: number | undefined): string => {
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   return `${hours}h ${remainingMinutes}m`;
+};
+
+// Add category mapping for special cases
+export const categoryDisplayMapping: Record<string, string> = {
+    'USER_COLOR': 'Nameplate',
+    'LISTING': 'Listing Color',
+    'ACCENT': 'Profile Accent',
+    'BADGE': 'Badge',
+    'CASE': 'Case',
+    'FISHING_ROD': 'Fishing Rod',
+    'FISHING_ROD_PART': 'Fishing Rod Part'
+};
+
+// Format category for display with custom mappings
+export const formatCategoryDisplay = (category: string): string => {
+    return categoryDisplayMapping[category] || formatDisplayText(category);
 }; 

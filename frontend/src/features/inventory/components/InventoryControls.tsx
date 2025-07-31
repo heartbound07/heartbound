@@ -1,4 +1,4 @@
-import { formatDisplayText } from '@/utils/formatters';
+import { formatCategoryDisplay } from '@/utils/formatters';
 
 interface InventoryControlsProps {
   selectedCategory: string | null;
@@ -7,22 +7,6 @@ interface InventoryControlsProps {
   itemCount: number;
   loading: boolean;
 }
-
-// Add category mapping for special cases
-const categoryDisplayMapping: Record<string, string> = {
-    'USER_COLOR': 'Nameplate',
-    'LISTING': 'Listing Color',
-    'ACCENT': 'Profile Accent',
-    'BADGE': 'Badge',
-    'CASE': 'Case',
-    'FISHING_ROD': 'Fishing Rod',
-    'FISHING_ROD_PART': 'Fishing Rod Part'
-};
-
-// Format category for display with custom mappings
-const formatCategoryDisplay = (category: string): string => {
-    return categoryDisplayMapping[category] || formatDisplayText(category);
-};
 
 export const InventoryControls: React.FC<InventoryControlsProps> = ({
   selectedCategory,
