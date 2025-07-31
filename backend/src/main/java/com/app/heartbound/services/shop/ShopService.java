@@ -45,6 +45,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.Objects;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Service
 public class ShopService {
@@ -166,9 +167,10 @@ public class ShopService {
     
     /**
      * Get daily shop items for the main layout.
-     * Returns all items that are marked as daily, active, not owned by the user, not expired, and in stock.
+     * Returns exactly 4 items that are personalized for each user but consistent per day.
+     * Selection is weighted by rarity with LEGENDARY/EPIC items being significantly rarer.
      * @param userId User ID to check ownership status for the items.
-     * @return List of daily shop items available to the user.
+     * @return List of daily shop items available to the user (max 4 items).
      */
     @Transactional(readOnly = true)
     public List<ShopDTO> getDailyItems(String userId) {
@@ -178,6 +180,25 @@ public class ShopService {
         User user = userRepository.findByIdWithInventory(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
+        // Get the user's personalized daily shop items
+        List<Shop> selectedItems = getUserDailyShopItems(user);
+        
+        logger.info("Selected {} daily items for user {} from available pool", selectedItems.size(), userId);
+        
+        // Convert to DTOs for the response
+        return selectedItems.stream()
+            .map(item -> mapToShopDTO(item, user))
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get the personalized daily shop items for a user (internal method).
+     * Returns the actual Shop entities that would be shown in the user's daily shop.
+     * 
+     * @param user User with loaded inventory
+     * @return List of Shop items for the user's daily selection (max 4 items)
+     */
+    private List<Shop> getUserDailyShopItems(User user) {
         LocalDateTime now = LocalDateTime.now();
 
         // Get all daily items that are active
@@ -196,10 +217,98 @@ public class ShopService {
             .filter(item -> !ownedItemIds.contains(item.getId()))
             .collect(Collectors.toList());
 
-        // Convert to DTOs for the response
-        return availableDailyItems.stream()
-            .map(item -> mapToShopDTO(item, user))
+        // If we have 4 or fewer items, return all of them
+        if (availableDailyItems.size() <= 4) {
+            return availableDailyItems;
+        }
+
+        // Select exactly 4 items using weighted rarity selection
+        String dateString = LocalDate.now().toString();
+        long seed = (user.getId() + dateString).hashCode();
+        Random seededRandom = new Random(seed);
+        
+        // Group available items by rarity
+        Map<ItemRarity, List<Shop>> itemsByRarity = availableDailyItems.stream()
+            .collect(Collectors.groupingBy(Shop::getRarity));
+        
+        // Define rarity weights
+        Map<ItemRarity, Double> rarityWeights = Map.of(
+            ItemRarity.COMMON, 0.55,
+            ItemRarity.UNCOMMON, 0.25,
+            ItemRarity.RARE, 0.12,
+            ItemRarity.EPIC, 0.06,
+            ItemRarity.LEGENDARY, 0.02
+        );
+        
+        // Select exactly 4 unique items
+        List<Shop> selectedItems = new ArrayList<>();
+        
+        for (int i = 0; i < 4 && !itemsByRarity.isEmpty(); i++) {
+            ItemRarity selectedRarity = selectWeightedRarity(rarityWeights, seededRandom, itemsByRarity);
+            
+            if (selectedRarity == null) {
+                break;
+            }
+            
+            List<Shop> itemsOfRarity = itemsByRarity.get(selectedRarity);
+            int randomIndex = seededRandom.nextInt(itemsOfRarity.size());
+            Shop selectedItem = itemsOfRarity.get(randomIndex);
+            
+            selectedItems.add(selectedItem);
+            itemsOfRarity.remove(selectedItem);
+            
+            // Clean up empty rarity lists
+            if (itemsOfRarity.isEmpty()) {
+                itemsByRarity.remove(selectedRarity);
+            }
+        }
+        
+        return selectedItems;
+    }
+
+    /**
+     * Select a rarity based on weighted distribution from available rarities.
+     * Only considers rarities that have available items.
+     * 
+     * @param rarityWeights Map of rarity to weight values
+     * @param random Random number generator to use
+     * @param itemsByRarity Map of available items grouped by rarity
+     * @return Selected ItemRarity or null if no rarities are available
+     */
+    private ItemRarity selectWeightedRarity(Map<ItemRarity, Double> rarityWeights, Random random, 
+                                           Map<ItemRarity, List<Shop>> itemsByRarity) {
+        // Only consider rarities that have available items
+        List<ItemRarity> availableRarities = itemsByRarity.entrySet().stream()
+            .filter(entry -> !entry.getValue().isEmpty())
+            .map(Map.Entry::getKey)
             .collect(Collectors.toList());
+        
+        if (availableRarities.isEmpty()) {
+            return null;
+        }
+        
+        // Calculate total weight for available rarities
+        double totalWeight = availableRarities.stream()
+            .mapToDouble(rarity -> rarityWeights.getOrDefault(rarity, 0.0))
+            .sum();
+        
+        if (totalWeight <= 0.0) {
+            // Fallback to uniform distribution if no weights defined
+            return availableRarities.get(random.nextInt(availableRarities.size()));
+        }
+        
+        double randomValue = random.nextDouble() * totalWeight;
+        double cumulativeWeight = 0.0;
+        
+        for (ItemRarity rarity : availableRarities) {
+            cumulativeWeight += rarityWeights.getOrDefault(rarity, 0.0);
+            if (randomValue <= cumulativeWeight) {
+                return rarity;
+            }
+        }
+        
+        // Fallback to last available rarity
+        return availableRarities.get(availableRarities.size() - 1);
     }
 
     /**
@@ -262,14 +371,19 @@ public class ShopService {
             return true;
         }
 
-        // If not featured, check if it's a daily item and the user doesn't own it
+        // If not featured, check if it's a daily item in the user's personalized daily shop
         if (item.getIsDaily()) {
-            boolean userOwnsItem = user.getItemInstances().stream()
-                .anyMatch(instance -> instance.getBaseItem().getId().equals(item.getId()));
+            // Get the user's personalized daily shop items to validate the purchase
+            List<Shop> userDailyItems = getUserDailyShopItems(user);
+            boolean isInDailyShop = userDailyItems.stream()
+                .anyMatch(dailyItem -> dailyItem.getId().equals(item.getId()));
             
-            if (!userOwnsItem) {
-                logger.debug("Purchase validation passed for user {}: Item {} is a daily item that user doesn't own.", user.getId(), item.getId());
+            if (isInDailyShop) {
+                logger.debug("Purchase validation passed for user {}: Item {} is in user's personalized daily shop.", user.getId(), item.getId());
                 return true;
+            } else {
+                logger.warn("Purchase validation failed for user {}: Item {} is a daily item but not in user's personalized daily shop.", user.getId(), item.getId());
+                return false;
             }
         }
         
