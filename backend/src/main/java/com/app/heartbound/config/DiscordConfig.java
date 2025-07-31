@@ -359,7 +359,6 @@ public class DiscordConfig {
                         .addOptions(
                             new OptionData(OptionType.USER, "user", "The user to trade with", true)
                         ),
-                    Commands.slash("grab", "Collect the credits dropped in this channel"),
                     Commands.slash("mines", "Play a game of Mines and bet credits")
                         .addOptions(
                             new OptionData(OptionType.INTEGER, "bet", "Amount of credits to bet", true)

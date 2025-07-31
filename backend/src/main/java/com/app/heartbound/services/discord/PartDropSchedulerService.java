@@ -79,7 +79,7 @@ public class PartDropSchedulerService {
 
             EmbedBuilder embed = new EmbedBuilder()
                 .setDescription("A Fishing Rod part has washed up on shore!")
-                .setFooter("do /grab to claim the item!")
+                .setFooter("type 'grab' to claim the item!")
                 .setColor(new Color(46, 204, 113)); // A pleasant green color
 
             channel.sendMessageEmbeds(embed.build()).queue(message -> {

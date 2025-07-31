@@ -7,7 +7,7 @@ import com.app.heartbound.services.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.springframework.stereotype.Component;
 
@@ -26,14 +26,15 @@ public class GrabCommandListener extends ListenerAdapter {
     private final UserInventoryService userInventoryService;
 
     @Override
-    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
-        if (!event.getName().equals("grab")) {
+    public void onMessageReceived(@Nonnull MessageReceivedEvent event) {
+        if (event.getAuthor().isBot() || !event.getMessage().getContentRaw().equalsIgnoreCase("grab")) {
             return;
         }
 
         DiscordBotSettings settings = discordBotSettingsService.getDiscordBotSettings();
         if (settings == null) {
-            event.reply("Bot settings are not configured.").setEphemeral(true).queue();
+            // Cannot reply ephemerally, so we send a public reply. Consider if this is too noisy.
+            event.getMessage().reply("Bot settings are not configured.").queue();
             return;
         }
 
@@ -41,15 +42,15 @@ public class GrabCommandListener extends ListenerAdapter {
         boolean isPartDropChannel = settings.getPartDropEnabled() != null && settings.getPartDropEnabled() && event.getChannel().getId().equals(settings.getPartDropChannelId());
 
         if (!isCreditDropChannel && !isPartDropChannel) {
-            event.reply("You can't do that here.").setEphemeral(true).queue();
+            // Do not reply to avoid spamming channels where the command is not applicable.
             return;
         }
 
         dropStateService.claimDrop(event.getChannel().getId()).ifPresentOrElse(
             activeDrop -> {
-                User user = userService.getUserById(event.getUser().getId());
+                User user = userService.getUserById(event.getAuthor().getId());
                 if (user == null) {
-                    event.reply("You must be registered to claim drops.").setEphemeral(true).queue();
+                    event.getMessage().reply("You must be registered to claim drops.").queue();
                     // Put the drop back since the user is not registered.
                     dropStateService.startDrop(event.getChannel().getId(), activeDrop.getMessageId(), activeDrop.getType(), activeDrop.getValue());
                     return;
@@ -64,33 +65,33 @@ public class GrabCommandListener extends ListenerAdapter {
                         break;
                 }
             },
-            () -> event.reply("Too late! Someone else already grabbed the drop.").setEphemeral(true).queue()
+            () -> event.getMessage().reply("Too late! Someone else already grabbed the drop.").queue()
         );
     }
 
-    private void handleCreditDrop(SlashCommandInteractionEvent event, User user, DropStateService.ActiveDrop activeDrop) {
+    private void handleCreditDrop(MessageReceivedEvent event, User user, DropStateService.ActiveDrop activeDrop) {
         int amount = (Integer) activeDrop.getValue();
         boolean success = userService.updateCreditsAtomic(user.getId(), amount);
 
         if (!success) {
-            event.reply("An error occurred while adding credits to your account.").setEphemeral(true).queue();
+            event.getMessage().reply("An error occurred while adding credits to your account.").queue();
             // Put the drop back.
             dropStateService.startDrop(event.getChannel().getId(), activeDrop.getMessageId(), activeDrop.getType(), activeDrop.getValue());
             return;
         }
 
-        event.reply("You grabbed " + amount + " credits!").queue();
+        event.getMessage().reply("You grabbed " + amount + " credits!").queue();
 
         // Edit original message
         event.getChannel().retrieveMessageById(activeDrop.getMessageId()).queue(message -> {
             EmbedBuilder embed = new EmbedBuilder()
-                .setDescription("The credits were claimed by " + event.getUser().getAsMention() + "!")
+                .setDescription("The credits were claimed by " + event.getAuthor().getAsMention() + "!")
                 .setColor(Color.GRAY);
             message.editMessageEmbeds(embed.build()).queue();
         });
     }
 
-    private void handleItemDrop(SlashCommandInteractionEvent event, User user, DropStateService.ActiveDrop activeDrop) {
+    private void handleItemDrop(MessageReceivedEvent event, User user, DropStateService.ActiveDrop activeDrop) {
         UUID itemId = (UUID) activeDrop.getValue();
         try {
             // This is a simplified call. You might need a more specific method in UserInventoryService
@@ -99,18 +100,18 @@ public class GrabCommandListener extends ListenerAdapter {
             // We will need to create it.
             String itemName = userInventoryService.giveItemToUser(user.getId(), itemId);
 
-            event.reply("You have collected a **" + itemName + "**!").setEphemeral(true).queue();
+            event.getMessage().reply("You have collected a **" + itemName + "**!").queue();
 
             // Edit original message
             event.getChannel().retrieveMessageById(activeDrop.getMessageId()).queue(message -> {
                 EmbedBuilder embed = new EmbedBuilder()
-                    .setDescription(event.getUser().getAsMention() + " collected a **" + itemName + "**!")
+                    .setDescription(event.getAuthor().getAsMention() + " collected a **" + itemName + "**!")
                     .setColor(Color.GRAY);
                 message.editMessageEmbeds(embed.build()).setComponents().queue();
             });
         } catch (Exception e) {
             log.error("Error giving item {} to user {}: {}", itemId, user.getId(), e.getMessage(), e);
-            event.reply("An error occurred while giving you the item.").setEphemeral(true).queue();
+            event.getMessage().reply("An error occurred while giving you the item.").queue();
             // Put the drop back.
             dropStateService.startDrop(event.getChannel().getId(), activeDrop.getMessageId(), activeDrop.getType(), activeDrop.getValue());
         }

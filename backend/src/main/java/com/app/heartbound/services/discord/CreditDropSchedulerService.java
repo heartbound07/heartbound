@@ -70,7 +70,7 @@ public class CreditDropSchedulerService {
 
             EmbedBuilder embed = new EmbedBuilder()
                 .setDescription("Someone has dropped 🪙 **" + amount + "** credits!")
-                .setFooter("do /grab to collect the credits!")
+                .setFooter("type 'grab' to collect the credits!")
                 .setColor(new Color(52, 152, 219)); // A pleasant blue color
 
             channel.sendMessageEmbeds(embed.build()).queue(message -> {
