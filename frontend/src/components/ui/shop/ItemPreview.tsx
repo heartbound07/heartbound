@@ -553,7 +553,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
                               <PopoverContent><p>Provides a flat boost to the credits earned from fishing.</p></PopoverContent>
                           </Popover>
                       </div>
-                      <span className="font-semibold text-cyan-400">{`+${aggregatedStats.multiplierIncrease.toFixed(1)}x`}</span>
+                      <span className="font-semibold text-cyan-400">{aggregatedStats.multiplierIncrease > 0 ? `+${aggregatedStats.multiplierIncrease.toFixed(1)}x` : '0x'}</span>
                   </div>
                   <div className="flex justify-between items-center">
                       <div className="flex items-center space-x-1.5">
