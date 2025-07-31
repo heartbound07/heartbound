@@ -3,7 +3,6 @@ package com.app.heartbound.services.discord;
 import com.app.heartbound.entities.DiscordBotSettings;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
-import com.app.heartbound.services.PendingRoleSelectionService;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
@@ -31,12 +30,10 @@ public class RolesCommandListener extends ListenerAdapter {
     private static final Logger logger = LoggerFactory.getLogger(RolesCommandListener.class);
     private final UserService userService;
     private final DiscordBotSettingsService discordBotSettingsService;
-    private final PendingRoleSelectionService pendingRoleSelectionService;
 
-    public RolesCommandListener(UserService userService, DiscordBotSettingsService discordBotSettingsService, PendingRoleSelectionService pendingRoleSelectionService) {
+    public RolesCommandListener(UserService userService, DiscordBotSettingsService discordBotSettingsService) {
         this.userService = userService;
         this.discordBotSettingsService = discordBotSettingsService;
-        this.pendingRoleSelectionService = pendingRoleSelectionService;
     }
 
     @Override
@@ -186,6 +183,12 @@ public class RolesCommandListener extends ListenerAdapter {
 
         User user = userService.getUserById(member.getId());
 
+        // Check if user is registered on the website
+        if (user == null) {
+            event.getHook().editOriginal("You must register on the website before selecting a role.").queue();
+            return;
+        }
+
         // Check if user already has a role from this category.
         // The 'gender' category is immutable; once selected, it cannot be changed.
         // Other categories (age, rank, region) are mutable.
@@ -220,7 +223,7 @@ public class RolesCommandListener extends ListenerAdapter {
 
         guild.modifyMemberRoles(member, List.of(newRole), rolesToRemove).queue(
             success -> {
-                updateUserOrPendingWithNewRole(user, member.getId(), category, roleIdToAssign);
+                updateUserRoleSelection(user, member.getId(), category, roleIdToAssign);
                 event.getHook().editOriginal("You have been successfully assigned the '" + newRole.getName() + "' role!").queue();
                 logger.info("Assigned role '{}' to user {} in category '{}'", newRole.getName(), member.getId(), category);
             },
@@ -232,7 +235,6 @@ public class RolesCommandListener extends ListenerAdapter {
     }
 
     private boolean hasRoleFromCategory(User user, String category, Member member) {
-        String discordUserId = member.getId();
         
         // First, check the database record if user exists
         if (user != null) {
@@ -250,16 +252,7 @@ public class RolesCommandListener extends ListenerAdapter {
             }
         }
         
-        // Check pending role selections for unregistered users
-        if (pendingRoleSelectionService.hasRoleInCategory(discordUserId, category)) {
-            String pendingRoleId = pendingRoleSelectionService.getRoleIdForCategory(discordUserId, category);
-            if (pendingRoleId != null && !pendingRoleId.isBlank()) {
-                // Verify they still have the role on Discord
-                return member.getRoles().stream().anyMatch(r -> r.getId().equals(pendingRoleId));
-            }
-        }
-        
-        // If no database or pending record, check their Discord roles against all roles in the category
+        // If no database record, check their Discord roles against all roles in the category
         DiscordBotSettings settings = discordBotSettingsService.getDiscordBotSettings();
         Map<String, String> categoryRoles = getCategoryRoles(settings, category);
         return member.getRoles().stream().anyMatch(r -> categoryRoles.containsKey(r.getId()));
@@ -288,29 +281,23 @@ public class RolesCommandListener extends ListenerAdapter {
                 .collect(Collectors.toMap(id -> id, id -> ""));
     }
 
-    private void updateUserOrPendingWithNewRole(User user, String discordUserId, String category, String roleId) {
-        if (user != null) {
-            // User exists in database, update the User entity
-            switch (category) {
-                case "age":
-                    user.setSelectedAgeRoleId(roleId);
-                    break;
-                case "gender":
-                    user.setSelectedGenderRoleId(roleId);
-                    break;
-                case "rank":
-                    user.setSelectedRankRoleId(roleId);
-                    break;
-                case "region":
-                    user.setSelectedRegionRoleId(roleId);
-                    break;
-            }
-            userService.updateUser(user);
-            logger.debug("Updated role selection for registered user {} in category '{}': {}", discordUserId, category, roleId);
-        } else {
-            // User doesn't exist in database, update pending role selection
-            pendingRoleSelectionService.updateRoleSelection(discordUserId, category, roleId);
-            logger.debug("Updated pending role selection for unregistered user {} in category '{}': {}", discordUserId, category, roleId);
+    private void updateUserRoleSelection(User user, String discordUserId, String category, String roleId) {
+        // Update the User entity (user is guaranteed to be non-null due to earlier check)
+        switch (category) {
+            case "age":
+                user.setSelectedAgeRoleId(roleId);
+                break;
+            case "gender":
+                user.setSelectedGenderRoleId(roleId);
+                break;
+            case "rank":
+                user.setSelectedRankRoleId(roleId);
+                break;
+            case "region":
+                user.setSelectedRegionRoleId(roleId);
+                break;
         }
+        userService.updateUser(user);
+        logger.debug("Updated role selection for registered user {} in category '{}': {}", discordUserId, category, roleId);
     }
 } 

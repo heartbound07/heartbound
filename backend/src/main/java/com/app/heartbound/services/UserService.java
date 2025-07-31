@@ -17,13 +17,11 @@ import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
 import com.app.heartbound.repositories.DailyMessageStatRepository;
 import com.app.heartbound.repositories.DailyVoiceActivityStatRepository;
-import com.app.heartbound.repositories.PendingRoleSelectionRepository;
 import com.app.heartbound.repositories.ItemInstanceRepository;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.UnauthorizedOperationException;
 import com.app.heartbound.config.CacheConfig;
 import com.app.heartbound.dto.LeaderboardEntryDTO;
-import com.app.heartbound.entities.PendingRoleSelection;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.dv8tion.jda.api.JDA;
@@ -74,7 +72,6 @@ public class UserService {
     private final ItemInstanceRepository itemInstanceRepository;
     private final DailyMessageStatRepository dailyMessageStatRepository;
     private final DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository;
-    private final PendingRoleSelectionRepository pendingRoleSelectionRepository;
     private final PendingPrisonService pendingPrisonService;
     private final CacheConfig cacheConfig;
     private final AuditService auditService;
@@ -103,13 +100,12 @@ public class UserService {
     private int levelFactor;
 
     // Constructor-based dependency injection
-    public UserService(UserRepository userRepository, ShopRepository shopRepository, ItemInstanceRepository itemInstanceRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, PendingRoleSelectionRepository pendingRoleSelectionRepository, PendingPrisonService pendingPrisonService, CacheConfig cacheConfig, AuditService auditService, ObjectMapper objectMapper, @Lazy JDA jda) {
+    public UserService(UserRepository userRepository, ShopRepository shopRepository, ItemInstanceRepository itemInstanceRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, PendingPrisonService pendingPrisonService, CacheConfig cacheConfig, AuditService auditService, ObjectMapper objectMapper, @Lazy JDA jda) {
         this.userRepository = userRepository;
         this.shopRepository = shopRepository;
         this.itemInstanceRepository = itemInstanceRepository;
         this.dailyMessageStatRepository = dailyMessageStatRepository;
         this.dailyVoiceActivityStatRepository = dailyVoiceActivityStatRepository;
-        this.pendingRoleSelectionRepository = pendingRoleSelectionRepository;
         this.pendingPrisonService = pendingPrisonService;
         this.cacheConfig = cacheConfig;
         this.auditService = auditService;
@@ -129,116 +125,11 @@ public class UserService {
      * @return the required XP for the given level
      */
     private int calculateRequiredXp(int level) {
-        return baseXp + (levelFactor * (int)Math.pow(level, levelExponent)) + (levelMultiplier * level);
+        // Base XP + (level * multiplier)^exponent + (level * factor)
+        return baseXp + (int) Math.pow(level * levelMultiplier, levelExponent) + (level * levelFactor);
     }
 
-    /**
-     * Syncs pending role selections from PendingRoleSelection to User entity.
-     * This method is called during user creation to apply any roles they selected before registration.
-     * 
-     * @param user the user entity to sync role selections to
-     * @return true if pending selections were found and synced, false otherwise
-     */
-    private boolean syncPendingRoleSelections(User user) {
-        try {
-            Optional<PendingRoleSelection> pendingSelection = pendingRoleSelectionRepository.findByDiscordUserId(user.getId());
-            
-            if (pendingSelection.isPresent()) {
-                PendingRoleSelection pending = pendingSelection.get();
-                boolean hasChanges = false;
-                
-                // Sync age role selection
-                if (pending.getSelectedAgeRoleId() != null && !pending.getSelectedAgeRoleId().isBlank()) {
-                    // Validate role ID format (Discord IDs are 17-20 digits)
-                    if (pending.getSelectedAgeRoleId().matches("\\d{17,20}")) {
-                        if (user.getSelectedAgeRoleId() == null || user.getSelectedAgeRoleId().isBlank()) {
-                            user.setSelectedAgeRoleId(pending.getSelectedAgeRoleId());
-                            hasChanges = true;
-                            logger.info("Synced age role selection for user {}: {}", user.getId(), pending.getSelectedAgeRoleId());
-                        }
-                    } else {
-                        logger.warn("Invalid age role ID format for user {}: {}", user.getId(), pending.getSelectedAgeRoleId());
-                    }
-                }
-                
-                // Sync gender role selection
-                if (pending.getSelectedGenderRoleId() != null && !pending.getSelectedGenderRoleId().isBlank()) {
-                    // Validate role ID format (Discord IDs are 17-20 digits)
-                    if (pending.getSelectedGenderRoleId().matches("\\d{17,20}")) {
-                        if (user.getSelectedGenderRoleId() == null || user.getSelectedGenderRoleId().isBlank()) {
-                            user.setSelectedGenderRoleId(pending.getSelectedGenderRoleId());
-                            hasChanges = true;
-                            logger.info("Synced gender role selection for user {}: {}", user.getId(), pending.getSelectedGenderRoleId());
-                        }
-                    } else {
-                        logger.warn("Invalid gender role ID format for user {}: {}", user.getId(), pending.getSelectedGenderRoleId());
-                    }
-                }
-                
-                // Sync rank role selection
-                if (pending.getSelectedRankRoleId() != null && !pending.getSelectedRankRoleId().isBlank()) {
-                    // Validate role ID format (Discord IDs are 17-20 digits)
-                    if (pending.getSelectedRankRoleId().matches("\\d{17,20}")) {
-                        if (user.getSelectedRankRoleId() == null || user.getSelectedRankRoleId().isBlank()) {
-                            user.setSelectedRankRoleId(pending.getSelectedRankRoleId());
-                            hasChanges = true;
-                            logger.info("Synced rank role selection for user {}: {}", user.getId(), pending.getSelectedRankRoleId());
-                        }
-                    } else {
-                        logger.warn("Invalid rank role ID format for user {}: {}", user.getId(), pending.getSelectedRankRoleId());
-                    }
-                }
-                
-                // Sync region role selection
-                if (pending.getSelectedRegionRoleId() != null && !pending.getSelectedRegionRoleId().isBlank()) {
-                    // Validate role ID format (Discord IDs are 17-20 digits)
-                    if (pending.getSelectedRegionRoleId().matches("\\d{17,20}")) {
-                        if (user.getSelectedRegionRoleId() == null || user.getSelectedRegionRoleId().isBlank()) {
-                            user.setSelectedRegionRoleId(pending.getSelectedRegionRoleId());
-                            hasChanges = true;
-                            logger.info("Synced region role selection for user {}: {}", user.getId(), pending.getSelectedRegionRoleId());
-                        }
-                    } else {
-                        logger.warn("Invalid region role ID format for user {}: {}", user.getId(), pending.getSelectedRegionRoleId());
-                    }
-                }
-                
-                if (hasChanges) {
-                    logger.info("Successfully synced pending role selections for user {}", user.getId());
-                    return true;
-                } else {
-                    logger.debug("No pending role selections to sync for user {}", user.getId());
-                    return true; // Still return true to cleanup the pending record
-                }
-            }
-            return false; // No pending selections found
-        } catch (Exception e) {
-            logger.error("Error syncing pending role selections for user {}: {}", user.getId(), e.getMessage(), e);
-            // Re-throw critical database errors that should halt user creation
-            if (e instanceof org.springframework.dao.DataAccessException) {
-                throw new RuntimeException("Database error during role sync for user " + user.getId(), e);
-            }
-            // Log and continue for other errors
-            return false;
-        }
-    }
 
-    /**
-     * Cleans up pending role selections after successful user creation/update.
-     * This method is called only after the user has been successfully saved to avoid data loss.
-     * 
-     * @param userId the Discord user ID
-     */
-    private void cleanupPendingRoleSelections(String userId) {
-        try {
-            pendingRoleSelectionRepository.deleteById(userId);
-            cacheConfig.invalidatePendingRoleSelectionCache(userId);
-            logger.info("Cleaned up pending role selections for user {}", userId);
-        } catch (Exception e) {
-            logger.error("Failed to cleanup pending role selections for user {}: {}", userId, e.getMessage(), e);
-            // Don't throw - cleanup failure shouldn't break the flow
-        }
-    }
 
     /**
      * Syncs a pending prison record to a newly created User entity.
@@ -445,15 +336,9 @@ public class UserService {
         // Sync pending data before saving the user with user-level locking to prevent race conditions
         User savedUser;
         synchronized(user.getId().intern()) {
-            boolean hasPendingRoles = syncPendingRoleSelections(user);
             syncPendingPrison(user);
                     
             savedUser = userRepository.save(user);
-
-            // Only cleanup pending records after successful user save
-            if (hasPendingRoles) {
-                cleanupPendingRoleSelections(savedUser.getId());
-            }
         }
 
         // Invalidate user profile cache to ensure data consistency after login sync
@@ -1490,18 +1375,6 @@ public class UserService {
 
         return result;
     }
-
-    /**
-     * Get inventory items for a specific user.
-     * Only accessible to ADMIN users.
-     * Checks both new inventory system (with quantities) and legacy inventory system.
-     * 
-     * @param userId the ID of the user whose inventory to fetch
-     * @return list of user's inventory items with details
-     */
-
-
-
 
     /**
      * Utility method to get the client IP address from the current HTTP request context

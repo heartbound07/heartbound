@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import com.app.heartbound.dto.LeaderboardEntryDTO;
-import com.app.heartbound.entities.Shop;
 
 /**
  * Centralized Cache Configuration for Pairing System Performance Optimization.
@@ -130,12 +129,7 @@ public class CacheConfig {
     @Value("${cache.leaderboard.expire-after-write-minutes:2}")
     private long leaderboardCacheExpireMinutes;
 
-    // Pending Role Selection Cache Configuration
-    @Value("${cache.pending-role-selection.max-size:5000}")
-    private long pendingRoleSelectionCacheMaxSize;
 
-    @Value("${cache.pending-role-selection.expire-after-write-minutes:30}")
-    private long pendingRoleSelectionCacheExpireMinutes;
 
     // Pending Prison Cache Configuration
     @Value("${cache.pending-prison.max-size:1000}")
@@ -161,7 +155,6 @@ public class CacheConfig {
     private Cache<String, Object> giveawayCache;
     private Cache<String, List<Object>> featuredItemsCache;
     private Cache<String, List<LeaderboardEntryDTO>> leaderboardCache;
-    private Cache<String, Object> pendingRoleSelectionCache;
     private Cache<String, Object> pendingPrisonCache;
 
     @PostConstruct
@@ -360,18 +353,6 @@ public class CacheConfig {
                 .recordStats()
                 .build();
 
-        // Pending Role Selection Cache - stores pending role selections for unregistered users
-        this.pendingRoleSelectionCache = Caffeine.newBuilder()
-                .maximumSize(pendingRoleSelectionCacheMaxSize)
-                .expireAfterWrite(pendingRoleSelectionCacheExpireMinutes, TimeUnit.MINUTES)
-                .removalListener((RemovalListener<String, Object>) (key, value, cause) -> {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Pending role selection cache entry removed: userId={}, cause={}", key, cause);
-                    }
-                })
-                .recordStats()
-                .build();
-
         // Pending Prison Cache - stores pending prison records for unregistered users
         this.pendingPrisonCache = Caffeine.newBuilder()
                 .maximumSize(pendingPrisonCacheMaxSize)
@@ -412,7 +393,6 @@ public class CacheConfig {
                 countingGameCacheMaxSize, countingGameCacheExpireMinutes,
                 giveawayCacheMaxSize, giveawayCacheExpireMinutes,
                 shopLayoutCacheMaxSize, shopLayoutCacheExpireMinutes,
-                pendingRoleSelectionCacheMaxSize, pendingRoleSelectionCacheExpireMinutes,
                 pendingPrisonCacheMaxSize, pendingPrisonCacheExpireDays);
     }
 
@@ -588,25 +568,7 @@ public class CacheConfig {
         log.debug("Leaderboard cache invalidated");
     }
 
-    /**
-     * Invalidates pending role selection cache for a specific user.
-     * Use when pending role selection data is updated.
-     */
-    public void invalidatePendingRoleSelectionCache(String discordUserId) {
-        if (discordUserId != null) {
-            pendingRoleSelectionCache.invalidate(discordUserId);
-            log.debug("Pending role selection cache invalidated for user: {}", discordUserId);
-        }
-    }
 
-    /**
-     * Invalidates all pending role selection caches.
-     * Use when pending role selection data needs to be re-calculated.
-     */
-    public void invalidateAllPendingRoleSelectionCaches() {
-        pendingRoleSelectionCache.invalidateAll();
-        log.debug("All pending role selection caches invalidated");
-    }
 
     /**
      * Invalidates pending prison cache for a specific user.
@@ -650,7 +612,6 @@ public class CacheConfig {
         giveawayCache.invalidateAll();
         featuredItemsCache.invalidateAll();
         leaderboardCache.invalidateAll();
-        pendingRoleSelectionCache.invalidateAll();
         pendingPrisonCache.invalidateAll();
         log.info("All pairing system caches invalidated successfully");
     }
@@ -686,8 +647,6 @@ public class CacheConfig {
                 .prisonSize(prisonCache.estimatedSize())
                 .giveawayHitRate(giveawayCache.stats().hitRate())
                 .giveawaySize(giveawayCache.estimatedSize())
-                .pendingRoleSelectionHitRate(pendingRoleSelectionCache.stats().hitRate())
-                .pendingRoleSelectionSize(pendingRoleSelectionCache.estimatedSize())
                 .pendingPrisonHitRate(pendingPrisonCache.stats().hitRate())
                 .pendingPrisonSize(pendingPrisonCache.estimatedSize())
                 .build();
@@ -715,7 +674,6 @@ public class CacheConfig {
         giveawayCache.cleanUp();
         featuredItemsCache.cleanUp();
         leaderboardCache.cleanUp();
-        pendingRoleSelectionCache.cleanUp();
         pendingPrisonCache.cleanUp();
         log.debug("Pairing cache maintenance completed");
     }
@@ -752,8 +710,6 @@ public class CacheConfig {
         private final long prisonSize;
         private final double giveawayHitRate;
         private final long giveawaySize;
-        private final double pendingRoleSelectionHitRate;
-        private final long pendingRoleSelectionSize;
         private final double pendingPrisonHitRate;
         private final long pendingPrisonSize;
     }
