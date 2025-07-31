@@ -13,6 +13,7 @@ import com.app.heartbound.exceptions.shop.CaseNotOwnedException;
 import com.app.heartbound.exceptions.shop.EmptyCaseException;
 import com.app.heartbound.exceptions.shop.InvalidCaseContentsException;
 import com.app.heartbound.services.UserService;
+import com.app.heartbound.services.UserInventoryService;
 import com.app.heartbound.services.shop.ShopService;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
@@ -76,6 +77,7 @@ public class OpenCaseCommandListener extends ListenerAdapter {
     }
     
     private final ShopService shopService;
+    private final UserInventoryService userInventoryService;
     
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
@@ -87,8 +89,9 @@ public class OpenCaseCommandListener extends ListenerAdapter {
     private boolean isRegistered = false;
     private JDA jdaInstance;
     
-    public OpenCaseCommandListener(@Lazy ShopService shopService, UserService userService) {
+    public OpenCaseCommandListener(@Lazy ShopService shopService, UserInventoryService userInventoryService, UserService userService) {
         this.shopService = shopService;
+        this.userInventoryService = userInventoryService;
         logger.info("OpenCaseCommandListener initialized");
     }
     
@@ -139,7 +142,7 @@ public class OpenCaseCommandListener extends ListenerAdapter {
         
         try {
             // Use Discord-safe inventory method that eagerly fetches collections
-            UserInventoryDTO inventory = shopService.getUserInventoryForDiscord(userId);
+            UserInventoryDTO inventory = userInventoryService.getUserInventoryForDiscord(userId);
             
             // DEBUG: Log what items the user has
             logger.debug("User {} inventory contains {} items", userId, inventory.getItems().size());
@@ -252,7 +255,7 @@ public class OpenCaseCommandListener extends ListenerAdapter {
         
         try {
             // Use Discord-safe inventory method that eagerly fetches collections
-            UserInventoryDTO inventory = shopService.getUserInventoryForDiscord(userId);
+            UserInventoryDTO inventory = userInventoryService.getUserInventoryForDiscord(userId);
             
             // Find the case in user's inventory
             ShopDTO selectedCase = null;

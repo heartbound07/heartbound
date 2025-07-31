@@ -2,25 +2,21 @@ package com.app.heartbound.controllers.shop;
 
 import com.app.heartbound.config.security.RateLimited;
 import com.app.heartbound.config.security.Views;
-import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.dto.shop.ShopDTO;
 import com.app.heartbound.dto.shop.PurchaseResponseDTO;
-import com.app.heartbound.dto.shop.UserInventoryDTO;
 import com.app.heartbound.dto.shop.CaseContentsDTO;
 import com.app.heartbound.dto.shop.CaseItemDTO;
 import com.app.heartbound.dto.shop.RollResultDTO;
 import com.app.heartbound.enums.RateLimitKeyType;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
-import com.app.heartbound.exceptions.shop.ItemNotEquippableException;
 import com.app.heartbound.exceptions.shop.CaseNotFoundException;
 import com.app.heartbound.exceptions.shop.CaseNotOwnedException;
 import com.app.heartbound.exceptions.shop.EmptyCaseException;
 import com.app.heartbound.exceptions.shop.InvalidCaseContentsException;
 import com.app.heartbound.exceptions.shop.ItemDeletionException;
 import com.app.heartbound.exceptions.shop.ItemReferencedInCasesException;
-import com.app.heartbound.exceptions.shop.ItemNotOwnedException;
 import com.app.heartbound.services.shop.ShopService;
 import com.app.heartbound.repositories.shop.ShopRepository;
 import org.slf4j.Logger;
@@ -191,19 +187,6 @@ public class ShopController {
     }
     
     /**
-     * Get a user's inventory
-     * @param authentication Authentication containing user ID
-     * @return User's inventory
-     */
-    @GetMapping("/inventory")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UserInventoryDTO> getUserInventory(Authentication authentication) {
-        String userId = authentication.getName();
-        UserInventoryDTO inventory = shopService.getUserInventory(userId);
-        return ResponseEntity.ok(inventory);
-    }
-    
-    /**
      * Admin endpoint to create a new shop item
      */
     @PostMapping("/admin/items")
@@ -343,267 +326,6 @@ public class ShopController {
             // Log the error
             logger.error("Error retrieving shop categories", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-    
-    /**
-     * Equip an item
-     * @param itemId Item ID
-     * @param authentication Authentication containing user ID
-     * @return Updated user profile
-     */
-    @RateLimited(
-        requestsPerMinute = 30,
-        requestsPerHour = 200,
-        keyType = RateLimitKeyType.USER,
-        keyPrefix = "equip",
-        burstCapacity = 35
-    )
-    @PostMapping("/equip/{itemId}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> equipItem(
-        @PathVariable UUID itemId,
-        Authentication authentication
-    ) {
-        String userId = authentication.getName();
-        
-        try {
-            UserProfileDTO updatedProfile = shopService.equipItem(userId, itemId);
-            return ResponseEntity.ok(updatedProfile);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (ItemNotOwnedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (ItemNotEquippableException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (UnsupportedOperationException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse("An error occurred while equipping the item"));
-        }
-    }
-
-    /**
-     * Equip an item by its instance ID.
-     * @param instanceId The UUID of the ItemInstance to equip.
-     * @param authentication Authentication containing user ID
-     * @return Updated user profile
-     */
-    @RateLimited(
-        requestsPerMinute = 30,
-        requestsPerHour = 200,
-        keyType = RateLimitKeyType.USER,
-        keyPrefix = "equip-instance",
-        burstCapacity = 35
-    )
-    @PostMapping("/equip/instance/{instanceId}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> equipItemInstance(
-        @PathVariable UUID instanceId,
-        Authentication authentication
-    ) {
-        String userId = authentication.getName();
-        
-        try {
-            UserProfileDTO updatedProfile = shopService.equipItemInstance(userId, instanceId);
-            return ResponseEntity.ok(updatedProfile);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (ItemNotOwnedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (ItemNotEquippableException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse("An error occurred while equipping the item"));
-        }
-    }
-    
-    /**
-     * Equip multiple items in a single atomic transaction
-     * @param request Batch equip request containing list of item IDs
-     * @param authentication Authentication containing user ID
-     * @return Updated user profile
-     */
-    @RateLimited(
-        requestsPerMinute = 20,
-        requestsPerHour = 100,
-        keyType = RateLimitKeyType.USER,
-        keyPrefix = "batch-equip",
-        burstCapacity = 25
-    )
-    @PostMapping("/equip/batch")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> equipMultipleItems(
-        @RequestBody BatchEquipRequest request,
-        Authentication authentication
-    ) {
-        String userId = authentication.getName();
-        
-        try {
-            // Validate request
-            if (request == null || request.getItemIds() == null || request.getItemIds().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrorResponse("Item IDs list cannot be empty"));
-            }
-            
-            // Limit batch size to prevent abuse
-            if (request.getItemIds().size() > 10) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrorResponse("Cannot equip more than 10 items at once"));
-            }
-            
-            UserProfileDTO updatedProfile = shopService.equipBatch(userId, request.getItemIds());
-            return ResponseEntity.ok(updatedProfile);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (ItemNotOwnedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (ItemNotEquippableException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (Exception e) {
-            logger.error("Error batch equipping items for user {}: {}", userId, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse("An error occurred while equipping items"));
-        }
-    }
-    
-    /**
-     * Unequip an item by category
-     * @param category Category to unequip
-     * @param authentication Authentication containing user ID
-     * @return Updated user profile
-     */
-    @RateLimited(
-        requestsPerMinute = 30,
-        requestsPerHour = 200,
-        keyType = RateLimitKeyType.USER,
-        keyPrefix = "unequip",
-        burstCapacity = 35
-    )
-    @PostMapping("/unequip/{category}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> unequipItem(
-        @PathVariable ShopCategory category,
-        Authentication authentication
-    ) {
-        String userId = authentication.getName();
-        
-        try {
-            UserProfileDTO updatedProfile = shopService.unequipItem(userId, category);
-            return ResponseEntity.ok(updatedProfile);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse("An error occurred while unequipping the item"));
-        }
-    }
-    
-    /**
-     * Unequip multiple items in a single atomic transaction
-     * @param request Batch unequip request containing list of item IDs
-     * @param authentication Authentication containing user ID
-     * @return Updated user profile
-     */
-    @RateLimited(
-        requestsPerMinute = 20,
-        requestsPerHour = 100,
-        keyType = RateLimitKeyType.USER,
-        keyPrefix = "batch-unequip",
-        burstCapacity = 25
-    )
-    @PostMapping("/unequip/batch")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> unequipMultipleItems(
-        @RequestBody BatchUnequipRequest request,
-        Authentication authentication
-    ) {
-        String userId = authentication.getName();
-        
-        try {
-            // Validate request
-            if (request == null || request.getItemIds() == null || request.getItemIds().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrorResponse("Item IDs list cannot be empty"));
-            }
-            
-            // Limit batch size to prevent abuse
-            if (request.getItemIds().size() > 10) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrorResponse("Cannot unequip more than 10 items at once"));
-            }
-            
-            UserProfileDTO updatedProfile = shopService.unequipBatch(userId, request.getItemIds());
-            return ResponseEntity.ok(updatedProfile);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (ItemNotOwnedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (Exception e) {
-            logger.error("Error batch unequipping items for user {}: {}", userId, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse("An error occurred while unequipping items"));
-        }
-    }
-
-    /**
-     * Unequip a specific badge
-     * @param badgeId Badge ID to unequip
-     * @param authentication Authentication containing user ID
-     * @return Updated user profile
-     */
-    @RateLimited(
-        requestsPerMinute = 30,
-        requestsPerHour = 200,
-        keyType = RateLimitKeyType.USER,
-        keyPrefix = "unequip-badge",
-        burstCapacity = 35
-    )
-    @PostMapping("/unequip/badge/{badgeId}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> unequipBadge(
-        @PathVariable UUID badgeId,
-        Authentication authentication
-    ) {
-        String userId = authentication.getName();
-        
-        try {
-            // Validate UUID format
-            if (badgeId == null) {
-                return ResponseEntity.badRequest()
-                    .body(new ErrorResponse("Invalid badge ID format"));
-            }
-            
-            UserProfileDTO updatedProfile = shopService.unequipBadge(userId, badgeId);
-            return ResponseEntity.ok(updatedProfile);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse(e.getMessage()));
-        } catch (Exception e) {
-            logger.error("Error unequipping badge: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse("An error occurred while unequipping the badge"));
         }
     }
     
@@ -869,36 +591,6 @@ public class ShopController {
 
         public List<ShopDTO> getDailyItems() {
             return dailyItems;
-        }
-    }
-    
-    /**
-     * Request DTO for batch equipping items
-     */
-    public static class BatchEquipRequest {
-        private List<UUID> itemIds;
-
-        public List<UUID> getItemIds() {
-            return itemIds;
-        }
-
-        public void setItemIds(List<UUID> itemIds) {
-            this.itemIds = itemIds;
-        }
-    }
-
-    /**
-     * Request DTO for batch unequipping items
-     */
-    public static class BatchUnequipRequest {
-        private List<UUID> itemIds;
-
-        public List<UUID> getItemIds() {
-            return itemIds;
-        }
-
-        public void setItemIds(List<UUID> itemIds) {
-            this.itemIds = itemIds;
         }
     }
 }

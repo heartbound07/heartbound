@@ -343,7 +343,7 @@ export function InventoryPage() {
   const fetchInventory = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await httpClient.get('/shop/inventory');
+      const response = await httpClient.get('/inventory');
       
       if (response.data && response.data.items) {
         // Extract unique categories
@@ -399,7 +399,7 @@ export function InventoryPage() {
     
     setActionInProgress(instanceId || itemId);
     try {
-      const endpoint = instanceId ? `/shop/equip/instance/${instanceId}` : `/shop/equip/${itemId}`;
+      const endpoint = instanceId ? `/inventory/equip/instance/${instanceId}` : `/inventory/equip/${itemId}`;
       const response = await httpClient.post<UserProfileDTO>(endpoint);
       
       if (response.data) {
@@ -430,7 +430,7 @@ export function InventoryPage() {
     
     setActionInProgress(category);
     try {
-      const response = await httpClient.post<UserProfileDTO>(`/shop/unequip/${category}`);
+      const response = await httpClient.post<UserProfileDTO>(`/inventory/unequip/${category}`);
 
       if (response.data) {
         updateProfile(response.data);
@@ -459,7 +459,7 @@ export function InventoryPage() {
     setActionInProgress(badgeId);
     
     try {
-      const response = await httpClient.post<UserProfileDTO>(`/shop/unequip/badge/${badgeId}`);
+      const response = await httpClient.post<UserProfileDTO>(`/inventory/unequip/badge/${badgeId}`);
       
       if (response.data) {
         updateProfile(response.data);
@@ -500,7 +500,7 @@ export function InventoryPage() {
     setActionInProgress("batch-equip");
     
     try {
-      const response = await httpClient.post<UserProfileDTO>('/shop/equip/batch', {
+      const response = await httpClient.post<UserProfileDTO>('/inventory/equip/batch', {
         itemIds: itemIds
       });
       
@@ -551,7 +551,7 @@ export function InventoryPage() {
     setActionInProgress("batch-unequip");
 
     try {
-      const response = await httpClient.post<UserProfileDTO>('/shop/unequip/batch', {
+      const response = await httpClient.post<UserProfileDTO>('/inventory/unequip/batch', {
         itemIds: itemIds
       });
 

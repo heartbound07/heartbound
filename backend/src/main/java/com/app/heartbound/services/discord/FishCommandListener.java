@@ -3,6 +3,7 @@ package com.app.heartbound.services.discord;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.services.UserService;
+import com.app.heartbound.services.UserInventoryService;
 import com.app.heartbound.services.SecureRandomService;
 import com.app.heartbound.services.AuditService;
 import com.app.heartbound.dto.CreateAuditDTO;
@@ -61,6 +62,7 @@ public class FishCommandListener extends ListenerAdapter {
     );
     
     private final UserService userService;
+    private final UserInventoryService userInventoryService;
     private final SecureRandomService secureRandomService;
     private final AuditService auditService;
     private final DiscordBotSettingsService discordBotSettingsService;
@@ -71,8 +73,9 @@ public class FishCommandListener extends ListenerAdapter {
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
     
-    public FishCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService, ShopRepository shopRepository, DiscordBotSettingsService discordBotSettingsService, @Lazy FishCommandListener self, ItemInstanceRepository itemInstanceRepository, @Lazy ShopService shopService) {
+    public FishCommandListener(UserService userService, UserInventoryService userInventoryService, SecureRandomService secureRandomService, AuditService auditService, ShopRepository shopRepository, DiscordBotSettingsService discordBotSettingsService, @Lazy FishCommandListener self, ItemInstanceRepository itemInstanceRepository, @Lazy ShopService shopService) {
         this.userService = userService;
+        this.userInventoryService = userInventoryService;
         this.secureRandomService = secureRandomService;
         this.auditService = auditService;
         this.discordBotSettingsService = discordBotSettingsService;
@@ -468,7 +471,7 @@ public class FishCommandListener extends ListenerAdapter {
                     if (secureRandomService.getSecureDouble() <= 0.25) {
                         long xpGained = secureRandomService.getSecureInt(5) + 1; // 1-5 XP
                         equippedRodInstance.setExperience((equippedRodInstance.getExperience() == null ? 0L : equippedRodInstance.getExperience()) + xpGained);
-                        shopService.handleRodLevelUp(equippedRodInstance);
+                        userInventoryService.handleRodLevelUp(equippedRodInstance);
                         message.append(" +").append(xpGained).append(" XP");
                     }
 
@@ -581,7 +584,7 @@ public class FishCommandListener extends ListenerAdapter {
                     if (secureRandomService.getSecureDouble() <= 0.25) {
                         long xpGained = secureRandomService.getSecureInt(5) + 1; // 1-5 XP
                         equippedRodInstance.setExperience((equippedRodInstance.getExperience() == null ? 0L : equippedRodInstance.getExperience()) + xpGained);
-                        shopService.handleRodLevelUp(equippedRodInstance);
+                        userInventoryService.handleRodLevelUp(equippedRodInstance);
                         message.append(" +").append(xpGained).append(" XP");
                     }
 

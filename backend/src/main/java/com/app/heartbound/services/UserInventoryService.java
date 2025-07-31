@@ -22,8 +22,18 @@ import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.exceptions.InvalidOperationException;
 import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
+import com.app.heartbound.dto.shop.ShopDTO;
+import com.app.heartbound.dto.shop.UserInventoryDTO;
+import com.app.heartbound.exceptions.shop.ItemNotEquippableException;
+import com.app.heartbound.exceptions.shop.ItemNotOwnedException;
+import com.app.heartbound.mappers.ShopMapper;
+import com.app.heartbound.repositories.shop.ShopRepository;
+import com.app.heartbound.services.discord.DiscordService;
+import org.springframework.context.annotation.Lazy;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Optional;
 
 @Service
 public class UserInventoryService {
@@ -32,11 +42,17 @@ public class UserInventoryService {
     private final ItemInstanceRepository itemInstanceRepository;
     private final UserRepository userRepository;
     private final UserService userService;
+    private final ShopRepository shopRepository;
+    private final DiscordService discordService;
+    private final ShopMapper shopMapper;
 
-    public UserInventoryService(ItemInstanceRepository itemInstanceRepository, UserRepository userRepository, UserService userService) {
+    public UserInventoryService(ItemInstanceRepository itemInstanceRepository, UserRepository userRepository, UserService userService, ShopRepository shopRepository, @Lazy DiscordService discordService, ShopMapper shopMapper) {
         this.itemInstanceRepository = itemInstanceRepository;
         this.userRepository = userRepository;
         this.userService = userService;
+        this.shopRepository = shopRepository;
+        this.discordService = discordService;
+        this.shopMapper = shopMapper;
     }
 
     private int getBaseRepairCost(ItemRarity rarity) {
@@ -489,4 +505,625 @@ public class UserInventoryService {
         }
     }
 
+    /**
+     * Equips an item for a user
+     * @param userId User ID
+     * @param itemId Item ID
+     * @return Updated UserProfileDTO
+     */
+    @Transactional
+    public UserProfileDTO equipItem(String userId, UUID itemId) {
+        logger.debug("Equipping item {} for user {}", itemId, userId);
+        
+        // Get user and item
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        Shop item = shopRepository.findById(itemId)
+            .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
+
+        // For fishing rods, this endpoint is deprecated. Use equipItemInstance instead.
+        if (item.getCategory() == ShopCategory.FISHING_ROD) {
+            throw new UnsupportedOperationException("Fishing rods must be equipped by their instance ID. Please use the new equip endpoint.");
+        }
+        
+        // Perform equip logic
+        performEquipItem(user, item, null);
+        
+        // Save user changes
+        user = userRepository.save(user);
+        
+        // Return updated profile
+        return userService.mapToProfileDTO(user);
+    }
+    
+    /**
+     * Equips an item for a user by its instance ID.
+     * This is the new standard for equippable items with unique properties.
+     * @param userId User ID
+     * @param instanceId Item Instance ID
+     * @return Updated UserProfileDTO
+     */
+    @Transactional
+    public UserProfileDTO equipItemInstance(String userId, UUID instanceId) {
+        logger.debug("Equipping item instance {} for user {}", instanceId, userId);
+
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        ItemInstance instance = itemInstanceRepository.findById(instanceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Item instance not found with ID: " + instanceId));
+
+        if (!instance.getOwner().getId().equals(userId)) {
+            throw new ItemNotOwnedException("You do not own this item instance.");
+        }
+
+        Shop item = instance.getBaseItem();
+
+        performEquipItem(user, item, instanceId);
+
+        user = userRepository.save(user);
+
+        return userService.mapToProfileDTO(user);
+    }
+    
+    /**
+     * Equips multiple items for a user in a single atomic transaction
+     * @param userId User ID
+     * @param itemIds List of item IDs to equip
+     * @return Updated UserProfileDTO
+     */
+    @Transactional
+    public UserProfileDTO equipBatch(String userId, List<UUID> itemIds) {
+        logger.debug("Batch equipping {} items for user {}", itemIds.size(), userId);
+        
+        // Validate input
+        if (itemIds == null || itemIds.isEmpty()) {
+            throw new IllegalArgumentException("Item IDs list cannot be empty");
+        }
+        
+        // Remove duplicates while preserving order
+        List<UUID> uniqueItemIds = itemIds.stream()
+            .distinct()
+            .collect(Collectors.toList());
+            
+        if (uniqueItemIds.size() != itemIds.size()) {
+            logger.debug("Removed {} duplicate item IDs from batch equip request", 
+                        itemIds.size() - uniqueItemIds.size());
+        }
+        
+        // Get user
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // Fetch all items and validate them first
+        List<Shop> itemsToEquip = new ArrayList<>();
+        int badgeCount = 0;
+        for (UUID itemId : uniqueItemIds) {
+            Shop item = shopRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
+            itemsToEquip.add(item);
+            
+            // Count badges to ensure only one badge is included in batch request
+            if (item.getCategory() == ShopCategory.BADGE) {
+                badgeCount++;
+            }
+        }
+        
+        // Validate that only one badge is included in the batch request
+        if (badgeCount > 1) {
+            throw new IllegalArgumentException("Only one badge can be equipped at a time. Please select only one badge for batch equipping.");
+        }
+        
+        // Validate all items before equipping any
+        for (Shop item : itemsToEquip) {
+            validateItemForEquipping(user, item);
+        }
+        
+        // Perform equip operations for all items
+        for (Shop item : itemsToEquip) {
+            try {
+                performEquipItem(user, item, null);
+                logger.debug("Successfully equipped item {} for user {}", item.getId(), userId);
+            } catch (Exception e) {
+                logger.error("Failed to equip item {} for user {}: {}", item.getId(), userId, e.getMessage(), e);
+                throw new RuntimeException("Failed to equip item: " + item.getName(), e);
+            }
+        }
+        
+        // Save user changes once after all equips
+        user = userRepository.save(user);
+        
+        logger.info("Successfully batch equipped {} items for user {}", itemsToEquip.size(), userId);
+        
+        // Return updated profile
+        return userService.mapToProfileDTO(user);
+    }
+    
+    /**
+     * Validates that an item can be equipped by a user
+     * @param user User attempting to equip
+     * @param item Item to validate
+     * @throws ItemNotOwnedException if user doesn't own the item
+     * @throws ItemNotEquippableException if item cannot be equipped
+     */
+    private void validateItemForEquipping(User user, Shop item) {
+        // Check if user owns the item
+        if (!user.hasItem(item.getId())) {
+            throw new ItemNotOwnedException("You don't own this item: " + item.getName());
+        }
+        
+        // Check if item can be equipped
+        ShopCategory category = item.getCategory();
+        if (category == null) {
+            throw new ItemNotEquippableException("This item cannot be equipped: " + item.getName());
+        }
+        
+        // Cases cannot be equipped
+        if (category == ShopCategory.CASE) {
+            throw new ItemNotEquippableException("Cases cannot be equipped: " + item.getName());
+        }
+    }
+    
+    /**
+     * Performs the actual equip operation for a single item
+     * This method contains the core equip logic shared between single and batch operations
+     * @param user User to equip item for
+     * @param item Item to equip
+     * @param instanceId The specific instance ID to equip (optional, for items like fishing rods)
+     */
+    private void performEquipItem(User user, Shop item, UUID instanceId) {
+        // Validate the item can be equipped
+        validateItemForEquipping(user, item);
+        
+        // Set the item as equipped based on its category
+        ShopCategory category = item.getCategory();
+        
+        // Special handling for BADGE category - single badge only
+        if (category == ShopCategory.BADGE) {
+            // Check if badge is already equipped
+            if (user.isBadgeEquipped(item.getId())) {
+                logger.debug("Badge {} is already equipped for user {}", item.getId(), user.getId());
+                return; // Already equipped, nothing to do
+            }
+            
+            // Handle Discord role management for previously equipped badge
+            UUID previousBadgeId = user.getEquippedBadgeId();
+            if (previousBadgeId != null && !previousBadgeId.equals(item.getId())) {
+                // Find the previous badge to get its Discord role ID and handle removal
+                shopRepository.findById(previousBadgeId).ifPresent(previousBadge -> {
+                    String previousRoleId = previousBadge.getDiscordRoleId();
+                    if (previousRoleId != null && !previousRoleId.isEmpty()) {
+                        logger.debug("Removing previous Discord role {} from user {} before equipping new badge", 
+                                previousRoleId, user.getId());
+                        
+                        boolean removalSuccess = discordService.removeRole(user.getId(), previousRoleId);
+                        if (!removalSuccess) {
+                            logger.warn("Failed to remove previous Discord role {} from user {}. " +
+                                    "Continuing with equipping new badge.", previousRoleId, user.getId());
+                        } else {
+                            logger.debug("Successfully removed previous Discord role {} from user {}", 
+                                    previousRoleId, user.getId());
+                        }
+                    }
+                });
+            }
+            
+            // Set the new badge as equipped (replaces any existing badge)
+            user.setEquippedBadge(item.getId());
+            logger.debug("Set badge {} as equipped for user {}", item.getId(), user.getId());
+            
+            // Apply Discord role if applicable
+            if (item.getDiscordRoleId() != null && !item.getDiscordRoleId().isEmpty()) {
+                logger.debug("Adding Discord role {} for user {} for badge", 
+                           item.getDiscordRoleId(), user.getId());
+                boolean grantSuccess = discordService.grantRole(user.getId(), item.getDiscordRoleId());
+                if (!grantSuccess) {
+                    logger.warn("Failed to grant Discord role {} to user {} for badge", 
+                              item.getDiscordRoleId(), user.getId());
+                }
+            }
+        } else if (category == ShopCategory.USER_COLOR) {
+            // Handle Discord role management for USER_COLOR items
+            // Check if there was a previously equipped item of the same category
+            UUID previousItemId = user.getEquippedItemIdByCategory(category);
+            if (previousItemId != null && !previousItemId.equals(item.getId())) {
+                // Find the previous item to get its Discord role ID and handle removal synchronously
+                shopRepository.findById(previousItemId).ifPresent(previousItem -> {
+                    String previousRoleId = previousItem.getDiscordRoleId();
+                    if (previousRoleId != null && !previousRoleId.isEmpty()) {
+                        logger.debug("Removing previous Discord role {} from user {} before equipping new item", 
+                                previousRoleId, user.getId());
+                        
+                        // Ensure role removal occurs and log any failures
+                        boolean removalSuccess = discordService.removeRole(user.getId(), previousRoleId);
+                        if (!removalSuccess) {
+                            // Log the issue but continue with equipping the new item
+                            logger.warn("Failed to remove previous Discord role {} from user {}. " +
+                                    "Continuing with equipping new item.", previousRoleId, user.getId());
+                        } else {
+                            logger.debug("Successfully removed previous Discord role {} from user {}", 
+                                    previousRoleId, user.getId());
+                        }
+                    }
+                });
+            }
+            
+            // Now unequip the previous item and set the new one
+            user.setEquippedItemIdByCategory(category, item.getId());
+            
+            // Grant the new role if it has a discordRoleId
+            String newRoleId = item.getDiscordRoleId();
+            if (newRoleId != null && !newRoleId.isEmpty()) {
+                logger.debug("Granting Discord role {} to user {} for equipped item", newRoleId, user.getId());
+                boolean grantSuccess = discordService.grantRole(user.getId(), newRoleId);
+                if (!grantSuccess) {
+                    logger.warn("Failed to grant Discord role {} to user {}", newRoleId, user.getId());
+                }
+            }
+        } else if (category == ShopCategory.FISHING_ROD) {
+            if (instanceId == null) {
+                throw new IllegalArgumentException("Fishing rod must be equipped by its instance ID.");
+            }
+            // Handle Discord role management for FISHING_ROD items
+            // Check if there was a previously equipped item of the same category
+            UUID previousInstanceId = user.getEquippedFishingRodInstanceId();
+            if (previousInstanceId != null && !previousInstanceId.equals(instanceId)) {
+                itemInstanceRepository.findById(previousInstanceId).ifPresent(previousInstance -> {
+                    Shop previousItem = previousInstance.getBaseItem();
+                    String previousRoleId = previousItem.getDiscordRoleId();
+                    if (previousRoleId != null && !previousRoleId.isEmpty()) {
+                        logger.debug("Removing previous Discord role {} from user {} before equipping new item", 
+                                previousRoleId, user.getId());
+                        
+                        // Ensure role removal occurs and log any failures
+                        boolean removalSuccess = discordService.removeRole(user.getId(), previousRoleId);
+                        if (!removalSuccess) {
+                            // Log the issue but continue with equipping the new item
+                            logger.warn("Failed to remove previous Discord role {} from user {}. " +
+                                    "Continuing with equipping new item.", previousRoleId, user.getId());
+                        } else {
+                            logger.debug("Successfully removed previous Discord role {} from user {}", 
+                                    previousRoleId, user.getId());
+                        }
+                    }
+                });
+            }
+            
+            // Now unequip the previous item and set the new one
+            user.setEquippedFishingRodInstanceId(instanceId);
+            
+            // Grant the new role if it has a discordRoleId
+            String newRoleId = item.getDiscordRoleId();
+            if (newRoleId != null && !newRoleId.isEmpty()) {
+                logger.debug("Granting Discord role {} to user {} for equipped item", newRoleId, user.getId());
+                boolean grantSuccess = discordService.grantRole(user.getId(), newRoleId);
+                if (!grantSuccess) {
+                    logger.warn("Failed to grant Discord role {} to user {}", newRoleId, user.getId());
+                }
+            }
+        } else {
+            // For other categories, simply update the equipped item
+            user.setEquippedItemIdByCategory(category, item.getId());
+        }
+    }
+    
+    /**
+     * Unequips an item for a user by category
+     * @param userId User ID
+     * @param category Shop category to unequip
+     * @return Updated UserProfileDTO
+     */
+    @Transactional
+    public UserProfileDTO unequipItem(String userId, ShopCategory category) {
+        logger.debug("Unequipping item of category {} for user {}", category, userId);
+        
+        // Get user
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // Badge category requires specific badge ID to unequip
+        if (category == ShopCategory.BADGE) {
+            throw new UnsupportedOperationException("BADGE category requires a specific badge ID to unequip. Use unequipBadge(userId, badgeId) instead.");
+        }
+        
+        // Get the currently equipped item ID BEFORE unequipping
+        UUID currentlyEquippedItemId = user.getEquippedItemIdByCategory(category);
+        
+        // Unequip the item in the specified category
+        user.setEquippedItemIdByCategory(category, null);
+        
+        // If this is a USER_COLOR category, remove associated Discord role
+        if (category == ShopCategory.USER_COLOR && currentlyEquippedItemId != null) {
+            shopRepository.findById(currentlyEquippedItemId).ifPresent(equippedItem -> {
+                if (equippedItem.getDiscordRoleId() != null && !equippedItem.getDiscordRoleId().isEmpty()) {
+                    logger.debug("Removing Discord role {} from user {} for unequipped item", 
+                                equippedItem.getDiscordRoleId(), userId);
+                    discordService.removeRole(userId, equippedItem.getDiscordRoleId());
+                }
+            });
+        }
+        
+        // Save user changes
+        user = userRepository.save(user);
+        
+        // Return updated profile
+        return userService.mapToProfileDTO(user);
+    }
+    
+    /**
+     * Unequips a specific badge for a user
+     * @param userId User ID
+     * @param badgeId Badge ID to unequip
+     * @return Updated UserProfileDTO
+     */
+    @Transactional
+    public UserProfileDTO unequipBadge(String userId, UUID badgeId) {
+        logger.debug("Unequipping badge {} for user {}", badgeId, userId);
+        
+        // Get user
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // Check if user has the badge equipped
+        if (!user.isBadgeEquipped(badgeId)) {
+            logger.debug("Badge {} is not equipped for user {}", badgeId, userId);
+            return userService.mapToProfileDTO(user);
+        }
+        
+        // Get badge item for possible Discord role handling
+        Shop badge = shopRepository.findById(badgeId)
+            .orElseThrow(() -> new ResourceNotFoundException("Badge not found with ID: " + badgeId));
+        
+        // Check that it's actually a badge
+        if (badge.getCategory() != ShopCategory.BADGE) {
+            throw new ItemNotEquippableException("Item is not a badge");
+        }
+        
+        // Remove the equipped badge
+        user.removeEquippedBadge();
+        
+        // Handle Discord role if applicable
+        if (badge.getDiscordRoleId() != null && !badge.getDiscordRoleId().isEmpty()) {
+            logger.debug("Removing Discord role {} from user {} for unequipped badge", 
+                        badge.getDiscordRoleId(), userId);
+            boolean removalSuccess = discordService.removeRole(userId, badge.getDiscordRoleId());
+            if (!removalSuccess) {
+                logger.warn("Failed to remove Discord role {} from user {} for badge", 
+                          badge.getDiscordRoleId(), userId);
+            }
+        }
+        
+        // Save user changes
+        user = userRepository.save(user);
+        
+        // Return updated profile
+        return userService.mapToProfileDTO(user);
+    }
+
+    /**
+     * Gets a user's inventory with equipped status
+     * @param userId User ID
+     * @return User's inventory with equipped status
+     */
+    @Transactional(readOnly = true)
+    public UserInventoryDTO getFullUserInventory(String userId) {
+        logger.debug("Getting inventory for user {}", userId);
+
+        User user = userRepository.findByIdWithInventory(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        // This method needs significant changes to support instance-specific data.
+        // We'll create a new list of DTOs.
+        List<ShopDTO> itemDTOs = new ArrayList<>();
+
+        // Group all instances by their base item to get counts for stackable items.
+        Map<Shop, List<ItemInstance>> groupedInstances = user.getItemInstances().stream()
+                .collect(Collectors.groupingBy(ItemInstance::getBaseItem));
+
+        for (Map.Entry<Shop, List<ItemInstance>> entry : groupedInstances.entrySet()) {
+            Shop item = entry.getKey();
+            List<ItemInstance> instances = entry.getValue();
+
+            if (item.getCategory() == ShopCategory.FISHING_ROD || item.getCategory() == ShopCategory.FISHING_ROD_PART) {
+                // For fishing rods and parts, create a DTO for each unique instance.
+                for (ItemInstance instance : instances) {
+                    ShopDTO dto = shopMapper.mapToShopDTO(item, user, instance);
+                    dto.setQuantity(1); // Each instance is unique
+
+                    // Set equipped status based on the instance ID for rods
+                    if (item.getCategory() == ShopCategory.FISHING_ROD) {
+                        UUID equippedInstanceId = user.getEquippedFishingRodInstanceId();
+                        dto.setEquipped(instance.getId().equals(equippedInstanceId));
+                    } else { // This implies FISHING_ROD_PART
+                        // Check if the part is equipped on ANY rod.
+                        dto.setEquipped(itemInstanceRepository.isPartAlreadyEquipped(instance.getId()));
+                    }
+                    itemDTOs.add(dto);
+                }
+            } else {
+                // For all other items, use the existing stacking logic.
+                long quantity = instances.size();
+                ShopDTO dto = shopMapper.mapToShopDTO(item, user);
+                dto.setQuantity((int) quantity);
+
+                // Add equipped status, skipping for non-equippable categories like CASE
+                if (item.getCategory() != null && item.getCategory() != ShopCategory.CASE && item.getCategory() != ShopCategory.FISHING_ROD_PART) {
+                    if (item.getCategory() == ShopCategory.BADGE) {
+                        dto.setEquipped(user.isBadgeEquipped(item.getId()));
+                    } else {
+                        UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
+                        dto.setEquipped(equippedItemId != null && equippedItemId.equals(item.getId()));
+                    }
+                } else {
+                    dto.setEquipped(false);
+                }
+                itemDTOs.add(dto);
+            }
+        }
+        
+        return UserInventoryDTO.builder()
+            .items(new HashSet<>(itemDTOs))
+            .build();
+    }
+    
+    /**
+     * Gets a user's inventory specifically for Discord commands
+     * Uses eager fetching to avoid LazyInitializationException
+     * @param userId User ID
+     * @return User's inventory with equipped status
+     */
+    public UserInventoryDTO getUserInventoryForDiscord(String userId) {
+        logger.debug("Getting inventory for Discord command for user {}", userId);
+        
+        User user = userRepository.findByIdWithInventory(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        Map<Shop, Long> itemCounts = user.getItemInstances().stream()
+            .collect(Collectors.groupingBy(ItemInstance::getBaseItem, Collectors.counting()));
+            
+        java.util.Set<ShopDTO> itemDTOs = itemCounts.entrySet().stream().map(entry -> {
+            Shop item = entry.getKey();
+            long quantity = entry.getValue();
+            
+            ShopDTO dto = shopMapper.mapToShopDTO(item, user);
+            dto.setQuantity((int) quantity);
+            
+            // Add equipped status, skipping for non-equippable categories like CASE
+            if (item.getCategory() != null && item.getCategory() != ShopCategory.CASE && item.getCategory() != ShopCategory.FISHING_ROD_PART) {
+                if (item.getCategory() == ShopCategory.BADGE) {
+                    dto.setEquipped(user.isBadgeEquipped(item.getId()));
+                } else if (item.getCategory() == ShopCategory.FISHING_ROD) {
+                    // This is tricky because we don't have instance info here.
+                    // The main inventory endpoint is better. For Discord, we can just show if ANY rod is equipped.
+                    dto.setEquipped(user.getEquippedFishingRodInstanceId() != null);
+                } else {
+                    UUID equippedItemId = user.getEquippedItemIdByCategory(item.getCategory());
+                    dto.setEquipped(equippedItemId != null && equippedItemId.equals(item.getId()));
+                }
+            } else {
+                // For CASE or null category, it's not equipped
+                dto.setEquipped(false);
+            }
+            
+            return dto;
+        }).collect(Collectors.toSet());
+        
+        return UserInventoryDTO.builder()
+            .items(itemDTOs)
+            .build();
+    }
+    
+    /**
+     * Unequips multiple items for a user in a single atomic transaction.
+     * @param userId User ID
+     * @param itemIds List of item IDs to unequip
+     * @return Updated UserProfileDTO
+     */
+    @Transactional
+    public UserProfileDTO unequipBatch(String userId, List<UUID> itemIds) {
+        logger.debug("Batch unequipping {} items for user {}", itemIds.size(), userId);
+
+        if (itemIds == null || itemIds.isEmpty()) {
+            throw new IllegalArgumentException("Item IDs list cannot be empty");
+        }
+
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        List<Shop> itemsToUnequip = shopRepository.findAllById(itemIds);
+
+        if (itemsToUnequip.size() != itemIds.size()) {
+            logger.warn("Some items for batch unequip were not found. Requested: {}, Found: {}", itemIds.size(), itemsToUnequip.size());
+        }
+
+        for (Shop item : itemsToUnequip) {
+            ShopCategory category = item.getCategory();
+            if (category == null) continue;
+
+            boolean wasEquipped = false;
+            if (category == ShopCategory.BADGE) {
+                if (user.isBadgeEquipped(item.getId())) {
+                    user.removeEquippedBadge();
+                    wasEquipped = true;
+                }
+            } else if (category == ShopCategory.FISHING_ROD) {
+                // Unequipping a fishing rod means unequipping the instance.
+                // The client should send the instance ID, but here we can only unequip whatever is equipped.
+                // This batch unequip is by item ID, not instance ID, so we just clear the equipped slot.
+                UUID equippedInstanceId = user.getEquippedFishingRodInstanceId();
+                if (equippedInstanceId != null) {
+                    // Find which item this instance belongs to
+                    Optional<ItemInstance> instanceOpt = itemInstanceRepository.findById(equippedInstanceId);
+                    if (instanceOpt.isPresent() && instanceOpt.get().getBaseItem().getId().equals(item.getId())) {
+                        user.setEquippedFishingRodInstanceId(null);
+                        wasEquipped = true;
+                    }
+                }
+            } else {
+                UUID equippedId = user.getEquippedItemIdByCategory(category);
+                if (equippedId != null && equippedId.equals(item.getId())) {
+                    user.setEquippedItemIdByCategory(category, null);
+                    wasEquipped = true;
+                }
+            }
+
+            if (wasEquipped && item.getDiscordRoleId() != null && !item.getDiscordRoleId().isEmpty()) {
+                logger.debug("Removing Discord role {} from user {} for unequipped item {}", 
+                            item.getDiscordRoleId(), userId, item.getId());
+                discordService.removeRole(userId, item.getDiscordRoleId());
+            }
+        }
+
+        userRepository.save(user);
+
+        logger.info("Successfully batch unequipped {} items for user {}", itemsToUnequip.size(), userId);
+
+        return userService.mapToProfileDTO(user);
+    }
+
+    /**
+     * Handles the level-up logic for a fishing rod instance.
+     * This method checks if the rod has enough experience to level up and does so,
+     * handling multiple level-ups in a single call if necessary.
+     *
+     * @param rodInstance The ItemInstance of the fishing rod to process.
+     */
+    public void handleRodLevelUp(ItemInstance rodInstance) {
+        if (rodInstance == null || rodInstance.getBaseItem() == null || rodInstance.getBaseItem().getCategory() != ShopCategory.FISHING_ROD) {
+            return;
+        }
+
+        Integer currentLevel = rodInstance.getLevel();
+        if (currentLevel == null) {
+            currentLevel = 1; // Default to level 1 if null
+        }
+
+        if (currentLevel >= LevelingUtil.MAX_ROD_LEVEL) {
+            return; // Already at max level
+        }
+
+        Long currentXp = rodInstance.getExperience();
+        if (currentXp == null) {
+            currentXp = 0L;
+        }
+
+        long xpForNextLevel = LevelingUtil.calculateXpForRodLevel(currentLevel);
+
+        // Loop to handle multiple level-ups at once
+        while (currentXp >= xpForNextLevel && currentLevel < LevelingUtil.MAX_ROD_LEVEL) {
+            currentLevel++;
+            currentXp -= xpForNextLevel;
+
+            logger.info("Fishing rod instance {} leveled up to {} for user {}. Remaining XP: {}",
+                    rodInstance.getId(), currentLevel, rodInstance.getOwner().getId(), currentXp);
+
+            // Calculate XP for the *new* next level
+            xpForNextLevel = LevelingUtil.calculateXpForRodLevel(currentLevel);
+        }
+
+        rodInstance.setLevel(currentLevel);
+        rodInstance.setExperience(currentXp);
+        // The calling method is responsible for saving the updated instance
+    }
 } 

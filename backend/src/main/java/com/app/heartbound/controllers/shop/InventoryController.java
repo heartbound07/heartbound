@@ -1,16 +1,23 @@
 package com.app.heartbound.controllers.shop;
 
-import com.app.heartbound.config.security.RateLimited;
 import com.app.heartbound.dto.UserProfileDTO;
-import com.app.heartbound.enums.RateLimitKeyType;
+import com.app.heartbound.dto.shop.UserInventoryDTO;
+import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.services.UserInventoryService;
+import com.app.heartbound.config.security.RateLimited;
+import com.app.heartbound.enums.RateLimitKeyType;
+import com.app.heartbound.exceptions.ResourceNotFoundException;
+import com.app.heartbound.exceptions.shop.ItemNotEquippableException;
+import com.app.heartbound.exceptions.shop.ItemNotOwnedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -25,6 +32,262 @@ public class InventoryController {
         this.userInventoryService = userInventoryService;
     }
 
+    /**
+     * Get user's inventory
+     * @param authentication Authentication containing user ID
+     * @return User's inventory
+     */
+    @GetMapping("")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserInventoryDTO> getUserInventory(Authentication authentication) {
+        String userId = authentication.getName();
+        UserInventoryDTO inventory = userInventoryService.getFullUserInventory(userId);
+        return ResponseEntity.ok(inventory);
+    }
+
+    /**
+     * Equip an item
+     * @param itemId Item ID
+     * @param authentication Authentication containing user ID
+     * @return Updated user profile
+     */
+    @RateLimited(
+        requestsPerMinute = 30,
+        requestsPerHour = 200,
+        keyType = RateLimitKeyType.USER,
+        keyPrefix = "equip",
+        burstCapacity = 35
+    )
+    @PostMapping("/equip/{itemId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> equipItem(
+        @PathVariable UUID itemId,
+        Authentication authentication
+    ) {
+        String userId = authentication.getName();
+        
+        try {
+            UserProfileDTO updatedProfile = userInventoryService.equipItem(userId, itemId);
+            return ResponseEntity.ok(updatedProfile);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (ItemNotOwnedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (ItemNotEquippableException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (UnsupportedOperationException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An error occurred while equipping the item"));
+        }
+    }
+
+    /**
+     * Equip an item by its instance ID.
+     * @param instanceId The UUID of the ItemInstance to equip.
+     * @param authentication Authentication containing user ID
+     * @return Updated user profile
+     */
+    @RateLimited(
+        requestsPerMinute = 30,
+        requestsPerHour = 200,
+        keyType = RateLimitKeyType.USER,
+        keyPrefix = "equip-instance",
+        burstCapacity = 35
+    )
+    @PostMapping("/equip/instance/{instanceId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> equipItemInstance(
+        @PathVariable UUID instanceId,
+        Authentication authentication
+    ) {
+        String userId = authentication.getName();
+        
+        try {
+            UserProfileDTO updatedProfile = userInventoryService.equipItemInstance(userId, instanceId);
+            return ResponseEntity.ok(updatedProfile);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (ItemNotOwnedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (ItemNotEquippableException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An error occurred while equipping the item"));
+        }
+    }
+    
+    /**
+     * Equip multiple items in a single atomic transaction
+     * @param request Batch equip request containing list of item IDs
+     * @param authentication Authentication containing user ID
+     * @return Updated user profile
+     */
+    @RateLimited(
+        requestsPerMinute = 20,
+        requestsPerHour = 100,
+        keyType = RateLimitKeyType.USER,
+        keyPrefix = "batch-equip",
+        burstCapacity = 25
+    )
+    @PostMapping("/equip/batch")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> equipMultipleItems(
+        @RequestBody BatchEquipRequest request,
+        Authentication authentication
+    ) {
+        String userId = authentication.getName();
+        
+        try {
+            if (request.getItemIds() == null || request.getItemIds().isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(new ErrorResponse("Item IDs list cannot be empty"));
+            }
+            
+            UserProfileDTO updatedProfile = userInventoryService.equipBatch(userId, request.getItemIds());
+            return ResponseEntity.ok(updatedProfile);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (ItemNotOwnedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (ItemNotEquippableException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error in batch equip for user {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An error occurred while equipping items"));
+        }
+    }
+
+    /**
+     * Unequip an item by category
+     * @param category Category of item to unequip
+     * @param authentication Authentication containing user ID
+     * @return Updated user profile
+     */
+    @RateLimited(
+        requestsPerMinute = 30,
+        requestsPerHour = 200,
+        keyType = RateLimitKeyType.USER,
+        keyPrefix = "unequip",
+        burstCapacity = 35
+    )
+    @PostMapping("/unequip/{category}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> unequipItem(
+        @PathVariable ShopCategory category,
+        Authentication authentication
+    ) {
+        String userId = authentication.getName();
+        
+        try {
+            UserProfileDTO updatedProfile = userInventoryService.unequipItem(userId, category);
+            return ResponseEntity.ok(updatedProfile);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (UnsupportedOperationException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An error occurred while unequipping the item"));
+        }
+    }
+
+    /**
+     * Unequip multiple items in a single atomic transaction
+     * @param request Batch unequip request containing list of item IDs
+     * @param authentication Authentication containing user ID
+     * @return Updated user profile
+     */
+    @RateLimited(
+        requestsPerMinute = 20,
+        requestsPerHour = 100,
+        keyType = RateLimitKeyType.USER,
+        keyPrefix = "batch-unequip",
+        burstCapacity = 25
+    )
+    @PostMapping("/unequip/batch")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> unequipMultipleItems(
+        @RequestBody BatchUnequipRequest request,
+        Authentication authentication
+    ) {
+        String userId = authentication.getName();
+        
+        try {
+            if (request.getItemIds() == null || request.getItemIds().isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(new ErrorResponse("Item IDs list cannot be empty"));
+            }
+            
+            UserProfileDTO updatedProfile = userInventoryService.unequipBatch(userId, request.getItemIds());
+            return ResponseEntity.ok(updatedProfile);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error in batch unequip for user {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An error occurred while unequipping items"));
+        }
+    }
+
+    /**
+     * Unequip a specific badge
+     * @param badgeId Badge ID to unequip
+     * @param authentication Authentication containing user ID
+     * @return Updated user profile
+     */
+    @RateLimited(
+        requestsPerMinute = 30,
+        requestsPerHour = 200,
+        keyType = RateLimitKeyType.USER,
+        keyPrefix = "unequip-badge",
+        burstCapacity = 35
+    )
+    @PostMapping("/unequip/badge/{badgeId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> unequipBadge(
+        @PathVariable UUID badgeId,
+        Authentication authentication
+    ) {
+        String userId = authentication.getName();
+        
+        try {
+            UserProfileDTO updatedProfile = userInventoryService.unequipBadge(userId, badgeId);
+            return ResponseEntity.ok(updatedProfile);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (ItemNotEquippableException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("An error occurred while unequipping the badge"));
+        }
+    }
+
     @GetMapping("/rod/{rodInstanceId}/repair-cost")
     @PreAuthorize("isAuthenticated()")
     @RateLimited(
@@ -36,9 +299,8 @@ public class InventoryController {
             @PathVariable UUID rodInstanceId,
             Authentication authentication) {
         String userId = authentication.getName();
-        logger.info("User {} is requesting repair cost for rod {}", userId, rodInstanceId);
         int cost = userInventoryService.getRepairCost(userId, rodInstanceId);
-        return ResponseEntity.ok(Map.of("repairCost", cost));
+        return ResponseEntity.ok(Map.of("cost", cost));
     }
 
     @PostMapping("/rod/{rodInstanceId}/repair")
@@ -53,9 +315,8 @@ public class InventoryController {
             @PathVariable UUID rodInstanceId,
             Authentication authentication) {
         String userId = authentication.getName();
-        logger.info("User {} is attempting to repair rod {}", userId, rodInstanceId);
-        UserProfileDTO updatedProfile = userInventoryService.repairFishingRod(userId, rodInstanceId);
-        return ResponseEntity.ok(updatedProfile);
+        UserProfileDTO profile = userInventoryService.repairFishingRod(userId, rodInstanceId);
+        return ResponseEntity.ok(profile);
     }
 
     @GetMapping("/part/{partInstanceId}/repair-cost")
@@ -68,10 +329,8 @@ public class InventoryController {
     public ResponseEntity<Map<String, Integer>> getPartRepairCost(
             @PathVariable UUID partInstanceId,
             Authentication authentication) {
-        String userId = authentication.getName();
-        logger.info("User {} is requesting repair cost for part {}", userId, partInstanceId);
         int cost = userInventoryService.getPartRepairCost(partInstanceId);
-        return ResponseEntity.ok(Map.of("repairCost", cost));
+        return ResponseEntity.ok(Map.of("cost", cost));
     }
 
     @PostMapping("/part/{partInstanceId}/repair")
@@ -86,9 +345,8 @@ public class InventoryController {
             @PathVariable UUID partInstanceId,
             Authentication authentication) {
         String userId = authentication.getName();
-        logger.info("User {} is attempting to repair part {}", userId, partInstanceId);
-        UserProfileDTO updatedProfile = userInventoryService.repairFishingRodPart(userId, partInstanceId);
-        return ResponseEntity.ok(updatedProfile);
+        UserProfileDTO profile = userInventoryService.repairFishingRodPart(userId, partInstanceId);
+        return ResponseEntity.ok(profile);
     }
 
     @PostMapping("/rod/{rodInstanceId}/equip-part")
@@ -104,9 +362,8 @@ public class InventoryController {
             @RequestBody EquipRequest request,
             Authentication authentication) {
         String userId = authentication.getName();
-        logger.info("User {} is attempting to equip part {} on rod {}", userId, request.getPartInstanceId(), rodInstanceId);
-        UserProfileDTO updatedProfile = userInventoryService.equipAndRepairFishingRodPart(userId, rodInstanceId, request.getPartInstanceId());
-        return ResponseEntity.ok(updatedProfile);
+        UserProfileDTO profile = userInventoryService.equipAndRepairFishingRodPart(userId, rodInstanceId, request.getPartInstanceId());
+        return ResponseEntity.ok(profile);
     }
 
     public static class EquipRequest {
@@ -133,9 +390,8 @@ public class InventoryController {
             @RequestBody UnequipPartRequest request,
             Authentication authentication) {
         String userId = authentication.getName();
-        logger.info("User {} is attempting to unequip broken part {} from rod {}", userId, request.getPartInstanceId(), rodInstanceId);
-        UserProfileDTO updatedProfile = userInventoryService.unequipAndRemoveBrokenPart(userId, rodInstanceId, request.getPartInstanceId());
-        return ResponseEntity.ok(updatedProfile);
+        UserProfileDTO profile = userInventoryService.unequipAndRemoveBrokenPart(userId, rodInstanceId, request.getPartInstanceId());
+        return ResponseEntity.ok(profile);
     }
 
     public static class UnequipPartRequest {
@@ -147,6 +403,44 @@ public class InventoryController {
 
         public void setPartInstanceId(UUID partInstanceId) {
             this.partInstanceId = partInstanceId;
+        }
+    }
+
+    // Inner classes for request/response DTOs
+    public static class BatchEquipRequest {
+        private List<UUID> itemIds;
+
+        public List<UUID> getItemIds() {
+            return itemIds;
+        }
+
+        public void setItemIds(List<UUID> itemIds) {
+            this.itemIds = itemIds;
+        }
+    }
+
+    public static class BatchUnequipRequest {
+        private List<UUID> itemIds;
+
+        public List<UUID> getItemIds() {
+            return itemIds;
+        }
+
+        public void setItemIds(List<UUID> itemIds) {
+            this.itemIds = itemIds;
+        }
+    }
+
+    public static class ErrorResponse {
+        private final String message;
+
+        public ErrorResponse(String message) {
+            this.message = message;
+        }
+
+        @SuppressWarnings("unused")
+        public String getMessage() {
+            return message;
         }
     }
 } 
