@@ -15,9 +15,16 @@ interface UserProfileModalProps {
   userProfile: UserProfileDTO | null;
   position?: Position | null; // Position for contextual positioning
   containerRef?: React.RefObject<HTMLElement>; // Added container reference prop
+  error?: string | null;
 }
 
-export function UserProfileModal({ isOpen, onClose, userProfile, position }: UserProfileModalProps) {
+export function UserProfileModal({
+  isOpen,
+  onClose,
+  userProfile,
+  position,
+  error
+}: UserProfileModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const [modalPosition, setModalPosition] = useState<Position | null>(null);
   
@@ -160,8 +167,12 @@ export function UserProfileModal({ isOpen, onClose, userProfile, position }: Use
                   showEditButton={false}
                 />
               </>
+            ) : error ? (
+              <div className="w-80 h-[450px] flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm border border-slate-700 rounded-lg text-white p-6">
+                <h3 className="font-bold text-lg text-red-400 mb-2">Error</h3>
+                <p className="text-center text-sm text-slate-300">{error}</p>
+              </div>
             ) : (
-              // Loading state with fixed dimensions matching ProfilePreview
               <div className="w-80 h-[450px] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm border border-slate-700 rounded-lg text-white">
                 <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
               </div>

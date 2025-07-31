@@ -277,6 +277,7 @@ export const Leaderboard = React.memo(function Leaderboard({
   const [clickPosition, setClickPosition] = useState<{ x: number, y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   // Apply limit if specified, with a hard maximum of 500 entries
   const MAX_ENTRIES = 500;
@@ -348,19 +349,20 @@ export const Leaderboard = React.memo(function Leaderboard({
     setClickPosition({ x: event.clientX, y: event.clientY });
     setModalOpen(true);
     setSelectedUser(null); // Clear previous user data to show loading state in modal
+    setModalError(null); // Clear previous error state
 
     try {
       const fullProfile = await getUserProfile(user.id);
       setSelectedUser(fullProfile);
     } catch (error) {
       console.error("Failed to fetch user profile", error);
-      // Optionally handle error state in modal by closing it or showing an error message
-      setModalOpen(false);
+      setModalError("Could not load user profile. Please try again later.");
     }
   }, []);
 
   const closeModal = useCallback(() => {
     setModalOpen(false);
+    setModalError(null);
   }, []);
 
   // Get column header text based on leaderboard type
@@ -500,6 +502,7 @@ export const Leaderboard = React.memo(function Leaderboard({
           userProfile={selectedUser}
           position={clickPosition}
           containerRef={containerRef}
+          error={modalError}
         />,
         document.body
       )}

@@ -26,8 +26,9 @@ public class UserSecurityService {
     
     /**
      * Checks if the authenticated user can access the specified user's data.
-     * Users can access their own data, admins can access any user's data.
-     * Users can also access data of users they are paired with or users in public active pairings.
+     * Users can access their own data (full access), admins can access any user's data (full access).
+     * Users can also access data of users they are paired with (full access).
+     * All authenticated users can access public profile data of any user (limited access).
      * 
      * @param authentication the authentication context
      * @param targetUserId the user ID being accessed
@@ -51,8 +52,16 @@ public class UserSecurityService {
             return true;
         }
         
-        // Allow access for pairing-related use cases
-        return canAccessForPairing(authenticatedUserId, targetUserId);
+        // Allow access for pairing-related use cases (full access)
+        if (canAccessForPairing(authenticatedUserId, targetUserId)) {
+            return true;
+        }
+        
+        // Allow public profile access for all authenticated users
+        // This enables leaderboard profile viewing and other public features
+        logger.debug("Allowing public profile access for user {} to view user {}", 
+            authenticatedUserId, targetUserId);
+        return true;
     }
     
     /**
