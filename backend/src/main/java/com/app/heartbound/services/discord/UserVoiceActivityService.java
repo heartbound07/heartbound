@@ -1,6 +1,5 @@
 package com.app.heartbound.services.discord;
 
-import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

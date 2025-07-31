@@ -68,7 +68,6 @@ public class FishCommandListener extends ListenerAdapter {
     private final DiscordBotSettingsService discordBotSettingsService;
     private final FishCommandListener self; // Self-injection for transactional methods
     private final ItemInstanceRepository itemInstanceRepository;
-    private final ShopService shopService;
 
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
@@ -81,7 +80,6 @@ public class FishCommandListener extends ListenerAdapter {
         this.discordBotSettingsService = discordBotSettingsService;
         this.self = self;
         this.itemInstanceRepository = itemInstanceRepository;
-        this.shopService = shopService;
         logger.info("FishCommandListener initialized with secure random and audit service");
     }
     

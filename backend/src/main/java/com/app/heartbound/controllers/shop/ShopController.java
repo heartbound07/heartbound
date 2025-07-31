@@ -18,6 +18,7 @@ import com.app.heartbound.exceptions.shop.InvalidCaseContentsException;
 import com.app.heartbound.exceptions.shop.ItemDeletionException;
 import com.app.heartbound.exceptions.shop.ItemReferencedInCasesException;
 import com.app.heartbound.services.shop.ShopService;
+import com.app.heartbound.services.shop.CaseService;
 import com.app.heartbound.repositories.shop.ShopRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +42,7 @@ import java.util.stream.Collectors;
 public class ShopController {
     
     private final ShopService shopService;
+    private final CaseService caseService;
     private static final Logger logger = LoggerFactory.getLogger(ShopController.class);
     
     // Rate limiting configuration values
@@ -71,8 +73,9 @@ public class ShopController {
     @Value("${rate.limit.equip.burst-capacity:35}")
     private int equipBurstCapacity;
         
-    public ShopController(ShopService shopService, ShopRepository shopRepository) {
+    public ShopController(ShopService shopService, CaseService caseService, ShopRepository shopRepository) {
         this.shopService = shopService;
+        this.caseService = caseService;
     }
     
     /**
@@ -341,7 +344,7 @@ public class ShopController {
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> getCaseContents(@PathVariable UUID caseId, Authentication authentication) {
         try {
-            CaseContentsDTO contents = shopService.getCaseContents(caseId);
+            CaseContentsDTO contents = caseService.getCaseContents(caseId);
             
             // Create MappingJacksonValue to control JSON serialization based on user role
             MappingJacksonValue mappingJacksonValue = new MappingJacksonValue(contents);
@@ -394,7 +397,7 @@ public class ShopController {
         String userId = authentication.getName();
         
         try {
-            RollResultDTO result = shopService.openCase(userId, caseId);
+            RollResultDTO result = caseService.openCase(userId, caseId);
             return ResponseEntity.ok(result);
         } catch (CaseNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -443,7 +446,7 @@ public class ShopController {
             }
 
             logger.debug("Updating case {} with {} items", caseId, caseItems.size());
-            shopService.updateCaseContents(caseId, caseItems);
+            caseService.updateCaseContents(caseId, caseItems);
             return ResponseEntity.ok(new SuccessResponse("Case contents updated successfully"));
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -467,7 +470,7 @@ public class ShopController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> validateCaseContents(@PathVariable UUID caseId) {
         try {
-            boolean isValid = shopService.validateCaseContents(caseId);
+            boolean isValid = caseService.validateCaseContents(caseId);
             return ResponseEntity.ok()
                 .header("Cache-Control", "no-cache, no-store, must-revalidate")
                 .header("Pragma", "no-cache")

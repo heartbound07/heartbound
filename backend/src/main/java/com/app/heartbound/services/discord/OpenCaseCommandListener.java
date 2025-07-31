@@ -14,7 +14,7 @@ import com.app.heartbound.exceptions.shop.EmptyCaseException;
 import com.app.heartbound.exceptions.shop.InvalidCaseContentsException;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.UserInventoryService;
-import com.app.heartbound.services.shop.ShopService;
+import com.app.heartbound.services.shop.CaseService;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -44,7 +44,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
  * OpenCaseCommandListener
  * 
  * Discord slash command listener for opening cases via Discord.
- * Integrates with the existing ShopService.openCase() method and provides
+ * Integrates with the existing CaseService.openCase() method and provides
  * a Discord-native interface for the case opening system.
  * 
  * Command: /open case:<autocomplete from user's cases>
@@ -76,7 +76,7 @@ public class OpenCaseCommandListener extends ListenerAdapter {
         RARITY_COLORS.put("COMMON", new Color(108, 117, 125));  // Grey
     }
     
-    private final ShopService shopService;
+    private final CaseService caseService;
     private final UserInventoryService userInventoryService;
     
     @Value("${discord.main.guild.id}")
@@ -89,8 +89,8 @@ public class OpenCaseCommandListener extends ListenerAdapter {
     private boolean isRegistered = false;
     private JDA jdaInstance;
     
-    public OpenCaseCommandListener(@Lazy ShopService shopService, UserInventoryService userInventoryService, UserService userService) {
-        this.shopService = shopService;
+    public OpenCaseCommandListener(@Lazy CaseService caseService, UserInventoryService userInventoryService, UserService userService) {
+        this.caseService = caseService;
         this.userInventoryService = userInventoryService;
         logger.info("OpenCaseCommandListener initialized");
     }
@@ -280,7 +280,7 @@ public class OpenCaseCommandListener extends ListenerAdapter {
             }
             
             // Get case contents for the confirmation embed
-            CaseContentsDTO caseContents = shopService.getCaseContents(caseId);
+            CaseContentsDTO caseContents = caseService.getCaseContents(caseId);
             if (caseContents == null) {
                 logger.error("Case contents not found for case ID: {}", caseId);
                 event.reply("This case appears to be empty or corrupted. Please contact an administrator.").setEphemeral(true).queue();
@@ -384,7 +384,7 @@ public class OpenCaseCommandListener extends ListenerAdapter {
         
         try {
             // Get case information for rolling embed
-            CaseContentsDTO caseContents = shopService.getCaseContents(caseId);
+            CaseContentsDTO caseContents = caseService.getCaseContents(caseId);
             
             // Start rolling animation
             startRollingAnimation(event, caseContents.getCaseName(), userId, caseId);
@@ -462,8 +462,8 @@ public class OpenCaseCommandListener extends ListenerAdapter {
         try {
             logger.debug("Processing actual case opening for user {} and case {}", userId, caseId);
             
-            // Use the existing ShopService.openCase method
-            RollResultDTO result = shopService.openCase(userId, caseId);
+            // Use the existing CaseService.openCase method
+            RollResultDTO result = caseService.openCase(userId, caseId);
             
             // Build result embed
             MessageEmbed resultEmbed = buildResultEmbed(result);
