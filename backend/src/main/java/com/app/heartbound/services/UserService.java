@@ -1501,114 +1501,9 @@ public class UserService {
      * @param userId the ID of the user whose inventory to fetch
      * @return list of user's inventory items with details
      */
-    @PreAuthorize("hasRole('ADMIN')")
-    public List<UserInventoryItemDTO> getUserInventoryItems(String userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
 
-        // Group item instances by their base item and count them to get quantities.
-        Map<Shop, Long> itemCounts = user.getItemInstances().stream()
-            .collect(Collectors.groupingBy(
-                ItemInstance::getBaseItem,
-                Collectors.counting()
-            ));
 
-        // Map the grouped items and their counts to DTOs.
-        return itemCounts.entrySet().stream()
-            .map(entry -> {
-                Shop item = entry.getKey();
-                int quantity = entry.getValue().intValue();
-                return UserInventoryItemDTO.builder()
-                        .itemId(item.getId())
-                        .name(item.getName())
-                        .description(item.getDescription())
-                        .category(item.getCategory())
-                        .thumbnailUrl(item.getThumbnailUrl())
-                        .imageUrl(item.getImageUrl())
-                        .quantity(quantity)
-                        .price(item.getPrice())
-                        .build();
-            })
-            .collect(Collectors.toList());
-    }
 
-    /**
-     * Remove an item from a user's inventory by admin.
-     * Handles both new inventory system (with quantities) and legacy inventory system.
-     * Automatically refunds credits if the item was purchased (price > 0).
-     * Unequips the item if it's currently equipped.
-     * 
-     * @param userId the ID of the user whose inventory to modify
-     * @param itemId the ID of the item to remove
-     * @param adminId the ID of the admin performing the operation
-     * @return the updated user profile
-     * @throws ResourceNotFoundException if user or item not found
-     */
-    @PreAuthorize("hasRole('ADMIN')")
-    @Transactional
-    public UserProfileDTO removeInventoryItem(String userId, UUID itemId, String adminId) {
-        logger.debug("Admin {} removing item {} from user {}'s inventory", adminId, itemId, userId);
-        
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
-        
-        Shop shopItem = shopRepository.findById(itemId)
-                .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
-        
-        boolean itemRemoved = false;
-        boolean wasEquipped = false;
-        int refundAmount = 0;
-        String itemName = shopItem.getName();
-        
-        if (shopItem.getCategory() != ShopCategory.CASE) {
-            UUID equippedItemId = user.getEquippedItemIdByCategory(shopItem.getCategory());
-            if (equippedItemId != null && equippedItemId.equals(itemId)) {
-                user.setEquippedItemIdByCategory(shopItem.getCategory(), null);
-                wasEquipped = true;
-                logger.debug("Unequipped item {} from user {} before removal", itemId, userId);
-            }
-        }
-        
-        Optional<ItemInstance> instanceToRemove = user.getItemInstances().stream()
-            .filter(instance -> instance.getBaseItem().getId().equals(itemId))
-            .findFirst();
-
-        if (instanceToRemove.isPresent()) {
-            ItemInstance itemInstance = instanceToRemove.get();
-            
-            if (itemInstance.getBaseItem().getPrice() != null && itemInstance.getBaseItem().getPrice() > 0) {
-                refundAmount = itemInstance.getBaseItem().getPrice();
-            }
-            
-            itemInstanceRepository.delete(itemInstance);
-            user.getItemInstances().remove(itemInstance);
-            itemRemoved = true;
-            
-            logger.debug("Removed item instance {} for item {} from user {}", itemInstance.getId(), itemId, userId);
-        }
-        
-        if (!itemRemoved) {
-            throw new ResourceNotFoundException("Item not found in user's inventory: " + itemId);
-        }
-        
-        if (refundAmount > 0) {
-            int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
-            user.setCredits(currentCredits + refundAmount);
-            logger.info("Refunded {} credits to user {} for removed item {}", refundAmount, userId, itemId);
-        }
-        
-        User updatedUser = userRepository.save(user);
-        
-        createInventoryRemovalAuditEntry(adminId, userId, itemId, itemName, refundAmount, wasEquipped);
-        
-        cacheConfig.invalidateUserProfileCache(userId);
-        cacheConfig.invalidateLeaderboardCache();
-        
-        logger.info("ADMIN INVENTORY REMOVAL - Admin: {}, User: {}, Item: {} ({}), Refund: {} credits, Was Equipped: {}", 
-                adminId, userId, itemId, itemName, refundAmount, wasEquipped);
-        
-        return mapToProfileDTO(updatedUser);
-    }
 
     /**
      * Utility method to get the client IP address from the current HTTP request context
@@ -1936,61 +1831,7 @@ public class UserService {
         }
     }
 
-    /**
-     * Creates an audit entry for inventory item removal operations
-     */
-    private void createInventoryRemovalAuditEntry(String adminId, String targetUserId, UUID itemId, String itemName, int refundAmount, boolean wasEquipped) {
-        try {
-            // Build description
-            String description = String.format("Removed item '%s' from user %s's inventory%s%s", 
-                itemName, 
-                targetUserId,
-                refundAmount > 0 ? String.format(" (refunded %d credits)", refundAmount) : "",
-                wasEquipped ? " (item was equipped)" : "");
 
-            // Build detailed JSON for audit trail
-            Map<String, Object> details = new HashMap<>();
-            details.put("adminId", adminId);
-            details.put("targetUserId", targetUserId);
-            details.put("itemId", itemId.toString());
-            details.put("itemName", itemName);
-            details.put("refundAmount", refundAmount);
-            details.put("wasEquipped", wasEquipped);
-            details.put("timestamp", LocalDateTime.now().toString());
-
-            String detailsJson;
-            try {
-                detailsJson = objectMapper.writeValueAsString(details);
-            } catch (JsonProcessingException e) {
-                logger.error("Failed to serialize inventory removal details to JSON: {}", e.getMessage());
-                detailsJson = "{\"error\": \"Failed to serialize inventory removal details\"}";
-            }
-
-            // Create audit entry
-            CreateAuditDTO auditDTO = CreateAuditDTO.builder()
-                .userId(adminId)
-                .action("REMOVE_INVENTORY_ITEM")
-                .entityType("User")
-                .entityId(targetUserId)
-                .description(description)
-                .ipAddress(getClientIp())
-                .userAgent(getUserAgent())
-                .sessionId(getSessionId())
-                .severity(AuditSeverity.INFO)
-                .category(AuditCategory.DATA_ACCESS)
-                .details(detailsJson)
-                .source("UserService")
-                .build();
-
-            // Use createSystemAuditEntry for internal operations
-            auditService.createSystemAuditEntry(auditDTO);
-
-        } catch (Exception e) {
-            // Log the error but don't let audit failures break the inventory removal flow
-            logger.error("Failed to create audit entry for inventory removal - adminId: {}, targetUserId: {}, itemId: {}, error: {}", 
-                adminId, targetUserId, itemId, e.getMessage(), e);
-        }
-    }
 
     /**
      * Bans a user.

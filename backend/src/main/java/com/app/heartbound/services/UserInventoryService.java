@@ -35,6 +35,19 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Optional;
 
+import com.app.heartbound.config.CacheConfig;
+import com.app.heartbound.dto.CreateAuditDTO;
+import com.app.heartbound.enums.AuditSeverity;
+import com.app.heartbound.enums.AuditCategory;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import jakarta.servlet.http.HttpServletRequest;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+
 @Service
 public class UserInventoryService {
 
@@ -45,14 +58,20 @@ public class UserInventoryService {
     private final ShopRepository shopRepository;
     private final DiscordService discordService;
     private final ShopMapper shopMapper;
+    private final AuditService auditService;
+    private final CacheConfig cacheConfig;
+    private final ObjectMapper objectMapper;
 
-    public UserInventoryService(ItemInstanceRepository itemInstanceRepository, UserRepository userRepository, UserService userService, ShopRepository shopRepository, @Lazy DiscordService discordService, ShopMapper shopMapper) {
+    public UserInventoryService(ItemInstanceRepository itemInstanceRepository, UserRepository userRepository, UserService userService, ShopRepository shopRepository, @Lazy DiscordService discordService, ShopMapper shopMapper, AuditService auditService, CacheConfig cacheConfig, ObjectMapper objectMapper) {
         this.itemInstanceRepository = itemInstanceRepository;
         this.userRepository = userRepository;
         this.userService = userService;
         this.shopRepository = shopRepository;
         this.discordService = discordService;
         this.shopMapper = shopMapper;
+        this.auditService = auditService;
+        this.cacheConfig = cacheConfig;
+        this.objectMapper = objectMapper;
     }
 
     private int getBaseRepairCost(ItemRarity rarity) {
@@ -221,8 +240,9 @@ public class UserInventoryService {
         User user = userRepository.findByIdWithInventory(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-        // Group instances by base item and count them
+        // Group instances by base item and count them (excluding FISHING_ROD_PART for Discord display)
         Map<Shop, Long> itemCounts = user.getItemInstances().stream()
+            .filter(instance -> instance.getBaseItem().getCategory() != ShopCategory.FISHING_ROD_PART)
             .collect(Collectors.groupingBy(ItemInstance::getBaseItem, Collectors.counting()));
 
         // Convert to DTOs
@@ -230,7 +250,7 @@ public class UserInventoryService {
             .flatMap(entry -> {
                 Shop item = entry.getKey();
                 List<ItemInstance> instances = user.getItemInstances().stream()
-                    .filter(i -> i.getBaseItem().getId().equals(item.getId()))
+                    .filter(i -> i.getBaseItem().getId().equals(item.getId()) && i.getBaseItem().getCategory() != ShopCategory.FISHING_ROD_PART)
                     .collect(Collectors.toList());
 
                 if (item.getCategory() == ShopCategory.FISHING_ROD) {
@@ -271,7 +291,7 @@ public class UserInventoryService {
                         .quantity(entry.getValue().intValue())
                         .rarity(item.getRarity())
                         .discordRoleId(item.getDiscordRoleId())
-                        .equipped(item.getId().equals(user.getEquippedItemIdByCategory(item.getCategory())))
+                        .equipped(item.getCategory().isEquippable() && item.getId().equals(user.getEquippedItemIdByCategory(item.getCategory())))
                         .build()).stream();
                 }
             })
@@ -1125,5 +1145,240 @@ public class UserInventoryService {
         rodInstance.setLevel(currentLevel);
         rodInstance.setExperience(currentXp);
         // The calling method is responsible for saving the updated instance
+    }
+
+    /**
+     * Admin method to get user's inventory items (moved from UserService)
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<UserInventoryItemDTO> getUserInventoryItems(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        // Group item instances by their base item and count them to get quantities.
+        Map<Shop, Long> itemCounts = user.getItemInstances().stream()
+            .collect(Collectors.groupingBy(
+                ItemInstance::getBaseItem,
+                Collectors.counting()
+            ));
+
+        // Map the grouped items and their counts to DTOs.
+        return itemCounts.entrySet().stream()
+            .map(entry -> {
+                Shop item = entry.getKey();
+                int quantity = entry.getValue().intValue();
+                return UserInventoryItemDTO.builder()
+                        .itemId(item.getId())
+                        .name(item.getName())
+                        .description(item.getDescription())
+                        .category(item.getCategory())
+                        .thumbnailUrl(item.getThumbnailUrl())
+                        .imageUrl(item.getImageUrl())
+                        .quantity(quantity)
+                        .price(item.getPrice())
+                        .build();
+            })
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Remove an item from a user's inventory by admin (moved from UserService).
+     * Handles both new inventory system (with quantities) and legacy inventory system.
+     * Automatically refunds credits if the item was purchased (price > 0).
+     * Unequips the item if it's currently equipped.
+     * 
+     * @param userId the ID of the user whose inventory to modify
+     * @param itemId the ID of the item to remove
+     * @param adminId the ID of the admin performing the operation
+     * @return the updated user profile
+     * @throws ResourceNotFoundException if user or item not found
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public UserProfileDTO removeInventoryItem(String userId, UUID itemId, String adminId) {
+        logger.debug("Admin {} removing item {} from user {}'s inventory", adminId, itemId, userId);
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        Shop shopItem = shopRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
+        
+        boolean itemRemoved = false;
+        boolean wasEquipped = false;
+        int refundAmount = 0;
+        String itemName = shopItem.getName();
+        
+        if (shopItem.getCategory() != ShopCategory.CASE) {
+            UUID equippedItemId = user.getEquippedItemIdByCategory(shopItem.getCategory());
+            if (equippedItemId != null && equippedItemId.equals(itemId)) {
+                user.setEquippedItemIdByCategory(shopItem.getCategory(), null);
+                wasEquipped = true;
+                logger.debug("Unequipped item {} from user {} before removal", itemId, userId);
+            }
+        }
+        
+        Optional<ItemInstance> instanceToRemove = user.getItemInstances().stream()
+            .filter(instance -> instance.getBaseItem().getId().equals(itemId))
+            .findFirst();
+
+        if (instanceToRemove.isPresent()) {
+            ItemInstance itemInstance = instanceToRemove.get();
+            
+            if (itemInstance.getBaseItem().getPrice() != null && itemInstance.getBaseItem().getPrice() > 0) {
+                refundAmount = itemInstance.getBaseItem().getPrice();
+            }
+            
+            itemInstanceRepository.delete(itemInstance);
+            user.getItemInstances().remove(itemInstance);
+            itemRemoved = true;
+            
+            logger.debug("Removed item instance {} for item {} from user {}", itemInstance.getId(), itemId, userId);
+        }
+        
+        if (!itemRemoved) {
+            throw new ResourceNotFoundException("Item not found in user's inventory: " + itemId);
+        }
+        
+        // Use atomic credit operation for refund instead of direct assignment
+        if (refundAmount > 0) {
+            boolean refundSuccess = userService.updateCreditsAtomic(userId, refundAmount);
+            if (refundSuccess) {
+                logger.info("Refunded {} credits to user {} for removed item {}", refundAmount, userId, itemId);
+            } else {
+                logger.warn("Failed to refund {} credits to user {} for removed item {}", refundAmount, userId, itemId);
+            }
+        }
+        
+        User updatedUser = userRepository.save(user);
+        
+        createInventoryRemovalAuditEntry(adminId, userId, itemId, itemName, refundAmount, wasEquipped);
+        
+        cacheConfig.invalidateUserProfileCache(userId);
+        cacheConfig.invalidateLeaderboardCache();
+        
+        logger.info("ADMIN INVENTORY REMOVAL - Admin: {}, User: {}, Item: {} ({}), Refund: {} credits, Was Equipped: {}", 
+                adminId, userId, itemId, itemName, refundAmount, wasEquipped);
+        
+        return userService.mapToProfileDTO(updatedUser);
+    }
+
+    /**
+     * Utility method to get the client IP address from the current HTTP request context
+     */
+    private String getClientIp() {
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs != null) {
+                HttpServletRequest request = attrs.getRequest();
+                
+                // Check for X-Forwarded-For header first (for proxied requests)
+                String xForwardedFor = request.getHeader("X-Forwarded-For");
+                if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+                    // X-Forwarded-For can contain multiple IPs, take the first one
+                    return xForwardedFor.split(",")[0].trim();
+                }
+                
+                // Check for X-Real-IP header (alternative proxy header)
+                String xRealIp = request.getHeader("X-Real-IP");
+                if (xRealIp != null && !xRealIp.isEmpty()) {
+                    return xRealIp;
+                }
+                
+                // Fallback to standard remote address
+                return request.getRemoteAddr();
+            }
+        } catch (Exception e) {
+            logger.debug("Unable to extract client IP address: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Utility method to get the user agent from the current HTTP request context
+     */
+    private String getUserAgent() {
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs != null) {
+                HttpServletRequest request = attrs.getRequest();
+                return request.getHeader("User-Agent");
+            }
+        } catch (Exception e) {
+            logger.debug("Unable to extract user agent: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Utility method to get the session ID from the current HTTP request context
+     */
+    private String getSessionId() {
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs != null) {
+                HttpServletRequest request = attrs.getRequest();
+                return request.getSession(false) != null ? request.getSession(false).getId() : null;
+            }
+        } catch (Exception e) {
+            logger.debug("Unable to extract session ID: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Creates an audit entry for inventory item removal operations
+     */
+    private void createInventoryRemovalAuditEntry(String adminId, String targetUserId, UUID itemId, String itemName, int refundAmount, boolean wasEquipped) {
+        try {
+            // Build description
+            String description = String.format("Removed item '%s' from user %s's inventory%s%s", 
+                itemName, 
+                targetUserId,
+                refundAmount > 0 ? String.format(" (refunded %d credits)", refundAmount) : "",
+                wasEquipped ? " (item was equipped)" : "");
+
+            // Build detailed JSON for audit trail
+            Map<String, Object> details = new HashMap<>();
+            details.put("adminId", adminId);
+            details.put("targetUserId", targetUserId);
+            details.put("itemId", itemId.toString());
+            details.put("itemName", itemName);
+            details.put("refundAmount", refundAmount);
+            details.put("wasEquipped", wasEquipped);
+            details.put("timestamp", LocalDateTime.now().toString());
+
+            String detailsJson;
+            try {
+                detailsJson = objectMapper.writeValueAsString(details);
+            } catch (JsonProcessingException e) {
+                logger.error("Failed to serialize inventory removal details to JSON: {}", e.getMessage());
+                detailsJson = "{\"error\": \"Failed to serialize inventory removal details\"}";
+            }
+
+            // Create audit entry
+            CreateAuditDTO auditDTO = CreateAuditDTO.builder()
+                .userId(adminId)
+                .action("REMOVE_INVENTORY_ITEM")
+                .entityType("User")
+                .entityId(targetUserId)
+                .description(description)
+                .ipAddress(getClientIp())
+                .userAgent(getUserAgent())
+                .sessionId(getSessionId())
+                .severity(AuditSeverity.INFO)
+                .category(AuditCategory.DATA_ACCESS)
+                .details(detailsJson)
+                .source("UserInventoryService")
+                .build();
+
+            // Use createSystemAuditEntry for internal operations
+            auditService.createSystemAuditEntry(auditDTO);
+
+        } catch (Exception e) {
+            // Log the error but don't let audit failures break the inventory removal flow
+            logger.error("Failed to create audit entry for inventory removal - adminId: {}, targetUserId: {}, itemId: {}, error: {}", 
+                adminId, targetUserId, itemId, e.getMessage(), e);
+        }
     }
 } 

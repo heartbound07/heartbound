@@ -12,6 +12,7 @@ import com.app.heartbound.entities.User;
 import com.app.heartbound.services.EconomyService;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.UserSecurityService;
+import com.app.heartbound.services.UserInventoryService;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,11 +41,13 @@ public class UserController {
     private final UserService userService;
     private final UserSecurityService userSecurityService;
     private final EconomyService economyService;
+    private final UserInventoryService userInventoryService;
 
-    public UserController(UserService userService, UserSecurityService userSecurityService, EconomyService economyService) {
+    public UserController(UserService userService, UserSecurityService userSecurityService, EconomyService economyService, UserInventoryService userInventoryService) {
         this.userService = userService;
         this.userSecurityService = userSecurityService;
         this.economyService = economyService;
+        this.userInventoryService = userInventoryService;
     }
     
     /**
@@ -370,7 +373,7 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{userId}/inventory")
     public ResponseEntity<List<UserInventoryItemDTO>> getUserInventory(@PathVariable String userId) {
-        List<UserInventoryItemDTO> inventoryItems = userService.getUserInventoryItems(userId);
+        List<UserInventoryItemDTO> inventoryItems = userInventoryService.getUserInventoryItems(userId);
         return ResponseEntity.ok(inventoryItems);
     }
 
@@ -395,7 +398,7 @@ public class UserController {
         String adminId = authentication.getName();
         
         try {
-            UserProfileDTO updatedProfile = userService.removeInventoryItem(userId, itemId, adminId);
+            UserProfileDTO updatedProfile = userInventoryService.removeInventoryItem(userId, itemId, adminId);
             return ResponseEntity.ok(updatedProfile);
         } catch (ResourceNotFoundException e) {
             logger.warn("Admin {} attempted to remove non-existent item {} from user {}", adminId, itemId, userId);
