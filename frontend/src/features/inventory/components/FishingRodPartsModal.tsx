@@ -99,8 +99,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
         >
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-white flex items-center">
-              <GiFishingPole className="mr-2 text-primary" size={22} />
-              Customize: {rod.name}
+              {rod.name}
               {rod.level && (
                 <span className="ml-3 text-sm font-bold text-white bg-amber-500 px-2.5 py-1 rounded-full shadow-md">
                   LVL {rod.level}
@@ -115,7 +114,6 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Left side: Rod Slots */}
             <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-              <h3 className="text-lg font-medium text-slate-200 mb-4">Equipped Parts</h3>
               <div className="space-y-3">
                 {partSlots.map(({ type, name }) => {
                   const equippedPart = equippedPartsMap[type];
@@ -184,7 +182,6 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
 
             {/* Right side: Parts Inventory */}
             <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-              <h3 className="text-lg font-medium text-slate-200 mb-4">Available Parts</h3>
               <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
                 {parts.length > 0 ? (
                   partSlots.map(({ type, name }) => (
