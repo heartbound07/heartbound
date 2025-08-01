@@ -68,11 +68,12 @@ public class FishCommandListener extends ListenerAdapter {
     private final DiscordBotSettingsService discordBotSettingsService;
     private final FishCommandListener self; // Self-injection for transactional methods
     private final ItemInstanceRepository itemInstanceRepository;
+    private final TermsOfServiceService termsOfServiceService;
 
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
     
-    public FishCommandListener(UserService userService, UserInventoryService userInventoryService, SecureRandomService secureRandomService, AuditService auditService, ShopRepository shopRepository, DiscordBotSettingsService discordBotSettingsService, @Lazy FishCommandListener self, ItemInstanceRepository itemInstanceRepository, @Lazy ShopService shopService) {
+    public FishCommandListener(UserService userService, UserInventoryService userInventoryService, SecureRandomService secureRandomService, AuditService auditService, ShopRepository shopRepository, DiscordBotSettingsService discordBotSettingsService, @Lazy FishCommandListener self, ItemInstanceRepository itemInstanceRepository, @Lazy ShopService shopService, TermsOfServiceService termsOfServiceService) {
         this.userService = userService;
         this.userInventoryService = userInventoryService;
         this.secureRandomService = secureRandomService;
@@ -80,6 +81,7 @@ public class FishCommandListener extends ListenerAdapter {
         this.discordBotSettingsService = discordBotSettingsService;
         this.self = self;
         this.itemInstanceRepository = itemInstanceRepository;
+        this.termsOfServiceService = termsOfServiceService;
         logger.info("FishCommandListener initialized with secure random and audit service");
     }
     
@@ -283,11 +285,14 @@ public class FishCommandListener extends ListenerAdapter {
             return; // Not our command
         }
         
-        // Defer reply to prevent timeout
-        event.deferReply().queue(); 
+        // Require Terms of Service agreement before proceeding
+        termsOfServiceService.requireAgreement(event, user -> {
+            // Defer reply to prevent timeout
+            event.deferReply().queue(); 
 
-        // Use the self-injected proxy to call the transactional method
-        self.handleFishCommand(event);
+            // Use the self-injected proxy to call the transactional method
+            self.handleFishCommand(event);
+        });
     }
 
     @Transactional
@@ -301,13 +306,8 @@ public class FishCommandListener extends ListenerAdapter {
             List<String> brokenParts = new ArrayList<>();
             
             // Fetch the user from the database with a lock
+            // Note: User is guaranteed to exist due to Terms of Service agreement check
             User user = userService.getUserByIdWithLock(userId);
-            
-            if (user == null) {
-                logger.warn("User {} not found in database when using /fish", userId);
-                event.getHook().sendMessage("Could not find your account. Please log in to the web application first.").queue();
-                return;
-            }
 
             // New Fishing Rod Logic
             ItemInstance equippedRodInstance = null;
