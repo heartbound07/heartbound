@@ -42,6 +42,9 @@ public class LevelCardCommandListener extends ListenerAdapter {
     @Autowired
     private UserService userService;
     
+    @Autowired
+    private TermsOfServiceService termsOfServiceService;
+    
     @Value("${htmlcsstoimage.user_id}")
     private String htmlCssToImageUserId;
     
@@ -102,38 +105,40 @@ public class LevelCardCommandListener extends ListenerAdapter {
         }
 
         String userId = event.getUser().getId();
+        logger.info("User {} requested /me command", userId);
         
-        // Check cooldown BEFORE deferring reply to avoid unnecessary processing
-        long remainingCooldown = checkCooldown(userId);
-        if (remainingCooldown > 0) {
-            long remainingSeconds = (remainingCooldown + 999) / 1000; // Round up to next second
-            event.reply("⏱️ Please wait **" + remainingSeconds + " seconds** before using this command again.")
-                .setEphemeral(true)
-                .queue();
-            logger.debug("User {} attempted to use /me command while on cooldown. Remaining: {}ms", userId, remainingCooldown);
-            return;
-        }
-
-        // Set cooldown for this user
-        setCooldown(userId);
-        logger.debug("Cooldown set for user {} using /me command", userId);
-
-        // Immediately defer the reply to prevent timeout
-        event.deferReply().queue();
-
-        try {
-            // Fetch the user from the database
-            User user = userService.getUserById(userId);
-            
-            if (user == null) {
-                logger.warn("User {} not found in database when using /me command", userId);
-                event.getHook().sendMessage("Could not find your account. Please log in to the web application first.")
-                    .setEphemeral(true).queue();
+        // Require Terms of Service agreement before proceeding
+        termsOfServiceService.requireAgreement(event, user -> {
+            // Check cooldown AFTER ToS agreement to prevent cooldown penalties for non-agreeing users
+            long remainingCooldown = checkCooldown(userId);
+            if (remainingCooldown > 0) {
+                long remainingSeconds = (remainingCooldown + 999) / 1000; // Round up to next second
+                event.reply("⏱️ Please wait **" + remainingSeconds + " seconds** before using this command again.")
+                    .setEphemeral(true)
+                    .queue();
+                logger.debug("User {} attempted to use /me command while on cooldown. Remaining: {}ms", userId, remainingCooldown);
                 return;
             }
+
+            // Set cooldown for this user
+            setCooldown(userId);
+            logger.debug("Cooldown set for user {} using /me command", userId);
+
+            // Immediately defer the reply to prevent timeout
+            event.deferReply().queue();
             
+            // Handle the level card command logic
+            handleLevelCardCommand(event, user);
+        });
+    }
+
+    /**
+     * Handles the main level card command logic after ToS agreement
+     */
+    private void handleLevelCardCommand(@Nonnull SlashCommandInteractionEvent event, User user) {
+        try {
             // Get user's Discord ID and fetch their profile
-            UserProfileDTO userProfile = userProfileService.getUserProfile(userId);
+            UserProfileDTO userProfile = userProfileService.getUserProfile(user.getId());
             
             if (userProfile == null) {
                 event.getHook().sendMessage("Could not find your account. Please log in to the web application first.")
