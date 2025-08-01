@@ -8,6 +8,7 @@ import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
 import com.app.heartbound.config.CacheConfig;
+import com.app.heartbound.services.discord.TermsOfServiceService;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -50,6 +51,7 @@ public class DefuseCommandListener extends ListenerAdapter {
     private final CacheConfig cacheConfig;
     private final SecureRandomService secureRandomService;
     private final AuditService auditService;
+    private final TermsOfServiceService termsOfServiceService;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
     
     @Value("${discord.main.guild.id}")
@@ -62,12 +64,13 @@ public class DefuseCommandListener extends ListenerAdapter {
     // Store active games to prevent duplicates and manage state
     private final ConcurrentHashMap<String, DefuseGame> activeGames = new ConcurrentHashMap<>();
     
-    public DefuseCommandListener(UserService userService, CacheConfig cacheConfig, SecureRandomService secureRandomService, AuditService auditService) {
+    public DefuseCommandListener(UserService userService, CacheConfig cacheConfig, SecureRandomService secureRandomService, AuditService auditService, TermsOfServiceService termsOfServiceService) {
         this.userService = userService;
         this.cacheConfig = cacheConfig;
         this.secureRandomService = secureRandomService;
         this.auditService = auditService;
-        logger.info("DefuseCommandListener initialized with secure random service and audit service");
+        this.termsOfServiceService = termsOfServiceService;
+        logger.info("DefuseCommandListener initialized with secure random service, audit service, and Terms of Service service");
     }
     
     @Override
@@ -85,9 +88,6 @@ public class DefuseCommandListener extends ListenerAdapter {
             return;
         }
 
-        String challengerId = event.getUser().getId();
-        logger.info("User {} requested /defuse", challengerId);
-        
         // Get command options
         OptionMapping userOption = event.getOption("user");
         OptionMapping betOption = event.getOption("bet");
@@ -101,7 +101,7 @@ public class DefuseCommandListener extends ListenerAdapter {
         int betAmount = betOption.getAsInt();
         
         // Prevent self-challenge
-        if (challengerId.equals(challengedUserId)) {
+        if (event.getUser().getId().equals(challengedUserId)) {
             event.reply("You cannot challenge yourself to Defuse!").setEphemeral(true).queue();
             return;
         }
@@ -111,6 +111,20 @@ public class DefuseCommandListener extends ListenerAdapter {
             event.reply("Bet amount must be greater than 0!").setEphemeral(true).queue();
             return;
         }
+        
+        // Check Terms of Service agreement for challenger
+        termsOfServiceService.requireAgreement(event, (challengerUser) -> {
+            // ToS check passed, continue with defuse logic
+            continueDefuseCommand(event, challengerUser, challengedUserId, betAmount);
+        });
+    }
+    
+    /**
+     * Continues the defuse command logic after Terms of Service agreement is confirmed for the challenger.
+     */
+    private void continueDefuseCommand(SlashCommandInteractionEvent event, User challenger, String challengedUserId, int betAmount) {
+        String challengerId = challenger.getId();
+        logger.info("User {} requested /defuse after ToS confirmation", challengerId);
         
         try {
             // Check if either user is already in an active game
@@ -126,14 +140,8 @@ public class DefuseCommandListener extends ListenerAdapter {
                 return;
             }
             
-            // Fetch both users from the database
-            User challenger = userService.getUserById(challengerId);
+            // Fetch challenged user from the database
             User challenged = userService.getUserById(challengedUserId);
-            
-            if (challenger == null) {
-                event.reply("You are currently not signed up with the bot!").setEphemeral(true).queue();
-                return;
-            }
             
             if (challenged == null) {
                 event.reply(String.format("<@%s> is currently not signed up with the bot!", challengedUserId)).setEphemeral(true).queue();
@@ -226,6 +234,12 @@ public class DefuseCommandListener extends ListenerAdapter {
     public void onButtonInteraction(@Nonnull ButtonInteractionEvent event) {
         String buttonId = event.getComponentId();
         
+        // Handle defuse-specific Terms of Service buttons
+        if (buttonId.startsWith("tos-defuse-agree:") || buttonId.startsWith("tos-defuse-disagree:")) {
+            handleDefuseToSResponse(event, buttonId);
+            return;
+        }
+        
         if (!buttonId.startsWith("defuse_")) {
             return; // Not our button
         }
@@ -265,13 +279,21 @@ public class DefuseCommandListener extends ListenerAdapter {
         }
         
         if (buttonId.startsWith("defuse_accept_")) {
-            // Accept the challenge
-            game.setState(DefuseGame.GameState.ACTIVE);
-            
-            logger.debug("Challenge accepted: gameKey={}, game state set to ACTIVE", gameKey);
-            
-            // Start the wire cutting phase
-            startWireCuttingPhase(event, gameKey, game);
+            // Check if challenged user exists in database (ToS agreement check)
+            User challengedUser = userService.getUserById(userId);
+            if (challengedUser != null) {
+                // User exists, proceed with accepting the challenge
+                game.setState(DefuseGame.GameState.ACTIVE);
+                
+                logger.debug("Challenge accepted: gameKey={}, game state set to ACTIVE", gameKey);
+                
+                // Start the wire cutting phase
+                startWireCuttingPhase(event, gameKey, game);
+            } else {
+                // User doesn't exist, show Terms of Service agreement
+                logger.debug("User {} not found, showing Terms of Service agreement for defuse challenge", userId);
+                showDefuseToSAgreement(event, userId, "defuse_accept_" + gameKey);
+            }
             
         } else if (buttonId.startsWith("defuse_reject_")) {
             // Reject the challenge
@@ -288,6 +310,226 @@ public class DefuseCommandListener extends ListenerAdapter {
             event.editMessageEmbeds(rejectEmbed.build())
                 .setComponents() // Remove buttons
                 .queue();
+                 }
+     }
+
+    /**
+     * Shows Terms of Service agreement embed with defuse-specific button IDs.
+     */
+    private void showDefuseToSAgreement(ButtonInteractionEvent event, String userId, String originalComponentId) {
+        logger.debug("Showing Terms of Service agreement for defuse action: user={}, originalComponent={}", userId, originalComponentId);
+
+        try {
+            EmbedBuilder embedBuilder = new EmbedBuilder()
+                    .setTitle("Terms of Service")
+                    .setDescription("Please agree to the Terms of Service to use the Bot.")
+                    .setColor(EMBED_COLOR);
+
+            // Create unique button IDs for this user, encoding the original component ID
+            String agreeButtonId = "tos-defuse-agree:" + userId + ":" + originalComponentId;
+            String disagreeButtonId = "tos-defuse-disagree:" + userId;
+
+            Button agreeButton = Button.success(agreeButtonId, "Agree");
+            Button disagreeButton = Button.danger(disagreeButtonId, "Disagree");
+
+            ActionRow actionRow = ActionRow.of(agreeButton, disagreeButton);
+
+            // Reply with the ToS embed and buttons
+            event.editMessageEmbeds(embedBuilder.build())
+                    .setComponents(actionRow)
+                    .queue(
+                            success -> logger.debug("Defuse ToS agreement embed sent to user: {}", userId),
+                            error -> logger.error("Failed to send defuse ToS agreement embed to user {}: {}", userId, error.getMessage())
+                    );
+
+        } catch (Exception e) {
+            logger.error("Error showing defuse Terms of Service agreement for user {}: {}", userId, e.getMessage(), e);
+            
+            // Fallback: reply with a simple error message
+            try {
+                event.reply("❌ An error occurred while displaying the Terms of Service. Please try again later.")
+                        .setEphemeral(true)
+                        .queue();
+            } catch (Exception fallbackError) {
+                logger.error("Failed to send fallback error message to user {}: {}", userId, fallbackError.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * Handles Terms of Service button interactions specific to defuse games.
+     */
+    private void handleDefuseToSResponse(ButtonInteractionEvent event, String componentId) {
+        String clickingUserId = event.getUser().getId();
+        logger.debug("Processing defuse ToS button interaction: {} by user: {}", componentId, clickingUserId);
+
+        try {
+            // Extract the target user ID and original component ID from the component ID
+            String targetUserId;
+            String originalComponentId = null;
+            boolean isAgree;
+            
+            if (componentId.startsWith("tos-defuse-agree:")) {
+                String remainder = componentId.substring("tos-defuse-agree:".length());
+                String[] parts = remainder.split(":", 2);
+                if (parts.length != 2) {
+                    logger.warn("Invalid ToS defuse agree button format: {}", componentId);
+                    event.reply("❌ Invalid button format.").setEphemeral(true).queue();
+                    return;
+                }
+                targetUserId = parts[0];
+                originalComponentId = parts[1];
+                isAgree = true;
+            } else if (componentId.startsWith("tos-defuse-disagree:")) {
+                targetUserId = componentId.substring("tos-defuse-disagree:".length());
+                isAgree = false;
+            } else {
+                logger.warn("Unexpected ToS defuse button component ID: {}", componentId);
+                event.reply("❌ Invalid button.").setEphemeral(true).queue();
+                return;
+            }
+
+            // Critical security check: Verify the clicking user matches the target user
+            if (!clickingUserId.equals(targetUserId)) {
+                logger.warn("Security violation: User {} attempted to interact with ToS defuse button for user {}", 
+                    clickingUserId, targetUserId);
+                
+                event.reply("❌ You can only interact with your own Terms of Service agreement.")
+                        .setEphemeral(true)
+                        .queue();
+                return;
+            }
+
+            if (isAgree) {
+                handleDefuseToSAgree(event, targetUserId, originalComponentId);
+            } else {
+                handleDefuseToSDisagree(event, targetUserId);
+            }
+
+        } catch (Exception e) {
+            logger.error("Error processing defuse ToS button interaction for component ID {}: {}", componentId, e.getMessage(), e);
+            
+            // Send error response
+            try {
+                event.reply("❌ An error occurred while processing your response. Please try again later.")
+                        .setEphemeral(true)
+                        .queue();
+            } catch (Exception fallbackError) {
+                logger.error("Failed to send error response for defuse ToS button interaction: {}", fallbackError.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Handles ToS agreement for defuse games and resumes the original action.
+     */
+    private void handleDefuseToSAgree(ButtonInteractionEvent event, String userId, String originalComponentId) {
+        logger.debug("User {} agreed to Terms of Service for defuse action: {}", userId, originalComponentId);
+
+        try {
+            // Check if user already exists (race condition protection)
+            User existingUser = userService.getUserById(userId);
+            if (existingUser != null) {
+                logger.debug("User {} already exists during defuse ToS agreement, proceeding with original action", userId);
+                resumeDefuseAction(event, originalComponentId, userId);
+                return;
+            }
+
+            // Create new user from Discord data
+            userService.createUserFromDiscord(event.getUser());
+            logger.info("Successfully created new user {} from defuse ToS agreement", userId);
+
+            // Resume the original defuse action
+            resumeDefuseAction(event, originalComponentId, userId);
+
+        } catch (Exception e) {
+            logger.error("Error creating user {} from defuse ToS agreement: {}", userId, e.getMessage(), e);
+            
+            // Send error response
+            event.reply("❌ An error occurred while creating your account. Please try again later.")
+                    .setEphemeral(true)
+                    .queue();
+        }
+    }
+
+    /**
+     * Handles ToS disagreement for defuse games.
+     */
+    private void handleDefuseToSDisagree(ButtonInteractionEvent event, String userId) {
+        logger.debug("User {} disagreed to Terms of Service for defuse action", userId);
+
+        try {
+            // Send ephemeral disagreement message and delete the original embed
+            event.reply("You have disagreed to the Terms of Service.")
+                    .setEphemeral(true)
+                    .queue(
+                            success -> {
+                                logger.debug("Sent defuse ToS disagreement message to user {}", userId);
+                                // Delete the original ToS embed
+                                try {
+                                    event.getMessage().delete().queue(
+                                        deleteSuccess -> logger.debug("Deleted defuse ToS embed for user {} after disagreement", userId),
+                                        deleteError -> logger.error("Failed to delete defuse ToS embed for user {}: {}", userId, deleteError.getMessage())
+                                    );
+                                } catch (Exception deleteException) {
+                                    logger.error("Error deleting defuse ToS embed for user {}: {}", userId, deleteException.getMessage());
+                                }
+                            },
+                            error -> logger.error("Failed to send defuse ToS disagreement message to user {}: {}", userId, error.getMessage())
+                    );
+
+        } catch (Exception e) {
+            logger.error("Error handling defuse ToS disagreement for user {}: {}", userId, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Resumes the original defuse action after Terms of Service agreement.
+     */
+    private void resumeDefuseAction(ButtonInteractionEvent event, String originalComponentId, String userId) {
+        logger.debug("Resuming defuse action: {} for user: {}", originalComponentId, userId);
+
+        if (originalComponentId.startsWith("defuse_accept_")) {
+            // Extract game key from the original component ID
+            String gameKey = originalComponentId.substring("defuse_accept_".length());
+            
+            DefuseGame game = activeGames.get(gameKey);
+            if (game == null) {
+                logger.warn("Game not found when resuming defuse action: gameKey={}", gameKey);
+                event.reply("This game is no longer active.").setEphemeral(true).queue();
+                return;
+            }
+
+            // Verify user is the challenged user
+            if (!userId.equals(game.getChallengedUserId())) {
+                logger.warn("User {} attempted to resume defuse action for game they're not part of: {}", userId, gameKey);
+                event.reply("You cannot perform this action.").setEphemeral(true).queue();
+                return;
+            }
+
+            // Accept the challenge and start the game
+            game.setState(DefuseGame.GameState.ACTIVE);
+            
+            logger.debug("Defuse challenge accepted after ToS agreement: gameKey={}, game state set to ACTIVE", gameKey);
+            
+            // Update the embed to show ToS agreement confirmation first
+            EmbedBuilder tosConfirmEmbed = new EmbedBuilder()
+                .setColor(SUCCESS_COLOR)
+                .setTitle("Terms of Service")
+                .setDescription("✅ You have agreed to the Terms of Service. Starting the game...");
+
+            event.editMessageEmbeds(tosConfirmEmbed.build())
+                .setComponents() // Remove ToS buttons
+                .queue(
+                    success -> {
+                        logger.debug("ToS confirmation embed sent, starting wire cutting phase");
+                        // Brief pause then start the wire cutting phase
+                        CompletableFuture.delayedExecutor(2, TimeUnit.SECONDS).execute(() -> {
+                            startWireCuttingPhase(event, gameKey, game);
+                        });
+                    },
+                    error -> logger.error("Failed to send ToS confirmation embed: {}", error.getMessage())
+                );
         }
     }
     
