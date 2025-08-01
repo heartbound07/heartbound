@@ -41,6 +41,7 @@ import com.app.heartbound.entities.TradeItem;
 import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.exceptions.InvalidTradeActionException;
+import com.app.heartbound.services.discord.TermsOfServiceService;
 
 @Component
 @Slf4j
@@ -49,6 +50,7 @@ public class TradeCommandListener extends ListenerAdapter {
 
     private final TradeService tradeService;
     private final UserService userService;
+    private final TermsOfServiceService termsOfServiceService;
     private JDA jdaInstance;
 
     // Existing state management
@@ -96,6 +98,20 @@ public class TradeCommandListener extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("trade")) return;
+
+        log.info("User {} requested /trade", event.getUser().getId());
+        
+        // Check Terms of Service agreement before proceeding
+        termsOfServiceService.requireAgreement(event, (user) -> {
+            // ToS check passed, continue with trade logic
+            continueTradeCommand(event, user);
+        });
+    }
+
+    /**
+     * Continues the trade command logic after Terms of Service agreement is confirmed.
+     */
+    private void continueTradeCommand(@Nonnull SlashCommandInteractionEvent event, com.app.heartbound.entities.User initiator) {
         event.deferReply(true).queue();
 
         User initiatorUser = event.getUser();
@@ -111,11 +127,10 @@ public class TradeCommandListener extends ListenerAdapter {
             return;
         }
 
-        com.app.heartbound.entities.User initiator = userService.getUserById(initiatorUser.getId());
         com.app.heartbound.entities.User receiver = userService.getUserById(receiverUser.getId());
 
-        if (initiator == null || receiver == null) {
-            event.getHook().sendMessage("Both you and the target user must be registered.").queue();
+        if (receiver == null) {
+            event.getHook().sendMessage("The target user must be registered to trade.").queue();
             return;
         }
 
