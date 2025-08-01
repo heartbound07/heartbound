@@ -1990,4 +1990,70 @@ public class UserService {
                 .map(this::mapToPublicProfileDTO)
                 .collect(Collectors.toList());
     }
+
+    /**
+     * Creates a new user from Discord data for the Terms of Service flow.
+     * This method is specifically for creating users who interact with the Discord bot
+     * without going through the web OAuth flow.
+     *
+     * @param discordUser The Discord user object from JDA
+     * @return The newly created User entity
+     */
+    @Transactional
+    public User createUserFromDiscord(net.dv8tion.jda.api.entities.User discordUser) {
+        String userId = discordUser.getId();
+        logger.debug("Creating new user from Discord data for user ID: {}", userId);
+        
+        // Final race condition check - if user already exists, return it
+        Optional<User> existingUser = userRepository.findById(userId);
+        if (existingUser.isPresent()) {
+            logger.debug("User {} already exists during Discord creation, returning existing user", userId);
+            return existingUser.get();
+        }
+        
+        // Create new user entity
+        User newUser = new User();
+        newUser.setId(userId);
+        newUser.setUsername(discordUser.getName());
+        newUser.setDiscriminator(discordUser.getDiscriminator());
+        
+        // Set avatar URLs - use Discord's effective avatar URL for both fields
+        String effectiveAvatarUrl = discordUser.getEffectiveAvatarUrl();
+        newUser.setAvatar(effectiveAvatarUrl);
+        newUser.setDiscordAvatarUrl(effectiveAvatarUrl);
+        
+        // Set default values for new Discord users
+        newUser.setCredits(0);
+        newUser.setLevel(1);
+        newUser.setExperience(0);
+        newUser.setBanned(false);
+        
+        // Initialize roles - start with USER role
+        Set<Role> initialRoles = new HashSet<>();
+        initialRoles.add(Role.USER);
+        
+        // Check if this user should be assigned ADMIN role
+        if (userId.equals(adminDiscordId) && adminDiscordId != null && !adminDiscordId.trim().isEmpty()) {
+            // Additional validation: Ensure admin Discord ID is configured properly
+            if (adminDiscordId.length() >= 17 && adminDiscordId.length() <= 20 && adminDiscordId.matches("\\d+")) {
+                initialRoles.add(Role.ADMIN);
+                logger.info("Admin role automatically assigned to new Discord user ID: {}", userId);
+            } else {
+                logger.error("Invalid admin Discord ID configuration detected during Discord user creation: {}", adminDiscordId);
+            }
+        }
+        newUser.setRoles(initialRoles);
+        
+        // Set display name to username for new users
+        newUser.setDisplayName(discordUser.getName());
+        
+        // Save the new user
+        User savedUser = userRepository.save(newUser);
+        
+        // Invalidate cache to ensure fresh data
+        cacheConfig.invalidateUserProfileCache(userId);
+        
+        logger.info("Successfully created new user from Discord: {} (username: {})", userId, discordUser.getName());
+        return savedUser;
+    }
 }

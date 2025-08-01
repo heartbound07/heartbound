@@ -36,9 +36,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.view.RedirectView;
 
 import com.app.heartbound.services.discord.DiscordChannelService;
-import com.app.heartbound.enums.Role;
-import java.util.Collections;
-import java.util.Set;
 
 @CrossOrigin(origins = "http://", allowCredentials = "true")
 @RestController
