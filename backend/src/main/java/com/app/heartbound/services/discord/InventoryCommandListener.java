@@ -4,6 +4,7 @@ import com.app.heartbound.dto.shop.UserInventoryItemDTO;
 import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.services.UserInventoryService;
+import com.app.heartbound.entities.User;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
@@ -33,6 +34,7 @@ public class InventoryCommandListener extends ListenerAdapter {
     private static final Color EMBED_COLOR = new Color(88, 101, 242);
 
     private final UserInventoryService userInventoryService;
+    private final TermsOfServiceService termsOfServiceService;
 
     @Value("${frontend.base.url}")
     private String frontendBaseUrl;
@@ -55,9 +57,10 @@ public class InventoryCommandListener extends ListenerAdapter {
         RARITY_ASC
     }
 
-    public InventoryCommandListener(@Lazy UserInventoryService userInventoryService) {
+    public InventoryCommandListener(@Lazy UserInventoryService userInventoryService, TermsOfServiceService termsOfServiceService) {
         this.userInventoryService = userInventoryService;
-        logger.info("InventoryCommandListener initialized");
+        this.termsOfServiceService = termsOfServiceService;
+        logger.info("InventoryCommandListener initialized with Terms of Service service");
     }
 
     public void registerWithJDA(JDA jda) {
@@ -91,9 +94,23 @@ public class InventoryCommandListener extends ListenerAdapter {
             return;
         }
 
+        logger.info("User {} requested /inventory", event.getUser().getId());
+
+        // Check Terms of Service agreement before proceeding
+        termsOfServiceService.requireAgreement(event, (user) -> {
+            // ToS check passed, continue with inventory logic
+            continueInventoryCommand(event, user);
+        });
+    }
+
+    /**
+     * Continues the inventory command logic after Terms of Service agreement is confirmed.
+     */
+    private void continueInventoryCommand(@Nonnull SlashCommandInteractionEvent event, User user) {
+        // Defer reply to prevent timeout
         event.deferReply().queue();
+        
         String userId = event.getUser().getId();
-        logger.info("User {} requested /inventory", userId);
 
         try {
             List<UserInventoryItemDTO> inventoryList = userInventoryService.getUserInventory(userId);
