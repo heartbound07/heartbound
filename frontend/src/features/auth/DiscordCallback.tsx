@@ -7,7 +7,7 @@ import { DISCORD_OAUTH_STATE_KEY } from '../../contexts/auth/constants';
 export function DiscordCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { exchangeDiscordCode } = useAuth();
+  const { exchangeDiscordCode, setTokens } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [processingAuth, setProcessingAuth] = useState<boolean>(true);
   const hasProcessedAuth = useRef(false);
@@ -67,17 +67,31 @@ export function DiscordCallback() {
         localStorage.removeItem(DISCORD_OAUTH_STATE_KEY);
         console.log('[DiscordCallback] OAuth state validated successfully. Removed from storage.');
 
-        if (!code) {
-          const errorMsg = 'Missing required OAuth code parameter in URL after state validation.';
-          console.error(`[DiscordCallback] Code Error: ${errorMsg}`);
+        // Check for direct token parameters (new approach)
+        const accessToken = searchParams.get('accessToken');
+        const refreshToken = searchParams.get('refreshToken');
+        
+        if (!accessToken || !refreshToken) {
+          const errorMsg = 'Missing required token parameters in URL after state validation.';
+          console.error(`[DiscordCallback] Token Error: ${errorMsg}`);
           setError(errorMsg);
           setProcessingAuth(false);
           setTimeout(() => navigate('/login'), 3000);
           return;
         }
 
-        console.log(`[DiscordCallback] State validated. Calling exchangeDiscordCode with code: [${code}]`);
-        await exchangeDiscordCode(code); // Call the exchange function
+        console.log(`[DiscordCallback] State validated. Processing tokens directly...`);
+        
+        // Store tokens directly using the auth context
+        const tokenPair = {
+          accessToken: decodeURIComponent(accessToken),
+          refreshToken: decodeURIComponent(refreshToken),
+          tokenType: 'bearer',
+          expiresIn: 1800, // 30 minutes, matching backend configuration
+          scope: 'identify guilds'
+        };
+        
+        setTokens(tokenPair);
 
         setProcessingAuth(false);
         console.log('[DiscordCallback] exchangeDiscordCode call successful. Navigating to dashboard.');
@@ -99,7 +113,7 @@ export function DiscordCallback() {
     // Cleanup function for the timeout
     return () => clearTimeout(timeoutId);
 
-  }, [searchParams, navigate, exchangeDiscordCode]);
+  }, [searchParams, navigate, exchangeDiscordCode, setTokens]);
 
   if (error) {
     return (

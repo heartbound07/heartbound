@@ -13,6 +13,8 @@ import com.app.heartbound.services.oauth.OAuthService;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.oauth.DiscordCodeStore;
 import com.app.heartbound.entities.User;
+import com.app.heartbound.config.security.JWTTokenProvider; // Import the JWTTokenProvider
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -34,6 +36,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.view.RedirectView;
 
 import com.app.heartbound.services.discord.DiscordChannelService;
+import com.app.heartbound.enums.Role;
+import java.util.Collections;
+import java.util.Set;
 
 @CrossOrigin(origins = "http://", allowCredentials = "true")
 @RestController
@@ -74,6 +79,9 @@ public class OAuthController {
 
     @Autowired
     private DiscordChannelService discordChannelService; // Add this autowired dependency
+
+    @Autowired
+    private JWTTokenProvider jwtTokenProvider; // Inject JWTTokenProvider
 
     @Operation(summary = "Initiate Discord OAuth flow", description = "Redirects the user to Discord for authorization.")
     @ApiResponses(value = {
@@ -214,52 +222,48 @@ public class OAuthController {
         }
         logger.info("User processed successfully. User ID: {}", user.getId());
 
-        // --- Start Secure Code Exchange ---
-        // 1. Generate a secure, single-use code
-        String singleUseCode;
-        try {
-            byte[] randomBytes = new byte[32];
-            secureRandom.nextBytes(randomBytes); // Generate random bytes
-            singleUseCode = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
-            logger.debug("Generated single-use code: [{}]", singleUseCode); // Log the generated code
-        } catch (Exception e) {
-            logger.error("Failed to generate secure single-use code", e);
-            return new RedirectView(frontendBaseUrl + "/login?error=Internal+server+error+(code+gen)");
-        }
+        // --- Start Secure Token Generation ---
+        // Instead of a single-use code, generate the JWT and refresh token directly.
+        Set<Role> roles = user.getRoles() != null && !user.getRoles().isEmpty()
+                ? user.getRoles()
+                : Collections.singleton(Role.USER);
+        
+        String accessToken = jwtTokenProvider.generateToken(
+                user.getId().toString(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getAvatar(),
+                roles,
+                user.getCredits()
+        );
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId().toString(), roles);
+        logger.info("Generated JWT tokens for user ID: {}", user.getId());
+        // --- End Secure Token Generation ---
 
-
-        // 2. Store the code temporarily, associated with the user ID
-        try {
-            discordCodeStore.storeCode(singleUseCode, user.getId());
-            // Log confirmation AFTER storing
-            logger.info("Stored single-use code [{}] for user ID: {}", singleUseCode, user.getId());
-        } catch (Exception e) {
-            logger.error("Failed to store single-use code [{}] for user ID {}: {}", singleUseCode, user.getId(), e.getMessage(), e);
-            return new RedirectView(frontendBaseUrl + "/login?error=Internal+server+error+(code+store)");
-        }
-
-        // 3. URL-encode the single-use code and the original frontend state received from Discord
-        String encodedSingleUseCode;
+        // 3. URL-encode the tokens and the original frontend state
+        String encodedAccessToken;
+        String encodedRefreshToken;
         String encodedFrontendState;
         try {
-             encodedSingleUseCode = URLEncoder.encode(singleUseCode, StandardCharsets.UTF_8);
+             encodedAccessToken = URLEncoder.encode(accessToken, StandardCharsets.UTF_8);
+             encodedRefreshToken = URLEncoder.encode(refreshToken, StandardCharsets.UTF_8);
              // Use the validated incoming state received from Discord (and validated against session)
              encodedFrontendState = URLEncoder.encode(incomingState, StandardCharsets.UTF_8);
-             logger.debug("Encoded single-use code: [{}], Encoded state: [{}]", encodedSingleUseCode, encodedFrontendState);
+             logger.debug("Encoded JWT and state for frontend redirect.");
         } catch (Exception e) {
              logger.error("Failed to URL encode parameters for frontend redirect", e);
              return new RedirectView(frontendBaseUrl + "/login?error=Internal+server+error+(encoding)");
         }
 
 
-        // Build the redirect URL to the frontend callback
+        // Build the redirect URL to the frontend callback, now with tokens
         String frontendRedirectUrl = String.format(
-                "%s/auth/discord/callback?code=%s&state=%s",
+                "%s/auth/discord/callback?accessToken=%s&refreshToken=%s&state=%s",
                 frontendBaseUrl,
-                encodedSingleUseCode,
+                encodedAccessToken,
+                encodedRefreshToken,
                 encodedFrontendState 
         );
-        // --- End Secure Code Exchange ---
 
         // Ensure the user's avatar in the application reflects their Discord avatar
         // userDTO.getAvatar() contains the full Discord CDN URL from oauthService.getUserInfo()
