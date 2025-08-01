@@ -35,17 +35,20 @@ public class PairCommandListener extends ListenerAdapter {
     private final UserService userService;
     private final UserValidationService userValidationService;
     private final QueueService queueService;
+    private final TermsOfServiceService termsOfServiceService;
     private JDA jdaInstance;
     private boolean isRegistered = false;
 
     private final ConcurrentHashMap<String, PairRequest> pendingRequests = new ConcurrentHashMap<>();
 
     public PairCommandListener(@Lazy PairingService pairingService, UserService userService,
-                               UserValidationService userValidationService, @Lazy QueueService queueService) {
+                               UserValidationService userValidationService, @Lazy QueueService queueService,
+                               TermsOfServiceService termsOfServiceService) {
         this.pairingService = pairingService;
         this.userService = userService;
         this.userValidationService = userValidationService;
         this.queueService = queueService;
+        this.termsOfServiceService = termsOfServiceService;
     }
 
     public void registerWithJDA(JDA jda) {
@@ -69,6 +72,19 @@ public class PairCommandListener extends ListenerAdapter {
     public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("pair")) return;
 
+        log.info("User {} requested /pair command", event.getUser().getId());
+
+        // Require Terms of Service agreement from initiator before proceeding
+        termsOfServiceService.requireAgreement(event, user -> {
+            // ToS check passed, continue with pair command logic
+            handlePairCommand(event, user);
+        });
+    }
+
+    /**
+     * Handles the main pair command logic after ToS agreement is confirmed.
+     */
+    private void handlePairCommand(@Nonnull SlashCommandInteractionEvent event, com.app.heartbound.entities.User requester) {
         event.deferReply(true).queue();
 
         User requesterUser = event.getUser();
@@ -86,11 +102,11 @@ public class PairCommandListener extends ListenerAdapter {
         }
 
         try {
-            com.app.heartbound.entities.User requester = userService.getUserById(requesterUser.getId());
+            // Requester is already validated by ToS service, get target user
             com.app.heartbound.entities.User target = userService.getUserById(targetUser.getId());
 
-            if (requester == null || target == null) {
-                event.getHook().sendMessage("Both you and the target user must be registered in the system.").queue();
+            if (target == null) {
+                event.getHook().sendMessage("The user you want to pair with must be registered in the system first.").queue();
                 return;
             }
 
