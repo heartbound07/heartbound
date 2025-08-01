@@ -19,10 +19,10 @@ public class CreditsCommandListener extends ListenerAdapter {
     private static final Logger logger = LoggerFactory.getLogger(CreditsCommandListener.class);
     private static final Color EMBED_COLOR = new Color(88, 101, 242); // Discord Blurple
     
-    private final UserService userService;
+    private final TermsOfServiceService termsOfServiceService;
     
-    public CreditsCommandListener(UserService userService) {
-        this.userService = userService;
+    public CreditsCommandListener(UserService userService, TermsOfServiceService termsOfServiceService) {
+        this.termsOfServiceService = termsOfServiceService;
         logger.info("CreditsCommandListener initialized");
     }
     
@@ -34,22 +34,21 @@ public class CreditsCommandListener extends ListenerAdapter {
         
         logger.info("User {} requested /credits", event.getUser().getId());
         
-        // Acknowledge the interaction quickly and make the response ephemeral (only visible to command user)
-        event.deferReply(true).queue();
-        
+        // Require Terms of Service agreement before proceeding
+        termsOfServiceService.requireAgreement(event, user -> {
+            // Defer reply to prevent timeout and make the response ephemeral (only visible to command user)
+            event.deferReply(true).queue();
+            
+            // Handle the credits command logic
+            handleCreditsCommand(event, user);
+        });
+    }
+    
+    /**
+     * Handles the main credits command logic after ToS agreement
+     */
+    private void handleCreditsCommand(@Nonnull SlashCommandInteractionEvent event, User user) {
         try {
-            // Get the Discord user ID
-            String userId = event.getUser().getId();
-            
-            // Fetch the user from the database
-            User user = userService.getUserById(userId);
-            
-            if (user == null) {
-                logger.warn("User {} not found in database when requesting credits", userId);
-                event.getHook().editOriginal("Could not find your account. Please log in to the web application first.").queue();
-                return;
-            }
-            
             // Get the user's credits (handle null case)
             Integer credits = user.getCredits();
             int currentCredits = (credits == null) ? 0 : credits;
@@ -64,7 +63,7 @@ public class CreditsCommandListener extends ListenerAdapter {
             // Send the embed response
             event.getHook().editOriginalEmbeds(embed.build()).queue();
             
-            logger.debug("Credits information sent to user {}: {} credits", userId, currentCredits);
+            logger.debug("Credits information sent to user {}: {} credits", user.getId(), currentCredits);
             
         } catch (Exception e) {
             logger.error("Error processing /credits command for user {}", event.getUser().getId(), e);
