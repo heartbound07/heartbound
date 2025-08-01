@@ -70,6 +70,7 @@ public class TermsOfServiceService {
             // Reply with the ToS embed and buttons
             event.replyEmbeds(embedBuilder.build())
                     .addComponents(actionRow)
+                    .setEphemeral(true)
                     .queue(
                             success -> logger.debug("ToS agreement embed sent to user: {}", userId),
                             error -> logger.error("Failed to send ToS agreement embed to user {}: {}", userId, error.getMessage())
