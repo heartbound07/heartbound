@@ -441,14 +441,14 @@ public class FishCommandListener extends ListenerAdapter {
                 
                 // Atomically update credits
                 userService.updateCreditsAtomic(userId, finalCreditChange);
-                user.setCredits(user.getCredits() + finalCreditChange);
+                user.setCredits(currentCredits + finalCreditChange);
 
 
                 // Bonus Loot Chance
                 if (bonuses.totalBonusLootChance > 0 && secureRandomService.getSecureDouble() <= (bonuses.totalBonusLootChance / 100.0)) {
                     int bonusCredits = 5 + secureRandomService.getSecureInt(11); // 5-15 bonus credits
                     userService.updateCreditsAtomic(userId, bonusCredits);
-                    user.setCredits(user.getCredits() + bonusCredits);
+                    user.setCredits(currentCredits + finalCreditChange + bonusCredits);
                     message.append(" Your reel snagged some extra loot! +").append(bonusCredits).append(" 🪙");
                 }
 
@@ -555,13 +555,13 @@ public class FishCommandListener extends ListenerAdapter {
                 
                 // Atomically update credits
                 userService.updateCreditsAtomic(userId, finalCreditChange);
-                user.setCredits(user.getCredits() + finalCreditChange);
+                user.setCredits(currentCredits + finalCreditChange);
 
                 // Bonus Loot Chance
                 if (bonuses.totalBonusLootChance > 0 && secureRandomService.getSecureDouble() <= (bonuses.totalBonusLootChance / 100.0)) {
                     int bonusCredits = 5 + secureRandomService.getSecureInt(11); // 5-15 bonus credits
                     userService.updateCreditsAtomic(userId, bonusCredits);
-                    user.setCredits(user.getCredits() + bonusCredits);
+                    user.setCredits(currentCredits + finalCreditChange + bonusCredits);
                     message.append(" Your reel snagged some extra loot! +").append(bonusCredits).append(" 🪙");
                 }
 
