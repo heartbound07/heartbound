@@ -25,6 +25,7 @@ declare global {
 // Place these outside the component to persist across renders
 let refreshInProgress = false;
 let refreshPromise: Promise<string | undefined> | null = null;
+let initializationInProgress = false;
 
 const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   // Use our new custom hooks
@@ -201,6 +202,14 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   }, [refreshToken]);
 
   const initializeAuth = useCallback(async () => {
+    if (initializationInProgress) {
+      console.log('[AuthInit] Initialization already in progress, skipping...');
+      return;
+    }
+    
+    initializationInProgress = true;
+    console.log('[AuthInit] Starting initialization...');
+    
     try {
       const initialTokens = tokenStorage.getTokens();
 
@@ -260,6 +269,9 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       clearAuthState();
       updateTokens(null); 
       setAuthError(error instanceof Error ? error.message : 'Failed to initialize session.');
+    } finally {
+      initializationInProgress = false;
+      console.log('[AuthInit] Initialization completed.');
     }
   }, [refreshToken, parseJwt, clearAuthState, updateTokens, setAuthState, setAuthError]); // Dependencies for initializeAuth
 

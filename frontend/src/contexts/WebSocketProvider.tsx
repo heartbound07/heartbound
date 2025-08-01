@@ -9,6 +9,7 @@ import {
 } from 'react';
 import webSocketService from '../config/WebSocketService';
 import { useAuth } from '@/contexts/auth/useAuth';
+import { useTokenManagement } from '../hooks/useTokenManagement';
 import {
   WebSocketContextValue,
   WebSocketConnectionStatus,
@@ -72,6 +73,7 @@ const getOrCreateMessageQueue = (): MessageQueue => {
 
 export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
   const { isAuthenticated, tokens, refreshToken } = useAuth();
+  const { isTokenValid } = useTokenManagement();
   
   // Connection state
   const [connectionStatus, setConnectionStatus] = useState<WebSocketConnectionStatus>('disconnected');
@@ -137,10 +139,12 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
   const classifyError = useCallback((error: any): WebSocketError['type'] => {
     const message = error.message?.toLowerCase() || '';
     
-    // Auth errors
-    if (message.includes('token') || 
+    // Auth errors - including new WebSocket error types
+    if (message.includes('websocket_auth_error') ||
+        message.includes('token') || 
         message.includes('auth') || 
         message.includes('unauthorized') ||
+        message.includes('forbidden') ||
         message.includes('invalid jwt') ||
         message.includes('authentication')) {
       return 'auth';
@@ -152,6 +156,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         message.includes('timeout') ||
         message.includes('refused') ||
         message.includes('websocket') ||
+        message.includes('websocket_stomp_error') ||
         error.code === 'NETWORK_ERROR') {
       return 'network';
     }
@@ -346,6 +351,20 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
   // Main connection establishment function with centralized error handling
   const establishConnection = useCallback(async () => {
     if (isConnectingRef.current || !isAuthenticated || !tokens?.accessToken) {
+      console.log('[WebSocket] Connection prerequisites not met:', {
+        isConnecting: isConnectingRef.current,
+        isAuthenticated,
+        hasAccessToken: !!tokens?.accessToken
+      });
+      return;
+    }
+
+    // Validate token before attempting connection
+    if (!isTokenValid(tokens.accessToken)) {
+      console.log('[WebSocket] Access token is invalid or expired, skipping connection');
+      const authError = createError('auth', 'Access token is invalid or expired', true);
+      setLastError(authError);
+      scheduleRetry(authError);
       return;
     }
 
@@ -411,7 +430,8 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     clearError,
     processSubscriptions,
     resetRetryState,
-    classifyError
+    classifyError,
+    isTokenValid
   ]);
 
   // Manual reconnect function
@@ -720,16 +740,26 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
 
     // Only establish connection if not already connected/connecting and not already connected via WebSocketService
     if (connectionStatus === 'disconnected' && !isConnectingRef.current && !webSocketService.isConnected()) {
-      // Small delay to ensure token is properly set
+      // Add delay to ensure auth state is fully stabilized and tokens are properly synced
       const connectionTimer = setTimeout(() => {
-        establishConnection();
-      }, 300); // Reduced delay
+        // Double-check token validity before establishing connection
+        if (isAuthenticated && tokens?.accessToken && isTokenValid(tokens.accessToken)) {
+          console.log('[WebSocket] Auth state stable, establishing connection...');
+          establishConnection();
+        } else {
+          console.log('[WebSocket] Auth state not ready for connection:', {
+            isAuthenticated,
+            hasToken: !!tokens?.accessToken,
+            isTokenValid: tokens?.accessToken ? isTokenValid(tokens.accessToken) : false
+          });
+        }
+      }, 1000); // Increased delay to allow auth state to stabilize
 
       return () => {
         clearTimeout(connectionTimer);
       };
     }
-  }, [isAuthenticated, tokens?.accessToken, connectionStatus, establishConnection, clearError]);
+  }, [isAuthenticated, tokens?.accessToken, connectionStatus, establishConnection, clearError, isTokenValid]);
 
   // Handle browser visibility changes (reconnect when tab becomes visible)
   useEffect(() => {

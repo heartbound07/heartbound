@@ -10,6 +10,24 @@ export function useTokenManagement() {
   // Reference to refreshToken function for setTimeout
   const refreshTokenRef = useRef<(() => Promise<string | undefined>)>();
 
+  // Add effect to sync tokens state with storage changes
+  useEffect(() => {
+    const syncTokensWithStorage = () => {
+      const storedTokens = tokenStorage.getTokens();
+      setTokens(storedTokens);
+    };
+
+    // Initial sync
+    syncTokensWithStorage();
+
+    // Set up polling to detect storage changes (for cross-component sync)
+    const syncInterval = setInterval(syncTokensWithStorage, 1000);
+
+    return () => {
+      clearInterval(syncInterval);
+    };
+  }, []);
+
   // Parse JWT token to extract payload
   const parseJwt = useCallback((token: string | undefined) => {
     try {
@@ -39,6 +57,17 @@ export function useTokenManagement() {
     }
   }, []);
 
+  // Validate token is not expired and properly formatted
+  const isTokenValid = useCallback((token: string | undefined) => {
+    if (!token) return false;
+    
+    const decoded = parseJwt(token);
+    if (!decoded || !decoded.exp) return false;
+    
+    const currentTime = Math.floor(Date.now() / 1000);
+    return decoded.exp > currentTime;
+  }, [parseJwt]);
+
   // Schedule token refresh
   const scheduleTokenRefresh = useCallback((expiresIn: number) => {
     const refreshTime = expiresIn * 1000 - TOKEN_REFRESH_MARGIN;
@@ -60,6 +89,7 @@ export function useTokenManagement() {
 
   // Update tokens in state and storage
   const updateTokens = useCallback((tokenPair: TokenPair | null) => {
+    console.log('[TokenManagement] Updating tokens:', tokenPair ? 'present' : 'null');
     tokenStorage.setTokens(tokenPair);
     setTokens(tokenPair);
     
@@ -88,5 +118,6 @@ export function useTokenManagement() {
     updateTokens,
     scheduleTokenRefresh,
     refreshTokenRef,
+    isTokenValid,
   };
 }

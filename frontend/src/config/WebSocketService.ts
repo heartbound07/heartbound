@@ -125,16 +125,20 @@ class WebSocketService {
         const errorMessage = frame.headers['message'] || 'Unknown STOMP error';
         console.error('[STOMP] Authentication/broker error:', errorMessage);
         console.error('[STOMP] Error details:', frame.body);
+        console.error('[STOMP] Error frame headers:', frame.headers);
         this.connectionState = 'error';
         cleanup();
         
         // **PERFORMANCE OPTIMIZATION**: Provide specific error messages for authentication issues
         if (errorMessage.toLowerCase().includes('auth') || 
             errorMessage.toLowerCase().includes('token') ||
-            errorMessage.toLowerCase().includes('unauthorized')) {
-          reject(new Error(`Authentication failed: ${errorMessage}`));
+            errorMessage.toLowerCase().includes('unauthorized') ||
+            errorMessage.toLowerCase().includes('forbidden') ||
+            frame.headers['status'] === '401' ||
+            frame.headers['status'] === '403') {
+          reject(new Error(`WEBSOCKET_AUTH_ERROR: ${errorMessage}`));
         } else {
-          reject(new Error(`STOMP error: ${errorMessage}`));
+          reject(new Error(`WEBSOCKET_STOMP_ERROR: ${errorMessage}`));
         }
       };
 

@@ -90,7 +90,12 @@ export function DiscordCallback() {
           const { tokenStorage } = await import('../../contexts/auth/tokenStorage');
           tokenStorage.setTokens(tokenPair);
           
-          console.log('[DiscordCallback] Tokens stored successfully. Fetching user profile...');
+          console.log('[DiscordCallback] Tokens stored successfully. Waiting for state sync...');
+          
+          // Small delay to ensure token state is synchronized across all components
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          console.log('[DiscordCallback] State sync completed. Fetching user profile...');
           
           // Now fetch the user profile to properly initialize the auth state
           try {
