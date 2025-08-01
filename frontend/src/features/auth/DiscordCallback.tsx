@@ -16,9 +16,6 @@ export function DiscordCallback() {
     console.log('[DiscordCallback] useEffect triggered. Current URL:', window.location.href);
     console.log('[DiscordCallback] Initial hasProcessedAuth.current:', hasProcessedAuth.current);
     
-    // Temporarily reset to debug re-mounting issues
-    hasProcessedAuth.current = false;
-    
     // Prevent multiple processing of the same auth callback
     if (hasProcessedAuth.current) {
       console.log('[DiscordCallback] Auth already processed, skipping.');
