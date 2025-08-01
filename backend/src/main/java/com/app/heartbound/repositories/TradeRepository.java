@@ -25,4 +25,7 @@ public interface TradeRepository extends JpaRepository<Trade, Long> {
     Optional<Trade> findByIdWithLock(@Param("id") Long id);
     
     List<Trade> findByStatusAndExpiresAtBefore(TradeStatus status, Instant expiresAt);
+    
+    @Query("SELECT t FROM Trade t WHERE (t.initiator.id = :userId OR t.receiver.id = :userId) AND t.status = 'PENDING' AND (t.expiresAt IS NULL OR t.expiresAt > :now)")
+    List<Trade> findActivePendingTradesForUser(@Param("userId") String userId, @Param("now") Instant now);
 } 
