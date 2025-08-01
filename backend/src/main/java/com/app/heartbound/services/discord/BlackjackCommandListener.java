@@ -11,6 +11,7 @@ import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
 import com.app.heartbound.entities.DiscordBotSettings;
+import com.app.heartbound.services.discord.TermsOfServiceService;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -45,15 +46,17 @@ public class BlackjackCommandListener extends ListenerAdapter {
     private final SecureRandomService secureRandomService;
     private final AuditService auditService;
     private final DiscordBotSettingsService discordBotSettingsService;
+    private final TermsOfServiceService termsOfServiceService;
     
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
 
-    public BlackjackCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService, DiscordBotSettingsService discordBotSettingsService) {
+    public BlackjackCommandListener(UserService userService, SecureRandomService secureRandomService, AuditService auditService, DiscordBotSettingsService discordBotSettingsService, TermsOfServiceService termsOfServiceService) {
         this.userService = userService;
         this.secureRandomService = secureRandomService;
         this.auditService = auditService;
         this.discordBotSettingsService = discordBotSettingsService;
+        this.termsOfServiceService = termsOfServiceService;
         logger.info("BlackjackCommandListener initialized with secure random and audit service");
     }
     
@@ -72,18 +75,29 @@ public class BlackjackCommandListener extends ListenerAdapter {
             return;
         }
 
+        // Require Terms of Service agreement before proceeding
+        termsOfServiceService.requireAgreement(event, user -> {
+            // Defer reply to prevent timeout
+            event.deferReply().queue();
+
+            // Handle the blackjack command logic
+            handleBlackjackCommand(event);
+        });
+    }
+
+    /**
+     * Handles the main blackjack command logic after ToS agreement
+     */
+    private void handleBlackjackCommand(@Nonnull SlashCommandInteractionEvent event) {
         String userId = event.getUser().getId();
         logger.info("User {} requested /blackjack", userId);
         
         // Check for active game first
         if (activeGames.containsKey(userId)) {
-            // User has an active game, show current state
-            event.deferReply().queue();
-            
             try {
                 BlackjackGame existingGame = activeGames.get(userId);
                 
-                if (existingGame.isGameEnded()) {
+                if (existingGame == null || existingGame.isGameEnded()) {
                     // Game ended but wasn't cleaned up properly, remove it and start fresh
                     activeGames.remove(userId);
                     // Continue to create new game below
@@ -106,11 +120,6 @@ public class BlackjackCommandListener extends ListenerAdapter {
             }
         }
         
-        // Acknowledge the interaction immediately (if not already done above)
-        if (!activeGames.containsKey(userId)) {
-            event.deferReply().queue();
-        }
-        
         try {
             // Get bet amount from command option
             OptionMapping betOption = event.getOption("bet");
@@ -119,6 +128,16 @@ public class BlackjackCommandListener extends ListenerAdapter {
                 return;
             }
             int betAmount = betOption.getAsInt();
+            
+            // Validate bet amount
+            if (betAmount <= 0) {
+                event.getHook().sendMessage("Bet amount must be greater than 0.").setEphemeral(true).queue();
+                return;
+            }
+            if (betAmount > 10000) {
+                event.getHook().sendMessage("Maximum bet amount is 10,000 credits.").setEphemeral(true).queue();
+                return;
+            }
             
             // Fetch the user from the database
             User user = userService.getUserById(userId);
@@ -137,9 +156,8 @@ public class BlackjackCommandListener extends ListenerAdapter {
             
             logger.info("User {} current credits: {}, bet amount: {}", userId, currentCredits, betAmount);
             
-            // Deduct the bet amount from user's credits
-            boolean betDeducted = userService.deductCreditsIfSufficient(userId, betAmount);
-            if (!betDeducted) {
+            // Validate sufficient credits before deduction
+            if (currentCredits < betAmount) {
                 event.getHook().sendMessage("You don't have enough credits! You have " + currentCredits + " credits but tried to bet " + betAmount + ".")
                         .setEphemeral(true)
                         .queue();
@@ -155,7 +173,27 @@ public class BlackjackCommandListener extends ListenerAdapter {
             
             // Create new game with secure random and role multiplier
             BlackjackGame game = new BlackjackGame(userId, betAmount, roleMultiplier, secureRandomService);
-            activeGames.put(userId, game);
+            
+            // Atomically add game to prevent duplicate games for same user
+            BlackjackGame existingGame = activeGames.putIfAbsent(userId, game);
+            if (existingGame != null) {
+                // Race condition: another game was created concurrently
+                event.getHook().sendMessage("You already have an active blackjack game!")
+                        .setEphemeral(true)
+                        .queue();
+                return;
+            }
+            
+            // Only deduct credits after successful game creation and insertion
+            boolean betDeducted = userService.deductCreditsIfSufficient(userId, betAmount);
+            if (!betDeducted) {
+                // Remove the game since credit deduction failed
+                activeGames.remove(userId);
+                event.getHook().sendMessage("Credit deduction failed. Please try again.")
+                        .setEphemeral(true)
+                        .queue();
+                return;
+            }
             
             // Check for immediate blackjack
             if (game.getPlayerHand().isBlackjack()) {
@@ -177,10 +215,19 @@ public class BlackjackCommandListener extends ListenerAdapter {
         } catch (Exception e) {
             logger.error("Error processing /blackjack command for user {}", userId, e);
             
-            // Remove the game from active games if it was added
-            activeGames.remove(userId);
+            // Clean up any partial state - remove game and refund credits if necessary
+            BlackjackGame failedGame = activeGames.remove(userId);
+            if (failedGame != null) {
+                // Refund the bet since game creation/initialization failed
+                try {
+                    userService.updateCreditsAtomic(userId, failedGame.getBetAmount());
+                    logger.info("Refunded {} credits to user {} due to game creation failure", failedGame.getBetAmount(), userId);
+                } catch (Exception refundException) {
+                    logger.error("Failed to refund credits to user {} after game creation failure: {}", userId, refundException.getMessage());
+                }
+            }
             
-            event.getHook().sendMessage("An error occurred while starting the blackjack game.")
+            event.getHook().sendMessage("An error occurred while starting the blackjack game. Please try again.")
                     .setEphemeral(true)
                     .queue();
         }
