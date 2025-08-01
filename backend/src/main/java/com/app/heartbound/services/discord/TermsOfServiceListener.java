@@ -101,7 +101,7 @@ public class TermsOfServiceListener extends ListenerAdapter {
             }
 
             // Create new user from Discord data
-            User newUser = userService.createUserFromDiscord(event.getUser());
+            userService.createUserFromDiscord(event.getUser());
             logger.info("Successfully created new user {} from ToS agreement", userId);
 
             // Update the embed to show agreement confirmation
