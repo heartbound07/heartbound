@@ -34,15 +34,17 @@ public class GiveCommandListener extends ListenerAdapter {
     private final UserService userService;
     private final CacheConfig cacheConfig;
     private final AuditService auditService;
+    private final TermsOfServiceService termsOfServiceService;
     
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
 
-    public GiveCommandListener(UserService userService, CacheConfig cacheConfig, AuditService auditService) {
+    public GiveCommandListener(UserService userService, CacheConfig cacheConfig, AuditService auditService, TermsOfServiceService termsOfServiceService) {
         this.userService = userService;
         this.cacheConfig = cacheConfig;
         this.auditService = auditService;
-        logger.info("GiveCommandListener initialized with audit service");
+        this.termsOfServiceService = termsOfServiceService;
+        logger.info("GiveCommandListener initialized with audit service and Terms of Service service");
     }
     
     @Override
@@ -60,19 +62,51 @@ public class GiveCommandListener extends ListenerAdapter {
             return;
         }
 
+        // Get command options
+        OptionMapping userOption = event.getOption("user");
+        OptionMapping amountOption = event.getOption("amount");
+        
+        if (userOption == null || amountOption == null) {
+            event.reply("❌ Both user and amount parameters are required.").setEphemeral(true).queue();
+            return;
+        }
+        
+        // Get the target user and amount - using descriptive variable name to distinguish from entity User
+        var targetDiscordUser = userOption.getAsUser();
+        int amount = amountOption.getAsInt();
+        String targetUserId = targetDiscordUser.getId();
+        
+        // Basic validation checks
+        if (amount <= 10) {
+            event.reply("❌ The amount must be greater than 10 credits.").setEphemeral(true).queue();
+            return;
+        }
+        
+        if (targetUserId.equals(event.getUser().getId())) {
+            event.reply("❌ You cannot give credits to yourself.").setEphemeral(true).queue();
+            return;
+        }
+
         logger.info("Give command received from user: {}", event.getUser().getId());
         
+        // Check Terms of Service agreement for giver
+        termsOfServiceService.requireAgreement(event, (giverUser) -> {
+            // ToS check passed, continue with give logic
+            continueGiveCommand(event, giverUser, targetDiscordUser, amount);
+        });
+    }
+
+    /**
+     * Continues the give command logic after Terms of Service agreement is confirmed for the giver.
+     */
+    @Transactional
+    public void continueGiveCommand(@Nonnull SlashCommandInteractionEvent event, User giverUser, net.dv8tion.jda.api.entities.User targetDiscordUser, int amount) {
         // Acknowledge the interaction immediately to prevent timeout (public response)
         event.deferReply().queue();
         
-        // Delegate to a transactional method to ensure atomicity
-        handleGiveCommand(event);
-    }
-
-    @Transactional
-    public void handleGiveCommand(@Nonnull SlashCommandInteractionEvent event) {
         try {
-            String giverUserId = event.getUser().getId();
+            String giverUserId = giverUser.getId();
+            String targetUserId = targetDiscordUser.getId();
             
             // Check cooldown first
             Instant now = Instant.now();
@@ -87,41 +121,6 @@ public class GiveCommandListener extends ListenerAdapter {
                     logger.debug("User {} attempted to use /give while on cooldown. Remaining: {}s", giverUserId, timeRemaining);
                     return;
                 }
-            }
-            
-            // Check if the command user is registered in the database
-            User giverUser = userService.getUserById(giverUserId);
-            if (giverUser == null) {
-                event.getHook().editOriginal("❌ Your account was not found in the database. Please log in to the web application first.").queue();
-                logger.warn("Command user {} not found in database when using /give", giverUserId);
-                return;
-            }
-            
-            // Get command options
-            OptionMapping userOption = event.getOption("user");
-            OptionMapping amountOption = event.getOption("amount");
-            
-            if (userOption == null || amountOption == null) {
-                event.getHook().editOriginal("❌ Both user and amount parameters are required.").queue();
-                return;
-            }
-            
-            // Get the target user and amount - using descriptive variable name to distinguish from entity User
-            var targetDiscordUser = userOption.getAsUser();
-            int amount = amountOption.getAsInt();
-            String targetUserId = targetDiscordUser.getId();
-            
-            // Validation checks
-            if (amount <= 10) {
-                event.getHook().editOriginal("❌ The amount must be greater than 10 credits.").queue();
-                logger.debug("User {} attempted to give invalid amount: {}", giverUserId, amount);
-                return;
-            }
-            
-            if (targetUserId.equals(giverUserId)) {
-                event.getHook().editOriginal("❌ You cannot give credits to yourself.").queue();
-                logger.debug("User {} attempted to give credits to themselves", giverUserId);
-                return;
             }
             
             // Fetch the recipient user from the database
