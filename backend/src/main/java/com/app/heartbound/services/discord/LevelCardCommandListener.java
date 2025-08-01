@@ -3,7 +3,6 @@ package com.app.heartbound.services.discord;
 import com.app.heartbound.dto.UserProfileDTO;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserProfileService;
-import com.app.heartbound.services.UserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -38,9 +37,7 @@ public class LevelCardCommandListener extends ListenerAdapter {
     
     @Autowired
     private UserProfileService userProfileService;
-    
-    @Autowired
-    private UserService userService;
+
     
     @Autowired
     private TermsOfServiceService termsOfServiceService;
