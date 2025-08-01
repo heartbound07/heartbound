@@ -35,6 +35,7 @@ public class RpsCommandListener extends ListenerAdapter {
     
     private final UserService userService;
     private final CacheConfig cacheConfig;
+    private final TermsOfServiceService termsOfServiceService;
     
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
@@ -42,9 +43,10 @@ public class RpsCommandListener extends ListenerAdapter {
     // Store active games to prevent duplicates and manage state
     private final ConcurrentHashMap<String, RpsGame> activeGames = new ConcurrentHashMap<>();
     
-    public RpsCommandListener(UserService userService, CacheConfig cacheConfig) {
+    public RpsCommandListener(UserService userService, CacheConfig cacheConfig, TermsOfServiceService termsOfServiceService) {
         this.userService = userService;
         this.cacheConfig = cacheConfig;
+        this.termsOfServiceService = termsOfServiceService;
         logger.info("RpsCommandListener initialized");
     }
     
@@ -63,6 +65,17 @@ public class RpsCommandListener extends ListenerAdapter {
             return;
         }
 
+        // Require Terms of Service agreement before proceeding
+        termsOfServiceService.requireAgreement(event, challengerUser -> {
+            // Handle the RPS command logic
+            handleRpsCommand(event, challengerUser);
+        });
+    }
+
+    /**
+     * Handles the main RPS command logic after ToS agreement
+     */
+    private void handleRpsCommand(@Nonnull SlashCommandInteractionEvent event, User challenger) {
         String challengerId = event.getUser().getId();
         logger.info("User {} requested /rps", challengerId);
         
@@ -104,14 +117,8 @@ public class RpsCommandListener extends ListenerAdapter {
                 return;
             }
             
-            // Fetch both users from the database
-            User challenger = userService.getUserById(challengerId);
+            // Fetch challenged user from the database (challenger already provided by ToS service)
             User challenged = userService.getUserById(challengedUserId);
-            
-            if (challenger == null) {
-                event.reply("You are currently not signed up with the bot!").setEphemeral(true).queue();
-                return;
-            }
             
             if (challenged == null) {
                 event.reply(String.format("<@%s> is currently not signed up with the bot!", challengedUserId)).setEphemeral(true).queue();
