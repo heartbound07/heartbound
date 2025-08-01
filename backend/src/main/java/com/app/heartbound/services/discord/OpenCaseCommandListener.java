@@ -50,6 +50,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
  * Command: /open case:<autocomplete from user's cases>
  * 
  * Features:
+ * - Terms of Service agreement requirement
  * - Autocomplete case selection from user's inventory
  * - 3-stage embed flow: confirmation → rolling → result
  * - Integration with existing backend security and validation
@@ -78,6 +79,7 @@ public class OpenCaseCommandListener extends ListenerAdapter {
     
     private final CaseService caseService;
     private final UserInventoryService userInventoryService;
+    private final TermsOfServiceService termsOfServiceService;
     
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
@@ -89,10 +91,12 @@ public class OpenCaseCommandListener extends ListenerAdapter {
     private boolean isRegistered = false;
     private JDA jdaInstance;
     
-    public OpenCaseCommandListener(@Lazy CaseService caseService, UserInventoryService userInventoryService, UserService userService) {
+    public OpenCaseCommandListener(@Lazy CaseService caseService, UserInventoryService userInventoryService, 
+                                 UserService userService, TermsOfServiceService termsOfServiceService) {
         this.caseService = caseService;
         this.userInventoryService = userInventoryService;
-        logger.info("OpenCaseCommandListener initialized");
+        this.termsOfServiceService = termsOfServiceService;
+        logger.info("OpenCaseCommandListener initialized with Terms of Service service");
     }
     
     /**
@@ -218,6 +222,19 @@ public class OpenCaseCommandListener extends ListenerAdapter {
 
         String userId = event.getUser().getId();
         logger.info("User {} requested /open command", userId);
+        
+        // Check Terms of Service agreement before proceeding
+        termsOfServiceService.requireAgreement(event, (user) -> {
+            // ToS check passed, continue with open command logic
+            continueOpenCommand(event, user);
+        });
+    }
+    
+    /**
+     * Continues the open command logic after Terms of Service agreement is confirmed.
+     */
+    private void continueOpenCommand(@Nonnull SlashCommandInteractionEvent event, com.app.heartbound.entities.User user) {
+        String userId = event.getUser().getId();
         
         // Get the case ID from the option
         OptionMapping caseOption = event.getOption("case");
