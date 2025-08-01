@@ -1,1 +1,1 @@
-web: java -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:prod} -Dserver.port=$PORT -Xmx300m -Xms300m -XX:MaxMetaspaceSize=128m -jar target/*.jar
+web: java -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:prod} -Dserver.port=$PORT -Xmx240m -Xms240m -XX:MaxMetaspaceSize=200m -XX:MetaspaceSize=100m -XX:+UseCompressedOops -XX:+UseCompressedClassPointers -XX:+UseG1GC -XX:G1HeapRegionSize=4m -XX:MaxGCPauseMillis=100 -XX:+DisableExplicitGC -Djava.security.egd=file:/dev/./urandom -jar target/*.jar
