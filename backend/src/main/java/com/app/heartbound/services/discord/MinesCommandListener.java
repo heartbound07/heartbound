@@ -45,6 +45,7 @@ public class MinesCommandListener extends ListenerAdapter {
 
     private final UserService userService;
     private final SecureRandomService secureRandomService;
+    private final TermsOfServiceService termsOfServiceService;
 
     private static final int GRID_SIZE = 3;
 
@@ -59,6 +60,19 @@ public class MinesCommandListener extends ListenerAdapter {
             return;
         }
 
+        logger.info("User {} requested /mines", event.getUser().getId());
+
+        // Check Terms of Service agreement before proceeding
+        termsOfServiceService.requireAgreement(event, (user) -> {
+            // ToS check passed, continue with mines logic
+            continueMinesCommand(event, user);
+        });
+    }
+
+    /**
+     * Continues the mines command logic after Terms of Service agreement is confirmed.
+     */
+    private void continueMinesCommand(@Nonnull SlashCommandInteractionEvent event, User user) {
         String userId = event.getUser().getId();
         if (activeGames.containsKey(userId)) {
             event.reply("You already have an active game of Mines. Please complete or cash out your current game first.").setEphemeral(true).queue();
@@ -92,11 +106,11 @@ public class MinesCommandListener extends ListenerAdapter {
 
         if (!sufficientCredits) {
             // Since deduction failed, we fetch the user to give a more specific error message.
-            User user = userService.getUserById(userId);
-            if (user == null) {
+            User userForBalance = userService.getUserById(userId);
+            if (userForBalance == null) {
                 event.reply("You must be registered with the bot to use this command. Please log in to the web application first.").setEphemeral(true).queue();
             } else {
-                int currentCredits = user.getCredits() != null ? user.getCredits() : 0;
+                int currentCredits = userForBalance.getCredits() != null ? userForBalance.getCredits() : 0;
                 event.reply(String.format("You do not have enough credits to place this bet. You tried to bet **🪙 %d** but only have **🪙 %d** credits.", bet, currentCredits))
                      .setEphemeral(true).queue();
             }
