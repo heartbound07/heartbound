@@ -13,17 +13,28 @@ export function DiscordCallback() {
   const hasProcessedAuth = useRef(false);
 
   useEffect(() => {
+    console.log('[DiscordCallback] useEffect triggered. Current URL:', window.location.href);
+    console.log('[DiscordCallback] Initial hasProcessedAuth.current:', hasProcessedAuth.current);
+    
+    // Temporarily reset to debug re-mounting issues
+    hasProcessedAuth.current = false;
+    
     // Prevent multiple processing of the same auth callback
     if (hasProcessedAuth.current) {
       console.log('[DiscordCallback] Auth already processed, skipping.');
       return;
     }
-    hasProcessedAuth.current = true;
 
     console.log('[DiscordCallback] Mounted. Current URL:', window.location.href);
+    console.log('[DiscordCallback] hasProcessedAuth.current:', hasProcessedAuth.current);
+    
+    // Mark as processed early to prevent race conditions
+    hasProcessedAuth.current = true;
 
     const processAuth = async () => {
       try {
+        console.log('[DiscordCallback] Starting authentication processing...');
+        
         // Check for error parameter first
         const errorParam = searchParams.get('error');
         console.log('[DiscordCallback] Extracted errorParam from URL:', errorParam);
@@ -74,9 +85,13 @@ export function DiscordCallback() {
         // Process authentication using secure code exchange flow
         if (code) {
           console.log(`[DiscordCallback] Processing authentication with secure code exchange...`);
+          console.log(`[DiscordCallback] About to call exchangeDiscordCode with code: ${code}`);
+          
           await exchangeDiscordCode(code);
+          
+          console.log('[DiscordCallback] exchangeDiscordCode call completed successfully.');
           setProcessingAuth(false);
-          console.log('[DiscordCallback] exchangeDiscordCode call successful. Navigating to dashboard.');
+          console.log('[DiscordCallback] Navigating to dashboard...');
           navigate('/dashboard');
         } else {
           const errorMsg = 'Missing required authentication code in URL after state validation.';
@@ -88,6 +103,7 @@ export function DiscordCallback() {
         }
 
       } catch (err: any) {
+        console.error('[DiscordCallback] Exception in processAuth:', err);
         const errorMsg = `Authentication failed: ${err?.message || 'An unknown error occurred.'}`;
         console.error(`[DiscordCallback] Auth Error: ${errorMsg}`, err);
         setError(errorMsg);
@@ -98,10 +114,17 @@ export function DiscordCallback() {
     };
 
     // Delay slightly to ensure URL parameters are definitely available
-    const timeoutId = setTimeout(processAuth, 50);
+    console.log('[DiscordCallback] Setting timeout to start processAuth...');
+    const timeoutId = setTimeout(() => {
+      console.log('[DiscordCallback] Timeout triggered, calling processAuth...');
+      processAuth();
+    }, 50);
 
     // Cleanup function for the timeout
-    return () => clearTimeout(timeoutId);
+    return () => {
+      console.log('[DiscordCallback] Cleaning up timeout...');
+      clearTimeout(timeoutId);
+    };
 
   }, [searchParams, navigate, exchangeDiscordCode, fetchCurrentUserProfile]);
 
