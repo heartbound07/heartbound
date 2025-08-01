@@ -24,9 +24,6 @@ export function DiscordCallback() {
 
     console.log('[DiscordCallback] Mounted. Current URL:', window.location.href);
     console.log('[DiscordCallback] hasProcessedAuth.current:', hasProcessedAuth.current);
-    
-    // Mark as processed early to prevent race conditions
-    hasProcessedAuth.current = true;
 
     const processAuth = async () => {
       try {
@@ -87,6 +84,10 @@ export function DiscordCallback() {
           await exchangeDiscordCode(code);
           
           console.log('[DiscordCallback] exchangeDiscordCode call completed successfully.');
+          
+          // Mark as processed only AFTER successful authentication
+          hasProcessedAuth.current = true;
+          
           setProcessingAuth(false);
           console.log('[DiscordCallback] Navigating to dashboard...');
           navigate('/dashboard');
