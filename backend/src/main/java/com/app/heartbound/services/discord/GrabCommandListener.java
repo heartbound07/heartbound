@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Nonnull;
 import java.awt.Color;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @RequiredArgsConstructor
@@ -33,7 +34,6 @@ public class GrabCommandListener extends ListenerAdapter {
 
         DiscordBotSettings settings = discordBotSettingsService.getDiscordBotSettings();
         if (settings == null) {
-            // Cannot reply ephemerally, so we send a public reply. Consider if this is too noisy.
             event.getMessage().reply("Bot settings are not configured.").queue();
             return;
         }
@@ -48,11 +48,15 @@ public class GrabCommandListener extends ListenerAdapter {
 
         dropStateService.claimDrop(event.getChannel().getId()).ifPresentOrElse(
             activeDrop -> {
+                // Immediately cancel the scheduled expiration task for this drop
+                activeDrop.getExpirationTask().cancel(false);
+
                 User user = userService.getUserById(event.getAuthor().getId());
                 if (user == null) {
                     event.getMessage().reply("You must be registered to claim drops.").queue();
-                    // Put the drop back since the user is not registered.
-                    dropStateService.startDrop(event.getChannel().getId(), activeDrop.getMessageId(), activeDrop.getType(), activeDrop.getValue());
+                    // Do NOT put the drop back, as it has been claimed and its timer cancelled.
+                    // The original drop message will be handled by the subsequent logic.
+                    event.getChannel().deleteMessageById(activeDrop.getMessageId()).queue();
                     return;
                 }
 
@@ -75,8 +79,12 @@ public class GrabCommandListener extends ListenerAdapter {
 
         if (!success) {
             event.getMessage().reply("An error occurred while adding credits to your account.").queue();
-            // Put the drop back.
-            dropStateService.startDrop(event.getChannel().getId(), activeDrop.getMessageId(), activeDrop.getType(), activeDrop.getValue());
+            // Do NOT put the drop back. The drop has been claimed.
+            // The original message will be deleted to prevent confusion.
+            event.getChannel().deleteMessageById(activeDrop.getMessageId()).queue(
+                s -> log.info("Deleted original drop message after a failed claim."),
+                e -> log.warn("Failed to delete original drop message after a failed claim.")
+            );
             return;
         }
 
@@ -108,8 +116,12 @@ public class GrabCommandListener extends ListenerAdapter {
         } catch (Exception e) {
             log.error("Error giving item {} to user {}: {}", itemId, user.getId(), e.getMessage(), e);
             event.getMessage().reply("An error occurred while giving you the item.").queue();
-            // Put the drop back.
-            dropStateService.startDrop(event.getChannel().getId(), activeDrop.getMessageId(), activeDrop.getType(), activeDrop.getValue());
+            // Do NOT put the drop back. The drop has been claimed.
+            // The original message will be deleted to prevent confusion.
+            event.getChannel().deleteMessageById(activeDrop.getMessageId()).queue(
+                s -> log.info("Deleted original drop message after a failed item claim."),
+                err -> log.warn("Failed to delete original drop message after a failed item claim.")
+            );
         }
     }
 } 

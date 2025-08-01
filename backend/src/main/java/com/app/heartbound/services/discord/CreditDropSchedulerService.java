@@ -15,6 +15,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.ScheduledFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -74,18 +75,19 @@ public class CreditDropSchedulerService {
                 .setColor(new Color(52, 152, 219)); // A pleasant blue color
 
             channel.sendMessageEmbeds(embed.build()).queue(message -> {
-                dropStateService.startDrop(channelId, message.getId(), DropStateService.DropType.CREDIT, amount);
-                log.info("[CreditDropScheduler] Dropped {} credits in channel {}.", amount, channelId);
-
                 // Schedule expiration
-                expirationScheduler.schedule(() -> {
+                ScheduledFuture<?> expirationTask = expirationScheduler.schedule(() -> {
                     dropStateService.expireDrop(channelId, message.getId()).ifPresent(expiredDrop -> {
                         message.delete().queue(
                             success -> log.info("[CreditDropScheduler] Expired and deleted credit drop message {}.", message.getId()),
                             error -> log.error("[CreditDropScheduler] Failed to delete expired drop message {}: {}", message.getId(), error.getMessage())
                         );
                     });
-                }, 30, TimeUnit.SECONDS);
+                }, 4, TimeUnit.SECONDS);
+
+                dropStateService.startDrop(channelId, message.getId(), DropStateService.DropType.CREDIT, amount, expirationTask);
+                log.info("[CreditDropScheduler] Dropped {} credits in channel {}.", amount, channelId);
+
             }, error -> {
                 log.error("[CreditDropScheduler] Failed to send credit drop message to channel {}: {}", channelId, error.getMessage());
             });

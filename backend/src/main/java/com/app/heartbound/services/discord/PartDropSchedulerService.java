@@ -19,6 +19,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.ScheduledFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -83,17 +84,17 @@ public class PartDropSchedulerService {
                 .setColor(new Color(46, 204, 113)); // A pleasant green color
 
             channel.sendMessageEmbeds(embed.build()).queue(message -> {
-                dropStateService.startDrop(channelId, message.getId(), DropStateService.DropType.ITEM, partToDrop.getId());
-                log.info("[PartDropScheduler] Dropped part {} ({}) in channel {}.", partToDrop.getName(), partToDrop.getId(), channelId);
-
-                expirationScheduler.schedule(() -> {
+                ScheduledFuture<?> expirationTask = expirationScheduler.schedule(() -> {
                     dropStateService.expireDrop(channelId, message.getId()).ifPresent(expiredDrop -> {
                         message.delete().queue(
                             success -> log.info("[PartDropScheduler] Expired and deleted part drop message {}.", message.getId()),
-                            error -> log.error("[PartDropScheduler] Failed to delete expired drop message {}: {}", message.getId(), error.getMessage())
+                            error -> log.error("[PartDropScheduler] Failed to delete expired part drop message {}: {}", message.getId(), error.getMessage())
                         );
                     });
-                }, 30, TimeUnit.SECONDS);
+                }, 4, TimeUnit.SECONDS);
+
+                dropStateService.startDrop(channelId, message.getId(), DropStateService.DropType.ITEM, partToDrop.getId(), expirationTask);
+                log.info("[PartDropScheduler] Dropped part {} ({}) in channel {}.", partToDrop.getName(), partToDrop.getId(), channelId);
             }, error -> {
                 log.error("[PartDropScheduler] Failed to send part drop message to channel {}: {}", channelId, error.getMessage());
             });

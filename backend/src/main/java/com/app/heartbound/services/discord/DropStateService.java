@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 
 @Service
 public class DropStateService {
@@ -19,18 +20,20 @@ public class DropStateService {
         private final String messageId;
         private final DropType type;
         private final Object value; // Integer for credits, UUID for item ID
+        private final ScheduledFuture<?> expirationTask;
 
-        public ActiveDrop(String messageId, DropType type, Object value) {
+        public ActiveDrop(String messageId, DropType type, Object value, ScheduledFuture<?> expirationTask) {
             this.messageId = messageId;
             this.type = type;
             this.value = value;
+            this.expirationTask = expirationTask;
         }
     }
 
     private final ConcurrentHashMap<String, ActiveDrop> activeDrops = new ConcurrentHashMap<>();
 
-    public void startDrop(String channelId, String messageId, DropType type, Object value) {
-        activeDrops.put(channelId, new ActiveDrop(messageId, type, value));
+    public void startDrop(String channelId, String messageId, DropType type, Object value, ScheduledFuture<?> expirationTask) {
+        activeDrops.put(channelId, new ActiveDrop(messageId, type, value, expirationTask));
     }
 
     public Optional<ActiveDrop> claimDrop(String channelId) {
