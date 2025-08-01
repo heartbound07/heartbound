@@ -32,6 +32,7 @@ import com.app.heartbound.services.discord.PairCommandListener;
 import com.app.heartbound.services.discord.TradeCommandListener;
 import com.app.heartbound.services.discord.GuildEventListener;
 import com.app.heartbound.services.discord.GrabCommandListener;
+import com.app.heartbound.services.discord.TermsOfServiceListener;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -143,6 +144,9 @@ public class DiscordConfig {
     @Autowired
     private AutoSlowmodeService autoSlowmodeService;
 
+    @Autowired
+    private TermsOfServiceListener termsOfServiceListener;
+
 
     @Autowired
     private RolesCommandListener rolesCommandListener;
@@ -207,7 +211,7 @@ public class DiscordConfig {
                                       inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService, prisonCommandListener, countingGameListener,
-                                      autoSlowmodeService, rolesCommandListener, verifyCommandListener, guildEventListener, grabCommandListener, minesCommandListener)
+                                      autoSlowmodeService, rolesCommandListener, verifyCommandListener, guildEventListener, grabCommandListener, minesCommandListener, termsOfServiceListener)
                     .build();
 
             // Waits until JDA is fully connected and ready

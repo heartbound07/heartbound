@@ -35,15 +35,17 @@ public class CoinflipCommandListener extends ListenerAdapter {
     private final CacheConfig cacheConfig;
     private final SecureRandomService secureRandomService;
     private final AuditService auditService;
+    private final TermsOfServiceService termsOfServiceService;
     
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
 
-    public CoinflipCommandListener(UserService userService, CacheConfig cacheConfig, SecureRandomService secureRandomService, AuditService auditService) {
+    public CoinflipCommandListener(UserService userService, CacheConfig cacheConfig, SecureRandomService secureRandomService, AuditService auditService, TermsOfServiceService termsOfServiceService) {
         this.userService = userService;
         this.cacheConfig = cacheConfig;
         this.secureRandomService = secureRandomService;
         this.auditService = auditService;
+        this.termsOfServiceService = termsOfServiceService;
         logger.info("CoinflipCommandListener initialized with secure random and audit service");
     }
     
@@ -62,6 +64,20 @@ public class CoinflipCommandListener extends ListenerAdapter {
             return;
         }
 
+        // Require Terms of Service agreement before proceeding
+        termsOfServiceService.requireAgreement(event, user -> {
+            // Defer reply to prevent timeout
+            event.deferReply().queue();
+
+            // Handle the coinflip command logic
+            handleCoinflipCommand(event);
+        });
+    }
+
+    /**
+     * Handles the main coinflip command logic after ToS agreement
+     */
+    private void handleCoinflipCommand(@Nonnull SlashCommandInteractionEvent event) {
         String userId = event.getUser().getId();
         logger.info("User {} requested /coinflip", userId);
         
@@ -70,7 +86,7 @@ public class CoinflipCommandListener extends ListenerAdapter {
         OptionMapping betOption = event.getOption("bet");
         
         if (guessOption == null || betOption == null) {
-            event.reply("Both guess and bet amount are required!").setEphemeral(true).queue();
+            event.getHook().editOriginal("Both guess and bet amount are required!").queue();
             return;
         }
         
@@ -79,18 +95,15 @@ public class CoinflipCommandListener extends ListenerAdapter {
         
         // Validate guess
         if (!userGuess.equals("heads") && !userGuess.equals("tails")) {
-            event.reply("Invalid guess! Please choose either 'heads' or 'tails'.").setEphemeral(true).queue();
+            event.getHook().editOriginal("Invalid guess! Please choose either 'heads' or 'tails'.").queue();
             return;
         }
         
         // Validate bet amount
         if (betAmount <= 0) {
-            event.reply("Bet amount must be greater than 0!").setEphemeral(true).queue();
+            event.getHook().editOriginal("Bet amount must be greater than 0!").queue();
             return;
         }
-        
-        // Acknowledge the interaction immediately
-        event.deferReply().queue();
         
         try {
             // Fetch the user from the database
