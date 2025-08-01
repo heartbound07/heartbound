@@ -7,7 +7,7 @@ import { DISCORD_OAUTH_STATE_KEY } from '../../contexts/auth/constants';
 export function DiscordCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { exchangeDiscordCode } = useAuth();
+  const { exchangeDiscordCode, fetchCurrentUserProfile } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [processingAuth, setProcessingAuth] = useState<boolean>(true);
   const hasProcessedAuth = useRef(false);
@@ -90,9 +90,20 @@ export function DiscordCallback() {
           const { tokenStorage } = await import('../../contexts/auth/tokenStorage');
           tokenStorage.setTokens(tokenPair);
           
-          setProcessingAuth(false);
-          console.log('[DiscordCallback] Tokens stored successfully. Navigating to dashboard.');
-          navigate('/dashboard');
+          console.log('[DiscordCallback] Tokens stored successfully. Fetching user profile...');
+          
+          // Now fetch the user profile to properly initialize the auth state
+          try {
+            await fetchCurrentUserProfile();
+            console.log('[DiscordCallback] User profile fetched successfully. Auth state updated.');
+            setProcessingAuth(false);
+            navigate('/dashboard');
+          } catch (profileError: any) {
+            console.error('[DiscordCallback] Error fetching user profile after token storage:', profileError);
+            setError('Failed to initialize user session after authentication.');
+            setProcessingAuth(false);
+            setTimeout(() => navigate('/login'), 3000);
+          }
           
         } else if (code) {
           console.log(`[DiscordCallback] Using legacy code exchange flow...`);
@@ -125,7 +136,7 @@ export function DiscordCallback() {
     // Cleanup function for the timeout
     return () => clearTimeout(timeoutId);
 
-  }, [searchParams, navigate, exchangeDiscordCode]);
+  }, [searchParams, navigate, exchangeDiscordCode, fetchCurrentUserProfile]);
 
   if (error) {
     return (
