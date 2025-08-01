@@ -37,7 +37,6 @@ import com.app.heartbound.services.AuditService;
 import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
-import com.app.heartbound.services.discord.challenge.ChallengeService;
 
 @Component
 @Slf4j
@@ -48,7 +47,6 @@ public class ChatActivityListener extends ListenerAdapter {
     private final UserService userService;
     private final PairingRepository pairingRepository;
     private final AuditService auditService;
-    private final ChallengeService challengeService;
     
     @Autowired
     @Lazy
@@ -112,11 +110,10 @@ public class ChatActivityListener extends ListenerAdapter {
     private ScheduledExecutorService cleanupScheduler;
     
     // Constructor for non-circular dependencies
-    public ChatActivityListener(UserService userService, PairingRepository pairingRepository, AuditService auditService, ChallengeService challengeService) {
+    public ChatActivityListener(UserService userService, PairingRepository pairingRepository, AuditService auditService) {
         this.userService = userService;
         this.pairingRepository = pairingRepository;
         this.auditService = auditService;
-        this.challengeService = challengeService;
         log.info("ChatActivityListener initialized with audit service");
     }
     
@@ -711,11 +708,6 @@ public class ChatActivityListener extends ListenerAdapter {
         } catch (Exception e) {
             log.error("Error processing message from user {}: {}", userId, e.getMessage(), e);
         }
-        
-        // Handle challenge message counting
-        challengeService.getMemberTeam(event.getMember()).ifPresent(teamInfo -> {
-            challengeService.incrementMessageCount(userId, teamInfo.teamId(), teamInfo.teamName());
-        });
     }
 
     public void updateSettings(
