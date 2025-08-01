@@ -41,7 +41,6 @@ import com.app.heartbound.entities.TradeItem;
 import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.exceptions.InvalidTradeActionException;
-import com.app.heartbound.services.discord.TermsOfServiceService;
 
 @Component
 @Slf4j
