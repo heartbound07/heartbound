@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaTimes, FaDice } from 'react-icons/fa';
+import { FaTimes } from 'react-icons/fa';
 import { GiFishingPole, GiSewingString, GiFishingHook, GiGearStick } from 'react-icons/gi';
 import { PiFilmReel, PiHandPalm } from 'react-icons/pi';
 import httpClient from '@/lib/api/httpClient';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle, RARITY_ORDER } from '@/utils/rarityHelpers';
 import NameplatePreview from '@/components/NameplatePreview';
-import { formatDisplayText } from '@/utils/formatters';
 
 interface CaseItem {
   id: string;
