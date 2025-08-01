@@ -33,8 +33,13 @@ public class TermsOfServiceListener extends ListenerAdapter {
         String componentId = event.getComponentId();
         String clickingUserId = event.getUser().getId();
 
-        // Only handle ToS-related button interactions
+        // Only handle ToS-related button interactions (excluding role-based ones which are handled by RolesCommandListener)
         if (!componentId.startsWith("tos-agree:") && !componentId.startsWith("tos-disagree:")) {
+            return;
+        }
+        
+        // Skip role-based ToS buttons - they're handled by RolesCommandListener
+        if (componentId.startsWith("tos-role-agree:") || componentId.startsWith("tos-role-disagree:")) {
             return;
         }
 

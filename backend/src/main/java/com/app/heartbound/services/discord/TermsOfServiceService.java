@@ -4,6 +4,7 @@ import com.app.heartbound.entities.User;
 import com.app.heartbound.services.UserService;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import org.slf4j.Logger;
@@ -73,6 +74,70 @@ public class TermsOfServiceService {
                     .setEphemeral(true)
                     .queue(
                             success -> logger.debug("ToS agreement embed sent to user: {}", userId),
+                            error -> logger.error("Failed to send ToS agreement embed to user {}: {}", userId, error.getMessage())
+                    );
+
+        } catch (Exception e) {
+            logger.error("Error showing Terms of Service agreement for user {}: {}", userId, e.getMessage(), e);
+            
+            // Fallback: reply with a simple error message
+            try {
+                event.reply("❌ An error occurred while displaying the Terms of Service. Please try again later.")
+                        .setEphemeral(true)
+                        .queue();
+            } catch (Exception fallbackError) {
+                logger.error("Failed to send fallback error message to user {}: {}", userId, fallbackError.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Requires Terms of Service agreement from the user before proceeding with button interaction.
+     * If the user already exists in the database, the onAgree callback is called immediately.
+     * If the user doesn't exist, a ToS agreement embed is shown with Agree/Disagree buttons.
+     * This overload is specifically for button interactions like role assignments.
+     *
+     * @param event The button interaction event
+     * @param originalComponentId The original component ID to resume after agreement
+     * @param onAgree Callback function to execute when user agrees (or already exists)
+     */
+    public void requireAgreement(ButtonInteractionEvent event, String originalComponentId, Consumer<User> onAgree) {
+        String userId = event.getUser().getId();
+        logger.debug("Checking ToS agreement for user: {} (button interaction)", userId);
+
+        // Check if user already exists in database
+        User existingUser = userService.getUserById(userId);
+        if (existingUser != null) {
+            logger.debug("User {} already exists, proceeding with button action", userId);
+            // User exists, proceed with the action
+            onAgree.accept(existingUser);
+            return;
+        }
+
+        logger.debug("User {} not found, showing Terms of Service agreement for button interaction", userId);
+
+        // User doesn't exist, show Terms of Service agreement
+        try {
+            EmbedBuilder embedBuilder = new EmbedBuilder()
+                    .setTitle("Terms of Service")
+                    .setDescription("Please agree to the Terms of Service to use the Bot.")
+                    .setColor(Color.BLUE);
+
+            // Create unique button IDs for this user, encoding the original component ID
+            String agreeButtonId = "tos-role-agree:" + userId + ":" + originalComponentId;
+            String disagreeButtonId = "tos-role-disagree:" + userId;
+
+            Button agreeButton = Button.success(agreeButtonId, "Agree");
+            Button disagreeButton = Button.danger(disagreeButtonId, "Disagree");
+
+            ActionRow actionRow = ActionRow.of(agreeButton, disagreeButton);
+
+            // Reply with the ToS embed and buttons
+            event.replyEmbeds(embedBuilder.build())
+                    .addComponents(actionRow)
+                    .setEphemeral(true)
+                    .queue(
+                            success -> logger.debug("ToS agreement embed sent to user: {} (button interaction)", userId),
                             error -> logger.error("Failed to send ToS agreement embed to user {}: {}", userId, error.getMessage())
                     );
 
