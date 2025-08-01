@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Nonnull;
 import java.awt.Color;
@@ -33,15 +34,17 @@ public class DailyCommandListener extends ListenerAdapter {
     private final UserService userService;
     private final CacheConfig cacheConfig;
     private final AuditService auditService;
+    private final TermsOfServiceService termsOfServiceService;
     
     @Value("${discord.main.guild.id}")
     private String mainGuildId;
 
-    public DailyCommandListener(UserService userService, CacheConfig cacheConfig, AuditService auditService) {
+    public DailyCommandListener(UserService userService, CacheConfig cacheConfig, AuditService auditService, TermsOfServiceService termsOfServiceService) {
         this.userService = userService;
         this.cacheConfig = cacheConfig;
         this.auditService = auditService;
-        logger.info("DailyCommandListener initialized with audit service");
+        this.termsOfServiceService = termsOfServiceService;
+        logger.info("DailyCommandListener initialized with audit service and Terms of Service service");
     }
     
     @Override
@@ -61,26 +64,28 @@ public class DailyCommandListener extends ListenerAdapter {
 
         logger.info("User {} requested /daily", event.getUser().getId());
         
+        // Check Terms of Service agreement before proceeding
+        termsOfServiceService.requireAgreement(event, (user) -> {
+            // ToS check passed, continue with daily logic
+            continueDailyCommand(event, user);
+        });
+    }
+
+    /**
+     * Continues the daily command logic after Terms of Service agreement is confirmed.
+     */
+    @Transactional
+    public void continueDailyCommand(@Nonnull SlashCommandInteractionEvent event, User user) {
         // Acknowledge the interaction quickly and make the response public (visible to everyone)
         event.deferReply(false).queue();
         
         try {
-            // Get the Discord user ID
-            String userId = event.getUser().getId();
+            String userId = user.getId();
             
             // Check cache first for daily claim status
             DailyClaimStatus claimStatus = getCachedDailyClaimStatus(userId);
             
             if (claimStatus == null) {
-                // Fetch the user from the database if not in cache
-                User user = userService.getUserById(userId);
-                
-                if (user == null) {
-                    logger.warn("User {} not found in database when requesting daily", userId);
-                    event.getHook().editOriginal("Could not find your account. Please log in to the web application first.").queue();
-                    return;
-                }
-                
                 // Create claim status from database and cache it
                 claimStatus = new DailyClaimStatus(
                     user.getDailyStreak() != null ? user.getDailyStreak() : 0,
@@ -105,13 +110,6 @@ public class DailyCommandListener extends ListenerAdapter {
             // Calculate new streak
             int newStreak = calculateNewStreak(claimStatus, now);
             int creditsToAward = DAILY_REWARDS[(newStreak - 1) % DAILY_REWARDS.length]; // Use modulo for cycling
-            
-            // Process the daily claim
-            User user = userService.getUserById(userId);
-            if (user == null) {
-                event.getHook().editOriginal("Could not find your account. Please try again.").queue();
-                return;
-            }
             
             // Update user data: Atomically update credits first.
             boolean creditsAwardedSuccess = userService.updateCreditsAtomic(userId, creditsToAward);
