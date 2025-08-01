@@ -101,7 +101,12 @@ export function DiscordCallback() {
           try {
             await fetchCurrentUserProfile();
             console.log('[DiscordCallback] User profile fetched successfully. Auth state updated.');
+            
+            // Small delay to ensure all state updates and WebSocket subscriptions are ready
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
             setProcessingAuth(false);
+            console.log('[DiscordCallback] Navigation to dashboard initiated.');
             navigate('/dashboard');
           } catch (profileError: any) {
             console.error('[DiscordCallback] Error fetching user profile after token storage:', profileError);

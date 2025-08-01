@@ -207,6 +207,13 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       return;
     }
     
+    // Double-check we're not in Discord callback flow
+    const currentUrl = window.location.href;
+    if (currentUrl.includes('/auth/discord/callback')) {
+      console.log('[AuthInit] Skipping initialization - Discord callback detected in initializeAuth');
+      return;
+    }
+    
     initializationInProgress = true;
     console.log('[AuthInit] Starting initialization...');
     
@@ -405,6 +412,11 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       const userProfileData = await userService.getCurrentUserProfile();
       if (userProfileData) {
         setAuthState(userProfileData);
+        // Mark auth as initialized if this was called from DiscordCallback
+        if (!initialized) {
+          setInitialized(true);
+          console.log('[FetchUserProfile] Auth state initialized via Discord callback flow.');
+        }
       } else {
         setAuthError("Failed to fetch current user profile: No data returned.");
         clearAuthState();
@@ -420,7 +432,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setAuthLoading(false);
     }
-  }, [tokens?.accessToken, setAuthState, setAuthLoading, setAuthError, clearAuthState, updateTokens]);
+  }, [tokens?.accessToken, setAuthState, setAuthLoading, setAuthError, clearAuthState, updateTokens, initialized, setInitialized]);
 
   // Add a debug mount/unmount effect
   useEffect(() => {
@@ -439,6 +451,17 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     if (initRan.current || initialized) {
       return;
     }
+
+    // Skip initialization if we're in the Discord callback flow
+    const currentUrl = window.location.href;
+    if (currentUrl.includes('/auth/discord/callback') && 
+        (currentUrl.includes('accessToken=') || currentUrl.includes('code='))) {
+      console.log('[AuthInit] Skipping initialization - Discord callback in progress');
+      setInitialized(true);
+      setAuthLoading(false);
+      return;
+    }
+
     initRan.current = true;
 
     const performInit = async () => {
@@ -469,7 +492,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         console.log('AuthProvider initialization effect cleanup');
       }
     };
-  }, [initialized, initializeAuth, setAuthLoading, setAuthError, clearAuthState, updateTokens]);
+  }, [initialized, initializeAuth, setAuthLoading, setAuthError, clearAuthState, updateTokens, setInitialized]);
 
   const contextValue = useMemo<AuthContextValue>(() => ({
     ...state,
