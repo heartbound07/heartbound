@@ -4,6 +4,7 @@ import com.app.heartbound.dto.shop.ShopDTO;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.services.shop.ShopService;
 import com.app.heartbound.services.UserService;
+import com.app.heartbound.entities.User;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -47,6 +48,7 @@ public class ShopCommandListener extends ListenerAdapter {
 
     private final ShopService shopService;
     private final UserService userService;
+    private final TermsOfServiceService termsOfServiceService;
     
     @Value("${frontend.base.url}")
     private String frontendBaseUrl;
@@ -55,10 +57,11 @@ public class ShopCommandListener extends ListenerAdapter {
     private boolean isRegistered = false;
     private JDA jdaInstance;
 
-    public ShopCommandListener(@Lazy ShopService shopService, UserService userService) {
+    public ShopCommandListener(@Lazy ShopService shopService, UserService userService, TermsOfServiceService termsOfServiceService) {
         this.shopService = shopService;
         this.userService = userService;
-        logger.info("ShopCommandListener initialized");
+        this.termsOfServiceService = termsOfServiceService;
+        logger.info("ShopCommandListener initialized with Terms of Service service");
     }
     
     /**
@@ -102,9 +105,20 @@ public class ShopCommandListener extends ListenerAdapter {
             return; // Not our command
         }
 
-        logger.debug("Shop command received from user: {}", event.getUser().getId());
-        
-        // Acknowledge the interaction immediately
+        logger.info("User {} requested /shop", event.getUser().getId());
+
+        // Check Terms of Service agreement before proceeding
+        termsOfServiceService.requireAgreement(event, (user) -> {
+            // ToS check passed, continue with shop logic
+            continueShopCommand(event, user);
+        });
+    }
+
+    /**
+     * Continues the shop command logic after Terms of Service agreement is confirmed.
+     */
+    private void continueShopCommand(@Nonnull SlashCommandInteractionEvent event, User user) {
+        // Defer reply to prevent timeout
         event.deferReply().queue();
         
         try {
@@ -119,7 +133,7 @@ public class ShopCommandListener extends ListenerAdapter {
 
             if (featuredItems.isEmpty() && dailyItems.isEmpty()) {
                 // Handle empty shop
-                event.getHook().sendMessage("The shop is currently empty or you've purchased all available items!").queue();
+                event.getHook().editOriginal("The shop is currently empty or you've purchased all available items!").queue();
                 return;
             }
             
@@ -145,18 +159,14 @@ public class ShopCommandListener extends ListenerAdapter {
             Button nextButton = Button.secondary("shop_next:" + userId + ":" + currentPage, "▶️").withDisabled(totalPages <= 1);
             
             // Send the response with buttons
-            event.getHook().sendMessageEmbeds(embed)
-                .addActionRow(prevButton, pageIndicator, nextButton)
+            event.getHook().editOriginalEmbeds(embed)
+                .setActionRow(prevButton, pageIndicator, nextButton)
                 .queue(success -> logger.debug("Shop displayed successfully"),
                       error -> logger.error("Failed to send shop", error));
             
         } catch (Exception e) {
-            logger.error("Error processing shop command", e);
-            try {
-                event.getHook().sendMessage("An error occurred while fetching the shop data.").queue();
-            } catch (Exception ignored) {
-                logger.error("Failed to send error message", ignored);
-            }
+            logger.error("Error processing shop command for user {}", event.getUser().getId(), e);
+            event.getHook().editOriginal("An error occurred while fetching the shop data.").queue();
         }
     }
     
@@ -174,18 +184,28 @@ public class ShopCommandListener extends ListenerAdapter {
         try {
             // Extract the current page from the button ID
             String[] parts = componentId.split(":");
+            if (parts.length != 3) {
+                logger.warn("Invalid shop button ID format: {}", componentId);
+                event.getHook().editOriginal("Invalid button interaction.").queue();
+                return;
+            }
+            
             String action = parts[0]; // "shop_prev" or "shop_next"
             String originalUserId = parts[1]; // User ID stored in the button
-            int currentPage = Integer.parseInt(parts[2]);
+            int currentPage;
+            
+            try {
+                currentPage = Integer.parseInt(parts[2]);
+            } catch (NumberFormatException e) {
+                logger.error("Error parsing page number from button ID: {}", componentId, e);
+                event.getHook().editOriginal("Invalid button configuration.").queue();
+                return;
+            }
             
             // Only allow the original user to interact with buttons
             if (!event.getUser().getId().equals(originalUserId)) {
-                // Cancel the deferred edit
-                event.getHook().deleteOriginal().queue();
-                
-                // Send an ephemeral message that only the clicking user can see
-                event.reply("This shop menu belongs to someone else. Please use your own /shop command.")
-                    .setEphemeral(true) // Makes the message private to the user
+                event.reply("You cannot interact with this shop display.")
+                    .setEphemeral(true)
                     .queue();
                 return;
             }
@@ -245,12 +265,9 @@ public class ShopCommandListener extends ListenerAdapter {
                 .queue(success -> logger.debug("Pagination updated to page {}", targetPage),
                       error -> logger.error("Failed to update pagination", error));
             
-        } catch (NumberFormatException e) {
-            logger.error("Error parsing page number from button ID", e);
-            event.reply("Invalid button configuration.").setEphemeral(true).queue();
         } catch (Exception e) {
-            logger.error("Error processing shop pagination", e);
-            event.reply("An error occurred while updating the shop.").setEphemeral(true).queue();
+            logger.error("Error processing shop pagination for user {}", event.getUser().getId(), e);
+            event.getHook().editOriginal("An error occurred while updating the shop display.").queue();
         }
     }
     
