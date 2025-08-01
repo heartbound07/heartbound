@@ -13,7 +13,7 @@ import com.app.heartbound.services.oauth.OAuthService;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.oauth.DiscordCodeStore;
 import com.app.heartbound.entities.User;
-import com.app.heartbound.config.security.JWTTokenProvider; // Import the JWTTokenProvider
+
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -80,8 +80,7 @@ public class OAuthController {
     @Autowired
     private DiscordChannelService discordChannelService; // Add this autowired dependency
 
-    @Autowired
-    private JWTTokenProvider jwtTokenProvider; // Inject JWTTokenProvider
+
 
     @Operation(summary = "Initiate Discord OAuth flow", description = "Redirects the user to Discord for authorization.")
     @ApiResponses(value = {
@@ -222,46 +221,35 @@ public class OAuthController {
         }
         logger.info("User processed successfully. User ID: {}", user.getId());
 
-        // --- Start Secure Token Generation ---
-        // Instead of a single-use code, generate the JWT and refresh token directly.
-        Set<Role> roles = user.getRoles() != null && !user.getRoles().isEmpty()
-                ? user.getRoles()
-                : Collections.singleton(Role.USER);
+        // --- Start Secure Single-Use Code Generation ---
+        // Generate a secure, single-use code instead of JWT tokens
+        byte[] randomBytes = new byte[32]; // 256 bits of randomness
+        secureRandom.nextBytes(randomBytes);
+        String singleUseCode = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
         
-        String accessToken = jwtTokenProvider.generateToken(
-                user.getId().toString(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getAvatar(),
-                roles,
-                user.getCredits()
-        );
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId().toString(), roles);
-        logger.info("Generated JWT tokens for user ID: {}", user.getId());
-        // --- End Secure Token Generation ---
+        // Store the code associated with the user ID (5-minute expiry is handled by the store)
+        discordCodeStore.storeCode(singleUseCode, user.getId().toString());
+        logger.info("Generated and stored single-use code for user ID: {}", user.getId());
+        // --- End Secure Single-Use Code Generation ---
 
-        // 3. URL-encode the tokens and the original frontend state
-        String encodedAccessToken;
-        String encodedRefreshToken;
+        // URL-encode the single-use code and the original frontend state
+        String encodedCode;
         String encodedFrontendState;
         try {
-             encodedAccessToken = URLEncoder.encode(accessToken, StandardCharsets.UTF_8);
-             encodedRefreshToken = URLEncoder.encode(refreshToken, StandardCharsets.UTF_8);
+             encodedCode = URLEncoder.encode(singleUseCode, StandardCharsets.UTF_8);
              // Use the validated incoming state received from Discord (and validated against session)
              encodedFrontendState = URLEncoder.encode(incomingState, StandardCharsets.UTF_8);
-             logger.debug("Encoded JWT and state for frontend redirect.");
+             logger.debug("Encoded single-use code and state for frontend redirect.");
         } catch (Exception e) {
              logger.error("Failed to URL encode parameters for frontend redirect", e);
              return new RedirectView(frontendBaseUrl + "/login?error=Internal+server+error+(encoding)");
         }
 
-
-        // Build the redirect URL to the frontend callback, now with tokens
+        // Build the redirect URL to the frontend callback, now with single-use code
         String frontendRedirectUrl = String.format(
-                "%s/auth/discord/callback?accessToken=%s&refreshToken=%s&state=%s",
+                "%s/auth/discord/callback?code=%s&state=%s",
                 frontendBaseUrl,
-                encodedAccessToken,
-                encodedRefreshToken,
+                encodedCode,
                 encodedFrontendState 
         );
 
