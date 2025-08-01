@@ -81,12 +81,12 @@ export function DiscordCallback() {
           console.log(`[DiscordCallback] Processing authentication with secure code exchange...`);
           console.log(`[DiscordCallback] About to call exchangeDiscordCode with code: ${code}`);
           
+          // Mark as processed BEFORE starting async operation to prevent race conditions
+          hasProcessedAuth.current = true;
+          
           await exchangeDiscordCode(code);
           
           console.log('[DiscordCallback] exchangeDiscordCode call completed successfully.');
-          
-          // Mark as processed only AFTER successful authentication
-          hasProcessedAuth.current = true;
           
           setProcessingAuth(false);
           console.log('[DiscordCallback] Navigating to dashboard...');
