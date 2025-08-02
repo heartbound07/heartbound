@@ -8,11 +8,10 @@ import { usePairingUpdates as usePairingUpdatesHook } from '../hooks/usePairingU
 import type { PairingDTO } from '@/config/pairingService';
 
 export interface PairingUpdateEvent {
-  eventType: 'MATCH_FOUND' | 'PAIRING_ENDED' | 'NO_MATCH_FOUND' | 'QUEUE_REMOVED' | 'ACTIVITY_UPDATE';
+  eventType: 'MATCH_FOUND' | 'PAIRING_ENDED' | 'ACTIVITY_UPDATE';
   pairing?: PairingDTO;
   message: string;
   timestamp: string;
-  totalInQueue?: number; // For NO_MATCH_FOUND events
   isInitiator?: boolean; // For PAIRING_ENDED events - true if user initiated breakup
 }
 

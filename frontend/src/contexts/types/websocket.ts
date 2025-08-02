@@ -1,5 +1,4 @@
 // Import QueueStatsDTO type for admin stats
-import type { QueueStatsDTO } from '@/config/pairingService';
 
 export type WebSocketConnectionStatus = 
   | 'disconnected' 
@@ -158,11 +157,10 @@ export interface LFGPartyEvent {
 }
 
 export interface PairingUpdateEvent {
-  eventType: 'MATCH_FOUND' | 'PAIRING_ENDED' | 'NO_MATCH_FOUND' | 'QUEUE_REMOVED' | 'ACTIVITY_UPDATE';
+  eventType: 'MATCH_FOUND' | 'PAIRING_ENDED' | 'ACTIVITY_UPDATE';
   pairing?: any; // PairingDTO
   message: string;
   timestamp: string;
-  totalInQueue?: number;
   isInitiator?: boolean; // For PAIRING_ENDED events - true if user initiated breakup
 }
 
@@ -182,7 +180,7 @@ export type TopicMessageMap = {
   '/topic/party': LFGPartyEvent;
   '/topic/queue': QueueUpdateEvent;
   '/topic/queue/config': QueueConfigUpdateEvent;
-  '/topic/admin/queue-stats': QueueStatsDTO;
+  '/topic/admin/queue-stats': any; // QueueStatsDTO was removed, so using 'any' for now
 } & {
   [key: `/user/${string}/topic/pairings`]: PairingUpdateEvent;
 };
