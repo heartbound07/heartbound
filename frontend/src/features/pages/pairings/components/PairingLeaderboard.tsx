@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/valorant/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
-import { Skeleton } from "@/components/ui/SkeletonUI"
+import { SkeletonActivePairingsLeaderboard } from "@/components/ui/SkeletonUI"
 import { 
   Trophy, 
   Star, 
@@ -290,32 +290,11 @@ export function PairingLeaderboard() {
 
   if (loading) {
     return (
-      <Card className="bg-theme-container border-theme">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Trophy className="h-5 w-5 text-primary" />
-            Active Pairings Leaderboard
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Loading skeleton for top 3 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="p-6 rounded-xl bg-theme-container border-theme">
-                <Skeleton width="80px" height="20px" className="mx-auto mb-4" theme="valorant" />
-                <div className="flex justify-center gap-4 mb-4">
-                  <Skeleton width="48px" height="48px" className="rounded-full" theme="valorant" />
-                  <Skeleton width="48px" height="48px" className="rounded-full" theme="valorant" />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Skeleton width="100%" height="60px" theme="valorant" />
-                  <Skeleton width="100%" height="60px" theme="valorant" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <SkeletonActivePairingsLeaderboard 
+        theme="valorant"
+        showTopThree={true}
+        remainingPairsCount={6}
+      />
     )
   }
 
@@ -353,8 +332,6 @@ export function PairingLeaderboard() {
       <Card className="bg-theme-container border-theme">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
-            <Trophy className="h-5 w-5 text-primary" />
-            Active Pairings Leaderboard
           </CardTitle>
         </CardHeader>
         <CardContent>

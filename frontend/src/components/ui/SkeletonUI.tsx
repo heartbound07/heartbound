@@ -900,6 +900,314 @@ export function SkeletonDashboardChart({
 }
 
 /**
+ * Active Pairings Leaderboard Skeleton
+ * Matches the exact structure of PairingLeaderboard.tsx with top 3 podium and remaining rankings
+ */
+export function SkeletonActivePairingsLeaderboard({ 
+  className,
+  theme = "valorant",
+  showTopThree = true,
+  remainingPairsCount = 5
+}: { 
+  className?: string;
+  theme?: "valorant" | "dashboard";
+  showTopThree?: boolean;
+  remainingPairsCount?: number;
+}) {
+  // Inject styles once
+  React.useEffect(() => {
+    injectStyles();
+  }, []);
+
+  return (
+    <div
+      className={cn(
+        // Match PairingLeaderboard main card styling but remove theme border
+        "bg-theme-container rounded-lg overflow-hidden",
+        "border border-[rgba(255,255,255,0.05)]", // Use subtle border instead of border-theme
+        "shadow-[0_8px_32px_rgba(0,0,0,0.15)]",
+        className
+      )}
+    >
+      {/* Card Header - matches PairingLeaderboard header */}
+      <div className="p-6 border-b border-[rgba(255,255,255,0.1)]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-white">
+            <Skeleton
+              variant="circular"
+              width="20px"
+              height="20px"
+              theme={theme}
+            />
+            <Skeleton
+              width="200px"
+              height="24px"
+              borderRadius="4px"
+              theme={theme}
+            />
+          </div>
+          <Skeleton
+            width="60px"
+            height="20px"
+            borderRadius="12px"
+            theme={theme}
+          />
+        </div>
+      </div>
+
+      {/* Card Content */}
+      <div className="p-6 space-y-6">
+        {/* Top Three Podium Section */}
+        {showTopThree && (
+          <div className="mb-8">
+            {/* Top Pairs Title */}
+            <div className="text-center mb-6">
+              <Skeleton
+                width="150px"
+                height="28px"
+                borderRadius="4px"
+                theme={theme}
+                className="mx-auto"
+              />
+            </div>
+            
+            {/* Top 3 Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map((rank) => (
+                <div
+                  key={rank}
+                  className={cn(
+                    "relative h-full",
+                    // Match the responsive ordering from PairingLeaderboard
+                    rank === 1 ? 'md:order-2 md:scale-110' : 
+                    rank === 2 ? 'md:order-1' : 'md:order-3'
+                  )}
+                >
+                  {/* Podium Card */}
+                  <div className={cn(
+                    "h-full rounded-lg p-6 relative",
+                    // Use consistent skeleton theming for all podium cards
+                    "bg-[rgba(31,39,49,0.4)] border border-[rgba(255,255,255,0.08)]",
+                    "backdrop-blur-sm"
+                  )}>
+                    {/* Rank Badge */}
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                      <Skeleton
+                        variant="circular"
+                        width="32px"
+                        height="32px"
+                        theme={theme}
+                        className="bg-[rgba(31,39,49,0.6)] border border-[rgba(255,255,255,0.1)]"
+                      />
+                    </div>
+
+                    {/* Card Header */}
+                    <div className="pb-4 pt-6">
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-2 mb-4">
+                          <Skeleton
+                            variant="circular"
+                            width="20px"
+                            height="20px"
+                            theme={theme}
+                          />
+                          <Skeleton
+                            width="60px"
+                            height="20px"
+                            borderRadius="4px"
+                            theme={theme}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* User Profiles */}
+                    <div className="flex items-center justify-center gap-4 mb-4">
+                      <div className="flex flex-col items-center">
+                        <Skeleton
+                          variant="circular"
+                          width="48px"
+                          height="48px"
+                          theme={theme}
+                          className="mb-2"
+                        />
+                        <Skeleton
+                          width="60px"
+                          height="16px"
+                          borderRadius="4px"
+                          theme={theme}
+                        />
+                      </div>
+
+                      <Skeleton
+                        variant="circular"
+                        width="24px"
+                        height="24px"
+                        theme={theme}
+                      />
+
+                      <div className="flex flex-col items-center">
+                        <Skeleton
+                          variant="circular"
+                          width="48px"
+                          height="48px"
+                          theme={theme}
+                          className="mb-2"
+                        />
+                        <Skeleton
+                          width="60px"
+                          height="16px"
+                          borderRadius="4px"
+                          theme={theme}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      {[1, 2, 3, 4].map((stat) => (
+                        <div key={stat} className="text-center p-2 rounded-lg bg-black/20">
+                          <Skeleton
+                            variant="circular"
+                            width="16px"
+                            height="16px"
+                            theme={theme}
+                            className="mx-auto mb-1"
+                          />
+                          <Skeleton
+                            width="40px"
+                            height="16px"
+                            borderRadius="4px"
+                            theme={theme}
+                            className="mx-auto mb-1"
+                          />
+                          <Skeleton
+                            width="50px"
+                            height="12px"
+                            borderRadius="4px"
+                            theme={theme}
+                            className="mx-auto"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Full Rankings Section */}
+        {remainingPairsCount > 0 && (
+          <div>
+            {/* Full Rankings Title */}
+            <div className="flex items-center gap-2 mb-4">
+              <Skeleton
+                variant="circular"
+                width="20px"
+                height="20px"
+                theme={theme}
+              />
+              <Skeleton
+                width="120px"
+                height="20px"
+                borderRadius="4px"
+                theme={theme}
+              />
+            </div>
+            
+            {/* Rankings List */}
+            <div className="space-y-3">
+              {Array.from({ length: remainingPairsCount }).map((_, index) => {
+                const rank = index + 4;
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center gap-4 p-4 rounded-lg bg-theme-container border border-[rgba(255,255,255,0.05)] transition-colors"
+                  >
+                    {/* Rank */}
+                    <div className="flex-shrink-0">
+                      <Skeleton
+                        variant="circular"
+                        width="32px"
+                        height="32px"
+                        theme={theme}
+                      />
+                    </div>
+
+                    {/* User Avatars */}
+                    <div className="flex items-center gap-2">
+                      <Skeleton
+                        variant="circular"
+                        width="32px"
+                        height="32px"
+                        theme={theme}
+                      />
+                      <Skeleton
+                        variant="circular"
+                        width="16px"
+                        height="16px"
+                        theme={theme}
+                      />
+                      <Skeleton
+                        variant="circular"
+                        width="32px"
+                        height="32px"
+                        theme={theme}
+                      />
+                    </div>
+
+                    {/* Names */}
+                    <div className="flex-1 min-w-0">
+                      <Skeleton
+                        width="70%"
+                        height="16px"
+                        borderRadius="4px"
+                        theme={theme}
+                        className="mb-1"
+                      />
+                      <Skeleton
+                        width="50%"
+                        height="12px"
+                        borderRadius="4px"
+                        theme={theme}
+                      />
+                    </div>
+
+                    {/* Stats */}
+                    <div className="flex items-center gap-4 text-sm">
+                      <Skeleton
+                        width="60px"
+                        height="20px"
+                        borderRadius="10px"
+                        theme={theme}
+                      />
+                      <Skeleton
+                        width="50px"
+                        height="16px"
+                        borderRadius="4px"
+                        theme={theme}
+                      />
+                      <Skeleton
+                        width="55px"
+                        height="16px"
+                        borderRadius="4px"
+                        theme={theme}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Complete Dashboard Page Skeleton combining all sections
  * Matches the exact structure of DashboardPage.tsx
  */

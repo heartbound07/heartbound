@@ -20,7 +20,7 @@ import { useXPData, invalidateXPData } from "@/hooks/useXPData"
 import { useModalManager } from "@/hooks/useModalManager"
 
 import "@/assets/PairingsPage.css"
-import { Skeleton } from "@/components/ui/SkeletonUI"
+import { Skeleton, SkeletonActivePairingsLeaderboard } from "@/components/ui/SkeletonUI"
 import { BreakupModal } from "@/components/modals/BreakupModal"
 import { BreakupSuccessModal } from "@/components/modals/BreakupSuccessModal"
 import { PartnerUnmatchedModal } from "@/components/modals/PartnerUnmatchedModal"
@@ -386,13 +386,26 @@ export function PairingsPage() {
     return (
       <div className="bg-theme-gradient min-h-screen">
         <div className="w-full max-w-7xl mx-auto px-6 py-12">
-          <Skeleton className="h-16 w-80 mx-auto mb-12" />
-          <div className="grid gap-8 lg:grid-cols-2 mb-8">
-            <Skeleton className="h-80" />
-            <Skeleton className="h-80" />
+          {/* Header Skeleton */}
+          <div className="text-center mb-12">
+            <Skeleton 
+              width="200px" 
+              height="64px" 
+              className="mx-auto" 
+              theme="valorant"
+              borderRadius="8px"
+            />
           </div>
-          <div className="max-w-6xl mx-auto">
-            <Skeleton className="h-96" />
+
+          <div className="space-y-8">
+            {/* Active Pairings Leaderboard Skeleton - Only component that shows skeleton */}
+            <div className="max-w-6xl mx-auto">
+              <SkeletonActivePairingsLeaderboard 
+                theme="valorant"
+                showTopThree={true}
+                remainingPairsCount={6}
+              />
+            </div>
           </div>
         </div>
       </div>
