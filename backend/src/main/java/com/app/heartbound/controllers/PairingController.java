@@ -3,6 +3,8 @@ package com.app.heartbound.controllers;
 import com.app.heartbound.dto.pairing.*;
 import com.app.heartbound.services.pairing.PairingService;
 import com.app.heartbound.services.pairing.PairingSecurityService;
+import com.app.heartbound.config.security.RateLimited;
+import com.app.heartbound.enums.RateLimitKeyType;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -398,6 +400,7 @@ public class PairingController {
     })
     @GetMapping("/leaderboard")
     @PreAuthorize("hasRole('USER')")
+    @RateLimited(requestsPerMinute = 30, requestsPerHour = 500, keyType = RateLimitKeyType.USER)
     public ResponseEntity<List<PairingLeaderboardDTO>> getPairingLeaderboard() {
         log.debug("Fetching pairing leaderboard");
         
@@ -406,9 +409,12 @@ public class PairingController {
             log.debug("Successfully retrieved {} leaderboard entries", leaderboard.size());
             return ResponseEntity.ok(leaderboard);
             
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request for leaderboard: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid request parameters");
         } catch (Exception e) {
             log.error("Error retrieving pairing leaderboard", e);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to retrieve leaderboard");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to retrieve leaderboard");
         }
     }
 } 

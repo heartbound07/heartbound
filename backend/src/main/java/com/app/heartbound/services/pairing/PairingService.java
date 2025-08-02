@@ -1051,6 +1051,15 @@ public class PairingService {
     private PairingLeaderboardDTO mapToPairingLeaderboardDTO(Pairing pairing, 
                                                            Map<String, User> userProfileMap) {
         try {
+            // Validate pairing inputs
+            if (pairing == null || pairing.getUser1Id() == null || pairing.getUser2Id() == null) {
+                log.warn("Invalid pairing data: pairing={}, user1Id={}, user2Id={}", 
+                        pairing != null ? pairing.getId() : "null", 
+                        pairing != null ? pairing.getUser1Id() : "null",
+                        pairing != null ? pairing.getUser2Id() : "null");
+                return null;
+            }
+            
             User user1 = userProfileMap.get(pairing.getUser1Id());
             User user2 = userProfileMap.get(pairing.getUser2Id());
             
@@ -1118,7 +1127,7 @@ public class PairingService {
             .about(user.getAbout())
             .bannerColor(user.getBannerColor())
             .bannerUrl(user.getBannerUrl())
-            .roles(user.getRoles())
+            // Roles removed for security - should not be exposed in public leaderboard
             // Additional fields like badge info would need to be populated based on equipped items
             .build();
     }

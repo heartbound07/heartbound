@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button"
 import { UserProfileModal } from "@/components/modals/UserProfileModal"
 import { usePairingLeaderboard } from "@/hooks/usePairingLeaderboard"
 import { getUserProfile, type UserProfileDTO } from "@/config/userService"
+import { useSanitizedContent } from "@/hooks/useSanitizedContent"
 
 interface UserPosition {
   x: number;
@@ -34,6 +35,15 @@ export function PairingLeaderboard() {
   const [userModalPosition, setUserModalPosition] = useState<UserPosition | null>(null)
   const [isLoadingProfile, setIsLoadingProfile] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
+
+  // Helper function to safely render display names
+  const getSafeDisplayName = (displayName: string | undefined, username: string) => {
+    const { sanitized } = useSanitizedContent(displayName || username, { 
+      maxLength: 50, 
+      stripHtml: true 
+    })
+    return sanitized || username
+  }
 
   // Handle user click for top 3 only
   const handleUserClick = async (userId: string, event: React.MouseEvent) => {
@@ -149,7 +159,7 @@ export function PairingLeaderboard() {
                           </AvatarFallback>
                         </Avatar>
                         <p className="text-sm font-medium text-white mt-1 text-center">
-                          {pair.user1Profile.displayName || pair.user1Profile.username}
+                          {getSafeDisplayName(pair.user1Profile.displayName, pair.user1Profile.username)}
                         </p>
                       </div>
 
@@ -166,7 +176,7 @@ export function PairingLeaderboard() {
                           </AvatarFallback>
                         </Avatar>
                         <p className="text-sm font-medium text-white mt-1 text-center">
-                          {pair.user2Profile.displayName || pair.user2Profile.username}
+                          {getSafeDisplayName(pair.user2Profile.displayName, pair.user2Profile.username)}
                         </p>
                       </div>
                     </div>
@@ -253,9 +263,11 @@ export function PairingLeaderboard() {
                 {/* Names */}
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-medium truncate">
-                    {pair.user1Profile.displayName || pair.user1Profile.username} & {pair.user2Profile.displayName || pair.user2Profile.username}
+                    {getSafeDisplayName(pair.user1Profile.displayName, pair.user1Profile.username)} & {getSafeDisplayName(pair.user2Profile.displayName, pair.user2Profile.username)}
                   </p>
-                  <p className="text-xs text-theme-secondary">{pair.discordChannelName}</p>
+                                      <p className="text-xs text-theme-secondary">
+                      {pair.discordChannelName ? useSanitizedContent(pair.discordChannelName, { maxLength: 100, stripHtml: true }).sanitized : ''}
+                    </p>
                 </div>
 
                 {/* Stats */}
