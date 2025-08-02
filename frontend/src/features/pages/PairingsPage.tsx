@@ -83,14 +83,12 @@ export function PairingsPage() {
   const {
     allActivePairings,
     loading: allActivePairingsLoading,
-    error: allActivePairingsError
   } = useAllActivePairings()
   
   const { pairingUpdate, clearUpdate } = usePairingUpdates()
 
   // Admin-specific pairing history hook - only fetch for admin users
   const { 
-    allPairingHistory, 
     refreshAllPairingHistory 
   } = useAllPairingHistory(hasRole("ADMIN"))
 
