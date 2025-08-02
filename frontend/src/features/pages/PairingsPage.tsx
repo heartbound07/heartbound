@@ -431,23 +431,23 @@ export function PairingsPage() {
             </motion.div>
           )}
 
-          {/* Main Content Grid */}
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Current Pairing Section */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center space-x-2">
-                    <Heart className="h-5 w-5 text-pink-400" />
-                    <span>Current Match</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {currentPairing && pairedUser ? (
+          {/* Main Content Grid - Only show when user is actively matched */}
+          {currentPairing && pairedUser && (
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Current Pairing Section */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center space-x-2">
+                      <Heart className="h-5 w-5 text-pink-400" />
+                      <span>Current Match</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
                     <MatchedPairing
                       currentPairing={currentPairing}
                       pairedUser={pairedUser}
@@ -457,46 +457,22 @@ export function PairingsPage() {
                       actionLoading={actionLoading}
                       formatDate={formatDate}
                     />
-                  ) : (
-                    <div className="text-center py-8 text-slate-400">
-                      <Heart className="h-12 w-12 mx-auto mb-4 text-slate-600" />
-                      <p className="text-lg font-medium">No Active Match</p>
-                      <p className="text-sm">Matchmaking is currently disabled</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-            {/* XP Progress Card */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              {currentPairing ? (
+              {/* XP Progress Card */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
                 <XPCard 
                   pairingId={currentPairing.id}
                 />
-              ) : (
-                <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center space-x-2">
-                      <Activity className="h-5 w-5 text-blue-400" />
-                      <span>Progress Tracking</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-8 text-slate-400">
-                      <Activity className="h-12 w-12 mx-auto mb-4 text-slate-600" />
-                      <p className="text-lg font-medium">No Progress to Show</p>
-                      <p className="text-sm">Get matched to start tracking your progress!</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </motion.div>
-          </div>
+              </motion.div>
+            </div>
+          )}
 
           {/* Primary Leaderboard for unmatched users */}
           {!currentPairing && (
@@ -564,7 +540,7 @@ export function PairingsPage() {
               </Card>
             </motion.div>
           )}
-
+  
           {/* Conditional Content: Pairing History for unmatched users, Leaderboard for matched users */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -574,8 +550,8 @@ export function PairingsPage() {
             {currentPairing ? (
               // Show leaderboard when user is matched
               <PairingLeaderboard />
-            ) : (
-              // Show pairing history when user is not matched
+            ) : hasRole("ADMIN") ? (
+              // Show pairing history when user is not matched AND is admin
               <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center space-x-2">
@@ -612,7 +588,7 @@ export function PairingsPage() {
                   )}
                 </CardContent>
               </Card>
-            )}
+            ) : null}
           </motion.div>
         </div>
 
