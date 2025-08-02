@@ -31,75 +31,7 @@ export interface PairingDTO {
   user2Rank?: string;
 }
 
-export interface MatchQueueUserDTO {
-  userId: string;
-  age: number;
-  region: 'NA_EAST' | 'NA_WEST' | 'EU' | 'ASIA' | 'OCE';
-  rank: 'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'ASCENDANT' | 'IMMORTAL' | 'RADIANT';
-  gender: 'MALE' | 'FEMALE' | 'NON_BINARY' | 'PREFER_NOT_TO_SAY';
-  queuedAt: string;
-  inQueue: boolean;
-}
 
-export interface QueueStatusDTO {
-  inQueue: boolean;
-  queuedAt?: string;
-  estimatedWaitTime?: number;
-  queuePosition?: number;
-  totalQueueSize?: number;
-  age?: number;
-  region?: 'NA_EAST' | 'NA_WEST' | 'EU' | 'ASIA' | 'OCE';
-  rank?: 'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'ASCENDANT' | 'IMMORTAL' | 'RADIANT';
-  gender?: 'MALE' | 'FEMALE' | 'NON_BINARY' | 'PREFER_NOT_TO_SAY';
-}
-
-export interface JoinQueueRequestDTO {
-  userId: string;
-  age: number;
-  region: 'NA_EAST' | 'NA_WEST' | 'EU' | 'ASIA' | 'OCE';
-  rank: 'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'ASCENDANT' | 'IMMORTAL' | 'RADIANT';
-  gender: 'MALE' | 'FEMALE' | 'NON_BINARY' | 'PREFER_NOT_TO_SAY';
-}
-
-export interface QueueConfigDTO {
-  queueEnabled: boolean;
-  message: string;
-  updatedBy: string;
-  timestamp: string;
-}
-
-export interface QueueStatsDTO {
-  totalUsersInQueue: number;
-  averageWaitTimeMinutes: number;
-  lastMatchmakingRun: string;
-  queueByRegion: Record<string, number>;
-  queueByRank: Record<string, number>;
-  queueByGender: Record<string, number>;
-  queueByAgeRange: Record<string, number>;
-  matchSuccessRate: number;
-  totalMatchesCreatedToday: number;
-  totalUsersMatchedToday: number;
-  queueSizeHistory: Record<string, number>;
-  waitTimeHistory: Record<string, number>;
-  queueStartTime: string;
-  queueEnabled: boolean;
-  lastUpdatedBy: string;
-}
-
-export interface QueueUserDetailsDTO {
-  userId: string;
-  username: string;
-  avatar: string;
-  age: number;
-  region: 'NA_EAST' | 'NA_WEST' | 'EU' | 'LATAM' | 'BR' | 'KR' | 'AP';
-  rank: 'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'ASCENDANT' | 'IMMORTAL' | 'RADIANT';
-  gender: 'MALE' | 'FEMALE' | 'NON_BINARY' | 'PREFER_NOT_TO_SAY';
-  queuedAt: string;
-  waitTimeMinutes: number;
-  queuePosition: number;
-  estimatedWaitTimeMinutes: number;
-  recentlyQueued: boolean;
-}
 
 /**
  * Get the current user's active pairing
@@ -156,61 +88,7 @@ export const getAllActivePairings = async (): Promise<PairingDTO[]> => {
   }
 };
 
-/**
- * Join the matchmaking queue
- * Note: This assumes a backend endpoint exists. If not, this would need to be created.
- */
-export const joinMatchmakingQueue = async (preferences: JoinQueueRequestDTO): Promise<QueueStatusDTO> => {
-  try {
-    const response = await httpClient.post('/matchmaking/join', preferences);
-    return response.data;
-  } catch (error) {
-    console.error('Error joining matchmaking queue:', error);
-    throw error;
-  }
-};
 
-/**
- * Leave the matchmaking queue
- */
-export const leaveMatchmakingQueue = async (userId: string): Promise<void> => {
-  try {
-    await httpClient.post('/matchmaking/leave', null, {
-      params: { userId }
-    });
-  } catch (error) {
-    console.error('Error leaving matchmaking queue:', error);
-    throw error;
-  }
-};
-
-/**
- * Get current queue status for user
- */
-export const getQueueStatus = async (userId: string): Promise<QueueStatusDTO> => {
-  try {
-    const response = await httpClient.get(`/matchmaking/status?userId=${userId}`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching queue status:', error);
-    return { inQueue: false };
-  }
-};
-
-/**
- * Trigger manual matchmaking (admin function)
- */
-export const performMatchmaking = async (): Promise<PairingDTO[]> => {
-  console.log('Frontend: Calling performMatchmaking endpoint');
-  try {
-    const response = await httpClient.post('/pairings/matchmake');
-    console.log('Frontend: Matchmaking response received', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('Frontend: Matchmaking call failed', error);
-    throw error;
-  }
-};
 
 /**
  * Delete all active pairings (admin function)
@@ -262,26 +140,7 @@ export const clearInactivePairingHistory = async (): Promise<{ message: string; 
   }
 };
 
-// Add admin queue control functions
-export const enableQueue = async (): Promise<QueueConfigDTO> => {
-  const response = await httpClient.post('/pairings/admin/queue/enable');
-  return response.data;
-};
 
-export const disableQueue = async (): Promise<QueueConfigDTO> => {
-  const response = await httpClient.post('/pairings/admin/queue/disable');
-  return response.data;
-};
-
-export const getQueueConfig = async (): Promise<QueueConfigDTO> => {
-  const response = await httpClient.get('/pairings/admin/queue/config');
-  return response.data;
-};
-
-export const getPublicQueueStatus = async (): Promise<QueueConfigDTO> => {
-  const response = await httpClient.get('/pairings/queue/status');
-  return response.data;
-};
 
 /**
  * Initiate a breakup for a pairing
@@ -304,70 +163,7 @@ export const breakupPairing = async (
   }
 };
 
-/**
- * Get queue statistics (admin function)
- */
-export const getQueueStatistics = async (): Promise<QueueStatsDTO> => {
-  try {
-    const response = await httpClient.get('/pairings/admin/queue/statistics');
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching queue statistics:', error);
-    throw error;
-  }
-};
 
-/**
- * Trigger manual refresh of queue statistics (admin function)
- */
-export const refreshQueueStatistics = async (): Promise<QueueStatsDTO> => {
-  try {
-    const response = await httpClient.post('/pairings/admin/queue/statistics/refresh');
-    return response.data;
-  } catch (error) {
-    console.error('Error refreshing queue statistics:', error);
-    throw error;
-  }
-};
-
-/**
- * Warm up queue statistics cache (admin function)
- */
-export const warmUpQueueStatsCache = async (): Promise<{ status: string; message: string }> => {
-  try {
-    const response = await httpClient.post('/pairings/admin/queue/cache/warmup');
-    return response.data;
-  } catch (error) {
-    console.error('Error warming up cache:', error);
-    throw error;
-  }
-};
-
-/**
- * Get cache status (admin function)
- */
-export const getCacheStatus = async (): Promise<Record<string, any>> => {
-  try {
-    const response = await httpClient.get('/pairings/admin/queue/cache/status');
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching cache status:', error);
-    throw error;
-  }
-};
-
-/**
- * Get detailed queue user information (admin function)
- */
-export const getQueueUserDetails = async (): Promise<QueueUserDetailsDTO[]> => {
-  try {
-    const response = await httpClient.get('/pairings/admin/queue/users');
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching queue user details:', error);
-    throw error;
-  }
-};
 
 // XP System Types
 export interface PairLevelDTO {

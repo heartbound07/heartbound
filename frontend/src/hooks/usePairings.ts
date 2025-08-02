@@ -3,27 +3,20 @@ import { useAuth } from '@/contexts/auth/useAuth';
 import { 
   getCurrentUserPairing, 
   getPairingHistory, 
-  joinMatchmakingQueue, 
-  leaveMatchmakingQueue, 
-  getQueueStatus,
   deletePairingById,
   clearInactivePairingHistory,
   unpairUsers,
   breakupPairing as breakupPairingAPI,
-  type PairingDTO, 
-  type QueueStatusDTO 
+  type PairingDTO
 } from '@/config/pairingService';
 import { getUserProfile, type UserProfileDTO } from '@/config/userService';
-import { useQueueUpdates } from '@/contexts/QueueUpdates';
 import { usePairingUpdates } from '@/contexts/PairingUpdates';
 
 export const usePairings = () => {
   const { user } = useAuth();
-  const { queueUpdate } = useQueueUpdates();
   const { pairingUpdate, clearUpdate } = usePairingUpdates();
   const [currentPairing, setCurrentPairing] = useState<PairingDTO | null>(null);
   const [pairingHistory, setPairingHistory] = useState<PairingDTO[]>([]);
-  const [queueStatus, setQueueStatus] = useState<QueueStatusDTO>({ inQueue: false });
   const [pairedUser, setPairedUser] = useState<UserProfileDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,10 +40,9 @@ export const usePairings = () => {
       setLoading(true);
       setError(null);
 
-      const [pairing, history, status] = await Promise.allSettled([
+      const [pairing, history] = await Promise.allSettled([
         getCurrentUserPairing(user.id),
-        getPairingHistory(user.id),
-        getQueueStatus(user.id)
+        getPairingHistory(user.id)
       ]);
 
       // Handle results with proper error checking
@@ -75,13 +67,6 @@ export const usePairings = () => {
         setPairingHistory(history.value);
       } else {
         console.error('Failed to fetch pairing history:', history.reason);
-      }
-
-      if (status.status === 'fulfilled') {
-        setQueueStatus(status.value);
-      } else {
-        console.error('Failed to fetch queue status:', status.reason);
-        setQueueStatus({ inQueue: false }); // Safe fallback
       }
 
       // Fetch paired user profile if pairing exists
@@ -112,68 +97,6 @@ export const usePairings = () => {
       }
     }
   }, [user?.id]);
-
-  // Join queue now uses backend role-based selections
-  const joinQueue = useCallback(async () => {
-    if (!user?.id) {
-      throw new Error('User authentication required');
-    }
-
-    try {
-      setActionLoading(true);
-      setError(null);
-      
-      await joinMatchmakingQueue({} as any); // Pass empty object to satisfy signature
-      await fetchPairingData(); // Refresh data
-      
-    } catch (err: any) {
-      const errorMessage = err?.response?.data?.message || err.message || 'Failed to join queue';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setActionLoading(false);
-    }
-  }, [user?.id, fetchPairingData]);
-
-  // Leave matchmaking queue
-  const leaveQueue = useCallback(async () => {
-    if (!user?.id) {
-      setError('User ID is required to leave queue');
-      return;
-    }
-
-    try {
-      setActionLoading(true);
-      setError(null);
-      await leaveMatchmakingQueue(user.id);
-      // Refresh data after leaving
-      await fetchPairingData();
-    } catch (err: any) {
-      setError(err.message || 'Failed to leave matchmaking queue');
-      throw err;
-    } finally {
-      setActionLoading(false);
-    }
-  }, [user?.id, fetchPairingData]);
-
-  // Listen for queue updates and refresh status when queue size changes
-  useEffect(() => {
-    if (queueUpdate && user?.id) {
-      console.log('Queue update received, updating queue count live...');
-      // Update queue status with live count for immediate UI feedback
-      setQueueStatus(prevStatus => ({
-        ...prevStatus,
-        totalQueueSize: queueUpdate.totalQueueSize
-      }));
-      
-      // Also fetch fresh queue status to get accurate position
-      getQueueStatus(user.id).then(status => {
-        setQueueStatus(status);
-      }).catch(err => {
-        console.error('Error refreshing queue status:', err);
-      });
-    }
-  }, [queueUpdate, user?.id]);
 
   // Listen for pairing updates and handle real-time activity updates
   useEffect(() => {
@@ -300,13 +223,10 @@ export const usePairings = () => {
   return {
     currentPairing,
     pairingHistory,
-    queueStatus,
     pairedUser,
     loading,
     error,
     actionLoading,
-    joinQueue,
-    leaveQueue,
     refreshData: fetchPairingData,
     unpairPairing,
     deletePairing,

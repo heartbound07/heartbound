@@ -30,11 +30,7 @@ import { useEffect } from 'react';
 import { ShopAdminPage } from '@/features/shop/ShopAdminPage';
 import { InventoryPage } from '@/features/inventory/InventoryPage';
 import { PairingsPage } from '@/features/pages/PairingsPage';
-import QueueUpdatesProvider from '@/contexts/QueueUpdates';
 import PairingUpdatesProvider from '@/contexts/PairingUpdates';
-import { QueueConfigProvider } from '@/contexts/QueueConfigUpdates';
-import { AdminQueueStatsProvider } from '@/contexts/AdminQueueStatsProvider';
-import { MessageQueueDemo } from '@/examples/MessageQueueDemo';
 import { NotFoundPage } from '@/features/NotFoundPage';
 
 // Admin route guard component
@@ -77,15 +73,9 @@ function ProtectedRoutes() {
     <AuthGuard>
       <WebSocketProvider>
         <PartyUpdatesProvider>
-          <QueueUpdatesProvider>
-            <QueueConfigProvider>
-              <PairingUpdatesProvider>
-                <AdminQueueStatsProvider>
-                  <Outlet />
-                </AdminQueueStatsProvider>
-              </PairingUpdatesProvider>
-            </QueueConfigProvider>
-          </QueueUpdatesProvider>
+          <PairingUpdatesProvider>
+            <Outlet />
+          </PairingUpdatesProvider>
         </PartyUpdatesProvider>
       </WebSocketProvider>
     </AuthGuard>
@@ -171,15 +161,6 @@ export function AppRoutes() {
             element={
               <AdminRoute>
                 <AuditPanel />
-              </AdminRoute>
-            } 
-          />
-          {/* Message Queue Demo - Admin only */}
-          <Route 
-            path="message-queue-demo"
-            element={
-              <AdminRoute>
-                <MessageQueueDemo />
               </AdminRoute>
             } 
           />

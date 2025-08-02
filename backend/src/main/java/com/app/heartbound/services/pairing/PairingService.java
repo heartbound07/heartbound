@@ -6,7 +6,7 @@ import com.app.heartbound.entities.Pairing;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.pairing.BlacklistEntryRepository;
-import com.app.heartbound.repositories.pairing.MatchQueueUserRepository;
+
 import com.app.heartbound.config.CacheConfig;
 import com.app.heartbound.repositories.pairing.PairingRepository;
 import com.app.heartbound.services.discord.DiscordPairingChannelService;
@@ -41,7 +41,7 @@ public class PairingService {
 
     private final PairingRepository pairingRepository;
     private final BlacklistEntryRepository blacklistEntryRepository;
-    private final MatchQueueUserRepository matchQueueUserRepository;
+
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
     @Lazy
@@ -148,8 +148,7 @@ public class PairingService {
         createBlacklistEntry(sanitizedUser1Id, sanitizedUser2Id, 
                            "Matched on " + LocalDateTime.now() + " - permanent blacklist");
 
-        // Remove users from queue if they are queued
-        removeUsersFromQueue(sanitizedUser1Id, sanitizedUser2Id);
+
 
         // 🚀 NEW: Add pairing to Discord leaderboard
         PairingDTO pairingDTO = mapToPairingDTO(savedPairing);
@@ -698,17 +697,7 @@ public class PairingService {
         return blacklistEntryRepository.existsByUserPair(user1Id, user2Id);
     }
 
-    private void removeUsersFromQueue(String user1Id, String user2Id) {
-        matchQueueUserRepository.findByUserId(user1Id).ifPresent(queueUser -> {
-            queueUser.setInQueue(false);
-            matchQueueUserRepository.save(queueUser);
-        });
-        
-        matchQueueUserRepository.findByUserId(user2Id).ifPresent(queueUser -> {
-            queueUser.setInQueue(false);
-            matchQueueUserRepository.save(queueUser);
-        });
-    }
+
 
     private void createBlacklistEntry(String user1Id, String user2Id, String reason) {
         BlacklistEntry blacklistEntry = BlacklistEntry.create(user1Id, user2Id, reason);

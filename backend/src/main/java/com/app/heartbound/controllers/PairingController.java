@@ -1,9 +1,7 @@
 package com.app.heartbound.controllers;
 
 import com.app.heartbound.dto.pairing.*;
-import com.app.heartbound.services.pairing.MatchmakingService;
 import com.app.heartbound.services.pairing.PairingService;
-import com.app.heartbound.services.pairing.QueueService;
 import com.app.heartbound.services.pairing.PairingSecurityService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -55,8 +53,6 @@ import jakarta.validation.constraints.Positive;
 public class PairingController {
 
     private final PairingService pairingService;
-    private final MatchmakingService matchmakingService;
-    private final QueueService queueService;
     private final PairingSecurityService pairingSecurityService;
 
     @Operation(summary = "Create a new pairing", description = "ADMIN ONLY: Create a pairing between two users (typically used by automated matchmaking system)")
@@ -280,24 +276,7 @@ public class PairingController {
         return ResponseEntity.ok(status);
     }
 
-    @Operation(summary = "Perform automatic matchmaking", description = "Run the automatic matchmaking algorithm for users in queue")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Matchmaking completed successfully")
-    })
-    @PostMapping("/matchmake")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<PairingDTO>> performMatchmaking() {
-        log.info("=== ADMIN MATCHMAKING TRIGGERED ===");
-        try {
-            List<PairingDTO> newPairings = matchmakingService.performMatchmaking();
-            log.info("Matchmaking completed. Created {} new pairings", newPairings.size());
-            log.info("=== ADMIN MATCHMAKING COMPLETE ===");
-            return ResponseEntity.ok(newPairings);
-        } catch (Exception e) {
-            log.error("Error during matchmaking process", e);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Matchmaking failed");
-        }
-    }
+
 
     @Operation(summary = "Delete all active pairings", description = "Admin function to delete all active pairings")
     @ApiResponses(value = {
@@ -412,154 +391,7 @@ public class PairingController {
         }
     }
 
-    @PostMapping("/admin/queue/enable")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<QueueConfigDTO> enableQueue(Authentication authentication) {
-        try {
-            String username = authentication.getName();
-            queueService.setQueueEnabled(true, username);
-            QueueConfigDTO config = queueService.getQueueConfig();
-            
-            log.info("Queue enabled by admin: {}", username);
-            return ResponseEntity.ok(config);
-        } catch (Exception e) {
-            log.error("Error enabling queue", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new QueueConfigDTO(false, "Failed to enable queue: " + e.getMessage(), authentication.getName()));
-        }
-    }
 
-    @PostMapping("/admin/queue/disable")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<QueueConfigDTO> disableQueue(Authentication authentication) {
-        try {
-            String username = authentication.getName();
-            queueService.setQueueEnabled(false, username);
-            QueueConfigDTO config = queueService.getQueueConfig();
-            
-            log.info("Queue disabled by admin: {}", username);
-            return ResponseEntity.ok(config);
-        } catch (Exception e) {
-            log.error("Error disabling queue", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new QueueConfigDTO(true, "Failed to disable queue: " + e.getMessage(), authentication.getName()));
-        }
-    }
-
-    @GetMapping("/admin/queue/config")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<QueueConfigDTO> getQueueConfig() {
-        try {
-            QueueConfigDTO config = queueService.getQueueConfig();
-            return ResponseEntity.ok(config);
-        } catch (Exception e) {
-            log.error("Error fetching queue config", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    @GetMapping("/queue/status")
-    @Operation(summary = "Get public queue status", description = "Get the current queue enabled/disabled status (accessible to all users)")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Queue status retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized")
-    })
-    public ResponseEntity<QueueConfigDTO> getPublicQueueStatus() {
-        try {
-            QueueConfigDTO config = queueService.getQueueConfig();
-            return ResponseEntity.ok(config);
-        } catch (Exception e) {
-            log.error("Error fetching public queue status", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    @Operation(summary = "Get queue statistics", description = "Admin endpoint to get comprehensive queue analytics and statistics")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Queue statistics retrieved successfully"),
-        @ApiResponse(responseCode = "403", description = "Admin access required")
-    })
-    @GetMapping("/admin/queue/statistics")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<QueueStatsDTO> getQueueStatistics() {
-        try {
-            log.info("Admin requesting queue statistics");
-            QueueStatsDTO stats = queueService.getQueueStatistics();
-            log.info("Successfully retrieved queue statistics with {} users in queue", stats.getTotalUsersInQueue());
-            return ResponseEntity.ok(stats);
-        } catch (Exception e) {
-            log.error("Error fetching queue statistics: {}", e.getMessage(), e);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to fetch queue statistics: " + e.getMessage());
-        }
-    }
-
-    @Operation(summary = "Warm up cache", description = "Admin endpoint to pre-compute and cache queue statistics")
-    @PostMapping("/admin/queue/cache/warmup")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, String>> warmUpCache() {
-        try {
-            log.info("Admin requesting cache warm-up");
-            queueService.warmUpCache();
-            Map<String, String> response = Map.of(
-                "status", "success", 
-                "message", "Queue statistics cache warmed up successfully"
-            );
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error warming up cache: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("status", "error", "message", "Failed to warm up cache: " + e.getMessage()));
-        }
-    }
-
-    @Operation(summary = "Get cache status", description = "Admin endpoint to check cache health and statistics")
-    @GetMapping("/admin/queue/cache/status")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Object>> getCacheStatus() {
-        try {
-            Map<String, Object> status = queueService.getCacheStatus();
-            return ResponseEntity.ok(status);
-        } catch (Exception e) {
-            log.error("Error fetching cache status: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to fetch cache status: " + e.getMessage()));
-        }
-    }
-
-    @Operation(summary = "Get queue user details", description = "Admin endpoint to get detailed information about users currently in queue")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Queue user details retrieved successfully"),
-        @ApiResponse(responseCode = "403", description = "Admin access required")
-    })
-    @GetMapping("/admin/queue/users")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<QueueUserDetailsDTO>> getQueueUserDetails() {
-        try {
-            log.info("Admin requesting queue user details");
-            List<QueueUserDetailsDTO> userDetails = queueService.getQueueUserDetails();
-            log.info("Successfully retrieved {} user details from queue", userDetails.size());
-            return ResponseEntity.ok(userDetails);
-        } catch (Exception e) {
-            log.error("Error fetching queue user details: {}", e.getMessage(), e);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to fetch queue user details: " + e.getMessage());
-        }
-    }
-
-    @Operation(summary = "Trigger admin stats refresh", description = "Admin endpoint to manually trigger a refresh of queue statistics")
-    @PostMapping("/admin/queue/statistics/refresh")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<QueueStatsDTO> triggerStatsRefresh() {
-        try {
-            log.info("Admin triggering manual stats refresh");
-            queueService.triggerAdminStatsRefresh();
-            QueueStatsDTO stats = queueService.getQueueStatistics();
-            log.info("Manual stats refresh completed successfully");
-            return ResponseEntity.ok(stats);
-        } catch (Exception e) {
-            log.error("Error during manual stats refresh: {}", e.getMessage(), e);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to refresh statistics: " + e.getMessage());
-        }
-    }
 
 
 } 

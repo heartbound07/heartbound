@@ -4,7 +4,6 @@ import com.app.heartbound.dto.pairing.CreatePairingRequestDTO;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.UserValidationService;
 import com.app.heartbound.services.pairing.PairingService;
-import com.app.heartbound.services.pairing.QueueService;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -22,7 +21,6 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Nonnull;
 import java.awt.*;
 import java.time.Instant;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -34,7 +32,6 @@ public class PairCommandListener extends ListenerAdapter {
     private final PairingService pairingService;
     private final UserService userService;
     private final UserValidationService userValidationService;
-    private final QueueService queueService;
     private final TermsOfServiceService termsOfServiceService;
     private JDA jdaInstance;
     private boolean isRegistered = false;
@@ -42,12 +39,11 @@ public class PairCommandListener extends ListenerAdapter {
     private final ConcurrentHashMap<String, PairRequest> pendingRequests = new ConcurrentHashMap<>();
 
     public PairCommandListener(@Lazy PairingService pairingService, UserService userService,
-                               UserValidationService userValidationService, @Lazy QueueService queueService,
+                               UserValidationService userValidationService,
                                TermsOfServiceService termsOfServiceService) {
         this.pairingService = pairingService;
         this.userService = userService;
         this.userValidationService = userValidationService;
-        this.queueService = queueService;
         this.termsOfServiceService = termsOfServiceService;
     }
 
@@ -229,7 +225,6 @@ public class PairCommandListener extends ListenerAdapter {
                 .build();
             
             pairingService.createPairing(createRequest);
-            queueService.removeMatchedUsersFromQueue(List.of(requesterId, targetId));
 
             // Get the JDA User object for the target (who clicked the button)
             User targetDiscordUser = event.getUser();
