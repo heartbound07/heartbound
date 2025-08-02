@@ -465,4 +465,58 @@ export const deleteVoiceStreak = async (streakId: number): Promise<{ message: st
     console.error('Error deleting voice streak:', error);
     throw error;
   }
+};
+
+/**
+ * Leaderboard Data Transfer Objects
+ */
+export interface PairingLeaderboardDTO {
+  id: number;
+  user1Id: string;
+  user2Id: string;
+  user1Profile: PublicUserProfileDTO;
+  user2Profile: PublicUserProfileDTO;
+  discordChannelName: string;
+  matchedAt: string;
+  messageCount: number;
+  user1MessageCount: number;
+  user2MessageCount: number;
+  voiceTimeMinutes: number;
+  wordCount: number;
+  emojiCount: number;
+  activeDays: number;
+  compatibilityScore: number;
+  currentLevel: number;
+  totalXP: number;
+  currentStreak: number;
+  active: boolean;
+}
+
+export interface PublicUserProfileDTO {
+  id: string;
+  username: string;
+  avatar: string;
+  displayName: string;
+  pronouns?: string;
+  about?: string;
+  bannerColor?: string;
+  bannerUrl?: string;
+  roles: string[];
+  badgeUrl?: string;
+  badgeName?: string;
+  nameplateColor?: string;
+  gradientEndColor?: string;
+}
+
+/**
+ * Get pairing leaderboard with embedded user profiles
+ */
+export const getPairingLeaderboard = async (): Promise<PairingLeaderboardDTO[]> => {
+  try {
+    const response = await httpClient.get('/pairings/leaderboard');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching pairing leaderboard:', error);
+    throw error;
+  }
 }; 

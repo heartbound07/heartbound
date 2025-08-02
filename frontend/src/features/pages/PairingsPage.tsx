@@ -34,6 +34,7 @@ import { useAllPairingHistory } from "@/hooks/useAllPairingHistory"
 
 // Import extracted components
 import { MatchedPairing } from "@/features/pages/pairings/components/MatchedPairing"
+import { PairingLeaderboard } from "@/features/pages/pairings/components/PairingLeaderboard"
 
 // Admin state interface
 interface AdminState {
@@ -497,6 +498,17 @@ export function PairingsPage() {
             </motion.div>
           </div>
 
+          {/* Primary Leaderboard for unmatched users */}
+          {!currentPairing && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <PairingLeaderboard />
+            </motion.div>
+          )}
+
           {/* Admin Controls */}
           {hasRole("ADMIN") && (
             <motion.div
@@ -553,48 +565,54 @@ export function PairingsPage() {
             </motion.div>
           )}
 
-          {/* Pairing History */}
+          {/* Conditional Content: Pairing History for unmatched users, Leaderboard for matched users */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center space-x-2">
-                  <MessageCircle className="h-5 w-5 text-purple-400" />
-                  <span>Pairing History</span>
-                  {pairingHistory.length > 0 && (
-                    <Badge variant="secondary" className="ml-2">
-                      {pairingHistory.length}
-                    </Badge>
+            {currentPairing ? (
+              // Show leaderboard when user is matched
+              <PairingLeaderboard />
+            ) : (
+              // Show pairing history when user is not matched
+              <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center space-x-2">
+                    <MessageCircle className="h-5 w-5 text-purple-400" />
+                    <span>Pairing History</span>
+                    {pairingHistory.length > 0 && (
+                      <Badge variant="secondary" className="ml-2">
+                        {pairingHistory.length}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {pairingHistory.length > 0 ? (
+                    <PairingCardList
+                      pairings={pairingHistory}
+                      userProfiles={userProfiles}
+                      isActive={false}
+                      onUserClick={handleUserClick}
+                      onUnpair={hasRole("ADMIN") ? handleUnpairUsers : undefined}
+                      onDelete={hasRole("ADMIN") ? handleDeletePairing : undefined}
+                      onManagePair={hasRole("ADMIN") ? handleAdminPairManagement : undefined}
+                      formatDate={formatDate}
+                      hasAdminActions={hasRole("ADMIN")}
+                      streakData={pairingStreaks}
+                      levelData={pairingLevels}
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-slate-400">
+                      <MessageCircle className="h-12 w-12 mx-auto mb-4 text-slate-600" />
+                      <p className="text-lg font-medium">No Pairing History</p>
+                      <p className="text-sm">Your past matches will appear here</p>
+                    </div>
                   )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {pairingHistory.length > 0 ? (
-                  <PairingCardList
-                    pairings={pairingHistory}
-                    userProfiles={userProfiles}
-                    isActive={false}
-                    onUserClick={handleUserClick}
-                    onUnpair={hasRole("ADMIN") ? handleUnpairUsers : undefined}
-                    onDelete={hasRole("ADMIN") ? handleDeletePairing : undefined}
-                    onManagePair={hasRole("ADMIN") ? handleAdminPairManagement : undefined}
-                    formatDate={formatDate}
-                    hasAdminActions={hasRole("ADMIN")}
-                    streakData={pairingStreaks}
-                    levelData={pairingLevels}
-                  />
-                ) : (
-                  <div className="text-center py-8 text-slate-400">
-                    <MessageCircle className="h-12 w-12 mx-auto mb-4 text-slate-600" />
-                    <p className="text-lg font-medium">No Pairing History</p>
-                    <p className="text-sm">Your past matches will appear here</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </motion.div>
         </div>
 

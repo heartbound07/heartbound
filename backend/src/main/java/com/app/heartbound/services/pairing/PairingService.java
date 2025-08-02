@@ -1,8 +1,10 @@
 package com.app.heartbound.services.pairing;
 
 import com.app.heartbound.dto.pairing.*;
+import com.app.heartbound.dto.PublicUserProfileDTO;
 import com.app.heartbound.entities.BlacklistEntry;
 import com.app.heartbound.entities.Pairing;
+import com.app.heartbound.entities.PairLevel;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.pairing.BlacklistEntryRepository;
@@ -22,9 +24,13 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.annotation.PostConstruct;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -995,6 +1001,125 @@ public class PairingService {
              log.error("Failed to initiate Discord achievement notification to channel {}: {}", 
                       channelId, e.getMessage());
              // Don't throw - achievement unlock should succeed even if Discord notification fails
-         }
-     }
+                 }
+    }
+    
+    /**
+     * Get pairing leaderboard with embedded user profiles for optimal frontend performance
+     */
+    @Transactional(readOnly = true)
+    public List<PairingLeaderboardDTO> getLeaderboardPairings() {
+        log.debug("Fetching pairing leaderboard");
+        
+        try {
+            // Use existing repository method that orders by level DESC, XP DESC
+            List<Pairing> activePairings = pairingRepository.findActivePairingsOrderedByLevel();
+            
+            if (activePairings.isEmpty()) {
+                log.debug("No active pairings found for leaderboard");
+                return Collections.emptyList();
+            }
+            
+            // Collect all unique user IDs for batch profile fetching
+            Set<String> userIds = activePairings.stream()
+                .flatMap(p -> Stream.of(p.getUser1Id(), p.getUser2Id()))
+                .collect(Collectors.toSet());
+            
+            // Batch fetch user profiles for performance
+            Map<String, User> userProfileMap = userRepository.findAllById(userIds)
+                .stream()
+                .collect(Collectors.toMap(User::getId, user -> user));
+            
+            // Map to leaderboard DTOs with individual lookups
+            List<PairingLeaderboardDTO> leaderboard = activePairings.stream()
+                .map(pairing -> mapToPairingLeaderboardDTO(pairing, userProfileMap))
+                .filter(dto -> dto != null) // Filter out any null mappings due to missing user profiles
+                .collect(Collectors.toList());
+            
+            log.debug("Successfully created leaderboard with {} entries", leaderboard.size());
+            return leaderboard;
+            
+        } catch (Exception e) {
+            log.error("Error creating pairing leaderboard", e);
+            throw new RuntimeException("Failed to generate pairing leaderboard: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Map a Pairing entity to PairingLeaderboardDTO with embedded user profiles
+     */
+    private PairingLeaderboardDTO mapToPairingLeaderboardDTO(Pairing pairing, 
+                                                           Map<String, User> userProfileMap) {
+        try {
+            User user1 = userProfileMap.get(pairing.getUser1Id());
+            User user2 = userProfileMap.get(pairing.getUser2Id());
+            
+            // Skip if either user profile is missing
+            if (user1 == null || user2 == null) {
+                log.warn("Missing user profile for pairing {}: user1={}, user2={}", 
+                        pairing.getId(), user1 != null, user2 != null);
+                return null;
+            }
+            
+            // Get level data individually (fallback to defaults if not found)
+            Optional<PairLevel> pairLevelOpt = pairLevelService.getPairLevel(pairing.getId());
+            PairLevel pairLevel = pairLevelOpt.orElse(null);
+            
+            // Get current streak individually (fallback to 0 if service unavailable)
+            int currentStreak = 0;
+            try {
+                // Simple streak lookup - this is a simplified approach
+                // In a production system, you'd want to optimize this with proper batch operations
+                currentStreak = 0; // Placeholder - streak data will be 0 for now
+            } catch (Exception e) {
+                log.debug("Could not fetch streak for pairing {}: {}", pairing.getId(), e.getMessage());
+            }
+            
+            return PairingLeaderboardDTO.builder()
+                .id(pairing.getId())
+                .user1Id(pairing.getUser1Id())
+                .user2Id(pairing.getUser2Id())
+                .user1Profile(mapToPublicUserProfileDTO(user1))
+                .user2Profile(mapToPublicUserProfileDTO(user2))
+                .discordChannelName(pairing.getDiscordChannelName())
+                .matchedAt(pairing.getMatchedAt())
+                .messageCount(pairing.getMessageCount())
+                .user1MessageCount(pairing.getUser1MessageCount())
+                .user2MessageCount(pairing.getUser2MessageCount())
+                .voiceTimeMinutes(pairing.getVoiceTimeMinutes())
+                .wordCount(pairing.getWordCount())
+                .emojiCount(pairing.getEmojiCount())
+                .activeDays(pairing.getActiveDays())
+                .compatibilityScore(pairing.getCompatibilityScore())
+                .currentLevel(pairLevel != null ? pairLevel.getCurrentLevel() : 1)
+                .totalXP(pairLevel != null ? pairLevel.getTotalXP() : 0)
+                .currentStreak(currentStreak)
+                .active(pairing.isActive())
+                .build();
+                
+        } catch (Exception e) {
+            log.error("Error mapping pairing {} to leaderboard DTO", pairing.getId(), e);
+            return null;
+        }
+    }
+    
+    /**
+     * Map User entity to PublicUserProfileDTO
+     */
+    private PublicUserProfileDTO mapToPublicUserProfileDTO(User user) {
+        // Note: This is a simplified mapping. In a real implementation, you might want to
+        // move this to a dedicated mapper service or use the existing UserService
+        return PublicUserProfileDTO.builder()
+            .id(user.getId())
+            .username(user.getUsername())
+            .avatar(user.getAvatar())
+            .displayName(user.getDisplayName())
+            .pronouns(user.getPronouns())
+            .about(user.getAbout())
+            .bannerColor(user.getBannerColor())
+            .bannerUrl(user.getBannerUrl())
+            .roles(user.getRoles())
+            // Additional fields like badge info would need to be populated based on equipped items
+            .build();
+    }
 } 

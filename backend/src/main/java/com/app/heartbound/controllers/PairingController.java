@@ -391,7 +391,24 @@ public class PairingController {
         }
     }
 
-
-
-
+    @Operation(summary = "Get pairing leaderboard", description = "Retrieve ranked list of active pairings ordered by level and XP with embedded user profiles")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Leaderboard retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Authentication required")
+    })
+    @GetMapping("/leaderboard")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<List<PairingLeaderboardDTO>> getPairingLeaderboard() {
+        log.debug("Fetching pairing leaderboard");
+        
+        try {
+            List<PairingLeaderboardDTO> leaderboard = pairingService.getLeaderboardPairings();
+            log.debug("Successfully retrieved {} leaderboard entries", leaderboard.size());
+            return ResponseEntity.ok(leaderboard);
+            
+        } catch (Exception e) {
+            log.error("Error retrieving pairing leaderboard", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to retrieve leaderboard");
+        }
+    }
 } 
