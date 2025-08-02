@@ -152,6 +152,9 @@ public class PairingService {
         PairingDTO pairingDTO = mapToPairingDTO(savedPairing);
         addPairingToLeaderboard(pairingDTO);
 
+        // Invalidate leaderboard cache since new pairing affects rankings
+        cacheConfig.getBatchOperationsCache().invalidate("pairing_leaderboard");
+
         log.info("Successfully created pairing with ID: {} and blacklisted users", savedPairing.getId());
         return pairingDTO;
     }
@@ -285,6 +288,9 @@ public class PairingService {
         // 🚀 NEW: Refresh Discord leaderboard after activity update
         addPairingToLeaderboard(mapToPairingDTO(updatedPairing));
 
+        // Invalidate leaderboard cache since activity affects rankings
+        cacheConfig.getBatchOperationsCache().invalidate("pairing_leaderboard");
+
         log.info("Successfully updated activity for pairing ID: {}", pairingId);
         return mapToPairingDTO(updatedPairing);
     }
@@ -337,6 +343,9 @@ public class PairingService {
 
         // 🚀 NEW: Remove pairing from Discord leaderboard
         removePairingFromLeaderboard(pairingId);
+
+        // Invalidate leaderboard cache since pairing is now inactive
+        cacheConfig.getBatchOperationsCache().invalidate("pairing_leaderboard");
 
         // DON'T create blacklist entry here - it already exists from pairing creation
         // Just update the reason if needed
@@ -476,6 +485,9 @@ public class PairingService {
                     pairing.getId(), pairing.getUser1Id(), pairing.getUser2Id());
         }
         
+        // Invalidate leaderboard cache since all pairings are now inactive
+        cacheConfig.getBatchOperationsCache().invalidate("pairing_leaderboard");
+        
         log.info("Admin deleted {} active pairings", deletedCount);
         return deletedCount;
     }
@@ -511,6 +523,9 @@ public class PairingService {
         
         // 🚀 NEW: Remove pairing from Discord leaderboard
         removePairingFromLeaderboard(pairingId);
+        
+        // Invalidate leaderboard cache since pairing is now inactive
+        cacheConfig.getBatchOperationsCache().invalidate("pairing_leaderboard");
         
         // Update blacklist entry reason (blacklist STAYS - users cannot match again)
         blacklistEntryRepository.findByUserPair(pairing.getUser1Id(), pairing.getUser2Id())
@@ -1011,6 +1026,19 @@ public class PairingService {
     public List<PairingLeaderboardDTO> getLeaderboardPairings() {
         log.debug("Fetching pairing leaderboard");
         
+        // Check cache first for performance optimization
+        Map<String, Object> cachedData = cacheConfig.getBatchOperationsCache()
+                .getIfPresent("pairing_leaderboard");
+        
+        if (cachedData != null && cachedData.containsKey("leaderboard")) {
+            @SuppressWarnings("unchecked")
+            List<PairingLeaderboardDTO> cachedLeaderboard = (List<PairingLeaderboardDTO>) cachedData.get("leaderboard");
+            log.debug("Pairing leaderboard cache HIT - returning {} entries", cachedLeaderboard.size());
+            return cachedLeaderboard;
+        }
+        
+        log.debug("Pairing leaderboard cache MISS - fetching from database");
+        
         try {
             // Use existing repository method that orders by level DESC, XP DESC
             List<Pairing> activePairings = pairingRepository.findActivePairingsOrderedByLevel();
@@ -1037,6 +1065,16 @@ public class PairingService {
                 .collect(Collectors.toList());
             
             log.debug("Successfully created leaderboard with {} entries", leaderboard.size());
+            
+            // Cache the result wrapped in a Map for type compatibility
+            Map<String, Object> cacheData = Map.of(
+                    "leaderboard", leaderboard,
+                    "count", leaderboard.size(),
+                    "timestamp", System.currentTimeMillis()
+            );
+            cacheConfig.getBatchOperationsCache().put("pairing_leaderboard", cacheData);
+            log.debug("Cached pairing leaderboard with {} entries for improved performance", leaderboard.size());
+            
             return leaderboard;
             
         } catch (Exception e) {

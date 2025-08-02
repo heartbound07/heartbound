@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, memo, useMemo } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/valorant/badge"
@@ -45,6 +45,12 @@ export function PairingLeaderboard() {
     return sanitized || username
   }
 
+  // Memoized computations for performance
+  const { topThree, remainingPairs } = useMemo(() => ({
+    topThree: leaderboard.slice(0, 3),
+    remainingPairs: leaderboard.slice(3)
+  }), [leaderboard])
+
   // Handle user click for top 3 only
   const handleUserClick = async (userId: string, event: React.MouseEvent) => {
     event.preventDefault()
@@ -78,27 +84,25 @@ export function PairingLeaderboard() {
     setProfileError(null)
   }
 
-  // Medal icons for top 3
-  const getMedalIcon = (rank: number) => {
+  // Medal icons for top 3 - memoized for performance
+  const getMedalIcon = useMemo(() => (rank: number) => {
     switch (rank) {
       case 1: return "🥇"
       case 2: return "🥈"
       case 3: return "🥉"
       default: return null
     }
-  }
+  }, [])
 
-  // Format voice time for display
-  const formatVoiceTime = (minutes: number) => {
+  // Format voice time for display - memoized for performance
+  const formatVoiceTime = useMemo(() => (minutes: number) => {
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
-  }
+  }, [])
 
-  // Top 3 podium component
-  const TopThreePodium = () => {
-    const topThree = leaderboard.slice(0, 3)
-    
+  // Top 3 podium component - memoized for performance
+  const TopThreePodium = memo(() => {
     if (topThree.length === 0) return null
 
     return (
@@ -111,7 +115,7 @@ export function PairingLeaderboard() {
             
             return (
               <motion.div
-                key={pair.id}
+                key={`top-${pair.id}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -212,12 +216,10 @@ export function PairingLeaderboard() {
         </div>
       </div>
     )
-  }
+  })
 
-  // Remaining leaderboard list
-  const LeaderboardList = () => {
-    const remainingPairs = leaderboard.slice(3)
-    
+  // Remaining leaderboard list - memoized for performance
+  const LeaderboardList = memo(() => {
     if (remainingPairs.length === 0) return null
 
     return (
@@ -232,7 +234,7 @@ export function PairingLeaderboard() {
             
             return (
               <motion.div
-                key={pair.id}
+                key={`pair-${pair.id}`}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
@@ -284,7 +286,7 @@ export function PairingLeaderboard() {
         </div>
       </div>
     )
-  }
+  })
 
   if (loading) {
     return (
