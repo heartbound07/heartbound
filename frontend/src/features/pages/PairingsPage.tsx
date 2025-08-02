@@ -14,7 +14,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import type { PairingDTO } from "@/config/pairingService"
 import { deleteAllPairings } from "@/config/pairingService"
 import { usePairingUpdates } from "@/hooks/usePairingUpdates"
-import { MatchFoundModal } from "@/components/modals/MatchFoundModal"
 import { UserProfileModal } from "@/components/modals/UserProfileModal"
 import { getUserProfiles, type UserProfileDTO } from "@/config/userService"
 import { useXPData, invalidateXPData } from "@/hooks/useXPData"
@@ -131,8 +130,6 @@ export function PairingsPage() {
   // Extracted modal management functions from useModalManager
   const {
     modalState,
-    showMatchFound,
-    hideMatchFound,
     showBreakup,
     hideBreakup,
     showBreakupSuccess,
@@ -165,9 +162,6 @@ export function PairingsPage() {
       if (pairingUpdate.eventType === 'MATCH_FOUND') {
         console.log('[PairingsPage] Match found, refreshing data')
         refreshData()
-        if (currentPairing) {
-          showMatchFound(currentPairing)
-        }
         invalidateXPData(pairingIds)
       } else if (pairingUpdate.eventType === 'PAIRING_ENDED') {
         console.log('[PairingsPage] Partner breakup detected')
@@ -181,7 +175,7 @@ export function PairingsPage() {
       
       clearUpdate()
     }
-  }, [pairingUpdate, clearUpdate, refreshData, showMatchFound, showPartnerUnmatched, userInitiatedBreakup, currentPairing, pairingIds])
+  }, [pairingUpdate, clearUpdate, refreshData, showPartnerUnmatched, userInitiatedBreakup, currentPairing, pairingIds])
 
   // Detect offline breakups by comparing current pairing with stored pairing
   useEffect(() => {
@@ -254,11 +248,6 @@ export function PairingsPage() {
   const handleCloseUserProfileModal = useCallback(() => {
     hideUserProfile()
   }, [hideUserProfile])
-
-  const handleCloseMatchModal = useCallback(() => {
-    console.log("[PairingsPage] Closing match modal")
-    hideMatchFound()
-  }, [hideMatchFound])
 
   const handleUnpairUsers = async (pairingId: number, event: React.MouseEvent) => {
     event.stopPropagation()
@@ -425,7 +414,7 @@ export function PairingsPage() {
             <p className="text-slate-400 mt-2">
               {currentPairing 
                 ? "You're currently paired! Check your progress below." 
-                : "Matchmaking is currently unavailable. View your pairing history below."}
+                : "You are not currently in a match."}
             </p>
           </motion.div>
 
@@ -613,13 +602,6 @@ export function PairingsPage() {
 
         {/* Modals */}
         <AnimatePresence>
-          {modalState.showMatchModal && (
-            <MatchFoundModal
-              onClose={handleCloseMatchModal}
-              pairing={currentPairing || undefined}
-            />
-          )}
-
           {modalState.showBreakupModal && currentPairing && (
             <BreakupModal
               isOpen={modalState.showBreakupModal}
