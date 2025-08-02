@@ -1120,7 +1120,6 @@ export function SkeletonActivePairingsLeaderboard({
             {/* Rankings List */}
             <div className="space-y-3">
               {Array.from({ length: remainingPairsCount }).map((_, index) => {
-                const rank = index + 4;
                 return (
                   <div
                     key={index}
