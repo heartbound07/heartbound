@@ -164,23 +164,9 @@ export interface PairingUpdateEvent {
   isInitiator?: boolean; // For PAIRING_ENDED events - true if user initiated breakup
 }
 
-export interface QueueUpdateEvent {
-  totalQueueSize: number;
-  timestamp?: string;
-}
-
-export interface QueueConfigUpdateEvent {
-  queueEnabled: boolean;
-  maxWaitTime: number;
-  timestamp?: string;
-}
-
 // Utility type for extracting message type from topic
 export type TopicMessageMap = {
   '/topic/party': LFGPartyEvent;
-  '/topic/queue': QueueUpdateEvent;
-  '/topic/queue/config': QueueConfigUpdateEvent;
-  '/topic/admin/queue-stats': any; // QueueStatsDTO was removed, so using 'any' for now
 } & {
   [key: `/user/${string}/topic/pairings`]: PairingUpdateEvent;
 };
