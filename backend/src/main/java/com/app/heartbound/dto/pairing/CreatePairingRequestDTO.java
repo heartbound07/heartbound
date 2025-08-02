@@ -36,13 +36,4 @@ public class CreatePairingRequestDTO {
     @Min(value = 0, message = "Compatibility score must be non-negative")
     @Max(value = 100, message = "Compatibility score must not exceed 100")
     private int compatibilityScore;
-
-    private Integer user1Age;
-    private String user1Gender;
-    private String user1Region;
-    private String user1Rank;
-    private Integer user2Age;
-    private String user2Gender;
-    private String user2Region;
-    private String user2Rank;
 } 

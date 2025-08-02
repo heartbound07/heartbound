@@ -105,20 +105,6 @@ public class PairCommandListener extends ListenerAdapter {
                 event.getHook().sendMessage("The user you want to pair with must be registered in the system first.").queue();
                 return;
             }
-
-            try {
-                userValidationService.validateUserForPairing(requester);
-            } catch (IllegalStateException e) {
-                event.getHook().sendMessage("Validation failed: " + e.getMessage()).queue();
-                return;
-            }
-
-            try {
-                userValidationService.validateUserForPairing(target);
-            } catch (IllegalStateException e) {
-                event.getHook().sendMessage("This user does not have the required roles!").queue();
-                return;
-            }
             
             if (pairingService.getCurrentPairing(requester.getId()).isPresent() || pairingService.getCurrentPairing(target.getId()).isPresent()) {
                 event.getHook().sendMessage("One of the users is already in a pairing.").queue();
@@ -214,14 +200,6 @@ public class PairCommandListener extends ListenerAdapter {
                 .user1DiscordId(requester.getId())
                 .user2DiscordId(target.getId())
                 .compatibilityScore(75) // Default for manual pair
-                .user1Age(userValidationService.convertAgeRoleToAge(requester.getSelectedAgeRoleId()))
-                .user1Gender(userValidationService.convertGenderRoleToEnum(requester.getSelectedGenderRoleId()).name())
-                .user1Region(userValidationService.convertRegionRoleToEnum(requester.getSelectedRegionRoleId()).name())
-                .user1Rank(userValidationService.convertRankRoleToEnum(requester.getSelectedRankRoleId()).name())
-                .user2Age(userValidationService.convertAgeRoleToAge(target.getSelectedAgeRoleId()))
-                .user2Gender(userValidationService.convertGenderRoleToEnum(target.getSelectedGenderRoleId()).name())
-                .user2Region(userValidationService.convertRegionRoleToEnum(target.getSelectedRegionRoleId()).name())
-                .user2Rank(userValidationService.convertRankRoleToEnum(target.getSelectedRankRoleId()).name())
                 .build();
             
             pairingService.createPairing(createRequest);

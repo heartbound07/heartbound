@@ -63,10 +63,6 @@ export interface UserProfile {
   nameplateColor: string | null;
   dailyStreak: number;
   lastDailyClaim: string | null;
-  selectedAgeRoleId: string | null;
-  selectedGenderRoleId: string | null;
-  selectedRankRoleId: string | null;
-  selectedRegionRoleId: string | null;
   fishingLimitCooldownUntil: string | null;
 }
 

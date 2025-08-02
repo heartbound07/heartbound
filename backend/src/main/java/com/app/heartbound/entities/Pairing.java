@@ -109,30 +109,6 @@ public class Pairing {
     @Column(name = "blacklisted", nullable = false)
     private boolean blacklisted = false;
 
-    @Column(name = "user1_age")
-    private Integer user1Age;
-
-    @Column(name = "user1_gender")
-    private String user1Gender;
-
-    @Column(name = "user1_region")
-    private String user1Region;
-
-    @Column(name = "user1_rank")
-    private String user1Rank;
-
-    @Column(name = "user2_age")
-    private Integer user2Age;
-
-    @Column(name = "user2_gender")
-    private String user2Gender;
-
-    @Column(name = "user2_region")
-    private String user2Region;
-
-    @Column(name = "user2_rank")
-    private String user2Rank;
-
     // Helper method to check if a user is part of this pairing
     public boolean involvesUser(String userId) {
         return user1Id.equals(userId) || user2Id.equals(userId);

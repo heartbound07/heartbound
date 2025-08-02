@@ -6,10 +6,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/valorant/avatar"
 import {
-  User,
-  Users,
-  MapPin,
-  Trophy,
   Calendar,
   MessageCircle,
   MessageSquare,
@@ -22,37 +18,6 @@ import type { UserProfileDTO } from "@/config/userService"
 
 // Import redesigned component CSS
 import "@/assets/MatchedPairing.css"
-
-// Constants for display formatting - preserved exactly
-const REGIONS = [
-  { value: "NA_EAST", label: "NA East" },
-  { value: "NA_WEST", label: "NA West" },
-  { value: "NA_CENTRAL", label: "NA Central" },
-  { value: "EU", label: "Europe" },
-  { value: "AP", label: "Asia Pacific" },
-  { value: "KR", label: "Korea" },
-  { value: "LATAM", label: "Latin America" },
-  { value: "BR", label: "Brazil" },
-] as const
-
-const RANKS = [
-  { value: "IRON", label: "Iron" },
-  { value: "BRONZE", label: "Bronze" },
-  { value: "SILVER", label: "Silver" },
-  { value: "GOLD", label: "Gold" },
-  { value: "PLATINUM", label: "Platinum" },
-  { value: "DIAMOND", label: "Diamond" },
-  { value: "ASCENDANT", label: "Ascendant" },
-  { value: "IMMORTAL", label: "Immortal" },
-  { value: "RADIANT", label: "Radiant" },
-] as const
-
-const GENDERS = [
-  { value: "MALE", label: "Male" },
-  { value: "FEMALE", label: "Female" },
-  { value: "NON_BINARY", label: "Non-Binary" },
-  { value: "PREFER_NOT_TO_SAY", label: "Prefer not to say" },
-] as const
 
 interface MatchedPairingProps {
   currentPairing: PairingDTO
@@ -71,26 +36,20 @@ export const MatchedPairing = memo(
       return currentPairing?.user1Id === user?.id ? currentPairing?.user2Id : currentPairing?.user1Id
     }, [currentPairing, user?.id])
 
-    // Get partner stats - preserved business logic
-    const partnerStats = useMemo(() => {
-      if (!currentPairing || !user?.id) return null
-
-      const isUser1 = currentPairing.user1Id === user.id
-      return {
-        age: isUser1 ? currentPairing.user2Age : currentPairing.user1Age,
-        gender: isUser1 ? currentPairing.user2Gender : currentPairing.user1Gender,
-        region: isUser1 ? currentPairing.user2Region : currentPairing.user1Region,
-        rank: isUser1 ? currentPairing.user2Rank : currentPairing.user1Rank,
-        messageCount: isUser1 ? currentPairing.user2MessageCount : currentPairing.user1MessageCount,
-      }
-    }, [currentPairing, user?.id])
-
     // Get user's own message count - preserved business logic
     const userMessageCount = useMemo(() => {
       if (!currentPairing || !user?.id) return 0
 
       const isUser1 = currentPairing.user1Id === user.id
       return isUser1 ? currentPairing.user1MessageCount : currentPairing.user2MessageCount
+    }, [currentPairing, user?.id])
+
+    // Get partner's message count - preserved business logic
+    const partnerMessageCount = useMemo(() => {
+      if (!currentPairing || !user?.id) return 0
+
+      const isUser1 = currentPairing.user1Id === user.id
+      return isUser1 ? currentPairing.user2MessageCount : currentPairing.user1MessageCount
     }, [currentPairing, user?.id])
 
     if (!currentPairing) {
@@ -133,32 +92,6 @@ export const MatchedPairing = memo(
 
                 <div className="partner-info">
                   <h3 className="partner-name">{pairedUser?.displayName || "Your Match"}</h3>
-
-                  {/* Stats grid with improved layout */}
-                  <div className="stats-grid">
-                    <div className="stat-item">
-                      <User className="stat-icon age-icon" />
-                      <span className="stat-value">{partnerStats?.age}</span>
-                    </div>
-                    <div className="stat-item">
-                      <Users className="stat-icon gender-icon" />
-                      <span className="stat-value">
-                        {GENDERS.find((g) => g.value === partnerStats?.gender)?.label || "Not specified"}
-                      </span>
-                    </div>
-                    <div className="stat-item">
-                      <MapPin className="stat-icon region-icon" />
-                      <span className="stat-value">
-                        {REGIONS.find((r) => r.value === partnerStats?.region)?.label || "Not specified"}
-                      </span>
-                    </div>
-                    <div className="stat-item">
-                      <Trophy className="stat-icon rank-icon" />
-                      <span className="stat-value">
-                        {RANKS.find((r) => r.value === partnerStats?.rank)?.label || "Not specified"}
-                      </span>
-                    </div>
-                  </div>
                 </div>
               </div>
             </motion.div>
@@ -220,7 +153,7 @@ export const MatchedPairing = memo(
                 </div>
 
                 <div className="metric-card partner-messages">
-                  <div className="metric-value">{partnerStats?.messageCount || 0}</div>
+                  <div className="metric-value">{partnerMessageCount}</div>
                   <div className="metric-label">{pairedUser?.displayName || "Partner"}'s Messages</div>
                 </div>
 
@@ -258,4 +191,4 @@ export const MatchedPairing = memo(
   },
 )
 
-MatchedPairing.displayName = "MatchedPairing"
+ MatchedPairing.displayName = "MatchedPairing"

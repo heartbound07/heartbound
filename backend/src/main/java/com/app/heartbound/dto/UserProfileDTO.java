@@ -85,12 +85,6 @@ public class UserProfileDTO {
     private Integer dailyStreak;
     private java.time.LocalDateTime lastDailyClaim;
 
-    // Add role selection fields
-    private String selectedAgeRoleId;
-    private String selectedGenderRoleId;
-    private String selectedRankRoleId;
-    private String selectedRegionRoleId;
-    
     // Add fishing limit cooldown field
     private java.time.LocalDateTime fishingLimitCooldownUntil;
 }

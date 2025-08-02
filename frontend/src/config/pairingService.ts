@@ -21,14 +21,6 @@ export interface PairingDTO {
   mutualBreakup: boolean;
   active: boolean;
   blacklisted: boolean;
-  user1Age?: number;
-  user1Gender?: string;
-  user1Region?: string;
-  user1Rank?: string;
-  user2Age?: number;
-  user2Gender?: string;
-  user2Region?: string;
-  user2Rank?: string;
 }
 
 

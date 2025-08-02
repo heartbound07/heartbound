@@ -640,10 +640,6 @@ public class UserService {
                 .gradientEndColor(gradientEndColor)
                 .dailyStreak(user.getDailyStreak()) // Add daily claim fields
                 .lastDailyClaim(user.getLastDailyClaim())
-                .selectedAgeRoleId(user.getSelectedAgeRoleId())
-                .selectedGenderRoleId(user.getSelectedGenderRoleId())
-                .selectedRankRoleId(user.getSelectedRankRoleId())
-                .selectedRegionRoleId(user.getSelectedRegionRoleId())
                 .fishingLimitCooldownUntil(user.getFishingLimitCooldownUntil())
                 .build();
     }

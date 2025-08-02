@@ -220,10 +220,6 @@ public class RolesCommandListener extends ListenerAdapter {
         // First, check the database record if user exists
         if (user != null) {
             String selectedRoleId = switch (category) {
-                case "age" -> user.getSelectedAgeRoleId();
-                case "gender" -> user.getSelectedGenderRoleId();
-                case "rank" -> user.getSelectedRankRoleId();
-                case "region" -> user.getSelectedRegionRoleId();
                 default -> null;
             };
 
@@ -265,17 +261,8 @@ public class RolesCommandListener extends ListenerAdapter {
     private void updateUserRoleSelection(User user, String discordUserId, String category, String roleId) {
         // Update the User entity (user is guaranteed to be non-null due to earlier check)
         switch (category) {
-            case "age":
-                user.setSelectedAgeRoleId(roleId);
-                break;
-            case "gender":
-                user.setSelectedGenderRoleId(roleId);
-                break;
-            case "rank":
-                user.setSelectedRankRoleId(roleId);
-                break;
-            case "region":
-                user.setSelectedRegionRoleId(roleId);
+            default:
+                // No database tracking for deprecated categories
                 break;
         }
         userService.updateUser(user);

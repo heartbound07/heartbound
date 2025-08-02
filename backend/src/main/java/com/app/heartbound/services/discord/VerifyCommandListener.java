@@ -131,10 +131,6 @@ public class VerifyCommandListener extends ListenerAdapter {
 
         guild.modifyMemberRoles(targetMember, List.of(newRole), rolesToRemove).queue(
             success -> {
-                // Update the user's profile in the database
-                user.setSelectedRankRoleId(newRole.getId());
-                userService.updateUser(user);
-
                 event.getHook().editOriginal("Successfully assigned the '" + newRole.getName() + "' role to " + targetMember.getAsMention() + ".").queue();
                 logger.info("Moderator {} assigned verified rank role '{}' ({}) to user {}", commandMember.getId(), newRole.getName(), newRole.getId(), targetMember.getId());
                 // TODO: Add audit log and verification log channel message

@@ -120,14 +120,6 @@ public class PairingService {
                 .user2Id(sanitizedUser2Id)
                 .compatibilityScore(Math.max(0, Math.min(100, request.getCompatibilityScore())))
                 .matchedAt(LocalDateTime.now())
-                .user1Age(request.getUser1Age())
-                .user1Gender(request.getUser1Gender())
-                .user1Region(request.getUser1Region())
-                .user1Rank(request.getUser1Rank())
-                .user2Age(request.getUser2Age())
-                .user2Gender(request.getUser2Gender())
-                .user2Region(request.getUser2Region())
-                .user2Rank(request.getUser2Rank())
                 .build();
 
         // Save pairing first to get the ID
@@ -207,44 +199,6 @@ public class PairingService {
         if (request.getCompatibilityScore() > 100) {
             log.error("SECURITY VIOLATION: Compatibility score exceeds maximum: {}", request.getCompatibilityScore());
             throw new IllegalArgumentException("Invalid compatibility score");
-        }
-
-        // Validate age ranges are reasonable
-        if (request.getUser1Age() != null && (request.getUser1Age() < 15 || request.getUser1Age() > 40)) {
-            log.error("SECURITY VIOLATION: Invalid user1 age: {}", request.getUser1Age());
-            throw new IllegalArgumentException("Invalid user age");
-        }
-
-        if (request.getUser2Age() != null && (request.getUser2Age() < 15 || request.getUser2Age() > 40)) {
-            log.error("SECURITY VIOLATION: Invalid user2 age: {}", request.getUser2Age());
-            throw new IllegalArgumentException("Invalid user age");
-        }
-
-        // CRITICAL: Ensure request data matches actual user data in database
-        validateUserDataConsistency(user1Id, request.getUser1Age(), request.getUser1Gender(), 
-                                   request.getUser1Region(), request.getUser1Rank());
-        validateUserDataConsistency(user2Id, request.getUser2Age(), request.getUser2Gender(), 
-                                   request.getUser2Region(), request.getUser2Rank());
-    }
-
-    /**
-     * SECURITY: Validate that pairing request data matches actual user data
-     * Prevents manipulation of user demographics in pairing requests
-     */
-    private void validateUserDataConsistency(String userId, Integer age, String gender, String region, String rank) {
-        try {
-            User user = userRepository.findById(userId).orElse(null);
-            if (user == null) {
-                return; // User existence already validated elsewhere
-            }
-
-            // Note: This assumes users have profile data. If not available, skip validation
-            // In a real implementation, you'd want to ensure profile data is required
-            
-            log.debug("Validated user data consistency for user {}", userId);
-        } catch (Exception e) {
-            log.warn("Could not validate user data consistency for {}: {}", userId, e.getMessage());
-            // Don't fail the pairing creation if we can't validate, but log the issue
         }
     }
 
@@ -728,16 +682,6 @@ public class PairingService {
                 .active(pairing.isActive())
                 .blacklisted(pairing.isBlacklisted())
                 .build();
-
-        dto.setUser1Age(pairing.getUser1Age());
-        dto.setUser1Gender(pairing.getUser1Gender());
-        dto.setUser1Region(pairing.getUser1Region());
-        dto.setUser1Rank(pairing.getUser1Rank());
-        
-        dto.setUser2Age(pairing.getUser2Age());
-        dto.setUser2Gender(pairing.getUser2Gender());
-        dto.setUser2Region(pairing.getUser2Region());
-        dto.setUser2Rank(pairing.getUser2Rank());
 
         return dto;
     }

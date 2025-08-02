@@ -34,10 +34,6 @@ export interface UserProfileDTO {
   nameplateColor?: string; // Resolved hex color for equipped nameplate
   gradientEndColor?: string; // Resolved hex color for equipped nameplate gradient end
   banned: boolean;
-  selectedAgeRoleId?: string;
-  selectedGenderRoleId?: string;
-  selectedRankRoleId?: string;
-  selectedRegionRoleId?: string;
   fishingLimitCooldownUntil?: string; // ISO string format from backend
 }
 

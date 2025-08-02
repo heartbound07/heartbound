@@ -312,14 +312,6 @@ public class DiscordLeaderboardService {
                 .mutualBreakup(pairing.isMutualBreakup())
                 .active(pairing.isActive())
                 .blacklisted(pairing.isBlacklisted())
-                .user1Age(pairing.getUser1Age())
-                .user1Gender(pairing.getUser1Gender())
-                .user1Region(pairing.getUser1Region())
-                .user1Rank(pairing.getUser1Rank())
-                .user2Age(pairing.getUser2Age())
-                .user2Gender(pairing.getUser2Gender())
-                .user2Region(pairing.getUser2Region())
-                .user2Rank(pairing.getUser2Rank())
                 .build();
     }
     

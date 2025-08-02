@@ -171,16 +171,6 @@ public class User {
     @JsonView(Views.Admin.class)
     private LocalDateTime prisonReleaseAt;
     
-    // Self-assignable role selections
-    @JsonView(Views.Admin.class)
-    private String selectedAgeRoleId;
-    @JsonView(Views.Admin.class)
-    private String selectedGenderRoleId;
-    @JsonView(Views.Admin.class)
-    private String selectedRankRoleId;
-    @JsonView(Views.Admin.class)
-    private String selectedRegionRoleId;
-    
     // User active status field
     @Builder.Default
     @JsonView(Views.Admin.class)
@@ -355,38 +345,6 @@ public class User {
 
     public void setCurrentFishingLimit(Integer currentFishingLimit) {
         this.currentFishingLimit = currentFishingLimit;
-    }
-
-    public String getSelectedAgeRoleId() {
-        return selectedAgeRoleId;
-    }
-
-    public void setSelectedAgeRoleId(String selectedAgeRoleId) {
-        this.selectedAgeRoleId = selectedAgeRoleId;
-    }
-
-    public String getSelectedGenderRoleId() {
-        return selectedGenderRoleId;
-    }
-
-    public void setSelectedGenderRoleId(String selectedGenderRoleId) {
-        this.selectedGenderRoleId = selectedGenderRoleId;
-    }
-
-    public String getSelectedRankRoleId() {
-        return selectedRankRoleId;
-    }
-
-    public void setSelectedRankRoleId(String selectedRankRoleId) {
-        this.selectedRankRoleId = selectedRankRoleId;
-    }
-
-    public String getSelectedRegionRoleId() {
-        return selectedRegionRoleId;
-    }
-
-    public void setSelectedRegionRoleId(String selectedRegionRoleId) {
-        this.selectedRegionRoleId = selectedRegionRoleId;
     }
 
     // Helper method to get equipped item ID by category
