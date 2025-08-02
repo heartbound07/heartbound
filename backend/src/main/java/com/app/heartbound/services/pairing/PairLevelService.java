@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * PairLevelService
@@ -485,5 +486,36 @@ public class PairLevelService {
      */
     public void setDiscordLeaderboardRefreshCallback(Consumer<Long> callback) {
         this.discordLeaderboardRefreshCallback = callback;
+    }
+    
+    /**
+     * Batch fetch pair levels for multiple pairings (optimized for leaderboard)
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, PairLevel> getPairLevelsForPairings(List<Long> pairingIds) {
+        log.debug("Batch fetching pair levels for {} pairings", pairingIds.size());
+        
+        if (pairingIds.isEmpty()) {
+            return Map.of();
+        }
+        
+        try {
+            List<PairLevel> pairLevels = pairLevelRepository.findByPairingIds(pairingIds);
+            
+            Map<Long, PairLevel> pairLevelMap = pairLevels.stream()
+                .collect(Collectors.toMap(
+                    pl -> pl.getPairing().getId(), 
+                    pl -> pl
+                ));
+            
+            log.debug("Successfully batch fetched {} pair levels from {} requested pairings", 
+                     pairLevelMap.size(), pairingIds.size());
+            
+            return pairLevelMap;
+            
+        } catch (Exception e) {
+            log.error("Error batch fetching pair levels for pairings: {}", e.getMessage());
+            return Map.of(); // Return empty map on error to allow graceful degradation
+        }
     }
 } 

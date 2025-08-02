@@ -14,10 +14,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * VoiceStreakService
@@ -442,5 +444,44 @@ public class VoiceStreakService {
      */
     public void setDiscordLeaderboardRefreshCallback(Consumer<Long> callback) {
         this.discordLeaderboardRefreshCallback = callback;
+    }
+    
+    /**
+     * Batch fetch current streak counts for multiple pairings (optimized for leaderboard)
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, Integer> getCurrentStreakCountsForPairings(List<Long> pairingIds) {
+        log.debug("Batch fetching current streak counts for {} pairings", pairingIds.size());
+        
+        if (pairingIds.isEmpty()) {
+            return Map.of();
+        }
+        
+        try {
+            List<Object[]> streakResults = voiceStreakRepository.getCurrentStreakCountsForPairings(pairingIds);
+            
+            Map<Long, Integer> streakCountMap = new HashMap<>();
+            
+            // Process results and convert to map
+            for (Object[] result : streakResults) {
+                Long pairingId = (Long) result[0];
+                Integer streakCount = ((Number) result[1]).intValue();
+                streakCountMap.put(pairingId, streakCount);
+            }
+            
+            // Fill in missing pairings with 0 streak count
+            for (Long pairingId : pairingIds) {
+                streakCountMap.putIfAbsent(pairingId, 0);
+            }
+            
+            log.debug("Successfully batch fetched streak counts for {} pairings", streakCountMap.size());
+            
+            return streakCountMap;
+            
+        } catch (Exception e) {
+            log.error("Error batch fetching streak counts for pairings: {}", e.getMessage());
+            // Return map with all 0s on error to allow graceful degradation
+            return pairingIds.stream().collect(Collectors.toMap(id -> id, id -> 0));
+        }
     }
 } 

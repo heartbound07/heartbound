@@ -1053,14 +1053,27 @@ public class PairingService {
                 .flatMap(p -> Stream.of(p.getUser1Id(), p.getUser2Id()))
                 .collect(Collectors.toSet());
             
+            // Collect all pairing IDs for batch XP and streak fetching
+            List<Long> pairingIds = activePairings.stream()
+                .map(Pairing::getId)
+                .collect(Collectors.toList());
+            
             // Batch fetch user profiles for performance
             Map<String, User> userProfileMap = userRepository.findAllById(userIds)
                 .stream()
                 .collect(Collectors.toMap(User::getId, user -> user));
             
-            // Map to leaderboard DTOs with individual lookups
+            // Batch fetch pair levels for performance (eliminates N+1 query problem)
+            Map<Long, PairLevel> pairLevelMap = pairLevelService.getPairLevelsForPairings(pairingIds);
+            log.debug("Batch fetched {} pair level records for {} pairings", pairLevelMap.size(), pairingIds.size());
+            
+            // Batch fetch current streak counts for performance (eliminates N+1 query problem)
+            Map<Long, Integer> streakCountMap = voiceStreakService.getCurrentStreakCountsForPairings(pairingIds);
+            log.debug("Batch fetched {} streak records for {} pairings", streakCountMap.size(), pairingIds.size());
+            
+            // Map to leaderboard DTOs with batch data lookups
             List<PairingLeaderboardDTO> leaderboard = activePairings.stream()
-                .map(pairing -> mapToPairingLeaderboardDTO(pairing, userProfileMap))
+                .map(pairing -> mapToPairingLeaderboardDTO(pairing, userProfileMap, pairLevelMap, streakCountMap))
                 .filter(dto -> dto != null) // Filter out any null mappings due to missing user profiles
                 .collect(Collectors.toList());
             
@@ -1087,7 +1100,9 @@ public class PairingService {
      * Map a Pairing entity to PairingLeaderboardDTO with embedded user profiles
      */
     private PairingLeaderboardDTO mapToPairingLeaderboardDTO(Pairing pairing, 
-                                                           Map<String, User> userProfileMap) {
+                                                           Map<String, User> userProfileMap,
+                                                           Map<Long, PairLevel> pairLevelMap,
+                                                           Map<Long, Integer> streakCountMap) {
         try {
             // Validate pairing inputs
             if (pairing == null || pairing.getUser1Id() == null || pairing.getUser2Id() == null) {
@@ -1108,19 +1123,11 @@ public class PairingService {
                 return null;
             }
             
-            // Get level data individually (fallback to defaults if not found)
-            Optional<PairLevel> pairLevelOpt = pairLevelService.getPairLevel(pairing.getId());
-            PairLevel pairLevel = pairLevelOpt.orElse(null);
+            // Get level data from batch-fetched map (optimized - no N+1 query problem)
+            PairLevel pairLevel = pairLevelMap.get(pairing.getId());
             
-            // Get current streak individually (fallback to 0 if service unavailable)
-            int currentStreak = 0;
-            try {
-                // Simple streak lookup - this is a simplified approach
-                // In a production system, you'd want to optimize this with proper batch operations
-                currentStreak = 0; // Placeholder - streak data will be 0 for now
-            } catch (Exception e) {
-                log.debug("Could not fetch streak for pairing {}: {}", pairing.getId(), e.getMessage());
-            }
+            // Get current streak from batch-fetched map (optimized - no N+1 query problem)
+            int currentStreak = streakCountMap.getOrDefault(pairing.getId(), 0);
             
             return PairingLeaderboardDTO.builder()
                 .id(pairing.getId())

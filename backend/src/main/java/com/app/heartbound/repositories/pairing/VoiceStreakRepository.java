@@ -71,4 +71,8 @@ public interface VoiceStreakRepository extends JpaRepository<VoiceStreak, Long> 
     // Find broken streaks (gaps in consecutive days)
     @Query("SELECT vs FROM VoiceStreak vs WHERE vs.pairing.id = :pairingId AND vs.active = false ORDER BY vs.streakDate DESC")
     List<VoiceStreak> findBrokenStreaksByPairingId(@Param("pairingId") Long pairingId);
+    
+    // Batch get current streak counts for multiple pairings (for leaderboard optimization)
+    @Query("SELECT vs.pairing.id, COALESCE(MAX(vs.streakCount), 0) FROM VoiceStreak vs WHERE vs.pairing.id IN :pairingIds AND vs.active = true GROUP BY vs.pairing.id")
+    List<Object[]> getCurrentStreakCountsForPairings(@Param("pairingIds") List<Long> pairingIds);
 } 

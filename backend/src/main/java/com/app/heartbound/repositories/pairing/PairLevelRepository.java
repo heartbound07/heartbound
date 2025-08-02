@@ -50,4 +50,8 @@ public interface PairLevelRepository extends JpaRepository<PairLevel, Long> {
 
     // Check if pairing exists in pair levels
     boolean existsByPairing(Pairing pairing);
+    
+    // Batch fetch pair levels by multiple pairing IDs (for leaderboard optimization)
+    @Query("SELECT pl FROM PairLevel pl WHERE pl.pairing.id IN :pairingIds")
+    List<PairLevel> findByPairingIds(@Param("pairingIds") List<Long> pairingIds);
 } 
