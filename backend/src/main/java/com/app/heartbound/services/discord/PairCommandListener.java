@@ -2,7 +2,6 @@ package com.app.heartbound.services.discord;
 
 import com.app.heartbound.dto.pairing.CreatePairingRequestDTO;
 import com.app.heartbound.services.UserService;
-import com.app.heartbound.services.UserValidationService;
 import com.app.heartbound.services.pairing.PairingService;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +30,6 @@ public class PairCommandListener extends ListenerAdapter {
 
     private final PairingService pairingService;
     private final UserService userService;
-    private final UserValidationService userValidationService;
     private final TermsOfServiceService termsOfServiceService;
     private JDA jdaInstance;
     private boolean isRegistered = false;
@@ -39,11 +37,9 @@ public class PairCommandListener extends ListenerAdapter {
     private final ConcurrentHashMap<String, PairRequest> pendingRequests = new ConcurrentHashMap<>();
 
     public PairCommandListener(@Lazy PairingService pairingService, UserService userService,
-                               UserValidationService userValidationService,
                                TermsOfServiceService termsOfServiceService) {
         this.pairingService = pairingService;
         this.userService = userService;
-        this.userValidationService = userValidationService;
         this.termsOfServiceService = termsOfServiceService;
     }
 

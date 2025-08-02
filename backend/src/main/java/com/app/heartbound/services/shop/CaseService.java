@@ -53,7 +53,6 @@ public class CaseService {
     private final UserRepository userRepository;
     private final ItemInstanceRepository itemInstanceRepository;
     private final CaseItemRepository caseItemRepository;
-    private final UserService userService;
     private final SecureRandomService secureRandomService;
     private final RollAuditRepository rollAuditRepository;
     private final RollVerificationService rollVerificationService;
@@ -80,7 +79,6 @@ public class CaseService {
         this.userRepository = userRepository;
         this.itemInstanceRepository = itemInstanceRepository;
         this.caseItemRepository = caseItemRepository;
-        this.userService = userService;
         this.secureRandomService = secureRandomService;
         this.rollAuditRepository = rollAuditRepository;
         this.rollVerificationService = rollVerificationService;

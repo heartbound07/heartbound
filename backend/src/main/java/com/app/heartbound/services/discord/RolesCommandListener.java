@@ -217,18 +217,6 @@ public class RolesCommandListener extends ListenerAdapter {
 
     private boolean hasRoleFromCategory(User user, String category, Member member) {
         
-        // First, check the database record if user exists
-        if (user != null) {
-            String selectedRoleId = switch (category) {
-                default -> null;
-            };
-
-            if (selectedRoleId != null && !selectedRoleId.isBlank()) {
-                // To be certain, verify they still have the role on Discord
-                return member.getRoles().stream().anyMatch(r -> r.getId().equals(selectedRoleId));
-            }
-        }
-        
         // If no database record, check their Discord roles against all roles in the category
         DiscordBotSettings settings = discordBotSettingsService.getDiscordBotSettings();
         Map<String, String> categoryRoles = getCategoryRoles(settings, category);
