@@ -1,202 +1,144 @@
 /* =============================================================================
-   PAIRINGS PAGE - CLEAN CSS ISOLATION STRATEGY
+   PAIRINGS PAGE - ENHANCED MODERN UI/UX DESIGN
    =============================================================================
    
-   This CSS file uses a wrapper-based isolation strategy to prevent conflicts
-   with dashboard.css while maintaining the existing PairingsPage design.
-   
-   Key Strategy:
-   1. Use .pairings-page-wrapper to create an isolation boundary
-   2. Scope all styles within this wrapper to prevent inheritance issues
-   3. Minimize !important declarations by using proper specificity
-   4. Maintain existing visual design and functionality
+   Enhanced for modern UI/UX best practices:
+   1. Generous whitespace and breathing room
+   2. Improved visual hierarchy with better typography scaling
+   3. Modern card design with refined shadows and borders
+   4. Consistent spacing system
+   5. Enhanced interactive elements
    
 ============================================================================= */
 
-/* Root variables for consistency */
+/* Root variables for modern design system */
 :root {
-  --sidebar-width: 280px;
-  --sidebar-collapsed-width: 80px;
-  --transition-speed: 0.3s;
-  /* Valorant color scheme */
-  --valorant-bg-primary: #0F1923;
-  --valorant-bg-secondary: #1F2731;
-  --valorant-border: rgba(255, 255, 255, 0.05);
-  --valorant-accent: #FF4655;
+  /* Enhanced color system */
+  --pairings-card-bg: rgba(30, 41, 59, 0.4);
+  --pairings-card-border: rgba(148, 163, 184, 0.15);
+  --pairings-card-hover-bg: rgba(30, 41, 59, 0.6);
+  --pairings-backdrop-blur: blur(12px);
+  
+  /* Typography scaling for better hierarchy */
+  --pairings-font-family: 'gg sans', sans-serif;
+  --pairings-title-font: 'Grandstander', sans-serif;
+  
+  /* Enhanced animation system */
+  --pairings-transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --pairings-transition-standard: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Modern spacing system */
+  --pairings-space-xs: 0.5rem;
+  --pairings-space-sm: 0.75rem;
+  --pairings-space-md: 1rem;
+  --pairings-space-lg: 1.5rem;
+  --pairings-space-xl: 2rem;
+  --pairings-space-2xl: 3rem;
+  
+  /* Enhanced border radius system */
+  --pairings-radius-sm: 0.5rem;
+  --pairings-radius-md: 0.75rem;
+  --pairings-radius-lg: 1rem;
+  --pairings-radius-xl: 1.25rem;
 }
 
 /* =============================================================================
-   MAIN WRAPPER - CSS ISOLATION BOUNDARY
+   ENHANCED TYPOGRAPHY SYSTEM
 ============================================================================= */
 
-.pairings-page-wrapper {
-  /* Reset any inherited dashboard styles */
-  all: unset;
-  
-  /* Establish new stacking context */
-  position: relative;
-  z-index: 1;
-  
-  /* Full container behavior */
-  display: block;
-  width: 100%;
-  min-height: 100vh;
-  overflow-y: auto; /* Enable vertical scrolling */
-  
-  /* Override dashboard content padding/margins */
-  margin: 0 !important;
-  padding: 0 !important;
-  
-  /* Set our own background */
-  background: linear-gradient(135deg, var(--color-bg-gradient-from, #0F1923), var(--color-bg-gradient-to, #1F2731));
-  
-  /* Typography inheritance */
-  font-family: inherit;
-  line-height: inherit;
-  color: inherit;
+.pairings-title {
+  font-family: var(--pairings-title-font);
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  color: white;
+  line-height: 1.1;
 }
 
-/* Layout container classes for PairingsPageLayout */
-.pairings-container {
-  display: flex;
-  width: 100%;
-  position: relative;
-}
-
-.pairings-content {
-  flex: 1;
-  transition: margin-left var(--transition-speed) ease;
-  margin-left: var(--sidebar-width);
-  overflow-x: hidden;
-  overflow-y: auto;
-  width: calc(100% - var(--sidebar-width));
-}
-
-.pairings-content.sidebar-collapsed {
-  margin-left: var(--sidebar-collapsed-width);
-  width: calc(100% - var(--sidebar-collapsed-width));
-}
-
-@media (max-width: 768px) {
-  .pairings-content {
-    margin-left: 0 !important;
-    width: 100% !important;
-    transition: none; /* Remove transition on mobile to prevent content shift */
-  }
-  
-  .pairings-content.sidebar-collapsed {
-    margin-left: 0 !important;
-    width: 100% !important;
+/* Enhanced responsive typography */
+@media (min-width: 768px) {
+  .pairings-title {
+    font-size: 3rem;
   }
 }
 
-/* Inner container for proper spacing */
-.pairings-page-wrapper .pairings-inner-container {
-  width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 1rem 0.5rem;
-  overflow: clip; /* Prevents horizontal overflow without breaking vertical scroll */
+@media (min-width: 1024px) {
+  .pairings-title {
+    font-size: 3.5rem;
+  }
 }
 
-@media (min-width: 640px) {
-  .pairings-page-wrapper .pairings-inner-container {
-    padding: 2rem 1rem;
+@media (max-width: 640px) {
+  .pairings-title {
+    font-size: 2rem;
   }
 }
 
 /* =============================================================================
-   CARD SYSTEM
+   MODERN CARD SYSTEM
 ============================================================================= */
 
-.pairings-page-wrapper .card,
-.pairings-page-wrapper .valorant-card {
-  background: rgba(31, 39, 49, 0.3);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 0.5rem;
-  transition: all 0.3s ease;
-  transform-origin: top center;
-  will-change: height, transform;
-  outline: none;
-  box-shadow: none;
-}
-
-.pairings-page-wrapper .queue-status-card {
-  background: rgba(31, 39, 49, 0.6);
-  border: 1px solid rgba(59, 130, 246, 0.15);
-  backdrop-filter: blur(12px);
-  border-radius: 1rem;
+.pairings-card {
+  background: var(--pairings-card-bg);
+  border: 1px solid var(--pairings-card-border);
+  border-radius: var(--pairings-radius-xl);
+  backdrop-filter: var(--pairings-backdrop-blur);
+  transition: var(--pairings-transition-standard);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
   position: relative;
   overflow: hidden;
 }
 
-.pairings-page-wrapper .queue-status-card::before {
+.pairings-card::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, transparent 70%);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
   pointer-events: none;
 }
 
-.pairings-page-wrapper .active-pairing-card {
-  background: rgba(31, 39, 49, 0.4);
-  border: 1px solid rgba(34, 197, 94, 0.1);
-  position: relative;
-  overflow: hidden;
-}
-
-.pairings-page-wrapper .admin-controls {
-  background: rgba(31, 39, 49, 0.6);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 0.5rem;
+.pairings-card:hover {
+  background: var(--pairings-card-hover-bg);
+  border-color: rgba(148, 163, 184, 0.25);
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.15),
+    0 10px 10px -5px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
 }
 
 /* =============================================================================
-   TYPOGRAPHY
+   ENHANCED INTERACTIVE ELEMENTS
 ============================================================================= */
 
-.pairings-page-wrapper .pairings-hero-title {
-  font-family: 'Grandstander', sans-serif !important;
-  font-weight: bold;
-  letter-spacing: -0.025em;
-  font-feature-settings: "kern" 1, "liga" 1;
-}
-
-/* Ensure the title uses custom font in all states */
-.pairings-hero-title,
-h1.pairings-hero-title,
-.text-4xl.pairings-hero-title,
-.text-5xl.pairings-hero-title {
-  font-family: 'Grandstander', sans-serif !important;
-}
-
-/* =============================================================================
-   BUTTONS AND INTERACTIVE ELEMENTS
-============================================================================= */
-
-.pairings-page-wrapper .join-queue-button {
+.join-queue-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.875rem 1.5rem;
-  min-height: 3rem;
-  font-size: 1rem;
+  gap: var(--pairings-space-sm);
+  padding: 1rem 2rem;
+  min-height: 3.5rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  font-family: inherit;
+  font-family: var(--pairings-font-family);
   line-height: 1.5;
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(31, 39, 49, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0.5rem;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  transition: all 0.2s ease;
+  color: rgba(255, 255, 255, 0.95);
+  background: var(--pairings-card-bg);
+  border: 1px solid var(--pairings-card-border);
+  border-radius: var(--pairings-radius-lg);
+  backdrop-filter: var(--pairings-backdrop-blur);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: var(--pairings-transition-fast);
   cursor: pointer;
   outline: none;
   appearance: none;
@@ -206,265 +148,234 @@ h1.pairings-hero-title,
   overflow: hidden;
 }
 
-.pairings-page-wrapper .join-queue-button:hover:not(:disabled) {
+.join-queue-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.join-queue-button:hover:not(:disabled) {
   color: white;
-  background: rgba(31, 39, 49, 0.6);
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
+  background: var(--pairings-card-hover-bg);
+  border-color: rgba(148, 163, 184, 0.3);
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.2),
+    0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
 }
 
-.pairings-page-wrapper .join-queue-button:hover:not(:disabled) svg {
+.join-queue-button:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+.join-queue-button:hover:not(:disabled) svg {
   color: #FF4655;
-  transform: scale(1.05);
+  transform: scale(1.1);
 }
 
-.pairings-page-wrapper .join-queue-button:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  background: rgba(31, 39, 49, 0.7);
+.join-queue-button:active:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
-.pairings-page-wrapper .join-queue-button:disabled {
-  opacity: 0.5;
+.join-queue-button:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
   transform: none;
-  background: rgba(31, 39, 49, 0.2);
-  border-color: rgba(255, 255, 255, 0.05);
+  background: rgba(30, 41, 59, 0.2);
+  border-color: rgba(148, 163, 184, 0.1);
   color: rgba(255, 255, 255, 0.5);
 }
 
-.pairings-page-wrapper .join-queue-button svg {
-  width: 1.25rem;
-  height: 1.25rem;
-  transition: all 0.2s ease;
+.join-queue-button svg {
+  width: 1.375rem;
+  height: 1.375rem;
+  transition: var(--pairings-transition-fast);
   flex-shrink: 0;
 }
 
 /* =============================================================================
-   TAB NAVIGATION SYSTEM - MOVED TO COMPONENT-SPECIFIC CSS FILES
+   ENHANCED STATE INDICATORS
 ============================================================================= */
 
-/* XP Card tab navigation moved to XPCard.css */
-/* General button styles remain here if needed for other components */
-
-/* =============================================================================
-   STATE INDICATORS
-============================================================================= */
-
-.pairings-page-wrapper .pairings-loading {
+.pairings-loading {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 200px;
+  min-height: 300px;
 }
 
-.pairings-page-wrapper .pairings-error {
-  background: rgba(31, 39, 49, 0.3);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+.pairings-error {
+  background: var(--pairings-card-bg);
+  border: 1px solid rgba(239, 68, 68, 0.25);
   color: #fca5a5;
-  padding: 1rem;
-  border-radius: 0.75rem;
+  padding: var(--pairings-space-xl);
+  border-radius: var(--pairings-radius-xl);
   text-align: center;
-  backdrop-filter: blur(8px);
+  backdrop-filter: var(--pairings-backdrop-blur);
+  box-shadow: 
+    0 4px 6px -1px rgba(239, 68, 68, 0.1),
+    0 2px 4px -1px rgba(239, 68, 68, 0.06);
 }
 
-.pairings-page-wrapper .pairings-success {
-  background: rgba(31, 39, 49, 0.3);
-  border: 1px solid rgba(34, 197, 94, 0.2);
+.pairings-success {
+  background: var(--pairings-card-bg);
+  border: 1px solid rgba(34, 197, 94, 0.25);
   color: #86efac;
-  padding: 1rem;
-  border-radius: 0.75rem;
+  padding: var(--pairings-space-xl);
+  border-radius: var(--pairings-radius-xl);
   text-align: center;
-  backdrop-filter: blur(8px);
+  backdrop-filter: var(--pairings-backdrop-blur);
+  box-shadow: 
+    0 4px 6px -1px rgba(34, 197, 94, 0.1),
+    0 2px 4px -1px rgba(34, 197, 94, 0.06);
 }
 
 /* =============================================================================
-   PROGRESS BARS - MOVED TO COMPONENT-SPECIFIC CSS FILES
+   ENHANCED SPECIAL CARDS
 ============================================================================= */
 
-/* XP Progress bars moved to XPCard.css */
-/* Pairing-specific progress bars remain here if needed */
-
-/* =============================================================================
-   SCROLLBAR CUSTOMIZATION
-============================================================================= */
-
-.pairings-page-wrapper .pairings-inner-container::-webkit-scrollbar {
-  width: 8px;
+.queue-status-card {
+  background: var(--pairings-card-bg);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  backdrop-filter: var(--pairings-backdrop-blur);
+  border-radius: var(--pairings-radius-xl);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 4px 6px -1px rgba(59, 130, 246, 0.1),
+    0 2px 4px -1px rgba(59, 130, 246, 0.06);
 }
 
-.pairings-page-wrapper .pairings-inner-container::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.3);
-  border-radius: 4px;
+.queue-status-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, transparent 70%);
+  pointer-events: none;
 }
 
-.pairings-page-wrapper .pairings-inner-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  transition: background 0.2s ease;
+.active-pairing-card {
+  background: var(--pairings-card-bg);
+  border: 1px solid rgba(34, 197, 94, 0.15);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: var(--pairings-backdrop-blur);
+  box-shadow: 
+    0 4px 6px -1px rgba(34, 197, 94, 0.1),
+    0 2px 4px -1px rgba(34, 197, 94, 0.06);
 }
 
-.pairings-page-wrapper .pairings-inner-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.pairings-page-wrapper .pairings-inner-container {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(15, 23, 42, 0.3);
-}
-
-.pairings-page-wrapper .valorant-card .max-h-48.overflow-y-auto {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(31, 39, 49, 0.3);
-}
-
-.pairings-page-wrapper .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
-}
-
-.pairings-page-wrapper .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar-track {
-  background: rgba(31, 39, 49, 0.3);
-  border-radius: 3px;
-}
-
-.pairings-page-wrapper .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
-  transition: background 0.2s ease;
-}
-
-.pairings-page-wrapper .valorant-card .max-h-48.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+.admin-controls {
+  background: var(--pairings-card-bg);
+  backdrop-filter: var(--pairings-backdrop-blur);
+  border: 1px solid var(--pairings-card-border);
+  border-radius: var(--pairings-radius-xl);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 /* =============================================================================
-   BADGE & UI COMPONENT OVERRIDES - MOVED TO COMPONENT-SPECIFIC CSS FILES
+   CONTENT OVERRIDES FOR CONSISTENCY
 ============================================================================= */
 
-/* XP Card badge overrides moved to XPCard.css */
-/* Pairing Card badge overrides moved to PairingCard.css */
-
-/* =============================================================================
-   "YOU'RE MATCHED" SECTION OVERRIDES
-============================================================================= */
-
-/* Fix Match Stats badges in "You're Matched" section */
-.pairings-page-wrapper .active-pairing-card .bg-theme-container {
-  background: rgba(31, 39, 49, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  backdrop-filter: blur(8px) !important;
+.pairings-card .bg-theme-container {
+  background: var(--pairings-card-bg) !important;
+  border: 1px solid var(--pairings-card-border) !important;
+  backdrop-filter: var(--pairings-backdrop-blur) !important;
 }
 
-/* Override any colored borders in Match Stats */
-.pairings-page-wrapper .active-pairing-card [class*="border-status-"],
-.pairings-page-wrapper .active-pairing-card [class*="border-primary"] {
-  border-color: rgba(255, 255, 255, 0.05) !important;
+.pairings-card [class*="border-status-"],
+.pairings-card [class*="border-primary"] {
+  border-color: var(--pairings-card-border) !important;
 }
 
-/* Fix Activity section badges */
-.pairings-page-wrapper .active-pairing-card [class*="bg-status-success/10"],
-.pairings-page-wrapper .active-pairing-card [class*="bg-primary/10"],
-.pairings-page-wrapper .active-pairing-card [class*="bg-status-info/10"],
-.pairings-page-wrapper .active-pairing-card [class*="bg-status-warning/10"] {
-  background: rgba(31, 39, 49, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+.pairings-card [class*="bg-status-success/10"],
+.pairings-card [class*="bg-primary/10"],
+.pairings-card [class*="bg-status-info/10"],
+.pairings-card [class*="bg-status-warning/10"] {
+  background: var(--pairings-card-bg) !important;
+  border: 1px solid var(--pairings-card-border) !important;
 }
 
-/* Fix Activity section border overrides */
-.pairings-page-wrapper .active-pairing-card [class*="border-status-success/20"],
-.pairings-page-wrapper .active-pairing-card [class*="border-primary/20"],
-.pairings-page-wrapper .active-pairing-card [class*="border-status-info/20"],
-.pairings-page-wrapper .active-pairing-card [class*="border-status-warning/20"] {
-  border-color: rgba(255, 255, 255, 0.05) !important;
+.pairings-card .text-theme-secondary {
+  color: rgba(255, 255, 255, 0.8) !important;
 }
 
-/* Ensure text colors remain visible */
-.pairings-page-wrapper .active-pairing-card .text-theme-secondary {
-  color: rgba(255, 255, 255, 0.7) !important;
-}
-
-.pairings-page-wrapper .active-pairing-card .text-white {
+.pairings-card .text-white {
   color: white !important;
 }
 
-
-
 /* =============================================================================
-   RESPONSIVE DESIGN
+   ENHANCED RESPONSIVE DESIGN
 ============================================================================= */
 
 @media (max-width: 640px) {
-  .pairings-page-wrapper .join-queue-button {
-    padding: 0.75rem 1.25rem;
-    font-size: 0.9rem;
-    min-height: 2.75rem;
+  .join-queue-button {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    min-height: 3rem;
   }
   
-  .pairings-page-wrapper .join-queue-button svg {
-    width: 1.125rem;
-    height: 1.125rem;
+  .join-queue-button svg {
+    width: 1.25rem;
+    height: 1.25rem;
   }
 }
 
 @media (max-width: 430px) {
-  .pairings-page-wrapper .pairings-inner-container {
-    padding: 1rem 0.5rem;
-    overflow-x: hidden;
+  .pairings-card {
+    border-radius: var(--pairings-radius-lg);
   }
   
-  .pairings-page-wrapper .grid.grid-cols-1.md\\:grid-cols-2 {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-  
-  .pairings-page-wrapper .grid.grid-cols-2 {
-    gap: 0.5rem;
-  }
-  
-  .pairings-page-wrapper .grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4 {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
-  }
-  
-  .pairings-page-wrapper .text-xl {
+  .text-xl {
     font-size: 1.125rem;
   }
   
-  .pairings-page-wrapper .text-2xl {
+  .text-2xl {
     font-size: 1.25rem;
   }
   
-  .pairings-page-wrapper .text-sm {
-    font-size: 0.75rem;
-  }
-  
-  .pairings-page-wrapper .h-16.w-16 {
-    height: 3rem;
-    width: 3rem;
-  }
-}
-
-@media (max-width: 375px) {
-  .pairings-page-wrapper .pairings-inner-container {
-    padding: 1rem 0.25rem;
-  }
-  
-  .pairings-page-wrapper .grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4 {
-    grid-template-columns: 1fr;
+  .text-sm {
+    font-size: 0.875rem;
   }
 }
 
 /* =============================================================================
-   PERFORMANCE OPTIMIZATIONS - MOVED TO COMPONENT-SPECIFIC CSS FILES
+   PERFORMANCE AND ACCESSIBILITY
 ============================================================================= */
 
-/* Component-specific performance optimizations moved to respective CSS files */
-/* General page performance optimizations remain here */
-
 @media (prefers-reduced-motion: reduce) {
-  .pairings-page-wrapper * {
+  .pairings-card,
+  .join-queue-button,
+  .pairings-card *,
+  .join-queue-button * {
     transition: none !important;
     animation: none !important;
+    transform: none !important;
   }
+}
+
+/* Enhanced focus styles for accessibility */
+.join-queue-button:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.6);
+  outline-offset: 2px;
+}
+
+/* Optimized hardware acceleration */
+.pairings-card,
+.join-queue-button {
+  will-change: transform;
+  transform: translateZ(0);
 }

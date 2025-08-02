@@ -9,7 +9,7 @@ import { useAllActivePairings } from "@/hooks/useAllActivePairings"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/valorant/badge"
-import { Heart, Users, AlertCircle, UserCheck, Activity, Trash2, MessageCircle } from 'lucide-react'
+import { Heart, Users, AlertCircle, UserCheck, Trash2, MessageCircle } from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
 import type { PairingDTO } from "@/config/pairingService"
 import { deleteAllPairings } from "@/config/pairingService"
@@ -384,14 +384,16 @@ export function PairingsPage() {
   // Show loading skeleton while data is being fetched
   if (loading || isInitialLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
-        <div className="mx-auto max-w-4xl space-y-6">
-          <Skeleton className="h-12 w-64" />
-          <div className="grid gap-6 md:grid-cols-2">
-            <Skeleton className="h-64" />
-            <Skeleton className="h-64" />
+      <div className="bg-theme-gradient min-h-screen">
+        <div className="w-full max-w-7xl mx-auto px-6 py-12">
+          <Skeleton className="h-16 w-80 mx-auto mb-12" />
+          <div className="grid gap-8 lg:grid-cols-2 mb-8">
+            <Skeleton className="h-80" />
+            <Skeleton className="h-80" />
           </div>
-          <Skeleton className="h-96" />
+          <div className="max-w-6xl mx-auto">
+            <Skeleton className="h-96" />
+          </div>
         </div>
       </div>
     )
@@ -399,197 +401,206 @@ export function PairingsPage() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
-        <div className="mx-auto max-w-4xl space-y-6">
+      <div className="bg-theme-gradient min-h-screen">
+        <div className="w-full max-w-7xl mx-auto px-6 py-12">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center"
+            className="text-center mb-12"
           >
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-400 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="pairings-title">
               Pairing Dashboard
             </h1>
-            <p className="text-slate-400 mt-2">
+            <p className="text-slate-300 text-lg mt-4 max-w-2xl mx-auto">
               {currentPairing 
                 ? "You're currently paired! Check your progress below." 
                 : "You are not currently in a match."}
             </p>
           </motion.div>
 
-          {/* Error Display */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="rounded-lg bg-red-500/10 border border-red-500/20 p-4"
-            >
-              <div className="flex items-center space-x-2">
-                <AlertCircle className="h-5 w-5 text-red-400" />
-                <span className="text-red-400">{error}</span>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Main Content Grid - Only show when user is actively matched */}
-          {currentPairing && pairedUser && (
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* Current Pairing Section */}
+          <div className="space-y-8">
+            {/* Error Display */}
+            {error && (
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="rounded-xl bg-red-500/10 border border-red-500/20 p-6 max-w-4xl mx-auto"
               >
-                <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center space-x-2">
-                      <Heart className="h-5 w-5 text-pink-400" />
-                      <span>Current Match</span>
+                <div className="flex items-center space-x-3">
+                  <AlertCircle className="h-6 w-6 text-red-400" />
+                  <span className="text-red-400 text-lg">{error}</span>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Main Content Grid - Only show when user is actively matched */}
+            {currentPairing && pairedUser && (
+              <div className="grid gap-8 lg:grid-cols-2">
+                {/* Current Pairing Section */}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <Card className="pairings-card h-full">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="text-white flex items-center space-x-3 text-xl">
+                        <Heart className="h-6 w-6 text-pink-400" />
+                        <span>Current Match</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <MatchedPairing
+                        currentPairing={currentPairing}
+                        pairedUser={pairedUser}
+                        user={user}
+                        onBreakup={handleInitiateBreakup}
+                        onUserClick={handleUserClick}
+                        actionLoading={actionLoading}
+                        formatDate={formatDate}
+                      />
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* XP Progress Card */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <XPCard 
+                    pairingId={currentPairing.id}
+                  />
+                </motion.div>
+              </div>
+            )}
+
+            {/* Primary Leaderboard for unmatched users */}
+            {!currentPairing && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="max-w-6xl mx-auto"
+              >
+                <PairingLeaderboard />
+              </motion.div>
+            )}
+
+            {/* Admin Controls */}
+            {hasRole("ADMIN") && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="max-w-4xl mx-auto"
+              >
+                <Card className="pairings-card">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-white flex items-center space-x-3 text-xl">
+                      <UserCheck className="h-6 w-6 text-green-400" />
+                      <span>Admin Controls</span>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <MatchedPairing
-                      currentPairing={currentPairing}
-                      pairedUser={pairedUser}
-                      user={user}
-                      onBreakup={handleInitiateBreakup}
-                      onUserClick={handleUserClick}
-                      actionLoading={actionLoading}
-                      formatDate={formatDate}
-                    />
+                  <CardContent className="pt-0">
+                    <div className="space-y-6">
+                      {adminState.message && (
+                        <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                          <p className="text-blue-400">{adminState.message}</p>
+                        </div>
+                      )}
+                      
+                      <div className="flex flex-wrap gap-4">
+                        <Button
+                          onClick={handleShowAllMatches}
+                          className="bg-blue-600 hover:bg-blue-700 px-6 py-3"
+                          disabled={allActivePairingsLoading}
+                        >
+                          <Users className="h-5 w-5 mr-2" />
+                          View All Matches ({allActivePairings?.length || 0})
+                        </Button>
+                        
+                        <Button
+                          onClick={handleDeleteAllPairings}
+                          variant="destructive"
+                          className="px-6 py-3"
+                          disabled={adminState.actionLoading}
+                        >
+                          <Trash2 className="h-5 w-5 mr-2" />
+                          Delete All Pairings
+                        </Button>
+                        
+                        <Button
+                          onClick={handleClearInactiveHistory}
+                          variant="outline"
+                          className="border-slate-600 text-slate-300 hover:bg-slate-700 px-6 py-3"
+                        >
+                          <Trash2 className="h-5 w-5 mr-2" />
+                          Clear History
+                        </Button>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
+            )}
 
-              {/* XP Progress Card */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <XPCard 
-                  pairingId={currentPairing.id}
-                />
-              </motion.div>
-            </div>
-          )}
-
-          {/* Primary Leaderboard for unmatched users */}
-          {!currentPairing && (
+            {/* Conditional Content: Pairing History for unmatched users, Leaderboard for matched users */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.4 }}
             >
-              <PairingLeaderboard />
+              {currentPairing ? (
+                // Show leaderboard when user is matched
+                <div className="max-w-6xl mx-auto">
+                  <PairingLeaderboard />
+                </div>
+              ) : hasRole("ADMIN") ? (
+                // Show pairing history when user is not matched AND is admin
+                <div className="max-w-5xl mx-auto">
+                  <Card className="pairings-card">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="text-white flex items-center space-x-3 text-xl">
+                        <MessageCircle className="h-6 w-6 text-purple-400" />
+                        <span>Pairing History</span>
+                        {pairingHistory.length > 0 && (
+                          <Badge variant="secondary" className="ml-2">
+                            {pairingHistory.length}
+                          </Badge>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      {pairingHistory.length > 0 ? (
+                        <PairingCardList
+                          pairings={pairingHistory}
+                          userProfiles={userProfiles}
+                          isActive={false}
+                          onUserClick={handleUserClick}
+                          onUnpair={hasRole("ADMIN") ? handleUnpairUsers : undefined}
+                          onDelete={hasRole("ADMIN") ? handleDeletePairing : undefined}
+                          onManagePair={hasRole("ADMIN") ? handleAdminPairManagement : undefined}
+                          formatDate={formatDate}
+                          hasAdminActions={hasRole("ADMIN")}
+                          streakData={pairingStreaks}
+                          levelData={pairingLevels}
+                        />
+                      ) : (
+                        <div className="text-center py-12 text-slate-400">
+                          <MessageCircle className="h-16 w-16 mx-auto mb-6 text-slate-600" />
+                          <p className="text-xl font-medium mb-2">No Pairing History</p>
+                          <p className="text-base">Your past matches will appear here</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : null}
             </motion.div>
-          )}
-
-          {/* Admin Controls */}
-          {hasRole("ADMIN") && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center space-x-2">
-                    <UserCheck className="h-5 w-5 text-green-400" />
-                    <span>Admin Controls</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {adminState.message && (
-                      <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                        <p className="text-blue-400 text-sm">{adminState.message}</p>
-                      </div>
-                    )}
-                    
-                    <div className="flex flex-wrap gap-3">
-                      <Button
-                        onClick={handleShowAllMatches}
-                        className="bg-blue-600 hover:bg-blue-700"
-                        disabled={allActivePairingsLoading}
-                      >
-                        <Users className="h-4 w-4 mr-2" />
-                        View All Matches ({allActivePairings?.length || 0})
-                      </Button>
-                      
-                      <Button
-                        onClick={handleDeleteAllPairings}
-                        variant="destructive"
-                        disabled={adminState.actionLoading}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete All Pairings
-                      </Button>
-                      
-                      <Button
-                        onClick={handleClearInactiveHistory}
-                        variant="outline"
-                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Clear History
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-  
-          {/* Conditional Content: Pairing History for unmatched users, Leaderboard for matched users */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            {currentPairing ? (
-              // Show leaderboard when user is matched
-              <PairingLeaderboard />
-            ) : hasRole("ADMIN") ? (
-              // Show pairing history when user is not matched AND is admin
-              <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center space-x-2">
-                    <MessageCircle className="h-5 w-5 text-purple-400" />
-                    <span>Pairing History</span>
-                    {pairingHistory.length > 0 && (
-                      <Badge variant="secondary" className="ml-2">
-                        {pairingHistory.length}
-                      </Badge>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {pairingHistory.length > 0 ? (
-                    <PairingCardList
-                      pairings={pairingHistory}
-                      userProfiles={userProfiles}
-                      isActive={false}
-                      onUserClick={handleUserClick}
-                      onUnpair={hasRole("ADMIN") ? handleUnpairUsers : undefined}
-                      onDelete={hasRole("ADMIN") ? handleDeletePairing : undefined}
-                      onManagePair={hasRole("ADMIN") ? handleAdminPairManagement : undefined}
-                      formatDate={formatDate}
-                      hasAdminActions={hasRole("ADMIN")}
-                      streakData={pairingStreaks}
-                      levelData={pairingLevels}
-                    />
-                  ) : (
-                    <div className="text-center py-8 text-slate-400">
-                      <MessageCircle className="h-12 w-12 mx-auto mb-4 text-slate-600" />
-                      <p className="text-lg font-medium">No Pairing History</p>
-                      <p className="text-sm">Your past matches will appear here</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ) : null}
-          </motion.div>
+          </div>
         </div>
 
         {/* Modals */}

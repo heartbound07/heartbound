@@ -22,7 +22,6 @@ import { Button } from "@/components/ui/button"
 import { UserProfileModal } from "@/components/modals/UserProfileModal"
 import { usePairingLeaderboard } from "@/hooks/usePairingLeaderboard"
 import { getUserProfile, type UserProfileDTO } from "@/config/userService"
-import type { PairingLeaderboardDTO } from "@/config/pairingService"
 
 interface UserPosition {
   x: number;
