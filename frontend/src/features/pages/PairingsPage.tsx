@@ -410,13 +410,8 @@ export function PairingsPage() {
             className="text-center mb-12"
           >
             <h1 className="pairings-title">
-              Pairing Dashboard
+              Pairings
             </h1>
-            <p className="text-slate-300 text-lg mt-4 max-w-2xl mx-auto">
-              {currentPairing 
-                ? "You're currently paired! Check your progress below." 
-                : "You are not currently in a match."}
-            </p>
           </motion.div>
 
           <div className="space-y-8">
