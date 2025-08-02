@@ -1,5 +1,4 @@
 import { useState, useCallback, useMemo } from 'react'
-import type { PairingDTO } from '@/config/pairingService'
 import type { UserProfileDTO } from '@/config/userService'
 
 // Modal state interface with better type safety
