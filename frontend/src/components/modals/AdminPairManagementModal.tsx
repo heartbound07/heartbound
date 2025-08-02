@@ -712,7 +712,7 @@ export function AdminPairManagementModal({
                 </Avatar>
                 <div>
                   <p className="font-semibold text-white">{user1Profile?.displayName || "User 1"}</p>
-                  <p className="text-sm text-theme-secondary">{pairing.user1Age} • {pairing.user1Rank}</p>
+                  <p className="text-sm text-theme-secondary">@{user1Profile?.username || "user1"}</p>
                 </div>
               </div>
               
@@ -731,7 +731,7 @@ export function AdminPairManagementModal({
                 </Avatar>
                 <div>
                   <p className="font-semibold text-white">{user2Profile?.displayName || "User 2"}</p>
-                  <p className="text-sm text-theme-secondary">{pairing.user2Age} • {pairing.user2Rank}</p>
+                  <p className="text-sm text-theme-secondary">@{user2Profile?.username || "user2"}</p>
                 </div>
               </div>
             </div>
