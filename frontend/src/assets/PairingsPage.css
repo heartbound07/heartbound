@@ -13,6 +13,10 @@
 
 /* Root variables for modern design system */
 :root {
+  /* Sidebar integration variables */
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 78px;
+  
   /* Enhanced color system */
   --pairings-card-bg: rgba(30, 41, 59, 0.4);
   --pairings-card-border: rgba(148, 163, 184, 0.15);
@@ -40,6 +44,51 @@
   --pairings-radius-md: 0.75rem;
   --pairings-radius-lg: 1rem;
   --pairings-radius-xl: 1.25rem;
+}
+
+/* =============================================================================
+   SIDEBAR LAYOUT SYSTEM (ESSENTIAL FOR PROPER LAYOUT)
+============================================================================= */
+
+/* Layout container for sidebar system */
+.pairings-container {
+  display: flex;
+  width: 100%;
+  position: relative;
+  min-height: 100vh;
+}
+
+/* Main content area that accounts for sidebar */
+.pairings-content {
+  flex: 1;
+  transition: margin-left var(--pairings-transition-standard) ease;
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
+  width: calc(100% - var(--sidebar-width));
+  position: relative;
+  z-index: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* Collapsed sidebar state */
+.pairings-content.sidebar-collapsed {
+  margin-left: var(--sidebar-collapsed-width);
+  width: calc(100% - var(--sidebar-collapsed-width));
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .pairings-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    transition: none;
+  }
+  
+  .pairings-content.sidebar-collapsed {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
 }
 
 /* =============================================================================
