@@ -63,6 +63,8 @@ import com.app.heartbound.entities.DiscordBotSettings;
 import net.dv8tion.jda.api.entities.Member;
 import java.util.Arrays;
 import com.app.heartbound.entities.ItemInstance;
+import com.app.heartbound.entities.Trade;
+import com.app.heartbound.repositories.TradeRepository;
 
 @Service
 public class UserService {
@@ -77,6 +79,7 @@ public class UserService {
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
     private final JDA jda;
+    private final TradeRepository tradeRepository;
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     // Read admin Discord ID from environment variables
@@ -100,7 +103,7 @@ public class UserService {
     private int levelFactor;
 
     // Constructor-based dependency injection
-    public UserService(UserRepository userRepository, ShopRepository shopRepository, ItemInstanceRepository itemInstanceRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, PendingPrisonService pendingPrisonService, CacheConfig cacheConfig, AuditService auditService, ObjectMapper objectMapper, @Lazy JDA jda) {
+    public UserService(UserRepository userRepository, ShopRepository shopRepository, ItemInstanceRepository itemInstanceRepository, DailyMessageStatRepository dailyMessageStatRepository, DailyVoiceActivityStatRepository dailyVoiceActivityStatRepository, PendingPrisonService pendingPrisonService, CacheConfig cacheConfig, AuditService auditService, ObjectMapper objectMapper, @Lazy JDA jda, TradeRepository tradeRepository) {
         this.userRepository = userRepository;
         this.shopRepository = shopRepository;
         this.itemInstanceRepository = itemInstanceRepository;
@@ -111,6 +114,7 @@ public class UserService {
         this.auditService = auditService;
         this.objectMapper = objectMapper;
         this.jda = jda;
+        this.tradeRepository = tradeRepository;
     }
 
     public Optional<User> findByUsername(String username) {
@@ -1910,7 +1914,14 @@ public class UserService {
         // 2. Delete associated daily voice activity stats
         dailyVoiceActivityStatRepository.deleteByUserId(userId);
 
-        // 3. Delete inventory items (handled by cascade on User entity, but explicit is safer)
+        // 3. Delete trades where user is involved (initiator or receiver)
+        List<Trade> userTrades = tradeRepository.findByInitiatorIdOrReceiverId(userId, userId);
+        if (!userTrades.isEmpty()) {
+            tradeRepository.deleteAll(userTrades);
+            logger.info("Deleted {} trade records for user {}", userTrades.size(), userId);
+        }
+
+        // 4. Delete inventory items (handled by cascade on User entity, but explicit is safer)
         // This is no longer needed as orphanRemoval=true on User.itemInstances will handle it.
 
         // The user exists and related data is cleaned up, proceed with deletion
