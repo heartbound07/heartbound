@@ -33,9 +33,9 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
   };
   
   const textSizes = {
-    sm: 'text-sm',
-    md: 'text-lg',
-    lg: 'text-xl'
+    sm: { fontSize: '14px', height: '20px' },
+    md: { fontSize: '18px', height: '28px' },
+    lg: { fontSize: '20px', height: '32px' }
   };
   
   const badgeSizes = {
@@ -59,6 +59,9 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
   const isValidStartColor = isValidHexColor(nameplateColor);
   const isValidEndColor = isValidHexColor(nameplateEndColor);
 
+  // Generate unique ID for gradient definition
+  const gradientId = `badge-gradient-${Math.random().toString(36).substr(2, 9)}`;
+
   return (
     <div className={`flex items-center justify-center w-full p-4 rounded-lg ${className}`}>
       {/* User avatar */}
@@ -73,30 +76,43 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
         <div className="flex items-center gap-2">
           {/* Username with proper gradient handling */}
           {isValidStartColor && isValidEndColor ? (
-            // Gradient text using CSS mask approach
-            <span 
-              className={`font-medium ${textSizes[size]} gradient-text-container`}
-              style={{
-                fontFamily: '"gg sans", sans-serif',
-                fontWeight: 600,
-                background: `linear-gradient(to right, ${nameplateColor}, ${nameplateEndColor})`,
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                color: 'transparent',
-                display: 'inline-block',
-              }}
-            >
-              {username}
-            </span>
+            // Robust gradient text using SVG
+            <div style={{ height: textSizes[size].height, display: 'flex', alignItems: 'center' }}>
+              <svg
+                width="auto"
+                height={textSizes[size].height}
+                style={{ overflow: 'visible' }}
+              >
+                <defs>
+                  <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor={nameplateColor} />
+                    <stop offset="100%" stopColor={nameplateEndColor} />
+                  </linearGradient>
+                </defs>
+                <text
+                  x="0"
+                  y="70%"
+                  fill={`url(#${gradientId})`}
+                  fontSize={textSizes[size].fontSize}
+                  fontFamily='"gg sans", sans-serif'
+                  fontWeight="600"
+                >
+                  {username}
+                </text>
+              </svg>
+            </div>
           ) : (
             // Single color text
             <span 
-              className={`font-medium ${textSizes[size]}`}
+              className={`font-medium`}
               style={{
                 fontFamily: '"gg sans", sans-serif',
                 fontWeight: 600,
+                fontSize: textSizes[size].fontSize,
                 color: nameplateColor || '#ffffff',
+                height: textSizes[size].height,
+                display: 'flex',
+                alignItems: 'center'
               }}
             >
               {username}

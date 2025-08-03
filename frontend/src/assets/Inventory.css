@@ -58,30 +58,6 @@
 }
 
 /* ============================================================================
-   GRADIENT TEXT UTILITIES
-   ============================================================================ */
-
-/* Gradient text container to prevent bleeding */
-.gradient-text-container {
-  position: relative;
-  isolation: isolate;
-  /* Ensure the gradient stays within text bounds */
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
-  /* Prevent the gradient from affecting parent containers */
-  contain: style;
-}
-
-/* Fallback for browsers that don't support background-clip: text */
-@supports not (-webkit-background-clip: text) {
-  .gradient-text-container {
-    /* Fallback to a single color if gradient text isn't supported */
-    color: var(--color-primary, #3b82f6) !important;
-    background: none !important;
-  }
-}
-
-/* ============================================================================
    BASE LAYOUT STRUCTURE
    ============================================================================ */
 
