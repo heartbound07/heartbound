@@ -69,7 +69,14 @@
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
   /* Prevent the gradient from affecting parent containers */
-  contain: style;
+  contain: style layout;
+  /* Strict gradient containment */
+  background-size: 100% 100% !important;
+  background-repeat: no-repeat !important;
+  background-attachment: local !important;
+  /* Prevent overflow */
+  overflow: hidden;
+  max-width: 100%;
 }
 
 /* Fallback for browsers that don't support background-clip: text */
@@ -79,6 +86,15 @@
     color: var(--color-primary, #3b82f6) !important;
     background: none !important;
   }
+}
+
+/* Additional safety for gradient text elements */
+*[style*="background-clip: text"],
+*[style*="-webkit-background-clip: text"] {
+  /* Ensure gradient text doesn't bleed to containers */
+  isolation: isolate;
+  contain: style layout;
+  background-attachment: local;
 }
 
 /* ============================================================================
