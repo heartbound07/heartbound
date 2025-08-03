@@ -230,13 +230,6 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     isRecoverable,
   }), []);
 
-  // Clear error state and reset retry state
-  const clearError = useCallback(() => {
-    setLastError(null);
-    // Don't reset retryState here - let it be managed by the retry logic
-    // Only reset retry state when explicitly needed (manual reconnect, auth state changes)
-  }, []);
-
   // Reset retry state on successful connection or manual reset
   const resetRetryState = useCallback(() => {
     setRetryState({
