@@ -388,8 +388,8 @@ public class BlackjackCommandListener extends ListenerAdapter {
         int currentCredits = (credits == null) ? 0 : credits;
         
         if (currentCredits < additionalBet) {
-            event.getHook().editOriginal("You don't have enough credits to double down! You need " + additionalBet + " more credits.")
-                    .setComponents()
+            event.getHook().sendMessage("You don't have enough credits to double down! You need " + additionalBet + " more credits.")
+                    .setEphemeral(true)
                     .queue();
             return;
         }
@@ -397,8 +397,8 @@ public class BlackjackCommandListener extends ListenerAdapter {
         // Deduct additional credits for double down
         boolean creditDeducted = userService.deductCreditsIfSufficient(game.getUserId(), additionalBet);
         if (!creditDeducted) {
-            event.getHook().editOriginal("Credit deduction failed for double down.")
-                    .setComponents()
+            event.getHook().sendMessage("Credit deduction failed for double down.")
+                    .setEphemeral(true)
                     .queue();
             return;
         }
@@ -458,8 +458,8 @@ public class BlackjackCommandListener extends ListenerAdapter {
         int currentCredits = (credits == null) ? 0 : credits;
         
         if (currentCredits < additionalBet) {
-            event.getHook().editOriginal("You don't have enough credits to split! You need " + additionalBet + " more credits.")
-                    .setComponents()
+            event.getHook().sendMessage("You don't have enough credits to split! You need " + additionalBet + " more credits.")
+                    .setEphemeral(true)
                     .queue();
             return;
         }
@@ -467,8 +467,8 @@ public class BlackjackCommandListener extends ListenerAdapter {
         // Deduct additional credits for split
         boolean creditDeducted = userService.deductCreditsIfSufficient(game.getUserId(), additionalBet);
         if (!creditDeducted) {
-            event.getHook().editOriginal("Credit deduction failed for split.")
-                    .setComponents()
+            event.getHook().sendMessage("Credit deduction failed for split.")
+                    .setEphemeral(true)
                     .queue();
             return;
         }
