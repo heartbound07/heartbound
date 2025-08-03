@@ -43,9 +43,9 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = ({
   };
   
   const textSizes = {
-    sm: { fontSize: '14px', height: '20px' },
-    md: { fontSize: '18px', height: '28px' },
-    lg: { fontSize: '20px', height: '32px' }
+    sm: 'text-sm',
+    md: 'text-lg',
+    lg: 'text-xl'
   };
   
   const messageSizes = {
@@ -53,9 +53,6 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = ({
     md: 'text-xs',
     lg: 'text-sm'
   };
-
-  // Generate unique ID for gradient definition
-  const gradientId = `nameplate-gradient-${Math.random().toString(36).substr(2, 9)}`;
   
   return (
     <div className={`flex items-center justify-center w-full ${className}`}>
@@ -66,51 +63,38 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = ({
         className={`${avatarSizes[size]} rounded-full mr-3 object-cover`} 
       />
       
-      <div className="flex flex-col justify-center h-full">
+      <div className="flex flex-col">
         {/* Username with preview color */}
         {isValidStartColor && isValidEndColor ? (
-          // Robust gradient text using SVG
-          <div className="flex items-center justify-center h-full">
-            <svg
-              width="auto"
-              height="100%"
-              style={{ overflow: 'visible' }}
-            >
-              <defs>
-                <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor={color} />
-                  <stop offset="100%" stopColor={endColor} />
-                </linearGradient>
-              </defs>
-              <text
-                x="0"
-                y="50%"
-                dominantBaseline="middle"
-                fill={`url(#${gradientId})`}
-                fontSize={textSizes[size].fontSize}
-                fontFamily='"gg sans", sans-serif'
-                fontWeight="600"
-                style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}
-              >
-                {username}
-              </text>
-            </svg>
-          </div>
+          // Gradient text using CSS mask approach
+          <span 
+            className={`font-medium ${textSizes[size]} gradient-text-container`}
+            style={{
+              fontFamily: '"gg sans", sans-serif',
+              fontWeight: 600,
+              background: `linear-gradient(135deg, ${color}, ${endColor})`,
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              color: 'transparent',
+              display: 'inline-block',
+            }}
+          >
+            {username}
+          </span>
         ) : (
           // Single color text
-          <div className="flex items-center justify-center h-full">
-            <span 
-              style={{
-                fontFamily: '"gg sans", sans-serif',
-                fontWeight: 600,
-                fontSize: textSizes[size].fontSize,
-                color: displayColor,
-                textShadow: '0 1px 2px rgba(0,0,0,0.4)',
-              }}
-            >
-              {username}
-            </span>
-          </div>
+          <span 
+            className={`font-medium ${textSizes[size]}`}
+            style={{
+              fontFamily: '"gg sans", sans-serif',
+              fontWeight: 600,
+              color: displayColor,
+              textShadow: '0 1px 2px rgba(0,0,0,0.4)',
+            }}
+          >
+            {username}
+          </span>
         )}
         
         {message && (
