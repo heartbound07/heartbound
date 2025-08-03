@@ -85,12 +85,14 @@ public class PartDropSchedulerService {
 
             channel.sendMessageEmbeds(embed.build()).queue(message -> {
                 ScheduledFuture<?> expirationTask = expirationScheduler.schedule(() -> {
-                    dropStateService.expireDrop(channelId, message.getId()).ifPresent(expiredDrop -> {
-                        message.delete().queue(
-                            success -> log.info("[PartDropScheduler] Expired and deleted part drop message {}.", message.getId()),
-                            error -> log.error("[PartDropScheduler] Failed to delete expired part drop message {}: {}", message.getId(), error.getMessage())
-                        );
-                    });
+                    // Always attempt to delete the message when expiration task runs
+                    message.delete().queue(
+                        success -> log.info("[PartDropScheduler] Expired and deleted part drop message {}.", message.getId()),
+                        error -> log.error("[PartDropScheduler] Failed to delete expired part drop message {}: {}", message.getId(), error.getMessage())
+                    );
+                    
+                    // Also update the drop state to mark it as expired (for grab command logic)
+                    dropStateService.expireDrop(channelId, message.getId());
                 }, 4, TimeUnit.SECONDS);
 
                 dropStateService.startDrop(channelId, message.getId(), DropStateService.DropType.ITEM, partToDrop.getId(), expirationTask);
