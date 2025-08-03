@@ -77,12 +77,14 @@ public class CreditDropSchedulerService {
             channel.sendMessageEmbeds(embed.build()).queue(message -> {
                 // Schedule expiration
                 ScheduledFuture<?> expirationTask = expirationScheduler.schedule(() -> {
-                    dropStateService.expireDrop(channelId, message.getId()).ifPresent(expiredDrop -> {
-                        message.delete().queue(
-                            success -> log.info("[CreditDropScheduler] Expired and deleted credit drop message {}.", message.getId()),
-                            error -> log.error("[CreditDropScheduler] Failed to delete expired drop message {}: {}", message.getId(), error.getMessage())
-                        );
-                    });
+                    // Always attempt to delete the message when expiration task runs
+                    message.delete().queue(
+                        success -> log.info("[CreditDropScheduler] Expired and deleted credit drop message {}.", message.getId()),
+                        error -> log.error("[CreditDropScheduler] Failed to delete expired drop message {}: {}", message.getId(), error.getMessage())
+                    );
+                    
+                    // Also update the drop state to mark it as expired (for grab command logic)
+                    dropStateService.expireDrop(channelId, message.getId());
                 }, 4, TimeUnit.SECONDS);
 
                 dropStateService.startDrop(channelId, message.getId(), DropStateService.DropType.CREDIT, amount, expirationTask);
