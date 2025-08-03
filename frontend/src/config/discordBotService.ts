@@ -40,6 +40,7 @@ export interface DiscordBotSettingsDTO {
   creditDropChannelId: string;
   creditDropMinAmount: number;
   creditDropMaxAmount: number;
+  creditDropChance: number;
   partDropEnabled: boolean;
   partDropChannelId: string;
   partDropChance: number;

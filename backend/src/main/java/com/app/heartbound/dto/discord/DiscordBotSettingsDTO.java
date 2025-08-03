@@ -153,6 +153,11 @@ public class DiscordBotSettingsDTO {
     @Min(1)
     private Integer creditDropMaxAmount;
 
+    @NotNull
+    @DecimalMin(value = "0.0", inclusive = false)
+    @DecimalMax(value = "1.0")
+    private Double creditDropChance;
+
     // Part Drop Configuration
     @NotNull
     private Boolean partDropEnabled;

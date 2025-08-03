@@ -134,6 +134,7 @@ public class DiscordBotSettingsService {
             settings.setCreditDropChannelId("");
             settings.setCreditDropMinAmount(1);
             settings.setCreditDropMaxAmount(1000);
+            settings.setCreditDropChance(0.05);
 
             // Initialize part drop settings
             settings.setPartDropEnabled(false);
@@ -218,6 +219,7 @@ public class DiscordBotSettingsService {
         dto.setCreditDropChannelId(settings.getCreditDropChannelId());
         dto.setCreditDropMinAmount(settings.getCreditDropMinAmount());
         dto.setCreditDropMaxAmount(settings.getCreditDropMaxAmount());
+        dto.setCreditDropChance(settings.getCreditDropChance());
 
         // Map part drop settings
         dto.setPartDropEnabled(settings.getPartDropEnabled());
@@ -326,6 +328,7 @@ public class DiscordBotSettingsService {
         settings.setCreditDropChannelId(dto.getCreditDropChannelId());
         settings.setCreditDropMinAmount(dto.getCreditDropMinAmount());
         settings.setCreditDropMaxAmount(dto.getCreditDropMaxAmount());
+        settings.setCreditDropChance(dto.getCreditDropChance());
 
         // Update part drop settings
         settings.setPartDropEnabled(dto.getPartDropEnabled());

@@ -37,7 +37,7 @@ public class CreditDropSchedulerService {
             return;
         }
 
-        if (random.nextDouble() > 0.05) { // 5% chance to drop
+        if (random.nextDouble() > settings.getCreditDropChance()) {
              log.debug("[CreditDropScheduler] No credit drop this time. Skipping.");
              return;
         }

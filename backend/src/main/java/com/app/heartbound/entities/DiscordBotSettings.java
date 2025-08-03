@@ -71,6 +71,11 @@ public class DiscordBotSettings {
     private Integer creditDropMinAmount = 1;
     private Integer creditDropMaxAmount = 1000;
 
+    @NotNull
+    @Column(name = "credit_drop_chance")
+    @Builder.Default
+    private Double creditDropChance = 0.05;
+
     // New fields for part drops
     @NotNull
     @Column(name = "part_drop_enabled")
@@ -433,6 +438,14 @@ public class DiscordBotSettings {
 
     public void setCreditDropMaxAmount(Integer creditDropMaxAmount) {
         this.creditDropMaxAmount = creditDropMaxAmount;
+    }
+
+    public Double getCreditDropChance() {
+        return creditDropChance;
+    }
+
+    public void setCreditDropChance(Double creditDropChance) {
+        this.creditDropChance = creditDropChance;
     }
 
     // New fields for part drops

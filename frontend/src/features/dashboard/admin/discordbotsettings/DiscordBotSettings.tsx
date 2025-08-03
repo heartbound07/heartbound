@@ -187,7 +187,7 @@ export function DiscordBotSettings() {
     if (type === 'checkbox') {
       updateField(name, e.target.checked);
     } else if (type === 'number') {
-      if (name === 'partDropChance') {
+      if (name === 'partDropChance' || name === 'creditDropChance') {
         const floatValue = value === '' ? 0 : parseFloat(value);
         updateField(name, isNaN(floatValue) ? 0 : floatValue);
       } else {

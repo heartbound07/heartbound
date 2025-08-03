@@ -6,6 +6,7 @@ interface CreditDropSettingsProps {
     creditDropChannelId: string;
     creditDropMinAmount: number;
     creditDropMaxAmount: number;
+    creditDropChance: number;
   };
   handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
@@ -89,6 +90,23 @@ export function CreditDropSettings({ settings, handleChange }: CreditDropSetting
                 min="1"
                 className="w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
               />
+            </div>
+            <div>
+              <label htmlFor="creditDropChance" className="block text-sm font-medium text-slate-300 mb-2">
+                Drop Chance (0.0 to 1.0)
+              </label>
+              <input
+                type="number"
+                id="creditDropChance"
+                name="creditDropChance"
+                value={settings.creditDropChance || ''}
+                onChange={handleChange}
+                min="0"
+                max="1"
+                step="0.01"
+                className="w-full rounded-md bg-slate-800 border border-slate-700 shadow-sm px-3 py-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+              />
+              <p className="text-slate-400 text-sm mt-1">The probability of a drop occurring each minute (e.g., 0.05 for 5%).</p>
             </div>
           </div>
         </div>
