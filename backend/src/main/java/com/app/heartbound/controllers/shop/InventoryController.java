@@ -300,7 +300,7 @@ public class InventoryController {
             Authentication authentication) {
         String userId = authentication.getName();
         int cost = userInventoryService.getRepairCost(userId, rodInstanceId);
-        return ResponseEntity.ok(Map.of("cost", cost));
+        return ResponseEntity.ok(Map.of("repairCost", cost));
     }
 
     @PostMapping("/rod/{rodInstanceId}/repair")
@@ -330,7 +330,7 @@ public class InventoryController {
             @PathVariable UUID partInstanceId,
             Authentication authentication) {
         int cost = userInventoryService.getPartRepairCost(partInstanceId);
-        return ResponseEntity.ok(Map.of("cost", cost));
+        return ResponseEntity.ok(Map.of("repairCost", cost));
     }
 
     @PostMapping("/part/{partInstanceId}/repair")
