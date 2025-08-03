@@ -9,10 +9,13 @@ import com.app.heartbound.enums.RateLimitKeyType;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.shop.ItemNotEquippableException;
 import com.app.heartbound.exceptions.shop.ItemNotOwnedException;
+import com.app.heartbound.config.security.Views;
+import com.fasterxml.jackson.annotation.JsonView;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.json.MappingJacksonValue;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -39,10 +42,24 @@ public class InventoryController {
      */
     @GetMapping("")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UserInventoryDTO> getUserInventory(Authentication authentication) {
+    public ResponseEntity<MappingJacksonValue> getUserInventory(Authentication authentication) {
         String userId = authentication.getName();
         UserInventoryDTO inventory = userInventoryService.getFullUserInventory(userId);
-        return ResponseEntity.ok(inventory);
+        
+        // Apply JSON view to ensure all fields are properly serialized
+        MappingJacksonValue mappingJacksonValue = new MappingJacksonValue(inventory);
+        
+        // Check if user is admin for extended data
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+            .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+            
+        if (isAdmin) {
+            mappingJacksonValue.setSerializationView(Views.Admin.class);
+        } else {
+            mappingJacksonValue.setSerializationView(Views.Public.class);
+        }
+        
+        return ResponseEntity.ok(mappingJacksonValue);
     }
 
     /**
