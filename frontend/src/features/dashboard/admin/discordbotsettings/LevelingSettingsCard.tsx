@@ -88,7 +88,7 @@ export const LevelingSettingsCard = ({ settings, handleChange }: LevelingSetting
             </h3>
             
             <p className="text-slate-300 text-sm mb-4">
-              Formula: <span className="font-mono bg-slate-800 px-2 py-0.5 rounded">baseXP + (levelMultiplier × level^exponent ÷ factor)</span>
+              Formula: <span className="font-mono bg-slate-800 px-2 py-0.5 rounded">baseXP + (levelMultiplier × level^exponent ÷ levelFactor)</span>
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

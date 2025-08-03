@@ -244,7 +244,8 @@ public class ChatActivityListener extends ListenerAdapter {
     }
     
     private int calculateRequiredXp(int level) {
-        return baseXp + (levelFactor * (int)Math.pow(level, levelExponent)) + (levelMultiplier * level);
+        // Formula matches frontend: baseXp + (levelMultiplier * level^levelExponent / levelFactor)
+        return (int) (baseXp + (levelMultiplier * Math.pow(level, levelExponent) / levelFactor));
     }
     
     private void checkAndProcessLevelUp(User user, String userId, MessageChannel channel, double roleMultiplier) {

@@ -125,8 +125,8 @@ public class UserService {
      * @return the required XP for the given level
      */
     private int calculateRequiredXp(int level) {
-        // Base XP + (level * multiplier)^exponent + (level * factor)
-        return baseXp + (int) Math.pow(level * levelMultiplier, levelExponent) + (level * levelFactor);
+        // Formula matches frontend: baseXp + (levelMultiplier * level^levelExponent / levelFactor)
+        return (int) (baseXp + (levelMultiplier * Math.pow(level, levelExponent) / levelFactor));
     }
 
 
