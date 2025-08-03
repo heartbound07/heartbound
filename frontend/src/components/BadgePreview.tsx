@@ -59,6 +59,14 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
   const isValidStartColor = isValidHexColor(nameplateColor);
   const isValidEndColor = isValidHexColor(nameplateEndColor);
 
+  // Prepare gradient styles using CSS custom properties for better control
+  const gradientStyle: React.CSSProperties = isValidStartColor && isValidEndColor ? {
+    '--text-gradient': `linear-gradient(to right, ${nameplateColor}, ${nameplateEndColor})`,
+    '--fallback-color': nameplateColor || '#ffffff',
+  } as React.CSSProperties : {
+    color: nameplateColor || '#ffffff',
+  };
+
   return (
     <div className={`flex items-center justify-center w-full p-4 rounded-lg ${className}`}>
       {/* User avatar */}
@@ -71,37 +79,17 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
       <div className="flex flex-col">
         {/* Username with badge next to it */}
         <div className="flex items-center gap-2">
-          {/* Username with proper gradient handling */}
-          {isValidStartColor && isValidEndColor ? (
-            // Gradient text using CSS mask approach
-            <span 
-              className={`font-medium ${textSizes[size]} gradient-text-container`}
-              style={{
-                fontFamily: '"gg sans", sans-serif',
-                fontWeight: 600,
-                background: `linear-gradient(to right, ${nameplateColor}, ${nameplateEndColor})`,
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                color: 'transparent',
-                display: 'inline-block',
-              }}
-            >
-              {username}
-            </span>
-          ) : (
-            // Single color text
-            <span 
-              className={`font-medium ${textSizes[size]}`}
-              style={{
-                fontFamily: '"gg sans", sans-serif',
-                fontWeight: 600,
-                color: nameplateColor || '#ffffff',
-              }}
-            >
-              {username}
-            </span>
-          )}
+          {/* Username with robust gradient handling */}
+          <span 
+            className={`font-medium ${textSizes[size]} ${isValidStartColor && isValidEndColor ? 'robust-gradient-text' : ''}`}
+            style={{
+              fontFamily: '"gg sans", sans-serif',
+              fontWeight: 600,
+              ...gradientStyle,
+            }}
+          >
+            {username}
+          </span>
           
           {/* Badge icon */}
           <img 

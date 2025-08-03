@@ -58,26 +58,80 @@
 }
 
 /* ============================================================================
-   GRADIENT TEXT UTILITIES
+   GRADIENT TEXT UTILITIES - ROBUST IMPLEMENTATION
    ============================================================================ */
 
-/* Gradient text container to prevent bleeding */
+/* Gradient text container - robust dual-layer approach */
 .gradient-text-container {
   position: relative;
+  display: inline-block;
+  /* Ensure complete isolation from parent containers */
   isolation: isolate;
-  /* Ensure the gradient stays within text bounds */
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
-  /* Prevent the gradient from affecting parent containers */
-  contain: style;
+  contain: layout style paint;
 }
 
-/* Fallback for browsers that don't support background-clip: text */
+/* Gradient background layer */
+.gradient-text-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--gradient-bg);
+  border-radius: inherit;
+  z-index: 1;
+  /* Ensure the gradient stays within bounds */
+  overflow: hidden;
+}
+
+/* Text layer with mask */
+.gradient-text-container .gradient-text {
+  position: relative;
+  z-index: 2;
+  /* Create a mask that only shows the gradient where there's text */
+  background: var(--gradient-bg);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  /* Fallback for unsupported browsers */
+  background-color: var(--fallback-color, #ffffff);
+}
+
+/* More reliable gradient text implementation */
+.robust-gradient-text {
+  position: relative;
+  display: inline-block;
+  font-weight: 600;
+  font-family: "gg sans", sans-serif;
+  /* Prevent any bleeding */
+  isolation: isolate;
+  contain: paint;
+}
+
+/* Fallback for browsers that don't support modern gradient text */
 @supports not (-webkit-background-clip: text) {
-  .gradient-text-container {
-    /* Fallback to a single color if gradient text isn't supported */
-    color: var(--color-primary, #3b82f6) !important;
-    background: none !important;
+  .robust-gradient-text {
+    color: var(--fallback-color, #3b82f6) !important;
+  }
+  
+  .robust-gradient-text .gradient-layer {
+    display: none !important;
+  }
+}
+
+/* Enhanced gradient support */
+@supports (-webkit-background-clip: text) {
+  .robust-gradient-text {
+    background: var(--text-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    /* Additional containment */
+    background-attachment: local;
+    background-origin: content-box;
   }
 }
 

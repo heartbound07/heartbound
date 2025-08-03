@@ -53,6 +53,15 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = ({
     md: 'text-xs',
     lg: 'text-sm'
   };
+
+  // Prepare gradient styles using CSS custom properties for better control
+  const gradientStyle: React.CSSProperties = isValidStartColor && isValidEndColor ? {
+    '--text-gradient': `linear-gradient(135deg, ${color}, ${endColor})`,
+    '--fallback-color': displayColor,
+  } as React.CSSProperties : {
+    color: displayColor,
+    textShadow: '0 1px 2px rgba(0,0,0,0.4)',
+  };
   
   return (
     <div className={`flex items-center justify-center w-full ${className}`}>
@@ -64,38 +73,17 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = ({
       />
       
       <div className="flex flex-col">
-        {/* Username with preview color */}
-        {isValidStartColor && isValidEndColor ? (
-          // Gradient text using CSS mask approach
-          <span 
-            className={`font-medium ${textSizes[size]} gradient-text-container`}
-            style={{
-              fontFamily: '"gg sans", sans-serif',
-              fontWeight: 600,
-              background: `linear-gradient(135deg, ${color}, ${endColor})`,
-              WebkitBackgroundClip: 'text',
-              backgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              color: 'transparent',
-              display: 'inline-block',
-            }}
-          >
-            {username}
-          </span>
-        ) : (
-          // Single color text
-          <span 
-            className={`font-medium ${textSizes[size]}`}
-            style={{
-              fontFamily: '"gg sans", sans-serif',
-              fontWeight: 600,
-              color: displayColor,
-              textShadow: '0 1px 2px rgba(0,0,0,0.4)',
-            }}
-          >
-            {username}
-          </span>
-        )}
+        {/* Username with robust gradient handling */}
+        <span 
+          className={`font-medium ${textSizes[size]} ${isValidStartColor && isValidEndColor ? 'robust-gradient-text' : ''}`}
+          style={{
+            fontFamily: '"gg sans", sans-serif',
+            fontWeight: 600,
+            ...gradientStyle,
+          }}
+        >
+          {username}
+        </span>
         
         {message && (
           <span 
