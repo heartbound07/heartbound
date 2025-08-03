@@ -58,10 +58,16 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
 
   // Apply gradient if both start and end colors are provided
   if (nameplateColor && nameplateEndColor) {
+    // Apply gradient with proper cross-browser support
     usernameStyle.background = `linear-gradient(to right, ${nameplateColor}, ${nameplateEndColor})`;
+    usernameStyle.backgroundClip = 'text';
     usernameStyle.WebkitBackgroundClip = 'text';
+    usernameStyle.color = 'transparent';
     usernameStyle.WebkitTextFillColor = 'transparent';
-    usernameStyle.display = 'inline-block';
+    usernameStyle.display = 'inline-block'; // Required for background-clip: text to work properly
+    // Prevent text selection issues with gradient
+    usernameStyle.userSelect = 'none';
+    usernameStyle.WebkitUserSelect = 'none';
   } else {
     usernameStyle.color = nameplateColor || '#ffffff'; // Fallback to single color
   }
@@ -78,12 +84,15 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
       <div className="flex flex-col">
         {/* Username with badge next to it */}
         <div className="flex items-center gap-2">
-          <span 
-            className={`font-medium ${textSizes[size]}`} 
-            style={usernameStyle}
-          >
-            {username}
-          </span>
+          {/* Username wrapped in container to prevent gradient bleeding */}
+          <div className="relative">
+            <span 
+              className={`font-medium ${textSizes[size]}`} 
+              style={usernameStyle}
+            >
+              {username}
+            </span>
+          </div>
           
           {/* Badge icon */}
           <img 

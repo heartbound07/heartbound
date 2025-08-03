@@ -36,10 +36,17 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = ({
   };
 
   if (isValidStartColor && isValidEndColor) {
+    // Apply gradient with proper cross-browser support
     style.background = `linear-gradient(135deg, ${color}, ${endColor})`;
+    style.backgroundClip = 'text';
     style.WebkitBackgroundClip = 'text';
+    style.color = 'transparent';
     style.WebkitTextFillColor = 'transparent';
+    style.display = 'inline-block'; // Required for background-clip: text to work properly
     style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))';
+    // Prevent text selection issues with gradient
+    style.userSelect = 'none';
+    style.WebkitUserSelect = 'none';
   } else {
     style.color = displayColor;
     style.textShadow = '0 1px 2px rgba(0,0,0,0.4)';
@@ -74,13 +81,15 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = ({
       />
       
       <div className="flex flex-col">
-        {/* Username with preview color */}
-        <span 
-          className={`font-medium ${textSizes[size]}`} 
-          style={style}
-        >
-          {username}
-        </span>
+        {/* Username with preview color - wrapped in container to prevent gradient bleeding */}
+        <div className="relative">
+          <span 
+            className={`font-medium ${textSizes[size]}`} 
+            style={style}
+          >
+            {username}
+          </span>
+        </div>
         
         {message && (
           <span 
