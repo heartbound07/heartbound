@@ -1,4 +1,4 @@
--- V12: Add configurable credit drop chance to discord_bot_settings table
+-- V13: Add configurable credit drop chance to discord_bot_settings table
 -- This migration adds support for configurable credit drop probability
 
 ALTER TABLE public.discord_bot_settings
