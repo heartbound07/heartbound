@@ -49,28 +49,10 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
     md: 'text-xs',
     lg: 'text-sm'
   };
-  
-  // Define username style
-  const usernameStyle: React.CSSProperties = {
-    fontWeight: 600,
-    fontFamily: '"gg sans", sans-serif',
-  };
 
-  // Apply gradient if both start and end colors are provided
-  if (nameplateColor && nameplateEndColor) {
-    // Apply gradient with proper cross-browser support
-    usernameStyle.background = `linear-gradient(to right, ${nameplateColor}, ${nameplateEndColor})`;
-    usernameStyle.backgroundClip = 'text';
-    usernameStyle.WebkitBackgroundClip = 'text';
-    usernameStyle.color = 'transparent';
-    usernameStyle.WebkitTextFillColor = 'transparent';
-    usernameStyle.display = 'inline-block'; // Required for background-clip: text to work properly
-    // Prevent text selection issues with gradient
-    usernameStyle.userSelect = 'none';
-    usernameStyle.WebkitUserSelect = 'none';
-  } else {
-    usernameStyle.color = nameplateColor || '#ffffff'; // Fallback to single color
-  }
+  // Check if we have valid gradient colors
+  const isValidStartColor = nameplateColor && nameplateColor.startsWith('#');
+  const isValidEndColor = nameplateEndColor && nameplateEndColor.startsWith('#');
 
   return (
     <div className={`flex items-center justify-center w-full p-4 rounded-lg ${className}`}>
@@ -84,15 +66,37 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
       <div className="flex flex-col">
         {/* Username with badge next to it */}
         <div className="flex items-center gap-2">
-          {/* Username wrapped in container to prevent gradient bleeding */}
-          <div className="relative">
+          {/* Username with proper gradient handling */}
+          {isValidStartColor && isValidEndColor ? (
+            // Gradient text using CSS mask approach
             <span 
-              className={`font-medium ${textSizes[size]}`} 
-              style={usernameStyle}
+              className={`font-medium ${textSizes[size]} gradient-text-container`}
+              style={{
+                fontFamily: '"gg sans", sans-serif',
+                fontWeight: 600,
+                background: `linear-gradient(to right, ${nameplateColor}, ${nameplateEndColor})`,
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                color: 'transparent',
+                display: 'inline-block',
+              }}
             >
               {username}
             </span>
-          </div>
+          ) : (
+            // Single color text
+            <span 
+              className={`font-medium ${textSizes[size]}`}
+              style={{
+                fontFamily: '"gg sans", sans-serif',
+                fontWeight: 600,
+                color: nameplateColor || '#ffffff',
+              }}
+            >
+              {username}
+            </span>
+          )}
           
           {/* Badge icon */}
           <img 

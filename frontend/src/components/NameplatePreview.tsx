@@ -30,28 +30,6 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = ({
   const isValidEndColor = endColor && endColor.startsWith('#');
   const displayColor = isValidStartColor ? color : fallbackColor;
 
-  const style: React.CSSProperties = {
-    fontWeight: 600,
-    fontFamily: '"gg sans", sans-serif',
-  };
-
-  if (isValidStartColor && isValidEndColor) {
-    // Apply gradient with proper cross-browser support
-    style.background = `linear-gradient(135deg, ${color}, ${endColor})`;
-    style.backgroundClip = 'text';
-    style.WebkitBackgroundClip = 'text';
-    style.color = 'transparent';
-    style.WebkitTextFillColor = 'transparent';
-    style.display = 'inline-block'; // Required for background-clip: text to work properly
-    style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))';
-    // Prevent text selection issues with gradient
-    style.userSelect = 'none';
-    style.WebkitUserSelect = 'none';
-  } else {
-    style.color = displayColor;
-    style.textShadow = '0 1px 2px rgba(0,0,0,0.4)';
-  }
-  
   // Set sizes based on the size prop
   const avatarSizes = {
     sm: 'h-8 w-8',
@@ -81,15 +59,38 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = ({
       />
       
       <div className="flex flex-col">
-        {/* Username with preview color - wrapped in container to prevent gradient bleeding */}
-        <div className="relative">
+        {/* Username with preview color */}
+        {isValidStartColor && isValidEndColor ? (
+          // Gradient text using CSS mask approach
           <span 
-            className={`font-medium ${textSizes[size]}`} 
-            style={style}
+            className={`font-medium ${textSizes[size]} gradient-text-container`}
+            style={{
+              fontFamily: '"gg sans", sans-serif',
+              fontWeight: 600,
+              background: `linear-gradient(135deg, ${color}, ${endColor})`,
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              color: 'transparent',
+              display: 'inline-block',
+            }}
           >
             {username}
           </span>
-        </div>
+        ) : (
+          // Single color text
+          <span 
+            className={`font-medium ${textSizes[size]}`}
+            style={{
+              fontFamily: '"gg sans", sans-serif',
+              fontWeight: 600,
+              color: displayColor,
+              textShadow: '0 1px 2px rgba(0,0,0,0.4)',
+            }}
+          >
+            {username}
+          </span>
+        )}
         
         {message && (
           <span 
