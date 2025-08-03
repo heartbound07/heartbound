@@ -134,10 +134,6 @@ public class BlackjackCommandListener extends ListenerAdapter {
                 event.getHook().sendMessage("Bet amount must be greater than 0.").setEphemeral(true).queue();
                 return;
             }
-            if (betAmount > 10000) {
-                event.getHook().sendMessage("Maximum bet amount is 10,000 credits.").setEphemeral(true).queue();
-                return;
-            }
             
             // Fetch the user from the database
             User user = userService.getUserById(userId);
