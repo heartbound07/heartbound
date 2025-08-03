@@ -132,10 +132,9 @@ public class TermsOfServiceService {
 
             ActionRow actionRow = ActionRow.of(agreeButton, disagreeButton);
 
-            // Reply with the ToS embed and buttons
-            event.replyEmbeds(embedBuilder.build())
-                    .addComponents(actionRow)
-                    .setEphemeral(true)
+            // Use hook to edit the original deferred response instead of replying
+            event.getHook().editOriginalEmbeds(embedBuilder.build())
+                    .setComponents(actionRow)
                     .queue(
                             success -> logger.debug("ToS agreement embed sent to user: {} (button interaction)", userId),
                             error -> logger.error("Failed to send ToS agreement embed to user {}: {}", userId, error.getMessage())
@@ -144,10 +143,9 @@ public class TermsOfServiceService {
         } catch (Exception e) {
             logger.error("Error showing Terms of Service agreement for user {}: {}", userId, e.getMessage(), e);
             
-            // Fallback: reply with a simple error message
+            // Fallback: edit original with error message
             try {
-                event.reply("❌ An error occurred while displaying the Terms of Service. Please try again later.")
-                        .setEphemeral(true)
+                event.getHook().editOriginal("❌ An error occurred while displaying the Terms of Service. Please try again later.")
                         .queue();
             } catch (Exception fallbackError) {
                 logger.error("Failed to send fallback error message to user {}: {}", userId, fallbackError.getMessage());
