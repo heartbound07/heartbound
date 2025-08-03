@@ -255,24 +255,21 @@ export const InventoryItemCard = forwardRef<HTMLDivElement, InventoryItemCardPro
         
         {item.category === 'FISHING_ROD' && (
           <div className="mt-2 space-y-2">
-            {/* Only show durability section if both values are properly defined */}
-            {(item.durability !== null && item.durability !== undefined && 
-              item.maxDurability !== null && item.maxDurability !== undefined) && (
-              <div>
-                <div className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Durability</span>
-                  <span>{item.durability} / {item.maxDurability}</span>
-                </div>
-                <div className="w-full bg-slate-700 rounded-full h-2">
-                  <div 
-                    className="bg-green-500 h-2 rounded-full"
-                    style={{ width: `${(item.durability / item.maxDurability) * 100}%`}}
-                  ></div>
-                </div>
+            {/* Show durability section - now always available after migration */}
+            <div>
+              <div className="flex justify-between text-xs text-slate-400 mb-1">
+                <span>Durability</span>
+                <span>{item.durability || 0} / {item.maxDurability || 0}</span>
               </div>
-            )}
+              <div className="w-full bg-slate-700 rounded-full h-2">
+                <div 
+                  className="bg-green-500 h-2 rounded-full"
+                  style={{ width: `${(item.durability && item.maxDurability) ? (item.durability / item.maxDurability) * 100 : 0}%`}}
+                ></div>
+              </div>
+            </div>
             
-            {/* Only show experience section if experience data is available */}
+            {/* Show experience section if available */}
             {(item.experience !== null && item.experience !== undefined) && (
               <div>
                 <div className="flex justify-between text-xs text-slate-400 mb-1">
