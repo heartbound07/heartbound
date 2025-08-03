@@ -250,15 +250,10 @@ public class BlackjackGame {
             this.firstHandCompleted = true;
             this.isPlayingFirstHand = false;
         } else {
-            // Either single hand stands, or second hand stands
+            // Either single hand stands, or second hand stands.
+            // The listener will handle the dealer's turn and set gameEnded.
             this.dealerTurn = true;
-            
-            // Dealer must hit on 16 and below, stand on 17 and above
-            while (dealerHand.getValue() < 17) {
-                dealerHand.addCard(deck.dealCard());
-            }
-            
-            this.gameEnded = true;
+            this.gameEnded = true; // Mark game as ended here to signal dealer's turn can start.
         }
     }
 

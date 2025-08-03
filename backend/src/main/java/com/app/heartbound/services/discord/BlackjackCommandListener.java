@@ -343,23 +343,45 @@ public class BlackjackCommandListener extends ListenerAdapter {
             activeGames.remove(game.getUserId());
             return;
         }
-        
-        // Player stands, start dealer reveal sequence
-        game.setDealerTurn(true); // Mark that it's dealer's turn
-        logger.debug("User {} stood, starting dealer reveal sequence", game.getUserId());
-        
-        // First, reveal dealer's hidden card
-        MessageEmbed embed = buildGameEmbed(game, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl(), false);
-        event.getHook().editOriginalEmbeds(embed)
-                .setComponents() // Remove buttons since player's turn is over
-                .queue();
-        
-        // Start the dramatic dealer sequence after a short delay
-        java.util.concurrent.ScheduledExecutorService scheduler = java.util.concurrent.Executors.newScheduledThreadPool(1);
-        
-        scheduler.schedule(() -> {
-            playDealerHandWithDelay(event, game, user, scheduler, 0);
-        }, 2, java.util.concurrent.TimeUnit.SECONDS); // 2 second delay before dealer starts hitting
+
+        // Player stands on the current hand. This will transition the game state internally.
+        game.playerStand();
+        logger.debug("User {} stood. isGameEnded: {}, isSplit: {}, isPlayingFirstHand: {}",
+                game.getUserId(), game.isGameEnded(), game.isSplit(), game.isPlayingFirstHand());
+
+        // After playerStand(), if the game has ended, it's the dealer's turn.
+        // If it hasn't, it's a split game, and we proceed to the second hand.
+        if (game.isGameEnded()) {
+            // This occurs after standing on a single hand or the second hand of a split.
+            // The player's turn is over; start the dealer's reveal sequence.
+            logger.info("User {}'s turn is over. Starting dealer reveal sequence.", game.getUserId());
+
+            // First, reveal the dealer's hidden card and remove action buttons.
+            MessageEmbed embed = buildGameEmbed(game, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl(), false);
+            event.getHook().editOriginalEmbeds(embed)
+                    .setComponents() // Remove buttons as the player's turn is complete.
+                    .queue();
+
+            // Start the dramatic dealer play sequence after a short delay.
+            java.util.concurrent.ScheduledExecutorService scheduler = java.util.concurrent.Executors.newScheduledThreadPool(1);
+
+            scheduler.schedule(() -> {
+                playDealerHandWithDelay(event, game, user, scheduler, 0);
+            }, 2, java.util.concurrent.TimeUnit.SECONDS); // 2-second delay before the dealer starts hitting.
+        } else {
+            // This case is only reachable in a split game after the first hand is played.
+            logger.info("User {} finished their first split hand and is now playing the second hand.", game.getUserId());
+
+            // Update the embed to show the new game state (e.g., the second hand is now active).
+            MessageEmbed embed = buildGameEmbed(game, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl(), false);
+
+            // Provide new action buttons for the second hand.
+            List<Button> buttons = buildActionButtons(game);
+
+            event.getHook().editOriginalEmbeds(embed)
+                    .setActionRow(buttons)
+                    .queue();
+        }
     }
     
     private void handleDoubleDown(ButtonInteractionEvent event, BlackjackGame game, User user) {
