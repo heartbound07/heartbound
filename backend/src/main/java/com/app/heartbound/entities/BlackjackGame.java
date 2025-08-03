@@ -2,18 +2,33 @@ package com.app.heartbound.entities;
 
 import com.app.heartbound.services.SecureRandomService;
 
+import java.util.List;
+
 /**
  * Represents a complete Blackjack game state for a single player.
  */
 public class BlackjackGame {
     private final String userId;
-    private final int betAmount;
+    private int betAmount; // Changed from final to support doubling down
     private final double roleMultiplier;
     private final Deck deck;
     private final BlackjackHand playerHand;
     private final BlackjackHand dealerHand;
     private boolean gameEnded;
     private boolean dealerTurn;
+    
+    // Double down state
+    private boolean isDoubledDown;
+    
+    // Split state management
+    private boolean isSplit;
+    private BlackjackHand secondHand;
+    private boolean isPlayingFirstHand;
+    private boolean firstHandCompleted;
+    private boolean splitAces; // Special rule for splitting aces
+    
+    // Action tracking for first-action-only options
+    private boolean hasPlayerActed;
 
     public BlackjackGame(String userId, int betAmount, double roleMultiplier, SecureRandomService secureRandomService) {
         this.userId = userId;
@@ -24,6 +39,15 @@ public class BlackjackGame {
         this.dealerHand = new BlackjackHand();
         this.gameEnded = false;
         this.dealerTurn = false;
+        
+        // Initialize new state variables
+        this.isDoubledDown = false;
+        this.isSplit = false;
+        this.secondHand = null;
+        this.isPlayingFirstHand = true;
+        this.firstHandCompleted = false;
+        this.splitAces = false;
+        this.hasPlayerActed = false;
         
         // Initialize the game with secure shuffling
         deck.shuffle();
@@ -44,55 +68,216 @@ public class BlackjackGame {
     }
 
     /**
-     * Player hits (takes another card).
-     * @return the dealt card
+     * Check if player can double down.
+     * Available only on first action with exactly 2 cards and sufficient credits.
      */
-    public Card playerHit() {
-        if (gameEnded || dealerTurn) {
-            throw new IllegalStateException("Cannot hit when game is ended or it's dealer's turn");
+    public boolean canDoubleDown() {
+        return !hasPlayerActed && 
+               !gameEnded && 
+               !dealerTurn && 
+               !isSplit &&
+               playerHand.getSize() == 2 && 
+               !playerHand.isBlackjack();
+    }
+    
+    /**
+     * Execute double down action.
+     * Doubles the bet, deals one card, and automatically stands.
+     */
+    public Card doubleDown() {
+        if (!canDoubleDown()) {
+            throw new IllegalStateException("Cannot double down in current game state");
         }
         
+        // Double the bet amount
+        this.betAmount *= 2;
+        this.isDoubledDown = true;
+        this.hasPlayerActed = true;
+        
+        // Deal exactly one card
         Card card = deck.dealCard();
         playerHand.addCard(card);
         
         // Check if player busted
         if (playerHand.isBusted()) {
             gameEnded = true;
+        } else {
+            // Automatically stand after double down
+            playerStand();
+        }
+        
+        return card;
+    }
+    
+    /**
+     * Check if player can split their hand.
+     * Available only on first action with a pair and sufficient credits.
+     */
+    public boolean canSplit() {
+        if (hasPlayerActed || gameEnded || dealerTurn || isSplit || playerHand.getSize() != 2) {
+            return false;
+        }
+        
+        // Check if the two cards have the same rank
+        List<Card> cards = playerHand.getCards();
+        return cards.get(0).getRank() == cards.get(1).getRank();
+    }
+    
+    /**
+     * Execute split action.
+     * Creates two hands from the pair and deals new second cards.
+     */
+    public void split() {
+        if (!canSplit()) {
+            throw new IllegalStateException("Cannot split in current game state");
+        }
+        
+        List<Card> cards = playerHand.getCards();
+        Card firstCard = cards.get(0);
+        Card secondCard = cards.get(1);
+        
+        // Check if splitting aces
+        this.splitAces = firstCard.isAce();
+        
+        // Double the bet amount for the second hand
+        this.betAmount *= 2;
+        this.isSplit = true;
+        this.hasPlayerActed = true;
+        this.isPlayingFirstHand = true;
+        this.firstHandCompleted = false;
+        
+        // Clear the original hand and add the first card back
+        playerHand.clear();
+        playerHand.addCard(firstCard);
+        
+        // Create second hand with the second card
+        this.secondHand = new BlackjackHand();
+        secondHand.addCard(secondCard);
+        
+        // Deal second cards to both hands
+        playerHand.addCard(deck.dealCard());
+        secondHand.addCard(deck.dealCard());
+        
+        // If split aces, both hands are complete after one card each
+        if (splitAces) {
+            this.firstHandCompleted = true;
+            // Both hands are done, move to dealer turn
+            this.dealerTurn = true;
+            // Dealer must hit on 16 and below, stand on 17 and above
+            while (dealerHand.getValue() < 17) {
+                dealerHand.addCard(deck.dealCard());
+            }
+            this.gameEnded = true;
+        }
+    }
+    
+    /**
+     * Get the currently active hand (for split games).
+     */
+    public BlackjackHand getActiveHand() {
+        if (!isSplit) {
+            return playerHand;
+        }
+        return isPlayingFirstHand ? playerHand : secondHand;
+    }
+    
+    /**
+     * Check if the current active hand can take actions.
+     */
+    public boolean canActiveHandAct() {
+        if (gameEnded || dealerTurn) {
+            return false;
+        }
+        
+        if (!isSplit) {
+            return true;
+        }
+        
+        // For split hands
+        if (splitAces) {
+            return false; // Split aces get only one card each
+        }
+        
+        BlackjackHand activeHand = getActiveHand();
+        return !activeHand.isBusted();
+    }
+
+    /**
+     * Player hits (takes another card) on the active hand.
+     * @return the dealt card
+     */
+    public Card playerHit() {
+        if (!canActiveHandAct()) {
+            throw new IllegalStateException("Cannot hit in current game state");
+        }
+        
+        this.hasPlayerActed = true;
+        BlackjackHand activeHand = getActiveHand();
+        
+        Card card = deck.dealCard();
+        activeHand.addCard(card);
+        
+        // Check if active hand busted
+        if (activeHand.isBusted()) {
+            if (isSplit && isPlayingFirstHand && !firstHandCompleted) {
+                // First hand busted, move to second hand
+                this.firstHandCompleted = true;
+                this.isPlayingFirstHand = false;
+            } else if (isSplit && !isPlayingFirstHand) {
+                // Second hand busted, end game
+                this.gameEnded = true;
+            } else {
+                // Single hand busted
+                this.gameEnded = true;
+            }
         }
         
         return card;
     }
 
     /**
-     * Player stands, dealer plays automatically.
+     * Player stands on the active hand.
      */
     public void playerStand() {
         if (gameEnded) {
             throw new IllegalStateException("Cannot stand when game is already ended");
         }
         
-        dealerTurn = true;
+        this.hasPlayerActed = true;
         
-        // Dealer must hit on 16 and below, stand on 17 and above
-        while (dealerHand.getValue() < 17) {
-            dealerHand.addCard(deck.dealCard());
+        if (isSplit && isPlayingFirstHand && !firstHandCompleted) {
+            // First hand stands, move to second hand
+            this.firstHandCompleted = true;
+            this.isPlayingFirstHand = false;
+        } else {
+            // Either single hand stands, or second hand stands
+            this.dealerTurn = true;
+            
+            // Dealer must hit on 16 and below, stand on 17 and above
+            while (dealerHand.getValue() < 17) {
+                dealerHand.addCard(deck.dealCard());
+            }
+            
+            this.gameEnded = true;
         }
-        
-        gameEnded = true;
     }
 
     /**
-     * Determine the game result.
-     * @return GameResult enum indicating the outcome
+     * Determine the game result for single hand games.
+     * For split games, use getSplitResults() instead.
      */
     public GameResult getResult() {
+        if (isSplit) {
+            throw new IllegalStateException("Use getSplitResults() for split games");
+        }
+        
         if (!gameEnded) {
             return GameResult.IN_PROGRESS;
         }
         
         int playerValue = playerHand.getValue();
         int dealerValue = dealerHand.getValue();
-        boolean playerBlackjack = playerHand.isBlackjack();
+        boolean playerBlackjack = playerHand.isBlackjack() && !isDoubledDown; // Double down can't be blackjack
         boolean dealerBlackjack = dealerHand.isBlackjack();
         
         // Check for busts first
@@ -101,7 +286,7 @@ public class BlackjackGame {
         }
         
         if (dealerHand.isBusted()) {
-            return GameResult.PLAYER_WIN; // Dealer busted
+            return playerBlackjack ? GameResult.PLAYER_BLACKJACK : GameResult.PLAYER_WIN; // Dealer busted
         }
         
         // ENHANCED FIX: Handle all 21-21 scenarios with comprehensive logic
@@ -144,27 +329,130 @@ public class BlackjackGame {
             return GameResult.PUSH;
         }
     }
+    
+    /**
+     * Get the results for both hands in a split game.
+     * @return array with [firstHandResult, secondHandResult]
+     */
+    public GameResult[] getSplitResults() {
+        if (!isSplit) {
+            throw new IllegalStateException("Use getResult() for non-split games");
+        }
+        
+        if (!gameEnded) {
+            return new GameResult[]{GameResult.IN_PROGRESS, GameResult.IN_PROGRESS};
+        }
+        
+        GameResult firstResult = calculateHandResult(playerHand);
+        GameResult secondResult = calculateHandResult(secondHand);
+        
+        return new GameResult[]{firstResult, secondResult};
+    }
+    
+    /**
+     * Calculate result for a specific hand against dealer.
+     */
+    private GameResult calculateHandResult(BlackjackHand hand) {
+        int handValue = hand.getValue();
+        int dealerValue = dealerHand.getValue();
+        boolean handBlackjack = hand.isBlackjack() && !splitAces; // Split aces can't make blackjack
+        boolean dealerBlackjack = dealerHand.isBlackjack();
+        
+        // Check for busts first
+        if (hand.isBusted()) {
+            return GameResult.DEALER_WIN;
+        }
+        
+        if (dealerHand.isBusted()) {
+            return handBlackjack ? GameResult.PLAYER_BLACKJACK : GameResult.PLAYER_WIN;
+        }
+        
+        // Handle 21-21 scenarios
+        if (handValue == 21 && dealerValue == 21) {
+            if (handBlackjack && dealerBlackjack) {
+                return GameResult.PUSH;
+            }
+            if (handBlackjack && !dealerBlackjack) {
+                return GameResult.PLAYER_BLACKJACK;
+            }
+            if (!handBlackjack && dealerBlackjack) {
+                return GameResult.DEALER_WIN;
+            }
+            return GameResult.PUSH;
+        }
+        
+        // Handle blackjack scenarios
+        if (handBlackjack && dealerValue != 21) {
+            return GameResult.PLAYER_BLACKJACK;
+        }
+        
+        if (dealerBlackjack && handValue != 21) {
+            return GameResult.DEALER_WIN;
+        }
+        
+        // Compare values
+        if (handValue > dealerValue) {
+            return GameResult.PLAYER_WIN;
+        } else if (dealerValue > handValue) {
+            return GameResult.DEALER_WIN;
+        } else {
+            return GameResult.PUSH;
+        }
+    }
 
     /**
      * Calculate the credit payout for the player based on the game result.
-     * @return the credit change (positive for win, zero for push, negative for loss)
+     * For split games, returns total payout for both hands.
      */
     public int calculatePayout() {
+        if (isSplit) {
+            return calculateSplitPayout();
+        }
+        
         GameResult result = getResult();
+        int baseBet = isDoubledDown ? betAmount / 2 : betAmount; // Get original bet amount
         
         switch (result) {
             case PLAYER_BLACKJACK:
-                return (int) (betAmount * 1.5 * this.roleMultiplier); // Blackjack pays 3:2, modified by role multiplier
+                return (int) (baseBet * 1.5 * this.roleMultiplier); // Blackjack pays 3:2, modified by role multiplier
             case PLAYER_WIN:
-                return betAmount; // Normal win pays 1:1
+                return baseBet; // Normal win pays 1:1
             case PUSH:
                 return 0; // Push returns bet (no net change since bet was already deducted)
             case DEALER_WIN:
-                return -betAmount; // Loss (but bet was already deducted, so this represents the total loss)
+                return -baseBet; // Loss (but bet was already deducted, so this represents the total loss)
             case IN_PROGRESS:
             default:
                 return 0;
         }
+    }
+    
+    /**
+     * Calculate payout for split games.
+     */
+    private int calculateSplitPayout() {
+        GameResult[] results = getSplitResults();
+        int originalBet = betAmount / 2; // Each hand gets half the total bet
+        int totalPayout = 0;
+        
+        for (GameResult result : results) {
+            switch (result) {
+                case PLAYER_BLACKJACK:
+                    totalPayout += (int) (originalBet * 1.5 * this.roleMultiplier);
+                    break;
+                case PLAYER_WIN:
+                    totalPayout += originalBet;
+                    break;
+                case PUSH:
+                    // No change for push
+                    break;
+                case DEALER_WIN:
+                    totalPayout -= originalBet;
+                    break;
+            }
+        }
+        
+        return totalPayout;
     }
 
     // Getters
@@ -207,6 +495,35 @@ public class BlackjackGame {
 
     public void setGameEnded(boolean gameEnded) {
         this.gameEnded = gameEnded;
+    }
+
+    // Getters for new fields
+    public boolean isDoubledDown() {
+        return isDoubledDown;
+    }
+    
+    public boolean isSplit() {
+        return isSplit;
+    }
+    
+    public BlackjackHand getSecondHand() {
+        return secondHand;
+    }
+    
+    public boolean isPlayingFirstHand() {
+        return isPlayingFirstHand;
+    }
+    
+    public boolean isFirstHandCompleted() {
+        return firstHandCompleted;
+    }
+    
+    public boolean isSplitAces() {
+        return splitAces;
+    }
+    
+    public boolean hasPlayerActed() {
+        return hasPlayerActed;
     }
 
     /**
