@@ -24,6 +24,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 import java.awt.Color;
@@ -426,12 +429,26 @@ public class BlackjackCommandListener extends ListenerAdapter {
             Card dealtCard = game.doubleDown();
             logger.debug("User {} doubled down and received: {}", game.getUserId(), dealtCard);
             
-            // Update the embed - game should now be ended due to auto-stand
+            // Update the embed to show the player's new card and final hand total
+            MessageEmbed embed = buildGameEmbed(game, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl(), false);
+            
             if (game.isGameEnded()) {
-                handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
+                // Player's turn is over after double down; start the dealer's reveal sequence
+                logger.info("User {} doubled down. Starting dealer reveal sequence.", game.getUserId());
+                
+                // First, update the embed and remove action buttons
+                event.getHook().editOriginalEmbeds(embed)
+                        .setComponents() // Remove buttons as the player's turn is complete
+                        .queue();
+                
+                // Start the dramatic dealer play sequence after a short delay
+                ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+                
+                scheduler.schedule(() -> {
+                    playDealerHandWithDelay(event, game, user, scheduler, 0);
+                }, 2, TimeUnit.SECONDS); // 2-second delay before the dealer starts hitting
             } else {
                 // This shouldn't happen as double down auto-stands, but handle it gracefully
-                MessageEmbed embed = buildGameEmbed(game, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl(), false);
                 event.getHook().editOriginalEmbeds(embed)
                         .setComponents()
                         .queue();
