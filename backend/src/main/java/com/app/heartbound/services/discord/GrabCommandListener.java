@@ -68,7 +68,14 @@ public class GrabCommandListener extends ListenerAdapter {
                         break;
                 }
             },
-            () -> event.getMessage().reply("Too late! Someone else already grabbed the drop.").queue()
+            () -> {
+                // Only send "too late" message if the drop was claimed by another user,
+                // not if it expired (expired drops should be silent)
+                if (!dropStateService.hadRecentExpiration(event.getChannel().getId())) {
+                    event.getMessage().reply("Too late! Someone else already grabbed the drop.").queue();
+                }
+                // If hadRecentExpiration() returns true, remain silent - the absence of the drop message is sufficient feedback
+            }
         );
     }
 
