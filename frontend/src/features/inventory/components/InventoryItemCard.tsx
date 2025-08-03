@@ -255,30 +255,40 @@ export const InventoryItemCard = forwardRef<HTMLDivElement, InventoryItemCardPro
         
         {item.category === 'FISHING_ROD' && (
           <div className="mt-2 space-y-2">
-            <div>
-              <div className="flex justify-between text-xs text-slate-400 mb-1">
-                <span>Durability</span>
-                <span>{item.durability} / {item.maxDurability}</span>
+            {/* Only show durability section if both values are properly defined */}
+            {(item.durability !== null && item.durability !== undefined && 
+              item.maxDurability !== null && item.maxDurability !== undefined) && (
+              <div>
+                <div className="flex justify-between text-xs text-slate-400 mb-1">
+                  <span>Durability</span>
+                  <span>{item.durability} / {item.maxDurability}</span>
+                </div>
+                <div className="w-full bg-slate-700 rounded-full h-2">
+                  <div 
+                    className="bg-green-500 h-2 rounded-full"
+                    style={{ width: `${(item.durability / item.maxDurability) * 100}%`}}
+                  ></div>
+                </div>
               </div>
-              <div className="w-full bg-slate-700 rounded-full h-2">
-                <div 
-                  className="bg-green-500 h-2 rounded-full"
-                  style={{ width: `${(item.durability || 0) / (item.maxDurability || 1) * 100}%`}}
-                ></div>
+            )}
+            
+            {/* Only show experience section if experience data is available */}
+            {(item.experience !== null && item.experience !== undefined) && (
+              <div>
+                <div className="flex justify-between text-xs text-slate-400 mb-1">
+                  <span>Experience</span>
+                  <span>{item.experience} XP</span>
+                </div>
+                <div className="w-full bg-slate-700 rounded-full h-2">
+                  <div 
+                    className="bg-sky-500 h-2 rounded-full"
+                    style={{ width: `${(item.experience && item.xpForNextLevel) ? (item.experience / item.xpForNextLevel) * 100 : 0}%`}}
+                  ></div>
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-xs text-slate-400 mb-1">
-                <span>Experience</span>
-                <span>{item.experience} XP</span>
-              </div>
-              <div className="w-full bg-slate-700 rounded-full h-2">
-                <div 
-                  className="bg-sky-500 h-2 rounded-full"
-                  style={{ width: `${(item.experience && item.xpForNextLevel) ? (item.experience / item.xpForNextLevel) * 100 : 0}%`}}
-                ></div>
-              </div>
-            </div>
+            )}
+            
+            {/* Show repair button only if durability is explicitly 0 */}
             {item.durability === 0 && (
                 <button
                     onClick={(e) => {
