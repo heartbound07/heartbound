@@ -50,9 +50,14 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
     lg: 'text-sm'
   };
 
-  // Check if we have valid gradient colors
-  const isValidStartColor = nameplateColor && nameplateColor.startsWith('#');
-  const isValidEndColor = nameplateEndColor && nameplateEndColor.startsWith('#');
+  // Helper function to validate hex colors - same as ItemPreview.tsx
+  const isValidHexColor = (color: string | null | undefined): boolean => {
+    return color ? color.startsWith('#') && /^#[0-9A-F]{6}$/i.test(color) : false;
+  };
+
+  // Check if we have valid gradient colors using strict validation
+  const isValidStartColor = isValidHexColor(nameplateColor);
+  const isValidEndColor = isValidHexColor(nameplateEndColor);
 
   return (
     <div className={`flex items-center justify-center w-full p-4 rounded-lg ${className}`}>

@@ -25,9 +25,14 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = ({
   className = '',
   size = 'md'
 }) => {
-  // Determine if color is valid (starts with #)
-  const isValidStartColor = color && color.startsWith('#');
-  const isValidEndColor = endColor && endColor.startsWith('#');
+  // Helper function to validate hex colors - same as ItemPreview.tsx
+  const isValidHexColor = (color: string | null | undefined): boolean => {
+    return color ? color.startsWith('#') && /^#[0-9A-F]{6}$/i.test(color) : false;
+  };
+
+  // Determine if color is valid using strict validation
+  const isValidStartColor = isValidHexColor(color);
+  const isValidEndColor = isValidHexColor(endColor);
   const displayColor = isValidStartColor ? color : fallbackColor;
 
   // Set sizes based on the size prop
