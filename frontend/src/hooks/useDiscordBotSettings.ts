@@ -44,6 +44,7 @@ const initialSettings: DiscordBotSettingsData = {
   creditDropChannelId: "",
   creditDropMinAmount: 1,
   creditDropMaxAmount: 1000,
+  creditDropChance: 0.05,
   partDropEnabled: false,
   partDropChannelId: "",
   partDropChance: 0.05,
