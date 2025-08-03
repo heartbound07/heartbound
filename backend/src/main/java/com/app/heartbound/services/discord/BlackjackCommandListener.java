@@ -433,20 +433,27 @@ public class BlackjackCommandListener extends ListenerAdapter {
             MessageEmbed embed = buildGameEmbed(game, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl(), false);
             
             if (game.isGameEnded()) {
-                // Player's turn is over after double down; start the dealer's reveal sequence
-                logger.info("User {} doubled down. Starting dealer reveal sequence.", game.getUserId());
-                
-                // First, update the embed and remove action buttons
-                event.getHook().editOriginalEmbeds(embed)
-                        .setComponents() // Remove buttons as the player's turn is complete
-                        .queue();
-                
-                // Start the dramatic dealer play sequence after a short delay
-                ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-                
-                scheduler.schedule(() -> {
-                    playDealerHandWithDelay(event, game, user, scheduler, 0);
-                }, 2, TimeUnit.SECONDS); // 2-second delay before the dealer starts hitting
+                // Check if player busted after double down
+                if (game.getPlayerHand().isBusted()) {
+                    // Player busted, end game immediately without dealer play
+                    logger.info("User {} doubled down and busted. Ending game immediately.", game.getUserId());
+                    handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
+                } else {
+                    // Player didn't bust; start the dealer's reveal sequence
+                    logger.info("User {} doubled down. Starting dealer reveal sequence.", game.getUserId());
+                    
+                    // First, update the embed and remove action buttons
+                    event.getHook().editOriginalEmbeds(embed)
+                            .setComponents() // Remove buttons as the player's turn is complete
+                            .queue();
+                    
+                    // Start the dramatic dealer play sequence after a short delay
+                    ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+                    
+                    scheduler.schedule(() -> {
+                        playDealerHandWithDelay(event, game, user, scheduler, 0);
+                    }, 2, TimeUnit.SECONDS); // 2-second delay before the dealer starts hitting
+                }
             } else {
                 // This shouldn't happen as double down auto-stands, but handle it gracefully
                 event.getHook().editOriginalEmbeds(embed)
