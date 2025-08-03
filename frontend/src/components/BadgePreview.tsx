@@ -71,49 +71,43 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
         className={`${avatarSizes[size]} rounded-full mr-3 object-cover`} 
       />
       
-      <div className="flex flex-col">
+      <div className="flex flex-col justify-center h-full">
         {/* Username with badge next to it */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 justify-center h-full">
           {/* Username with proper gradient handling */}
           {isValidStartColor && isValidEndColor ? (
             // Robust gradient text using SVG
-            <div style={{ height: textSizes[size].height, display: 'flex', alignItems: 'center' }}>
-              <svg
-                width="auto"
-                height={textSizes[size].height}
-                style={{ overflow: 'visible' }}
+            <svg
+              width="auto"
+              height="100%"
+              style={{ overflow: 'visible' }}
+            >
+              <defs>
+                <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor={nameplateColor} />
+                  <stop offset="100%" stopColor={nameplateEndColor} />
+                </linearGradient>
+              </defs>
+              <text
+                x="0"
+                y="50%"
+                dominantBaseline="middle"
+                fill={`url(#${gradientId})`}
+                fontSize={textSizes[size].fontSize}
+                fontFamily='"gg sans", sans-serif'
+                fontWeight="600"
               >
-                <defs>
-                  <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor={nameplateColor} />
-                    <stop offset="100%" stopColor={nameplateEndColor} />
-                  </linearGradient>
-                </defs>
-                <text
-                  x="0"
-                  y="50%"
-                  dominantBaseline="middle"
-                  fill={`url(#${gradientId})`}
-                  fontSize={textSizes[size].fontSize}
-                  fontFamily='"gg sans", sans-serif'
-                  fontWeight="600"
-                >
-                  {username}
-                </text>
-              </svg>
-            </div>
+                {username}
+              </text>
+            </svg>
           ) : (
             // Single color text
             <span 
-              className={`font-medium`}
               style={{
                 fontFamily: '"gg sans", sans-serif',
                 fontWeight: 600,
                 fontSize: textSizes[size].fontSize,
                 color: nameplateColor || '#ffffff',
-                height: textSizes[size].height,
-                display: 'flex',
-                alignItems: 'center'
               }}
             >
               {username}

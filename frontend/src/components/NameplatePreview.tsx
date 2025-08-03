@@ -66,14 +66,14 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = ({
         className={`${avatarSizes[size]} rounded-full mr-3 object-cover`} 
       />
       
-      <div className="flex flex-col">
+      <div className="flex flex-col justify-center h-full">
         {/* Username with preview color */}
         {isValidStartColor && isValidEndColor ? (
           // Robust gradient text using SVG
-          <div style={{ height: textSizes[size].height, display: 'flex', alignItems: 'center' }}>
+          <div className="flex items-center justify-center h-full">
             <svg
               width="auto"
-              height={textSizes[size].height}
+              height="100%"
               style={{ overflow: 'visible' }}
             >
               <defs>
@@ -98,21 +98,19 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = ({
           </div>
         ) : (
           // Single color text
-          <span 
-            className={`font-medium`}
-            style={{
-              fontFamily: '"gg sans", sans-serif',
-              fontWeight: 600,
-              fontSize: textSizes[size].fontSize,
-              color: displayColor,
-              textShadow: '0 1px 2px rgba(0,0,0,0.4)',
-              height: textSizes[size].height,
-              display: 'flex',
-              alignItems: 'center'
-            }}
-          >
-            {username}
-          </span>
+          <div className="flex items-center justify-center h-full">
+            <span 
+              style={{
+                fontFamily: '"gg sans", sans-serif',
+                fontWeight: 600,
+                fontSize: textSizes[size].fontSize,
+                color: displayColor,
+                textShadow: '0 1px 2px rgba(0,0,0,0.4)',
+              }}
+            >
+              {username}
+            </span>
+          </div>
         )}
         
         {message && (
