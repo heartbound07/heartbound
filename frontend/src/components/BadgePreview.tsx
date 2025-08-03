@@ -91,7 +91,8 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
                 </defs>
                 <text
                   x="0"
-                  y="70%"
+                  y="50%"
+                  dominantBaseline="middle"
                   fill={`url(#${gradientId})`}
                   fontSize={textSizes[size].fontSize}
                   fontFamily='"gg sans", sans-serif'
