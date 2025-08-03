@@ -414,9 +414,9 @@ public class BlackjackGame {
         
         switch (result) {
             case PLAYER_BLACKJACK:
-                return (int) (baseBet * 1.5 * this.roleMultiplier); // Blackjack pays 3:2, modified by role multiplier
+                return (int) (baseBet * 1.5 * this.roleMultiplier * (isDoubledDown ? 2 : 1)); // Blackjack pays 3:2, doubled if doubled down
             case PLAYER_WIN:
-                return baseBet; // Normal win pays 1:1
+                return isDoubledDown ? baseBet * 2 : baseBet; // Double down wins pay 2:1 on original bet
             case PUSH:
                 return 0; // Push returns bet (no net change since bet was already deducted)
             case DEALER_WIN:
