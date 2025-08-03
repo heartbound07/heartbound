@@ -233,10 +233,11 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
   // Clear error state and reset retry state
   const clearError = useCallback(() => {
     setLastError(null);
-    setRetryState(initialRetryState);
+    // Don't reset retryState here - let it be managed by the retry logic
+    // Only reset retry state when explicitly needed (manual reconnect, auth state changes)
   }, []);
 
-  // Reset retry state on successful connection
+  // Reset retry state on successful connection or manual reset
   const resetRetryState = useCallback(() => {
     setRetryState({
       attempt: 0,
@@ -321,20 +322,20 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         if (error.type === 'auth') {
           // Handle auth retry inline to avoid circular dependency
           console.log('[WebSocket] Attempting auth retry...');
-          refreshToken().then((newToken: string | undefined) => {
-            if (newToken) {
-              console.log('[WebSocket] Token refresh successful, attempting connection...');
-              setRetryState(prev => ({
-                ...prev,
-                consecutiveAuthFailures: 0,
-                attempt: 0,
-              }));
-              establishConnection();
-            } else {
-              const authError = createError('auth', 'Token refresh returned null', false);
-              scheduleRetry(authError);
-            }
-          }).catch((refreshError: any) => {
+                  refreshToken().then((newToken: string | undefined) => {
+          if (newToken) {
+            console.log('[WebSocket] Token refresh successful, attempting connection...');
+            setRetryState(prev => ({
+              ...prev,
+              consecutiveAuthFailures: 0,
+              // Don't reset attempt counter - let it continue counting
+            }));
+            establishConnection();
+          } else {
+            const authError = createError('auth', 'Token refresh returned null', false);
+            scheduleRetry(authError);
+          }
+        }).catch((refreshError: any) => {
             console.error('[WebSocket] Token refresh failed:', refreshError);
             const authError = createError('auth', 'Token refresh failed', false);
             scheduleRetry(authError);
@@ -376,7 +377,8 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
 
     isConnectingRef.current = true;
     setConnectionStatus('connecting');
-    clearError();
+    // Only clear the error, don't reset retry state here
+    setLastError(null);
 
     try {
       console.log(`[WebSocket] Establishing connection (attempt ${retryState.attempt + 1})`);
@@ -427,7 +429,6 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     retryState.attempt,
     scheduleRetry,
     createError,
-    clearError,
     processSubscriptions,
     resetRetryState,
     classifyError,
@@ -437,9 +438,9 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
   // Manual reconnect function
   const reconnect = useCallback(() => {
     console.log('[WebSocket] Manual reconnect requested');
-    setRetryState(initialRetryState);
+    resetRetryState();
     setConnectionStatus('disconnected');
-    clearError();
+    setLastError(null);
     
     // Clear any pending timeouts
     if (retryTimeoutRef.current) {
@@ -453,7 +454,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     
     isConnectingRef.current = false;
     establishConnection();
-  }, [establishConnection, clearError]);
+  }, [establishConnection, resetRetryState]);
 
   // Message sending with queuing
   const sendMessage = useCallback((
@@ -716,8 +717,8 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     if (!isAuthenticated || !tokens?.accessToken) {
       console.log('[WebSocket] Auth state changed - disconnecting');
       setConnectionStatus('disconnected');
-      setRetryState(initialRetryState);
-      clearError();
+      resetRetryState();
+      setLastError(null);
       
       // Clear timeouts
       if (retryTimeoutRef.current) {
@@ -759,7 +760,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         clearTimeout(connectionTimer);
       };
     }
-  }, [isAuthenticated, tokens?.accessToken, connectionStatus, establishConnection, clearError, isTokenValid]);
+  }, [isAuthenticated, tokens?.accessToken, connectionStatus, establishConnection, resetRetryState, isTokenValid]);
 
   // Handle browser visibility changes (reconnect when tab becomes visible)
   useEffect(() => {
@@ -844,6 +845,11 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     };
   }, []);
 
+  // Create a clearError function for the context that just clears the error
+  const clearErrorForContext = useCallback(() => {
+    setLastError(null);
+  }, []);
+
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
     isConnected,
@@ -861,7 +867,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     resumeQueue,
     getQueueSize,
     reconnect,
-    clearError,
+    clearError: clearErrorForContext,
   }), [
     isConnected,
     connectionStatus,
@@ -877,7 +883,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     resumeQueue,
     getQueueSize,
     reconnect,
-    clearError,
+    clearErrorForContext,
   ]);
 
   return (

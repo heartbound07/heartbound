@@ -11,6 +11,7 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
+
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
@@ -28,6 +29,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Value("${cors.allowed-origins}")
     private String allowedOrigins;
+    
+    @Value("${cors.origin.patterns:}")
+    private String allowedOriginPatterns;
 
     public WebSocketConfig(JWTChannelInterceptor jwtChannelInterceptor) {
         this.jwtChannelInterceptor = jwtChannelInterceptor;
@@ -49,12 +53,35 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws")
-                .setAllowedOrigins(allowedOrigins.split(","))
-                .withSockJS()
-                .setSessionCookieNeeded(false);
+        var endpoint = registry.addEndpoint("/ws");
         
-        logger.info("STOMP endpoint '/ws' registered with origins: {}", allowedOrigins);
+        // Configure allowed origins
+        if (allowedOrigins != null && !allowedOrigins.trim().isEmpty()) {
+            String[] origins = allowedOrigins.split(",");
+            endpoint.setAllowedOrigins(origins);
+            logger.info("STOMP endpoint '/ws' registered with explicit origins: {}", allowedOrigins);
+        }
+        
+        // Configure allowed origin patterns for dynamic URLs (like Vercel preview URLs)
+        if (allowedOriginPatterns != null && !allowedOriginPatterns.trim().isEmpty()) {
+            String[] patterns = allowedOriginPatterns.split(",");
+            endpoint.setAllowedOriginPatterns(patterns);
+            logger.info("STOMP endpoint '/ws' registered with origin patterns: {}", allowedOriginPatterns);
+        }
+        
+        // If neither origins nor patterns are configured, allow all (for development only)
+        if ((allowedOrigins == null || allowedOrigins.trim().isEmpty()) && 
+            (allowedOriginPatterns == null || allowedOriginPatterns.trim().isEmpty())) {
+            logger.warn("No CORS origins or patterns configured for WebSocket - allowing all origins (DEVELOPMENT ONLY)");
+            endpoint.setAllowedOrigins("*");
+        }
+        
+        endpoint.withSockJS()
+                .setSessionCookieNeeded(false)
+                // Configure SockJS options for better reliability
+                .setClientLibraryUrl("https://cdn.jsdelivr.net/sockjs/1.6.1/sockjs.min.js")
+                .setDisconnectDelay(30000)
+                .setHeartbeatTime(25000);
     }
 
     @Override
