@@ -135,9 +135,14 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
 
   // Determine what nameplate colors to show in the preview
   const getPreviewNameplate = () => {
+    // Helper function to validate hex colors
+    const isValidHexColor = (color: string | null | undefined): boolean => {
+      return color ? color.startsWith('#') && /^#[0-9A-F]{6}$/i.test(color) : false;
+    };
+
     // Start with the user's currently equipped colors, or defaults.
-    let color = user?.nameplateColor || '#ffffff';
-    let endColor = user?.gradientEndColor;
+    let color = isValidHexColor(user?.nameplateColor) ? user?.nameplateColor : '#ffffff';
+    let endColor = isValidHexColor(user?.gradientEndColor) ? user?.gradientEndColor : undefined;
 
     // If a nameplate is selected...
     if (selectedItems.nameplate) {
@@ -147,8 +152,8 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({
         endColor = undefined;
       } else {
         // ...and it's not equipped, we're previewing adding it.
-        color = selectedItems.nameplate.imageUrl;
-        endColor = selectedItems.nameplate.gradientEndColor;
+        color = isValidHexColor(selectedItems.nameplate.imageUrl) ? selectedItems.nameplate.imageUrl : '#ffffff';
+        endColor = isValidHexColor(selectedItems.nameplate.gradientEndColor) ? selectedItems.nameplate.gradientEndColor : undefined;
       }
     }
     
