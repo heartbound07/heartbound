@@ -740,9 +740,6 @@ public class BlackjackCommandListener extends ListenerAdapter {
         String betInfo = game.isSplit() ? 
             userName + ", you have bet 🪙 " + (game.getBetAmount() / 2) + " credits per hand (🪙 " + game.getBetAmount() + " total)." :
             userName + ", you have bet 🪙 " + game.getBetAmount() + " credits.";
-        if (game.isDoubledDown()) {
-            betInfo += " (Doubled Down)";
-        }
         embed.setAuthor(betInfo, null, userAvatarUrl);
         
         embed.setColor(EMBED_COLOR);
