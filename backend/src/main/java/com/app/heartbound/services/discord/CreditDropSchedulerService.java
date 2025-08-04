@@ -85,7 +85,7 @@ public class CreditDropSchedulerService {
                     
                     // Also update the drop state to mark it as expired (for grab command logic)
                     dropStateService.expireDrop(channelId, message.getId());
-                }, 4, TimeUnit.SECONDS);
+                }, 8, TimeUnit.SECONDS);
 
                 dropStateService.startDrop(channelId, message.getId(), DropStateService.DropType.CREDIT, amount, expirationTask);
                 log.info("[CreditDropScheduler] Dropped {} credits in channel {}.", amount, channelId);
