@@ -1012,7 +1012,7 @@ public class BlackjackCommandListener extends ListenerAdapter {
         
         // Determine overall result color and text
         Color embedColor = EMBED_COLOR;
-        String resultText = "Split Results: ";
+        String resultText = "";
         
         int wins = 0;
         int losses = 0;
@@ -1036,31 +1036,31 @@ public class BlackjackCommandListener extends ListenerAdapter {
         
         if (wins == 2) {
             embedColor = WIN_COLOR;
-            resultText += "🎉 Both hands won! ";
+            resultText += "Both hands won! ";
         } else if (losses == 2) {
             embedColor = LOSE_COLOR;
-            resultText += "😞 Both hands lost! ";
+            resultText += "Both hands lost! ";
         } else if (pushes == 2) {
             embedColor = PUSH_COLOR;
-            resultText += "🤝 Both hands pushed! ";
+            resultText += "Both hands pushed! ";
         } else if (wins == 1 && losses == 1) {
             embedColor = PUSH_COLOR;
-            resultText += "⚖️ One win, one loss! ";
+            resultText += "One win, one loss! ";
         } else if (wins == 1 && pushes == 1) {
             embedColor = WIN_COLOR;
-            resultText += "🎯 One win, one push! ";
+            resultText += "One win, one push! ";
         } else if (losses == 1 && pushes == 1) {
             embedColor = LOSE_COLOR;
-            resultText += "📉 One loss, one push! ";
+            resultText += "One loss, one push! ";
         }
         
         // Add payout info
         if (totalPayout > 0) {
-            resultText += "🪙+" + totalPayout;
+            resultText += "🪙 +" + totalPayout;
         } else if (totalPayout == 0) {
-            resultText += "Even";
+            resultText += "🪙 +0";
         } else {
-            resultText += "🪙" + totalPayout;
+            resultText += "🪙 " + totalPayout;
         }
         
         embed.setAuthor(resultText, null, userAvatarUrl);
