@@ -16,13 +16,12 @@ interface CaseRollAnimationProps {
   animationState: AnimationState;
   x: MotionValue<number>;
   user?: any;
-  itemWidth?: number;
 }
 
-export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollAnimationProps>(({ animationItems, animationState, x, user, itemWidth = ITEM_WIDTH }, ref) => {
+export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollAnimationProps>(({ animationItems, animationState, x, user }, ref) => {
   const [virtualItems, setVirtualItems] = useState<VirtualItem[]>([]);
   
-  const totalAnimationWidth = animationItems.length * itemWidth;
+  const totalAnimationWidth = animationItems.length * ITEM_WIDTH;
 
   const updateVirtualItems = useCallback(() => {
     const container = (ref as React.RefObject<HTMLDivElement>)?.current;
@@ -31,10 +30,10 @@ export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollA
     const containerWidth = container.offsetWidth;
     const scrollLeft = -x.get();
     
-    let startIndex = Math.floor(scrollLeft / itemWidth) - OVERSCAN;
+    let startIndex = Math.floor(scrollLeft / ITEM_WIDTH) - OVERSCAN;
     startIndex = Math.max(0, startIndex);
 
-    let endIndex = Math.ceil((scrollLeft + containerWidth) / itemWidth) + OVERSCAN;
+    let endIndex = Math.ceil((scrollLeft + containerWidth) / ITEM_WIDTH) + OVERSCAN;
     endIndex = Math.min(animationItems.length - 1, endIndex);
 
     const newVirtualItems: VirtualItem[] = [];
@@ -45,7 +44,7 @@ export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollA
         });
     }
     setVirtualItems(newVirtualItems);
-  }, [animationItems, x, ref, itemWidth]);
+  }, [animationItems, x, ref]);
 
   useEffect(() => {
     const unsubscribe = x.on("change", updateVirtualItems);
@@ -78,12 +77,11 @@ export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollA
             {virtualItems.map(({ item, index }) => (
               <div
                 key={`${item.containedItem.id}-${index}`}
-                data-case-item={index === 0 ? 'true' : undefined}
                 style={{
                   position: 'absolute',
                   top: 0,
-                  left: `${index * itemWidth}px`,
-                  width: `${itemWidth}px`,
+                  left: `${index * ITEM_WIDTH}px`,
+                  width: `${ITEM_WIDTH}px`,
                   height: '100%',
                   display: 'flex',
                   alignItems: 'center',
