@@ -110,7 +110,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-6 m-4 max-h-[90vh] w-full max-w-4xl"
+          className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-4 md:p-6 m-2 md:m-4 max-h-[95vh] md:max-h-[90vh] w-full max-w-4xl overflow-hidden flex flex-col"
         >
           <div className="flex justify-between items-center mb-4">
             <button onClick={onClose} className="text-slate-400 hover:text-white">
@@ -118,10 +118,10 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 flex-1 min-h-0 overflow-hidden">
             {/* Left side: Rod Slots */}
-            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-              <div className="space-y-3">
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex flex-col min-h-0">
+              <div className="space-y-3 flex-1 overflow-y-auto">
                 {partSlots.map(({ type, name }) => {
                   const equippedPart = equippedPartsMap[type];
                   const Icon = partIcons[type] || GiGearStick;
@@ -194,8 +194,8 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
             </div>
 
             {/* Right side: Parts Inventory */}
-            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-              <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex flex-col min-h-0">
+              <div className="space-y-2 flex-1 max-h-60 md:max-h-80 overflow-y-auto pr-2">
                 {partSlots.map(({ type, name }) => (
                   <div key={`inventory-${type}`}>
                     <div className="flex items-center space-x-2">
