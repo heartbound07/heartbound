@@ -254,13 +254,14 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                               </div>
                             )}
                           </div>
-                          <button
-                            onClick={() => handleEquipClick(part)}
-                            className="ml-4 px-3 py-1 bg-primary/80 hover:bg-primary text-white text-xs font-semibold rounded-md transition-colors"
-                            disabled={!!equippedPartsMap[type]}
-                          >
-                            Equip ( <FaCoins className="inline-block -mt-px mr-1" />{cost} )
-                          </button>
+                          {!equippedPartsMap[type] && (
+                            <button
+                              onClick={() => handleEquipClick(part)}
+                              className="ml-4 px-3 py-1 bg-primary/80 hover:bg-primary text-white text-xs font-semibold rounded-md transition-colors"
+                            >
+                              Equip ( <FaCoins className="inline-block -mt-px mr-1" />{cost} )
+                            </button>
+                          )}
                         </div>
                       )})}
                     {parts.filter(p => p.fishingRodPartType === type).length === 0 && (
