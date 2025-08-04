@@ -169,13 +169,15 @@ export const InventoryItemCard = forwardRef<HTMLDivElement, InventoryItemCardPro
             <GiFishingPole
               className="relative z-10 w-16 h-16 text-white/80 drop-shadow-lg"
             />
-             <div className="relative z-10 mt-2 flex items-center justify-center">
+             <div className="relative z-10 mt-2 flex flex-col items-center justify-center">
               {item.level && (
                 <div className="text-sm font-bold text-white drop-shadow-md">
                   LVL {item.level}
-                  {item.fishingRodMultiplier && (
-                    <span className="ml-2">x{item.fishingRodMultiplier}</span>
-                  )}
+                </div>
+              )}
+              {item.fishingRodMultiplier && (
+                <div className="text-xs font-bold text-white drop-shadow-md">
+                  x{item.fishingRodMultiplier}
                 </div>
               )}
             </div>
