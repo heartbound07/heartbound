@@ -1031,6 +1031,10 @@ public class BlackjackCommandListener extends ListenerAdapter {
                 case PUSH:
                     pushes++;
                     break;
+                case IN_PROGRESS:
+                default:
+                    // Don't count in-progress or unexpected states
+                    break;
             }
         }
         
