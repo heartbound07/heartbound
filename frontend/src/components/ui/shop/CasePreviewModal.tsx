@@ -6,32 +6,7 @@ import { PiFilmReel, PiHandPalm } from 'react-icons/pi';
 import httpClient from '@/lib/api/httpClient';
 import { getRarityColor, getRarityLabel, getRarityBadgeStyle, RARITY_ORDER } from '@/utils/rarityHelpers';
 import NameplatePreview from '@/components/NameplatePreview';
-
-interface CaseItem {
-  id: string;
-  containedItem: {
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    category: string;
-    imageUrl: string;
-    thumbnailUrl?: string;
-    rarity: string;
-    fishingRodMultiplier?: number;
-    gradientEndColor?: string;
-    fishingRodPartType?: string;
-  };
-  dropRate: number;
-}
-
-interface CaseContents {
-  caseId: string;
-  caseName: string;
-  items: CaseItem[];
-  totalDropRate: number;
-  itemCount: number;
-}
+import { CaseItemDTO, CaseContents } from './CaseTypes';
 
 interface CasePreviewModalProps {
   isOpen: boolean;
@@ -60,7 +35,7 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
     }
   }, [isOpen, caseId]);
 
-  const sortCaseItems = (items: CaseItem[]) => {
+  const sortCaseItems = (items: CaseItemDTO[]) => {
     return items.sort((a, b) => {
       const aIndex = RARITY_ORDER.indexOf(a.containedItem.rarity);
       const bIndex = RARITY_ORDER.indexOf(b.containedItem.rarity);
@@ -189,7 +164,7 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
                         const item = caseItem.containedItem;
                         const rarityColor = getRarityColor(item.rarity);
 
-                        const nameParts = item.name.split('|').map(s => s.trim());
+                        const nameParts = item.name.split('|').map((s: string) => s.trim());
                         const nameLine1 = nameParts[0];
                         const nameLine2 = nameParts.length > 1 ? nameParts[1] : null;
 
@@ -311,7 +286,7 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
                         const item = caseItem.containedItem;
                         const rarityColor = getRarityColor(item.rarity);
 
-                        const nameParts = item.name.split('|').map(s => s.trim());
+                        const nameParts = item.name.split('|').map((s: string) => s.trim());
                         const nameLine1 = nameParts[0];
                         const nameLine2 = nameParts.length > 1 ? nameParts[1] : null;
 
