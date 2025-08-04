@@ -219,13 +219,26 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                         const cost = RARITY_COSTS[part.rarity] || 0;
                         return (
                         <div key={part.instanceId} className={`bg-slate-800 p-2 rounded-md flex items-center justify-between mb-2 border-l-4 ${getRarityClass(part.rarity)}`}>
-                          <div>
-                            <p className="font-medium text-white">{part.name}</p>
+                          <div className="flex-grow">
+                            <div className="flex justify-between items-center">
+                              <p className="font-medium text-white">{part.name}</p>
+                              {part.maxDurability && (
+                                <span className="text-xs text-slate-400">{part.durability} / {part.maxDurability}</span>
+                              )}
+                            </div>
                             <p className="text-xs text-slate-400">{part.description}</p>
+                            {part.maxDurability && (
+                              <div className="w-full bg-slate-700 rounded-full h-1.5 mt-1">
+                                <div
+                                  className={`${getDurabilityColor(part.durability, part.maxDurability)} h-1.5 rounded-full`}
+                                  style={{ width: `${(part.durability || 0) / (part.maxDurability || 1) * 100}%` }}
+                                ></div>
+                              </div>
+                            )}
                           </div>
                           <button
                             onClick={() => handleEquipClick(part)}
-                            className="px-3 py-1 bg-primary/80 hover:bg-primary text-white text-xs font-semibold rounded-md transition-colors"
+                            className="ml-4 px-3 py-1 bg-primary/80 hover:bg-primary text-white text-xs font-semibold rounded-md transition-colors"
                             disabled={!!equippedPartsMap[type]}
                           >
                             Equip ( <FaCoins className="inline-block -mt-px mr-1" />{cost} )
