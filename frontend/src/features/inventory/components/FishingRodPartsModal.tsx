@@ -20,6 +20,7 @@ interface FishingRodPartsModalProps {
   onEquipPart: (rodId: string, partInstanceId: string) => void;
   onRepairPart: (part: ShopItem) => void;
   onUnequipPart: (rod: ShopItem, part: ShopItem) => void;
+  onUnequipPartKeep: (rod: ShopItem, part: ShopItem) => void;
 }
 
 const RARITY_COSTS: Record<string, number> = {
@@ -62,6 +63,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
   onEquipPart,
   onRepairPart,
   onUnequipPart,
+  onUnequipPartKeep,
 }) => {
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [partToEquip, setPartToEquip] = useState<ShopItem | null>(null);
@@ -177,6 +179,12 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                               </button>
                             )
                           )}
+                          <button
+                            onClick={() => onUnequipPartKeep(rod, equippedPart)}
+                            className="ml-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md transition-colors"
+                          >
+                            Unequip
+                          </button>
                         </>
                       )}
                     </div>

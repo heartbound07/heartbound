@@ -21,7 +21,8 @@ import {
   repairFishingRod,
   getFishingRodPartRepairCost,
   repairFishingRodPart,
-  unequipAndRemoveBrokenPart
+  unequipAndRemoveBrokenPart,
+  unequipFishingRodPart
 } from '@/config/userService';
 import toast from 'react-hot-toast';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
@@ -298,6 +299,23 @@ export function InventoryPage() {
       setUnequipConfirmModalOpen(false);
       setPartToConfirm(null);
       setRodForUnequip(null);
+    }
+  };
+
+  const handleUnequipPartKeep = async (rod: ShopItem, part: ShopItem) => {
+    if (!rod.instanceId || !part.instanceId) return;
+
+    setActionInProgress('unequip-part-keep');
+    try {
+      const updatedProfile = await unequipFishingRodPart(rod.instanceId, part.instanceId);
+      updateProfile(updatedProfile);
+      toast.success("Part has been unequipped and returned to inventory.");
+      fetchInventory(); // Refresh inventory
+    } catch (error: any) {
+      console.error("Error unequipping part:", error);
+      toast.error(error?.response?.data?.message || "Failed to unequip part.");
+    } finally {
+      setActionInProgress(null);
     }
   };
 
@@ -766,6 +784,7 @@ export function InventoryPage() {
         onEquipPart={handleEquipRodPart}
         onRepairPart={handleRepairPart}
         onUnequipPart={handleUnequipPart}
+        onUnequipPartKeep={handleUnequipPartKeep}
     />
 
     <ConfirmationModal

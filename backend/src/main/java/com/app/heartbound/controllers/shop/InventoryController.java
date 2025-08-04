@@ -394,6 +394,23 @@ public class InventoryController {
         return ResponseEntity.ok(profile);
     }
 
+    @PostMapping("/rod/{rodInstanceId}/unequip-part-keep")
+    @PreAuthorize("isAuthenticated()")
+    @RateLimited(
+            requestsPerMinute = 15,
+            requestsPerHour = 100,
+            keyType = RateLimitKeyType.USER,
+            keyPrefix = "rod-unequip-part-keep"
+    )
+    public ResponseEntity<UserProfileDTO> unequipFishingRodPart(
+            @PathVariable UUID rodInstanceId,
+            @RequestBody UnequipPartRequest request,
+            Authentication authentication) {
+        String userId = authentication.getName();
+        UserProfileDTO profile = userInventoryService.unequipFishingRodPart(userId, rodInstanceId, request.getPartInstanceId());
+        return ResponseEntity.ok(profile);
+    }
+
     public static class UnequipPartRequest {
         private UUID partInstanceId;
 

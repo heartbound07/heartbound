@@ -519,6 +519,102 @@ public class UserInventoryService {
         return userService.mapToProfileDTO(user);
     }
 
+    @Transactional
+    public UserProfileDTO unequipFishingRodPart(String userId, UUID rodInstanceId, UUID partInstanceId) {
+        User user = userRepository.findByIdWithLock(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        ItemInstance rodInstance = itemInstanceRepository.findByIdWithLock(rodInstanceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Fishing rod instance not found with id: " + rodInstanceId));
+
+        if (!rodInstance.getOwner().getId().equals(userId)) {
+            throw new ResourceNotFoundException("User does not own the fishing rod.");
+        }
+
+        ItemInstance partInstance = user.getItemInstances().stream()
+                .filter(instance -> instance.getId().equals(partInstanceId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Fishing rod part not found in user inventory with id: " + partInstanceId));
+
+        Shop rodBaseItem = rodInstance.getBaseItem();
+        if (rodBaseItem.getCategory() != ShopCategory.FISHING_ROD) {
+            throw new InvalidOperationException("Item is not a fishing rod.");
+        }
+
+        Shop partBaseItem = partInstance.getBaseItem();
+        if (partBaseItem.getCategory() != ShopCategory.FISHING_ROD_PART) {
+            throw new InvalidOperationException("Item is not a fishing rod part.");
+        }
+
+        // Check if the part is actually equipped on this rod
+        boolean isPartEquippedOnThisRod = false;
+        switch (partBaseItem.getFishingRodPartType()) {
+            case ROD_SHAFT:
+                isPartEquippedOnThisRod = rodInstance.getEquippedRodShaft() != null && rodInstance.getEquippedRodShaft().getId().equals(partInstanceId);
+                break;
+            case REEL:
+                isPartEquippedOnThisRod = rodInstance.getEquippedReel() != null && rodInstance.getEquippedReel().getId().equals(partInstanceId);
+                break;
+            case FISHING_LINE:
+                isPartEquippedOnThisRod = rodInstance.getEquippedFishingLine() != null && rodInstance.getEquippedFishingLine().getId().equals(partInstanceId);
+                break;
+            case HOOK:
+                isPartEquippedOnThisRod = rodInstance.getEquippedHook() != null && rodInstance.getEquippedHook().getId().equals(partInstanceId);
+                break;
+            case GRIP:
+                isPartEquippedOnThisRod = rodInstance.getEquippedGrip() != null && rodInstance.getEquippedGrip().getId().equals(partInstanceId);
+                break;
+        }
+
+        if (!isPartEquippedOnThisRod) {
+            throw new InvalidOperationException("This part is not equipped on the specified fishing rod.");
+        }
+
+        // Handle durability decrease if part provides durability increase
+        Integer currentMaxDurability = rodInstance.getMaxDurability() != null ? rodInstance.getMaxDurability() : rodBaseItem.getMaxDurability();
+        if (currentMaxDurability == null) {
+            throw new InvalidOperationException("Rod does not have maximum durability set.");
+        }
+
+        boolean isDurabilityIncreasePart = partBaseItem.getDurabilityIncrease() != null && partBaseItem.getDurabilityIncrease() > 0;
+        
+        if (isDurabilityIncreasePart) {
+            // Decrease max durability by removing the part's contribution
+            int newMaxDurability = currentMaxDurability - partBaseItem.getDurabilityIncrease();
+            rodInstance.setMaxDurability(newMaxDurability);
+            
+            // Cap current durability if it exceeds new max durability
+            if (rodInstance.getDurability() > newMaxDurability) {
+                rodInstance.setDurability(newMaxDurability);
+            }
+        }
+
+        // Unequip the part from the rod
+        switch (partBaseItem.getFishingRodPartType()) {
+            case ROD_SHAFT:
+                rodInstance.setEquippedRodShaft(null);
+                break;
+            case REEL:
+                rodInstance.setEquippedReel(null);
+                break;
+            case FISHING_LINE:
+                rodInstance.setEquippedFishingLine(null);
+                break;
+            case HOOK:
+                rodInstance.setEquippedHook(null);
+                break;
+            case GRIP:
+                rodInstance.setEquippedGrip(null);
+                break;
+        }
+
+        itemInstanceRepository.save(rodInstance);
+        
+        logger.info("User {} successfully unequipped part {} from rod {}.", userId, partInstanceId, rodInstanceId);
+
+        return userService.mapToProfileDTO(user);
+    }
+
     private double getRarityPercentage(ItemRarity rarity) {
         switch (rarity) {
             case COMMON:
