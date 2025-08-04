@@ -226,7 +226,6 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                                 <span className="text-xs text-slate-400">{part.durability} / {part.maxDurability}</span>
                               )}
                             </div>
-                            <p className="text-xs text-slate-400">{part.description}</p>
                             {part.maxDurability && (
                               <div className="w-full bg-slate-700 rounded-full h-1.5 mt-1">
                                 <div
