@@ -1076,7 +1076,7 @@ public class BlackjackCommandListener extends ListenerAdapter {
         
         // First hand
         BlackjackHand firstHand = game.getPlayerHand();
-        String firstHandTitle = "Hand 1 [" + firstHand.getValue() + "] - " + getResultEmoji(firstResult);
+        String firstHandTitle = "Hand 1 [" + firstHand.getValue() + "]";
         if (firstHand.isBusted()) {
             firstHandTitle += " (BUST)";
         }
@@ -1084,7 +1084,7 @@ public class BlackjackCommandListener extends ListenerAdapter {
         
         // Second hand
         BlackjackHand secondHand = game.getSecondHand();
-        String secondHandTitle = "Hand 2 [" + secondHand.getValue() + "] - " + getResultEmoji(secondResult);
+        String secondHandTitle = "Hand 2 [" + secondHand.getValue() + "]";
         if (secondHand.isBusted()) {
             secondHandTitle += " (BUST)";
         }
@@ -1094,23 +1094,5 @@ public class BlackjackCommandListener extends ListenerAdapter {
         embed.setFooter(userName + ", you now have " + currentCredits + " credits", null);
         
         return embed.build();
-    }
-    
-    /**
-     * Get result emoji for individual hand results.
-     */
-    private String getResultEmoji(BlackjackGame.GameResult result) {
-        switch (result) {
-            case PLAYER_WIN:
-                return "🎉 WIN";
-            case PLAYER_BLACKJACK:
-                return "🎊 BLACKJACK";
-            case DEALER_WIN:
-                return "😞 LOSS";
-            case PUSH:
-                return "🤝 PUSH";
-            default:
-                return "❓";
-        }
     }
 } 

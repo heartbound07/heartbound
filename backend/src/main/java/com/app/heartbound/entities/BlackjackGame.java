@@ -462,6 +462,10 @@ public class BlackjackGame {
                 case DEALER_WIN:
                     totalPayout -= originalBet;
                     break;
+                case IN_PROGRESS:
+                default:
+                    // No payout change for in-progress or unexpected states
+                    break;
             }
         }
         
