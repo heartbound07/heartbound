@@ -168,8 +168,15 @@ export function InventoryPage() {
         updateProfile(response.data);
       }
       showToast('Fishing rod part equipped successfully!', 'success');
-      await fetchInventory(); // Refresh inventory
-      closePartsModal(); // Close the modal on success
+      
+      // Refresh inventory and update modal with fresh rod data
+      const allItems = await fetchInventory();
+      if (partsModal.isOpen && rodId) {
+        const updatedRod = allItems.find(item => item.instanceId === rodId);
+        if (updatedRod) {
+          setPartsModal({ isOpen: true, rod: updatedRod });
+        }
+      }
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to equip fishing rod part';
       showToast(errorMessage, 'error');
@@ -262,8 +269,15 @@ export function InventoryPage() {
       const updatedProfile = await repairFishingRodPart(partToConfirm.instanceId);
       updateProfile(updatedProfile);
       toast.success("Fishing rod part repaired successfully!");
-      fetchInventory(); // Refresh inventory
-      closePartsModal(); // Close the modal on success
+      
+      // Refresh inventory and update modal with fresh rod data
+      const allItems = await fetchInventory();
+      if (partsModal.isOpen && partsModal.rod?.instanceId) {
+        const updatedRod = allItems.find(item => item.instanceId === partsModal.rod?.instanceId);
+        if (updatedRod) {
+          setPartsModal({ isOpen: true, rod: updatedRod });
+        }
+      }
     } catch (error: any) {
       console.error("Error repairing part:", error);
       toast.error(error?.response?.data?.message || "Failed to repair fishing rod part.");
