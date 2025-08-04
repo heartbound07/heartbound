@@ -932,6 +932,25 @@ public class ShopService {
         if (item.getCategory() == ShopCategory.FISHING_ROD_PART) {
             List<ItemInstance> rodsToUpdate = itemInstanceRepository.findRodsWithEquippedParts(instancesToDelete);
             for (ItemInstance rod : rodsToUpdate) {
+                // Handle durability adjustments for each part being removed
+                Integer currentMaxDurability = rod.getMaxDurability() != null ? rod.getMaxDurability() : rod.getBaseItem().getMaxDurability();
+                
+                if (currentMaxDurability != null) {
+                    boolean isDurabilityIncreasePart = item.getDurabilityIncrease() != null && item.getDurabilityIncrease() > 0;
+                    
+                    if (isDurabilityIncreasePart) {
+                        // Decrease max durability by removing the part's contribution
+                        int newMaxDurability = currentMaxDurability - item.getDurabilityIncrease();
+                        rod.setMaxDurability(newMaxDurability);
+                        
+                        // Cap current durability if it exceeds new max durability
+                        if (rod.getDurability() != null && rod.getDurability() > newMaxDurability) {
+                            rod.setDurability(newMaxDurability);
+                        }
+                    }
+                }
+                
+                // Unequip the parts
                 if (rod.getEquippedRodShaft() != null && instancesToDelete.contains(rod.getEquippedRodShaft())) {
                     rod.setEquippedRodShaft(null);
                 }

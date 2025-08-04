@@ -485,6 +485,25 @@ public class UserInventoryService {
             throw new InvalidOperationException("This part is not equipped on the specified fishing rod.");
         }
 
+        // Handle durability decrease if part provides durability increase
+        Shop partBaseItem = partInstance.getBaseItem();
+        Integer currentMaxDurability = rodInstance.getMaxDurability() != null ? rodInstance.getMaxDurability() : rodInstance.getBaseItem().getMaxDurability();
+        if (currentMaxDurability == null) {
+            throw new InvalidOperationException("Rod does not have maximum durability set.");
+        }
+
+        boolean isDurabilityIncreasePart = partBaseItem.getDurabilityIncrease() != null && partBaseItem.getDurabilityIncrease() > 0;
+        
+        if (isDurabilityIncreasePart) {
+            // Decrease max durability by removing the part's contribution
+            int newMaxDurability = currentMaxDurability - partBaseItem.getDurabilityIncrease();
+            rodInstance.setMaxDurability(newMaxDurability);
+            
+            // Cap current durability if it exceeds new max durability
+            if (rodInstance.getDurability() != null && rodInstance.getDurability() > newMaxDurability) {
+                rodInstance.setDurability(newMaxDurability);
+            }
+        }
 
         // Unequip the part from the rod
         switch (partInstance.getBaseItem().getFishingRodPartType()) {
