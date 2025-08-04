@@ -408,6 +408,14 @@ public class UserInventoryService {
             }
         }
 
+        // Repair the part to full durability as part of the equipping process
+        Integer partMaxDurability = partInstance.getMaxDurability() != null ? partInstance.getMaxDurability() : partBaseItem.getMaxDurability();
+        if (partMaxDurability == null) {
+            throw new InvalidOperationException("Part does not have maximum durability set.");
+        }
+        partInstance.setDurability(partMaxDurability);
+        itemInstanceRepository.save(partInstance);
+
         Integer currentMaxDurability = rodInstance.getMaxDurability() != null ? rodInstance.getMaxDurability() : rodBaseItem.getMaxDurability();
         if (currentMaxDurability == null) {
             throw new InvalidOperationException("Rod does not have maximum durability set.");
