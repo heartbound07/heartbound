@@ -10,6 +10,11 @@ import { SafeText } from '@/components/SafeHtmlRenderer';
 import { useSanitizedContent } from '@/hooks/useSanitizedContent';
 import { ShopItem } from '@/types/shop';
 import { UserProfile } from '@/types/shop';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/valorant/popover';
 
 interface ShopItemCardProps {
   item: ShopItem;
@@ -336,70 +341,86 @@ const ShopItemCard = forwardRef<HTMLDivElement, ShopItemCardProps>(({
           </div>
         </div>
         
-        {/* Stat bars for FISHING_ROD_PART items */}
+        {/* Stats for FISHING_ROD_PART items */}
         {item.category === 'FISHING_ROD_PART' && (
-          <div className="mt-2 mb-3 space-y-2">
+          <div className="mt-2 mb-3 space-y-1">
             {/* Fortune stat */}
             {((item as any).bonusLootChance || 0) > 0 && (
-              <div>
-                <div className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Fortune</span>
-                  <span className="font-semibold text-yellow-400">+{((item as any).bonusLootChance || 0).toFixed(0)}%</span>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-1">
+                  <span className="text-xs text-slate-400">Fortune</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-slate-400 hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent><p>Increases the chance of finding bonus loot with each catch.</p></PopoverContent>
+                  </Popover>
                 </div>
-                <div className="w-full bg-slate-700 rounded-full h-2">
-                  <div 
-                    className="bg-yellow-500 h-2 rounded-full"
-                    style={{ width: `${Math.min(((item as any).bonusLootChance || 0) / 25 * 100, 100)}%` }}
-                  ></div>
-                </div>
+                <span className="text-xs font-semibold text-yellow-400">+{((item as any).bonusLootChance || 0).toFixed(0)}%</span>
               </div>
             )}
             
             {/* Rarity stat */}
             {((item as any).rarityChanceIncrease || 0) > 0 && (
-              <div>
-                <div className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Rarity</span>
-                  <span className="font-semibold text-purple-400">+{((item as any).rarityChanceIncrease || 0).toFixed(0)}%</span>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-1">
+                  <span className="text-xs text-slate-400">Rarity</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-slate-400 hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent><p>Increases the chance of catching higher-tier fish and items.</p></PopoverContent>
+                  </Popover>
                 </div>
-                <div className="w-full bg-slate-700 rounded-full h-2">
-                  <div 
-                    className="bg-purple-500 h-2 rounded-full"
-                    style={{ width: `${Math.min(((item as any).rarityChanceIncrease || 0) / 25 * 100, 100)}%` }}
-                  ></div>
-                </div>
+                <span className="text-xs font-semibold text-purple-400">+{((item as any).rarityChanceIncrease || 0).toFixed(0)}%</span>
               </div>
             )}
             
             {/* Reward Boost stat */}
             {((item as any).multiplierIncrease || 0) > 0 && (
-              <div>
-                <div className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Reward Boost</span>
-                  <span className="font-semibold text-cyan-400">+{((item as any).multiplierIncrease || 0).toFixed(1)}x</span>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-1">
+                  <span className="text-xs text-slate-400">Reward Boost</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="flex items-center justify-center">
+                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-slate-400 hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent><p>Provides a flat boost to the credits earned from fishing.</p></PopoverContent>
+                  </Popover>
                 </div>
-                <div className="w-full bg-slate-700 rounded-full h-2">
-                  <div 
-                    className="bg-cyan-500 h-2 rounded-full"
-                    style={{ width: `${Math.min(((item as any).multiplierIncrease || 0) / 0.5 * 100, 100)}%` }}
-                  ></div>
-                </div>
+                <span className="text-xs font-semibold text-cyan-400">+{((item as any).multiplierIncrease || 0).toFixed(1)}x</span>
               </div>
             )}
             
             {/* Stability stat */}
             {((item as any).negationChance || 0) > 0 && (
-              <div>
-                <div className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Stability</span>
-                  <span className="font-semibold text-red-500">+{((item as any).negationChance || 0).toFixed(0)}%</span>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-1">
+                  <span className="text-xs text-slate-400">Stability</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-slate-400 hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent><p>Increases resistance to negative events, like crabs snipping you</p></PopoverContent>
+                  </Popover>
                 </div>
-                <div className="w-full bg-slate-700 rounded-full h-2">
-                  <div 
-                    className="bg-red-500 h-2 rounded-full"
-                    style={{ width: `${Math.min(((item as any).negationChance || 0) / 25 * 100, 100)}%` }}
-                  ></div>
-                </div>
+                <span className="text-xs font-semibold text-red-500">+{((item as any).negationChance || 0).toFixed(0)}%</span>
               </div>
             )}
           </div>
