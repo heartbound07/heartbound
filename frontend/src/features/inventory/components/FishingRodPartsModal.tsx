@@ -67,6 +67,9 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
 }) => {
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [partToEquip, setPartToEquip] = useState<ShopItem | null>(null);
+  const [isUnequipConfirmModalOpen, setUnequipConfirmModalOpen] = useState(false);
+  const [partToUnequip, setPartToUnequip] = useState<ShopItem | null>(null);
+  const [unequipAction, setUnequipAction] = useState<'remove' | 'keep'>('keep');
 
   if (!isOpen || !rod) return null;
 
@@ -78,6 +81,22 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
   const handleConfirmEquip = () => {
     if (partToEquip && rod.instanceId) {
       onEquipPart(rod.instanceId, partToEquip.instanceId!);
+    }
+  };
+
+  const handleUnequipClick = (part: ShopItem, action: 'remove' | 'keep') => {
+    setPartToUnequip(part);
+    setUnequipAction(action);
+    setUnequipConfirmModalOpen(true);
+  };
+
+  const handleConfirmUnequip = () => {
+    if (partToUnequip && rod) {
+      if (unequipAction === 'remove') {
+        onUnequipPart(rod, partToUnequip);
+      } else {
+        onUnequipPartKeep(rod, partToUnequip);
+      }
     }
   };
 
@@ -165,7 +184,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                           {equippedPart.durability === 0 && (
                             (equippedPart.maxRepairs != null && (equippedPart.repairCount || 0) >= equippedPart.maxRepairs) ? (
                               <button
-                                onClick={() => onUnequipPart(rod, equippedPart)}
+                                onClick={() => handleUnequipClick(equippedPart, 'remove')}
                                 className="ml-4 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-md transition-colors"
                               >
                                 Max Repairs
@@ -180,7 +199,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                             )
                           )}
                           <button
-                            onClick={() => onUnequipPartKeep(rod, equippedPart)}
+                            onClick={() => handleUnequipClick(equippedPart, 'keep')}
                             className="ml-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md transition-colors"
                           >
                             Unequip
@@ -269,8 +288,21 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
               </div>
             </div>
           ) : (
-            'Are you sure you want to equip this? You won\'t be able to unequip this part.'
+            'Are you sure you want to equip this?'
           )
+        }
+      />
+      <ConfirmationModal
+        isOpen={isUnequipConfirmModalOpen}
+        onClose={() => setUnequipConfirmModalOpen(false)}
+        onConfirm={handleConfirmUnequip}
+        message={
+          <div className="text-center">
+            <p>Are you sure you want to unequip this part?</p>
+            <p className="mt-2 text-slate-400 text-sm">
+              You will need to pay credits again to re-equip it.
+            </p>
+          </div>
         }
       />
     </AnimatePresence>
