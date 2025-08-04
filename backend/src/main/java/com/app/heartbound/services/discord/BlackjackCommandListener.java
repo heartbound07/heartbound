@@ -784,7 +784,7 @@ public class BlackjackCommandListener extends ListenerAdapter {
             boolean isSecondHandActive = !game.isPlayingFirstHand() && !gameEnded;
             
             // First hand
-            String firstHandTitle = (isFirstHandActive ? "▶ " : "") + userName + " Hand 1 [" + firstHand.getValue() + "]";
+            String firstHandTitle = (isFirstHandActive ? "▶ " : "") + "Hand 1 [" + firstHand.getValue() + "]";
             if (firstHand.isBusted()) {
                 firstHandTitle += " (BUST)";
             }
@@ -792,7 +792,7 @@ public class BlackjackCommandListener extends ListenerAdapter {
             embed.addField(firstHandTitle, firstHandCards, true);
             
             // Second hand
-            String secondHandTitle = (isSecondHandActive ? "▶ " : "") + userName + " Hand 2 [" + secondHand.getValue() + "]";
+            String secondHandTitle = (isSecondHandActive ? "▶ " : "") + "Hand 2 [" + secondHand.getValue() + "]";
             if (secondHand.isBusted()) {
                 secondHandTitle += " (BUST)";
             }
