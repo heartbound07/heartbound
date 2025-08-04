@@ -173,6 +173,9 @@ export const InventoryItemCard = forwardRef<HTMLDivElement, InventoryItemCardPro
               {item.level && (
                 <div className="text-sm font-bold text-white drop-shadow-md">
                   LVL {item.level}
+                  {item.fishingRodMultiplier && (
+                    <span className="ml-2">x{item.fishingRodMultiplier}</span>
+                  )}
                 </div>
               )}
             </div>
