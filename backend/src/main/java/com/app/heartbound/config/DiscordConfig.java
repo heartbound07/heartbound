@@ -315,7 +315,6 @@ public class DiscordConfig {
                         .addOptions(
                             new OptionData(OptionType.INTEGER, "bet", "The amount of credits you want to bet", true)
                                 .setMinValue(1)
-                                .setMaxValue(100000)
                         ),
                     Commands.slash("prison", "Removes all roles from a user and assigns the prison role, or releases them.")
                         .addOptions(
