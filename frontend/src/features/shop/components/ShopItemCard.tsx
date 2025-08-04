@@ -346,7 +346,7 @@ const ShopItemCard = forwardRef<HTMLDivElement, ShopItemCardProps>(({
           <div className="mt-2 mb-3 space-y-1">
             {/* Fortune stat */}
             {((item as any).bonusLootChance || 0) > 0 && (
-              <div className="flex justify-between items-center">
+              <div className="flex items-center space-x-2">
                 <div className="flex items-center space-x-1">
                   <span className="text-xs text-slate-400">Fortune</span>
                   <Popover>
@@ -366,7 +366,7 @@ const ShopItemCard = forwardRef<HTMLDivElement, ShopItemCardProps>(({
             
             {/* Rarity stat */}
             {((item as any).rarityChanceIncrease || 0) > 0 && (
-              <div className="flex justify-between items-center">
+              <div className="flex items-center space-x-2">
                 <div className="flex items-center space-x-1">
                   <span className="text-xs text-slate-400">Rarity</span>
                   <Popover>
@@ -386,7 +386,7 @@ const ShopItemCard = forwardRef<HTMLDivElement, ShopItemCardProps>(({
             
             {/* Reward Boost stat */}
             {((item as any).multiplierIncrease || 0) > 0 && (
-              <div className="flex justify-between items-center">
+              <div className="flex items-center space-x-2">
                 <div className="flex items-center space-x-1">
                   <span className="text-xs text-slate-400">Reward Boost</span>
                   <Popover>
@@ -406,7 +406,7 @@ const ShopItemCard = forwardRef<HTMLDivElement, ShopItemCardProps>(({
             
             {/* Stability stat */}
             {((item as any).negationChance || 0) > 0 && (
-              <div className="flex justify-between items-center">
+              <div className="flex items-center space-x-2">
                 <div className="flex items-center space-x-1">
                   <span className="text-xs text-slate-400">Stability</span>
                   <Popover>
