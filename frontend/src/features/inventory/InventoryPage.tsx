@@ -289,8 +289,15 @@ export function InventoryPage() {
       const updatedProfile = await unequipAndRemoveBrokenPart(rodForUnequip.instanceId, partToConfirm.instanceId);
       updateProfile(updatedProfile);
       toast.success("Part has been permanently removed.");
-      fetchInventory(); // Refresh inventory
-      closePartsModal(); // Close the modal on success
+      
+      // Refresh inventory and update modal with fresh rod data
+      const allItems = await fetchInventory();
+      if (partsModal.isOpen && rodForUnequip.instanceId) {
+        const updatedRod = allItems.find(item => item.instanceId === rodForUnequip.instanceId);
+        if (updatedRod) {
+          setPartsModal({ isOpen: true, rod: updatedRod });
+        }
+      }
     } catch (error: any) {
       console.error("Error a part:", error);
       toast.error(error?.response?.data?.message || "Failed to unequip part.");
@@ -310,7 +317,15 @@ export function InventoryPage() {
       const updatedProfile = await unequipFishingRodPart(rod.instanceId, part.instanceId);
       updateProfile(updatedProfile);
       toast.success("Part has been unequipped and returned to inventory.");
-      fetchInventory(); // Refresh inventory
+      
+      // Refresh inventory and update modal with fresh rod data
+      const allItems = await fetchInventory();
+      if (partsModal.isOpen && rod.instanceId) {
+        const updatedRod = allItems.find(item => item.instanceId === rod.instanceId);
+        if (updatedRod) {
+          setPartsModal({ isOpen: true, rod: updatedRod });
+        }
+      }
     } catch (error: any) {
       console.error("Error unequipping part:", error);
       toast.error(error?.response?.data?.message || "Failed to unequip part.");
@@ -382,12 +397,17 @@ export function InventoryPage() {
         
         // Apply sorting
         setItems(sortItems(categoryFiltered));
+        
+        // Return the fresh inventory data for use by calling functions
+        return allItems;
       } else {
         setItems([]);
+        return [];
       }
     } catch (error) {
       console.error('Error fetching inventory:', error);
       showToast('Failed to load your inventory', 'error');
+      return [];
     } finally {
       setLoading(false);
     }
