@@ -1076,7 +1076,7 @@ public class BlackjackCommandListener extends ListenerAdapter {
         
         // First hand
         BlackjackHand firstHand = game.getPlayerHand();
-        String firstHandTitle = userName + " Hand 1 [" + firstHand.getValue() + "] - " + getResultEmoji(firstResult);
+        String firstHandTitle = "Hand 1 [" + firstHand.getValue() + "] - " + getResultEmoji(firstResult);
         if (firstHand.isBusted()) {
             firstHandTitle += " (BUST)";
         }
@@ -1084,7 +1084,7 @@ public class BlackjackCommandListener extends ListenerAdapter {
         
         // Second hand
         BlackjackHand secondHand = game.getSecondHand();
-        String secondHandTitle = userName + " Hand 2 [" + secondHand.getValue() + "] - " + getResultEmoji(secondResult);
+        String secondHandTitle = "Hand 2 [" + secondHand.getValue() + "] - " + getResultEmoji(secondResult);
         if (secondHand.isBusted()) {
             secondHandTitle += " (BUST)";
         }
