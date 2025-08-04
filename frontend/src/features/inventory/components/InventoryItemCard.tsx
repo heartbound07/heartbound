@@ -300,7 +300,7 @@ export const InventoryItemCard = forwardRef<HTMLDivElement, InventoryItemCardPro
           </div>
         )}
 
-        {item.description && (
+        {item.description && item.category !== 'FISHING_ROD' && (
           <SafeText 
             text={item.description}
             tag="p"
