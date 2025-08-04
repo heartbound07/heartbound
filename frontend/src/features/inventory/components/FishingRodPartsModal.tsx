@@ -253,6 +253,89 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                                 ></div>
                               </div>
                             )}
+                            
+                            {/* Stats for fishing rod parts */}
+                            <div className="mt-2 space-y-1">
+                              {/* Fortune stat */}
+                              {((part as any).bonusLootChance || 0) > 0 && (
+                                <div className="flex items-center space-x-2">
+                                  <div className="flex items-center space-x-1">
+                                    <span className="text-xs text-slate-400">Fortune</span>
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <button className="flex items-center justify-center">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-slate-400 hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                          </svg>
+                                        </button>
+                                      </PopoverTrigger>
+                                      <PopoverContent><p>Increases the chance of finding bonus loot with each catch.</p></PopoverContent>
+                                    </Popover>
+                                  </div>
+                                  <span className="text-xs font-semibold text-yellow-400">+{((part as any).bonusLootChance || 0).toFixed(0)}%</span>
+                                </div>
+                              )}
+                              
+                              {/* Rarity stat */}
+                              {((part as any).rarityChanceIncrease || 0) > 0 && (
+                                <div className="flex items-center space-x-2">
+                                  <div className="flex items-center space-x-1">
+                                    <span className="text-xs text-slate-400">Rarity</span>
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <button className="flex items-center justify-center">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-slate-400 hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                          </svg>
+                                        </button>
+                                      </PopoverTrigger>
+                                      <PopoverContent><p>Increases the chance of catching higher-tier fish and items.</p></PopoverContent>
+                                    </Popover>
+                                  </div>
+                                  <span className="text-xs font-semibold text-purple-400">+{((part as any).rarityChanceIncrease || 0).toFixed(0)}%</span>
+                                </div>
+                              )}
+                              
+                              {/* Reward Boost stat */}
+                              {((part as any).multiplierIncrease || 0) > 0 && (
+                                <div className="flex items-center space-x-2">
+                                  <div className="flex items-center space-x-1">
+                                    <span className="text-xs text-slate-400">Reward Boost</span>
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <button className="flex items-center justify-center">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-slate-400 hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                          </svg>
+                                        </button>
+                                      </PopoverTrigger>
+                                      <PopoverContent><p>Provides a flat boost to the credits earned from fishing.</p></PopoverContent>
+                                    </Popover>
+                                  </div>
+                                  <span className="text-xs font-semibold text-cyan-400">+{((part as any).multiplierIncrease || 0).toFixed(1)}x</span>
+                                </div>
+                              )}
+                              
+                              {/* Stability stat */}
+                              {((part as any).negationChance || 0) > 0 && (
+                                <div className="flex items-center space-x-2">
+                                  <div className="flex items-center space-x-1">
+                                    <span className="text-xs text-slate-400">Stability</span>
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <button className="flex items-center justify-center">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-slate-400 hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                          </svg>
+                                        </button>
+                                      </PopoverTrigger>
+                                      <PopoverContent><p>Increases resistance to negative events, like crabs snipping you</p></PopoverContent>
+                                    </Popover>
+                                  </div>
+                                  <span className="text-xs font-semibold text-red-500">+{((part as any).negationChance || 0).toFixed(0)}%</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                           {!equippedPartsMap[type] && (
                             <button
