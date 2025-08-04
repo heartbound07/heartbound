@@ -168,6 +168,13 @@ public class BlackjackGame {
                 dealerHand.addCard(deck.dealCard());
             }
             this.gameEnded = true;
+        } else {
+            // FIX: Check if first hand is 21 and auto-stand
+            if (playerHand.getValue() == 21) {
+                this.firstHandCompleted = true;
+                this.isPlayingFirstHand = false;
+                // Don't end the game - player still needs to play second hand
+            }
         }
     }
     
@@ -228,6 +235,17 @@ public class BlackjackGame {
                 this.gameEnded = true;
             } else {
                 // Single hand busted
+                this.gameEnded = true;
+            }
+        } else if (activeHand.getValue() == 21) {
+            // FIX: Auto-stand when hand reaches 21
+            if (isSplit && isPlayingFirstHand && !firstHandCompleted) {
+                // First hand hit 21, move to second hand
+                this.firstHandCompleted = true;
+                this.isPlayingFirstHand = false;
+            } else {
+                // Either single hand hit 21, or second hand hit 21 - end player's turn
+                this.dealerTurn = true;
                 this.gameEnded = true;
             }
         }
