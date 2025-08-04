@@ -39,6 +39,7 @@ export function CaseRollModal({
     null
   );
   const [error, setError] = useState<string | null>(null);
+  const [measuredItemWidth, setMeasuredItemWidth] = useState<number>(ITEM_WIDTH);
   const x = useMotionValue(0);
   const animationContainerRef = useRef<HTMLDivElement>(null);
 
@@ -46,6 +47,30 @@ export function CaseRollModal({
     if (!caseContents?.items) return [];
     return Array(8).fill(caseContents.items).flat();
   }, [caseContents]);
+
+  // Measure actual item width for cross-device compatibility
+  useEffect(() => {
+    const measureItemWidth = () => {
+      const container = animationContainerRef.current;
+      if (!container) return;
+
+      // Find the first item element to measure its actual rendered width
+      const firstItem = container.querySelector('[data-case-item]') as HTMLElement;
+      if (firstItem) {
+        const actualWidth = firstItem.offsetWidth;
+        if (actualWidth > 0 && actualWidth !== measuredItemWidth) {
+          setMeasuredItemWidth(actualWidth);
+        }
+      }
+    };
+
+    // Measure after items are rendered
+    if (animationItems.length > 0) {
+      // Use a small delay to ensure items are fully rendered
+      const timeoutId = setTimeout(measureItemWidth, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [animationItems, measuredItemWidth]);
 
   const fetchCaseContents = useCallback(async () => {
     try {
@@ -64,53 +89,44 @@ export function CaseRollModal({
     }
   }, [isOpen, caseId, fetchCaseContents]);
 
-  const generateAnimationSequenceFromRoll = useCallback(
-    (rollValue: number, currentCaseContents: CaseContents) => {
+  const generateAnimationSequenceFromWonItem = useCallback(
+    (wonItem: RollResult['wonItem'], currentCaseContents: CaseContents) => {
         if (!animationItems.length || !currentCaseContents?.items) {
             return 0;
         }
 
-    let cumulativeWeight = 0;
-    let wonItemFromRoll = null;
+    // Find the winning item using the definitive wonItem ID from backend
+    const winningIndex = animationItems.findIndex(item => item.containedItem.id === wonItem.id);
     
-        for (const caseItem of currentCaseContents.items) {
-      const itemWeight = Math.floor(caseItem.dropRate * 10000);
-      cumulativeWeight += itemWeight;
-      if (rollValue < cumulativeWeight) {
-        wonItemFromRoll = caseItem.containedItem;
-        break;
-      } 
-    }
-    
-    if (!wonItemFromRoll) {
-            wonItemFromRoll = currentCaseContents.items[currentCaseContents.items.length - 1].containedItem;
+    if (winningIndex === -1) {
+      // Fallback: if item not found, use the middle of the animation
+      console.warn('Won item not found in animation items, using fallback position');
+      return -(Math.floor(animationItems.length * 0.75) * measuredItemWidth);
     }
     
     const uniqueItemsCount = animationItems.length / 8;
-    const winningIndex = animationItems.findIndex(item => item.containedItem.id === wonItemFromRoll.id);
-    
     let targetIndex;
-    if (winningIndex !== -1) {
-            const targetRepetition = 6;
-      const indexInRepetition = winningIndex % uniqueItemsCount;
-      targetIndex = targetRepetition * uniqueItemsCount + indexInRepetition;
-      if (targetIndex >= animationItems.length) {
-        targetIndex = 5 * uniqueItemsCount + indexInRepetition;
-      }
-    } else {
-      targetIndex = Math.floor(animationItems.length * 0.75);
+    
+    // Select a target repetition (6th or 7th copy) for visual randomness
+    const targetRepetition = 6;
+    const indexInRepetition = winningIndex % uniqueItemsCount;
+    targetIndex = targetRepetition * uniqueItemsCount + indexInRepetition;
+    
+    // Ensure target index is within bounds
+    if (targetIndex >= animationItems.length) {
+      targetIndex = 5 * uniqueItemsCount + indexInRepetition;
     }
     
-        const container = animationContainerRef.current;
-        if (!container) {
-          // Fallback to the previous behavior if ref is not ready, though it shouldn't happen.
-          return -(targetIndex * ITEM_WIDTH - (document.body.clientWidth / 2) + (ITEM_WIDTH / 2));
-        }
+    const container = animationContainerRef.current;
+    if (!container) {
+      // Fallback to using document width if ref is not ready
+      return -(targetIndex * measuredItemWidth - (document.body.clientWidth / 2) + (measuredItemWidth / 2));
+    }
 
-        const containerWidth = container.offsetWidth;
-        return -(targetIndex * ITEM_WIDTH - (containerWidth / 2) + (ITEM_WIDTH / 2));
+    const containerWidth = container.offsetWidth;
+    return -(targetIndex * measuredItemWidth - (containerWidth / 2) + (measuredItemWidth / 2));
     },
-    [animationItems]
+    [animationItems, measuredItemWidth]
   );
 
   const handleOpenCase = async () => {
@@ -128,7 +144,7 @@ export function CaseRollModal({
       const apiPromise = httpClient.post(`/shop/cases/${caseId}/open`);
 
       // Start a long, continuous roll that will be interrupted later.
-      animate(x, -animationItems.length * ITEM_WIDTH, {
+      animate(x, -animationItems.length * measuredItemWidth, {
         duration: 10, // A long background animation
         ease: 'linear',
       });
@@ -139,8 +155,8 @@ export function CaseRollModal({
 
       setAnimationState('decelerating');
 
-      const finalX = generateAnimationSequenceFromRoll(
-        resultData.rollValue,
+      const finalX = generateAnimationSequenceFromWonItem(
+        resultData.wonItem,
         caseContents
       );
       
@@ -226,6 +242,7 @@ export function CaseRollModal({
             animationState={animationState}
             x={x}
             user={user}
+            itemWidth={measuredItemWidth}
           />
         );
       case 'reward':
