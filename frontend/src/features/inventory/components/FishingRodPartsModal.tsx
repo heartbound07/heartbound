@@ -249,7 +249,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
         message={
           partToEquip ? (
             <div className="text-center">
-              <p>Are you sure you want to equip this? This part cannot be unequipped.</p>
+              <p>Are you sure you want to equip this?.</p>
               <div className="flex items-center justify-center mt-4 text-lg">
                   <FaCoins className="mr-2 text-yellow-400" />
                   <span className="font-semibold text-white">{new Intl.NumberFormat().format(RARITY_COSTS[partToEquip.rarity] || 0)}</span>
