@@ -326,8 +326,21 @@ public class BlackjackCommandListener extends ListenerAdapter {
         MessageEmbed embed = buildGameEmbed(game, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl(), false);
         
         if (game.isGameEnded()) {
-            // Game ended (bust or split completion)
-            handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
+            if (game.isDealerTurn()) {
+                // Dealer needs to play, start dealer sequence
+                event.getHook().editOriginalEmbeds(embed)
+                        .setComponents() // Remove buttons as the player's turn is complete
+                        .queue();
+                
+                // Start the dramatic dealer play sequence after a short delay
+                ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+                scheduler.schedule(() -> {
+                    playDealerHandWithDelay(event, game, user, scheduler, 0);
+                }, 2, TimeUnit.SECONDS);
+            } else {
+                // Game ended without dealer turn (all hands busted)
+                handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
+            }
         } else {
             // Game continues, update buttons based on current state
             List<Button> buttons = buildActionButtons(game);

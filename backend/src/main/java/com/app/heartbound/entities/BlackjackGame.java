@@ -231,8 +231,15 @@ public class BlackjackGame {
                 this.firstHandCompleted = true;
                 this.isPlayingFirstHand = false;
             } else if (isSplit && !isPlayingFirstHand) {
-                // Second hand busted, end game
-                this.gameEnded = true;
+                // Second hand busted, check if first hand is also busted
+                if (playerHand.isBusted()) {
+                    // Both hands busted, end game immediately
+                    this.gameEnded = true;
+                } else {
+                    // First hand is still valid, dealer must play
+                    this.dealerTurn = true;
+                    this.gameEnded = true;
+                }
             } else {
                 // Single hand busted
                 this.gameEnded = true;
