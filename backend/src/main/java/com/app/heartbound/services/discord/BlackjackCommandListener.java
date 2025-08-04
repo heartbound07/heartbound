@@ -738,7 +738,7 @@ public class BlackjackCommandListener extends ListenerAdapter {
         
         // Set author with bet information
         String betInfo = game.isSplit() ? 
-            userName + ", you have bet 🪙 " + (game.getBetAmount() / 2) + " credits per hand (🪙 " + game.getBetAmount() + " total)." :
+            userName + ", you have bet 🪙 " + game.getBetAmount() :
             userName + ", you have bet 🪙 " + game.getBetAmount() + " credits.";
         embed.setAuthor(betInfo, null, userAvatarUrl);
         
