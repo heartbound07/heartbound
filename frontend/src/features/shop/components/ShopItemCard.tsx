@@ -338,7 +338,7 @@ const ShopItemCard = forwardRef<HTMLDivElement, ShopItemCardProps>(({
         
         {/* Stat bars for FISHING_ROD_PART items */}
         {item.category === 'FISHING_ROD_PART' && (
-          <div className="mt-2 space-y-2">
+          <div className="mt-2 mb-3 space-y-2">
             {/* Fortune stat */}
             {((item as any).bonusLootChance || 0) > 0 && (
               <div>
