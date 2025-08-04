@@ -195,7 +195,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
 
             {/* Right side: Parts Inventory */}
             <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex flex-col min-h-0">
-              <div className="space-y-2 flex-1 max-h-60 md:max-h-none overflow-y-auto pr-2">
+              <div className="space-y-2 flex-1 max-h-60 md:max-h-80 overflow-y-auto pr-2">
                 {partSlots.map(({ type, name }) => (
                   <div key={`inventory-${type}`}>
                     <div className="flex items-center space-x-2">
