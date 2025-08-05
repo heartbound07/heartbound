@@ -53,12 +53,30 @@ export const CaseIdleScreen = React.memo(({
       )
     : [];
 
+  const nameplateItems = caseContents
+    ? sortCaseItems(
+        caseContents.items.filter(
+          (caseItem) => caseItem.containedItem.category === 'USER_COLOR'
+        )
+      )
+    : [];
+
+  const badgeItems = caseContents
+    ? sortCaseItems(
+        caseContents.items.filter(
+          (caseItem) => caseItem.containedItem.category === 'BADGE'
+        )
+      )
+    : [];
+
   const otherItems = caseContents
     ? sortCaseItems(
         caseContents.items.filter(
           (caseItem) =>
             caseItem.containedItem.category !== 'FISHING_ROD' &&
-            caseItem.containedItem.category !== 'FISHING_ROD_PART'
+            caseItem.containedItem.category !== 'FISHING_ROD_PART' &&
+            caseItem.containedItem.category !== 'USER_COLOR' &&
+            caseItem.containedItem.category !== 'BADGE'
         )
       )
     : [];
@@ -88,96 +106,168 @@ export const CaseIdleScreen = React.memo(({
         </div>
       ) : (
         <>
-          {/* Items Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {otherItems.map((caseItem) => {
-              const item = caseItem.containedItem;
-              const rarityColor = getRarityColor(item.rarity);
+          {/* Nameplates Section */}
+          {nameplateItems.length > 0 && (
+            <>
+              <div className="mb-4">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                    <div className="w-full border-t border-slate-700" />
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="bg-slate-800 px-3 text-lg font-medium text-white rounded-md">
+                      Nameplates
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-              if (item.category === 'USER_COLOR') {
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                {nameplateItems.map((caseItem) => {
+                  const item = caseItem.containedItem;
+                  const rarityColor = getRarityColor(item.rarity);
+
+                  return (
+                    <motion.div
+                      key={caseItem.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4 hover:bg-slate-800/50 transition-colors"
+                      style={{ 
+                        borderLeftColor: rarityColor,
+                        borderLeftWidth: '4px'
+                      }}
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-center space-x-2 mb-2">
+                          <h3 className="font-medium text-white text-sm">{item.name}</h3>
+                          <span 
+                            className="px-2 py-0.5 rounded text-xs font-semibold"
+                            style={getRarityBadgeStyle(item.rarity)}
+                          >
+                            {getRarityLabel(item.rarity)}
+                          </span>
+                        </div>
+                        
+                        <div className="flex justify-center py-2">
+                          <NameplatePreview
+                            username={user?.username || "Preview"}
+                            avatar={user?.avatar || "/images/default-avatar.png"}
+                            color={item.imageUrl}
+                            endColor={item.gradientEndColor}
+                            fallbackColor={rarityColor}
+                            message=""
+                            size="md"
+                          />
+                        </div>
+
+                        {item.description && (
+                          <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Badges Section */}
+          {badgeItems.length > 0 && (
+            <>
+              <div className="mb-4">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                    <div className="w-full border-t border-slate-700" />
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="bg-slate-800 px-3 text-lg font-medium text-white rounded-md">
+                      Badges
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
+                {badgeItems.map((caseItem) => {
+                  const item = caseItem.containedItem;
+                  const rarityColor = getRarityColor(item.rarity);
+
+                  const nameParts = item.name.split('|').map(s => s.trim());
+                  const nameLine1 = nameParts[0];
+                  const nameLine2 = nameParts.length > 1 ? nameParts[1] : null;
+
+                  return (
+                    <motion.div
+                      key={caseItem.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="group flex flex-col overflow-hidden rounded-lg bg-slate-800/40 border border-slate-700/50 transition-all duration-300 hover:bg-slate-800/60 hover:shadow-xl hover:shadow-black/20"
+                    >
+                      <div className="aspect-square w-full bg-slate-900/20 flex items-center justify-center p-4">
+                        <img 
+                          src={item.thumbnailUrl || item.imageUrl} 
+                          alt={item.name}
+                          className="h-full w-full object-contain rounded-full p-2"
+                        />
+                      </div>
+                      <div className="p-2 text-left">
+                        <p className="truncate text-sm font-semibold text-white">{nameLine1}</p>
+                        {nameLine2 && <p className="truncate text-xs text-slate-400">{nameLine2}</p>}
+                      </div>
+                      <div className="h-1 w-full" style={{ backgroundColor: rarityColor }}></div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Other Items Grid */}
+          {otherItems.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {otherItems.map((caseItem) => {
+                const item = caseItem.containedItem;
+                const rarityColor = getRarityColor(item.rarity);
+
+                const nameParts = item.name.split('|').map(s => s.trim());
+                const nameLine1 = nameParts[0];
+                const nameLine2 = nameParts.length > 1 ? nameParts[1] : null;
+
                 return (
                   <motion.div
                     key={caseItem.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4 hover:bg-slate-800/50 transition-colors md:col-span-2 lg:col-span-2"
-                    style={{
-                      borderLeftColor: rarityColor,
-                      borderLeftWidth: '4px'
-                    }}
+                    className="group flex flex-col overflow-hidden rounded-lg bg-slate-800/40 border border-slate-700/50 transition-all duration-300 hover:bg-slate-800/60 hover:shadow-xl hover:shadow-black/20"
                   >
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-center space-x-2 mb-2">
-                        <h3 className="font-medium text-white text-sm">{item.name}</h3>
-                        <span
-                          className="px-2 py-0.5 rounded text-xs font-semibold"
-                          style={getRarityBadgeStyle(item.rarity)}
-                        >
-                          {getRarityLabel(item.rarity)}
-                        </span>
-                      </div>
-                      <div className="flex justify-center py-2">
-                        <NameplatePreview
-                          username={user?.username || "Preview"}
-                          avatar={user?.avatar || "/images/default-avatar.png"}
-                          color={item.imageUrl}
-                          endColor={item.gradientEndColor}
-                          fallbackColor={rarityColor}
-                          message=""
-                          size="md"
+                    <div className="aspect-square w-full bg-slate-900/20 flex items-center justify-center p-4">
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
                         />
-                      </div>
-                      {item.description && (
-                        <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>
+                      ) : (
+                        <div className="flex items-center justify-center text-xs text-slate-400">
+                          No Image
+                        </div>
                       )}
                     </div>
+                    <div className="p-2 text-left">
+                      <p className="truncate text-sm font-semibold text-white">{nameLine1}</p>
+                      {nameLine2 && <p className="truncate text-xs text-slate-400">{nameLine2}</p>}
+                    </div>
+                    <div className="h-1 w-full" style={{ backgroundColor: rarityColor }}></div>
                   </motion.div>
                 );
-              }
-
-              const nameParts = item.name.split('|').map(s => s.trim());
-              const nameLine1 = nameParts[0];
-              const nameLine2 = nameParts.length > 1 ? nameParts[1] : null;
-
-              return (
-                <motion.div
-                  key={caseItem.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="group flex flex-col overflow-hidden rounded-lg bg-slate-800/40 border border-slate-700/50 transition-all duration-300 hover:bg-slate-800/60 hover:shadow-xl hover:shadow-black/20"
-                >
-                  <div className="aspect-square w-full bg-slate-900/20 flex items-center justify-center p-4">
-                    {item.category === 'BADGE' ? (
-                      <img
-                        src={item.thumbnailUrl || item.imageUrl}
-                        alt={item.name}
-                        className="h-full w-full object-contain rounded-full p-2"
-                      />
-                    ) : item.imageUrl ? (
-                      <img
-                        src={item.imageUrl}
-                        alt={item.name}
-                        className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center text-xs text-slate-400">
-                        No Image
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-2 text-left">
-                    <p className="truncate text-sm font-semibold text-white">{nameLine1}</p>
-                    {nameLine2 && <p className="truncate text-xs text-slate-400">{nameLine2}</p>}
-                  </div>
-                  <div className="h-1 w-full" style={{ backgroundColor: rarityColor }}></div>
-                </motion.div>
-              );
-            })}
-          </div>
+              })}
+            </div>
+          )}
 
           {fishingRelatedItems.length > 0 && (
             <>
-              <div className="mt-8 mb-4">
+              <div className="mb-4">
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center" aria-hidden="true">
                     <div className="w-full border-t border-slate-700" />
