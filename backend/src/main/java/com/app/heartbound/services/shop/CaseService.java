@@ -206,10 +206,13 @@ public class CaseService {
         user = userRepository.save(user);
         int creditsAfter = user.getCredits();
         
-        // 15. Calculate processing time
+        // 15. Invalidate user profile cache within transaction to prevent stale cache issues
+        cacheConfig.invalidateUserProfileCache(userId);
+        
+        // 16. Calculate processing time
         long processingTime = System.currentTimeMillis() - startTime;
         
-        // 16. Create audit record
+        // 17. Create audit record
         RollAudit auditRecord = new RollAudit(
             userId, caseId, caseItem.getName(), wonItem.getId(), wonItem.getName(),
             rollValue, // Use the generated rollValue for the audit
@@ -224,10 +227,10 @@ public class CaseService {
         auditRecord.setRollTimestamp(now);
         auditRecord.setStatisticalHash(rollVerificationService.generateStatisticalHash(auditRecord));
         
-        // 17. Save roll audit record (for specialized gambling compliance)
+        // 18. Save roll audit record (for specialized gambling compliance)
         rollAuditRepository.save(auditRecord);
         
-        // 18. Create main audit entry for admin visibility
+        // 19. Create main audit entry for admin visibility
         createCaseRollAuditEntry(userId, caseId, caseItem, wonItem, alreadyOwned, 
                                 compensationAwarded, compensatedCredits, compensatedXp, 
                                 rollValue, wonItemDropRate.doubleValue(), creditsAfter - creditsBefore);
@@ -236,9 +239,6 @@ public class CaseService {
                    userId, caseId, wonItem.getId(), rollValue, alreadyOwned, 
                    compensationAwarded ? ", compensation awarded: " + compensatedCredits + " credits, " + compensatedXp + " XP" : "",
                    rollSeedHash.substring(0, 8) + "...");
-        
-        // 19. Invalidate user profile cache to reflect updated credits/xp/inventory
-        cacheConfig.invalidateUserProfileCache(userId);
         
         // 20. Return result
         return RollResultDTO.builder()
@@ -394,8 +394,10 @@ public class CaseService {
 
         // The roll is 0-999,999. Drop rates are percentages (e.g., 0.0123 for 0.0123%).
         // We scale each drop rate by 10,000 to work with integers (e.g., 0.0123 -> 123).
+        // Use proper rounding to prevent precision loss for very small drop rates.
         for (CaseItem item : caseItems) {
-            long itemWeight = item.getDropRate().multiply(new BigDecimal("10000")).longValue();
+            long itemWeight = item.getDropRate().multiply(new BigDecimal("10000"))
+                    .setScale(0, java.math.RoundingMode.HALF_UP).longValue();
             cumulativeWeight += itemWeight;
 
             if (rollValue < cumulativeWeight) {
