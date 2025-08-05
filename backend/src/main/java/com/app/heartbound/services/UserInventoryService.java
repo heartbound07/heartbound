@@ -478,6 +478,10 @@ public class UserInventoryService {
                 .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("Fishing rod part not found in user inventory with id: " + partInstanceId));
 
+        if (partInstance.getDurability() == null || partInstance.getDurability() > 0) {
+            throw new InvalidOperationException("This part is not broken and cannot be removed via this method.");
+        }
+        
         if (partInstance.getBaseItem().getMaxRepairs() == null || partInstance.getRepairCount() == null || partInstance.getRepairCount() < partInstance.getBaseItem().getMaxRepairs()) {
             throw new InvalidOperationException("This part has not reached its maximum repair limit and cannot be unequipped.");
         }
