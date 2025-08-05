@@ -90,16 +90,16 @@ public class RateLimitMonitoringController {
         Map<String, Object> endpoints = new HashMap<>();
         
         Map<String, Object> purchase = new HashMap<>();
-        purchase.put("requests_per_minute", 5);
-        purchase.put("requests_per_hour", 20);
-        purchase.put("burst_capacity", 6);
+        purchase.put("requests_per_minute", 15);
+        purchase.put("requests_per_hour", 60);
+        purchase.put("burst_capacity", 20);
         purchase.put("key_type", "USER");
         endpoints.put("purchase", purchase);
         
         Map<String, Object> caseOpen = new HashMap<>();
-        caseOpen.put("requests_per_minute", 10);
-        caseOpen.put("requests_per_hour", 50);
-        caseOpen.put("burst_capacity", 12);
+        caseOpen.put("requests_per_minute", 25);
+        caseOpen.put("requests_per_hour", 100);
+        caseOpen.put("burst_capacity", 30);
         caseOpen.put("key_type", "USER");
         endpoints.put("case_open", caseOpen);
         

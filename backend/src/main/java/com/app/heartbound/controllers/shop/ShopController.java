@@ -47,22 +47,22 @@ public class ShopController {
     private static final Logger logger = LoggerFactory.getLogger(ShopController.class);
     
     // Rate limiting configuration values
-    @Value("${rate.limit.purchase.per-minute:5}")
+    @Value("${rate.limit.purchase.per-minute:15}")
     private int purchaseRatePerMinute;
     
-    @Value("${rate.limit.purchase.per-hour:20}")
+    @Value("${rate.limit.purchase.per-hour:60}")
     private int purchaseRatePerHour;
     
-    @Value("${rate.limit.purchase.burst-capacity:6}")
+    @Value("${rate.limit.purchase.burst-capacity:20}")
     private int purchaseBurstCapacity;
     
-    @Value("${rate.limit.case-open.per-minute:10}")
+    @Value("${rate.limit.case-open.per-minute:25}")
     private int caseOpenRatePerMinute;
     
-    @Value("${rate.limit.case-open.per-hour:50}")
+    @Value("${rate.limit.case-open.per-hour:100}")
     private int caseOpenRatePerHour;
     
-    @Value("${rate.limit.case-open.burst-capacity:12}")
+    @Value("${rate.limit.case-open.burst-capacity:30}")
     private int caseOpenBurstCapacity;
     
     @Value("${rate.limit.equip.per-minute:30}")
@@ -155,11 +155,11 @@ public class ShopController {
      * @return Updated user profile
      */
     @RateLimited(
-        requestsPerMinute = 5,
-        requestsPerHour = 20,
+        requestsPerMinute = 15,
+        requestsPerHour = 60,
         keyType = RateLimitKeyType.USER,
         keyPrefix = "purchase",
-        burstCapacity = 6
+        burstCapacity = 20
     )
     @PostMapping("/purchase/{itemId}")
     @PreAuthorize("isAuthenticated()")
@@ -383,11 +383,11 @@ public class ShopController {
      * @return RollResultDTO with the won item details
      */
     @RateLimited(
-        requestsPerMinute = 10,
-        requestsPerHour = 50,
+        requestsPerMinute = 25,
+        requestsPerHour = 100,
         keyType = RateLimitKeyType.USER,
         keyPrefix = "case-open",
-        burstCapacity = 12
+        burstCapacity = 30
     )
     @PostMapping("/cases/{caseId}/open")
     @PreAuthorize("isAuthenticated()")
