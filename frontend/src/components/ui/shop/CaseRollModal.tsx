@@ -46,15 +46,6 @@ export function CaseRollModal({
   const animationContainerRef = useRef<HTMLDivElement>(null);
 
   // Stable helper functions
-  const shuffleArray = useCallback(<T,>(array: T[]): T[] => {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  }, []);
-
   const buildCommonOnlyReel = useCallback((caseItems: CaseItemDTO[]): CaseItemDTO[] => {
     const commonItems = caseItems.filter(item => item.containedItem.rarity === 'COMMON');
     
@@ -75,20 +66,26 @@ export function CaseRollModal({
     return commonReel;
   }, []);
 
-  const buildFullRarityReel = useCallback((
+  const buildFinalRevealReel = useCallback((
     caseItems: CaseItemDTO[], 
     wonItem: RollResult['wonItem']
   ): CaseItemDTO[] => {
-    // Create shuffled sequences of true rarity items
-    const shuffledItems = shuffleArray(caseItems);
+    // Get COMMON items for the majority of the reel
+    const commonItems = caseItems.filter(item => item.containedItem.rarity === 'COMMON');
     
-    // Build initial part with shuffled items (repeat multiple times for variety)
-    const initialPart = Array(4).fill(shuffledItems).flat();
+    // Fallback if no common items exist
+    const itemsToUse = commonItems.length > 0 ? commonItems : caseItems;
     
-    // Create final approach section with more variety
-    const finalApproachItems = shuffleArray(caseItems).slice(0, 25);
+    // Create a long reel of COMMON items (or fallback items)
+    const reelSize = 100; // Slightly longer for final reveal
+    const commonReel: CaseItemDTO[] = [];
     
-    // Find or create the won item as CaseItemDTO
+    for (let i = 0; i < reelSize - 1; i++) {
+      const randomItem = itemsToUse[Math.floor(Math.random() * itemsToUse.length)];
+      commonReel.push(randomItem);
+    }
+    
+    // Find or create the won item as CaseItemDTO with its TRUE rarity
     let wonItemAsCase = caseItems.find(item => item.containedItem.id === wonItem.id);
     
     if (!wonItemAsCase) {
@@ -101,9 +98,9 @@ export function CaseRollModal({
       };
     }
     
-    // Combine: initial part + final approach + won item
-    return [...initialPart, ...finalApproachItems, wonItemAsCase];
-  }, [caseId, shuffleArray]);
+    // ONLY the final item shows true rarity - all others remain COMMON
+    return [...commonReel, wonItemAsCase];
+  }, [caseId]);
 
   // Dynamic animation items based on state and available data
   const animationItems = useMemo(() => {
@@ -114,9 +111,9 @@ export function CaseRollModal({
       return buildCommonOnlyReel(caseContents.items);
     }
     
-    // Phase 2: Full rarity reveal - only when explicitly enabled and we have roll result
+    // Phase 2: Final reveal - only when explicitly enabled and we have roll result
     if (showFullRarityItems && rollResult) {
-      return buildFullRarityReel(caseContents.items, rollResult.wonItem);
+      return buildFinalRevealReel(caseContents.items, rollResult.wonItem);
     }
     
     // Continue showing COMMON items during early deceleration for smooth transition
@@ -126,7 +123,7 @@ export function CaseRollModal({
     
     // Fallback to original behavior for other states
     return Array(8).fill(caseContents.items).flat();
-  }, [caseContents, animationState, rollResult, showFullRarityItems, buildCommonOnlyReel, buildFullRarityReel]);
+  }, [caseContents, animationState, rollResult, showFullRarityItems, buildCommonOnlyReel, buildFinalRevealReel]);
 
   // Dynamically measure item width for better cross-device compatibility
   useEffect(() => {
@@ -175,9 +172,9 @@ export function CaseRollModal({
         }
 
         // For the new phased animation system, the won item is always at the end
-        // of the buildFullRarityReel, so we can calculate its position directly
-        const fullRarityReel = buildFullRarityReel(currentCaseContents.items, wonItem);
-        const targetIndex = fullRarityReel.length - 1; // Won item is always last
+        // of the buildFinalRevealReel, so we can calculate its position directly
+        const finalRevealReel = buildFinalRevealReel(currentCaseContents.items, wonItem);
+        const targetIndex = finalRevealReel.length - 1; // Won item is always last
         
         const container = animationContainerRef.current;
         if (!container) {
@@ -188,7 +185,7 @@ export function CaseRollModal({
         const containerWidth = container.offsetWidth;
         return -(targetIndex * measuredItemWidth - (containerWidth / 2) + (measuredItemWidth / 2));
     },
-    [buildFullRarityReel, measuredItemWidth]
+    [buildFinalRevealReel, measuredItemWidth]
   );
 
   const handleOpenCase = async () => {
