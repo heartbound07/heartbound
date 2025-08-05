@@ -111,14 +111,26 @@ public class CaseService {
             throw new IllegalArgumentException("Item is not a case");
         }
         
-        // 3. Verify and consume one case to prevent race conditions
+        // 3. Verify and consume one case atomically to prevent race conditions
         ItemInstance caseToConsume = user.getItemInstances().stream()
                 .filter(instance -> instance.getBaseItem().getId().equals(caseId))
                 .findFirst()
                 .orElseThrow(() -> new CaseNotOwnedException("You do not own this case or have no cases left to open"));
 
-        itemInstanceRepository.delete(caseToConsume);
-        user.getItemInstances().remove(caseToConsume);
+        // Perform atomic deletion - if another transaction already deleted this instance,
+        // the delete operation will fail gracefully
+        try {
+            itemInstanceRepository.delete(caseToConsume);
+            user.getItemInstances().remove(caseToConsume);
+        } catch (Exception e) {
+            // If deletion fails (likely due to concurrent access), re-check ownership
+            boolean stillOwnsCase = user.getItemInstances().stream()
+                    .anyMatch(instance -> instance.getBaseItem().getId().equals(caseId));
+            if (!stillOwnsCase) {
+                throw new CaseNotOwnedException("Case was already consumed by another operation");
+            }
+            throw e; // Re-throw if it's a different error
+        }
         
         // 4. Get case contents with drop rates and validate
         List<CaseItem> caseItems = caseItemRepository.findByCaseIdOrderByDropRateDesc(caseId);

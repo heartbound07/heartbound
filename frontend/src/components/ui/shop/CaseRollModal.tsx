@@ -44,6 +44,7 @@ export function CaseRollModal({
   const [showFullRarityItems, setShowFullRarityItems] = useState(false);
   const x = useMotionValue(0);
   const animationContainerRef = useRef<HTMLDivElement>(null);
+  const animationControlsRef = useRef<any>(null);
 
   // Stable helper functions
   const buildCommonOnlyReel = useCallback((caseItems: CaseItemDTO[]): CaseItemDTO[] => {
@@ -170,27 +171,15 @@ export function CaseRollModal({
     }
   }, [isOpen, caseId, fetchCaseContents]);
 
-  const generateAnimationSequenceFromRoll = useCallback(
-    (currentCaseContents: CaseContents) => {
-        if (!currentCaseContents?.items) {
-            return 0;
-        }
-
-        // For the new phased animation system, the won item is at position 90
-        // (after 90 COMMON items), so we can calculate its position directly
-        const targetIndex = 90; // Won item is always at position 90
-        
-        const container = animationContainerRef.current;
-        if (!container) {
-            // Fallback to document body width if ref is not ready
-            return -(targetIndex * measuredItemWidth - (document.body.clientWidth / 2) + (measuredItemWidth / 2));
-        }
-
-        const containerWidth = container.offsetWidth;
-        return -(targetIndex * measuredItemWidth - (containerWidth / 2) + (measuredItemWidth / 2));
-    },
-    [measuredItemWidth]
-  );
+  // Cleanup animation on component unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (animationControlsRef.current) {
+        animationControlsRef.current.stop();
+        animationControlsRef.current = null;
+      }
+    };
+  }, []);
 
   const handleOpenCase = async () => {
     if (animationState !== 'idle' || !caseContents?.items) return;
@@ -227,7 +216,7 @@ export function CaseRollModal({
       // This ensures smooth deceleration without abrupt direction changes
       const intermediateTarget = calculatedFinalX - (finalReelLength * 2); // Go 2 extra reel lengths ahead
       
-      const fastAnimationControls = animate(x, intermediateTarget, {
+      animationControlsRef.current = animate(x, intermediateTarget, {
         duration: 12, // Longer duration for the extended distance
         ease: 'linear',
       });
@@ -267,6 +256,12 @@ export function CaseRollModal({
       await new Promise(resolve => setTimeout(resolve, 1200));
       setAnimationState('reward');
     } catch (error: any) {
+      // Clean up animation on error
+      if (animationControlsRef.current) {
+        animationControlsRef.current.stop();
+        animationControlsRef.current = null;
+      }
+      
       setError(error.response?.data?.message || 'Failed to open case');
       setAnimationState('idle');
       setShowFullRarityItems(false);
@@ -281,6 +276,12 @@ export function CaseRollModal({
   };
 
   const handleClose = () => {
+    // Stop any ongoing animations to prevent memory leaks
+    if (animationControlsRef.current) {
+      animationControlsRef.current.stop();
+      animationControlsRef.current = null;
+    }
+    
     x.set(0);
     setAnimationState('idle');
     setRollResult(null);

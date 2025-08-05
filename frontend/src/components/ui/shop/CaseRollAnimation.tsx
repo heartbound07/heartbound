@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, forwardRef } from 'react';
+import React, { useState, useEffect, useCallback, forwardRef, useRef } from 'react';
 import { motion, MotionValue } from 'framer-motion';
 import { CaseItemThumbnail } from './CaseItemThumbnail';
 import { CaseItemDTO, AnimationState } from './CaseTypes';
@@ -20,6 +20,7 @@ interface CaseRollAnimationProps {
 
 export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollAnimationProps>(({ animationItems, animationState, x, user }, ref) => {
   const [virtualItems, setVirtualItems] = useState<VirtualItem[]>([]);
+  const throttleRef = useRef<number | null>(null);
   
   const totalAnimationWidth = animationItems.length * ITEM_WIDTH;
 
@@ -46,11 +47,29 @@ export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollA
     setVirtualItems(newVirtualItems);
   }, [animationItems, x, ref]);
 
+  // Throttled version of updateVirtualItems for performance during high-speed animations
+  const throttledUpdateVirtualItems = useCallback(() => {
+    if (throttleRef.current) return; // Skip if already scheduled
+    
+    throttleRef.current = requestAnimationFrame(() => {
+      updateVirtualItems();
+      throttleRef.current = null;
+    });
+  }, [updateVirtualItems]);
+
   useEffect(() => {
-    const unsubscribe = x.on("change", updateVirtualItems);
-    updateVirtualItems(); // Initial call
-    return unsubscribe;
-  }, [x, updateVirtualItems]);
+    const unsubscribe = x.on("change", throttledUpdateVirtualItems);
+    updateVirtualItems(); // Initial call (not throttled)
+    
+    return () => {
+      unsubscribe();
+      // Clean up any pending throttled calls
+      if (throttleRef.current) {
+        cancelAnimationFrame(throttleRef.current);
+        throttleRef.current = null;
+      }
+    };
+  }, [x, throttledUpdateVirtualItems, updateVirtualItems]);
   
   return (
     <motion.div
