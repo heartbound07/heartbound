@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, forwardRef, useRef } from 'react';
+import React, { useState, useEffect, useCallback, forwardRef } from 'react';
 import { motion, MotionValue } from 'framer-motion';
 import { CaseItemThumbnail } from './CaseItemThumbnail';
 import { CaseItemDTO, AnimationState } from './CaseTypes';
@@ -20,7 +20,6 @@ interface CaseRollAnimationProps {
 
 export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollAnimationProps>(({ animationItems, animationState, x, user }, ref) => {
   const [virtualItems, setVirtualItems] = useState<VirtualItem[]>([]);
-  const throttleRef = useRef<number | null>(null);
   
   const totalAnimationWidth = animationItems.length * ITEM_WIDTH;
 
@@ -47,35 +46,11 @@ export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollA
     setVirtualItems(newVirtualItems);
   }, [animationItems, x, ref]);
 
-  // Conditional update function - throttle only during fast rolling phase
-  const conditionalUpdateVirtualItems = useCallback(() => {
-    // Only throttle during the fastest animation phase to prevent performance issues
-    if (animationState === 'rolling') {
-      if (throttleRef.current) return; // Skip if already scheduled
-      
-      throttleRef.current = requestAnimationFrame(() => {
-        updateVirtualItems();
-        throttleRef.current = null;
-      });
-    } else {
-      // Use immediate updates during deceleration/revealing for smooth thumbnail rendering
-      updateVirtualItems();
-    }
-  }, [updateVirtualItems, animationState]);
-
   useEffect(() => {
-    const unsubscribe = x.on("change", conditionalUpdateVirtualItems);
-    updateVirtualItems(); // Initial call (not throttled)
-    
-    return () => {
-      unsubscribe();
-      // Clean up any pending throttled calls
-      if (throttleRef.current) {
-        cancelAnimationFrame(throttleRef.current);
-        throttleRef.current = null;
-      }
-    };
-  }, [x, conditionalUpdateVirtualItems, updateVirtualItems]);
+    const unsubscribe = x.on("change", updateVirtualItems);
+    updateVirtualItems(); // Initial call
+    return unsubscribe;
+  }, [x, updateVirtualItems]);
   
   return (
     <motion.div
