@@ -207,10 +207,28 @@ export function CaseRollModal({
       
       const apiPromise = httpClient.post(`/shop/cases/${caseId}/open`);
 
-      // Start a long, continuous roll with the COMMON-only items
-      const commonOnlyReel = buildCommonOnlyReel(caseContents.items);
-      animate(x, -commonOnlyReel.length * measuredItemWidth, {
-        duration: 10, // A long background animation
+      // Calculate the base final position where the winning item should be centered (index 90)
+      const container = animationContainerRef.current;
+      const containerWidth = container ? container.offsetWidth : document.body.clientWidth;
+      const targetIndex = 90; // Won item is always at position 90 in final reel
+      const baseFinalX = -(targetIndex * measuredItemWidth - (containerWidth / 2) + (measuredItemWidth / 2));
+      
+      // Ensure we travel far enough to create the blur effect (at least 4000px)
+      const minTravelDistance = 4000;
+      const finalReelLength = 111 * measuredItemWidth; // Final reel has 111 items
+      
+      // Calculate final position that's far enough ahead
+      let calculatedFinalX = baseFinalX;
+      while (Math.abs(calculatedFinalX) < minTravelDistance) {
+        calculatedFinalX -= finalReelLength;
+      }
+
+      // Start fast animation towards a position well beyond the final target
+      // This ensures smooth deceleration without abrupt direction changes
+      const intermediateTarget = calculatedFinalX - (finalReelLength * 2); // Go 2 extra reel lengths ahead
+      
+      const fastAnimationControls = animate(x, intermediateTarget, {
+        duration: 12, // Longer duration for the extended distance
         ease: 'linear',
       });
 
@@ -229,11 +247,17 @@ export function CaseRollModal({
       // Small delay to ensure the animation items update is processed
       await new Promise(resolve => setTimeout(resolve, 150));
 
-      const finalX = generateAnimationSequenceFromRoll(
-        caseContents
-      );
+      // Get current position and ensure final target is ahead of current position
+      const currentX = x.get();
+      let finalX = calculatedFinalX;
       
-      // This new animation will smoothly take over from the current one.
+      // Adjust final position to be ahead of current position if needed
+      while (finalX > currentX) {
+        finalX -= finalReelLength;
+      }
+      
+      // Smoothly transition from current high speed to final position with ease-out
+      // The animation will naturally decelerate from its current velocity
       await animate(x, finalX, {
         duration: 5, // Remaining deceleration time
         ease: [0.22, 1, 0.36, 1], // Custom ease-out curve
