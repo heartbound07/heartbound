@@ -36,15 +36,43 @@ export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollA
     let endIndex = Math.ceil((scrollLeft + containerWidth) / ITEM_WIDTH) + OVERSCAN;
     endIndex = Math.min(animationItems.length - 1, endIndex);
 
+    // Safety check: ensure startIndex doesn't exceed endIndex
+    if (startIndex > endIndex) {
+      startIndex = Math.max(0, endIndex - OVERSCAN);
+    }
+
     const newVirtualItems: VirtualItem[] = [];
     for (let i = startIndex; i <= endIndex; i++) {
-        newVirtualItems.push({
-            index: i,
-            item: animationItems[i],
-        });
+        // Additional safety check: ensure the item exists at this index
+        if (i >= 0 && i < animationItems.length && animationItems[i]) {
+          newVirtualItems.push({
+              index: i,
+              item: animationItems[i],
+          });
+        }
     }
+    
+    // Fallback: if we somehow end up with no virtual items, show at least the first few items
+    // This prevents the empty reel visual glitch during transitions
+    if (newVirtualItems.length === 0 && animationItems.length > 0) {
+      const fallbackCount = Math.min(10, animationItems.length);
+      for (let i = 0; i < fallbackCount; i++) {
+        newVirtualItems.push({
+          index: i,
+          item: animationItems[i],
+        });
+      }
+    }
+    
     setVirtualItems(newVirtualItems);
   }, [animationItems, x, ref]);
+
+  // Add a separate effect to handle animationItems changes immediately
+  useEffect(() => {
+    if (animationItems.length > 0) {
+      updateVirtualItems();
+    }
+  }, [animationItems, updateVirtualItems]);
 
   useEffect(() => {
     const unsubscribe = x.on("change", updateVirtualItems);
