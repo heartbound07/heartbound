@@ -41,10 +41,11 @@ export function CaseRollModal({
   );
   const [error, setError] = useState<string | null>(null);
   const [measuredItemWidth, setMeasuredItemWidth] = useState<number>(ITEM_WIDTH);
+  const [showFullRarityItems, setShowFullRarityItems] = useState(false);
   const x = useMotionValue(0);
   const animationContainerRef = useRef<HTMLDivElement>(null);
 
-  // Helper function to shuffle an array
+  // Stable helper functions
   const shuffleArray = useCallback(<T,>(array: T[]): T[] => {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -54,7 +55,6 @@ export function CaseRollModal({
     return shuffled;
   }, []);
 
-  // Helper function to create a COMMON-only animation reel for suspense
   const buildCommonOnlyReel = useCallback((caseItems: CaseItemDTO[]): CaseItemDTO[] => {
     const commonItems = caseItems.filter(item => item.containedItem.rarity === 'COMMON');
     
@@ -75,7 +75,6 @@ export function CaseRollModal({
     return commonReel;
   }, []);
 
-  // Helper function to create the full rarity reel for final reveal
   const buildFullRarityReel = useCallback((
     caseItems: CaseItemDTO[], 
     wonItem: RollResult['wonItem']
@@ -115,14 +114,19 @@ export function CaseRollModal({
       return buildCommonOnlyReel(caseContents.items);
     }
     
-    // Phase 2: Deceleration/Revealing - show true rarities with won item
-    if ((animationState === 'decelerating' || animationState === 'revealing') && rollResult) {
+    // Phase 2: Full rarity reveal - only when explicitly enabled and we have roll result
+    if (showFullRarityItems && rollResult) {
       return buildFullRarityReel(caseContents.items, rollResult.wonItem);
+    }
+    
+    // Continue showing COMMON items during early deceleration for smooth transition
+    if (animationState === 'decelerating' && !showFullRarityItems) {
+      return buildCommonOnlyReel(caseContents.items);
     }
     
     // Fallback to original behavior for other states
     return Array(8).fill(caseContents.items).flat();
-  }, [caseContents, animationState, rollResult, buildCommonOnlyReel, buildFullRarityReel]);
+  }, [caseContents, animationState, rollResult, showFullRarityItems, buildCommonOnlyReel, buildFullRarityReel]);
 
   // Dynamically measure item width for better cross-device compatibility
   useEffect(() => {
@@ -192,6 +196,7 @@ export function CaseRollModal({
 
     setAnimationState('loading');
     setError(null);
+    setShowFullRarityItems(false);
     x.set(0);
 
     try {
@@ -212,10 +217,16 @@ export function CaseRollModal({
       const resultData: RollResult = apiResponse.data;
       setRollResult(resultData);
 
-      // Small delay to ensure the animation items update is processed
-      await new Promise(resolve => setTimeout(resolve, 100));
-
       setAnimationState('decelerating');
+
+      // Continue with COMMON items for first part of deceleration (2 seconds)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Now switch to full rarity items for the final reveal
+      setShowFullRarityItems(true);
+      
+      // Small delay to ensure the animation items update is processed
+      await new Promise(resolve => setTimeout(resolve, 150));
 
       const finalX = generateAnimationSequenceFromRoll(
         resultData.wonItem,
@@ -224,7 +235,7 @@ export function CaseRollModal({
       
       // This new animation will smoothly take over from the current one.
       await animate(x, finalX, {
-        duration: 7, // Suspenseful deceleration
+        duration: 5, // Remaining deceleration time
         ease: [0.22, 1, 0.36, 1], // Custom ease-out curve
       });
 
@@ -234,6 +245,7 @@ export function CaseRollModal({
     } catch (error: any) {
       setError(error.response?.data?.message || 'Failed to open case');
       setAnimationState('idle');
+      setShowFullRarityItems(false);
     }
   };
 
@@ -250,6 +262,7 @@ export function CaseRollModal({
     setRollResult(null);
     setError(null);
     setCaseContents(null);
+    setShowFullRarityItems(false);
     setMeasuredItemWidth(ITEM_WIDTH); // Reset to fallback width
     onClose();
   };
