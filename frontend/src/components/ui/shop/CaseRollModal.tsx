@@ -196,25 +196,12 @@ export function CaseRollModal({
       
       const apiPromise = httpClient.post(`/shop/cases/${caseId}/open`);
 
-      // Calculate the base final position where the winning item should be centered (index 90)
-      const container = animationContainerRef.current;
-      const containerWidth = container ? container.offsetWidth : document.body.clientWidth;
-      const targetIndex = 90; // Won item is always at position 90 in final reel
-      const baseFinalX = -(targetIndex * measuredItemWidth - (containerWidth / 2) + (measuredItemWidth / 2));
-      
       // Ensure we travel far enough to create the blur effect (at least 4000px)
       const minTravelDistance = 4000;
       const finalReelLength = 111 * measuredItemWidth; // Final reel has 111 items
       
-      // Calculate final position that's far enough ahead
-      let calculatedFinalX = baseFinalX;
-      while (Math.abs(calculatedFinalX) < minTravelDistance) {
-        calculatedFinalX -= finalReelLength;
-      }
-
-      // Start fast animation towards a position well beyond the final target
-      // This ensures smooth deceleration without abrupt direction changes
-      const intermediateTarget = calculatedFinalX - (finalReelLength * 2); // Go 2 extra reel lengths ahead
+      // Start fast animation towards a distant target - we'll calculate the actual final position after API response
+      const intermediateTarget = -minTravelDistance - (finalReelLength * 3); // Go far enough ahead
       
       animationControlsRef.current = animate(x, intermediateTarget, {
         duration: 12, // Longer duration for the extended distance
@@ -236,9 +223,15 @@ export function CaseRollModal({
       // Small delay to ensure the animation items update is processed
       await new Promise(resolve => setTimeout(resolve, 150));
 
+      // Calculate the actual final position based on the won item (index 90 in final reel)
+      const container = animationContainerRef.current;
+      const containerWidth = container ? container.offsetWidth : document.body.clientWidth;
+      const targetIndex = 90; // Won item is always at position 90 in final reel
+      const baseFinalX = -(targetIndex * measuredItemWidth - (containerWidth / 2) + (measuredItemWidth / 2));
+      
       // Get current position and ensure final target is ahead of current position
       const currentX = x.get();
-      let finalX = calculatedFinalX;
+      let finalX = baseFinalX;
       
       // Adjust final position to be ahead of current position if needed
       while (finalX > currentX) {
