@@ -124,7 +124,7 @@ public class ShopDTO {
     @JsonView(Views.Public.class)
     private Integer maxDurability;
 
-    @JsonView(Views.Admin.class)
+    @JsonView(Views.Public.class)
     private Integer maxRepairs;
 
     @JsonView(Views.Public.class)
