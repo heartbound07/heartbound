@@ -2,6 +2,7 @@ package com.app.heartbound.controllers.shop;
 
 import com.app.heartbound.config.security.RateLimited;
 import com.app.heartbound.config.security.Views;
+import com.fasterxml.jackson.annotation.JsonView;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.dto.shop.ShopDTO;
 import com.app.heartbound.dto.shop.PurchaseResponseDTO;
@@ -390,6 +391,7 @@ public class ShopController {
     )
     @PostMapping("/cases/{caseId}/open")
     @PreAuthorize("isAuthenticated()")
+    @JsonView(Views.Public.class)
     public ResponseEntity<?> openCase(
         @PathVariable UUID caseId,
         Authentication authentication
