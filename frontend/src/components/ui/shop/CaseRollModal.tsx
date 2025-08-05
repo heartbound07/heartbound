@@ -194,11 +194,19 @@ export function CaseRollModal({
       
       setAnimationState('rolling');
       
-      const apiPromise = httpClient.post(`/shop/cases/${caseId}/open`);
+      // Add timeout handling for API call to prevent infinite animation
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Case opening request timed out')), 30000)
+      );
+      const apiPromise = Promise.race([
+        httpClient.post(`/shop/cases/${caseId}/open`),
+        timeoutPromise
+      ]);
 
       // Ensure we travel far enough to create the blur effect (at least 4000px)
       const minTravelDistance = 4000;
-      const finalReelLength = 111 * measuredItemWidth; // Final reel has 111 items
+      // Calculate dynamic reel length based on buildFinalRevealReel structure (90 + 1 + 20 = 111)
+      const finalReelLength = (90 + 1 + 20) * measuredItemWidth;
       
       // Start fast animation towards a distant target - we'll calculate the actual final position after API response
       const intermediateTarget = -minTravelDistance - (finalReelLength * 3); // Go far enough ahead
@@ -208,7 +216,7 @@ export function CaseRollModal({
         ease: 'linear',
       });
 
-      const apiResponse = await apiPromise;
+      const apiResponse: any = await apiPromise;
       const resultData: RollResult = apiResponse.data;
       setRollResult(resultData);
 
@@ -225,7 +233,7 @@ export function CaseRollModal({
 
       // Calculate the actual final position based on the won item (index 90 in final reel)
       const container = animationContainerRef.current;
-      const containerWidth = container ? container.offsetWidth : document.body.clientWidth;
+      const containerWidth = container ? container.offsetWidth : window.innerWidth;
       const targetIndex = 90; // Won item is always at position 90 in final reel
       const baseFinalX = -(targetIndex * measuredItemWidth - (containerWidth / 2) + (measuredItemWidth / 2));
       
