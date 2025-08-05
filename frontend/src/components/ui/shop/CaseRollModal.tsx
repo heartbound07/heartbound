@@ -11,6 +11,7 @@ import {
   AnimationState,
   RollResult,
   CaseContents,
+  CaseItemDTO,
 } from './CaseTypes';
 
 const ITEM_WIDTH = 112; // Fallback width
@@ -43,10 +44,85 @@ export function CaseRollModal({
   const x = useMotionValue(0);
   const animationContainerRef = useRef<HTMLDivElement>(null);
 
+  // Helper function to shuffle an array
+  const shuffleArray = useCallback(<T,>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }, []);
+
+  // Helper function to create a COMMON-only animation reel for suspense
+  const buildCommonOnlyReel = useCallback((caseItems: CaseItemDTO[]): CaseItemDTO[] => {
+    const commonItems = caseItems.filter(item => item.containedItem.rarity === 'COMMON');
+    
+    // If no common items exist, fall back to original behavior
+    if (commonItems.length === 0) {
+      return Array(8).fill(caseItems).flat();
+    }
+
+    // Create a reel with ~80 items from commons pool
+    const reelSize = 80;
+    const commonReel: CaseItemDTO[] = [];
+    
+    for (let i = 0; i < reelSize; i++) {
+      const randomCommon = commonItems[Math.floor(Math.random() * commonItems.length)];
+      commonReel.push(randomCommon);
+    }
+    
+    return commonReel;
+  }, []);
+
+  // Helper function to create the full rarity reel for final reveal
+  const buildFullRarityReel = useCallback((
+    caseItems: CaseItemDTO[], 
+    wonItem: RollResult['wonItem']
+  ): CaseItemDTO[] => {
+    // Create shuffled sequences of true rarity items
+    const shuffledItems = shuffleArray(caseItems);
+    
+    // Build initial part with shuffled items (repeat multiple times for variety)
+    const initialPart = Array(4).fill(shuffledItems).flat();
+    
+    // Create final approach section with more variety
+    const finalApproachItems = shuffleArray(caseItems).slice(0, 25);
+    
+    // Find or create the won item as CaseItemDTO
+    let wonItemAsCase = caseItems.find(item => item.containedItem.id === wonItem.id);
+    
+    if (!wonItemAsCase) {
+      // If for some reason the won item isn't in the case contents, create it
+      wonItemAsCase = {
+        id: `won-item-${wonItem.id}`,
+        caseId: caseId,
+        containedItem: wonItem,
+        dropRate: 0 // This doesn't matter for display
+      };
+    }
+    
+    // Combine: initial part + final approach + won item
+    return [...initialPart, ...finalApproachItems, wonItemAsCase];
+  }, [caseId, shuffleArray]);
+
+  // Dynamic animation items based on state and available data
   const animationItems = useMemo(() => {
     if (!caseContents?.items) return [];
+    
+    // Phase 1: Rolling - show only COMMON items for suspense
+    if (animationState === 'rolling') {
+      return buildCommonOnlyReel(caseContents.items);
+    }
+    
+    // Phase 2: Deceleration/Revealing - show true rarities with won item
+    if ((animationState === 'decelerating' || animationState === 'revealing') && rollResult) {
+      return buildFullRarityReel(caseContents.items, rollResult.wonItem);
+    }
+    
+    // Fallback to original behavior for other states
     return Array(8).fill(caseContents.items).flat();
-  }, [caseContents]);
+  }, [caseContents, animationState, rollResult, buildCommonOnlyReel, buildFullRarityReel]);
 
   // Dynamically measure item width for better cross-device compatibility
   useEffect(() => {
@@ -90,37 +166,25 @@ export function CaseRollModal({
 
   const generateAnimationSequenceFromRoll = useCallback(
     (wonItem: RollResult['wonItem'], currentCaseContents: CaseContents) => {
-        if (!animationItems.length || !currentCaseContents?.items) {
+        if (!currentCaseContents?.items) {
             return 0;
         }
 
-        // Use the definitive wonItem from backend instead of recalculating
-        const uniqueItemsCount = animationItems.length / 8;
-        const winningIndex = animationItems.findIndex(item => item.containedItem.id === wonItem.id);
-        
-        let targetIndex;
-        if (winningIndex !== -1) {
-            const targetRepetition = 6;
-            const indexInRepetition = winningIndex % uniqueItemsCount;
-            targetIndex = targetRepetition * uniqueItemsCount + indexInRepetition;
-            if (targetIndex >= animationItems.length) {
-                targetIndex = 5 * uniqueItemsCount + indexInRepetition;
-            }
-        } else {
-            // Fallback if item not found (shouldn't happen, but good defensive programming)
-            targetIndex = Math.floor(animationItems.length * 0.75);
-        }
+        // For the new phased animation system, the won item is always at the end
+        // of the buildFullRarityReel, so we can calculate its position directly
+        const fullRarityReel = buildFullRarityReel(currentCaseContents.items, wonItem);
+        const targetIndex = fullRarityReel.length - 1; // Won item is always last
         
         const container = animationContainerRef.current;
         if (!container) {
-            // Fallback to the previous behavior if ref is not ready, though it shouldn't happen.
+            // Fallback to document body width if ref is not ready
             return -(targetIndex * measuredItemWidth - (document.body.clientWidth / 2) + (measuredItemWidth / 2));
         }
 
         const containerWidth = container.offsetWidth;
         return -(targetIndex * measuredItemWidth - (containerWidth / 2) + (measuredItemWidth / 2));
     },
-    [animationItems, measuredItemWidth]
+    [buildFullRarityReel, measuredItemWidth]
   );
 
   const handleOpenCase = async () => {
@@ -137,8 +201,9 @@ export function CaseRollModal({
       
       const apiPromise = httpClient.post(`/shop/cases/${caseId}/open`);
 
-      // Start a long, continuous roll that will be interrupted later.
-      animate(x, -animationItems.length * measuredItemWidth, {
+      // Start a long, continuous roll with the COMMON-only items
+      const commonOnlyReel = buildCommonOnlyReel(caseContents.items);
+      animate(x, -commonOnlyReel.length * measuredItemWidth, {
         duration: 10, // A long background animation
         ease: 'linear',
       });
@@ -146,6 +211,9 @@ export function CaseRollModal({
       const apiResponse = await apiPromise;
       const resultData: RollResult = apiResponse.data;
       setRollResult(resultData);
+
+      // Small delay to ensure the animation items update is processed
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       setAnimationState('decelerating');
 
