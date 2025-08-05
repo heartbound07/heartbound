@@ -47,18 +47,24 @@ export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollA
     setVirtualItems(newVirtualItems);
   }, [animationItems, x, ref]);
 
-  // Throttled version of updateVirtualItems for performance during high-speed animations
-  const throttledUpdateVirtualItems = useCallback(() => {
-    if (throttleRef.current) return; // Skip if already scheduled
-    
-    throttleRef.current = requestAnimationFrame(() => {
+  // Conditional update function - throttle only during fast rolling phase
+  const conditionalUpdateVirtualItems = useCallback(() => {
+    // Only throttle during the fastest animation phase to prevent performance issues
+    if (animationState === 'rolling') {
+      if (throttleRef.current) return; // Skip if already scheduled
+      
+      throttleRef.current = requestAnimationFrame(() => {
+        updateVirtualItems();
+        throttleRef.current = null;
+      });
+    } else {
+      // Use immediate updates during deceleration/revealing for smooth thumbnail rendering
       updateVirtualItems();
-      throttleRef.current = null;
-    });
-  }, [updateVirtualItems]);
+    }
+  }, [updateVirtualItems, animationState]);
 
   useEffect(() => {
-    const unsubscribe = x.on("change", throttledUpdateVirtualItems);
+    const unsubscribe = x.on("change", conditionalUpdateVirtualItems);
     updateVirtualItems(); // Initial call (not throttled)
     
     return () => {
@@ -69,7 +75,7 @@ export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollA
         throttleRef.current = null;
       }
     };
-  }, [x, throttledUpdateVirtualItems, updateVirtualItems]);
+  }, [x, conditionalUpdateVirtualItems, updateVirtualItems]);
   
   return (
     <motion.div
