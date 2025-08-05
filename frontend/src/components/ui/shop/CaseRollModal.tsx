@@ -76,13 +76,11 @@ export function CaseRollModal({
     // Fallback if no common items exist
     const itemsToUse = commonItems.length > 0 ? commonItems : caseItems;
     
-    // Create a long reel of COMMON items (or fallback items)
-    const reelSize = 100; // Slightly longer for final reveal
-    const commonReel: CaseItemDTO[] = [];
-    
-    for (let i = 0; i < reelSize - 1; i++) {
+    // Create initial COMMON items before the won item
+    const preWonItems: CaseItemDTO[] = [];
+    for (let i = 0; i < 90; i++) {
       const randomItem = itemsToUse[Math.floor(Math.random() * itemsToUse.length)];
-      commonReel.push(randomItem);
+      preWonItems.push(randomItem);
     }
     
     // Find or create the won item as CaseItemDTO with its TRUE rarity
@@ -98,8 +96,15 @@ export function CaseRollModal({
       };
     }
     
-    // ONLY the final item shows true rarity - all others remain COMMON
-    return [...commonReel, wonItemAsCase];
+    // Create additional COMMON items after the won item to fill the right side
+    const postWonItems: CaseItemDTO[] = [];
+    for (let i = 0; i < 20; i++) {
+      const randomItem = itemsToUse[Math.floor(Math.random() * itemsToUse.length)];
+      postWonItems.push(randomItem);
+    }
+    
+    // Structure: [90 COMMON items] + [1 WON item] + [20 COMMON items] = 111 total
+    return [...preWonItems, wonItemAsCase, ...postWonItems];
   }, [caseId]);
 
   // Dynamic animation items based on state and available data
@@ -166,15 +171,14 @@ export function CaseRollModal({
   }, [isOpen, caseId, fetchCaseContents]);
 
   const generateAnimationSequenceFromRoll = useCallback(
-    (wonItem: RollResult['wonItem'], currentCaseContents: CaseContents) => {
+    (currentCaseContents: CaseContents) => {
         if (!currentCaseContents?.items) {
             return 0;
         }
 
-        // For the new phased animation system, the won item is always at the end
-        // of the buildFinalRevealReel, so we can calculate its position directly
-        const finalRevealReel = buildFinalRevealReel(currentCaseContents.items, wonItem);
-        const targetIndex = finalRevealReel.length - 1; // Won item is always last
+        // For the new phased animation system, the won item is at position 90
+        // (after 90 COMMON items), so we can calculate its position directly
+        const targetIndex = 90; // Won item is always at position 90
         
         const container = animationContainerRef.current;
         if (!container) {
@@ -185,7 +189,7 @@ export function CaseRollModal({
         const containerWidth = container.offsetWidth;
         return -(targetIndex * measuredItemWidth - (containerWidth / 2) + (measuredItemWidth / 2));
     },
-    [buildFinalRevealReel, measuredItemWidth]
+    [measuredItemWidth]
   );
 
   const handleOpenCase = async () => {
@@ -226,7 +230,6 @@ export function CaseRollModal({
       await new Promise(resolve => setTimeout(resolve, 150));
 
       const finalX = generateAnimationSequenceFromRoll(
-        resultData.wonItem,
         caseContents
       );
       
