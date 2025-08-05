@@ -77,6 +77,7 @@ export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollA
             {virtualItems.map(({ item, index }) => (
               <div
                 key={`${item.containedItem.id}-${index}`}
+                data-case-item
                 style={{
                   position: 'absolute',
                   top: 0,
