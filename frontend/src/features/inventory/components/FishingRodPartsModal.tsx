@@ -122,6 +122,15 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
 
   const equippedPartsMap = rod.equippedParts || {};
 
+  // Temporary debugging - remove after fixing
+  console.log('FishingRodPartsModal Debug:', {
+    rodName: rod.name,
+    equippedPartsMap,
+    equippedPartsKeys: Object.keys(equippedPartsMap),
+    samplePart: Object.values(equippedPartsMap)[0],
+    samplePartMaxRepairs: Object.values(equippedPartsMap)[0]?.maxRepairs,
+  });
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center">
@@ -144,6 +153,16 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                 {partSlots.map(({ type, name }) => {
                   const equippedPart = equippedPartsMap[type];
                   const Icon = partIcons[type] || GiGearStick;
+                  
+                  // Debug broken parts
+                  if (equippedPart?.durability === 0) {
+                    console.log('Broken part found:', {
+                      name: equippedPart.name,
+                      type,
+                      maxRepairs: equippedPart.maxRepairs,
+                      repairCount: equippedPart.repairCount,
+                    });
+                  }
                   return (
                     <div key={type} className={`bg-slate-800 p-3 rounded-md border-l-4 flex items-center justify-between ${getRarityClass(equippedPart?.rarity || 'COMMON')}`}>
                       <div className="flex items-center flex-grow">

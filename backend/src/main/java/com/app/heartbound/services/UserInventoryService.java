@@ -205,8 +205,8 @@ public class UserInventoryService {
             throw new InvalidOperationException("Item is not a fishing rod part.");
         }
 
-        // Using getPartUpgradeCost as a reference for cost structure
-        return getPartUpgradeCost(partBaseItem.getRarity());
+        // Use proper repair cost calculation instead of upgrade cost
+        return getBaseRepairCost(partBaseItem.getRarity());
     }
 
     @Transactional
@@ -221,14 +221,14 @@ public class UserInventoryService {
             throw new ResourceNotFoundException("User does not own this fishing rod part.");
         }
 
-        if (partInstance.getDurability() != null && partInstance.getDurability() > 0) {
+        if (partInstance.getDurability() == null || partInstance.getDurability() > 0) {
             throw new InvalidOperationException("This part does not need repairs.");
         }
 
-        // Check if the part has reached its maximum repair limit
-        if (partInstance.getRepairCount() != null &&
-            partInstance.getBaseItem().getMaxRepairs() != null &&
-            partInstance.getRepairCount() >= partInstance.getBaseItem().getMaxRepairs()) {
+        // Check if the part has reached its maximum repair limit - handle null repairCount safely
+        Integer currentRepairCount = partInstance.getRepairCount() != null ? partInstance.getRepairCount() : 0;
+        if (partInstance.getBaseItem().getMaxRepairs() != null &&
+            currentRepairCount >= partInstance.getBaseItem().getMaxRepairs()) {
             throw new InvalidOperationException("This part has reached its maximum repair limit.");
         }
 
@@ -245,7 +245,8 @@ public class UserInventoryService {
         }
 
         partInstance.setDurability(maxDurability);
-        partInstance.setRepairCount(partInstance.getRepairCount() + 1);
+        // Safely increment repairCount, handling null values
+        partInstance.setRepairCount(currentRepairCount + 1);
         itemInstanceRepository.save(partInstance);
 
         logger.info("User {} successfully repaired part {} for {} credits. Repair count: {}", userId, partInstanceId, cost, partInstance.getRepairCount());
