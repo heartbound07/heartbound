@@ -819,6 +819,7 @@ export function InventoryPage() {
         onRepairPart={handleRepairPart}
         onUnequipPart={handleUnequipPart}
         onUnequipPartKeep={handleUnequipPartKeep}
+        actionInProgress={actionInProgress}
     />
 
     <ConfirmationModal

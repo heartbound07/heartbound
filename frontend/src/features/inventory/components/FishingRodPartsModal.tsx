@@ -21,6 +21,7 @@ interface FishingRodPartsModalProps {
   onRepairPart: (part: ShopItem) => void;
   onUnequipPart: (rod: ShopItem, part: ShopItem) => void;
   onUnequipPartKeep: (rod: ShopItem, part: ShopItem) => void;
+  actionInProgress?: string | null;
 }
 
 const RARITY_COSTS: Record<string, number> = {
@@ -64,6 +65,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
   onRepairPart,
   onUnequipPart,
   onUnequipPartKeep,
+  actionInProgress,
 }) => {
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [partToEquip, setPartToEquip] = useState<ShopItem | null>(null);
@@ -81,6 +83,9 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
   const handleConfirmEquip = () => {
     if (partToEquip && rod.instanceId) {
       onEquipPart(rod.instanceId, partToEquip.instanceId!);
+      // Clear state after action
+      setConfirmModalOpen(false);
+      setPartToEquip(null);
     }
   };
 
@@ -97,6 +102,10 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
       } else {
         onUnequipPartKeep(rod, partToUnequip);
       }
+      // Clear state after action
+      setUnequipConfirmModalOpen(false);
+      setPartToUnequip(null);
+      setUnequipAction('keep');
     }
   };
 
@@ -122,14 +131,8 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
 
   const equippedPartsMap = rod.equippedParts || {};
 
-  // Temporary debugging - remove after fixing
-  console.log('FishingRodPartsModal Debug:', {
-    rodName: rod.name,
-    equippedPartsMap,
-    equippedPartsKeys: Object.keys(equippedPartsMap),
-    samplePart: Object.values(equippedPartsMap)[0],
-    samplePartMaxRepairs: Object.values(equippedPartsMap)[0]?.maxRepairs,
-  });
+  // Check if any actions are in progress to prevent race conditions
+  const isActionInProgress = Boolean(actionInProgress);
 
   return (
     <AnimatePresence>
@@ -154,15 +157,10 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                   const equippedPart = equippedPartsMap[type];
                   const Icon = partIcons[type] || GiGearStick;
                   
-                  // Debug broken parts
-                  if (equippedPart?.durability === 0) {
-                    console.log('Broken part found:', {
-                      name: equippedPart.name,
-                      type,
-                      maxRepairs: equippedPart.maxRepairs,
-                      repairCount: equippedPart.repairCount,
-                    });
-                  }
+                  // Determine if part should be removed (broken and at max repairs)
+                  const shouldRemovePart = equippedPart?.durability === 0 && 
+                    equippedPart?.maxRepairs != null && 
+                    (equippedPart?.repairCount || 0) >= equippedPart.maxRepairs;
                   return (
                     <div key={type} className={`bg-slate-800 p-3 rounded-md border-l-4 flex items-center justify-between ${getRarityClass(equippedPart?.rarity || 'COMMON')}`}>
                       <div className="flex items-center flex-grow">
@@ -204,18 +202,30 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                             equippedPart.maxRepairs != null && (equippedPart.repairCount || 0) < equippedPart.maxRepairs && (
                               <button
                                 onClick={() => onRepairPart(equippedPart)}
-                                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-md transition-colors"
+                                disabled={isActionInProgress}
+                                className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-500 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
                               >
                                 Repair
                               </button>
                             )
                           )}
-                          <button
-                            onClick={() => handleUnequipClick(equippedPart, 'keep')}
-                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md transition-colors"
-                          >
-                            Unequip
-                          </button>
+                          {shouldRemovePart ? (
+                            <button
+                              onClick={() => handleUnequipClick(equippedPart, 'remove')}
+                              disabled={isActionInProgress}
+                              className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-500 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
+                            >
+                              Remove
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleUnequipClick(equippedPart, 'keep')}
+                              disabled={isActionInProgress}
+                              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-500 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
+                            >
+                              Unequip
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -304,7 +314,8 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                           {!equippedPartsMap[type] && (
                             <button
                               onClick={() => handleEquipClick(part)}
-                              className="ml-4 px-3 py-1 bg-primary/80 hover:bg-primary text-white text-xs font-semibold rounded-md transition-colors"
+                              disabled={isActionInProgress}
+                              className="ml-4 px-3 py-1 bg-primary/80 hover:bg-primary disabled:bg-gray-500 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
                             >
                               Equip ( <FaCoins className="inline-block -mt-px mr-1" />{cost} )
                             </button>
@@ -349,12 +360,12 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
           partToUnequip.maxRepairs != null && 
           (partToUnequip.repairCount || 0) >= partToUnequip.maxRepairs ? (
             <div className="text-center">
-              <p>Are you sure you want to unequip this part?</p>
+              <p>Are you sure you want to remove this part?</p>
               <p className="mt-2 text-red-400 text-sm font-semibold">
-                You have reached the max repair limit. This part is broken!
+                This part has reached the max repair limit and is broken!
               </p>
-              <p className="mt-1 text-slate-400 text-sm">
-                You will need to pay credits again to re-equip it.
+              <p className="mt-1 text-orange-400 text-sm font-semibold">
+                ⚠️ This action will permanently destroy the part.
               </p>
             </div>
           ) : (
