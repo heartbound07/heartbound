@@ -104,22 +104,22 @@ public class UserInventoryService {
 
     private int getBaseRepairCost(ItemRarity rarity) {
         switch (rarity) {
-            case COMMON: return 100;
-            case UNCOMMON: return 300;
-            case RARE: return 800;
-            case EPIC: return 2500;
-            case LEGENDARY: return 7000;
+            case COMMON: return 25;
+            case UNCOMMON: return 75;
+            case RARE: return 200;
+            case EPIC: return 600;
+            case LEGENDARY: return 1750;
             default: return 0;
         }
     }
 
     private int getPartSurcharge(ItemRarity rarity) {
         switch (rarity) {
-            case COMMON: return 20;
-            case UNCOMMON: return 60;
-            case RARE: return 200;
-            case EPIC: return 800;
-            case LEGENDARY: return 3000;
+            case COMMON: return 5;
+            case UNCOMMON: return 15;
+            case RARE: return 50;
+            case EPIC: return 200;
+            case LEGENDARY: return 500;
             default: return 0;
         }
     }
