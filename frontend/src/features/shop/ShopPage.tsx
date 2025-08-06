@@ -73,7 +73,8 @@ export function ShopPage() {
 
     } catch (error) {
       console.error('Error fetching shop layout:', error);
-      showToast('Failed to load shop items', 'error');
+      const id = Math.random().toString(36).substring(2, 9);
+      setToasts(prev => [...prev, { id, message: 'Failed to load shop items', type: 'error' }]);
     } finally {
       const elapsedTime = Date.now() - startTime;
       if (elapsedTime < MIN_LOADING_TIME) {
@@ -84,7 +85,7 @@ export function ShopPage() {
         setLoading(false);
       }
     }
-  }, [showToast]);
+  }, []); // Remove showToast from dependencies to prevent infinite loop
 
   useEffect(() => {
     fetchShopLayout();
@@ -97,12 +98,13 @@ export function ShopPage() {
     const msUntilMidnight = midnightUTC.getTime() - now.getTime();
 
     const timerId = setTimeout(() => {
-      showToast('Daily items have been refreshed!', 'info');
+      const id = Math.random().toString(36).substring(2, 9);
+      setToasts(prev => [...prev, { id, message: 'Daily items have been refreshed!', type: 'info' }]);
       fetchShopLayout();
     }, msUntilMidnight);
 
     return () => clearTimeout(timerId);
-  }, [fetchShopLayout, showToast]);
+  }, []); // Remove dependencies to avoid recreation
 
   const handlePurchase = async (itemId: string, quantity?: number) => {
     if (purchaseInProgress) return;
@@ -124,7 +126,9 @@ export function ShopPage() {
       setFeaturedItems(prevItems =>
         prevItems.map(item => (item.id === purchasedItem.id ? purchasedItem : item))
       );
-      setDailyItems(prevItems => prevItems.filter(item => item.id !== purchasedItem.id));
+      setDailyItems(prevItems => 
+        prevItems.map(item => item.id === purchasedItem.id ? { ...item, owned: true } : item)
+      );
 
       if (userProfile) {
         const updatedProfile = userProfile;
@@ -209,7 +213,7 @@ export function ShopPage() {
                 </div>
                 <ShopSection
                   title=""
-                  items={dailyItems}
+                  items={dailyItems.filter(item => !item.owned)}
                   loading={loading}
                   purchaseInProgress={purchaseInProgress}
                   user={user}

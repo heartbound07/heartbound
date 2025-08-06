@@ -122,6 +122,13 @@ public class CacheConfig {
     @Value("${cache.shop-layout.expire-after-write-minutes:15}")
     private long shopLayoutCacheExpireMinutes;
 
+    // Daily User Items Cache Configuration
+    @Value("${cache.daily-user-items.max-size:10000}")
+    private long dailyUserItemsCacheMaxSize;
+
+    @Value("${cache.daily-user-items.expire-after-write-hours:24}")
+    private long dailyUserItemsCacheExpireHours;
+
     // Leaderboard Cache Configuration
     @Value("${cache.leaderboard.max-size:10}")
     private long leaderboardCacheMaxSize;
@@ -154,6 +161,7 @@ public class CacheConfig {
     private Cache<String, Object> countingGameCache;
     private Cache<String, Object> giveawayCache;
     private Cache<String, List<Object>> featuredItemsCache;
+    private Cache<String, List<Object>> dailyUserItemsCache;
     private Cache<String, List<LeaderboardEntryDTO>> leaderboardCache;
     private Cache<String, Object> pendingPrisonCache;
 
@@ -341,6 +349,18 @@ public class CacheConfig {
                 .recordStats()
                 .build();
 
+        // Daily User Items Cache - stores each user's personalized daily shop selection
+        this.dailyUserItemsCache = Caffeine.newBuilder()
+                .maximumSize(dailyUserItemsCacheMaxSize)
+                .expireAfterWrite(dailyUserItemsCacheExpireHours, TimeUnit.HOURS)
+                .removalListener((RemovalListener<String, List<Object>>) (key, value, cause) -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Daily user items cache entry removed: key={}, cause={}", key, cause);
+                    }
+                })
+                .recordStats()
+                .build();
+
         // Leaderboard Cache - stores leaderboard data
         this.leaderboardCache = Caffeine.newBuilder()
                 .maximumSize(leaderboardCacheMaxSize)
@@ -379,6 +399,7 @@ public class CacheConfig {
                 "CountingGame: {}/{} entries/minutes, " +
                 "Giveaway: {}/{} entries/minutes, " +
                 "ShopLayout: {}/{} entries/minutes, " +
+                "DailyUserItems: {}/{} entries/hours, " +
                 "PendingRoleSelection: {}/{} entries/minutes, " +
                 "PendingPrison: {}/{} entries/days",
                 pairLevelCacheMaxSize, pairLevelCacheExpireMinutes,
@@ -393,6 +414,7 @@ public class CacheConfig {
                 countingGameCacheMaxSize, countingGameCacheExpireMinutes,
                 giveawayCacheMaxSize, giveawayCacheExpireMinutes,
                 shopLayoutCacheMaxSize, shopLayoutCacheExpireMinutes,
+                dailyUserItemsCacheMaxSize, dailyUserItemsCacheExpireHours,
                 pendingPrisonCacheMaxSize, pendingPrisonCacheExpireDays);
     }
 
@@ -545,6 +567,7 @@ public class CacheConfig {
      */
     public void invalidateShopLayoutCaches() {
         featuredItemsCache.invalidateAll();
+        dailyUserItemsCache.invalidateAll();
         log.debug("Shop layout caches invalidated");
     }
 
@@ -556,6 +579,19 @@ public class CacheConfig {
         if (userId != null) {
             featuredItemsCache.invalidate(userId);
             log.debug("Shop layout cache invalidated for user: {}", userId);
+        }
+    }
+
+    /**
+     * Invalidates daily user items cache for a specific user.
+     * Use when a user's daily shop selection needs to be refreshed.
+     */
+    public void invalidateDailyUserItemsCache(String userId) {
+        if (userId != null) {
+            // Invalidate for current date
+            String cacheKey = userId + "_" + java.time.LocalDate.now().toString();
+            dailyUserItemsCache.invalidate(cacheKey);
+            log.debug("Daily user items cache invalidated for user: {}", userId);
         }
     }
 
@@ -611,6 +647,7 @@ public class CacheConfig {
         countingGameCache.invalidateAll();
         giveawayCache.invalidateAll();
         featuredItemsCache.invalidateAll();
+        dailyUserItemsCache.invalidateAll();
         leaderboardCache.invalidateAll();
         pendingPrisonCache.invalidateAll();
         log.info("All pairing system caches invalidated successfully");
@@ -673,9 +710,14 @@ public class CacheConfig {
         countingGameCache.cleanUp();
         giveawayCache.cleanUp();
         featuredItemsCache.cleanUp();
+        dailyUserItemsCache.cleanUp();
         leaderboardCache.cleanUp();
         pendingPrisonCache.cleanUp();
         log.debug("Pairing cache maintenance completed");
+    }
+
+    public Cache<String, List<Object>> getDailyUserItemsCache() {
+        return dailyUserItemsCache;
     }
 
     /**

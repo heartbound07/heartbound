@@ -29,6 +29,7 @@ import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
 import com.app.heartbound.mappers.ShopMapper;
+import com.app.heartbound.config.CacheConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.persistence.EntityManager;
@@ -58,6 +59,7 @@ public class ShopService {
     private final CaseItemRepository caseItemRepository;
     private final HtmlSanitizationService htmlSanitizationService;
     private final AuditService auditService;
+    private final CacheConfig cacheConfig;
     private final ObjectMapper objectMapper;
     private final ShopMapper shopMapper;
     private static final Logger logger = LoggerFactory.getLogger(ShopService.class);
@@ -71,6 +73,7 @@ public class ShopService {
         CaseItemRepository caseItemRepository,
         HtmlSanitizationService htmlSanitizationService,
         AuditService auditService,
+        CacheConfig cacheConfig,
         EntityManager entityManager,
         ShopMapper shopMapper
     ) {
@@ -82,6 +85,7 @@ public class ShopService {
         this.caseItemRepository = caseItemRepository;
         this.htmlSanitizationService = htmlSanitizationService;
         this.auditService = auditService;
+        this.cacheConfig = cacheConfig;
         this.objectMapper = new ObjectMapper();
         this.shopMapper = shopMapper;
 
@@ -194,32 +198,63 @@ public class ShopService {
     /**
      * Get the personalized daily shop items for a user (internal method).
      * Returns the actual Shop entities that would be shown in the user's daily shop.
+     * Uses caching to ensure the same 4 items are shown to a user for the entire day.
      * 
      * @param user User with loaded inventory
      * @return List of Shop items for the user's daily selection (max 4 items)
      */
     private List<Shop> getUserDailyShopItems(User user) {
+        // Create cache key using user ID and current date
+        String cacheKey = user.getId() + "_" + LocalDate.now().toString();
+        
+        // Try to get cached items first
+        List<Object> cachedItems = cacheConfig.getDailyUserItemsCache().getIfPresent(cacheKey);
+        if (cachedItems != null) {
+            logger.debug("Cache hit for daily items selection: userId={}", user.getId());
+            // Convert cached objects back to Shop entities
+            return cachedItems.stream()
+                    .map(obj -> (Shop) obj)
+                    .collect(Collectors.toList());
+        }
+        
+        logger.debug("Cache miss for daily items selection: userId={}, generating new selection", user.getId());
+        
+        // Generate new daily selection
+        List<Shop> selectedItems = generateDailyShopSelection(user);
+        
+        // Cache the selection for the day
+        List<Object> itemsToCache = selectedItems.stream()
+                .map(item -> (Object) item)
+                .collect(Collectors.toList());
+        cacheConfig.getDailyUserItemsCache().put(cacheKey, itemsToCache);
+        
+        return selectedItems;
+    }
+    
+    /**
+     * Generate the actual daily shop selection for a user (called only on cache miss).
+     * This contains the original logic for selecting 4 weighted random items.
+     * 
+     * @param user User with loaded inventory
+     * @return List of Shop items for the user's daily selection (max 4 items)
+     */
+         private List<Shop> generateDailyShopSelection(User user) {
         LocalDateTime now = LocalDateTime.now();
 
-        // Get all daily items that are active
+        // Get all daily items that are active (use the complete pool, not filtered by ownership)
         List<Shop> dailyItems = shopRepository.findByIsActiveTrueAndIsDailyTrue()
             .stream()
             .filter(item -> item.getExpiresAt() == null || item.getExpiresAt().isAfter(now))
             .filter(item -> item.getMaxCopies() == null || item.getCopiesSold() == null || item.getCopiesSold() < item.getMaxCopies())
             .collect(Collectors.toList());
 
-        // Filter out items the user already owns
-        Set<UUID> ownedItemIds = user.getItemInstances().stream()
-                .map(instance -> instance.getBaseItem().getId())
-                .collect(Collectors.toSet());
-
-        List<Shop> availableDailyItems = dailyItems.stream()
-            .filter(item -> !ownedItemIds.contains(item.getId()))
-            .collect(Collectors.toList());
+        // For daily selection generation, we do NOT filter out owned items
+        // This ensures the same 4 items are selected for the user regardless of their current inventory
+        // The owned status will be checked dynamically when converting to DTOs
 
         // If we have 4 or fewer items, return all of them
-        if (availableDailyItems.size() <= 4) {
-            return availableDailyItems;
+        if (dailyItems.size() <= 4) {
+            return dailyItems;
         }
 
         // Select exactly 4 items using weighted rarity selection
@@ -228,7 +263,7 @@ public class ShopService {
         Random seededRandom = new Random(seed);
         
         // Group available items by rarity
-        Map<ItemRarity, List<Shop>> itemsByRarity = availableDailyItems.stream()
+        Map<ItemRarity, List<Shop>> itemsByRarity = dailyItems.stream()
             .collect(Collectors.groupingBy(Shop::getRarity));
         
         // Define rarity weights
