@@ -19,6 +19,7 @@ interface InventoryItemCardProps {
     onSelect: (item: ShopItem) => void;
     onOpenPartsModal: (item: ShopItem) => void;
     onRepair: (item: ShopItem) => void;
+    actionInProgress?: string | null;
 }
 
 // Inventory Item Card Component (based on ShopItemCard design)
@@ -28,10 +29,14 @@ export const InventoryItemCard = forwardRef<HTMLDivElement, InventoryItemCardPro
   isSelected = false,
   onSelect,
   onOpenPartsModal,
-  onRepair
+  onRepair,
+  actionInProgress
 }, ref) => {
   // Get rarity color for border
   const rarityColor = getRarityColor(item.rarity);
+  
+  // Check if any actions are in progress to prevent race conditions
+  const isActionInProgress = Boolean(actionInProgress);
   
   // Sanitize content for safe display
   const nameContent = useSanitizedContent(item.name, { maxLength: 100, stripHtml: true });
@@ -192,7 +197,8 @@ export const InventoryItemCard = forwardRef<HTMLDivElement, InventoryItemCardPro
               e.stopPropagation();
               onOpenPartsModal(item);
             }}
-            className="absolute top-2 left-2 z-20 w-8 h-8 bg-slate-800/50 hover:bg-slate-700/80 rounded-full flex items-center justify-center text-white transition-all duration-200"
+            disabled={isActionInProgress}
+            className="absolute top-2 left-2 z-20 w-8 h-8 bg-slate-800/50 hover:bg-slate-700/80 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-full flex items-center justify-center text-white transition-all duration-200"
             title="Customize Rod"
           >
             <HiOutlinePlus size={20} />
@@ -297,7 +303,8 @@ export const InventoryItemCard = forwardRef<HTMLDivElement, InventoryItemCardPro
                         e.stopPropagation();
                         onRepair(item);
                     }}
-                    className="w-full mt-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition-colors"
+                    disabled={isActionInProgress}
+                    className="w-full mt-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
                 >
                     Repair Rod
                 </button>

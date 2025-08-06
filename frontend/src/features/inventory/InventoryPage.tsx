@@ -770,6 +770,7 @@ export function InventoryPage() {
                   onSelectItem={handleSelectItem}
                   onOpenPartsModal={openPartsModal}
                   onRepair={handleRepair}
+                  actionInProgress={actionInProgress}
                 />
               </div>
 
@@ -826,6 +827,7 @@ export function InventoryPage() {
       isOpen={isConfirmModalOpen}
       onClose={() => setConfirmModalOpen(false)}
       onConfirm={confirmRepair}
+      actionInProgress={actionInProgress === 'repair-rod'}
       message={
         <div className="text-center">
           <p>Are you sure you want to repair this rod?</p>
@@ -844,6 +846,7 @@ export function InventoryPage() {
       isOpen={isPartConfirmModalOpen}
       onClose={() => setPartConfirmModalOpen(false)}
       onConfirm={confirmRepairPart}
+      actionInProgress={actionInProgress === 'repair-part'}
       message={
         <div className="text-center">
           <p>Are you sure you want to repair this part?</p>
@@ -862,6 +865,7 @@ export function InventoryPage() {
       isOpen={isUnequipConfirmModalOpen}
       onClose={() => setUnequipConfirmModalOpen(false)}
       onConfirm={confirmUnequipPart}
+      actionInProgress={actionInProgress === 'unequip-part'}
       message={
         <div className="text-center">
           <p>Unequipping this part will permanently remove it from your fishing rod. Continue?</p>

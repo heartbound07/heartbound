@@ -12,6 +12,7 @@ interface InventoryGridProps {
   onSelectItem: (item: ShopItem) => void;
   onOpenPartsModal: (item: ShopItem) => void;
   onRepair: (item: ShopItem) => void;
+  actionInProgress?: string | null;
 }
 
 export const InventoryGrid: React.FC<InventoryGridProps> = ({
@@ -22,7 +23,8 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
   isItemSelected,
   onSelectItem,
   onOpenPartsModal,
-  onRepair
+  onRepair,
+  actionInProgress
 }) => {
   return (
     <div className="inventory-grid-container">
@@ -83,6 +85,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                 onSelect={onSelectItem}
                 onOpenPartsModal={onOpenPartsModal}
                 onRepair={onRepair}
+                actionInProgress={actionInProgress}
               />
             ))}
           </AnimatePresence>
