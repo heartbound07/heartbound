@@ -165,7 +165,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                     <div key={type} className={`bg-slate-800 p-3 rounded-md border-l-4 flex items-end justify-between ${getRarityClass(equippedPart?.rarity || 'COMMON')}`}>
                       <div className="flex items-center flex-grow">
                         <Icon className="mr-3 text-slate-400" size={20} />
-                        <div className="flex-grow">
+                        <div className="flex-grow mr-3">
                           {equippedPart ? (
                             <>
                               <div className="flex justify-between items-center">
