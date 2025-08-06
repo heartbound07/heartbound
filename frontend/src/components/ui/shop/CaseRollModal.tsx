@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
-import { FaTimes, FaGift } from 'react-icons/fa';
+import { FaGift } from 'react-icons/fa';
 import httpClient from '@/lib/api/httpClient';
 import { getRarityLabel, getRarityBadgeStyle } from '@/utils/rarityHelpers';
 import { formatDisplayText } from '@/utils/formatters';
@@ -224,7 +224,6 @@ export function CaseRollModal({
 
       // Continue with COMMON items for first part of deceleration (2 seconds)
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
       if (animationControlsRef.current) {
         animationControlsRef.current.stop();
       }
@@ -434,14 +433,6 @@ export function CaseRollModal({
               )}
             </div>
             <div className="flex items-center space-x-2 ml-auto">
-              {animationState === 'idle' && (
-                <button
-                  onClick={handleClose}
-                  className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors text-slate-400 hover:text-white"
-                >
-                  <FaTimes size={20} />
-                </button>
-              )}
             </div>
           </div>
           <div className="p-6">{renderContent()}</div>
