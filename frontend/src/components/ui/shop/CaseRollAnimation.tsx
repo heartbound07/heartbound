@@ -20,27 +20,12 @@ interface CaseRollAnimationProps {
 
 export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollAnimationProps>(({ animationItems, animationState, x, user }, ref) => {
   const [virtualItems, setVirtualItems] = useState<VirtualItem[]>([]);
-  const [previousItems, setPreviousItems] = useState<CaseItemDTO[]>([]);
   
   const totalAnimationWidth = animationItems.length * ITEM_WIDTH;
 
   const updateVirtualItems = useCallback(() => {
     const container = (ref as React.RefObject<HTMLDivElement>)?.current;
-    if (!animationItems.length || !container) {
-      // If no items but we have previous items, show some previous items as fallback
-      if (animationItems.length === 0 && previousItems.length > 0) {
-        const fallbackItems: VirtualItem[] = [];
-        const fallbackCount = Math.min(10, previousItems.length);
-        for (let i = 0; i < fallbackCount; i++) {
-          fallbackItems.push({
-            index: i,
-            item: previousItems[i],
-          });
-        }
-        setVirtualItems(fallbackItems);
-      }
-      return;
-    }
+    if (!animationItems.length || !container) return;
     
     const containerWidth = container.offsetWidth;
     const scrollLeft = -x.get();
@@ -67,15 +52,10 @@ export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollA
         }
     }
     
-    // CRITICAL: Enhanced fallback logic for array transitions
-    // This is the most important fallback to prevent empty reels
+    // Simple fallback: if no virtual items, show first few items
     if (newVirtualItems.length === 0 && animationItems.length > 0) {
-      // During array transitions, scroll position might be incompatible with new array
-      // Force show items from a safe position in the new array
-      const safeStartIndex = Math.max(0, Math.min(Math.floor(animationItems.length / 4), animationItems.length - 10));
-      const fallbackCount = Math.min(Math.ceil(containerWidth / ITEM_WIDTH) + OVERSCAN * 2, animationItems.length - safeStartIndex);
-      
-      for (let i = safeStartIndex; i < safeStartIndex + fallbackCount && i < animationItems.length; i++) {
+      const fallbackCount = Math.min(Math.ceil(containerWidth / ITEM_WIDTH) + OVERSCAN, animationItems.length);
+      for (let i = 0; i < fallbackCount; i++) {
         newVirtualItems.push({
           index: i,
           item: animationItems[i],
@@ -83,37 +63,8 @@ export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollA
       }
     }
     
-    // Final safety net: use previous items temporarily if all else fails
-    if (newVirtualItems.length === 0 && previousItems.length > 0) {
-      const temporaryCount = Math.min(10, previousItems.length);
-      for (let i = 0; i < temporaryCount; i++) {
-        newVirtualItems.push({
-          index: i,
-          item: previousItems[i],
-        });
-      }
-    }
-    
-    // Debug logging to help identify issues (remove in production)
-    if (newVirtualItems.length === 0) {
-      console.warn('CaseRollAnimation: No virtual items calculated', {
-        animationItemsLength: animationItems.length,
-        scrollLeft: -x.get(),
-        startIndex,
-        endIndex,
-        containerWidth: container?.offsetWidth
-      });
-    }
-    
     setVirtualItems(newVirtualItems);
-  }, [animationItems, x, ref, previousItems]);
-
-  // Track previous items for fallback during transitions
-  useEffect(() => {
-    if (animationItems.length > 0) {
-      setPreviousItems(animationItems);
-    }
-  }, [animationItems]);
+  }, [animationItems, x, ref]);
 
   // Add a separate effect to handle animationItems changes immediately
   useEffect(() => {
