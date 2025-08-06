@@ -162,7 +162,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                     equippedPart?.maxRepairs != null && 
                     (equippedPart?.repairCount || 0) >= equippedPart.maxRepairs;
                   return (
-                    <div key={type} className={`bg-slate-800 p-3 rounded-md border-l-4 flex items-start justify-between ${getRarityClass(equippedPart?.rarity || 'COMMON')}`}>
+                    <div key={type} className={`bg-slate-800 p-3 rounded-md border-l-4 flex items-end justify-between ${getRarityClass(equippedPart?.rarity || 'COMMON')}`}>
                       <div className="flex items-center flex-grow">
                         <Icon className="mr-3 text-slate-400" size={20} />
                         <div className="flex-grow">
@@ -197,7 +197,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                         </div>
                       </div>
                       {equippedPart && rod && (
-                        <div className="flex items-center space-x-2 mt-1 flex-shrink-0">
+                        <div className="flex items-center space-x-2 flex-shrink-0">
                           {equippedPart.durability === 0 && (
                             equippedPart.maxRepairs != null && (equippedPart.repairCount || 0) < equippedPart.maxRepairs && (
                               <button
