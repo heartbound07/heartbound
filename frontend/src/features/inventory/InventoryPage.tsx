@@ -313,7 +313,7 @@ export function InventoryPage() {
         }
       }
     } catch (error: any) {
-      console.error("Error a part:", error);
+      console.error("Error unequipping part:", error);
       toast.error(error?.response?.data?.message || "Failed to unequip part.");
     } finally {
       setActionInProgress(null);
@@ -819,6 +819,7 @@ export function InventoryPage() {
         onRepairPart={handleRepairPart}
         onUnequipPart={handleUnequipPart}
         onUnequipPartKeep={handleUnequipPartKeep}
+        actionInProgress={actionInProgress}
     />
 
     <ConfirmationModal
