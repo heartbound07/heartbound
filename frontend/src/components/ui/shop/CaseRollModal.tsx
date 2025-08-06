@@ -236,7 +236,6 @@ export function CaseRollModal({
       const finalReelItems = buildFinalRevealReel(caseContents.items, resultData.wonItem);
       
       const commonReelLength = commonReelItems.length * measuredItemWidth;
-      const targetReelLength = finalReelItems.length * measuredItemWidth;
       
       // Calculate an equivalent position that maintains visual continuity
       // Map the current position ratio to the final reel
