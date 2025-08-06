@@ -20,6 +20,7 @@ interface CaseRollAnimationProps {
 
 export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollAnimationProps>(({ animationItems, animationState, x, user }, ref) => {
   const [virtualItems, setVirtualItems] = useState<VirtualItem[]>([]);
+  const [previousItems, setPreviousItems] = useState<CaseItemDTO[]>([]);
   
   const totalAnimationWidth = animationItems.length * ITEM_WIDTH;
 
@@ -52,10 +53,11 @@ export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollA
         }
     }
     
-    // Fallback: if we somehow end up with no virtual items, show at least the first few items
-    // This prevents the empty reel visual glitch during transitions
+    // Enhanced fallback logic for array transitions
     if (newVirtualItems.length === 0 && animationItems.length > 0) {
-      const fallbackCount = Math.min(10, animationItems.length);
+      // During array transitions, we might have a scroll position that's incompatible
+      // with the new array. In this case, we show items from the beginning of the new array
+      const fallbackCount = Math.min(Math.ceil(containerWidth / ITEM_WIDTH) + OVERSCAN * 2, animationItems.length);
       for (let i = 0; i < fallbackCount; i++) {
         newVirtualItems.push({
           index: i,
@@ -64,8 +66,26 @@ export const CaseRollAnimation = React.memo(forwardRef<HTMLDivElement, CaseRollA
       }
     }
     
+    // Additional safety: if we still have no items but had items before, use previous items temporarily
+    if (newVirtualItems.length === 0 && previousItems.length > 0) {
+      const temporaryCount = Math.min(10, previousItems.length);
+      for (let i = 0; i < temporaryCount; i++) {
+        newVirtualItems.push({
+          index: i,
+          item: previousItems[i],
+        });
+      }
+    }
+    
     setVirtualItems(newVirtualItems);
-  }, [animationItems, x, ref]);
+  }, [animationItems, x, ref, previousItems]);
+
+  // Track previous items for fallback during transitions
+  useEffect(() => {
+    if (animationItems.length > 0) {
+      setPreviousItems(animationItems);
+    }
+  }, [animationItems]);
 
   // Add a separate effect to handle animationItems changes immediately
   useEffect(() => {

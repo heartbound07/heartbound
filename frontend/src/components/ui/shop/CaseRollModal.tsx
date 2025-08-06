@@ -228,11 +228,33 @@ export function CaseRollModal({
         animationControlsRef.current.stop();
       }
       
+      // CRITICAL FIX: Synchronize array transition with animation position
+      // Before switching arrays, we need to ensure the animation position is compatible
+      const currentX = x.get();
+      const commonReelLength = buildCommonOnlyReel(caseContents.items).length * measuredItemWidth;
+      const targetReelLength = (90 + 1 + 20) * measuredItemWidth;
+      
+      // Calculate an equivalent position in the final reel that maintains visual continuity
+      // We map the current position in the common reel to an equivalent position in the final reel
+      // Add safety check to prevent division by zero
+      const positionRatio = commonReelLength > 0 ? Math.abs(currentX) / commonReelLength : 0;
+      const equivalentFinalX = -(positionRatio * targetReelLength);
+      
+      // Update the animation position BEFORE changing the array to prevent virtualization gaps
+      // Ensure the position is within reasonable bounds
+      const clampedFinalX = Math.max(equivalentFinalX, -targetReelLength * 2);
+      x.set(clampedFinalX);
+      
       // Now switch to full rarity items for the final reveal
       setShowFullRarityItems(true);
       
-      // Small delay to ensure the animation items update is processed by React
-      await new Promise(resolve => setTimeout(resolve, 50));
+      // Use a more reliable synchronization method instead of setTimeout
+      // We use requestAnimationFrame to ensure DOM updates are complete
+      await new Promise(resolve => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(resolve); // Double RAF for better reliability
+        });
+      });
 
       // Calculate the actual final position based on the won item (index 90 in final reel)
       const container = animationContainerRef.current;
@@ -241,11 +263,11 @@ export function CaseRollModal({
       const baseFinalX = -(targetIndex * measuredItemWidth - (containerWidth / 2) + (measuredItemWidth / 2));
       
       // Get current position and ensure final target is ahead of current position
-      const currentX = x.get();
+      const updatedCurrentX = x.get();
       let finalX = baseFinalX;
       
       // Adjust final position to be ahead of current position if needed
-      while (finalX > currentX) {
+      while (finalX > updatedCurrentX) {
         finalX -= finalReelLength;
       }
       
