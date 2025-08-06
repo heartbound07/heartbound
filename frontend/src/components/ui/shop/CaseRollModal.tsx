@@ -381,7 +381,7 @@ export function CaseRollModal({
           onClick={e => e.stopPropagation()}
         >
           <div
-            className={`relative flex p-6 border-b border-slate-700/50 ${
+            className={`relative flex p-6 pt-8 border-b border-slate-700/50 ${
               animationState === 'reward' ? 'items-start' : 'items-center'
             }`}
           >
