@@ -409,12 +409,29 @@ public class UserInventoryService {
             }
         }
 
-        // Repair the part to full durability as part of the equipping process
+        // Check if the part needs repair and validate repair limits before equipping
         Integer partMaxDurability = partInstance.getMaxDurability() != null ? partInstance.getMaxDurability() : partBaseItem.getMaxDurability();
         if (partMaxDurability == null) {
             throw new InvalidOperationException("Part does not have maximum durability set.");
         }
-        partInstance.setDurability(partMaxDurability);
+        
+        Integer currentDurability = partInstance.getDurability() != null ? partInstance.getDurability() : partMaxDurability;
+        boolean partNeedsRepair = currentDurability < partMaxDurability;
+        
+        if (partNeedsRepair) {
+            // Check if the part has reached its maximum repair limit - handle null repairCount safely
+            Integer currentRepairCount = partInstance.getRepairCount() != null ? partInstance.getRepairCount() : 0;
+            if (partBaseItem.getMaxRepairs() != null &&
+                currentRepairCount >= partBaseItem.getMaxRepairs()) {
+                throw new InvalidOperationException("This part is broken beyond repair and cannot be equipped.");
+            }
+            
+            // Repair the part to full durability as part of the equipping process
+            partInstance.setDurability(partMaxDurability);
+            // Safely increment repairCount, handling null values
+            partInstance.setRepairCount(currentRepairCount + 1);
+        }
+        
         itemInstanceRepository.save(partInstance);
 
         Integer currentMaxDurability = rodInstance.getMaxDurability() != null ? rodInstance.getMaxDurability() : rodBaseItem.getMaxDurability();
