@@ -432,6 +432,9 @@ export function CaseRollModal({
                 </div>
               )}
             </div>
+            <div className="flex items-center space-x-2 ml-auto">
+              {/* Container preserved for layout but X button removed */}
+            </div>
           </div>
           <div className="p-6">{renderContent()}</div>
         </motion.div>
