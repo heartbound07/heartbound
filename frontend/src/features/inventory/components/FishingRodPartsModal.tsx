@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HiOutlineX } from 'react-icons/hi';
 import { ShopItem } from '@/types/inventory';
@@ -21,7 +21,6 @@ interface FishingRodPartsModalProps {
   onRepairPart: (part: ShopItem) => void;
   onUnequipPart: (rod: ShopItem, part: ShopItem) => void;
   onUnequipPartKeep: (rod: ShopItem, part: ShopItem) => void;
-  actionInProgress?: string | null;
 }
 
 const RARITY_COSTS: Record<string, number> = {
@@ -56,7 +55,7 @@ const partTypeDescriptions: Record<string, string> = {
   GRIP: 'Resistance to crab snips.',
 };
 
-export const FishingRodPartsModal = React.memo<FishingRodPartsModalProps>(({
+export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
   isOpen,
   onClose,
   rod,
@@ -65,7 +64,6 @@ export const FishingRodPartsModal = React.memo<FishingRodPartsModalProps>(({
   onRepairPart,
   onUnequipPart,
   onUnequipPartKeep,
-  actionInProgress = null,
 }) => {
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [partToEquip, setPartToEquip] = useState<ShopItem | null>(null);
@@ -75,41 +73,32 @@ export const FishingRodPartsModal = React.memo<FishingRodPartsModalProps>(({
 
   if (!isOpen || !rod) return null;
 
-  const handleEquipClick = useCallback((part: ShopItem) => {
-    if (actionInProgress) return;
+  const handleEquipClick = (part: ShopItem) => {
     setPartToEquip(part);
     setConfirmModalOpen(true);
-  }, [actionInProgress]);
+  };
 
-  const handleConfirmEquip = useCallback(() => {
-    if (partToEquip && rod.instanceId && !actionInProgress) {
+  const handleConfirmEquip = () => {
+    if (partToEquip && rod.instanceId) {
       onEquipPart(rod.instanceId, partToEquip.instanceId!);
-      // Clean up modal state
-      setConfirmModalOpen(false);
-      setPartToEquip(null);
     }
-  }, [partToEquip, rod, actionInProgress, onEquipPart]);
+  };
 
-  const handleUnequipClick = useCallback((part: ShopItem, action: 'remove' | 'keep') => {
-    if (actionInProgress) return;
+  const handleUnequipClick = (part: ShopItem, action: 'remove' | 'keep') => {
     setPartToUnequip(part);
     setUnequipAction(action);
     setUnequipConfirmModalOpen(true);
-  }, [actionInProgress]);
+  };
 
-  const handleConfirmUnequip = useCallback(() => {
-    if (partToUnequip && rod && !actionInProgress) {
+  const handleConfirmUnequip = () => {
+    if (partToUnequip && rod) {
       if (unequipAction === 'remove') {
         onUnequipPart(rod, partToUnequip);
       } else {
         onUnequipPartKeep(rod, partToUnequip);
       }
-      // Clean up modal state
-      setUnequipConfirmModalOpen(false);
-      setPartToUnequip(null);
-      setUnequipAction('keep');
     }
-  }, [partToUnequip, rod, unequipAction, actionInProgress, onUnequipPart, onUnequipPartKeep]);
+  };
 
   const getRarityClass = (rarity: string) => {
     switch (rarity) {
@@ -133,12 +122,14 @@ export const FishingRodPartsModal = React.memo<FishingRodPartsModalProps>(({
 
   const equippedPartsMap = rod.equippedParts || {};
 
-  // Check if a part is broken and unrepairable
-  const isPartBrokenAndUnrepairable = (part: ShopItem): boolean => {
-    return part.durability === 0 && 
-           part.maxRepairs != null && 
-           (part.repairCount || 0) >= part.maxRepairs;
-  };
+  // Temporary debugging - remove after fixing
+  console.log('FishingRodPartsModal Debug:', {
+    rodName: rod.name,
+    equippedPartsMap,
+    equippedPartsKeys: Object.keys(equippedPartsMap),
+    samplePart: Object.values(equippedPartsMap)[0],
+    samplePartMaxRepairs: Object.values(equippedPartsMap)[0]?.maxRepairs,
+  });
 
   return (
     <AnimatePresence>
@@ -163,6 +154,15 @@ export const FishingRodPartsModal = React.memo<FishingRodPartsModalProps>(({
                   const equippedPart = equippedPartsMap[type];
                   const Icon = partIcons[type] || GiGearStick;
                   
+                  // Debug broken parts
+                  if (equippedPart?.durability === 0) {
+                    console.log('Broken part found:', {
+                      name: equippedPart.name,
+                      type,
+                      maxRepairs: equippedPart.maxRepairs,
+                      repairCount: equippedPart.repairCount,
+                    });
+                  }
                   return (
                     <div key={type} className={`bg-slate-800 p-3 rounded-md border-l-4 flex items-center justify-between ${getRarityClass(equippedPart?.rarity || 'COMMON')}`}>
                       <div className="flex items-center flex-grow">
@@ -204,30 +204,18 @@ export const FishingRodPartsModal = React.memo<FishingRodPartsModalProps>(({
                             equippedPart.maxRepairs != null && (equippedPart.repairCount || 0) < equippedPart.maxRepairs && (
                               <button
                                 onClick={() => onRepairPart(equippedPart)}
-                                disabled={!!actionInProgress}
-                                className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
+                                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-md transition-colors"
                               >
                                 Repair
                               </button>
                             )
                           )}
-                          {isPartBrokenAndUnrepairable(equippedPart) ? (
-                            <button
-                              onClick={() => handleUnequipClick(equippedPart, 'remove')}
-                              disabled={!!actionInProgress}
-                              className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
-                            >
-                              Remove
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleUnequipClick(equippedPart, 'keep')}
-                              disabled={!!actionInProgress}
-                              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
-                            >
-                              Unequip
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleUnequipClick(equippedPart, 'keep')}
+                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md transition-colors"
+                          >
+                            Unequip
+                          </button>
                         </div>
                       )}
                     </div>
@@ -316,8 +304,7 @@ export const FishingRodPartsModal = React.memo<FishingRodPartsModalProps>(({
                           {!equippedPartsMap[type] && (
                             <button
                               onClick={() => handleEquipClick(part)}
-                              disabled={!!actionInProgress}
-                              className="ml-4 px-3 py-1 bg-primary/80 hover:bg-primary disabled:bg-primary/50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
+                              className="ml-4 px-3 py-1 bg-primary/80 hover:bg-primary text-white text-xs font-semibold rounded-md transition-colors"
                             >
                               Equip ( <FaCoins className="inline-block -mt-px mr-1" />{cost} )
                             </button>
@@ -336,15 +323,12 @@ export const FishingRodPartsModal = React.memo<FishingRodPartsModalProps>(({
       </div>
       <ConfirmationModal
         isOpen={isConfirmModalOpen}
-        onClose={() => {
-          setConfirmModalOpen(false);
-          setPartToEquip(null);
-        }}
+        onClose={() => setConfirmModalOpen(false)}
         onConfirm={handleConfirmEquip}
         message={
           partToEquip ? (
             <div className="text-center">
-              <p>Are you sure you want to equip this?</p>
+              <p>Are you sure you want to equip this?.</p>
               <div className="flex items-center justify-center mt-4 text-lg">
                   <FaCoins className="mr-2 text-yellow-400" />
                   <span className="font-semibold text-white">{new Intl.NumberFormat().format(RARITY_COSTS[partToEquip.rarity] || 0)}</span>
@@ -358,23 +342,19 @@ export const FishingRodPartsModal = React.memo<FishingRodPartsModalProps>(({
       />
       <ConfirmationModal
         isOpen={isUnequipConfirmModalOpen}
-        onClose={() => {
-          setUnequipConfirmModalOpen(false);
-          setPartToUnequip(null);
-          setUnequipAction('keep');
-        }}
+        onClose={() => setUnequipConfirmModalOpen(false)}
         onConfirm={handleConfirmUnequip}
         message={
           partToUnequip && partToUnequip.durability === 0 && 
           partToUnequip.maxRepairs != null && 
           (partToUnequip.repairCount || 0) >= partToUnequip.maxRepairs ? (
             <div className="text-center">
-              <p>Are you sure you want to remove this part?</p>
+              <p>Are you sure you want to unequip this part?</p>
               <p className="mt-2 text-red-400 text-sm font-semibold">
-                This part has reached its maximum repair limit and is broken!
+                You have reached the max repair limit. This part is broken!
               </p>
               <p className="mt-1 text-slate-400 text-sm">
-                Removing it will permanently destroy the part.
+                You will need to pay credits again to re-equip it.
               </p>
             </div>
           ) : (
@@ -389,4 +369,4 @@ export const FishingRodPartsModal = React.memo<FishingRodPartsModalProps>(({
       />
     </AnimatePresence>
   );
-}); 
+}; 
