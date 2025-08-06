@@ -199,19 +199,12 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                         </div>
                       </div>
                       {equippedPart && rod && (
-                        <>
+                        <div className="flex items-center space-x-2">
                           {equippedPart.durability === 0 && (
-                            (equippedPart.maxRepairs != null && (equippedPart.repairCount || 0) >= equippedPart.maxRepairs) ? (
-                              <button
-                                onClick={() => handleUnequipClick(equippedPart, 'remove')}
-                                className="ml-4 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-md transition-colors"
-                              >
-                                Max Repairs
-                              </button>
-                            ) : (
+                            equippedPart.maxRepairs != null && (equippedPart.repairCount || 0) < equippedPart.maxRepairs && (
                               <button
                                 onClick={() => onRepairPart(equippedPart)}
-                                className="ml-4 px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-md transition-colors"
+                                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-md transition-colors"
                               >
                                 Repair
                               </button>
@@ -219,11 +212,11 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                           )}
                           <button
                             onClick={() => handleUnequipClick(equippedPart, 'keep')}
-                            className="ml-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md transition-colors"
+                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md transition-colors"
                           >
                             Unequip
                           </button>
-                        </>
+                        </div>
                       )}
                     </div>
                   );
@@ -352,12 +345,26 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
         onClose={() => setUnequipConfirmModalOpen(false)}
         onConfirm={handleConfirmUnequip}
         message={
-          <div className="text-center">
-            <p>Are you sure you want to unequip this part?</p>
-            <p className="mt-2 text-slate-400 text-sm">
-              You will need to pay credits again to re-equip it.
-            </p>
-          </div>
+          partToUnequip && partToUnequip.durability === 0 && 
+          partToUnequip.maxRepairs != null && 
+          (partToUnequip.repairCount || 0) >= partToUnequip.maxRepairs ? (
+            <div className="text-center">
+              <p>Are you sure you want to unequip this part?</p>
+              <p className="mt-2 text-red-400 text-sm font-semibold">
+                You have reached the max repair limit. This part is broken!
+              </p>
+              <p className="mt-1 text-slate-400 text-sm">
+                You will need to pay credits again to re-equip it.
+              </p>
+            </div>
+          ) : (
+            <div className="text-center">
+              <p>Are you sure you want to unequip this part?</p>
+              <p className="mt-2 text-slate-400 text-sm">
+                You will need to pay credits again to re-equip it.
+              </p>
+            </div>
+          )
         }
       />
     </AnimatePresence>
