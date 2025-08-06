@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaTimes } from 'react-icons/fa';
 import { GiFishingPole, GiSewingString, GiFishingHook, GiGearStick } from 'react-icons/gi';
 import { PiFilmReel, PiHandPalm } from 'react-icons/pi';
 import httpClient from '@/lib/api/httpClient';
@@ -149,15 +148,8 @@ export function CasePreviewModal({ isOpen, onClose, caseId, caseName, user }: Ca
           className="relative bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-2xl border border-slate-700/50 max-w-4xl w-full max-h-[90vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 hover:bg-slate-700/50 rounded-lg transition-colors text-slate-400 hover:text-white z-10"
-          >
-            <FaTimes size={20} />
-          </button>
-
           {/* Content */}
-          <div className="p-6 pt-12 overflow-y-auto max-h-[90vh]">
+          <div className="p-6 overflow-y-auto max-h-[90vh]">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
