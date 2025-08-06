@@ -225,11 +225,15 @@ export function CaseRollModal({
       // Continue with COMMON items for first part of deceleration (2 seconds)
       await new Promise(resolve => setTimeout(resolve, 2000));
       
+      if (animationControlsRef.current) {
+        animationControlsRef.current.stop();
+      }
+      
       // Now switch to full rarity items for the final reveal
       setShowFullRarityItems(true);
       
-      // Small delay to ensure the animation items update is processed
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Small delay to ensure the animation items update is processed by React
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // Calculate the actual final position based on the won item (index 90 in final reel)
       const container = animationContainerRef.current;
