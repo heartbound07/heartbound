@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import { FaGift } from 'react-icons/fa';
 import httpClient from '@/lib/api/httpClient';
@@ -229,31 +230,37 @@ export function CaseRollModal({
       }
       
       // CRITICAL FIX: Synchronize array transition with animation position
-      // Before switching arrays, we need to ensure the animation position is compatible
+      // Calculate the position mapping BEFORE any state changes
       const currentX = x.get();
-      const commonReelLength = buildCommonOnlyReel(caseContents.items).length * measuredItemWidth;
-      const targetReelLength = (90 + 1 + 20) * measuredItemWidth;
+      const commonReelItems = buildCommonOnlyReel(caseContents.items);
+      const finalReelItems = buildFinalRevealReel(caseContents.items, resultData.wonItem);
       
-      // Calculate an equivalent position in the final reel that maintains visual continuity
-      // We map the current position in the common reel to an equivalent position in the final reel
-      // Add safety check to prevent division by zero
+      const commonReelLength = commonReelItems.length * measuredItemWidth;
+      const targetReelLength = finalReelItems.length * measuredItemWidth;
+      
+      // Calculate an equivalent position that maintains visual continuity
+      // Map the current position ratio to the final reel
       const positionRatio = commonReelLength > 0 ? Math.abs(currentX) / commonReelLength : 0;
-      const equivalentFinalX = -(positionRatio * targetReelLength);
       
-      // Update the animation position BEFORE changing the array to prevent virtualization gaps
-      // Ensure the position is within reasonable bounds
-      const clampedFinalX = Math.max(equivalentFinalX, -targetReelLength * 2);
-      x.set(clampedFinalX);
+      // Instead of using the exact ratio, we want to position the final reel so that
+      // the animation continues seamlessly. We need to ensure there are always visible items.
+      const targetItemIndex = Math.floor(positionRatio * finalReelItems.length);
+      const safeTargetIndex = Math.max(0, Math.min(targetItemIndex, finalReelItems.length - 20));
+      const equivalentFinalX = -(safeTargetIndex * measuredItemWidth);
       
-      // Now switch to full rarity items for the final reveal
-      setShowFullRarityItems(true);
+      // Update the animation position atomically BEFORE changing the array
+      x.set(equivalentFinalX);
       
-      // Use a more reliable synchronization method instead of setTimeout
-      // We use requestAnimationFrame to ensure DOM updates are complete
+      // Force a synchronous state update to ensure immediate effect
+      // We use flushSync to ensure the state change happens immediately
+      flushSync(() => {
+        setShowFullRarityItems(true);
+      });
+      
+      // Use a more reliable synchronization method
+      // Single RAF should be sufficient with flushSync
       await new Promise(resolve => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(resolve); // Double RAF for better reliability
-        });
+        requestAnimationFrame(resolve);
       });
 
       // Calculate the actual final position based on the won item (index 90 in final reel)
