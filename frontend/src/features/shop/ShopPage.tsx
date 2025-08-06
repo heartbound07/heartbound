@@ -124,7 +124,9 @@ export function ShopPage() {
       setFeaturedItems(prevItems =>
         prevItems.map(item => (item.id === purchasedItem.id ? purchasedItem : item))
       );
-      setDailyItems(prevItems => prevItems.filter(item => item.id !== purchasedItem.id));
+      setDailyItems(prevItems =>
+        prevItems.map(item => (item.id === purchasedItem.id ? purchasedItem : item))
+      );
 
       if (userProfile) {
         const updatedProfile = userProfile;
