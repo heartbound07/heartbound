@@ -133,12 +133,12 @@ export const FishingRodPartsModal = React.memo<FishingRodPartsModalProps>(({
 
   const equippedPartsMap = rod.equippedParts || {};
 
-  // Memoize the check for whether a part is broken and unrepairable
-  const isPartBrokenAndUnrepairable = useCallback((part: ShopItem): boolean => {
+  // Check if a part is broken and unrepairable
+  const isPartBrokenAndUnrepairable = (part: ShopItem): boolean => {
     return part.durability === 0 && 
            part.maxRepairs != null && 
            (part.repairCount || 0) >= part.maxRepairs;
-  }, []);
+  };
 
   return (
     <AnimatePresence>
