@@ -126,9 +126,7 @@ export function ShopPage() {
       setFeaturedItems(prevItems =>
         prevItems.map(item => (item.id === purchasedItem.id ? purchasedItem : item))
       );
-      setDailyItems(prevItems =>
-        prevItems.map(item => (item.id === purchasedItem.id ? purchasedItem : item))
-      );
+      setDailyItems(prevItems => prevItems.filter(item => item.id !== purchasedItem.id));
 
       if (userProfile) {
         const updatedProfile = userProfile;
@@ -213,7 +211,7 @@ export function ShopPage() {
                 </div>
                 <ShopSection
                   title=""
-                  items={dailyItems}
+                  items={dailyItems.filter(item => !item.owned)}
                   loading={loading}
                   purchaseInProgress={purchaseInProgress}
                   user={user}
