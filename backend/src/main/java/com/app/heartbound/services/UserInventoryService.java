@@ -94,6 +94,12 @@ public class UserInventoryService {
             item.getFishingRodPartType() == FishingRodPart.ROD_SHAFT) {
             // ROD_SHAFT parts don't need durability initialization (infinite durability)
         } else {
+            // Validate that max_durability is set for non-ROD_SHAFT parts
+            if (item.getMaxDurability() == null) {
+                logger.error("Shop item {} ({}) is missing max_durability configuration when giving to user. This must be fixed in the database.", 
+                           item.getId(), item.getName());
+                throw new IllegalStateException("Shop item " + item.getName() + " is missing required max_durability configuration");
+            }
             newInstance.setDurability(item.getMaxDurability());
             newInstance.setMaxDurability(item.getMaxDurability());
         }
