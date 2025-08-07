@@ -7,6 +7,7 @@ import com.app.heartbound.entities.Shop;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.entities.CaseItem;
 import com.app.heartbound.entities.ItemInstance;
+import com.app.heartbound.entities.UserDailyShopItem;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.enums.ItemRarity;
 import com.app.heartbound.enums.FishingRodPart;
@@ -21,6 +22,7 @@ import com.app.heartbound.exceptions.shop.ItemNotPurchasableException;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.repositories.shop.ShopRepository;
 import com.app.heartbound.repositories.shop.CaseItemRepository;
+import com.app.heartbound.repositories.shop.UserDailyShopItemRepository;
 import com.app.heartbound.repositories.ItemInstanceRepository;
 import com.app.heartbound.services.UserService;
 import com.app.heartbound.services.discord.DiscordService;
@@ -30,7 +32,7 @@ import com.app.heartbound.dto.CreateAuditDTO;
 import com.app.heartbound.enums.AuditSeverity;
 import com.app.heartbound.enums.AuditCategory;
 import com.app.heartbound.mappers.ShopMapper;
-import com.app.heartbound.config.CacheConfig;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.persistence.EntityManager;
@@ -55,12 +57,12 @@ public class ShopService {
     private final ShopRepository shopRepository;
     private final UserRepository userRepository;
     private final ItemInstanceRepository itemInstanceRepository;
+    private final UserDailyShopItemRepository userDailyShopItemRepository;
     private final UserService userService;
     private final DiscordService discordService;
     private final CaseItemRepository caseItemRepository;
     private final HtmlSanitizationService htmlSanitizationService;
     private final AuditService auditService;
-    private final CacheConfig cacheConfig;
     private final ObjectMapper objectMapper;
     private final ShopMapper shopMapper;
     private static final Logger logger = LoggerFactory.getLogger(ShopService.class);
@@ -69,24 +71,24 @@ public class ShopService {
         ShopRepository shopRepository,
         UserRepository userRepository,
         ItemInstanceRepository itemInstanceRepository,
+        UserDailyShopItemRepository userDailyShopItemRepository,
         UserService userService,
         @Lazy DiscordService discordService,
         CaseItemRepository caseItemRepository,
         HtmlSanitizationService htmlSanitizationService,
         AuditService auditService,
-        CacheConfig cacheConfig,
         EntityManager entityManager,
         ShopMapper shopMapper
     ) {
         this.shopRepository = shopRepository;
         this.userRepository = userRepository;
         this.itemInstanceRepository = itemInstanceRepository;
+        this.userDailyShopItemRepository = userDailyShopItemRepository;
         this.userService = userService;
         this.discordService = discordService;
         this.caseItemRepository = caseItemRepository;
         this.htmlSanitizationService = htmlSanitizationService;
         this.auditService = auditService;
-        this.cacheConfig = cacheConfig;
         this.objectMapper = new ObjectMapper();
         this.shopMapper = shopMapper;
 
@@ -199,35 +201,44 @@ public class ShopService {
     /**
      * Get the personalized daily shop items for a user (internal method).
      * Returns the actual Shop entities that would be shown in the user's daily shop.
-     * Uses caching to ensure the same 4 items are shown to a user for the entire day.
+     * Uses database persistence to ensure the same 4 items are shown to a user for the entire day,
+     * even across application restarts.
      * 
      * @param user User with loaded inventory
      * @return List of Shop items for the user's daily selection (max 4 items)
      */
     private List<Shop> getUserDailyShopItems(User user) {
-        // Create cache key using user ID and current date
-        String cacheKey = user.getId() + "_" + LocalDate.now().toString();
+        LocalDate today = LocalDate.now();
         
-        // Try to get cached items first
-        List<Object> cachedItems = cacheConfig.getDailyUserItemsCache().getIfPresent(cacheKey);
-        if (cachedItems != null) {
-            logger.debug("Cache hit for daily items selection: userId={}", user.getId());
-            // Convert cached objects back to Shop entities
-            return cachedItems.stream()
-                    .map(obj -> (Shop) obj)
+        // Check database for existing daily selections
+        List<UserDailyShopItem> existingSelections = userDailyShopItemRepository
+                .findByUserIdAndSelectionDate(user.getId(), today);
+        
+        if (!existingSelections.isEmpty()) {
+            logger.debug("Database hit for daily items selection: userId={}, found {} items", 
+                    user.getId(), existingSelections.size());
+            // Return the Shop items from the existing selections
+            return existingSelections.stream()
+                    .map(UserDailyShopItem::getShopItem)
                     .collect(Collectors.toList());
         }
         
-        logger.debug("Cache miss for daily items selection: userId={}, generating new selection", user.getId());
+        logger.debug("No existing daily items selection found: userId={}, generating new selection", user.getId());
         
         // Generate new daily selection
         List<Shop> selectedItems = generateDailyShopSelection(user);
         
-        // Cache the selection for the day
-        List<Object> itemsToCache = selectedItems.stream()
-                .map(item -> (Object) item)
-                .collect(Collectors.toList());
-        cacheConfig.getDailyUserItemsCache().put(cacheKey, itemsToCache);
+        // Save the selection to database for persistence
+        for (Shop item : selectedItems) {
+            UserDailyShopItem dailySelection = UserDailyShopItem.builder()
+                    .userId(user.getId())
+                    .shopItem(item)
+                    .selectionDate(today)
+                    .build();
+            userDailyShopItemRepository.save(dailySelection);
+        }
+        
+        logger.info("Saved {} daily shop items for user {} to database", selectedItems.size(), user.getId());
         
         return selectedItems;
     }
@@ -435,7 +446,7 @@ public class ShopService {
      * @return Updated UserProfileDTO
      */
     @Transactional
-    @CacheEvict(value = {"featuredItems", "dailyUserItems"}, allEntries = true)
+    @CacheEvict(value = "featuredItems", allEntries = true)
     public PurchaseResponseDTO purchaseItem(String userId, UUID itemId) {
         return purchaseItem(userId, itemId, 1);
     }
@@ -448,7 +459,7 @@ public class ShopService {
      * @return Updated UserProfileDTO
      */
     @Transactional
-    @CacheEvict(value = {"featuredItems", "dailyUserItems"}, allEntries = true)
+    @CacheEvict(value = "featuredItems", allEntries = true)
     public PurchaseResponseDTO purchaseItem(String userId, UUID itemId, Integer quantity) {
         logger.debug("Processing purchase of item {} for user {} with quantity {}", itemId, userId, quantity);
     
@@ -677,7 +688,7 @@ public class ShopService {
      * @return Created shop item
      */
     @Transactional
-    @CacheEvict(value = {"featuredItems", "dailyUserItems"}, allEntries = true)
+    @CacheEvict(value = "featuredItems", allEntries = true)
     public Shop createShopItem(ShopDTO shopDTO) {
         logger.debug("Creating new shop item: {} with active status: {}", shopDTO.getName(), shopDTO.isActive());
         
@@ -769,7 +780,7 @@ public class ShopService {
      * @return Updated shop item
      */
     @Transactional
-    @CacheEvict(value = {"featuredItems", "dailyUserItems"}, allEntries = true)
+    @CacheEvict(value = "featuredItems", allEntries = true)
     public Shop updateShopItem(UUID itemId, ShopDTO shopDTO) {
         logger.debug("Updating shop item {}: {} with active status: {}", itemId, shopDTO.getName(), shopDTO.isActive());
         
@@ -862,7 +873,7 @@ public class ShopService {
      * @param newPrice New price
      */
     @Transactional
-    @CacheEvict(value = {"featuredItems", "dailyUserItems"}, allEntries = true)
+    @CacheEvict(value = "featuredItems", allEntries = true)
     public void updateItemPrice(UUID itemId, int newPrice) {
         if (newPrice < 0) {
             throw new IllegalArgumentException("Price cannot be negative.");
@@ -882,7 +893,7 @@ public class ShopService {
      * @param newStatus New active status
      */
     @Transactional
-    @CacheEvict(value = {"featuredItems", "dailyUserItems"}, allEntries = true)
+    @CacheEvict(value = "featuredItems", allEntries = true)
     public void updateItemStatus(UUID itemId, boolean newStatus) {
         Shop item = shopRepository.findById(itemId)
             .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
@@ -899,7 +910,7 @@ public class ShopService {
      * @throws ItemReferencedInCasesException if the item is referenced in cases (with cascade info)
      */
     @Transactional
-    @CacheEvict(value = {"featuredItems", "dailyUserItems"}, allEntries = true)
+    @CacheEvict(value = "featuredItems", allEntries = true)
     public void deleteShopItem(UUID itemId) {
         logger.debug("Attempting to delete shop item {}", itemId);
         
