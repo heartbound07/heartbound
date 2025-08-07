@@ -500,15 +500,8 @@ public class UserInventoryService {
             throw new InvalidOperationException("This part is not broken and cannot be removed via this method.");
         }
         
-        // Check if part has reached its maximum repair limit (cannot be repaired anymore)
-        boolean hasMaxRepairs = partInstance.getBaseItem().getMaxRepairs() != null;
-        boolean hasReachedMaxRepairs = hasMaxRepairs && 
-                partInstance.getRepairCount() != null && 
-                partInstance.getRepairCount() >= partInstance.getBaseItem().getMaxRepairs();
-        
-        if (hasMaxRepairs && !hasReachedMaxRepairs) {
-            throw new InvalidOperationException("This part is broken but can still be repaired. Use the repair function instead of removing it.");
-        }
+        // The frontend already handles the UI logic for when to show the "Remove" button
+        // We simply need to process the removal if the part is broken
 
         // Check if the part is actually equipped on this rod
         boolean isPartEquippedOnThisRod = (rodInstance.getEquippedRodShaft() != null && rodInstance.getEquippedRodShaft().getId().equals(partInstanceId)) ||

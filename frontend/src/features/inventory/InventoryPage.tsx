@@ -76,10 +76,8 @@ export function InventoryPage() {
   });
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [isPartConfirmModalOpen, setPartConfirmModalOpen] = useState(false);
-  const [isUnequipConfirmModalOpen, setUnequipConfirmModalOpen] = useState(false);
   const [itemToConfirm, setItemToConfirm] = useState<ShopItem | null>(null);
   const [partToConfirm, setPartToConfirm] = useState<ShopItem | null>(null);
-  const [rodForUnequip, setRodForUnequip] = useState<ShopItem | null>(null);
   const [repairCost, setRepairCost] = useState<number | null>(null);
   const subtitleControls = useAnimation();
 
@@ -290,36 +288,27 @@ export function InventoryPage() {
   };
 
   const handleUnequipPart = async (rod: ShopItem, part: ShopItem) => {
-    setRodForUnequip(rod);
-    setPartToConfirm(part);
-    setUnequipConfirmModalOpen(true);
-  };
-
-  const confirmUnequipPart = async () => {
-    if (!rodForUnequip || !partToConfirm || !rodForUnequip.instanceId || !partToConfirm.instanceId) return;
+    if (!rod.instanceId || !part.instanceId) return;
 
     setActionInProgress('unequip-part');
     try {
-      const updatedProfile = await unequipAndRemoveBrokenPart(rodForUnequip.instanceId, partToConfirm.instanceId);
+      const updatedProfile = await unequipAndRemoveBrokenPart(rod.instanceId, part.instanceId);
       updateProfile(updatedProfile);
       toast.success("Part has been permanently removed.");
       
       // Refresh inventory and update modal with fresh rod data
       const allItems = await fetchInventory();
-      if (partsModal.isOpen && rodForUnequip.instanceId) {
-        const updatedRod = allItems.find(item => item.instanceId === rodForUnequip.instanceId);
+      if (partsModal.isOpen && rod.instanceId) {
+        const updatedRod = allItems.find(item => item.instanceId === rod.instanceId);
         if (updatedRod) {
           setPartsModal({ isOpen: true, rod: updatedRod });
         }
       }
     } catch (error: any) {
-      console.error("Error a part:", error);
-      toast.error(error?.response?.data?.message || "Failed to unequip part.");
+      console.error("Error removing part:", error);
+      toast.error(error?.response?.data?.message || "Failed to remove part.");
     } finally {
       setActionInProgress(null);
-      setUnequipConfirmModalOpen(false);
-      setPartToConfirm(null);
-      setRodForUnequip(null);
     }
   };
 
@@ -857,18 +846,6 @@ export function InventoryPage() {
                 <span className="ml-1.5 text-slate-300 text-base">credits</span>
             </div>
           )}
-        </div>
-      }
-    />
-
-    <ConfirmationModal
-      isOpen={isUnequipConfirmModalOpen}
-      onClose={() => setUnequipConfirmModalOpen(false)}
-      onConfirm={confirmUnequipPart}
-      actionInProgress={actionInProgress === 'unequip-part'}
-      message={
-        <div className="text-center">
-          <p>Unequipping this part will permanently remove it from your fishing rod. Continue?</p>
         </div>
       }
     />
