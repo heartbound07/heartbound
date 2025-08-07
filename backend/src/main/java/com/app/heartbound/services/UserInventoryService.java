@@ -113,22 +113,22 @@ public class UserInventoryService {
 
     private int getBaseRepairCost(ItemRarity rarity) {
         switch (rarity) {
-            case COMMON: return 25;
-            case UNCOMMON: return 75;
-            case RARE: return 200;
-            case EPIC: return 600;
-            case LEGENDARY: return 1750;
+            case COMMON: return 50;       // Affordable for beginners
+            case UNCOMMON: return 150;    // Reasonable commitment
+            case RARE: return 450;        // Meaningful investment
+            case EPIC: return 1250;       // Significant grind required
+            case LEGENDARY: return 3500;  // Major long-term commitment
             default: return 0;
         }
     }
 
     private int getPartSurcharge(ItemRarity rarity) {
         switch (rarity) {
-            case COMMON: return 5;
-            case UNCOMMON: return 15;
-            case RARE: return 50;
-            case EPIC: return 200;
-            case LEGENDARY: return 500;
+            case COMMON: return 10;       // Small additional cost
+            case UNCOMMON: return 30;     // Moderate addition
+            case RARE: return 90;         // Noticeable surcharge
+            case EPIC: return 250;        // Significant addition
+            case LEGENDARY: return 700;   // Major surcharge for premium parts
             default: return 0;
         }
     }
