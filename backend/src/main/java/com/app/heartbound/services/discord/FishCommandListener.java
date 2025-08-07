@@ -189,6 +189,191 @@ public class FishCommandListener extends ListenerAdapter {
         public int getMaxCatches() { return maxCatches; }
     }
 
+    /**
+     * Helper class to encapsulate successful catch processing results
+     */
+    private static class CatchProcessingResult {
+        private final StringBuilder message;
+        private final String warningMessage;
+        
+        public CatchProcessingResult(StringBuilder message, String warningMessage) {
+            this.message = message;
+            this.warningMessage = warningMessage;
+        }
+        
+        public StringBuilder getMessage() { return message; }
+        public String getWarningMessage() { return warningMessage; }
+    }
+
+    /**
+     * Get the fishing rod multiplier from an equipped rod instance
+     * @param equippedRodInstance The equipped rod instance (can be null)
+     * @return The multiplier value (1.0 if no rod or no multiplier)
+     */
+    private double getRodMultiplier(ItemInstance equippedRodInstance) {
+        if (equippedRodInstance != null) {
+            try {
+                Shop rod = equippedRodInstance.getBaseItem();
+                if (rod.getFishingRodMultiplier() != null && rod.getFishingRodMultiplier() > 1.0) {
+                    return rod.getFishingRodMultiplier();
+                }
+            } catch (Exception e) {
+                logger.error("Failed to apply fishing rod multiplier: {}", e.getMessage());
+            }
+        }
+        return 1.0;
+    }
+
+    /**
+     * Process a successful fishing catch (rare or regular)
+     * @param userId The user ID
+     * @param user The user entity
+     * @param equippedRodInstance The equipped fishing rod instance
+     * @param bonuses The part bonuses
+     * @param fishEmoji The fish emoji caught
+     * @param baseCreditChange The base credit reward
+     * @param multiplier The total multiplier to apply
+     * @param isRare Whether this is a rare catch
+     * @param fishingSettings The fishing settings
+     * @param brokenParts List to add broken part names to
+     * @return CatchProcessingResult containing the message and optional warning
+     */
+    private CatchProcessingResult processSuccessfulCatch(
+            String userId, 
+            User user, 
+            ItemInstance equippedRodInstance, 
+            PartBonuses bonuses,
+            String fishEmoji, 
+            int baseCreditChange, 
+            double multiplier, 
+            boolean isRare,
+            DiscordBotSettingsService.FishingSettings fishingSettings,
+            List<String> brokenParts) {
+        
+        int currentCredits = (user.getCredits() == null) ? 0 : user.getCredits();
+        StringBuilder message = new StringBuilder();
+        String warningMessage = null;
+        
+        // Calculate final credit change with multiplier
+        int finalCreditChange = (int) Math.round(baseCreditChange * multiplier);
+        if (multiplier > 1.0) {
+            logger.info("Applied {}x fishing rod multiplier for user {}. Original credits: {}, New credits: {}", 
+                       multiplier, userId, baseCreditChange, finalCreditChange);
+        }
+        
+        // Build initial message
+        message.append("🎣 ");
+        if (multiplier > 1.0) {
+            DecimalFormat df = new DecimalFormat("0.#");
+            message.append("**").append(df.format(multiplier)).append("x** | ");
+        } else {
+            message.append("| ");
+        }
+        
+        if (isRare) {
+            message.append("**WOW!** You caught a rare ").append(fishEmoji);
+        } else {
+            message.append("You caught ").append(fishEmoji);
+        }
+        message.append("! +").append(finalCreditChange).append(" 🪙");
+        
+        // Atomically update credits
+        userService.updateCreditsAtomic(userId, finalCreditChange);
+        user.setCredits(currentCredits + finalCreditChange);
+
+        // Bonus Loot Chance
+        if (bonuses.totalBonusLootChance > 0 && secureRandomService.getSecureDouble() <= (bonuses.totalBonusLootChance / 100.0)) {
+            int bonusCredits = 5 + secureRandomService.getSecureInt(11); // 5-15 bonus credits
+            userService.updateCreditsAtomic(userId, bonusCredits);
+            user.setCredits(currentCredits + finalCreditChange + bonusCredits);
+            message.append(" Your reel snagged some extra loot! +").append(bonusCredits).append(" 🪙");
+        }
+
+        // Durability and XP Logic
+        if (equippedRodInstance != null && equippedRodInstance.getDurability() != null && equippedRodInstance.getDurability() > 0) {
+            equippedRodInstance.setDurability(equippedRodInstance.getDurability() - 1);
+
+            for (ItemInstance partInstance : bonuses.getEquippedParts(equippedRodInstance).values()) {
+                if (partInstance != null && partInstance.getDurability() != null && partInstance.getDurability() > 0) {
+                    // ROD_SHAFT parts have infinite durability and should not lose durability
+                    if (partInstance.getBaseItem().getFishingRodPartType() != FishingRodPart.ROD_SHAFT) {
+                        partInstance.setDurability(partInstance.getDurability() - 1);
+                        if (partInstance.getDurability() == 0) {
+                            brokenParts.add(partInstance.getBaseItem().getName());
+                        }
+                    }
+                }
+            }
+
+            // XP Gain Logic (25% chance)
+            if (secureRandomService.getSecureDouble() <= 0.25) {
+                long xpGained = secureRandomService.getSecureInt(5) + 1; // 1-5 XP
+                equippedRodInstance.setExperience((equippedRodInstance.getExperience() == null ? 0L : equippedRodInstance.getExperience()) + xpGained);
+                userInventoryService.handleRodLevelUp(equippedRodInstance);
+                message.append(" +").append(xpGained).append(" XP");
+            }
+
+            if (equippedRodInstance.getDurability() <= 0) {
+                user.setEquippedFishingRodInstanceId(null);
+                message.append("\n\n**Oh no!** Your fishing rod broke and has been unequipped. You'll need to repair it.");
+                logger.info("Fishing rod instance {} broke for user {}", equippedRodInstance.getId(), userId);
+            }
+            itemInstanceRepository.save(equippedRodInstance);
+        }
+
+        // Update non-credit user stats
+        int oldFishSinceLimit = user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0;
+        int newFishCount = (user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0) + 1;
+        int newFishSinceLimit = oldFishSinceLimit + 1;
+        user.setFishCaughtCount(newFishCount);
+        user.setFishCaughtSinceLimit(newFishSinceLimit);
+        
+        // Check if user has reached the fishing limit
+        int maxCatches = user.getCurrentFishingLimit();
+        int cooldownHours = fishingSettings.getCooldownHours();
+        double limitWarningThreshold = fishingSettings.getLimitWarningThreshold();
+        
+        if (newFishSinceLimit >= maxCatches && user.getFishingLimitCooldownUntil() == null) {
+            setFishingLimitCooldown(user, fishingSettings);
+            
+            // Improved grammar for the cooldown message
+            String hourText = cooldownHours == 1 ? "hour" : "hours";
+            message.append(String.format("\n\n🎯 **Fishing Limit Reached!** You've caught %d/%d fish and must wait **%d %s** before fishing again.", 
+                newFishSinceLimit, maxCatches, cooldownHours, hourText));
+            logger.info("User {} reached fishing limit of {} catches. Cooldown set for {} hours.", userId, maxCatches, cooldownHours);
+        } else {
+            int warningMark = (int) (maxCatches * limitWarningThreshold);
+            if (oldFishSinceLimit < warningMark && newFishSinceLimit >= warningMark) {
+                // Prepare a warning to be sent as a followup message
+                warningMessage = String.format("You are approaching the fishing limit! **%d/%d**", newFishSinceLimit, maxCatches);
+            }
+        }
+        
+        // Create audit entry for catch
+        String auditAction = isRare ? "FISHING_RARE_CATCH" : "FISHING_CATCH";
+        String catchType = isRare ? "rare" : "regular";
+        CreateAuditDTO auditEntry = CreateAuditDTO.builder()
+            .userId(userId)
+            .action(auditAction)
+            .entityType("USER_CREDITS")
+            .entityId(userId)
+            .description(String.format("Caught %sfish %s and earned %d credits", isRare ? "rare " : "", fishEmoji, finalCreditChange))
+            .severity(AuditSeverity.INFO)
+            .category(AuditCategory.FINANCIAL)
+            .details(String.format("{\"game\":\"fishing\",\"catchType\":\"%s\",\"fish\":\"%s\",\"won\":%d,\"newBalance\":%d,\"fishCaughtCount\":%d,\"multiplier\":%.2f}", 
+                catchType, fishEmoji, finalCreditChange, user.getCredits(), newFishCount, multiplier))
+            .source("DISCORD_BOT")
+            .build();
+        
+        // Use async audit logging to prevent blocking the Discord response
+        createAuditEntryAsync(auditEntry);
+        
+        logger.debug("User {} fished successfully: +{} credits. New balance: {}", 
+                userId, finalCreditChange, user.getCredits());
+        
+        return new CatchProcessingResult(message, warningMessage);
+    }
+
     private static class PartBonuses {
         double totalBonusLootChance = 0.0;
         double totalRarityChanceIncrease = 0.0;
@@ -247,23 +432,6 @@ public class FishCommandListener extends ListenerAdapter {
         return bonuses;
     }
     
-    private double getEquippedRodMultiplier(User user) {
-        if (user.getEquippedFishingRodInstanceId() != null) {
-            try {
-                Optional<ItemInstance> rodInstanceOpt = itemInstanceRepository.findById(user.getEquippedFishingRodInstanceId());
-                if (rodInstanceOpt.isPresent()) {
-                    Shop rod = rodInstanceOpt.get().getBaseItem();
-                    if (rod.getFishingRodMultiplier() != null && rod.getFishingRodMultiplier() > 1.0) {
-                        return rod.getFishingRodMultiplier();
-                    }
-                }
-            } catch (Exception e) {
-                logger.error("Failed to apply fishing rod multiplier for user {}: {}", user.getId(), e.getMessage());
-            }
-        }
-        return 1.0;
-    }
-
     /**
      * Asynchronously creates audit entries for fishing activities to prevent blocking the main command flow
      * @param auditEntry The audit entry to create
@@ -415,7 +583,7 @@ public class FishCommandListener extends ListenerAdapter {
             
             StringBuilder message = new StringBuilder();
             int creditChange;
-            double multiplier = getEquippedRodMultiplier(user) + bonuses.totalMultiplierIncrease;
+            double multiplier = getRodMultiplier(equippedRodInstance) + bonuses.totalMultiplierIncrease;
             
             double effectiveRareFishChance = RARE_FISH_CHANCE + (bonuses.totalRarityChanceIncrease / 100.0);
 
@@ -424,233 +592,18 @@ public class FishCommandListener extends ListenerAdapter {
                 String fishEmoji = RARE_CATCHES.get(secureRandomService.getSecureInt(RARE_CATCHES.size()));
                 int baseCreditChange = 50 + secureRandomService.getSecureInt(21); // 50-70 range for rare catches
 
-                int finalCreditChange = (int) Math.round(baseCreditChange * multiplier);
-                if (multiplier > 1.0) {
-                    logger.info("Applied {}x fishing rod multiplier for user {}. Original credits: {}, New credits: {}", multiplier, userId, baseCreditChange, finalCreditChange);
-                }
-                
-                message.append("🎣 ");
-                if (multiplier > 1.0) {
-                    DecimalFormat df = new DecimalFormat("0.#");
-                    message.append("**").append(df.format(multiplier)).append("x** | ");
-                } else {
-                    message.append("| ");
-                }
-                
-                message.append("**WOW!** You caught a rare ").append(fishEmoji);
-                message.append("! +").append(finalCreditChange).append(" 🪙");
-                
-                // Atomically update credits
-                userService.updateCreditsAtomic(userId, finalCreditChange);
-                user.setCredits(currentCredits + finalCreditChange);
-
-
-                // Bonus Loot Chance
-                if (bonuses.totalBonusLootChance > 0 && secureRandomService.getSecureDouble() <= (bonuses.totalBonusLootChance / 100.0)) {
-                    int bonusCredits = 5 + secureRandomService.getSecureInt(11); // 5-15 bonus credits
-                    userService.updateCreditsAtomic(userId, bonusCredits);
-                    user.setCredits(currentCredits + finalCreditChange + bonusCredits);
-                    message.append(" Your reel snagged some extra loot! +").append(bonusCredits).append(" 🪙");
-                }
-
-                // Durability and XP Logic
-                if (equippedRodInstance != null && equippedRodInstance.getDurability() != null && equippedRodInstance.getDurability() > 0) {
-                    equippedRodInstance.setDurability(equippedRodInstance.getDurability() - 1);
-
-                    for (ItemInstance partInstance : bonuses.getEquippedParts(equippedRodInstance).values()) {
-                        if (partInstance != null && partInstance.getDurability() != null && partInstance.getDurability() > 0) {
-                            // ROD_SHAFT parts have infinite durability and should not lose durability
-                            if (partInstance.getBaseItem().getFishingRodPartType() != FishingRodPart.ROD_SHAFT) {
-                                partInstance.setDurability(partInstance.getDurability() - 1);
-                                if (partInstance.getDurability() == 0) {
-                                    brokenParts.add(partInstance.getBaseItem().getName());
-                                }
-                            }
-                        }
-                    }
-
-                    // XP Gain Logic (25% chance)
-                    if (secureRandomService.getSecureDouble() <= 0.25) {
-                        long xpGained = secureRandomService.getSecureInt(5) + 1; // 1-5 XP
-                        equippedRodInstance.setExperience((equippedRodInstance.getExperience() == null ? 0L : equippedRodInstance.getExperience()) + xpGained);
-                        userInventoryService.handleRodLevelUp(equippedRodInstance);
-                        message.append(" +").append(xpGained).append(" XP");
-                    }
-
-                    if (equippedRodInstance.getDurability() <= 0) {
-                        user.setEquippedFishingRodInstanceId(null);
-                        message.append("\n\n**Oh no!** Your fishing rod broke and has been unequipped. You'll need to repair it.");
-                        logger.info("Fishing rod instance {} broke for user {}", equippedRodInstance.getId(), userId);
-                    }
-                    itemInstanceRepository.save(equippedRodInstance);
-                }
-
-                // Update non-credit user stats
-                int oldFishSinceLimit = user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0;
-                int newFishCount = (user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0) + 1;
-                int newFishSinceLimit = oldFishSinceLimit + 1;
-                user.setFishCaughtCount(newFishCount);
-                user.setFishCaughtSinceLimit(newFishSinceLimit);
-                
-                // Check if user has reached the fishing limit
-                int maxCatches = user.getCurrentFishingLimit();
-                int cooldownHours = fishingSettings.getCooldownHours();
-                double limitWarningThreshold = fishingSettings.getLimitWarningThreshold();
-                
-                if (newFishSinceLimit >= maxCatches && user.getFishingLimitCooldownUntil() == null) {
-                    setFishingLimitCooldown(user, fishingSettings);
-                    
-                    // Improved grammar for the cooldown message
-                    String hourText = cooldownHours == 1 ? "hour" : "hours";
-                    message.append(String.format("\n\n🎯 **Fishing Limit Reached!** You've caught %d/%d fish and must wait **%d %s** before fishing again.", 
-                        newFishSinceLimit, maxCatches, cooldownHours, hourText));
-                    logger.info("User {} reached fishing limit of {} catches. Cooldown set for {} hours.", userId, maxCatches, cooldownHours);
-                } else {
-                    int warningMark = (int) (maxCatches * limitWarningThreshold);
-                    if (oldFishSinceLimit < warningMark && newFishSinceLimit >= warningMark) {
-                        // Prepare a warning to be sent as a followup message
-                        warningMessage = String.format("You are approaching the fishing limit! **%d/%d**", newFishSinceLimit, maxCatches);
-                    }
-                }
-                
-                // Save the updated user
-                // userService.updateUser(user); // REMOVED
-                
-                // Create audit entry for rare fish catch
-                CreateAuditDTO auditEntry = CreateAuditDTO.builder()
-                    .userId(userId)
-                    .action("FISHING_RARE_CATCH")
-                    .entityType("USER_CREDITS")
-                    .entityId(userId)
-                    .description(String.format("Caught rare fish %s and earned %d credits", fishEmoji, finalCreditChange))
-                    .severity(AuditSeverity.INFO)
-                    .category(AuditCategory.FINANCIAL)
-                    .details(String.format("{\"game\":\"fishing\",\"catchType\":\"rare\",\"fish\":\"%s\",\"won\":%d,\"newBalance\":%d,\"fishCaughtCount\":%d,\"multiplier\":%.2f}", 
-                        fishEmoji, finalCreditChange, user.getCredits(), newFishCount, multiplier))
-                    .source("DISCORD_BOT")
-                    .build();
-                
-                // Use async audit logging to prevent blocking the Discord response
-                createAuditEntryAsync(auditEntry);
-                
-                logger.debug("User {} fished successfully: +{} credits. New balance: {}", 
-                        userId, finalCreditChange, user.getCredits());
+                                 CatchProcessingResult result = processSuccessfulCatch(userId, user, equippedRodInstance, bonuses, fishEmoji, baseCreditChange, multiplier, true, fishingSettings, brokenParts);
+                 message.append(result.getMessage());
+                 warningMessage = result.getWarningMessage();
                 
             } else if (roll <= SUCCESS_CHANCE) {
                 // 75% chance: regular fish (80% - 5% = 75%)
                 String fishEmoji = REGULAR_FISH.get(secureRandomService.getSecureInt(REGULAR_FISH.size()));
                 int baseCreditChange = secureRandomService.getSecureInt(20) + 1;
 
-                int finalCreditChange = (int) Math.round(baseCreditChange * multiplier);
-                if (multiplier > 1.0) {
-                    logger.info("Applied {}x fishing rod multiplier for user {}. Original credits: {}, New credits: {}", multiplier, userId, baseCreditChange, finalCreditChange);
-                }
-
-                message.append("🎣 ");
-                if (multiplier > 1.0) {
-                    DecimalFormat df = new DecimalFormat("0.#");
-                    message.append("**").append(df.format(multiplier)).append("x** | ");
-                } else {
-                    message.append("| ");
-                }
-                
-                message.append("You caught ").append(fishEmoji);
-                message.append("! +").append(finalCreditChange).append(" 🪙");
-                
-                // Atomically update credits
-                userService.updateCreditsAtomic(userId, finalCreditChange);
-                user.setCredits(currentCredits + finalCreditChange);
-
-                // Bonus Loot Chance
-                if (bonuses.totalBonusLootChance > 0 && secureRandomService.getSecureDouble() <= (bonuses.totalBonusLootChance / 100.0)) {
-                    int bonusCredits = 5 + secureRandomService.getSecureInt(11); // 5-15 bonus credits
-                    userService.updateCreditsAtomic(userId, bonusCredits);
-                    user.setCredits(currentCredits + finalCreditChange + bonusCredits);
-                    message.append(" Your reel snagged some extra loot! +").append(bonusCredits).append(" 🪙");
-                }
-
-                // Durability and XP Logic
-                if (equippedRodInstance != null && equippedRodInstance.getDurability() != null && equippedRodInstance.getDurability() > 0) {
-                    equippedRodInstance.setDurability(equippedRodInstance.getDurability() - 1);
-
-                    for (ItemInstance partInstance : bonuses.getEquippedParts(equippedRodInstance).values()) {
-                        if (partInstance != null && partInstance.getDurability() != null && partInstance.getDurability() > 0) {
-                            // ROD_SHAFT parts have infinite durability and should not lose durability
-                            if (partInstance.getBaseItem().getFishingRodPartType() != FishingRodPart.ROD_SHAFT) {
-                                partInstance.setDurability(partInstance.getDurability() - 1);
-                                if (partInstance.getDurability() == 0) {
-                                    brokenParts.add(partInstance.getBaseItem().getName());
-                                }
-                            }
-                        }
-                    }
-
-                    // XP Gain Logic (25% chance)
-                    if (secureRandomService.getSecureDouble() <= 0.25) {
-                        long xpGained = secureRandomService.getSecureInt(5) + 1; // 1-5 XP
-                        equippedRodInstance.setExperience((equippedRodInstance.getExperience() == null ? 0L : equippedRodInstance.getExperience()) + xpGained);
-                        userInventoryService.handleRodLevelUp(equippedRodInstance);
-                        message.append(" +").append(xpGained).append(" XP");
-                    }
-
-                    if (equippedRodInstance.getDurability() <= 0) {
-                        user.setEquippedFishingRodInstanceId(null);
-                        message.append("\n\n**Oh no!** Your fishing rod broke and has been unequipped. You'll need to repair it.");
-                        logger.info("Fishing rod instance {} broke for user {}", equippedRodInstance.getId(), userId);
-                    }
-                    itemInstanceRepository.save(equippedRodInstance);
-                }
-
-                // Update non-credit user stats
-                int oldFishSinceLimit = user.getFishCaughtSinceLimit() != null ? user.getFishCaughtSinceLimit() : 0;
-                int newFishCount = (user.getFishCaughtCount() != null ? user.getFishCaughtCount() : 0) + 1;
-                int newFishSinceLimit = oldFishSinceLimit + 1;
-                user.setFishCaughtCount(newFishCount);
-                user.setFishCaughtSinceLimit(newFishSinceLimit);
-                
-                // Check if user has reached the fishing limit
-                int maxCatches = user.getCurrentFishingLimit();
-                int cooldownHours = fishingSettings.getCooldownHours();
-                double limitWarningThreshold = fishingSettings.getLimitWarningThreshold();
-                
-                if (newFishSinceLimit >= maxCatches && user.getFishingLimitCooldownUntil() == null) {
-                    setFishingLimitCooldown(user, fishingSettings);
-                    
-                    // Improved grammar for the cooldown message
-                    String hourText = cooldownHours == 1 ? "hour" : "hours";
-                    message.append(String.format("\n\n🎯 **Fishing Limit Reached!** You've caught %d/%d fish and must wait **%d %s** before fishing again.", 
-                        newFishSinceLimit, maxCatches, cooldownHours, hourText));
-                    logger.info("User {} reached fishing limit of {} catches. Cooldown set for {} hours.", userId, maxCatches, cooldownHours);
-                } else {
-                    int warningMark = (int) (maxCatches * limitWarningThreshold);
-                    if (oldFishSinceLimit < warningMark && newFishSinceLimit >= warningMark) {
-                        // Prepare a warning to be sent as a followup message
-                        warningMessage = String.format("You are approaching the fishing limit! **%d/%d**", newFishSinceLimit, maxCatches);
-                    }
-                }
-                
-                // Save the updated user
-                // userService.updateUser(user); // REMOVED
-                
-                // Create audit entry for regular fish catch
-                CreateAuditDTO auditEntry = CreateAuditDTO.builder()
-                    .userId(userId)
-                    .action("FISHING_CATCH")
-                    .entityType("USER_CREDITS")
-                    .entityId(userId)
-                    .description(String.format("Caught fish %s and earned %d credits", fishEmoji, finalCreditChange))
-                    .severity(AuditSeverity.INFO)
-                    .category(AuditCategory.FINANCIAL)
-                    .details(String.format("{\"game\":\"fishing\",\"catchType\":\"regular\",\"fish\":\"%s\",\"won\":%d,\"newBalance\":%d,\"fishCaughtCount\":%d,\"multiplier\":%.2f}", 
-                        fishEmoji, finalCreditChange, user.getCredits(), newFishCount, multiplier))
-                    .source("DISCORD_BOT")
-                    .build();
-                
-                // Use async audit logging to prevent blocking the Discord response
-                createAuditEntryAsync(auditEntry);
-                
-                logger.debug("User {} fished successfully: +{} credits. New balance: {}", 
-                        userId, finalCreditChange, user.getCredits());
+                                 CatchProcessingResult result = processSuccessfulCatch(userId, user, equippedRodInstance, bonuses, fishEmoji, baseCreditChange, multiplier, false, fishingSettings, brokenParts);
+                 message.append(result.getMessage());
+                 warningMessage = result.getWarningMessage();
                 
             } else {
                 // Failure logic
