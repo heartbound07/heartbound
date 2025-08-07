@@ -446,7 +446,6 @@ public class ShopService {
      * @return Updated UserProfileDTO
      */
     @Transactional
-    @CacheEvict(value = "featuredItems", allEntries = true)
     public PurchaseResponseDTO purchaseItem(String userId, UUID itemId) {
         return purchaseItem(userId, itemId, 1);
     }
@@ -459,7 +458,6 @@ public class ShopService {
      * @return Updated UserProfileDTO
      */
     @Transactional
-    @CacheEvict(value = "featuredItems", allEntries = true)
     public PurchaseResponseDTO purchaseItem(String userId, UUID itemId, Integer quantity) {
         logger.debug("Processing purchase of item {} for user {} with quantity {}", itemId, userId, quantity);
     
@@ -688,7 +686,6 @@ public class ShopService {
      * @return Created shop item
      */
     @Transactional
-    @CacheEvict(value = "featuredItems", allEntries = true)
     public Shop createShopItem(ShopDTO shopDTO) {
         logger.debug("Creating new shop item: {} with active status: {}", shopDTO.getName(), shopDTO.isActive());
         
@@ -780,7 +777,6 @@ public class ShopService {
      * @return Updated shop item
      */
     @Transactional
-    @CacheEvict(value = "featuredItems", allEntries = true)
     public Shop updateShopItem(UUID itemId, ShopDTO shopDTO) {
         logger.debug("Updating shop item {}: {} with active status: {}", itemId, shopDTO.getName(), shopDTO.isActive());
         
@@ -873,7 +869,6 @@ public class ShopService {
      * @param newPrice New price
      */
     @Transactional
-    @CacheEvict(value = "featuredItems", allEntries = true)
     public void updateItemPrice(UUID itemId, int newPrice) {
         if (newPrice < 0) {
             throw new IllegalArgumentException("Price cannot be negative.");
@@ -893,7 +888,6 @@ public class ShopService {
      * @param newStatus New active status
      */
     @Transactional
-    @CacheEvict(value = "featuredItems", allEntries = true)
     public void updateItemStatus(UUID itemId, boolean newStatus) {
         Shop item = shopRepository.findById(itemId)
             .orElseThrow(() -> new ResourceNotFoundException("Shop item not found with ID: " + itemId));
@@ -910,7 +904,6 @@ public class ShopService {
      * @throws ItemReferencedInCasesException if the item is referenced in cases (with cascade info)
      */
     @Transactional
-    @CacheEvict(value = "featuredItems", allEntries = true)
     public void deleteShopItem(UUID itemId) {
         logger.debug("Attempting to delete shop item {}", itemId);
         

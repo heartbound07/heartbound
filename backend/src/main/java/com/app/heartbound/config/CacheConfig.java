@@ -567,7 +567,6 @@ public class CacheConfig {
      */
     public void invalidateShopLayoutCaches() {
         featuredItemsCache.invalidateAll();
-        dailyUserItemsCache.invalidateAll();
         log.debug("Shop layout caches invalidated");
     }
 
