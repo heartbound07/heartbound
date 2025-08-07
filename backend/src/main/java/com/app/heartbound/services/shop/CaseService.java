@@ -45,6 +45,7 @@ import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import com.app.heartbound.enums.FishingRodPart;
 
 @Service
 public class CaseService {
@@ -199,6 +200,28 @@ public class CaseService {
                 .owner(user)
                 .baseItem(wonItem)
                 .build();
+            
+            // Initialize durability for fishing equipment
+            if (wonItem.getCategory() == ShopCategory.FISHING_ROD || wonItem.getCategory() == ShopCategory.FISHING_ROD_PART) {
+                // ROD_SHAFT parts have infinite durability, so don't set durability for them
+                if (wonItem.getCategory() == ShopCategory.FISHING_ROD_PART && 
+                    wonItem.getFishingRodPartType() == FishingRodPart.ROD_SHAFT) {
+                    // ROD_SHAFT parts don't need durability initialization (infinite durability)
+                } else {
+                    // Validate that max_durability is set for non-ROD_SHAFT parts
+                    if (wonItem.getMaxDurability() == null) {
+                        logger.error("Shop item {} ({}) is missing max_durability configuration. This must be fixed in the database.", 
+                                   wonItem.getId(), wonItem.getName());
+                        throw new IllegalStateException("Shop item " + wonItem.getName() + " is missing required max_durability configuration");
+                    }
+                    newInstance.setDurability(wonItem.getMaxDurability());
+                    newInstance.setMaxDurability(wonItem.getMaxDurability());
+                }
+                if (wonItem.getCategory() == ShopCategory.FISHING_ROD) {
+                    newInstance.setExperience(0L);
+                }
+            }
+            
             user.getItemInstances().add(newInstance);
         }
         
