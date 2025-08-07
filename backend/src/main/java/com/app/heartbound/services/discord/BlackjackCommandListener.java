@@ -1082,25 +1082,16 @@ public class BlackjackCommandListener extends ListenerAdapter {
         // Show final hands
         BlackjackHand dealerHand = game.getDealerHand();
         String dealerTitle = "Dealer [" + dealerHand.getValue() + "]";
-        if (dealerHand.isBusted()) {
-            dealerTitle += " (BUST)";
-        }
         embed.addField(dealerTitle, dealerHand.getCardsUnicode(), true);
         
         // First hand
         BlackjackHand firstHand = game.getPlayerHand();
         String firstHandTitle = "Hand 1 [" + firstHand.getValue() + "]";
-        if (firstHand.isBusted()) {
-            firstHandTitle += " (BUST)";
-        }
         embed.addField(firstHandTitle, firstHand.getCardsUnicode(), true);
         
         // Second hand
         BlackjackHand secondHand = game.getSecondHand();
         String secondHandTitle = "Hand 2 [" + secondHand.getValue() + "]";
-        if (secondHand.isBusted()) {
-            secondHandTitle += " (BUST)";
-        }
         embed.addField(secondHandTitle, secondHand.getCardsUnicode(), true);
         
         // Add footer with current credits
