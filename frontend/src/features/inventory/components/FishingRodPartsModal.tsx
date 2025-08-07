@@ -192,7 +192,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                       </div>
                       {equippedPart && rod && (
                         <div className="flex items-center space-x-2 flex-shrink-0">
-                          {equippedPart.durability === 0 && (
+                          {equippedPart.durability === 0 && equippedPart.fishingRodPartType !== 'ROD_SHAFT' && (
                             equippedPart.maxRepairs != null && (equippedPart.repairCount || 0) < equippedPart.maxRepairs && (
                               <button
                                 onClick={() => onRepairPart(equippedPart)}
@@ -306,7 +306,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                             </div>
                           </div>
                           {!equippedPartsMap[type] && (
-                            part.durability === 0 ? (
+                            part.durability === 0 && part.fishingRodPartType !== 'ROD_SHAFT' ? (
                               <button
                                 onClick={() => onRepairPart(part)}
                                 disabled={isActionInProgress}
