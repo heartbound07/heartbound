@@ -220,40 +220,53 @@ public class BlackjackGame {
         Card card = deck.dealCard();
         activeHand.addCard(card);
         
-        // Check if active hand busted
+        // Check if active hand busted or reached 21
         if (activeHand.isBusted()) {
-            if (isSplit && isPlayingFirstHand && !firstHandCompleted) {
-                // First hand busted, move to second hand
-                this.firstHandCompleted = true;
-                this.isPlayingFirstHand = false;
-            } else if (isSplit && !isPlayingFirstHand) {
-                // Second hand busted, check if first hand is also busted
-                if (playerHand.isBusted()) {
-                    // Both hands busted, end game immediately
-                    this.gameEnded = true;
-                } else {
-                    // First hand is still valid, dealer must play
-                    this.dealerTurn = true;
-                    this.gameEnded = true;
-                }
-            } else {
-                // Single hand busted
-                this.gameEnded = true;
-            }
+            handleBustCondition();
         } else if (activeHand.getValue() == 21) {
-            // FIX: Auto-stand when hand reaches 21
-            if (isSplit && isPlayingFirstHand && !firstHandCompleted) {
-                // First hand hit 21, move to second hand
-                this.firstHandCompleted = true;
-                this.isPlayingFirstHand = false;
-            } else {
-                // Either single hand hit 21, or second hand hit 21 - end player's turn
-                this.dealerTurn = true;
-                this.gameEnded = true;
-            }
+            handleAutoStandOn21();
         }
         
         return card;
+    }
+    
+    /**
+     * Handle the bust condition for the active hand.
+     */
+    private void handleBustCondition() {
+        if (isSplit && isPlayingFirstHand && !firstHandCompleted) {
+            // First hand busted, move to second hand
+            this.firstHandCompleted = true;
+            this.isPlayingFirstHand = false;
+        } else if (isSplit && !isPlayingFirstHand) {
+            // Second hand busted, check if first hand is also busted
+            if (playerHand.isBusted()) {
+                // Both hands busted, end game immediately
+                this.gameEnded = true;
+            } else {
+                // First hand is still valid, dealer must play
+                this.dealerTurn = true;
+                this.gameEnded = true;
+            }
+        } else {
+            // Single hand busted
+            this.gameEnded = true;
+        }
+    }
+    
+    /**
+     * Handle auto-stand when hand reaches 21.
+     */
+    private void handleAutoStandOn21() {
+        if (isSplit && isPlayingFirstHand && !firstHandCompleted) {
+            // First hand hit 21, move to second hand
+            this.firstHandCompleted = true;
+            this.isPlayingFirstHand = false;
+        } else {
+            // Either single hand hit 21, or second hand hit 21 - end player's turn
+            this.dealerTurn = true;
+            this.gameEnded = true;
+        }
     }
 
     /**
@@ -291,59 +304,8 @@ public class BlackjackGame {
             return GameResult.IN_PROGRESS;
         }
         
-        int playerValue = playerHand.getValue();
-        int dealerValue = dealerHand.getValue();
         boolean playerBlackjack = playerHand.isBlackjack() && !isDoubledDown; // Double down can't be blackjack
-        boolean dealerBlackjack = dealerHand.isBlackjack();
-        
-        // Check for busts first
-        if (playerHand.isBusted()) {
-            return GameResult.DEALER_WIN; // Player busted
-        }
-        
-        if (dealerHand.isBusted()) {
-            return playerBlackjack ? GameResult.PLAYER_BLACKJACK : GameResult.PLAYER_WIN; // Dealer busted
-        }
-        
-        // ENHANCED FIX: Handle all 21-21 scenarios with comprehensive logic
-        if (playerValue == 21 && dealerValue == 21) {
-            // Both have natural blackjack (21 with exactly 2 cards each) - PUSH
-            if (playerBlackjack && dealerBlackjack) {
-                return GameResult.PUSH;
-            }
-            
-            // Player has natural blackjack, dealer has 21 but not natural - Player wins
-            if (playerBlackjack && !dealerBlackjack) {
-                return GameResult.PLAYER_BLACKJACK;
-            }
-            
-            // Dealer has natural blackjack, player has 21 but not natural - Dealer wins
-            if (!playerBlackjack && dealerBlackjack) {
-                return GameResult.DEALER_WIN;
-            }
-            
-            // Both have 21 but neither is natural blackjack (both have >2 cards) - PUSH
-            return GameResult.PUSH;
-        }
-        
-        // Handle blackjack scenarios when not both 21
-        if (playerBlackjack && dealerValue != 21) {
-            return GameResult.PLAYER_BLACKJACK; // Player blackjack wins
-        }
-        
-        if (dealerBlackjack && playerValue != 21) {
-            return GameResult.DEALER_WIN; // Dealer blackjack wins
-        }
-        
-        // Compare values for all other scenarios
-        if (playerValue > dealerValue) {
-            return GameResult.PLAYER_WIN;
-        } else if (dealerValue > playerValue) {
-            return GameResult.DEALER_WIN;
-        } else {
-            // Values are equal but not 21 (since 21-21 handled above)
-            return GameResult.PUSH;
-        }
+        return calculateResult(playerHand, playerBlackjack, false);
     }
     
     /**
@@ -369,9 +331,16 @@ public class BlackjackGame {
      * Calculate result for a specific hand against dealer.
      */
     private GameResult calculateHandResult(BlackjackHand hand) {
+        boolean handBlackjack = hand.isBlackjack() && !splitAces; // Split aces can't make blackjack
+        return calculateResult(hand, handBlackjack, splitAces);
+    }
+    
+    /**
+     * Common method to calculate game result for any hand against the dealer.
+     */
+    private GameResult calculateResult(BlackjackHand hand, boolean handHasBlackjack, boolean fromSplitAces) {
         int handValue = hand.getValue();
         int dealerValue = dealerHand.getValue();
-        boolean handBlackjack = hand.isBlackjack() && !splitAces; // Split aces can't make blackjack
         boolean dealerBlackjack = dealerHand.isBlackjack();
         
         // Check for busts first
@@ -380,25 +349,16 @@ public class BlackjackGame {
         }
         
         if (dealerHand.isBusted()) {
-            return handBlackjack ? GameResult.PLAYER_BLACKJACK : GameResult.PLAYER_WIN;
+            return handHasBlackjack ? GameResult.PLAYER_BLACKJACK : GameResult.PLAYER_WIN;
         }
         
         // Handle 21-21 scenarios
         if (handValue == 21 && dealerValue == 21) {
-            if (handBlackjack && dealerBlackjack) {
-                return GameResult.PUSH;
-            }
-            if (handBlackjack && !dealerBlackjack) {
-                return GameResult.PLAYER_BLACKJACK;
-            }
-            if (!handBlackjack && dealerBlackjack) {
-                return GameResult.DEALER_WIN;
-            }
-            return GameResult.PUSH;
+            return handle21vs21(handHasBlackjack, dealerBlackjack);
         }
         
-        // Handle blackjack scenarios
-        if (handBlackjack && dealerValue != 21) {
+        // Handle blackjack scenarios when not both 21
+        if (handHasBlackjack && dealerValue != 21) {
             return GameResult.PLAYER_BLACKJACK;
         }
         
@@ -406,7 +366,7 @@ public class BlackjackGame {
             return GameResult.DEALER_WIN;
         }
         
-        // Compare values
+        // Compare values for all other scenarios
         if (handValue > dealerValue) {
             return GameResult.PLAYER_WIN;
         } else if (dealerValue > handValue) {
@@ -414,6 +374,29 @@ public class BlackjackGame {
         } else {
             return GameResult.PUSH;
         }
+    }
+    
+    /**
+     * Handle the specific case where both player and dealer have 21.
+     */
+    private GameResult handle21vs21(boolean playerHasBlackjack, boolean dealerHasBlackjack) {
+        // Both have natural blackjack (21 with exactly 2 cards each) - PUSH
+        if (playerHasBlackjack && dealerHasBlackjack) {
+            return GameResult.PUSH;
+        }
+        
+        // Player has natural blackjack, dealer has 21 but not natural - Player wins
+        if (playerHasBlackjack && !dealerHasBlackjack) {
+            return GameResult.PLAYER_BLACKJACK;
+        }
+        
+        // Dealer has natural blackjack, player has 21 but not natural - Dealer wins
+        if (!playerHasBlackjack && dealerHasBlackjack) {
+            return GameResult.DEALER_WIN;
+        }
+        
+        // Both have 21 but neither is natural blackjack (both have >2 cards) - PUSH
+        return GameResult.PUSH;
     }
 
     /**
@@ -428,19 +411,8 @@ public class BlackjackGame {
         GameResult result = getResult();
         int baseBet = isDoubledDown ? betAmount / 2 : betAmount; // Get original bet amount
         
-        switch (result) {
-            case PLAYER_BLACKJACK:
-                return (int) (baseBet * 1.5 * this.roleMultiplier * (isDoubledDown ? 2 : 1)); // Blackjack pays 3:2, doubled if doubled down
-            case PLAYER_WIN:
-                return isDoubledDown ? baseBet * 2 : baseBet; // Double down wins pay 2:1 on original bet
-            case PUSH:
-                return 0; // Push returns bet (no net change since bet was already deducted)
-            case DEALER_WIN:
-                return -baseBet; // Loss (but bet was already deducted, so this represents the total loss)
-            case IN_PROGRESS:
-            default:
-                return 0;
-        }
+        return calculateHandPayout(result, baseBet, result == GameResult.PLAYER_BLACKJACK, 
+                                   isDoubledDown ? 2 : 1);
     }
     
     /**
@@ -452,27 +424,30 @@ public class BlackjackGame {
         int totalPayout = 0;
         
         for (GameResult result : results) {
-            switch (result) {
-                case PLAYER_BLACKJACK:
-                    totalPayout += (int) (originalBet * 1.5 * this.roleMultiplier);
-                    break;
-                case PLAYER_WIN:
-                    totalPayout += originalBet;
-                    break;
-                case PUSH:
-                    // No change for push
-                    break;
-                case DEALER_WIN:
-                    totalPayout -= originalBet;
-                    break;
-                case IN_PROGRESS:
-                default:
-                    // No payout change for in-progress or unexpected states
-                    break;
-            }
+            totalPayout += calculateHandPayout(result, originalBet, 
+                                              result == GameResult.PLAYER_BLACKJACK, 1);
         }
         
         return totalPayout;
+    }
+    
+    /**
+     * Calculate payout for a single hand result.
+     */
+    private int calculateHandPayout(GameResult result, int baseBet, boolean isBlackjack, int doubleMultiplier) {
+        switch (result) {
+            case PLAYER_BLACKJACK:
+                return (int) (baseBet * 1.5 * this.roleMultiplier * doubleMultiplier);
+            case PLAYER_WIN:
+                return baseBet * doubleMultiplier;
+            case PUSH:
+                return 0; // Push returns bet (no net change since bet was already deducted)
+            case DEALER_WIN:
+                return -baseBet; // Loss (bet was already deducted)
+            case IN_PROGRESS:
+            default:
+                return 0;
+        }
     }
 
     // Getters

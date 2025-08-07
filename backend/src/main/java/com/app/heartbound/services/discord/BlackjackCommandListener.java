@@ -42,6 +42,11 @@ public class BlackjackCommandListener extends ListenerAdapter {
     private static final Color LOSE_COLOR = new Color(220, 53, 69); // Red
     private static final Color PUSH_COLOR = new Color(255, 193, 7); // Yellow
     
+    // Dealer play constants
+    private static final int DEALER_STAND_VALUE = 17;
+    private static final long DEALER_INITIAL_DELAY_MS = 2000; // 2 seconds before dealer starts
+    private static final long DEALER_HIT_DELAY_MS = 2500; // 2.5 seconds between dealer hits
+    
     // Track active games - userId -> BlackjackGame
     private final ConcurrentHashMap<String, BlackjackGame> activeGames = new ConcurrentHashMap<>();
     
@@ -302,6 +307,32 @@ public class BlackjackCommandListener extends ListenerAdapter {
         }
     }
     
+    /**
+     * Validates user has sufficient credits and deducts them atomically.
+     * @return true if successful, false otherwise
+     */
+    private boolean validateAndDeductCredits(User user, int amount, String actionName, ButtonInteractionEvent event) {
+        Integer credits = user.getCredits();
+        int currentCredits = (credits == null) ? 0 : credits;
+        
+        if (currentCredits < amount) {
+            event.getHook().sendMessage("You don't have enough credits to " + actionName + "! You need " + amount + " more credits.")
+                    .setEphemeral(true)
+                    .queue();
+            return false;
+        }
+        
+        boolean creditDeducted = userService.deductCreditsIfSufficient(user.getId(), amount);
+        if (!creditDeducted) {
+            event.getHook().sendMessage("Credit deduction failed for " + actionName + ".")
+                    .setEphemeral(true)
+                    .queue();
+            return false;
+        }
+        
+        return true;
+    }
+    
     private void handleHit(ButtonInteractionEvent event, BlackjackGame game, User user) {
         if (game.isGameEnded()) {
             event.getHook().editOriginal("Game has already ended.")
@@ -336,7 +367,7 @@ public class BlackjackCommandListener extends ListenerAdapter {
                 ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
                 scheduler.schedule(() -> {
                     playDealerHandWithDelay(event, game, user, scheduler, 0);
-                }, 2, TimeUnit.SECONDS);
+                }, DEALER_INITIAL_DELAY_MS, TimeUnit.MILLISECONDS);
             } else {
                 // Game ended without dealer turn (all hands busted)
                 handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
@@ -383,7 +414,7 @@ public class BlackjackCommandListener extends ListenerAdapter {
 
             scheduler.schedule(() -> {
                 playDealerHandWithDelay(event, game, user, scheduler, 0);
-            }, 2, java.util.concurrent.TimeUnit.SECONDS); // 2-second delay before the dealer starts hitting.
+            }, DEALER_INITIAL_DELAY_MS, java.util.concurrent.TimeUnit.MILLISECONDS); // Use constant instead of hardcoded value
         } else {
             // This case is only reachable in a split game after the first hand is played.
             logger.info("User {} finished their first split hand and is now playing the second hand.", game.getUserId());
@@ -418,22 +449,8 @@ public class BlackjackCommandListener extends ListenerAdapter {
         
         // Check if user has sufficient credits for the additional bet
         int additionalBet = game.getBetAmount();
-        Integer credits = user.getCredits();
-        int currentCredits = (credits == null) ? 0 : credits;
         
-        if (currentCredits < additionalBet) {
-            event.getHook().sendMessage("You don't have enough credits to double down! You need " + additionalBet + " more credits.")
-                    .setEphemeral(true)
-                    .queue();
-            return;
-        }
-        
-        // Deduct additional credits for double down
-        boolean creditDeducted = userService.deductCreditsIfSufficient(game.getUserId(), additionalBet);
-        if (!creditDeducted) {
-            event.getHook().sendMessage("Credit deduction failed for double down.")
-                    .setEphemeral(true)
-                    .queue();
+        if (!validateAndDeductCredits(user, additionalBet, "double down", event)) {
             return;
         }
         
@@ -465,7 +482,7 @@ public class BlackjackCommandListener extends ListenerAdapter {
                     
                     scheduler.schedule(() -> {
                         playDealerHandWithDelay(event, game, user, scheduler, 0);
-                    }, 2, TimeUnit.SECONDS); // 2-second delay before the dealer starts hitting
+                    }, DEALER_INITIAL_DELAY_MS, TimeUnit.MILLISECONDS); // Use constant
                 }
             } else {
                 // This shouldn't happen as double down auto-stands, but handle it gracefully
@@ -509,22 +526,8 @@ public class BlackjackCommandListener extends ListenerAdapter {
         
         // Check if user has sufficient credits for the additional bet
         int additionalBet = game.getBetAmount();
-        Integer credits = user.getCredits();
-        int currentCredits = (credits == null) ? 0 : credits;
         
-        if (currentCredits < additionalBet) {
-            event.getHook().sendMessage("You don't have enough credits to split! You need " + additionalBet + " more credits.")
-                    .setEphemeral(true)
-                    .queue();
-            return;
-        }
-        
-        // Deduct additional credits for split
-        boolean creditDeducted = userService.deductCreditsIfSufficient(game.getUserId(), additionalBet);
-        if (!creditDeducted) {
-            event.getHook().sendMessage("Credit deduction failed for split.")
-                    .setEphemeral(true)
-                    .queue();
+        if (!validateAndDeductCredits(user, additionalBet, "split", event)) {
             return;
         }
         
@@ -570,8 +573,8 @@ public class BlackjackCommandListener extends ListenerAdapter {
         try {
             BlackjackHand dealerHand = game.getDealerHand();
             
-            // Check if dealer needs to hit (less than 17)
-            if (dealerHand.getValue() < 17) {
+            // Check if dealer needs to hit (less than DEALER_STAND_VALUE)
+            if (dealerHand.getValue() < DEALER_STAND_VALUE) {
                 // Dealer hits
                 Card newCard = game.getDeck().dealCard();
                 dealerHand.addCard(newCard);
@@ -592,10 +595,10 @@ public class BlackjackCommandListener extends ListenerAdapter {
                     // Continue dealer hitting after delay
                     scheduler.schedule(() -> {
                         playDealerHandWithDelay(event, game, user, scheduler, hitCount + 1);
-                    }, 2500, java.util.concurrent.TimeUnit.MILLISECONDS); // 2.5 second delay between dealer hits
+                    }, DEALER_HIT_DELAY_MS, java.util.concurrent.TimeUnit.MILLISECONDS); // Use constant
                 }
             } else {
-                // Dealer stands (17 or higher), end game properly
+                // Dealer stands (DEALER_STAND_VALUE or higher), end game properly
                 // CRITICAL FIX: Ensure game ends through proper game logic to maintain consistency
                 game.setGameEnded(true);
                 handleGameEnd(event.getHook(), game, user, false, event.getUser().getEffectiveName(), event.getUser().getEffectiveAvatarUrl());
@@ -621,124 +624,146 @@ public class BlackjackCommandListener extends ListenerAdapter {
     }
     
     private void handleGameEnd(Object hook, BlackjackGame game, User user, boolean isInitialBlackjack, String discordUserName, String discordAvatarUrl) {
+        if (game.isSplit()) {
+            handleSplitGameEnd(hook, game, user, discordUserName, discordAvatarUrl);
+        } else {
+            handleSingleGameEnd(hook, game, user, isInitialBlackjack, discordUserName, discordAvatarUrl);
+        }
+        
+        // Remove game from active games
+        activeGames.remove(game.getUserId());
+    }
+    
+    /**
+     * Handle the end of a split game.
+     */
+    private void handleSplitGameEnd(Object hook, BlackjackGame game, User user, String discordUserName, String discordAvatarUrl) {
+        // Handle split game results
+        BlackjackGame.GameResult[] results = game.getSplitResults();
+        BlackjackGame.GameResult firstResult = results[0];
+        BlackjackGame.GameResult secondResult = results[1];
+        
         // Calculate payout
         int payout = game.calculatePayout();
         
-        // Atomically update user credits
-        int creditChange = 0;
+        // Calculate credit change for split games
+        // The total bet was already deducted. Add back the bet plus any winnings.
+        int creditChange = game.getBetAmount() + payout;
         
-        if (game.isSplit()) {
-            // Handle split game results
-            BlackjackGame.GameResult[] results = game.getSplitResults();
-            BlackjackGame.GameResult firstResult = results[0];
-            BlackjackGame.GameResult secondResult = results[1];
-            
-            // Calculate credit change for split games
-            // The total bet was already deducted. Add back the bet plus any winnings.
-            // game.getBetAmount() is the total bet (initial + split)
-            // payout is the net win/loss already calculated by game.calculatePayout()
-            creditChange = game.getBetAmount() + payout;
-            
-            // The total bet was already deducted. This call adds back the bet and any winnings.
-            if (creditChange > 0) {
-                userService.updateCreditsAtomic(user.getId(), creditChange);
-            }
-            
-            // Fetch updated user for accurate balance
-            User updatedUser = userService.getUserById(user.getId());
-            int newCredits = (updatedUser != null && updatedUser.getCredits() != null) ? updatedUser.getCredits() : 0;
-            
-            // Create audit entries for split game results
-            try {
-                createSplitAuditEntries(game, user.getId(), firstResult, secondResult, payout, newCredits);
-            } catch (Exception e) {
-                logger.error("Failed to create audit entries for split blackjack game for user {}: {}", game.getUserId(), e.getMessage());
-            }
-            
-            // Build final embed for split game
-            MessageEmbed embed = buildSplitGameEndEmbed(game, discordUserName, discordAvatarUrl, firstResult, secondResult, payout, newCredits);
-            
-            // Send final message without buttons
-            if (hook instanceof net.dv8tion.jda.api.interactions.InteractionHook) {
-                ((net.dv8tion.jda.api.interactions.InteractionHook) hook).editOriginalEmbeds(embed)
-                        .setComponents() // Remove buttons
-                        .queue();
-            }
-            
-            // Remove game from active games
-            activeGames.remove(game.getUserId());
-            
-            logger.info("Split blackjack game ended for user {}: hand1={}, hand2={}, credit change={}, new credits={}", 
-                    game.getUserId(), firstResult, secondResult, creditChange, newCredits);
-        } else {
-            // Handle single hand game (existing logic)
-            BlackjackGame.GameResult result = game.getResult();
-            
-            switch (result) {
-                case PLAYER_BLACKJACK:
-                    creditChange = game.getBetAmount() + payout; // Return bet + 1.5x bet
-                    break;
-                case PLAYER_WIN:
-                    creditChange = game.getBetAmount() + payout; // Return bet + 1x bet
-                    break;
-                case PUSH:
-                    creditChange = game.getBetAmount(); // Return bet only
-                    break;
-                case DEALER_WIN:
-                    // Bet was already deducted, so no change here. The initial bet is lost.
-                    creditChange = 0;
-                    break;
-                case IN_PROGRESS:
-                default:
-                    logger.warn("handleGameEnd called with unexpected game result '{}' for user {}", result, user.getId());
-                    activeGames.remove(game.getUserId());
-                    return; // Exit early
-            }
-            
-            // The initial bet was already deducted. This call adds back the bet and any winnings.
-            if (creditChange > 0) {
-                userService.updateCreditsAtomic(user.getId(), creditChange);
-            }
-            
-            // Fetch updated user for accurate balance in logs and embeds
-            User updatedUser = userService.getUserById(user.getId());
-            int newCredits = (updatedUser != null && updatedUser.getCredits() != null) ? updatedUser.getCredits() : 0;
-            
-            // Create audit entry for blackjack game result
-            try {
-                createSingleGameAuditEntry(game, user.getId(), result, payout, newCredits);
-            } catch (Exception e) {
-                logger.error("Failed to create audit entry for blackjack game result for user {}: {}", game.getUserId(), e.getMessage());
-            }
-            
-            // Build final embed - use Discord avatar and username from event
-            MessageEmbed embed = buildGameEndEmbed(game, discordUserName, discordAvatarUrl, result, payout, isInitialBlackjack, newCredits);
-            
-            // Send final message without buttons
-            if (hook instanceof net.dv8tion.jda.api.interactions.InteractionHook) {
-                ((net.dv8tion.jda.api.interactions.InteractionHook) hook).editOriginalEmbeds(embed)
-                        .setComponents() // Remove buttons
-                        .queue();
-            }
-            
-            // Remove game from active games
-            activeGames.remove(game.getUserId());
-            
-            logger.info("Blackjack game ended for user {}: result={}, credit change={}, new credits={}", 
-                    game.getUserId(), result, creditChange, newCredits);
+        // Update credits and get new balance
+        int newCredits = updateCreditsAndGetBalance(user, creditChange);
+        
+        // Create audit entries for split game results
+        try {
+            createSplitAuditEntries(game, user.getId(), firstResult, secondResult, payout, newCredits);
+        } catch (Exception e) {
+            logger.error("Failed to create audit entries for split blackjack game for user {}: {}", game.getUserId(), e.getMessage());
+        }
+        
+        // Build final embed for split game
+        MessageEmbed embed = buildSplitGameEndEmbed(game, discordUserName, discordAvatarUrl, firstResult, secondResult, payout, newCredits);
+        
+        // Send final message without buttons
+        sendFinalEmbed(hook, embed);
+        
+        logger.info("Split blackjack game ended for user {}: hand1={}, hand2={}, credit change={}, new credits={}", 
+                game.getUserId(), firstResult, secondResult, creditChange, newCredits);
+    }
+    
+    /**
+     * Handle the end of a single hand game.
+     */
+    private void handleSingleGameEnd(Object hook, BlackjackGame game, User user, boolean isInitialBlackjack, String discordUserName, String discordAvatarUrl) {
+        BlackjackGame.GameResult result = game.getResult();
+        
+        // Calculate payout and credit change
+        int payout = game.calculatePayout();
+        int creditChange = calculateCreditChange(result, game.getBetAmount(), payout);
+        
+        if (result == BlackjackGame.GameResult.IN_PROGRESS) {
+            logger.warn("handleGameEnd called with unexpected game result '{}' for user {}", result, user.getId());
+            return; // Exit early
+        }
+        
+        // Update credits and get new balance
+        int newCredits = updateCreditsAndGetBalance(user, creditChange);
+        
+        // Create audit entry for blackjack game result
+        try {
+            createSingleGameAuditEntry(game, user.getId(), result, payout, newCredits);
+        } catch (Exception e) {
+            logger.error("Failed to create audit entry for blackjack game result for user {}: {}", game.getUserId(), e.getMessage());
+        }
+        
+        // Build final embed - use Discord avatar and username from event
+        MessageEmbed embed = buildGameEndEmbed(game, discordUserName, discordAvatarUrl, result, payout, isInitialBlackjack, newCredits);
+        
+        // Send final message without buttons
+        sendFinalEmbed(hook, embed);
+        
+        logger.info("Blackjack game ended for user {}: result={}, credit change={}, new credits={}", 
+                game.getUserId(), result, creditChange, newCredits);
+    }
+    
+    /**
+     * Calculate credit change based on game result.
+     */
+    private int calculateCreditChange(BlackjackGame.GameResult result, int betAmount, int payout) {
+        switch (result) {
+            case PLAYER_BLACKJACK:
+            case PLAYER_WIN:
+                return betAmount + payout; // Return bet + winnings
+            case PUSH:
+                return betAmount; // Return bet only
+            case DEALER_WIN:
+                return 0; // Bet was already deducted, so no change
+            default:
+                return 0;
         }
     }
     
-    private MessageEmbed buildGameEmbed(BlackjackGame game, String userName, String userAvatarUrl, boolean gameEnded) {
-        EmbedBuilder embed = new EmbedBuilder();
+    /**
+     * Update user credits and return the new balance.
+     */
+    private int updateCreditsAndGetBalance(User user, int creditChange) {
+        // The initial bet was already deducted. This call adds back the bet and any winnings.
+        if (creditChange > 0) {
+            userService.updateCreditsAtomic(user.getId(), creditChange);
+        }
         
+        // Fetch updated user for accurate balance
+        User updatedUser = userService.getUserById(user.getId());
+        return (updatedUser != null && updatedUser.getCredits() != null) ? updatedUser.getCredits() : 0;
+    }
+    
+    /**
+     * Send the final embed message without buttons.
+     */
+    private void sendFinalEmbed(Object hook, MessageEmbed embed) {
+        if (hook instanceof net.dv8tion.jda.api.interactions.InteractionHook) {
+            ((net.dv8tion.jda.api.interactions.InteractionHook) hook).editOriginalEmbeds(embed)
+                    .setComponents() // Remove buttons
+                    .queue();
+        }
+    }
+    
+    /**
+     * Create a base embed with common properties.
+     */
+    private EmbedBuilder createBaseEmbed(String authorText, String avatarUrl, Color color) {
+        EmbedBuilder embed = new EmbedBuilder();
+        embed.setAuthor(authorText, null, avatarUrl);
+        embed.setColor(color);
+        return embed;
+    }
+    
+    private MessageEmbed buildGameEmbed(BlackjackGame game, String userName, String userAvatarUrl, boolean gameEnded) {
         // Set author with bet information
         String betInfo = game.isSplit() ? 
             userName + ", you have bet 🪙 " + game.getBetAmount() :
             userName + ", you have bet 🪙 " + game.getBetAmount() + " credits.";
-        embed.setAuthor(betInfo, null, userAvatarUrl);
         
-        embed.setColor(EMBED_COLOR);
+        EmbedBuilder embed = createBaseEmbed(betInfo, userAvatarUrl, EMBED_COLOR);
         
         // Dealer hand field
         BlackjackHand dealerHand = game.getDealerHand();
@@ -812,45 +837,13 @@ public class BlackjackCommandListener extends ListenerAdapter {
     
     private MessageEmbed buildGameEndEmbed(BlackjackGame game, String userName, String userAvatarUrl, 
                                           BlackjackGame.GameResult result, int payout, boolean isInitialBlackjack, int currentCredits) {
-        EmbedBuilder embed = new EmbedBuilder();
-        
-        // Set color based on result
+        // Set color and result text based on result
         Color embedColor;
-        String resultText;
+        String resultText = getResultText(result, payout, isInitialBlackjack, game.getPlayerHand().isBusted());
+        embedColor = getResultColor(result);
         
-        switch (result) {
-            case PLAYER_WIN:
-                embedColor = WIN_COLOR;
-                resultText = "🎉 You win! ";
-                break;
-            case PLAYER_BLACKJACK:
-                embedColor = WIN_COLOR;
-                resultText = isInitialBlackjack ? "🎊 BLACKJACK! Natural 21! " : "🎉 You win with 21! ";
-                break;
-            case DEALER_WIN:
-                embedColor = LOSE_COLOR;
-                resultText = game.getPlayerHand().isBusted() ? "💥 You busted! " : "😞 Dealer wins! ";
-                break;
-            case PUSH:
-                embedColor = PUSH_COLOR;
-                resultText = "🤝 Tie! ";
-                break;
-            default:
-                embedColor = EMBED_COLOR;
-                resultText = "Game ended. ";
-                break;
-        }
-        
-        // Add payout info to result text
-        if (payout > 0) {
-            resultText += "🪙+" + payout;
-        } else if (payout == 0 && result == BlackjackGame.GameResult.PUSH) {
-            resultText += "Bet returned";
-        }
-        
-        // Set author with result message
-        embed.setAuthor(resultText, null, userAvatarUrl);
-        embed.setColor(embedColor);
+        // Create base embed
+        EmbedBuilder embed = createBaseEmbed(resultText, userAvatarUrl, embedColor);
         
         // Show final hands
         BlackjackHand dealerHand = game.getDealerHand();
@@ -865,6 +858,57 @@ public class BlackjackCommandListener extends ListenerAdapter {
         embed.setFooter(userName + ", you now have " + currentCredits + " credits", null);
         
         return embed.build();
+    }
+    
+    /**
+     * Get the result text based on game outcome.
+     */
+    private String getResultText(BlackjackGame.GameResult result, int payout, boolean isInitialBlackjack, boolean playerBusted) {
+        String resultText;
+        
+        switch (result) {
+            case PLAYER_WIN:
+                resultText = "🎉 You win! ";
+                break;
+            case PLAYER_BLACKJACK:
+                resultText = isInitialBlackjack ? "🎊 BLACKJACK! Natural 21! " : "🎉 You win with 21! ";
+                break;
+            case DEALER_WIN:
+                resultText = playerBusted ? "💥 You busted! " : "😞 Dealer wins! ";
+                break;
+            case PUSH:
+                resultText = "🤝 Tie! ";
+                break;
+            default:
+                resultText = "Game ended. ";
+                break;
+        }
+        
+        // Add payout info to result text
+        if (payout > 0) {
+            resultText += "🪙+" + payout;
+        } else if (payout == 0 && result == BlackjackGame.GameResult.PUSH) {
+            resultText += "Bet returned";
+        }
+        
+        return resultText;
+    }
+    
+    /**
+     * Get the color for the result embed.
+     */
+    private Color getResultColor(BlackjackGame.GameResult result) {
+        switch (result) {
+            case PLAYER_WIN:
+            case PLAYER_BLACKJACK:
+                return WIN_COLOR;
+            case DEALER_WIN:
+                return LOSE_COLOR;
+            case PUSH:
+                return PUSH_COLOR;
+            default:
+                return EMBED_COLOR;
+        }
     }
 
     /**
@@ -886,38 +930,13 @@ public class BlackjackCommandListener extends ListenerAdapter {
      */
     private void createHandAuditEntry(BlackjackGame game, String userId, BlackjackGame.GameResult result, 
                                     int betAmount, int handNumber, int newCredits, BlackjackHand hand, BlackjackHand dealerHand) {
-        String action = "";
-        String description = "";
-        int netChange = 0;
+        String action = getAuditAction(result, handNumber > 0);
+        int netChange = calculateNetChange(result, betAmount, game.getRoleMultiplier());
+        String description = buildAuditDescription(result, netChange, betAmount, handNumber, game.getRoleMultiplier());
         
-        switch (result) {
-            case PLAYER_BLACKJACK:
-                action = "BLACKJACK_SPLIT_WIN";
-                netChange = (int) (betAmount * 1.5 * game.getRoleMultiplier());
-                description = String.format("Won %d credits with split hand %d blackjack (bet: %d, payout: 1.5x, multiplier: %.2fx)", 
-                    netChange, handNumber, betAmount, game.getRoleMultiplier());
-                break;
-            case PLAYER_WIN:
-                action = "BLACKJACK_SPLIT_WIN";
-                netChange = betAmount;
-                description = String.format("Won %d credits with split hand %d (bet: %d, payout: 1x)", 
-                    netChange, handNumber, betAmount);
-                break;
-            case PUSH:
-                action = "BLACKJACK_SPLIT_PUSH";
-                netChange = 0;
-                description = String.format("Split hand %d push - bet returned (bet: %d)", handNumber, betAmount);
-                break;
-            case DEALER_WIN:
-                action = "BLACKJACK_SPLIT_LOSS";
-                netChange = -betAmount;
-                description = String.format("Lost %d credits with split hand %d (bet: %d)", 
-                    betAmount, handNumber, betAmount);
-                break;
-            case IN_PROGRESS:
-            default:
-                logger.warn("createHandAuditEntry called with unexpected game result '{}' for user {}", result, userId);
-                return; // Do not create an audit for an unexpected state
+        if (result == BlackjackGame.GameResult.IN_PROGRESS) {
+            logger.warn("createHandAuditEntry called with unexpected game result '{}' for user {}", result, userId);
+            return; // Do not create an audit for an unexpected state
         }
         
         CreateAuditDTO auditEntry = CreateAuditDTO.builder()
@@ -941,39 +960,14 @@ public class BlackjackCommandListener extends ListenerAdapter {
      */
     private void createSingleGameAuditEntry(BlackjackGame game, String userId, BlackjackGame.GameResult result, 
                                           int payout, int newCredits) {
-        String action = "";
-        String description = "";
-        int netChange = 0;
         int baseBet = game.isDoubledDown() ? game.getBetAmount() / 2 : game.getBetAmount();
+        String action = getAuditAction(result, false);
+        int netChange = calculateNetChange(result, baseBet, game.getRoleMultiplier());
+        String description = buildSingleGameAuditDescription(result, payout, baseBet, game.getRoleMultiplier(), game.isDoubledDown());
         
-        switch (result) {
-            case PLAYER_BLACKJACK:
-                action = "BLACKJACK_WIN";
-                netChange = payout;
-                description = String.format("Won %d credits with blackjack (bet: %d, payout: 1.5x, multiplier: %.2fx%s)", 
-                    payout, baseBet, game.getRoleMultiplier(), game.isDoubledDown() ? ", doubled down" : "");
-                break;
-            case PLAYER_WIN:
-                action = "BLACKJACK_WIN";
-                netChange = payout;
-                description = String.format("Won %d credits in blackjack (bet: %d, payout: 1x%s)", 
-                    payout, baseBet, game.isDoubledDown() ? ", doubled down" : "");
-                break;
-            case PUSH:
-                action = "BLACKJACK_PUSH";
-                netChange = 0;
-                description = String.format("Blackjack push - bet returned (bet: %d%s)", baseBet, game.isDoubledDown() ? ", doubled down" : "");
-                break;
-            case DEALER_WIN:
-                action = "BLACKJACK_LOSS";
-                netChange = -baseBet;
-                description = String.format("Lost %d credits in blackjack (bet: %d%s)", 
-                    baseBet, baseBet, game.isDoubledDown() ? ", doubled down" : "");
-                break;
-            case IN_PROGRESS:
-            default:
-                 logger.warn("createSingleGameAuditEntry called with unexpected game result '{}' for user {}", result, userId);
-                 return; // Do not create an audit for an unexpected state
+        if (result == BlackjackGame.GameResult.IN_PROGRESS) {
+             logger.warn("createSingleGameAuditEntry called with unexpected game result '{}' for user {}", result, userId);
+             return; // Do not create an audit for an unexpected state
         }
         
         CreateAuditDTO auditEntry = CreateAuditDTO.builder()
@@ -993,72 +987,97 @@ public class BlackjackCommandListener extends ListenerAdapter {
     }
     
     /**
+     * Get audit action based on game result.
+     */
+    private String getAuditAction(BlackjackGame.GameResult result, boolean isSplit) {
+        String prefix = isSplit ? "BLACKJACK_SPLIT_" : "BLACKJACK_";
+        switch (result) {
+            case PLAYER_BLACKJACK:
+            case PLAYER_WIN:
+                return prefix + "WIN";
+            case PUSH:
+                return prefix + "PUSH";
+            case DEALER_WIN:
+                return prefix + "LOSS";
+            default:
+                return prefix + "UNKNOWN";
+        }
+    }
+    
+    /**
+     * Calculate net change for audit entry.
+     */
+    private int calculateNetChange(BlackjackGame.GameResult result, int betAmount, double roleMultiplier) {
+        switch (result) {
+            case PLAYER_BLACKJACK:
+                return (int) (betAmount * 1.5 * roleMultiplier);
+            case PLAYER_WIN:
+                return betAmount;
+            case PUSH:
+                return 0;
+            case DEALER_WIN:
+                return -betAmount;
+            default:
+                return 0;
+        }
+    }
+    
+    /**
+     * Build audit description for split hand.
+     */
+    private String buildAuditDescription(BlackjackGame.GameResult result, int netChange, int betAmount, int handNumber, double roleMultiplier) {
+        switch (result) {
+            case PLAYER_BLACKJACK:
+                return String.format("Won %d credits with split hand %d blackjack (bet: %d, payout: 1.5x, multiplier: %.2fx)", 
+                    netChange, handNumber, betAmount, roleMultiplier);
+            case PLAYER_WIN:
+                return String.format("Won %d credits with split hand %d (bet: %d, payout: 1x)", 
+                    netChange, handNumber, betAmount);
+            case PUSH:
+                return String.format("Split hand %d push - bet returned (bet: %d)", handNumber, betAmount);
+            case DEALER_WIN:
+                return String.format("Lost %d credits with split hand %d (bet: %d)", 
+                    betAmount, handNumber, betAmount);
+            default:
+                return "Unknown result";
+        }
+    }
+    
+    /**
+     * Build audit description for single game.
+     */
+    private String buildSingleGameAuditDescription(BlackjackGame.GameResult result, int payout, int baseBet, double roleMultiplier, boolean isDoubledDown) {
+        String doubleDownSuffix = isDoubledDown ? ", doubled down" : "";
+        
+        switch (result) {
+            case PLAYER_BLACKJACK:
+                return String.format("Won %d credits with blackjack (bet: %d, payout: 1.5x, multiplier: %.2fx%s)", 
+                    payout, baseBet, roleMultiplier, doubleDownSuffix);
+            case PLAYER_WIN:
+                return String.format("Won %d credits in blackjack (bet: %d, payout: 1x%s)", 
+                    payout, baseBet, doubleDownSuffix);
+            case PUSH:
+                return String.format("Blackjack push - bet returned (bet: %d%s)", baseBet, doubleDownSuffix);
+            case DEALER_WIN:
+                return String.format("Lost %d credits in blackjack (bet: %d%s)", 
+                    baseBet, baseBet, doubleDownSuffix);
+            default:
+                return "Unknown result";
+        }
+    }
+    
+    /**
      * Build the final embed for split game results.
      */
     private MessageEmbed buildSplitGameEndEmbed(BlackjackGame game, String userName, String userAvatarUrl, 
                                               BlackjackGame.GameResult firstResult, BlackjackGame.GameResult secondResult, 
                                               int totalPayout, int currentCredits) {
-        EmbedBuilder embed = new EmbedBuilder();
-        
         // Determine overall result color and text
-        Color embedColor = EMBED_COLOR;
-        String resultText = "";
+        Color embedColor = determineSplitGameColor(firstResult, secondResult);
+        String resultText = buildSplitResultText(firstResult, secondResult, totalPayout);
         
-        int wins = 0;
-        int losses = 0;
-        int pushes = 0;
-        
-        BlackjackGame.GameResult[] results = {firstResult, secondResult};
-        for (BlackjackGame.GameResult result : results) {
-            switch (result) {
-                case PLAYER_WIN:
-                case PLAYER_BLACKJACK:
-                    wins++;
-                    break;
-                case DEALER_WIN:
-                    losses++;
-                    break;
-                case PUSH:
-                    pushes++;
-                    break;
-                case IN_PROGRESS:
-                default:
-                    // Don't count in-progress or unexpected states
-                    break;
-            }
-        }
-        
-        if (wins == 2) {
-            embedColor = WIN_COLOR;
-            resultText += "Both hands won! ";
-        } else if (losses == 2) {
-            embedColor = LOSE_COLOR;
-            resultText += "Both hands lost! ";
-        } else if (pushes == 2) {
-            embedColor = PUSH_COLOR;
-            resultText += "Both hands pushed! ";
-        } else if (wins == 1 && losses == 1) {
-            embedColor = PUSH_COLOR;
-            resultText += "One win, one loss! ";
-        } else if (wins == 1 && pushes == 1) {
-            embedColor = WIN_COLOR;
-            resultText += "One win, one push! ";
-        } else if (losses == 1 && pushes == 1) {
-            embedColor = LOSE_COLOR;
-            resultText += "One loss, one push! ";
-        }
-        
-        // Add payout info
-        if (totalPayout > 0) {
-            resultText += "🪙 +" + totalPayout;
-        } else if (totalPayout == 0) {
-            resultText += "🪙 +0";
-        } else {
-            resultText += "🪙 " + totalPayout;
-        }
-        
-        embed.setAuthor(resultText, null, userAvatarUrl);
-        embed.setColor(embedColor);
+        // Create base embed
+        EmbedBuilder embed = createBaseEmbed(resultText, userAvatarUrl, embedColor);
         
         // Show final hands
         BlackjackHand dealerHand = game.getDealerHand();
@@ -1088,5 +1107,106 @@ public class BlackjackCommandListener extends ListenerAdapter {
         embed.setFooter(userName + ", you now have " + currentCredits + " credits", null);
         
         return embed.build();
+    }
+    
+    /**
+     * Determine the embed color for split game results.
+     */
+    private Color determineSplitGameColor(BlackjackGame.GameResult firstResult, BlackjackGame.GameResult secondResult) {
+        // Count results more efficiently
+        int wins = countWins(firstResult, secondResult);
+        int losses = countLosses(firstResult, secondResult);
+        int pushes = countPushes(firstResult, secondResult);
+        
+        if (wins == 2) {
+            return WIN_COLOR;
+        } else if (losses == 2) {
+            return LOSE_COLOR;
+        } else if (pushes == 2) {
+            return PUSH_COLOR;
+        } else if (wins == 1 && losses == 0) {
+            return WIN_COLOR;
+        } else if (losses == 1 && wins == 0) {
+            return LOSE_COLOR;
+        } else {
+            return PUSH_COLOR; // Mixed results default to push color
+        }
+    }
+    
+    /**
+     * Count wins in split results.
+     */
+    private int countWins(BlackjackGame.GameResult... results) {
+        int count = 0;
+        for (BlackjackGame.GameResult result : results) {
+            if (result == BlackjackGame.GameResult.PLAYER_WIN || result == BlackjackGame.GameResult.PLAYER_BLACKJACK) {
+                count++;
+            }
+        }
+        return count;
+    }
+    
+    /**
+     * Count losses in split results.
+     */
+    private int countLosses(BlackjackGame.GameResult... results) {
+        int count = 0;
+        for (BlackjackGame.GameResult result : results) {
+            if (result == BlackjackGame.GameResult.DEALER_WIN) {
+                count++;
+            }
+        }
+        return count;
+    }
+    
+    /**
+     * Count pushes in split results.
+     */
+    private int countPushes(BlackjackGame.GameResult... results) {
+        int count = 0;
+        for (BlackjackGame.GameResult result : results) {
+            if (result == BlackjackGame.GameResult.PUSH) {
+                count++;
+            }
+        }
+        return count;
+    }
+    
+    /**
+     * Build result text for split game.
+     */
+    private String buildSplitResultText(BlackjackGame.GameResult firstResult, BlackjackGame.GameResult secondResult, int totalPayout) {
+        int wins = countWins(firstResult, secondResult);
+        int losses = countLosses(firstResult, secondResult);
+        int pushes = countPushes(firstResult, secondResult);
+        
+        String resultText;
+        
+        if (wins == 2) {
+            resultText = "🎉 Both hands won! ";
+        } else if (losses == 2) {
+            resultText = "😞 Both hands lost! ";
+        } else if (pushes == 2) {
+            resultText = "🤝 Both hands pushed! ";
+        } else if (wins == 1 && losses == 1) {
+            resultText = "🎲 One win, one loss! ";
+        } else if (wins == 1 && pushes == 1) {
+            resultText = "🎉 One win, one push! ";
+        } else if (losses == 1 && pushes == 1) {
+            resultText = "😔 One loss, one push! ";
+        } else {
+            resultText = "Game ended. ";
+        }
+        
+        // Add payout info
+        if (totalPayout > 0) {
+            resultText += "🪙 +" + totalPayout;
+        } else if (totalPayout == 0) {
+            resultText += "🪙 +0";
+        } else {
+            resultText += "🪙 " + totalPayout;
+        }
+        
+        return resultText;
     }
 } 
