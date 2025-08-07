@@ -5,7 +5,6 @@ import { ShopItem } from '@/types/inventory';
 import { GiFishingPole, GiSewingString, GiFishingHook, GiGearStick } from 'react-icons/gi';
 import { PiFilmReel, PiHandPalm } from 'react-icons/pi';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
-import { FaCoins } from 'react-icons/fa';
 import {
   Popover,
   PopoverContent,
@@ -24,13 +23,7 @@ interface FishingRodPartsModalProps {
   actionInProgress?: string | null;
 }
 
-const RARITY_COSTS: Record<string, number> = {
-  COMMON: 60,
-  UNCOMMON: 280,
-  RARE: 1450,
-  EPIC: 6200,
-  LEGENDARY: 30000,
-};
+
 
 const partIcons: Record<string, React.ElementType> = {
   ROD_SHAFT: GiFishingPole,
@@ -257,7 +250,6 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                     {parts
                       .filter(p => p.fishingRodPartType === type)
                       .map(part => {
-                        const cost = RARITY_COSTS[part.rarity] || 0;
                         return (
                         <div key={part.instanceId} className={`bg-slate-800 p-2 rounded-md flex items-center justify-between mb-2 border-l-4 ${getRarityClass(part.rarity)}`}>
                           <div className="flex-grow">
@@ -317,7 +309,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                               disabled={isActionInProgress}
                               className="ml-4 px-3 py-1 bg-primary/80 hover:bg-primary disabled:bg-gray-500 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
                             >
-                              Equip ( <FaCoins className="inline-block -mt-px mr-1" />{cost} )
+                              Equip
                             </button>
                           )}
                         </div>
@@ -337,18 +329,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
         onClose={() => setConfirmModalOpen(false)}
         onConfirm={handleConfirmEquip}
         message={
-          partToEquip ? (
-            <div className="text-center">
-              <p>Are you sure you want to equip this?.</p>
-              <div className="flex items-center justify-center mt-4 text-lg">
-                  <FaCoins className="mr-2 text-yellow-400" />
-                  <span className="font-semibold text-white">{new Intl.NumberFormat().format(RARITY_COSTS[partToEquip.rarity] || 0)}</span>
-                  <span className="ml-1.5 text-slate-300 text-base">credits</span>
-              </div>
-            </div>
-          ) : (
-            'Are you sure you want to equip this?'
-          )
+          'Are you sure you want to equip this fishing rod part?'
         }
       />
       <ConfirmationModal

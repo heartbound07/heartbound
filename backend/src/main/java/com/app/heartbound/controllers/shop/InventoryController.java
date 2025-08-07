@@ -357,12 +357,12 @@ public class InventoryController {
             keyType = RateLimitKeyType.USER,
             keyPrefix = "rod-equip"
     )
-    public ResponseEntity<UserProfileDTO> equipAndRepairRodPart(
+    public ResponseEntity<UserProfileDTO> equipRodPart(
             @PathVariable UUID rodInstanceId,
             @RequestBody EquipRequest request,
             Authentication authentication) {
         String userId = authentication.getName();
-        UserProfileDTO profile = userInventoryService.equipAndRepairFishingRodPart(userId, rodInstanceId, request.getPartInstanceId());
+        UserProfileDTO profile = userInventoryService.equipFishingRodPart(userId, rodInstanceId, request.getPartInstanceId());
         return ResponseEntity.ok(profile);
     }
 
