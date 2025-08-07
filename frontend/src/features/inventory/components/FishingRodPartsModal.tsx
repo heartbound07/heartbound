@@ -306,13 +306,23 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                             </div>
                           </div>
                           {!equippedPartsMap[type] && (
-                            <button
-                              onClick={() => handleEquipClick(part)}
-                              disabled={isActionInProgress}
-                              className="ml-4 px-3 py-1 bg-primary/80 hover:bg-primary disabled:bg-gray-500 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
-                            >
-                              Equip
-                            </button>
+                            part.durability === 0 ? (
+                              <button
+                                onClick={() => onRepairPart(part)}
+                                disabled={isActionInProgress}
+                                className="ml-4 px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-500 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
+                              >
+                                Repair
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleEquipClick(part)}
+                                disabled={isActionInProgress}
+                                className="ml-4 px-3 py-1 bg-primary/80 hover:bg-primary disabled:bg-gray-500 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
+                              >
+                                Equip
+                              </button>
+                            )
                           )}
                         </div>
                       )})}
