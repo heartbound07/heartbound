@@ -319,6 +319,11 @@ public class TradeService {
                 }
             }
 
+            // Transfer equipped parts when trading a fishing rod
+            if (category == ShopCategory.FISHING_ROD) {
+                transferEquippedPartsWithRod(instance, fromUser, toUser);
+            }
+
             // Check for unique item ownership
             if (!shopItem.getCategory().isStackable()) {
                 if (userInventoryService.getItemQuantity(toUser.getId(), shopItem.getId()) > 0) {
@@ -333,6 +338,43 @@ public class TradeService {
 
         trade.setStatus(TradeStatus.ACCEPTED);
         return tradeRepository.save(trade);
+    }
+
+    private void transferEquippedPartsWithRod(ItemInstance rodInstance, User fromUser, User toUser) {
+        // List of equipped parts to check and transfer
+        ItemInstance[] equippedParts = {
+            rodInstance.getEquippedRodShaft(),
+            rodInstance.getEquippedReel(),
+            rodInstance.getEquippedFishingLine(),
+            rodInstance.getEquippedHook(),
+            rodInstance.getEquippedGrip()
+        };
+
+        for (ItemInstance part : equippedParts) {
+            if (part != null) {
+                // Re-fetch and lock the part instance
+                ItemInstance lockedPart = itemInstanceRepository.findByIdWithLock(part.getId())
+                    .orElseThrow(() -> new InvalidTradeActionException("Trade failed: An equipped part is no longer available."));
+
+                // Validate that the part is owned by the rod's current owner
+                if (!lockedPart.getOwner().getId().equals(fromUser.getId())) {
+                    throw new InvalidTradeActionException("Trade failed: An equipped part is not owned by the current rod owner.");
+                }
+
+                Shop partItem = lockedPart.getBaseItem();
+                
+                // Check for unique item ownership constraint
+                if (!partItem.getCategory().isStackable()) {
+                    if (userInventoryService.getItemQuantity(toUser.getId(), partItem.getId()) > 0) {
+                        throw new InvalidTradeActionException("Trade failed: " + toUser.getUsername() + " already owns the unique part '" + partItem.getName() + "'.");
+                    }
+                }
+
+                // Transfer ownership of the part
+                lockedPart.setOwner(toUser);
+                itemInstanceRepository.save(lockedPart);
+            }
+        }
     }
 
     @Transactional
