@@ -5,6 +5,7 @@ import { ShopItem } from '@/types/inventory';
 import { GiFishingPole, GiSewingString, GiFishingHook, GiGearStick } from 'react-icons/gi';
 import { PiFilmReel, PiHandPalm } from 'react-icons/pi';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
+import { RARITY_ORDER } from '@/utils/rarityHelpers';
 import {
   Popover,
   PopoverContent,
@@ -249,6 +250,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                     </div>
                     {parts
                       .filter(p => p.fishingRodPartType === type)
+                      .sort((a, b) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity))
                       .map(part => {
                         return (
                         <div key={part.instanceId} className={`bg-slate-800 p-2 rounded-md flex items-center justify-between mb-2 border-l-4 ${getRarityClass(part.rarity)}`}>
