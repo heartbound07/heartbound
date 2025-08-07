@@ -5,6 +5,7 @@ import com.app.heartbound.entities.ItemInstance;
 import com.app.heartbound.entities.Shop;
 import com.app.heartbound.entities.User;
 import com.app.heartbound.enums.ShopCategory;
+import com.app.heartbound.enums.FishingRodPart;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.repositories.ItemInstanceRepository;
 import com.app.heartbound.repositories.UserRepository;
@@ -87,8 +88,16 @@ public class UserInventoryService {
         newInstance.setOwner(user);
         newInstance.setBaseItem(item);
         newInstance.setCreatedAt(Instant.now());
-        newInstance.setDurability(item.getMaxDurability());
-        newInstance.setMaxDurability(item.getMaxDurability());
+        
+        // ROD_SHAFT parts have infinite durability, so don't set durability for them
+        if (item.getCategory() == ShopCategory.FISHING_ROD_PART && 
+            item.getFishingRodPartType() == FishingRodPart.ROD_SHAFT) {
+            // ROD_SHAFT parts don't need durability initialization (infinite durability)
+        } else {
+            newInstance.setDurability(item.getMaxDurability());
+            newInstance.setMaxDurability(item.getMaxDurability());
+        }
+        
         newInstance.setLevel(1);
         newInstance.setExperience(0L);
         newInstance.setRepairCount(0);
@@ -205,6 +214,11 @@ public class UserInventoryService {
             throw new InvalidOperationException("Item is not a fishing rod part.");
         }
 
+        // Check if this is a ROD_SHAFT part - they have infinite durability and cannot be repaired
+        if (partBaseItem.getFishingRodPartType() == FishingRodPart.ROD_SHAFT) {
+            throw new InvalidOperationException("Rod shafts have infinite durability and cannot be repaired.");
+        }
+
         // Use proper repair cost calculation instead of upgrade cost
         return getBaseRepairCost(partBaseItem.getRarity());
     }
@@ -219,6 +233,11 @@ public class UserInventoryService {
 
         if (!partInstance.getOwner().getId().equals(userId)) {
             throw new ResourceNotFoundException("User does not own this fishing rod part.");
+        }
+
+        // Check if this is a ROD_SHAFT part - they have infinite durability and cannot be repaired
+        if (partInstance.getBaseItem().getFishingRodPartType() == FishingRodPart.ROD_SHAFT) {
+            throw new InvalidOperationException("Rod shafts have infinite durability and cannot be repaired.");
         }
 
         if (partInstance.getDurability() == null || partInstance.getDurability() > 0) {
@@ -418,7 +437,8 @@ public class UserInventoryService {
         Integer currentDurability = partInstance.getDurability() != null ? partInstance.getDurability() : partMaxDurability;
         boolean partNeedsRepair = currentDurability < partMaxDurability;
         
-        if (partNeedsRepair) {
+        // Only apply repair logic for non-ROD_SHAFT parts (ROD_SHAFT has infinite durability)
+        if (partNeedsRepair && partBaseItem.getFishingRodPartType() != FishingRodPart.ROD_SHAFT) {
             // Check if the part has reached its maximum repair limit - handle null repairCount safely
             Integer currentRepairCount = partInstance.getRepairCount() != null ? partInstance.getRepairCount() : 0;
             if (partBaseItem.getMaxRepairs() != null &&
@@ -495,6 +515,11 @@ public class UserInventoryService {
                 .filter(instance -> instance.getId().equals(partInstanceId))
                 .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("Fishing rod part not found in user inventory with id: " + partInstanceId));
+
+        // Check if this is a ROD_SHAFT part - they cannot be broken or removed this way
+        if (partInstance.getBaseItem().getFishingRodPartType() == FishingRodPart.ROD_SHAFT) {
+            throw new InvalidOperationException("Rod shafts cannot be broken or removed this way.");
+        }
 
         // Check if part is broken (durability = 0)
         if (partInstance.getDurability() == null || partInstance.getDurability() > 0) {

@@ -337,7 +337,8 @@ public class FishCommandListener extends ListenerAdapter {
                 for (ItemInstance partInstance : bonuses.getEquippedParts(equippedRodInstance).values()) {
                     if (partInstance != null && partInstance.getDurability() == null) {
                         Shop basePart = partInstance.getBaseItem();
-                        if (basePart.getMaxDurability() != null) {
+                        // ROD_SHAFT parts have infinite durability and don't need durability initialization
+                        if (basePart.getMaxDurability() != null && basePart.getFishingRodPartType() != FishingRodPart.ROD_SHAFT) {
                             partInstance.setDurability(basePart.getMaxDurability());
                             itemInstanceRepository.save(partInstance);
                             logger.info("Initialized durability for legacy part instance {} for user {}", partInstance.getId(), userId);
@@ -458,9 +459,12 @@ public class FishCommandListener extends ListenerAdapter {
 
                     for (ItemInstance partInstance : bonuses.getEquippedParts(equippedRodInstance).values()) {
                         if (partInstance != null && partInstance.getDurability() != null && partInstance.getDurability() > 0) {
-                            partInstance.setDurability(partInstance.getDurability() - 1);
-                            if (partInstance.getDurability() == 0) {
-                                brokenParts.add(partInstance.getBaseItem().getName());
+                            // ROD_SHAFT parts have infinite durability and should not lose durability
+                            if (partInstance.getBaseItem().getFishingRodPartType() != FishingRodPart.ROD_SHAFT) {
+                                partInstance.setDurability(partInstance.getDurability() - 1);
+                                if (partInstance.getDurability() == 0) {
+                                    brokenParts.add(partInstance.getBaseItem().getName());
+                                }
                             }
                         }
                     }
@@ -571,9 +575,12 @@ public class FishCommandListener extends ListenerAdapter {
 
                     for (ItemInstance partInstance : bonuses.getEquippedParts(equippedRodInstance).values()) {
                         if (partInstance != null && partInstance.getDurability() != null && partInstance.getDurability() > 0) {
-                            partInstance.setDurability(partInstance.getDurability() - 1);
-                            if (partInstance.getDurability() == 0) {
-                                brokenParts.add(partInstance.getBaseItem().getName());
+                            // ROD_SHAFT parts have infinite durability and should not lose durability
+                            if (partInstance.getBaseItem().getFishingRodPartType() != FishingRodPart.ROD_SHAFT) {
+                                partInstance.setDurability(partInstance.getDurability() - 1);
+                                if (partInstance.getDurability() == 0) {
+                                    brokenParts.add(partInstance.getBaseItem().getName());
+                                }
                             }
                         }
                     }

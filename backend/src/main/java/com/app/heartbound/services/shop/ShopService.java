@@ -9,6 +9,7 @@ import com.app.heartbound.entities.CaseItem;
 import com.app.heartbound.entities.ItemInstance;
 import com.app.heartbound.enums.ShopCategory;
 import com.app.heartbound.enums.ItemRarity;
+import com.app.heartbound.enums.FishingRodPart;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.shop.InsufficientCreditsException;
 import com.app.heartbound.exceptions.shop.ItemAlreadyOwnedException;
@@ -539,8 +540,14 @@ public class ShopService {
                 .build();
 
             if (item.getCategory() == ShopCategory.FISHING_ROD || item.getCategory() == ShopCategory.FISHING_ROD_PART) {
-                newInstance.setDurability(item.getMaxDurability());
-                newInstance.setMaxDurability(item.getMaxDurability());
+                // ROD_SHAFT parts have infinite durability, so don't set durability for them
+                if (item.getCategory() == ShopCategory.FISHING_ROD_PART && 
+                    item.getFishingRodPartType() == FishingRodPart.ROD_SHAFT) {
+                    // ROD_SHAFT parts don't need durability initialization (infinite durability)
+                } else {
+                    newInstance.setDurability(item.getMaxDurability());
+                    newInstance.setMaxDurability(item.getMaxDurability());
+                }
                 if (item.getCategory() == ShopCategory.FISHING_ROD) {
                     newInstance.setExperience(0L);
                 }
@@ -743,6 +750,13 @@ public class ShopService {
             .maxRepairs(shopDTO.getMaxRepairs())
             .build();
         
+        // Set infinite durability for ROD_SHAFT parts
+        if (shopDTO.getCategory() == ShopCategory.FISHING_ROD_PART && 
+            shopDTO.getFishingRodPartType() == FishingRodPart.ROD_SHAFT) {
+            newItem.setMaxDurability(null);
+            newItem.setMaxRepairs(null);
+        }
+        
         logger.debug("Creating new shop item with sanitized content");
         
         return shopRepository.save(newItem);
@@ -829,6 +843,13 @@ public class ShopService {
         existingItem.setMultiplierIncrease(shopDTO.getMultiplierIncrease());
         existingItem.setNegationChance(shopDTO.getNegationChance());
         existingItem.setMaxRepairs(shopDTO.getMaxRepairs());
+        
+        // Set infinite durability for ROD_SHAFT parts
+        if (shopDTO.getCategory() == ShopCategory.FISHING_ROD_PART && 
+            shopDTO.getFishingRodPartType() == FishingRodPart.ROD_SHAFT) {
+            existingItem.setMaxDurability(null);
+            existingItem.setMaxRepairs(null);
+        }
         
         logger.debug("Updating shop item with ID: {} with sanitized content", existingItem.getId());
         

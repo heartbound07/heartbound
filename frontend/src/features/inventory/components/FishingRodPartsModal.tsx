@@ -170,11 +170,11 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                             <>
                               <div className="flex justify-between items-center">
                                 <p className="font-semibold text-white">{equippedPart.name}</p>
-                                {equippedPart.maxDurability && (
+                                {equippedPart.maxDurability && equippedPart.fishingRodPartType !== 'ROD_SHAFT' && (
                                   <span className="text-xs text-slate-400">{equippedPart.durability} / {equippedPart.maxDurability}</span>
                                 )}
                               </div>
-                              {equippedPart.maxDurability && (
+                              {equippedPart.maxDurability && equippedPart.fishingRodPartType !== 'ROD_SHAFT' && (
                                 <div className="w-full bg-slate-700 rounded-full h-1.5 mt-1">
                                   <div
                                     className={`${getDurabilityColor(equippedPart.durability, equippedPart.maxDurability)} h-1.5 rounded-full`}
@@ -263,11 +263,11 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                           <div className="flex-grow">
                             <div className="flex justify-between items-center">
                               <p className="font-medium text-white">{part.name}</p>
-                              {part.maxDurability && (
+                              {part.maxDurability && part.fishingRodPartType !== 'ROD_SHAFT' && (
                                 <span className="text-xs text-slate-400">{part.durability} / {part.maxDurability}</span>
                               )}
                             </div>
-                            {part.maxDurability && (
+                            {part.maxDurability && part.fishingRodPartType !== 'ROD_SHAFT' && (
                               <div className="w-full bg-slate-700 rounded-full h-1.5 mt-1">
                                 <div
                                   className={`${getDurabilityColor(part.durability, part.maxDurability)} h-1.5 rounded-full`}
