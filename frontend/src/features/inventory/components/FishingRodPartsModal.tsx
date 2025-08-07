@@ -214,7 +214,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                             <button
                               onClick={() => handleUnequipClick(equippedPart, 'keep')}
                               disabled={isActionInProgress}
-                              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-500 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
+                              className="px-3 py-1 bg-primary/80 hover:bg-primary disabled:bg-gray-500 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
                             >
                               Unequip
                             </button>
