@@ -184,7 +184,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
                               )}
                               {equippedPart.repairCount != null && equippedPart.repairCount > 0 && equippedPart.fishingRodPartType !== 'ROD_SHAFT' && (
                                 <p className="text-xs text-slate-400 mt-1">
-                                  Repairs: {equippedPart.repairCount} / {equippedPart.maxRepairs}
+                                  Repairs: {equippedPart.repairCount} / {equippedPart.maxRepairs ?? '∞'}
                                 </p>
                               )}
                             </>
