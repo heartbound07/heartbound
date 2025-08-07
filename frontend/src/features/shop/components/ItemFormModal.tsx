@@ -798,10 +798,13 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                                   >
                                     {availableItems.map(item => (
                                       <option key={item.id} value={item.id}>
-                                        {item.name} ({formatCategoryDisplay(item)})
+                                        {item.name} ({formatCategoryDisplay(item)}) - {item.rarity} - {item.price}c
                                       </option>
                                     ))}
                                   </select>
+                                  <p className="text-xs text-slate-400 mt-1">
+                                    For new items, use "Add Item" button below for better search and filtering
+                                  </p>
                                 </div>
                                 
                                 {/* Drop Rate Input */}
@@ -854,7 +857,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                             className="px-3 py-2 bg-primary/20 border border-primary/30 text-primary rounded hover:bg-primary/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm"
                           >
                             <HiOutlinePlus className="mr-1" size={14} />
-                            Add Item
+                            Add Item with Search
                           </button>
                           
                           <button

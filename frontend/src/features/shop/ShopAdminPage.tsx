@@ -6,6 +6,7 @@ import ShopItemsTable from '@/features/shop/components/ShopItemsTable';
 import ShopFilters from '@/features/shop/components/ShopFilters';
 import ItemFormModal from '@/features/shop/components/ItemFormModal';
 import ItemOwnersModal from '@/features/shop/components/ItemOwnersModal';
+import CaseItemSelector from '@/features/shop/components/CaseItemSelector';
 import { 
   HiOutlineShoppingCart, 
   HiOutlinePlus
@@ -100,6 +101,9 @@ export function ShopAdminPage() {
   const [availableItems, setAvailableItems] = useState<ShopItem[]>([]);
   const [loadingCaseContents, setLoadingCaseContents] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Case item selector state
+  const [isCaseItemSelectorOpen, setIsCaseItemSelectorOpen] = useState(false);
   
   // Owners modal state
   const [isOwnersModalOpen, setIsOwnersModalOpen] = useState(false);
@@ -279,23 +283,30 @@ export function ShopAdminPage() {
     }
   };
 
+  // Modified addCaseItem function - now opens the selector
   const addCaseItem = () => {
     if (availableItems.length === 0) {
       showToast('No items available to add to case', 'error');
       return;
     }
     
-    // Find first available item not already in case
+    // Get items already in case to exclude from selector
     const usedItemIds = caseContents.items.map(item => item.containedItem.id);
-    const availableItem = availableItems.find(item => !usedItemIds.includes(item.id));
+    const remainingItems = availableItems.filter(item => !usedItemIds.includes(item.id));
     
-    if (!availableItem) {
+    if (remainingItems.length === 0) {
       showToast('All available items are already in this case', 'error');
       return;
     }
 
+    // Open the item selector modal
+    setIsCaseItemSelectorOpen(true);
+  };
+
+  // New function to handle item selection from the selector
+  const handleCaseItemSelection = (selectedItem: ShopItem) => {
     const newCaseItem: CaseItemData = {
-      containedItem: availableItem,
+      containedItem: selectedItem,
       dropRate: 1
     };
     
@@ -676,6 +687,15 @@ export function ShopAdminPage() {
         owners={itemOwners}
         loading={loadingOwners}
         itemName={selectedItemName}
+      />
+      
+      {/* Case Item Selector Modal */}
+      <CaseItemSelector
+        isOpen={isCaseItemSelectorOpen}
+        onClose={() => setIsCaseItemSelectorOpen(false)}
+        availableItems={availableItems}
+        onSelectItem={handleCaseItemSelection}
+        excludeItemIds={caseContents.items.map(item => item.containedItem.id)}
       />
       
     </div>
