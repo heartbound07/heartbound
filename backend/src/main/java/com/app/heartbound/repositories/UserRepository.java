@@ -110,4 +110,5 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.itemInstances WHERE u.id = :id")
     Optional<User> findByIdWithItemInstances(@Param("id") String id);
+
 }
