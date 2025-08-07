@@ -228,6 +228,7 @@ export const FishingRodPartsModal: React.FC<FishingRodPartsModalProps> = ({
               </div>
             </div>
 
+
             {/* Right side: Parts Inventory */}
             <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex flex-col min-h-0">
               <div className="space-y-2 overflow-y-auto pr-2" style={{ height: 'calc(5 * 4.5rem + 4 * 0.75rem)' }}>
