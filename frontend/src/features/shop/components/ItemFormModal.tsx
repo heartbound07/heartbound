@@ -404,23 +404,34 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                   Part Properties
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1">
-                            Max Durability
-                        </label>
-                        <input
-                            type="number"
-                            name="maxDurability"
-                            value={formData.maxDurability || ''}
-                            onChange={handleInputChange}
-                            min="1"
-                            className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                            placeholder="e.g., 100"
-                        />
-                         <p className="text-xs text-slate-400 mt-1">
-                           The starting and maximum durability for this part.
-                         </p>
-                    </div>
+                    {formData.fishingRodPartType === 'ROD_SHAFT' && (
+                      <div className="col-span-full">
+                        <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-md">
+                          <p className="text-blue-200 text-sm">
+                            <strong>ROD_SHAFT parts have infinite durability.</strong> They don't need Max Durability or Max Repairs settings since they never break and cannot be repaired.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {formData.fishingRodPartType !== 'ROD_SHAFT' && (
+                      <div>
+                          <label className="block text-sm font-medium text-slate-300 mb-1">
+                              Max Durability
+                          </label>
+                          <input
+                              type="number"
+                              name="maxDurability"
+                              value={formData.maxDurability || ''}
+                              onChange={handleInputChange}
+                              min="1"
+                              className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                              placeholder="e.g., 100"
+                          />
+                           <p className="text-xs text-slate-400 mt-1">
+                             The starting and maximum durability for this part.
+                           </p>
+                      </div>
+                    )}
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-1">
                       Durability Increase
@@ -438,23 +449,25 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                       Increases the rod's max durability by this amount.
                     </p>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
-                      Max Repairs
-                    </label>
-                    <input
-                      type="number"
-                      name="maxRepairs"
-                      value={formData.maxRepairs || ''}
-                      onChange={handleInputChange}
-                      min="0"
-                      className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="e.g., 5"
-                    />
-                    <p className="text-xs text-slate-400 mt-1">
-                      Number of times this part can be repaired. Leave empty for infinite.
-                    </p>
-                  </div>
+                  {formData.fishingRodPartType !== 'ROD_SHAFT' && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1">
+                        Max Repairs
+                      </label>
+                      <input
+                        type="number"
+                        name="maxRepairs"
+                        value={formData.maxRepairs || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="e.g., 5"
+                      />
+                      <p className="text-xs text-slate-400 mt-1">
+                        Number of times this part can be repaired. Leave empty for infinite.
+                      </p>
+                    </div>
+                  )}
                   {formData.fishingRodPartType === 'REEL' && (
                     <div>
                       <label className="block text-sm font-medium text-slate-300 mb-1">Bonus Loot Chance (%)</label>
