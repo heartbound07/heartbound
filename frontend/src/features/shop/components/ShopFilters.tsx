@@ -1,12 +1,19 @@
 import React from 'react';
 import { HiOutlineSearch } from 'react-icons/hi';
 
+interface ShopItem {
+  id: string;
+  category: string;
+  fishingRodPartType?: string;
+}
+
 interface ShopFiltersProps {
     onSearch: (query: string) => void;
     onFilterChange: (filterType: string, value: string) => void;
     onVisibilityChange: (filterType: string, checked: boolean) => void;
     categories: string[];
     rarities: string[];
+    items: ShopItem[];
   }
 
 const ShopFilters: React.FC<ShopFiltersProps> = ({ 
@@ -14,8 +21,33 @@ const ShopFilters: React.FC<ShopFiltersProps> = ({
     onFilterChange, 
     onVisibilityChange,
     categories,
-    rarities
+    rarities,
+    items
 }) => {
+  // Create expanded categories list that includes fishing rod part types
+  const getExpandedCategories = () => {
+    const expandedCategories: string[] = [];
+    
+    categories.forEach(category => {
+      if (category === 'FISHING_ROD_PART') {
+        // Add specific fishing rod part types found in items
+        const fishingRodParts = [...new Set(
+          items
+            .filter(item => item.category === 'FISHING_ROD_PART' && item.fishingRodPartType)
+            .map(item => item.fishingRodPartType!)
+        )].sort();
+        
+        expandedCategories.push(...fishingRodParts);
+      } else {
+        expandedCategories.push(category);
+      }
+    });
+    
+    return expandedCategories;
+  };
+
+  const expandedCategories = getExpandedCategories();
+
   return (
     <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700/50 p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -38,7 +70,7 @@ const ShopFilters: React.FC<ShopFiltersProps> = ({
                 className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary"
             >
                 <option value="">All Categories</option>
-                {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                {expandedCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
 
             {/* Rarity Filter */}

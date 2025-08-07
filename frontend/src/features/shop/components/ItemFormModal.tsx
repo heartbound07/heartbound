@@ -39,6 +39,7 @@ interface ShopItem {
     copiesSold?: number;
     maxDurability?: number;
     durabilityIncrease?: number;
+    fishingRodPartType?: string;
   }
   
   interface ShopFormData {
@@ -106,6 +107,14 @@ interface ShopItem {
     updateCaseItemSelection: (index: number, selectedItemId: string) => void;
     saveCaseContents: () => Promise<void>;
   }
+
+// Function to format category display
+const formatCategoryDisplay = (item: ShopItem): string => {
+  if (item.category === 'FISHING_ROD_PART' && item.fishingRodPartType) {
+    return item.fishingRodPartType;
+  }
+  return item.category;
+};
 
 const ItemFormModal: React.FC<ItemFormModalProps> = ({
     isOpen,
@@ -789,7 +798,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                                   >
                                     {availableItems.map(item => (
                                       <option key={item.id} value={item.id}>
-                                        {item.name} ({item.category})
+                                        {item.name} ({formatCategoryDisplay(item)})
                                       </option>
                                     ))}
                                   </select>

@@ -35,6 +35,7 @@ import httpClient from '@/lib/api/httpClient';
     gradientEndColor?: string;
     maxCopies?: number;
     copiesSold?: number;
+    fishingRodPartType?: string;
   }
 
   interface ShopItemsTableProps {
@@ -44,6 +45,14 @@ import httpClient from '@/lib/api/httpClient';
     fetchShopItems: () => void;
     onViewOwners: (itemId: string, itemName: string) => void;
   }
+
+// Function to format category display
+const formatCategoryDisplay = (item: ShopItem): string => {
+  if (item.category === 'FISHING_ROD_PART' && item.fishingRodPartType) {
+    return item.fishingRodPartType;
+  }
+  return item.category;
+};
 
 const ShopItemsTable: React.FC<ShopItemsTableProps> = ({ items, handleEdit, handleDelete, fetchShopItems, onViewOwners }) => {
 
@@ -129,7 +138,7 @@ const ShopItemsTable: React.FC<ShopItemsTableProps> = ({ items, handleEdit, hand
                     <div className="text-sm font-medium text-white">{item.name}</div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{item.category}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{formatCategoryDisplay(item)}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center text-sm text-yellow-400">
                     <HiOutlineCash className="mr-1" size={14} />

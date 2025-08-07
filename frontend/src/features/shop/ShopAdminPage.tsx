@@ -229,8 +229,13 @@ export function ShopAdminPage() {
             if (filters.search && !item.name.toLowerCase().includes(filters.search.toLowerCase())) {
                 return false;
             }
-            if (filters.category && item.category !== filters.category) {
-                return false;
+            if (filters.category) {
+                // Handle fishing rod part type filtering
+                if (item.category === 'FISHING_ROD_PART' && item.fishingRodPartType) {
+                    if (filters.category !== item.fishingRodPartType) return false;
+                } else if (item.category !== filters.category) {
+                    return false;
+                }
             }
             if (filters.rarity && item.rarity !== filters.rarity) {
                 return false;
@@ -625,6 +630,7 @@ export function ShopAdminPage() {
         onVisibilityChange={handleVisibilityChange}
         categories={categories}
         rarities={rarities}
+        items={items}
       />
 
       {/* Items table */}
