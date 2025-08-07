@@ -33,7 +33,6 @@ import com.app.heartbound.services.discord.TradeCommandListener;
 import com.app.heartbound.services.discord.GuildEventListener;
 import com.app.heartbound.services.discord.GrabCommandListener;
 import com.app.heartbound.services.discord.TermsOfServiceListener;
-import com.app.heartbound.services.discord.ServerStatsCommandListener;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -118,9 +117,6 @@ public class DiscordConfig {
 
     @Autowired
     private LevelCardCommandListener levelCardCommandListener;
-    
-    @Autowired
-    private ServerStatsCommandListener serverStatsCommandListener;
 
     @Autowired
     private DiscordMessageListenerService discordMessageListenerService;
@@ -212,7 +208,7 @@ public class DiscordConfig {
                     // Register all listeners EXCEPT shopCommandListener, statsCommandListener, breakupCommandListener, leaderboardCommandListener, and openCaseCommandListener (we'll register them manually)
                     .addEventListeners(chatActivityListener, 
                                       creditsCommandListener, dailyCommandListener, coinflipCommandListener, rpsCommandListener, defuseCommandListener, giveCommandListener, blackjackCommandListener, welcomeListener, welcomeCommandListener,
-                                      inventoryCommandListener, fishCommandListener, levelCardCommandListener, serverStatsCommandListener,
+                                      inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService, prisonCommandListener, countingGameListener,
                                       autoSlowmodeService, rolesCommandListener, verifyCommandListener, guildEventListener, grabCommandListener, minesCommandListener, termsOfServiceListener)
@@ -309,10 +305,6 @@ public class DiscordConfig {
                     Commands.slash("stats", "View your current pairing statistics"),
                     Commands.slash("breakup", "End your current match/pairing"),
                     Commands.slash("me", "Displays your profile stats as a generated image card"),
-                    Commands.slash("serverstats", "Display user activity statistics")
-                        .addOptions(
-                            new OptionData(OptionType.USER, "user", "The user to view stats for (defaults to yourself)", false)
-                        ),
                     Commands.slash("give", "Transfer credits to another user")
                         .addOptions(
                             new OptionData(OptionType.USER, "user", "The user to give credits to", true),
