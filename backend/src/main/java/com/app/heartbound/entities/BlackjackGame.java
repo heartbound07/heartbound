@@ -1,6 +1,8 @@
 package com.app.heartbound.entities;
 
 import com.app.heartbound.services.SecureRandomService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -8,6 +10,8 @@ import java.util.List;
  * Represents a complete Blackjack game state for a single player.
  */
 public class BlackjackGame {
+    private static final Logger logger = LoggerFactory.getLogger(BlackjackGame.class);
+    
     private final String userId;
     private int betAmount; // Changed from final to support doubling down
     private final double roleMultiplier;
@@ -158,22 +162,18 @@ public class BlackjackGame {
         playerHand.addCard(deck.dealCard());
         secondHand.addCard(deck.dealCard());
         
-        // If split aces, both hands are complete after one card each
-        if (splitAces) {
+        // Check if first hand is 21 and auto-stand (applies to all splits including aces)
+        if (playerHand.getValue() == 21) {
             this.firstHandCompleted = true;
-            // Both hands are done, move to dealer turn
-            this.dealerTurn = true;
-            // Dealer must hit on 16 and below, stand on 17 and above
-            while (dealerHand.getValue() < 17) {
-                dealerHand.addCard(deck.dealCard());
-            }
-            this.gameEnded = true;
-        } else {
-            // FIX: Check if first hand is 21 and auto-stand
-            if (playerHand.getValue() == 21) {
-                this.firstHandCompleted = true;
-                this.isPlayingFirstHand = false;
-                // Don't end the game - player still needs to play second hand
+            this.isPlayingFirstHand = false;
+            // Don't end the game - player still needs to play second hand
+            logger.debug("First hand has 21, auto-standing and switching to second hand");
+            
+            // Check if second hand is also 21
+            if (secondHand.getValue() == 21) {
+                logger.debug("Second hand also has 21, both hands complete");
+                this.dealerTurn = true;
+                this.gameEnded = true;
             }
         }
     }
@@ -201,10 +201,6 @@ public class BlackjackGame {
         }
         
         // For split hands
-        if (splitAces) {
-            return false; // Split aces get only one card each
-        }
-        
         BlackjackHand activeHand = getActiveHand();
         return !activeHand.isBusted();
     }

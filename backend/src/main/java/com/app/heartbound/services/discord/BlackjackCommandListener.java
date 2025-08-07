@@ -634,29 +634,12 @@ public class BlackjackCommandListener extends ListenerAdapter {
             BlackjackGame.GameResult secondResult = results[1];
             
             // Calculate credit change for split games
-            int originalBetPerHand = game.getBetAmount() / 2;
+            // The total bet was already deducted. Add back the bet plus any winnings.
+            // game.getBetAmount() is the total bet (initial + split)
+            // payout is the net win/loss already calculated by game.calculatePayout()
+            creditChange = game.getBetAmount() + payout;
             
-            // Calculate payout for each hand
-            for (BlackjackGame.GameResult result : results) {
-                switch (result) {
-                    case PLAYER_BLACKJACK:
-                    case PLAYER_WIN:
-                        creditChange += originalBetPerHand + Math.abs(payout / 2); // Return bet + winnings
-                        break;
-                    case PUSH:
-                        creditChange += originalBetPerHand; // Return bet only
-                        break;
-                    case DEALER_WIN:
-                        // Bet was already deducted, so no change here
-                        break;
-                    case IN_PROGRESS:
-                    default:
-                        logger.warn("handleGameEnd called with unexpected split game result '{}' for user {}", result, user.getId());
-                        break;
-                }
-            }
-            
-            // The total bet was already deducted. This call adds back any returns and winnings.
+            // The total bet was already deducted. This call adds back the bet and any winnings.
             if (creditChange > 0) {
                 userService.updateCreditsAtomic(user.getId(), creditChange);
             }
