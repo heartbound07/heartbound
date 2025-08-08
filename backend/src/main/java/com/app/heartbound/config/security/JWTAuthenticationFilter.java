@@ -14,12 +14,9 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.app.heartbound.enums.Role;
 import com.app.heartbound.exceptions.InvalidTokenException;
-import io.jsonwebtoken.Claims;
 
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class JWTAuthenticationFilter extends OncePerRequestFilter {

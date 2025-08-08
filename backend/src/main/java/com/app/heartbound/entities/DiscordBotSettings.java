@@ -91,7 +91,7 @@ public class DiscordBotSettings {
     private Double partDropChance = 0.05;
 
     // Self-Assignable Roles Configuration
-    private String age15RoleId;
+    private String age15RoleId; 
     private String age16To17RoleId;
     private String age18PlusRoleId;
     private String genderSheHerRoleId;

@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**

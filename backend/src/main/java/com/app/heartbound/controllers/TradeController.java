@@ -89,4 +89,4 @@ public class TradeController {
     private String getCurrentUserId(Authentication authentication) {
         return authentication.getName();
     }
-} 
+}
