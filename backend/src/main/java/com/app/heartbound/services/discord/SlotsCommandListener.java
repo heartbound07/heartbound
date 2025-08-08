@@ -545,7 +545,7 @@ public class SlotsCommandListener extends ListenerAdapter {
     }
 
     private String formatReel(int[] idx) {
-        return "[" + REEL[idx[0]] + "] [" + REEL[idx[1]] + "] [" + REEL[idx[2]] + "]";
+        return "[" + REEL[idx[0]] + "]  [" + REEL[idx[1]] + "]  [" + REEL[idx[2]] + "]";
     }
 
     private String formatReelWithPipes(int[] idx) {
