@@ -13,11 +13,9 @@ import com.app.heartbound.repositories.TradeRepository;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.services.shop.ShopService;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import java.util.Set;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.HashSet;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -172,52 +170,33 @@ public class TradeService {
             throw new InvalidTradeActionException("You have locked your offer and cannot change it.");
         }
 
-        // Build current set of items offered by this user (by instanceId)
-        Set<UUID> currentInstanceIds = new HashSet<>();
-        List<TradeItem> currentUserItems = new ArrayList<>();
-        // Build set of all instanceIds already present in this trade (any side)
-        Set<UUID> allTradeInstanceIds = new HashSet<>();
-        for (TradeItem ti : trade.getItems()) {
-            if (ti.getItemInstance() != null && ti.getItemInstance().getOwner() != null
-                && userId.equals(ti.getItemInstance().getOwner().getId())) {
-                currentUserItems.add(ti);
-                currentInstanceIds.add(ti.getItemInstance().getId());
-            }
-            if (ti.getItemInstance() != null) {
-                allTradeInstanceIds.add(ti.getItemInstance().getId());
+        // Remove duplicates from input list to prevent constraint violations
+        List<UUID> uniqueItemIds = new ArrayList<>(new HashSet<>(itemInstanceIds));
+        
+        // Check which fishing rods are being added in this batch
+        java.util.Set<UUID> rodInstanceIdsBeingAdded = new java.util.HashSet<>();
+        for (UUID instanceId : uniqueItemIds) {
+            ItemInstance instance = itemInstanceRepository.findById(instanceId).orElse(null);
+            if (instance != null && instance.getBaseItem().getCategory() == ShopCategory.FISHING_ROD) {
+                rodInstanceIdsBeingAdded.add(instance.getId());
             }
         }
 
-        // De-duplicate requested IDs while preserving order
-        Set<UUID> requestedIds = new LinkedHashSet<>(itemInstanceIds);
+        // Atomically remove previous items offered by this user and add new ones
+        trade.getItems().removeIf(item -> item.getItemInstance().getOwner().getId().equals(userId));
 
-        // Remove items that the user no longer wants to offer
-        for (TradeItem ti : new ArrayList<>(currentUserItems)) {
-            UUID existingId = ti.getItemInstance().getId();
-            if (!requestedIds.contains(existingId)) {
-                trade.getItems().remove(ti);
-                allTradeInstanceIds.remove(existingId);
-                currentInstanceIds.remove(existingId);
-            }
-        }
-
-        // Add only new items that are not already present for this user
-        for (UUID instanceId : requestedIds) {
-            if (currentInstanceIds.contains(instanceId) || allTradeInstanceIds.contains(instanceId)) {
-                continue; // already included; leave as-is to avoid duplicates
-            }
-
+        for (UUID instanceId : uniqueItemIds) {
             ItemInstance instance = itemInstanceRepository.findByIdWithLock(instanceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item instance with id " + instanceId + " not found"));
-
+            
             if (!instance.getOwner().getId().equals(userId)) {
                 throw new InvalidTradeActionException("You do not own one of the items you are trying to trade.");
             }
-
+            
             Shop item = instance.getBaseItem();
             // Validate the item is actually tradable
             if (item.getCategory() == null || !item.getCategory().isTradable()) {
-                throw new InvalidTradeActionException("The item '" + item.getName() + "' is not tradable.");
+                 throw new InvalidTradeActionException("The item '" + item.getName() + "' is not tradable.");
             }
 
             // Enhanced check for equipped items
@@ -229,24 +208,34 @@ public class TradeService {
                 }
             } else if (category == ShopCategory.FISHING_ROD_PART) {
                 if (itemInstanceRepository.isPartAlreadyEquipped(instance.getId())) {
-                    throw new ItemEquippedException("You cannot trade a part that is currently equipped on a fishing rod. Please unequip '" + item.getName() + "' first.");
+                    // Check if the rod this part is equipped on is also being traded
+                    java.util.List<ItemInstance> rodsWithThisPart = itemInstanceRepository.findRodsWithEquippedParts(
+                        java.util.Collections.singletonList(instance));
+                    boolean rodAlsoBeingTraded = false;
+                    for (ItemInstance rod : rodsWithThisPart) {
+                        if (rod.getOwner().getId().equals(userId) && rodInstanceIdsBeingAdded.contains(rod.getId())) {
+                            rodAlsoBeingTraded = true;
+                            break;
+                        }
+                    }
+                    if (!rodAlsoBeingTraded) {
+                        throw new ItemEquippedException("You cannot trade a part that is currently equipped on a fishing rod. Please unequip '" + item.getName() + "' first, or include the fishing rod in the trade.");
+                    }
                 }
             } else if (category.isEquippable()) {
-                java.util.UUID equippedItemId = user.getEquippedItemIdByCategory(category);
+                UUID equippedItemId = user.getEquippedItemIdByCategory(category);
                 if (equippedItemId != null && equippedItemId.equals(instance.getBaseItem().getId())) {
                     throw new ItemEquippedException("You cannot trade an item that is currently equipped. Please unequip '" + item.getName() + "' first.");
                 }
             }
 
             TradeItem tradeItem = TradeItem.builder()
-                .trade(trade)
-                .itemInstance(instance)
-                .build();
+                    .trade(trade)
+                    .itemInstance(instance)
+                    .build();
             trade.getItems().add(tradeItem);
-            currentInstanceIds.add(instanceId);
-            allTradeInstanceIds.add(instanceId);
         }
- 
+
         return tradeRepository.save(trade);
     }
 
