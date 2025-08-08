@@ -1044,34 +1044,22 @@ public class TradeCommandListener extends ListenerAdapter {
     private List<ActionRow> getTradeActionRows(Trade trade, String currentUserId) {
         boolean bothLocked = trade.getInitiatorLocked() && trade.getReceiverLocked();
         boolean tradeComplete = trade.getStatus() != TradeStatus.PENDING;
-        
-        // Check if current user has already accepted (to disable their accept button)
-        boolean currentUserAccepted = false;
-        boolean currentUserLocked = false;
-        if (currentUserId != null) {
-            if (trade.getInitiator().getId().equals(currentUserId)) {
-                currentUserAccepted = trade.getInitiatorAccepted();
-                currentUserLocked = trade.getInitiatorLocked();
-            } else if (trade.getReceiver().getId().equals(currentUserId)) {
-                currentUserAccepted = trade.getReceiverAccepted();
-                currentUserLocked = trade.getReceiverLocked();
-            }
-        }
+        boolean bothAccepted = trade.getInitiatorAccepted() && trade.getReceiverAccepted();
 
         List<Button> buttons = new ArrayList<>();
 
-        // Disable add-items if trade is complete or user has locked their offer
+        // Disable add-items if trade is complete or both users have locked
         buttons.add(Button.primary("trade_add-items_" + trade.getId(), Emoji.fromUnicode("📝"))
-                .withDisabled(tradeComplete || currentUserLocked));
+                .withDisabled(tradeComplete || bothLocked));
 
         if (bothLocked) {
-            // Disable accept button if trade is complete OR if current user has already accepted
+            // Disable accept button only if trade is complete or both have already accepted
             buttons.add(Button.success("trade_accept-final_" + trade.getId(), Emoji.fromUnicode("✅"))
-                    .withDisabled(tradeComplete || currentUserAccepted));
+                    .withDisabled(tradeComplete || bothAccepted));
         } else {
-            // Disable lock button if trade is complete or user has already locked
+            // Disable lock button only if trade is complete or both have locked
             buttons.add(Button.secondary("trade_lock-offer_" + trade.getId(), Emoji.fromUnicode("🔒"))
-                    .withDisabled(tradeComplete || currentUserLocked));
+                    .withDisabled(tradeComplete || bothLocked));
         }
 
         buttons.add(Button.danger("trade_cancel_" + trade.getId(), Emoji.fromUnicode("❌")).withDisabled(tradeComplete));
