@@ -46,7 +46,7 @@ public class SlotsCommandListener extends ListenerAdapter {
     private static final int MULTIPLIER_TWO_MATCH = 2;   // 2x total payout (includes stake)
 
     // Animation and rate-limiting
-    private static final long UPDATE_INTERVAL_MS = 1100; // >= 1 second to avoid rate limits
+    private static final long UPDATE_INTERVAL_MS = 500;  // change emoji every 0.5s during spinning
     private static final int MAX_UPDATES = 3;            // number of interim updates before final
     private static final long USER_COOLDOWN_MS = 5000;   // basic spam prevention per user
 
