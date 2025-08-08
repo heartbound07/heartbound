@@ -15,6 +15,7 @@ import com.app.heartbound.services.shop.ShopService;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Set;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -173,8 +174,16 @@ public class TradeService {
         // Remove duplicates from input list to prevent constraint violations
         List<UUID> uniqueItemIds = new ArrayList<>(new HashSet<>(itemInstanceIds));
         
+        // Collect existing items from this user to track what's being kept vs added
+        Set<UUID> existingUserItemIds = new HashSet<>();
+        for (TradeItem item : trade.getItems()) {
+            if (item.getItemInstance().getOwner().getId().equals(userId)) {
+                existingUserItemIds.add(item.getItemInstance().getId());
+            }
+        }
+        
         // Check which fishing rods are being added in this batch
-        java.util.Set<UUID> rodInstanceIdsBeingAdded = new java.util.HashSet<>();
+        Set<UUID> rodInstanceIdsBeingAdded = new HashSet<>();
         for (UUID instanceId : uniqueItemIds) {
             ItemInstance instance = itemInstanceRepository.findById(instanceId).orElse(null);
             if (instance != null && instance.getBaseItem().getCategory() == ShopCategory.FISHING_ROD) {
@@ -182,10 +191,17 @@ public class TradeService {
             }
         }
 
-        // Atomically remove previous items offered by this user and add new ones
-        trade.getItems().removeIf(item -> item.getItemInstance().getOwner().getId().equals(userId));
+        // Remove items that are no longer selected (but keep items that are re-selected)
+        trade.getItems().removeIf(item -> 
+            item.getItemInstance().getOwner().getId().equals(userId) && 
+            !uniqueItemIds.contains(item.getItemInstance().getId()));
 
         for (UUID instanceId : uniqueItemIds) {
+            // Skip items that are already in the trade from this user
+            if (existingUserItemIds.contains(instanceId)) {
+                continue;
+            }
+            
             ItemInstance instance = itemInstanceRepository.findByIdWithLock(instanceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item instance with id " + instanceId + " not found"));
             
