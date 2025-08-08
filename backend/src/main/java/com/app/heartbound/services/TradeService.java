@@ -483,12 +483,30 @@ public class TradeService {
 
     private void addRodEquippedPartsToTrade(Trade trade, ItemInstance rodInstance) {
         List<ItemInstance> equippedParts = userInventoryService.getEquippedParts(rodInstance);
+
+        // Collect already-added item instance IDs to prevent duplicates
+        Set<UUID> alreadyAddedInstanceIds = new HashSet<>();
+        for (TradeItem existingItem : trade.getItems()) {
+            if (existingItem.getItemInstance() != null && existingItem.getItemInstance().getId() != null) {
+                alreadyAddedInstanceIds.add(existingItem.getItemInstance().getId());
+            }
+        }
+
         for (ItemInstance part : equippedParts) {
+            if (part == null || part.getId() == null) {
+                continue;
+            }
+            if (alreadyAddedInstanceIds.contains(part.getId())) {
+                // This part is already included in the trade (possibly explicitly by the user); skip
+                continue;
+            }
+
             TradeItem partTradeItem = TradeItem.builder()
                     .trade(trade)
                     .itemInstance(part)
                     .build();
             trade.getItems().add(partTradeItem);
+            alreadyAddedInstanceIds.add(part.getId());
         }
     }
 
