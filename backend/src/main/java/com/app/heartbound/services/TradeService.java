@@ -9,14 +9,18 @@ import com.app.heartbound.exceptions.ItemEquippedException;
 import com.app.heartbound.exceptions.ResourceNotFoundException;
 import com.app.heartbound.exceptions.TradeNotFoundException;
 import com.app.heartbound.repositories.ItemInstanceRepository;
+import com.app.heartbound.repositories.TradeItemRepository;
 import com.app.heartbound.repositories.TradeRepository;
 import com.app.heartbound.repositories.UserRepository;
 import com.app.heartbound.services.shop.ShopService;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -24,18 +28,25 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class TradeService {
 
     private final TradeRepository tradeRepository;
     private final UserRepository userRepository;
     private final ItemInstanceRepository itemInstanceRepository;
+    private final TradeItemRepository tradeItemRepository;
     private final UserInventoryService userInventoryService;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public TradeService(TradeRepository tradeRepository, UserRepository userRepository,
-                        ItemInstanceRepository itemInstanceRepository, ShopService shopService, UserInventoryService userInventoryService) {
+                        ItemInstanceRepository itemInstanceRepository, TradeItemRepository tradeItemRepository, 
+                        ShopService shopService, UserInventoryService userInventoryService) {
         this.tradeRepository = tradeRepository;
         this.userRepository = userRepository;
         this.itemInstanceRepository = itemInstanceRepository;
+        this.tradeItemRepository = tradeItemRepository;
         this.userInventoryService = userInventoryService;
     }
 
@@ -166,6 +177,8 @@ public class TradeService {
 
     @Transactional
     public Trade addItemsToTrade(Long tradeId, String userId, List<UUID> itemInstanceIds) {
+        log.debug("Adding items to trade - tradeId: {}, userId: {}, itemCount: {}", tradeId, userId, itemInstanceIds.size());
+        
         Trade trade = tradeRepository.findById(tradeId)
                 .orElseThrow(() -> new TradeNotFoundException("Trade not found with id: " + tradeId));
         User user = userRepository.findById(userId)
@@ -186,14 +199,18 @@ public class TradeService {
         // Remove duplicates from input list to prevent constraint violations
         List<UUID> uniqueItemIds = new ArrayList<>(new HashSet<>(itemInstanceIds));
         
-        // Reload trade with all items to get current database state
+        // Delete existing trade items for this user from the database first
+        // This prevents unique constraint violations when adding new items
+        log.debug("Deleting existing trade items for tradeId: {}, userId: {}", tradeId, userId);
+        tradeItemRepository.deleteByTradeIdAndUserId(tradeId, userId);
+        
+        // Flush the delete operations to ensure they're committed to the database
+        entityManager.flush();
+        log.debug("Database delete operations flushed for tradeId: {}", tradeId);
+        
+        // Reload trade with remaining items to get current database state
         trade = tradeRepository.findByIdWithItems(tradeId)
                 .orElseThrow(() -> new TradeNotFoundException("Trade not found with id: " + tradeId));
-                
-        // Clear existing trade items for this user to prevent duplicates
-        // This ensures we start fresh with each addItemsToTrade call
-        trade.getItems().removeIf(item -> 
-            item.getItemInstance().getOwner().getId().equals(userId));
 
         // Check which fishing rods are being added for validation purposes
         Set<UUID> rodInstanceIdsBeingAdded = new HashSet<>();
@@ -258,6 +275,7 @@ public class TradeService {
             // If this is a FISHING_ROD, automatically add its equipped parts
             if (category == ShopCategory.FISHING_ROD) {
                 List<ItemInstance> equippedParts = userInventoryService.getEquippedParts(instance);
+                log.debug("Adding {} equipped parts for fishing rod {}", equippedParts.size(), instance.getId());
                 for (ItemInstance part : equippedParts) {
                     // Since we cleared all user items at the start, we can safely add parts without duplicate checks
                     TradeItem partTradeItem = TradeItem.builder()
@@ -265,11 +283,14 @@ public class TradeService {
                             .itemInstance(part)
                             .build();
                     trade.getItems().add(partTradeItem);
+                    log.debug("Added fishing rod part {} to trade", part.getId());
                 }
             }
         }
 
-        return tradeRepository.save(trade);
+        Trade savedTrade = tradeRepository.save(trade);
+        log.debug("Successfully added {} items to trade {} for user {}", uniqueItemIds.size(), tradeId, userId);
+        return savedTrade;
     }
 
     @Transactional
