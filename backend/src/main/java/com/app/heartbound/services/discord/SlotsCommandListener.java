@@ -46,9 +46,10 @@ public class SlotsCommandListener extends ListenerAdapter {
     private static final int MULTIPLIER_TWO_MATCH = 2;   // 2x total payout (includes stake)
 
     // Animation and rate-limiting
-    private static final long UPDATE_INTERVAL_MS = 500;  // change emoji every 0.5s during spinning
+    private static final long UPDATE_INTERVAL_MS = 1100; // >= 1 second to avoid rate limits
     private static final int MAX_UPDATES = 3;            // number of interim updates before final
     private static final long USER_COOLDOWN_MS = 5000;   // basic spam prevention per user
+    private static final long SPIN_TICK_MS = 500;        // spin emoji update frequency during animation
 
     // Embed colors (following BlackjackCommandListener pattern)
     private static final Color WIN_COLOR = new Color(40, 167, 69);
@@ -204,199 +205,301 @@ public class SlotsCommandListener extends ListenerAdapter {
                         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
                         try {
-                            // Step 1: Reveal first reel after ~1s
+                            // Spin tick before first reveal (~0.5s), then reveal 1 after remaining time
                             scheduler.schedule(() -> {
                                 try {
-                                    int[] display1 = new int[]{
-                                            finalIdx[0],
-                                            secureRandomService.getSecureInt(REEL.length),
-                                            secureRandomService.getSecureInt(REEL.length)
-                                    };
-                                    msg.editMessage(formatReelWithPipes(display1)).queue(
-                                            success1 -> {
-                                                // Step 2: Reveal second reel after another ~1s
+                                    msg.editMessage(formatReelWithPipes(randomIndices())).queue(
+                                            spin1 -> {
+                                                // Reveal first reel after remaining interval
+                                                long delayToFirstReveal = Math.max(0, UPDATE_INTERVAL_MS - SPIN_TICK_MS);
                                                 scheduler.schedule(() -> {
                                                     try {
-                                                        int[] display2 = new int[]{
+                                                        int[] display1 = new int[]{
                                                                 finalIdx[0],
-                                                                finalIdx[1],
+                                                                secureRandomService.getSecureInt(REEL.length),
                                                                 secureRandomService.getSecureInt(REEL.length)
                                                         };
-                                                        msg.editMessage(formatReelWithPipes(display2)).queue(
-                                                                success2 -> {
-                                                                    // Step 3: Reveal third reel after another ~1s
+                                                        msg.editMessage(formatReelWithPipes(display1)).queue(
+                                                                success1 -> {
+                                                                    // Spin tick after first reveal (~0.5s), then schedule second reveal
                                                                     scheduler.schedule(() -> {
                                                                         try {
-                                                                            msg.editMessage(formatReelWithPipes(finalIdx)).queue(
-                                                                                    success3 -> {
-                                                                                        // Post-reveal pause (1.5s), then compute payout and show final embed
+                                                                            int[] spinning12 = new int[]{
+                                                                                    finalIdx[0],
+                                                                                    secureRandomService.getSecureInt(REEL.length),
+                                                                                    secureRandomService.getSecureInt(REEL.length)
+                                                                            };
+                                                                            msg.editMessage(formatReelWithPipes(spinning12)).queue(
+                                                                                    spinAfter1 -> {
+                                                                                        long delayToSecondReveal = Math.max(0, UPDATE_INTERVAL_MS - SPIN_TICK_MS);
                                                                                         scheduler.schedule(() -> {
                                                                                             try {
-                                                                                                int baseMultiplier = computeBaseMultiplier(finalIdx);
-                                                                                                int creditToAdd;
-                                                                                                int netPayout;
-                                                                                                boolean isWin;
+                                                                                                int[] display2 = new int[]{
+                                                                                                        finalIdx[0],
+                                                                                                        finalIdx[1],
+                                                                                                        secureRandomService.getSecureInt(REEL.length)
+                                                                                                };
+                                                                                                msg.editMessage(formatReelWithPipes(display2)).queue(
+                                                                                                        success2 -> {
+                                                                                                            // Spin tick after second reveal (~0.5s), then schedule third reveal
+                                                                                                            scheduler.schedule(() -> {
+                                                                                                                try {
+                                                                                                                    int[] spinning123 = new int[]{
+                                                                                                                            finalIdx[0],
+                                                                                                                            finalIdx[1],
+                                                                                                                            secureRandomService.getSecureInt(REEL.length)
+                                                                                                                    };
+                                                                                                                    msg.editMessage(formatReelWithPipes(spinning123)).queue(
+                                                                                                                            spinAfter2 -> {
+                                                                                                                                long delayToThirdReveal = Math.max(0, UPDATE_INTERVAL_MS - SPIN_TICK_MS);
+                                                                                                                                scheduler.schedule(() -> {
+                                                                                                                                    try {
+                                                                                                                                        msg.editMessage(formatReelWithPipes(finalIdx)).queue(
+                                                                                                                                                success3 -> {
+                                                                                                                                                    // Post-reveal pause (1.5s), then compute payout and show final embed
+                                                                                                                                                    scheduler.schedule(() -> {
+                                                                                                                                                        try {
+                                                                                                                                                            int baseMultiplier = computeBaseMultiplier(finalIdx);
+                                                                                                                                                            int creditToAdd;
+                                                                                                                                                            int netPayout;
+                                                                                                                                                            boolean isWin;
 
-                                                                                                if (baseMultiplier <= 0) {
-                                                                                                    creditToAdd = 0; // loss, keep the deducted bet
-                                                                                                    netPayout = betAmount; // show as -bet
-                                                                                                    isWin = false;
-                                                                                                } else {
-                                                                                                    int netWin = (int) Math.floor(betAmount * (baseMultiplier - 1) * roleMultiplier);
-                                                                                                    creditToAdd = betAmount + netWin; // return stake + winnings
-                                                                                                    netPayout = netWin;
-                                                                                                    isWin = netWin > 0;
-                                                                                                }
+                                                                                                                                                            if (baseMultiplier <= 0) {
+                                                                                                                                                                creditToAdd = 0; // loss, keep the deducted bet
+                                                                                                                                                                netPayout = betAmount; // show as -bet
+                                                                                                                                                                isWin = false;
+                                                                                                                                                            } else {
+                                                                                                                                                                int netWin = (int) Math.floor(betAmount * (baseMultiplier - 1) * roleMultiplier);
+                                                                                                                                                                creditToAdd = betAmount + netWin; // return stake + winnings
+                                                                                                                                                                netPayout = netWin;
+                                                                                                                                                                isWin = netWin > 0;
+                                                                                                                                                            }
 
-                                                                                                if (creditToAdd > 0) {
-                                                                                                    try {
-                                                                                                        userService.updateCreditsAtomic(userId, creditToAdd);
-                                                                                                    } catch (Exception ce) {
-                                                                                                        logger.error("Failed to credit winnings for user {}: {}", userId, ce.getMessage());
-                                                                                                    }
-                                                                                                }
+                                                                                                                                                            if (creditToAdd > 0) {
+                                                                                                                                                                try {
+                                                                                                                                                                    userService.updateCreditsAtomic(userId, creditToAdd);
+                                                                                                                                                                } catch (Exception ce) {
+                                                                                                                                                                    logger.error("Failed to credit winnings for user {}: {}", userId, ce.getMessage());
+                                                                                                                                                                }
+                                                                                                                                                            }
 
-                                                                                                int computedCredits;
-                                                                                                try {
-                                                                                                    User updated = userService.getUserById(userId);
-                                                                                                    computedCredits = (updated != null && updated.getCredits() != null) ? updated.getCredits() : 0;
-                                                                                                } catch (Exception ee) {
-                                                                                                    logger.warn("Failed to fetch updated user credits for {} after slots", userId);
-                                                                                                    computedCredits = 0;
-                                                                                                }
-                                                                                                final int finalCredits = computedCredits;
+                                                                                                                                                            int computedCredits;
+                                                                                                                                                            try {
+                                                                                                                                                                User updated = userService.getUserById(userId);
+                                                                                                                                                                computedCredits = (updated != null && updated.getCredits() != null) ? updated.getCredits() : 0;
+                                                                                                                                                            } catch (Exception ee) {
+                                                                                                                                                                logger.warn("Failed to fetch updated user credits for {} after slots", userId);
+                                                                                                                                                                computedCredits = 0;
+                                                                                                                                                            }
+                                                                                                                                                            final int finalCredits = computedCredits;
 
-                                                                                                MessageEmbed embed = buildResultEmbed(
-                                                                                                        event.getUser().getEffectiveName(),
-                                                                                                        event.getUser().getEffectiveAvatarUrl(),
-                                                                                                        finalIdx,
-                                                                                                        isWin,
-                                                                                                        netPayout,
-                                                                                                        betAmount,
-                                                                                                        finalCredits);
-                                                                                                MessageEditData finalMessage = new MessageEditBuilder()
-                                                                                                        .setContent("")
-                                                                                                        .setEmbeds(embed)
-                                                                                                        .build();
+                                                                                                                                                            MessageEmbed embed = buildResultEmbed(
+                                                                                                                                                                    event.getUser().getEffectiveName(),
+                                                                                                                                                                    event.getUser().getEffectiveAvatarUrl(),
+                                                                                                                                                                    finalIdx,
+                                                                                                                                                                    isWin,
+                                                                                                                                                                    netPayout,
+                                                                                                                                                                    betAmount,
+                                                                                                                                                                    finalCredits);
+                                                                                                                                                            MessageEditData finalMessage = new MessageEditBuilder()
+                                                                                                                                                                    .setContent("")
+                                                                                                                                                                    .setEmbeds(embed)
+                                                                                                                                                                    .build();
 
-                                                                                                msg.editMessage(finalMessage).queue(
-                                                                                                        success -> {
-                                                                                                            try {
-                                                                                                                logResultAudit(userId, betAmount, finalIdx, baseMultiplier, roleMultiplier, isWin, netPayout, finalCredits);
-                                                                                                            } catch (Exception ae) {
-                                                                                                                logger.error("Failed to create SLOTS result audit for {}: {}", userId, ae.getMessage());
-                                                                                                            }
-                                                                                                            activeGames.remove(userId);
-                                                                                                            lastPlayAt.put(userId, System.currentTimeMillis());
-                                                                                                        },
-                                                                                                        error -> {
-                                                                                                            try {
-                                                                                                                if (creditToAdd > 0) {
-                                                                                                                    // already credited successfully; keep it
-                                                                                                                } else {
-                                                                                                                    // Loss case: return the bet due to display failure
-                                                                                                                    userService.updateCreditsAtomic(userId, betAmount);
+                                                                                                                                                            msg.editMessage(finalMessage).queue(
+                                                                                                                                                                    success -> {
+                                                                                                                                                                        try {
+                                                                                                                                                                            logResultAudit(userId, betAmount, finalIdx, baseMultiplier, roleMultiplier, isWin, netPayout, finalCredits);
+                                                                                                                                                                        } catch (Exception ae) {
+                                                                                                                                                                            logger.error("Failed to create SLOTS result audit for {}: {}", userId, ae.getMessage());
+                                                                                                                                                                        }
+                                                                                                                                                                        activeGames.remove(userId);
+                                                                                                                                                                        lastPlayAt.put(userId, System.currentTimeMillis());
+                                                                                                                                                                    },
+                                                                                                                                                                    error -> {
+                                                                                                                                                                        try {
+                                                                                                                                                                            if (creditToAdd > 0) {
+                                                                                                                                                                                // already credited successfully; keep it
+                                                                                                                                                                            } else {
+                                                                                                                                                                                // Loss case: return the bet due to display failure
+                                                                                                                                                                                userService.updateCreditsAtomic(userId, betAmount);
+                                                                                                                                                                            }
+                                                                                                                                                                        } catch (Exception re) {
+                                                                                                                                                                            logger.error("Refund failed after display error for user {}: {}", userId, re.getMessage());
+                                                                                                                                                                        }
+                                                                                                                                                                        activeGames.remove(userId);
+                                                                                                                                                                        lastPlayAt.put(userId, System.currentTimeMillis());
+                                                                                                                                                                        logger.error("Failed to edit final slots message for user {}: {}", userId, error.getMessage());
+                                                                                                                                                                    }
+                                                                                                                                                            );
+                                                                                                                                                        } catch (Exception stepEx) {
+                                                                                                                                                            logger.error("Error during slots finalization for user {}: {}", userId, stepEx.getMessage());
+                                                                                                                                                            try {
+                                                                                                                                                                // Refund original bet on finalization failure (if we haven't credited anything)
+                                                                                                                                                                userService.updateCreditsAtomic(userId, betAmount);
+                                                                                                                                                            } catch (Exception re) {
+                                                                                                                                                                logger.error("Refund failed after finalization exception for user {}: {}", userId, re.getMessage());
+                                                                                                                                                            }
+                                                                                                                                                            activeGames.remove(userId);
+                                                                                                                                                            lastPlayAt.put(userId, System.currentTimeMillis());
+                                                                                                                                                        } finally {
+                                                                                                                                                            scheduler.shutdown();
+                                                                                                                                                        }
+                                                                                                                                                    }, 1500, TimeUnit.MILLISECONDS);
+                                                                                                                                                },
+                                                                                                                                                error3 -> {
+                                                                                                                                                    // Failure during third reveal; refund bet and cleanup
+                                                                                                                                                    try {
+                                                                                                                                                        userService.updateCreditsAtomic(userId, betAmount);
+                                                                                                                                                    } catch (Exception re) {
+                                                                                                                                                        logger.error("Refund failed after third reveal error for user {}: {}", userId, re.getMessage());
+                                                                                                                                                    }
+                                                                                                                                                    activeGames.remove(userId);
+                                                                                                                                                    lastPlayAt.put(userId, System.currentTimeMillis());
+                                                                                                                                                    scheduler.shutdown();
+                                                                                                                                                    logger.error("Failed to edit third reveal for user {}: {}", userId, error3.getMessage());
+                                                                                                                                                }
+                                                                                                                                        );
+                                                                                                                                    } catch (Exception e3) {
+                                                                                                                                        logger.error("Error during third reveal for user {}: {}", userId, e3.getMessage());
+                                                                                                                                        try {
+                                                                                                                                            userService.updateCreditsAtomic(userId, betAmount);
+                                                                                                                                        } catch (Exception re) {
+                                                                                                                                            logger.error("Refund failed after third reveal exception for user {}: {}", userId, re.getMessage());
+                                                                                                                                        }
+                                                                                                                                        activeGames.remove(userId);
+                                                                                                                                        lastPlayAt.put(userId, System.currentTimeMillis());
+                                                                                                                                        scheduler.shutdown();
+                                                                                                                                    }
+                                                                                                                                }, delayToThirdReveal, TimeUnit.MILLISECONDS);
+                                                                                                                            },
+                                                                                                                            errSpin2 -> {
+                                                                                                                                try {
+                                                                                                                                    userService.updateCreditsAtomic(userId, betAmount);
+                                                                                                                                } catch (Exception re) {
+                                                                                                                                    logger.error("Refund failed after spin tick (post second reveal) error for user {}: {}", userId, re.getMessage());
+                                                                                                                                }
+                                                                                                                                activeGames.remove(userId);
+                                                                                                                                lastPlayAt.put(userId, System.currentTimeMillis());
+                                                                                                                                scheduler.shutdown();
+                                                                                                                                logger.error("Failed spin tick after second reveal for user {}: {}", userId, errSpin2.getMessage());
+                                                                                                                            }
+                                                                                                                    );
+                                                                                                                } catch (Exception eSpin2) {
+                                                                                                                    logger.error("Error during spin tick after second reveal for user {}: {}", userId, eSpin2.getMessage());
+                                                                                                                    try {
+                                                                                                                        userService.updateCreditsAtomic(userId, betAmount);
+                                                                                                                    } catch (Exception re) {
+                                                                                                                        logger.error("Refund failed after spin tick exception (post second reveal) for user {}: {}", userId, re.getMessage());
+                                                                                                                    }
+                                                                                                                    activeGames.remove(userId);
+                                                                                                                    lastPlayAt.put(userId, System.currentTimeMillis());
+                                                                                                                    scheduler.shutdown();
                                                                                                                 }
+                                                                                                            }, SPIN_TICK_MS, TimeUnit.MILLISECONDS);
+                                                                                                        },
+                                                                                                        error2 -> {
+                                                                                                            // Failure during second reveal; refund bet and cleanup
+                                                                                                            try {
+                                                                                                                userService.updateCreditsAtomic(userId, betAmount);
                                                                                                             } catch (Exception re) {
-                                                                                                                logger.error("Refund failed after display error for user {}: {}", userId, re.getMessage());
+                                                                                                                logger.error("Refund failed after second reveal error for user {}: {}", userId, re.getMessage());
                                                                                                             }
                                                                                                             activeGames.remove(userId);
                                                                                                             lastPlayAt.put(userId, System.currentTimeMillis());
-                                                                                                            logger.error("Failed to edit final slots message for user {}: {}", userId, error.getMessage());
+                                                                                                            scheduler.shutdown();
+                                                                                                            logger.error("Failed to edit second reveal for user {}: {}", userId, error2.getMessage());
                                                                                                         }
                                                                                                 );
-                                                                                            } catch (Exception stepEx) {
-                                                                                                logger.error("Error during slots finalization for user {}: {}", userId, stepEx.getMessage());
+                                                                                            } catch (Exception e2) {
+                                                                                                logger.error("Error during second reveal for user {}: {}", userId, e2.getMessage());
                                                                                                 try {
-                                                                                                    // Refund original bet on finalization failure (if we haven't credited anything)
                                                                                                     userService.updateCreditsAtomic(userId, betAmount);
                                                                                                 } catch (Exception re) {
-                                                                                                    logger.error("Refund failed after finalization exception for user {}: {}", userId, re.getMessage());
+                                                                                                    logger.error("Refund failed after second reveal exception for user {}: {}", userId, re.getMessage());
                                                                                                 }
                                                                                                 activeGames.remove(userId);
                                                                                                 lastPlayAt.put(userId, System.currentTimeMillis());
-                                                                                            } finally {
                                                                                                 scheduler.shutdown();
                                                                                             }
-                                                                                        }, 1500, TimeUnit.MILLISECONDS);
+                                                                                        }, delayToSecondReveal, TimeUnit.MILLISECONDS);
                                                                                     },
-                                                                                    error3 -> {
-                                                                                        // Failure during third reveal; refund bet and cleanup
+                                                                                    errSpin1 -> {
                                                                                         try {
                                                                                             userService.updateCreditsAtomic(userId, betAmount);
                                                                                         } catch (Exception re) {
-                                                                                            logger.error("Refund failed after third reveal error for user {}: {}", userId, re.getMessage());
+                                                                                            logger.error("Refund failed after spin tick (post first reveal) error for user {}: {}", userId, re.getMessage());
                                                                                         }
                                                                                         activeGames.remove(userId);
                                                                                         lastPlayAt.put(userId, System.currentTimeMillis());
                                                                                         scheduler.shutdown();
-                                                                                        logger.error("Failed to edit third reveal for user {}: {}", userId, error3.getMessage());
+                                                                                        logger.error("Failed spin tick after first reveal for user {}: {}", userId, errSpin1.getMessage());
                                                                                     }
                                                                             );
-                                                                        } catch (Exception e3) {
-                                                                            logger.error("Error during third reveal for user {}: {}", userId, e3.getMessage());
+                                                                        } catch (Exception eSpin1) {
+                                                                            logger.error("Error during spin tick after first reveal for user {}: {}", userId, eSpin1.getMessage());
                                                                             try {
                                                                                 userService.updateCreditsAtomic(userId, betAmount);
                                                                             } catch (Exception re) {
-                                                                                logger.error("Refund failed after third reveal exception for user {}: {}", userId, re.getMessage());
+                                                                                logger.error("Refund failed after spin tick exception (post first reveal) for user {}: {}", userId, re.getMessage());
                                                                             }
                                                                             activeGames.remove(userId);
                                                                             lastPlayAt.put(userId, System.currentTimeMillis());
                                                                             scheduler.shutdown();
                                                                         }
-                                                                    }, UPDATE_INTERVAL_MS, TimeUnit.MILLISECONDS);
+                                                                    }, SPIN_TICK_MS, TimeUnit.MILLISECONDS);
                                                                 },
-                                                                error2 -> {
-                                                                    // Failure during second reveal; refund bet and cleanup
+                                                                error1 -> {
+                                                                    // Failure during first reveal; refund bet and cleanup
                                                                     try {
                                                                         userService.updateCreditsAtomic(userId, betAmount);
                                                                     } catch (Exception re) {
-                                                                        logger.error("Refund failed after second reveal error for user {}: {}", userId, re.getMessage());
+                                                                        logger.error("Refund failed after first reveal error for user {}: {}", userId, re.getMessage());
                                                                     }
                                                                     activeGames.remove(userId);
                                                                     lastPlayAt.put(userId, System.currentTimeMillis());
                                                                     scheduler.shutdown();
-                                                                    logger.error("Failed to edit second reveal for user {}: {}", userId, error2.getMessage());
+                                                                    logger.error("Failed to edit first reveal for user {}: {}", userId, error1.getMessage());
                                                                 }
                                                         );
-                                                    } catch (Exception e2) {
-                                                        logger.error("Error during second reveal for user {}: {}", userId, e2.getMessage());
+                                                    } catch (Exception e1b) {
+                                                        logger.error("Error during first reveal for user {}: {}", userId, e1b.getMessage());
                                                         try {
                                                             userService.updateCreditsAtomic(userId, betAmount);
                                                         } catch (Exception re) {
-                                                            logger.error("Refund failed after second reveal exception for user {}: {}", userId, re.getMessage());
+                                                            logger.error("Refund failed after first reveal exception for user {}: {}", userId, re.getMessage());
                                                         }
                                                         activeGames.remove(userId);
                                                         lastPlayAt.put(userId, System.currentTimeMillis());
                                                         scheduler.shutdown();
                                                     }
-                                                }, UPDATE_INTERVAL_MS, TimeUnit.MILLISECONDS);
+                                                }, delayToFirstReveal, TimeUnit.MILLISECONDS);
                                             },
-                                            error1 -> {
-                                                // Failure during first reveal; refund bet and cleanup
+                                            errSpin0 -> {
+                                                // Failure during initial spin tick; refund bet and cleanup
                                                 try {
                                                     userService.updateCreditsAtomic(userId, betAmount);
                                                 } catch (Exception re) {
-                                                    logger.error("Refund failed after first reveal error for user {}: {}", userId, re.getMessage());
+                                                    logger.error("Refund failed after initial spin tick error for user {}: {}", userId, re.getMessage());
                                                 }
                                                 activeGames.remove(userId);
                                                 lastPlayAt.put(userId, System.currentTimeMillis());
                                                 scheduler.shutdown();
-                                                logger.error("Failed to edit first reveal for user {}: {}", userId, error1.getMessage());
+                                                logger.error("Failed initial spin tick for user {}: {}", userId, errSpin0.getMessage());
                                             }
                                     );
-                                } catch (Exception e1) {
-                                    logger.error("Error scheduling slots animation for user {}: {}", userId, e1.getMessage());
+                                } catch (Exception e0) {
+                                    logger.error("Error during initial spin tick for user {}: {}", userId, e0.getMessage());
                                     try {
                                         userService.updateCreditsAtomic(userId, betAmount);
                                     } catch (Exception re) {
-                                        logger.error("Refund failed after scheduling error for user {}: {}", userId, re.getMessage());
+                                        logger.error("Refund failed after initial spin tick exception for user {}: {}", userId, re.getMessage());
                                     }
                                     activeGames.remove(userId);
                                     lastPlayAt.put(userId, System.currentTimeMillis());
                                     scheduler.shutdown();
                                 }
-                            }, UPDATE_INTERVAL_MS, TimeUnit.MILLISECONDS);
+                            }, SPIN_TICK_MS, TimeUnit.MILLISECONDS);
                         } catch (Exception e) {
                             logger.error("Error scheduling slots animation for user {}: {}", userId, e.getMessage());
                             try {
