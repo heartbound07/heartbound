@@ -186,15 +186,16 @@ public class TradeService {
         // Remove duplicates from input list to prevent constraint violations
         List<UUID> uniqueItemIds = new ArrayList<>(new HashSet<>(itemInstanceIds));
         
-        // Collect existing items from this user to track what's being kept vs added
-        Set<UUID> existingUserItemIds = new HashSet<>();
-        for (TradeItem item : trade.getItems()) {
-            if (item.getItemInstance().getOwner().getId().equals(userId)) {
-                existingUserItemIds.add(item.getItemInstance().getId());
-            }
-        }
-        
-        // Check which fishing rods are being added in this batch
+        // Reload trade with all items to get current database state
+        trade = tradeRepository.findByIdWithItems(tradeId)
+                .orElseThrow(() -> new TradeNotFoundException("Trade not found with id: " + tradeId));
+                
+        // Clear existing trade items for this user to prevent duplicates
+        // This ensures we start fresh with each addItemsToTrade call
+        trade.getItems().removeIf(item -> 
+            item.getItemInstance().getOwner().getId().equals(userId));
+
+        // Check which fishing rods are being added for validation purposes
         Set<UUID> rodInstanceIdsBeingAdded = new HashSet<>();
         for (UUID instanceId : uniqueItemIds) {
             ItemInstance instance = itemInstanceRepository.findById(instanceId).orElse(null);
@@ -202,30 +203,8 @@ public class TradeService {
                 rodInstanceIdsBeingAdded.add(instance.getId());
             }
         }
-        
-        // Collect IDs of parts that should remain because their rods are still in the trade
-        Set<UUID> partsToKeep = new HashSet<>();
-        for (UUID rodId : rodInstanceIdsBeingAdded) {
-            ItemInstance rod = itemInstanceRepository.findById(rodId).orElse(null);
-            if (rod != null) {
-                List<ItemInstance> equippedParts = userInventoryService.getEquippedParts(rod);
-                for (ItemInstance part : equippedParts) {
-                    partsToKeep.add(part.getId());
-                }
-            }
-        }
-
-        // Remove items that are no longer selected (but keep items that are re-selected or parts of selected rods)
-        trade.getItems().removeIf(item -> 
-            item.getItemInstance().getOwner().getId().equals(userId) && 
-            !uniqueItemIds.contains(item.getItemInstance().getId()) &&
-            !partsToKeep.contains(item.getItemInstance().getId()));
 
         for (UUID instanceId : uniqueItemIds) {
-            // Skip items that are already in the trade from this user
-            if (existingUserItemIds.contains(instanceId)) {
-                continue;
-            }
             
             ItemInstance instance = itemInstanceRepository.findByIdWithLock(instanceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item instance with id " + instanceId + " not found"));
@@ -280,17 +259,12 @@ public class TradeService {
             if (category == ShopCategory.FISHING_ROD) {
                 List<ItemInstance> equippedParts = userInventoryService.getEquippedParts(instance);
                 for (ItemInstance part : equippedParts) {
-                    // Check if this part is already in the trade to avoid duplicates
-                    boolean partAlreadyInTrade = trade.getItems().stream()
-                        .anyMatch(ti -> ti.getItemInstance().getId().equals(part.getId()));
-                    
-                    if (!partAlreadyInTrade) {
-                        TradeItem partTradeItem = TradeItem.builder()
-                                .trade(trade)
-                                .itemInstance(part)
-                                .build();
-                        trade.getItems().add(partTradeItem);
-                    }
+                    // Since we cleared all user items at the start, we can safely add parts without duplicate checks
+                    TradeItem partTradeItem = TradeItem.builder()
+                            .trade(trade)
+                            .itemInstance(part)
+                            .build();
+                    trade.getItems().add(partTradeItem);
                 }
             }
         }
