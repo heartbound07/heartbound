@@ -139,7 +139,7 @@ public class UserInventoryService {
         }
     }
 
-    private List<ItemInstance> getEquippedParts(ItemInstance rodInstance) {
+    public List<ItemInstance> getEquippedParts(ItemInstance rodInstance) {
         List<ItemInstance> parts = new ArrayList<>();
         if (rodInstance.getEquippedRodShaft() != null) parts.add(rodInstance.getEquippedRodShaft());
         if (rodInstance.getEquippedReel() != null) parts.add(rodInstance.getEquippedReel());

@@ -94,6 +94,18 @@ public class TradeService {
                     .itemInstance(instance)
                     .build();
             trade.getItems().add(tradeItem);
+            
+            // If this is a FISHING_ROD, automatically add its equipped parts
+            if (item.getCategory() == ShopCategory.FISHING_ROD) {
+                List<ItemInstance> equippedParts = userInventoryService.getEquippedParts(instance);
+                for (ItemInstance part : equippedParts) {
+                    TradeItem partTradeItem = TradeItem.builder()
+                            .trade(trade)
+                            .itemInstance(part)
+                            .build();
+                    trade.getItems().add(partTradeItem);
+                }
+            }
         }
 
         return tradeRepository.save(trade);
@@ -190,11 +202,24 @@ public class TradeService {
                 rodInstanceIdsBeingAdded.add(instance.getId());
             }
         }
+        
+        // Collect IDs of parts that should remain because their rods are still in the trade
+        Set<UUID> partsToKeep = new HashSet<>();
+        for (UUID rodId : rodInstanceIdsBeingAdded) {
+            ItemInstance rod = itemInstanceRepository.findById(rodId).orElse(null);
+            if (rod != null) {
+                List<ItemInstance> equippedParts = userInventoryService.getEquippedParts(rod);
+                for (ItemInstance part : equippedParts) {
+                    partsToKeep.add(part.getId());
+                }
+            }
+        }
 
-        // Remove items that are no longer selected (but keep items that are re-selected)
+        // Remove items that are no longer selected (but keep items that are re-selected or parts of selected rods)
         trade.getItems().removeIf(item -> 
             item.getItemInstance().getOwner().getId().equals(userId) && 
-            !uniqueItemIds.contains(item.getItemInstance().getId()));
+            !uniqueItemIds.contains(item.getItemInstance().getId()) &&
+            !partsToKeep.contains(item.getItemInstance().getId()));
 
         for (UUID instanceId : uniqueItemIds) {
             // Skip items that are already in the trade from this user
@@ -250,6 +275,24 @@ public class TradeService {
                     .itemInstance(instance)
                     .build();
             trade.getItems().add(tradeItem);
+            
+            // If this is a FISHING_ROD, automatically add its equipped parts
+            if (category == ShopCategory.FISHING_ROD) {
+                List<ItemInstance> equippedParts = userInventoryService.getEquippedParts(instance);
+                for (ItemInstance part : equippedParts) {
+                    // Check if this part is already in the trade to avoid duplicates
+                    boolean partAlreadyInTrade = trade.getItems().stream()
+                        .anyMatch(ti -> ti.getItemInstance().getId().equals(part.getId()));
+                    
+                    if (!partAlreadyInTrade) {
+                        TradeItem partTradeItem = TradeItem.builder()
+                                .trade(trade)
+                                .itemInstance(part)
+                                .build();
+                        trade.getItems().add(partTradeItem);
+                    }
+                }
+            }
         }
 
         return tradeRepository.save(trade);
