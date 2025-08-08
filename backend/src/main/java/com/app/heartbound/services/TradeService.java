@@ -228,7 +228,7 @@ public class TradeService {
         return tradeRepository.save(trade);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = { InvalidTradeActionException.class, ItemEquippedException.class })
     public Trade acceptFinalTrade(Long tradeId, String userId) {
         Trade trade = tradeRepository.findById(tradeId)
             .orElseThrow(() -> new TradeNotFoundException("Trade not found with id: " + tradeId));
@@ -251,13 +251,19 @@ public class TradeService {
             throw new InvalidTradeActionException("User is not part of this trade.");
         }
 
-        // If both accepted, pre-validate then execute atomically
-        if (trade.getInitiatorAccepted() && trade.getReceiverAccepted()) {
-            validateTradeReadyForExecution(trade.getId());
-            return executeTrade(tradeId); 
+        try {
+            // If both accepted, pre-validate then execute atomically
+            if (trade.getInitiatorAccepted() && trade.getReceiverAccepted()) {
+                validateTradeReadyForExecution(trade.getId());
+                return executeTrade(tradeId); 
+            }
+            return tradeRepository.save(trade);
+        } catch (InvalidTradeActionException | ItemEquippedException e) {
+            // Mark trade as cancelled so participants are unblocked for new trades
+            trade.setStatus(TradeStatus.CANCELLED);
+            tradeRepository.save(trade);
+            throw e;
         }
-
-        return tradeRepository.save(trade);
     }
 
     @Transactional
@@ -564,7 +570,7 @@ public class TradeService {
 
         if (trade.getStatus() != TradeStatus.PENDING) {
             throw new InvalidTradeActionException("This trade is no longer pending.");
-        }
+        }   
 
         // Lock participants
         User initiator = userRepository.findByIdWithLock(trade.getInitiator().getId())
