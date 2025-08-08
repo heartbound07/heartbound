@@ -128,7 +128,7 @@ public class ShopService {
                 .filter(item -> item.getMaxCopies() == null || item.getCopiesSold() == null || item.getCopiesSold() < item.getMaxCopies())
                 .collect(Collectors.toList());
         }
-        
+    
         // Convert to DTOs and check ownership if userId is provided
         User user = null;
         if (userId != null) {
