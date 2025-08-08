@@ -28,6 +28,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import net.dv8tion.jda.api.utils.messages.MessageEditBuilder;
+import net.dv8tion.jda.api.utils.messages.MessageEditData;
 
 @Component
 public class SlotsCommandListener extends ListenerAdapter {
@@ -248,7 +250,7 @@ public class SlotsCommandListener extends ListenerAdapter {
                                         }
                                         final int finalCredits = computedCredits;
 
-                                        // Build final embed
+                                        // Build final embed and combined message (content + embed)
                                         MessageEmbed embed = buildResultEmbed(
                                                 event.getUser().getEffectiveName(),
                                                 event.getUser().getEffectiveAvatarUrl(),
@@ -257,9 +259,14 @@ public class SlotsCommandListener extends ListenerAdapter {
                                                 netPayout,
                                                 betAmount,
                                                 finalCredits);
+                                        String finalReelText = "🎰 " + formatReel(finalIdx);
+                                        MessageEditData finalMessage = new MessageEditBuilder()
+                                                .setContent(finalReelText)
+                                                .setEmbeds(embed)
+                                                .build();
 
-                                        // Edit message to final embed
-                                        msg.editMessageEmbeds(embed).queue(
+                                        // Edit message to show final reels and the result embed atomically
+                                        msg.editMessage(finalMessage).queue(
                                                 success -> {
                                                     // Create audit entry for result
                                                     try {
