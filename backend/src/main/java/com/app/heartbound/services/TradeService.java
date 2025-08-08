@@ -196,6 +196,15 @@ public class TradeService {
 
         // Persist new selection
         for (ItemInstance instance : instancesToAdd) {
+            // Skip if this instance is already included (e.g., auto-added as an equipped part of a previously processed rod)
+            boolean alreadyIncluded = trade.getItems().stream()
+                    .anyMatch(ti -> ti.getItemInstance() != null
+                            && ti.getItemInstance().getId() != null
+                            && ti.getItemInstance().getId().equals(instance.getId()));
+            if (alreadyIncluded) {
+                continue;
+            }
+
             addTradeItem(trade, instance);
             if (instance.getBaseItem().getCategory() == ShopCategory.FISHING_ROD) {
                 addRodEquippedPartsToTrade(trade, instance);

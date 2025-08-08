@@ -61,6 +61,8 @@ public class TradeCommandListener extends ListenerAdapter {
     
     // New state management for paginated item selection
     private final ConcurrentHashMap<String, Set<UUID>> userItemSelections = new ConcurrentHashMap<>();
+    // Guard to prevent double-submit on confirm selection per trade/user
+    private final ConcurrentHashMap<String, Boolean> selectionConfirmInProgress = new ConcurrentHashMap<>();
     
     // Constants for pagination
     private static final int ITEMS_PER_PAGE = 25;
@@ -736,6 +738,15 @@ public class TradeCommandListener extends ListenerAdapter {
         String selectionKey = getSelectionKey(tradeId, userId);
         Set<UUID> selectedItems = userItemSelections.getOrDefault(selectionKey, new HashSet<>());
         log.debug("Found {} selected items for confirmation", selectedItems.size());
+
+        // Concurrency guard: avoid duplicate processing on rapid repeated clicks
+        String confirmLockKey = selectionKey + ":confirm";
+        if (selectionConfirmInProgress.putIfAbsent(confirmLockKey, Boolean.TRUE) != null) {
+            log.warn("Confirm already in progress for {}", selectionKey);
+            event.getHook().editOriginal("Your selection is already being processed. Please wait...")
+                    .setComponents().queue();
+            return;
+        }
         
         try {
             if (selectedItems.isEmpty()) {
@@ -775,6 +786,8 @@ public class TradeCommandListener extends ListenerAdapter {
             log.error("=== CONFIRM SELECTION ERROR === User: {}, tradeId: {}", userId, tradeId, e);
             event.getHook().editOriginal("An error occurred while adding your items: " + e.getMessage())
                     .setComponents().queue();
+        } finally {
+            selectionConfirmInProgress.remove(confirmLockKey);
         }
     }
 
