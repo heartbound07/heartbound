@@ -213,7 +213,7 @@ export function ShopPage() {
                 </div>
                 <ShopSection
                   title=""
-                  items={dailyItems.filter(item => !item.owned)}
+                  items={dailyItems}
                   loading={loading}
                   purchaseInProgress={purchaseInProgress}
                   user={user}
