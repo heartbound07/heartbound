@@ -22,6 +22,9 @@ import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
+import net.dv8tion.jda.api.utils.messages.MessageEditData;
+import net.dv8tion.jda.api.utils.messages.MessageEditBuilder;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
@@ -337,7 +340,7 @@ public class TradeCommandListener extends ListenerAdapter {
             return;
         }
 
-        // We defer the edit, and the final UI update will be handled by updateItemSelectionUI
+        // We defer the edit, and the final UI update will be handled by the message update
         event.deferEdit().queue();
 
         long tradeId = Long.parseLong(parts[1]);
@@ -372,12 +375,13 @@ public class TradeCommandListener extends ListenerAdapter {
             log.debug("Updated selection for user {} trade {}: {} total items selected", 
                 userId, tradeId, currentSelections.size());
 
-            // --- Determine the current page to refresh the UI ---
+            // Determine the current page to refresh the UI
             int currentPage = 0;
             if (!pageItemIds.isEmpty()) {
-                 com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
-                 List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
-                    .filter(invItem -> invItem.getBaseItem().getCategory().isTradable() && invItem.getBaseItem().getCategory() != ShopCategory.FISHING_ROD_PART)
+                com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
+                List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
+                    .filter(invItem -> invItem.getBaseItem().getCategory().isTradable() && 
+                            invItem.getBaseItem().getCategory() != ShopCategory.FISHING_ROD_PART)
                     .collect(Collectors.toList());
                 
                 UUID firstItemOnPage = pageItemIds.iterator().next();
@@ -389,9 +393,16 @@ public class TradeCommandListener extends ListenerAdapter {
                 }
             }
             
-            // Finally, call the update method to refresh the UI for the user.
-            // This fixes the "unused method" warning and provides immediate feedback.
-            updateItemSelectionUI(event, tradeId, userId, currentPage);
+            // Make a final copy for use in lambda
+            final int finalCurrentPage = currentPage;
+            
+            // Update the UI to reflect the new selection state
+            MessageEditData messageData = buildItemSelectionMessage(tradeId, userId, finalCurrentPage);
+            event.getHook().editOriginal(messageData)
+                    .queue(
+                        success -> log.info("=== SELECTION UPDATE SUCCESS === User: {}, page: {}", userId, finalCurrentPage),
+                        failure -> log.error("=== SELECTION UPDATE FAILED === User: {}, page: {}", userId, finalCurrentPage, failure)
+                    );
 
         } catch (Exception e) {
             log.error("Error processing item selection for tradeId: {}", tradeId, e);
@@ -470,183 +481,113 @@ public class TradeCommandListener extends ListenerAdapter {
         String selectionKey = getSelectionKey(tradeId, userId);
         userItemSelections.put(selectionKey, new HashSet<>());
 
-        // Start with page 0
-        updateItemSelectionUI(event, tradeId, userId, 0);
-    }
-
-    /**
-     * Updates the paginated item selection UI for a user (for initial display)
-     */
-    private void updateItemSelectionUI(ButtonInteractionEvent event, long tradeId, String userId, int page) {
-        log.info("=== UPDATE SELECTION UI START (BUTTON) === User: {}, tradeId: {}, page: {}", userId, tradeId, page);
-        
+        // Build the item selection message for page 0
         try {
-            log.debug("Loading user inventory...");
-            com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
-            List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
-                .filter(invItem -> invItem.getBaseItem().getCategory().isTradable() && invItem.getBaseItem().getCategory() != ShopCategory.FISHING_ROD_PART)
-                .collect(Collectors.toList());
-
-            if (tradableItems.isEmpty()) {
-                log.warn("User {} has no tradable items", userId);
-                event.getHook().sendMessage("You have no tradable items in your inventory.").setEphemeral(true).queue();
-                return;
-            }
-
-            int totalPages = (int) Math.ceil((double) tradableItems.size() / ITEMS_PER_PAGE);
-            int startIndex = page * ITEMS_PER_PAGE;
-            int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, tradableItems.size());
-            List<ItemInstance> pageItems = tradableItems.subList(startIndex, endIndex);
-            log.debug("Page {}: showing items {} to {} (total: {})", page, startIndex, endIndex - 1, tradableItems.size());
-
-            String selectionKey = getSelectionKey(tradeId, userId);
-            Set<UUID> currentSelections = userItemSelections.getOrDefault(selectionKey, new HashSet<>());
-            log.debug("Current selections for user {}: {} items", userId, currentSelections.size());
-
-            // Build the select menu for this page
-            log.debug("Building select menu...");
-            StringSelectMenu.Builder menuBuilder = StringSelectMenu.create(buildItemSelectId(tradeId))
-                    .setPlaceholder("Select items to offer...")
-                    .setRequiredRange(0, pageItems.size())
-                    .setMaxValues(pageItems.size());
-
-            // Get currently selected items on this page for default values
-            List<String> defaultValues = new ArrayList<>();
-            
-            for (ItemInstance invItem : pageItems) {
-                String label = invItem.getBaseItem().getName();
-                if (invItem.getSerialNumber() != null) {
-                    label += " #" + invItem.getSerialNumber();
-                }
-                
-                String itemId = invItem.getId().toString();
-                menuBuilder.addOption(
-                    label,
-                    itemId,
-                    "Rarity: " + invItem.getBaseItem().getRarity()
-                );
-                
-                // If this item is in current selections, mark it as default
-                if (currentSelections.contains(invItem.getId())) {
-                    defaultValues.add(itemId);
-                }
-            }
-
-            // Set default values for previously selected items
-            if (!defaultValues.isEmpty()) {
-                menuBuilder.setDefaultValues(defaultValues);
-                log.debug("Set {} default values for page {}", defaultValues.size(), page);
-            }
-
-            // Build action buttons
-            List<Button> actionButtons = new ArrayList<>();
-            actionButtons.add(Button.secondary(buildItemPageId(tradeId, page - 1), "◀ Previous").withDisabled(page <= 0));
-            actionButtons.add(Button.secondary(buildItemPageId(tradeId, page + 1), "Next ▶").withDisabled(page >= totalPages - 1));
-            actionButtons.add(Button.success(buildConfirmItemsId(tradeId), Emoji.fromUnicode("✅")));
-            actionButtons.add(Button.danger(buildCancelSelectionId(tradeId), Emoji.fromUnicode("❌")));
-
-
-            String messageContent = "Please select which items you would like to offer.";
-            log.debug("Message content: {}", messageContent);
-
-            // Always send new message for initial display from "Add Items"
-            log.debug("Sending new message for item selection...");
-            event.getHook().sendMessage(messageContent)
-                    .setComponents(
-                            ActionRow.of(menuBuilder.build()),
-                            ActionRow.of(actionButtons)
-                    )
+            MessageEditData messageData = buildItemSelectionMessage(tradeId, userId, 0);
+            event.getHook().sendMessage(MessageCreateData.fromEditData(messageData))
                     .setEphemeral(true)
                     .queue(
-                        success -> log.info("=== SELECTION UI SUCCESS (NEW) === User: {}, page: {}", userId, page),
-                        failure -> log.error("=== SELECTION UI FAILED (NEW) === User: {}, page: {}", userId, page, failure)
+                        success -> log.info("Successfully sent item selection UI for user: {}, tradeId: {}", userId, tradeId),
+                        failure -> log.error("Failed to send item selection UI for user: {}, tradeId: {}", userId, tradeId, failure)
                     );
-
         } catch (Exception e) {
-            log.error("=== SELECTION UI ERROR === User: {}, page: {}", userId, page, e);
+            log.error("Error building item selection UI for user: {}, tradeId: {}", userId, tradeId, e);
             event.getHook().sendMessage("An error occurred while loading your items: " + e.getMessage()).setEphemeral(true).queue();
         }
     }
 
     /**
-     * Updates the paginated item selection UI for a user - overload for string select interactions
+     * Builds the complete item selection message data for pagination and selection UI.
+     * This centralized method eliminates code duplication across different interaction types.
+     * 
+     * @param tradeId The ID of the trade
+     * @param userId The ID of the user selecting items
+     * @param page The current page number (0-based)
+     * @return MessageEditData containing the complete message with components
      */
-    private void updateItemSelectionUI(StringSelectInteractionEvent event, long tradeId, String userId, int page) {
-        log.info("=== UPDATE SELECTION UI START (SELECT) === User: {}, tradeId: {}, page: {}", userId, tradeId, page);
-        try {
-            com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
-            List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
-                .filter(invItem -> invItem.getBaseItem().getCategory().isTradable() && invItem.getBaseItem().getCategory() != ShopCategory.FISHING_ROD_PART)
-                .collect(Collectors.toList());
+    private MessageEditData buildItemSelectionMessage(long tradeId, String userId, int page) {
+        log.debug("Building item selection message for user: {}, tradeId: {}, page: {}", userId, tradeId, page);
+        
+        // Load user inventory with all items
+        com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
+        List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
+            .filter(invItem -> invItem.getBaseItem().getCategory().isTradable() && 
+                    invItem.getBaseItem().getCategory() != ShopCategory.FISHING_ROD_PART)
+            .collect(Collectors.toList());
 
-            if (tradableItems.isEmpty()) {
-                event.getHook().editOriginal("You have no tradable items in your inventory.").setComponents().queue();
-                return;
-            }
-
-            int totalPages = (int) Math.ceil((double) tradableItems.size() / ITEMS_PER_PAGE);
-            int startIndex = page * ITEMS_PER_PAGE;
-            int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, tradableItems.size());
-            List<ItemInstance> pageItems = tradableItems.subList(startIndex, endIndex);
-
-            String selectionKey = getSelectionKey(tradeId, userId);
-            Set<UUID> currentSelections = userItemSelections.getOrDefault(selectionKey, new HashSet<>());
-
-            // Build the select menu for this page
-            StringSelectMenu.Builder menuBuilder = StringSelectMenu.create(buildItemSelectId(tradeId))
-                    .setPlaceholder("Select items to offer...")
-                    .setRequiredRange(0, pageItems.size())
-                    .setMaxValues(pageItems.size());
-
-            // Get currently selected items on this page for default values
-            List<String> defaultValues = new ArrayList<>();
-            
-            for (ItemInstance invItem : pageItems) {
-                String label = invItem.getBaseItem().getName();
-                if (invItem.getSerialNumber() != null) {
-                    label += " #" + invItem.getSerialNumber();
-                }
-                
-                String itemId = invItem.getId().toString();
-                menuBuilder.addOption(
-                    label,
-                    itemId,
-                    "Rarity: " + invItem.getBaseItem().getRarity()
-                );
-                
-                // If this item is in current selections, mark it as default
-                if (currentSelections.contains(invItem.getId())) {
-                    defaultValues.add(itemId);
-                }
-            }
-
-            // Set default values for previously selected items
-            if (!defaultValues.isEmpty()) {
-                menuBuilder.setDefaultValues(defaultValues);
-            }
-
-            // Build action buttons
-            List<Button> actionButtons = new ArrayList<>();
-            actionButtons.add(Button.secondary(buildItemPageId(tradeId, page - 1), "◀ Previous").withDisabled(page <= 0));
-            actionButtons.add(Button.secondary(buildItemPageId(tradeId, page + 1), "Next ▶").withDisabled(page >= totalPages - 1));
-            actionButtons.add(Button.success(buildConfirmItemsId(tradeId), Emoji.fromUnicode("✅")));
-            actionButtons.add(Button.danger(buildCancelSelectionId(tradeId), Emoji.fromUnicode("❌")));
-
-            event.getHook().editOriginal("Please select which items you would like to offer.")
-                    .setComponents(
-                            ActionRow.of(menuBuilder.build()),
-                            ActionRow.of(actionButtons)
-                    )
-                    .queue(
-                        success -> log.info("=== SELECTION UI SUCCESS (SELECT) === User: {}, page: {}", userId, page),
-                        failure -> log.error("=== SELECTION UI FAILED (SELECT) === User: {}, page: {}", userId, page, failure)
-                    );
-
-        } catch (Exception e) {
-            log.error("=== SELECTION UI ERROR (SELECT) === User: {}, page: {}", userId, page, e);
-            event.getHook().editOriginal("An error occurred while loading your items. Please try again.").setComponents().queue();
+        // Handle case where user has no tradable items
+        if (tradableItems.isEmpty()) {
+            log.warn("User {} has no tradable items", userId);
+            return MessageEditData.fromContent("You have no tradable items in your inventory.");
         }
+
+        // Pagination calculations
+        int totalPages = (int) Math.ceil((double) tradableItems.size() / ITEMS_PER_PAGE);
+        int startIndex = page * ITEMS_PER_PAGE;
+        int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, tradableItems.size());
+        List<ItemInstance> pageItems = tradableItems.subList(startIndex, endIndex);
+        log.debug("Page {}: showing items {} to {} (total: {})", page, startIndex, endIndex - 1, tradableItems.size());
+
+        // Get current selections for this user/trade
+        String selectionKey = getSelectionKey(tradeId, userId);
+        Set<UUID> currentSelections = userItemSelections.getOrDefault(selectionKey, new HashSet<>());
+        log.debug("Current selections for user {}: {} items", userId, currentSelections.size());
+
+        // Build the select menu for this page
+        StringSelectMenu.Builder menuBuilder = StringSelectMenu.create(buildItemSelectId(tradeId))
+                .setPlaceholder("Select items to offer...")
+                .setRequiredRange(0, pageItems.size())
+                .setMaxValues(pageItems.size());
+
+        // Build options and track which are selected
+        List<String> defaultValues = new ArrayList<>();
+        
+        for (ItemInstance invItem : pageItems) {
+            String label = invItem.getBaseItem().getName();
+            if (invItem.getSerialNumber() != null) {
+                label += " #" + invItem.getSerialNumber();
+            }
+            
+            String itemId = invItem.getId().toString();
+            menuBuilder.addOption(
+                label,
+                itemId,
+                "Rarity: " + invItem.getBaseItem().getRarity()
+            );
+            
+            // If this item is in current selections, mark it as default
+            if (currentSelections.contains(invItem.getId())) {
+                defaultValues.add(itemId);
+            }
+        }
+
+        // Set default values for previously selected items
+        if (!defaultValues.isEmpty()) {
+            menuBuilder.setDefaultValues(defaultValues);
+            log.debug("Set {} default values for page {}", defaultValues.size(), page);
+        }
+
+        // Build action buttons
+        List<Button> actionButtons = new ArrayList<>();
+        actionButtons.add(Button.secondary(buildItemPageId(tradeId, page - 1), "◀ Previous")
+                .withDisabled(page <= 0));
+        actionButtons.add(Button.secondary(buildItemPageId(tradeId, page + 1), "Next ▶")
+                .withDisabled(page >= totalPages - 1));
+        actionButtons.add(Button.success(buildConfirmItemsId(tradeId), Emoji.fromUnicode("✅")));
+        actionButtons.add(Button.danger(buildCancelSelectionId(tradeId), Emoji.fromUnicode("❌")));
+
+        // Build and return the complete message data
+        List<ActionRow> actionRows = new ArrayList<>();
+        actionRows.add(ActionRow.of(menuBuilder.build()));
+        actionRows.add(ActionRow.of(actionButtons));
+        
+        return new MessageEditBuilder()
+                .setContent("Please select which items you would like to offer.")
+                .setComponents(actionRows)
+                .build();
     }
+
+
 
     private void handleLockOffer(ButtonInteractionEvent event, long tradeId, String clickerId, Guild guild) {
         tradeService.lockOffer(tradeId, clickerId);
@@ -752,7 +693,8 @@ public class TradeCommandListener extends ListenerAdapter {
             log.debug("User entity loaded successfully");
             
             List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
-                .filter(invItem -> invItem.getBaseItem().getCategory().isTradable() && invItem.getBaseItem().getCategory() != ShopCategory.FISHING_ROD_PART)
+                .filter(invItem -> invItem.getBaseItem().getCategory().isTradable() && 
+                        invItem.getBaseItem().getCategory() != ShopCategory.FISHING_ROD_PART)
                 .collect(Collectors.toList());
             log.debug("Found {} tradable items for user {}", tradableItems.size(), userId);
                 
@@ -765,9 +707,13 @@ public class TradeCommandListener extends ListenerAdapter {
                 return;
             }
             
-            log.debug("Page validation passed, calling updateItemSelectionUIForPagination...");
-            updateItemSelectionUIForPagination(event, tradeId, userId, targetPage);
-            log.info("=== PAGE NAVIGATION SUCCESS === User: {}, page: {}", userId, targetPage);
+            // Build and edit the message with the new page
+            MessageEditData messageData = buildItemSelectionMessage(tradeId, userId, targetPage);
+            event.getHook().editOriginal(messageData)
+                    .queue(
+                        success -> log.info("=== PAGE NAVIGATION SUCCESS === User: {}, page: {}", userId, targetPage),
+                        failure -> log.error("=== PAGE NAVIGATION FAILED === User: {}, page: {}", userId, targetPage, failure)
+                    );
             
         } catch (Exception e) {
             log.error("=== PAGE NAVIGATION ERROR === User: {}, page: {}", userId, targetPage, e);
@@ -775,98 +721,7 @@ public class TradeCommandListener extends ListenerAdapter {
         }
     }
 
-    /**
-     * Updates the paginated item selection UI for pagination (edits existing message)
-     */
-    private void updateItemSelectionUIForPagination(ButtonInteractionEvent event, long tradeId, String userId, int page) {
-        log.info("=== UPDATE SELECTION UI START (PAGINATION) === User: {}, tradeId: {}, page: {}", userId, tradeId, page);
-        
-        try {
-            log.debug("Loading user inventory...");
-            com.app.heartbound.entities.User userEntity = userService.getUserByIdWithInventory(userId);
-            List<ItemInstance> tradableItems = userEntity.getItemInstances().stream()
-                .filter(invItem -> invItem.getBaseItem().getCategory().isTradable() && invItem.getBaseItem().getCategory() != ShopCategory.FISHING_ROD_PART)
-                .collect(Collectors.toList());
 
-            if (tradableItems.isEmpty()) {
-                log.warn("User {} has no tradable items", userId);
-                event.getHook().editOriginal("You have no tradable items in your inventory.").setComponents().queue();
-                return;
-            }
-
-            int totalPages = (int) Math.ceil((double) tradableItems.size() / ITEMS_PER_PAGE);
-            int startIndex = page * ITEMS_PER_PAGE;
-            int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, tradableItems.size());
-            List<ItemInstance> pageItems = tradableItems.subList(startIndex, endIndex);
-            log.debug("Page {}: showing items {} to {} (total: {})", page, startIndex, endIndex - 1, tradableItems.size());
-
-            String selectionKey = getSelectionKey(tradeId, userId);
-            Set<UUID> currentSelections = userItemSelections.getOrDefault(selectionKey, new HashSet<>());
-            log.debug("Current selections for user {}: {} items", userId, currentSelections.size());
-
-            // Build the select menu for this page
-            log.debug("Building select menu...");
-            StringSelectMenu.Builder menuBuilder = StringSelectMenu.create(buildItemSelectId(tradeId))
-                    .setPlaceholder("Select items to offer...")
-                    .setRequiredRange(0, pageItems.size())
-                    .setMaxValues(pageItems.size());
-
-            // Get currently selected items on this page for default values
-            List<String> defaultValues = new ArrayList<>();
-            
-            for (ItemInstance invItem : pageItems) {
-                String label = invItem.getBaseItem().getName();
-                if (invItem.getSerialNumber() != null) {
-                    label += " #" + invItem.getSerialNumber();
-                }
-                
-                String itemId = invItem.getId().toString();
-                menuBuilder.addOption(
-                    label,
-                    itemId,
-                    "Rarity: " + invItem.getBaseItem().getRarity()
-                );
-                
-                // If this item is in current selections, mark it as default
-                if (currentSelections.contains(invItem.getId())) {
-                    defaultValues.add(itemId);
-                }
-            }
-
-            // Set default values for previously selected items
-            if (!defaultValues.isEmpty()) {
-                menuBuilder.setDefaultValues(defaultValues);
-                log.debug("Set {} default values for page {}", defaultValues.size(), page);
-            }
-
-            // Build action buttons
-            log.debug("Building action buttons...");
-            List<Button> actionButtons = new ArrayList<>();
-            actionButtons.add(Button.secondary(buildItemPageId(tradeId, page - 1), "◀ Previous").withDisabled(page <= 0));
-            actionButtons.add(Button.secondary(buildItemPageId(tradeId, page + 1), "Next ▶").withDisabled(page >= totalPages - 1));
-            actionButtons.add(Button.success(buildConfirmItemsId(tradeId), Emoji.fromUnicode("✅")));
-            actionButtons.add(Button.danger(buildCancelSelectionId(tradeId), Emoji.fromUnicode("❌")));
-
-            String messageContent = "Please select which items you would like to offer.";
-            log.debug("Message content: {}", messageContent);
-
-            // Edit existing message for pagination
-            log.debug("Editing existing message for pagination...");
-            event.getHook().editOriginal(messageContent)
-                    .setComponents(
-                            ActionRow.of(menuBuilder.build()),
-                            ActionRow.of(actionButtons)
-                    )
-                    .queue(
-                        success -> log.info("=== SELECTION UI SUCCESS (PAGINATION) === User: {}, page: {}", userId, page),
-                        failure -> log.error("=== SELECTION UI FAILED (PAGINATION) === User: {}, page: {}", userId, page, failure)
-                    );
-
-        } catch (Exception e) {
-            log.error("=== SELECTION UI ERROR (PAGINATION) === User: {}, page: {}", userId, page, e);
-            event.getHook().editOriginal("An error occurred while loading your items: " + e.getMessage()).setComponents().queue();
-        }
-    }
 
     private void handleConfirmItemSelection(ButtonInteractionEvent event, long tradeId, String userId) {
         log.info("=== CONFIRM SELECTION START === User: {}, tradeId: {}", userId, tradeId);
@@ -944,10 +799,6 @@ public class TradeCommandListener extends ListenerAdapter {
                 );
     }
 
-
-    private void updateTradeUI(MessageChannel channel, long tradeId, Guild guild) {
-        updateTradeUI(channel, tradeId, guild, null);
-    }
     
     private void updateTradeUI(MessageChannel channel, long tradeId, Guild guild, String currentUserId) {
         Trade trade = tradeService.getTradeDetails(tradeId);
