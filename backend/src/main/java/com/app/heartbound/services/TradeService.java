@@ -21,11 +21,15 @@ import java.util.Set;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.LockModeType;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.HashMap;
+import java.util.Collections;
 
 @Service
 @Slf4j
@@ -50,6 +54,8 @@ public class TradeService {
         this.userInventoryService = userInventoryService;
     }
 
+    // ==================== Public API ====================
+
     @Transactional
     public Trade createTrade(CreateTradeDto tradeDto, String initiatorId) {
         User initiator = userRepository.findById(initiatorId)
@@ -57,21 +63,8 @@ public class TradeService {
         User receiver = userRepository.findById(tradeDto.getReceiverId())
                 .orElseThrow(() -> new ResourceNotFoundException("Receiver not found"));
 
-        if (initiator.getId().equals(receiver.getId())) {
-            throw new InvalidTradeActionException("You cannot trade with yourself.");
-        }
-
-        // Check if initiator is already in an active pending trade
-        List<Trade> initiatorActiveTrades = tradeRepository.findActivePendingTradesForUser(initiator.getId(), Instant.now());
-        if (!initiatorActiveTrades.isEmpty()) {
-            throw new InvalidTradeActionException("You are already in an active trade!");
-        }
-
-        // Check if receiver is already in an active pending trade
-        List<Trade> receiverActiveTrades = tradeRepository.findActivePendingTradesForUser(receiver.getId(), Instant.now());
-        if (!receiverActiveTrades.isEmpty()) {
-            throw new InvalidTradeActionException(receiver.getUsername() + " is already in an active trade!");
-        }
+        // Shared validations
+        validateUsersCanStartTrade(initiator, receiver);
 
         Trade trade = Trade.builder()
                 .initiator(initiator)
@@ -80,42 +73,31 @@ public class TradeService {
                 .expiresAt(Instant.now().plus(5, ChronoUnit.MINUTES))
                 .build();
 
+        // Gather the offered items
+        List<ItemInstance> offeredInstances = new ArrayList<>();
         for (UUID itemInstanceId : tradeDto.getOfferedItemInstanceIds()) {
             ItemInstance instance = itemInstanceRepository.findById(itemInstanceId)
                     .orElseThrow(() -> new ResourceNotFoundException("Item instance with id " + itemInstanceId + " not found"));
+            offeredInstances.add(instance);
+        }
 
-            if (!instance.getOwner().getId().equals(initiatorId)) {
-                throw new InvalidTradeActionException("You do not own the item instance " + itemInstanceId);
-            }
-            
-            // Check if the item is equipped
-            Shop item = instance.getBaseItem();
-            if (item.getCategory().isEquippable()) {
-                UUID equippedItemId = initiator.getEquippedItemIdByCategory(item.getCategory());
-                if (equippedItemId != null && equippedItemId.equals(instance.getBaseItem().getId())) {
-                    throw new ItemEquippedException("You cannot trade an item that is currently equipped. Please unequip '" + item.getName() + "' first.");
-                }
-            }
-            
-            // Further validation to ensure the item is tradable can be added here if needed
-            // For example, checking instance.getBaseItem().getCategory().isTradable()
+        // Validate items for initial trade creation (preserve original behavior: no tradability check here)
+        // Ownership error message must include the ID in this flow
+        Set<UUID> rodsBeingAdded = extractRodInstanceIds(offeredInstances);
+        validateItemsForTrade(
+                initiator,
+                offeredInstances,
+                rodsBeingAdded,
+                /*checkTradable*/ false,
+                OwnershipErrorStyle.DETAILED_WITH_ID,
+                /*strictEquipValidation*/ false
+        );
 
-            TradeItem tradeItem = TradeItem.builder()
-                    .trade(trade)
-                    .itemInstance(instance)
-                    .build();
-            trade.getItems().add(tradeItem);
-            
-            // If this is a FISHING_ROD, automatically add its equipped parts
-            if (item.getCategory() == ShopCategory.FISHING_ROD) {
-                List<ItemInstance> equippedParts = userInventoryService.getEquippedParts(instance);
-                for (ItemInstance part : equippedParts) {
-                    TradeItem partTradeItem = TradeItem.builder()
-                            .trade(trade)
-                            .itemInstance(part)
-                            .build();
-                    trade.getItems().add(partTradeItem);
-                }
+        // Add items to the trade and auto-include equipped parts for rods
+        for (ItemInstance instance : offeredInstances) {
+            addTradeItem(trade, instance);
+            if (instance.getBaseItem().getCategory() == ShopCategory.FISHING_ROD) {
+                addRodEquippedPartsToTrade(trade, instance);
             }
         }
 
@@ -138,21 +120,8 @@ public class TradeService {
         User initiator = initiatorId.equals(firstUserId) ? firstUser : secondUser;
         User receiver = receiverId.equals(firstUserId) ? firstUser : secondUser;
 
-        if (initiator.getId().equals(receiver.getId())) {
-            throw new InvalidTradeActionException("You cannot trade with yourself.");
-        }
-
-        // Check if initiator is already in an active pending trade
-        List<Trade> initiatorActiveTrades = tradeRepository.findActivePendingTradesForUser(initiator.getId(), Instant.now());
-        if (!initiatorActiveTrades.isEmpty()) {
-            throw new InvalidTradeActionException("You are already in an active trade!");
-        }
-
-        // Check if receiver is already in an active pending trade
-        List<Trade> receiverActiveTrades = tradeRepository.findActivePendingTradesForUser(receiver.getId(), Instant.now());
-        if (!receiverActiveTrades.isEmpty()) {
-            throw new InvalidTradeActionException(receiver.getUsername() + " is already in an active trade!");
-        }
+        // Shared validations
+        validateUsersCanStartTrade(initiator, receiver);
 
         Trade trade = Trade.builder()
                 .initiator(initiator)
@@ -184,35 +153,21 @@ public class TradeService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-        if (!trade.getInitiator().getId().equals(userId) && !trade.getReceiver().getId().equals(userId)) {
-            throw new InvalidTradeActionException("User is not part of this trade.");
-        }
-
-        if (trade.getStatus() != TradeStatus.PENDING) {
-            throw new InvalidTradeActionException("This trade is no longer pending and cannot be modified.");
-        }
-
-        if ((trade.getInitiator().getId().equals(userId) && trade.getInitiatorLocked()) || (trade.getReceiver().getId().equals(userId) && trade.getReceiverLocked())) {
-            throw new InvalidTradeActionException("You have locked your offer and cannot change it.");
-        }
+        assertUserIsParticipant(trade, userId);
+        assertTradeIsPending(trade);
+        assertUserOfferNotLocked(trade, userId);
 
         // Remove duplicates from input list to prevent constraint violations
         List<UUID> uniqueItemIds = new ArrayList<>(new HashSet<>(itemInstanceIds));
         
-        // Delete existing trade items for this user from the database first
-        // This prevents unique constraint violations when adding new items
-        log.debug("Deleting existing trade items for tradeId: {}, userId: {}", tradeId, userId);
-        tradeItemRepository.deleteByTradeIdAndUserId(tradeId, userId);
-        
-        // Flush the delete operations to ensure they're committed to the database
-        entityManager.flush();
-        log.debug("Database delete operations flushed for tradeId: {}", tradeId);
+        // Replace user's current offer (delete then re-add)
+        clearUserItemsFromTrade(tradeId, userId);
         
         // Reload trade with remaining items to get current database state
         trade = tradeRepository.findByIdWithItems(tradeId)
                 .orElseThrow(() -> new TradeNotFoundException("Trade not found with id: " + tradeId));
 
-        // Check which fishing rods are being added for validation purposes
+        // Determine which fishing rods are being added (for part validation)
         Set<UUID> rodInstanceIdsBeingAdded = new HashSet<>();
         for (UUID instanceId : uniqueItemIds) {
             ItemInstance instance = itemInstanceRepository.findById(instanceId).orElse(null);
@@ -221,70 +176,29 @@ public class TradeService {
             }
         }
 
+        // Load and validate instances for this user's new offer
+        List<ItemInstance> instancesToAdd = new ArrayList<>();
         for (UUID instanceId : uniqueItemIds) {
-            
             ItemInstance instance = itemInstanceRepository.findByIdWithLock(instanceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item instance with id " + instanceId + " not found"));
-            
-            if (!instance.getOwner().getId().equals(userId)) {
-                throw new InvalidTradeActionException("You do not own one of the items you are trying to trade.");
-            }
-            
-            Shop item = instance.getBaseItem();
-            // Validate the item is actually tradable
-            if (item.getCategory() == null || !item.getCategory().isTradable()) {
-                 throw new InvalidTradeActionException("The item '" + item.getName() + "' is not tradable.");
-            }
+            instancesToAdd.add(instance);
+        }
 
-            // Enhanced check for equipped items
-            ShopCategory category = item.getCategory();
+        // Validate all items for this user (ownership, tradability, equipped constraints)
+        validateItemsForTrade(
+                user,
+                instancesToAdd,
+                rodInstanceIdsBeingAdded,
+                /*checkTradable*/ true,
+                OwnershipErrorStyle.GENERIC,
+                /*strictEquipValidation*/ true
+        );
 
-            if (category == ShopCategory.FISHING_ROD) {
-                if (instance.getId().equals(user.getEquippedFishingRodInstanceId())) {
-                    throw new ItemEquippedException("You cannot trade an item that is currently equipped. Please unequip '" + item.getName() + "' first.");
-                }
-            } else if (category == ShopCategory.FISHING_ROD_PART) {
-                if (itemInstanceRepository.isPartAlreadyEquipped(instance.getId())) {
-                    // Check if the rod this part is equipped on is also being traded
-                    java.util.List<ItemInstance> rodsWithThisPart = itemInstanceRepository.findRodsWithEquippedParts(
-                        java.util.Collections.singletonList(instance));
-                    boolean rodAlsoBeingTraded = false;
-                    for (ItemInstance rod : rodsWithThisPart) {
-                        if (rod.getOwner().getId().equals(userId) && rodInstanceIdsBeingAdded.contains(rod.getId())) {
-                            rodAlsoBeingTraded = true;
-                            break;
-                        }
-                    }
-                    if (!rodAlsoBeingTraded) {
-                        throw new ItemEquippedException("You cannot trade a part that is currently equipped on a fishing rod. Please unequip '" + item.getName() + "' first, or include the fishing rod in the trade.");
-                    }
-                }
-            } else if (category.isEquippable()) {
-                UUID equippedItemId = user.getEquippedItemIdByCategory(category);
-                if (equippedItemId != null && equippedItemId.equals(instance.getBaseItem().getId())) {
-                    throw new ItemEquippedException("You cannot trade an item that is currently equipped. Please unequip '" + item.getName() + "' first.");
-                }
-            }
-
-            TradeItem tradeItem = TradeItem.builder()
-                    .trade(trade)
-                    .itemInstance(instance)
-                    .build();
-            trade.getItems().add(tradeItem);
-            
-            // If this is a FISHING_ROD, automatically add its equipped parts
-            if (category == ShopCategory.FISHING_ROD) {
-                List<ItemInstance> equippedParts = userInventoryService.getEquippedParts(instance);
-                log.debug("Adding {} equipped parts for fishing rod {}", equippedParts.size(), instance.getId());
-                for (ItemInstance part : equippedParts) {
-                    // Since we cleared all user items at the start, we can safely add parts without duplicate checks
-                    TradeItem partTradeItem = TradeItem.builder()
-                            .trade(trade)
-                            .itemInstance(part)
-                            .build();
-                    trade.getItems().add(partTradeItem);
-                    log.debug("Added fishing rod part {} to trade", part.getId());
-                }
+        // Persist new selection
+        for (ItemInstance instance : instancesToAdd) {
+            addTradeItem(trade, instance);
+            if (instance.getBaseItem().getCategory() == ShopCategory.FISHING_ROD) {
+                addRodEquippedPartsToTrade(trade, instance);
             }
         }
 
@@ -337,8 +251,9 @@ public class TradeService {
             throw new InvalidTradeActionException("User is not part of this trade.");
         }
 
-        // If both accepted, process the trade
+        // If both accepted, pre-validate then execute atomically
         if (trade.getInitiatorAccepted() && trade.getReceiverAccepted()) {
+            validateTradeReadyForExecution(trade.getId());
             return executeTrade(tradeId); 
         }
 
@@ -347,6 +262,7 @@ public class TradeService {
 
     @Transactional
     private Trade executeTrade(Long tradeId) {
+        // Lock the trade and participants
         Trade trade = tradeRepository.findByIdWithLock(tradeId)
                 .orElseThrow(() -> new TradeNotFoundException("Trade not found"));
 
@@ -359,9 +275,7 @@ public class TradeService {
         User receiver = userRepository.findByIdWithLock(trade.getReceiver().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Receiver not found"));
 
-
-        // Atomically transfer items
-        // Process parts and other items first, rods last to avoid duplicate transfers/uniqueness conflicts
+        // Process parts first, rods last to avoid conflicts
         List<TradeItem> orderedItems = new java.util.ArrayList<>(trade.getItems());
         orderedItems.sort((a, b) -> {
             ShopCategory ca = a.getItemInstance().getBaseItem().getCategory();
@@ -375,11 +289,11 @@ public class TradeService {
         for (TradeItem item : orderedItems) {
             ItemInstance instance = item.getItemInstance();
             
-            // Re-fetch and lock the item instance to ensure it hasn't been traded/sold
-            itemInstanceRepository.findByIdWithLock(instance.getId())
+            // Re-fetch and lock the item instance to ensure it hasn't been changed concurrently
+            ItemInstance lockedInstance = itemInstanceRepository.findByIdWithLock(instance.getId())
                 .orElseThrow(() -> new InvalidTradeActionException("An item in the trade no longer exists."));
 
-            User fromUser = instance.getOwner();
+            User fromUser = lockedInstance.getOwner();
             User toUser;
             
             // Determine who is receiving the item and verify ownership one last time
@@ -391,55 +305,15 @@ public class TradeService {
                 throw new InvalidTradeActionException("An item in the trade does not belong to either participant.");
             }
 
-            Shop shopItem = instance.getBaseItem();
-            // Final check to ensure item is not equipped before transfer
+            Shop shopItem = lockedInstance.getBaseItem();
             ShopCategory category = shopItem.getCategory();
 
+            // Transfer equipped parts when trading a fishing rod (parts are skipped if already transferred earlier)
             if (category == ShopCategory.FISHING_ROD) {
-                if (instance.getId().equals(fromUser.getEquippedFishingRodInstanceId())) {
-                    throw new InvalidTradeActionException("Trade failed: The item '" + shopItem.getName() + "' is currently equipped by " + fromUser.getUsername() + " and cannot be traded.");
-                }
-            } else if (category == ShopCategory.FISHING_ROD_PART) {
-                if (itemInstanceRepository.isPartAlreadyEquipped(instance.getId())) {
-                    // Allow trading an equipped part only if its rod is also part of this trade and goes to the same recipient
-                    java.util.List<ItemInstance> rodsWithPart = itemInstanceRepository.findRodsWithEquippedParts(java.util.Collections.singletonList(instance));
-                    boolean rodIncludedForSameRecipient = false;
-                    for (ItemInstance rod : rodsWithPart) {
-                        if (!rod.getOwner().getId().equals(fromUser.getId())) {
-                            continue;
-                        }
-                        for (TradeItem other : orderedItems) {
-                            ItemInstance otherInstance = other.getItemInstance();
-                            if (otherInstance.getId().equals(rod.getId()) &&
-                                otherInstance.getBaseItem().getCategory() == ShopCategory.FISHING_ROD) {
-                                User rodFromUser = rod.getOwner();
-                                User rodToUser = rodFromUser.getId().equals(initiator.getId()) ? receiver : initiator;
-                                if (rodToUser.getId().equals(toUser.getId())) {
-                                    rodIncludedForSameRecipient = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if (rodIncludedForSameRecipient) break;
-                    }
-                    if (!rodIncludedForSameRecipient) {
-                        throw new InvalidTradeActionException("Trade failed: The item '" + shopItem.getName() + "' is currently equipped on a rod by " + fromUser.getUsername() + " and cannot be traded.");
-                    }
-                    // else, continue; this part will be transferred now, and the rod's helper will skip it later
-                }
-            } else if (category.isEquippable()) {
-                UUID equippedItemId = fromUser.getEquippedItemIdByCategory(category);
-                if (equippedItemId != null && equippedItemId.equals(instance.getBaseItem().getId())) {
-                    throw new InvalidTradeActionException("Trade failed: The item '" + shopItem.getName() + "' is currently equipped by " + fromUser.getUsername() + " and cannot be traded.");
-                }
+                transferEquippedPartsWithRod(lockedInstance, fromUser, toUser);
             }
 
-            // Transfer equipped parts when trading a fishing rod
-            if (category == ShopCategory.FISHING_ROD) {
-                transferEquippedPartsWithRod(instance, fromUser, toUser);
-            }
-
-            // Check for unique item ownership
+            // Check for unique item ownership just before transfer, to account for prior transfers in this loop
             if (!shopItem.getCategory().isStackable()) {
                 if (userInventoryService.getItemQuantity(toUser.getId(), shopItem.getId()) > 0) {
                     throw new InvalidTradeActionException("Trade failed: " + toUser.getUsername() + " already owns the unique item '" + shopItem.getName() + "'.");
@@ -447,8 +321,8 @@ public class TradeService {
             }
 
             // Transfer ownership
-            instance.setOwner(toUser);
-            itemInstanceRepository.save(instance);
+            lockedInstance.setOwner(toUser);
+            itemInstanceRepository.save(lockedInstance);
         }
 
         trade.setStatus(TradeStatus.ACCEPTED);
@@ -483,9 +357,8 @@ public class TradeService {
                     throw new InvalidTradeActionException("Trade failed: An equipped part is not owned by the current rod owner.");
                 }
 
+                // Check uniqueness for non-stackable parts before transfer
                 Shop partItem = lockedPart.getBaseItem();
-                
-                // Check for unique item ownership constraint
                 if (!partItem.getCategory().isStackable()) {
                     if (userInventoryService.getItemQuantity(toUser.getId(), partItem.getId()) > 0) {
                         throw new InvalidTradeActionException("Trade failed: " + toUser.getUsername() + " already owns the unique part '" + partItem.getName() + "'.");
@@ -541,5 +414,264 @@ public class TradeService {
 
     public List<Trade> getUserTrades(String userId) {
         return tradeRepository.findByInitiatorIdOrReceiverId(userId, userId);
+    }
+
+    // ==================== Private helpers ====================
+
+    private enum OwnershipErrorStyle {
+        DETAILED_WITH_ID,
+        GENERIC
+    }
+
+    private void validateUsersCanStartTrade(User initiator, User receiver) {
+        if (initiator.getId().equals(receiver.getId())) {
+            throw new InvalidTradeActionException("You cannot trade with yourself.");
+        }
+
+        // Check if initiator is already in an active pending trade
+        List<Trade> initiatorActiveTrades = tradeRepository.findActivePendingTradesForUser(initiator.getId(), Instant.now());
+        if (!initiatorActiveTrades.isEmpty()) {
+            throw new InvalidTradeActionException("You are already in an active trade!");
+        }
+
+        // Check if receiver is already in an active pending trade
+        List<Trade> receiverActiveTrades = tradeRepository.findActivePendingTradesForUser(receiver.getId(), Instant.now());
+        if (!receiverActiveTrades.isEmpty()) {
+            throw new InvalidTradeActionException(receiver.getUsername() + " is already in an active trade!");
+        }
+    }
+
+    private void assertUserIsParticipant(Trade trade, String userId) {
+        if (!trade.getInitiator().getId().equals(userId) && !trade.getReceiver().getId().equals(userId)) {
+            throw new InvalidTradeActionException("User is not part of this trade.");
+        }
+    }
+
+    private void assertTradeIsPending(Trade trade) {
+        if (trade.getStatus() != TradeStatus.PENDING) {
+            throw new InvalidTradeActionException("This trade is no longer pending and cannot be modified.");
+        }
+    }
+
+    private void assertUserOfferNotLocked(Trade trade, String userId) {
+        if ((trade.getInitiator().getId().equals(userId) && trade.getInitiatorLocked()) || (trade.getReceiver().getId().equals(userId) && trade.getReceiverLocked())) {
+            throw new InvalidTradeActionException("You have locked your offer and cannot change it.");
+        }
+    }
+
+    private void clearUserItemsFromTrade(Long tradeId, String userId) {
+        log.debug("Deleting existing trade items for tradeId: {}, userId: {}", tradeId, userId);
+        tradeItemRepository.deleteByTradeIdAndUserId(tradeId, userId);
+        // Ensure deletes are applied before re-adding to avoid constraint issues
+        entityManager.flush();
+        log.debug("Database delete operations flushed for tradeId: {}", tradeId);
+    }
+
+    private void addTradeItem(Trade trade, ItemInstance instance) {
+        TradeItem tradeItem = TradeItem.builder()
+                .trade(trade)
+                .itemInstance(instance)
+                .build();
+        trade.getItems().add(tradeItem);
+    }
+
+    private void addRodEquippedPartsToTrade(Trade trade, ItemInstance rodInstance) {
+        List<ItemInstance> equippedParts = userInventoryService.getEquippedParts(rodInstance);
+        for (ItemInstance part : equippedParts) {
+            TradeItem partTradeItem = TradeItem.builder()
+                    .trade(trade)
+                    .itemInstance(part)
+                    .build();
+            trade.getItems().add(partTradeItem);
+        }
+    }
+
+    private Set<UUID> extractRodInstanceIds(List<ItemInstance> instances) {
+        Set<UUID> rodIds = new HashSet<>();
+        for (ItemInstance instance : instances) {
+            if (instance.getBaseItem().getCategory() == ShopCategory.FISHING_ROD) {
+                rodIds.add(instance.getId());
+            }
+        }
+        return rodIds;
+    }
+
+    private void validateItemsForTrade(
+            User owner,
+            List<ItemInstance> items,
+            Set<UUID> rodsBeingAdded,
+            boolean checkTradable,
+            OwnershipErrorStyle ownershipErrorStyle,
+            boolean strictEquipValidation
+    ) {
+        for (ItemInstance instance : items) {
+            Shop item = instance.getBaseItem();
+            ShopCategory category = item.getCategory();
+
+            // Ownership validation
+            if (!instance.getOwner().getId().equals(owner.getId())) {
+                if (ownershipErrorStyle == OwnershipErrorStyle.DETAILED_WITH_ID) {
+                    throw new InvalidTradeActionException("You do not own the item instance " + instance.getId());
+                }
+                throw new InvalidTradeActionException("You do not own one of the items you are trying to trade.");
+            }
+
+            // Tradability validation
+            if (checkTradable) {
+                if (category == null || !category.isTradable()) {
+                    throw new InvalidTradeActionException("The item '" + item.getName() + "' is not tradable.");
+                }
+            }
+
+            // Equipped validations
+            if (category == ShopCategory.FISHING_ROD) {
+                if (strictEquipValidation) {
+                    if (instance.getId().equals(owner.getEquippedFishingRodInstanceId())) {
+                        throw new ItemEquippedException("You cannot trade an item that is currently equipped. Please unequip '" + item.getName() + "' first.");
+                    }
+                }
+            } else if (category == ShopCategory.FISHING_ROD_PART) {
+                if (strictEquipValidation) {
+                    // A part can be traded while equipped ONLY if its rod is also being traded by the same owner
+                    if (itemInstanceRepository.isPartAlreadyEquipped(instance.getId())) {
+                        List<ItemInstance> rodsWithThisPart = itemInstanceRepository.findRodsWithEquippedParts(Collections.singletonList(instance));
+                        boolean rodAlsoBeingTraded = false;
+                        for (ItemInstance rod : rodsWithThisPart) {
+                            if (rod.getOwner().getId().equals(owner.getId()) && rodsBeingAdded.contains(rod.getId())) {
+                                rodAlsoBeingTraded = true;
+                                break;
+                            }
+                        }
+                        if (!rodAlsoBeingTraded) {
+                            throw new ItemEquippedException("You cannot trade a part that is currently equipped on a fishing rod. Please unequip '" + item.getName() + "' first, or include the fishing rod in the trade.");
+                        }
+                    }
+                }
+            } else if (category != null && category.isEquippable()) {
+                UUID equippedItemId = owner.getEquippedItemIdByCategory(category);
+                if (equippedItemId != null && equippedItemId.equals(instance.getBaseItem().getId())) {
+                    throw new ItemEquippedException("You cannot trade an item that is currently equipped. Please unequip '" + item.getName() + "' first.");
+                }
+            }
+        }
+    }
+
+    private void validateTradeReadyForExecution(Long tradeId) {
+        // Load trade with items and lock the row
+        Trade trade = tradeRepository.findByIdWithItems(tradeId)
+                .orElseThrow(() -> new TradeNotFoundException("Trade not found"));
+        entityManager.lock(trade, LockModeType.PESSIMISTIC_WRITE);
+
+        if (trade.getStatus() != TradeStatus.PENDING) {
+            throw new InvalidTradeActionException("This trade is no longer pending.");
+        }
+
+        // Lock participants
+        User initiator = userRepository.findByIdWithLock(trade.getInitiator().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Initiator not found"));
+        User receiver = userRepository.findByIdWithLock(trade.getReceiver().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Receiver not found"));
+
+        // Lock all item instances referenced by the trade, and build rod recipient mapping
+        List<TradeItem> tradeItems = new ArrayList<>(trade.getItems());
+        Map<UUID, String> rodRecipientById = new HashMap<>(); // rod instance id -> toUserId
+        Map<Long, ItemInstance> lockedInstanceByTradeItemId = new HashMap<>();
+
+        for (TradeItem tradeItem : tradeItems) {
+            ItemInstance original = tradeItem.getItemInstance();
+            ItemInstance lockedInstance = itemInstanceRepository.findByIdWithLock(original.getId())
+                    .orElseThrow(() -> new InvalidTradeActionException("An item in the trade no longer exists."));
+            lockedInstanceByTradeItemId.put(tradeItem.getId(), lockedInstance);
+
+            User fromUser = lockedInstance.getOwner();
+            User toUser;
+            if (fromUser.getId().equals(initiator.getId())) {
+                toUser = receiver;
+            } else if (fromUser.getId().equals(receiver.getId())) {
+                toUser = initiator;
+            } else {
+                throw new InvalidTradeActionException("An item in the trade does not belong to either participant.");
+            }
+
+            if (lockedInstance.getBaseItem().getCategory() == ShopCategory.FISHING_ROD) {
+                rodRecipientById.put(lockedInstance.getId(), toUser.getId());
+            }
+        }
+
+        // Sort items: parts first, rods last
+        tradeItems.sort((a, b) -> {
+            ShopCategory ca = lockedInstanceByTradeItemId.get(a.getId()).getBaseItem().getCategory();
+            ShopCategory cb = lockedInstanceByTradeItemId.get(b.getId()).getBaseItem().getCategory();
+            boolean aRod = ca == ShopCategory.FISHING_ROD;
+            boolean bRod = cb == ShopCategory.FISHING_ROD;
+            if (aRod == bRod) return 0;
+            return aRod ? 1 : -1;
+        });
+
+        // Final validations before execution
+        for (TradeItem tradeItem : tradeItems) {
+            ItemInstance instance = lockedInstanceByTradeItemId.get(tradeItem.getId());
+            Shop shopItem = instance.getBaseItem();
+            ShopCategory category = shopItem.getCategory();
+
+            User fromUser = instance.getOwner();
+            User toUser = fromUser.getId().equals(initiator.getId()) ? receiver : initiator;
+
+            // Equipped constraints (mirror executeTrade checks, but now as pre-validation)
+            if (category == ShopCategory.FISHING_ROD) {
+                if (instance.getId().equals(fromUser.getEquippedFishingRodInstanceId())) {
+                    throw new InvalidTradeActionException("Trade failed: The item '" + shopItem.getName() + "' is currently equipped by " + fromUser.getUsername() + " and cannot be traded.");
+                }
+
+                // Validate uniqueness for equipped parts that will be auto-transferred
+                List<ItemInstance> equippedParts = userInventoryService.getEquippedParts(instance);
+                for (ItemInstance part : equippedParts) {
+                    // Lock each part for consistency
+                    ItemInstance lockedPart = itemInstanceRepository.findByIdWithLock(part.getId())
+                            .orElseThrow(() -> new InvalidTradeActionException("Trade failed: An equipped part is no longer available."));
+                    Shop partItem = lockedPart.getBaseItem();
+                    if (!partItem.getCategory().isStackable()) {
+                        if (userInventoryService.getItemQuantity(toUser.getId(), partItem.getId()) > 0) {
+                            throw new InvalidTradeActionException("Trade failed: " + toUser.getUsername() + " already owns the unique part '" + partItem.getName() + "'.");
+                        }
+                    }
+                    // Ownership sanity check
+                    String partOwnerId = lockedPart.getOwner().getId();
+                    if (!partOwnerId.equals(fromUser.getId()) && !partOwnerId.equals(toUser.getId())) {
+                        throw new InvalidTradeActionException("Trade failed: An equipped part is not owned by the current rod owner.");
+                    }
+                }
+            } else if (category == ShopCategory.FISHING_ROD_PART) {
+                if (itemInstanceRepository.isPartAlreadyEquipped(instance.getId())) {
+                    List<ItemInstance> rodsWithPart = itemInstanceRepository.findRodsWithEquippedParts(Collections.singletonList(instance));
+                    boolean rodIncludedForSameRecipient = false;
+                    for (ItemInstance rod : rodsWithPart) {
+                        if (!rod.getOwner().getId().equals(fromUser.getId())) {
+                            continue;
+                        }
+                        String intendedRecipientId = rodRecipientById.get(rod.getId());
+                        if (intendedRecipientId != null && intendedRecipientId.equals(toUser.getId())) {
+                            rodIncludedForSameRecipient = true;
+                            break;
+                        }
+                    }
+                    if (!rodIncludedForSameRecipient) {
+                        throw new InvalidTradeActionException("Trade failed: The item '" + shopItem.getName() + "' is currently equipped on a rod by " + fromUser.getUsername() + " and cannot be traded.");
+                    }
+                }
+            } else if (category != null && category.isEquippable()) {
+                UUID equippedItemId = fromUser.getEquippedItemIdByCategory(category);
+                if (equippedItemId != null && equippedItemId.equals(instance.getBaseItem().getId())) {
+                    throw new InvalidTradeActionException("Trade failed: The item '" + shopItem.getName() + "' is currently equipped by " + fromUser.getUsername() + " and cannot be traded.");
+                }
+            }
+
+            // Unique item constraint (non-stackable)
+            if (!shopItem.getCategory().isStackable()) {
+                if (userInventoryService.getItemQuantity(toUser.getId(), shopItem.getId()) > 0) {
+                    throw new InvalidTradeActionException("Trade failed: " + toUser.getUsername() + " already owns the unique item '" + shopItem.getName() + "'.");
+                }
+            }
+        }
     }
 } 
