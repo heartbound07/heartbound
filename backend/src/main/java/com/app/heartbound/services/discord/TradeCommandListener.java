@@ -650,7 +650,7 @@ public class TradeCommandListener extends ListenerAdapter {
 
     private void handleLockOffer(ButtonInteractionEvent event, long tradeId, String clickerId, Guild guild) {
         tradeService.lockOffer(tradeId, clickerId);
-        updateTradeUI(event.getChannel(), tradeId, guild);
+        updateTradeUI(event.getChannel(), tradeId, guild, clickerId);
     }
 
     private void handleFinalAccept(ButtonInteractionEvent event, long tradeId, String clickerId, Guild guild) {
@@ -701,7 +701,7 @@ public class TradeCommandListener extends ListenerAdapter {
                 }, failure -> log.error("Could not retrieve initiator user {} for completed trade {}", initiatorId, tradeId, failure));
 
             } else {
-                updateTradeUI(event.getChannel(), tradeId, guild);
+                updateTradeUI(event.getChannel(), tradeId, guild, clickerId);
             }
         } catch (InvalidTradeActionException e) {
             log.error("Final acceptance failed for tradeId: {}: {}", tradeId, e.getMessage());
@@ -905,7 +905,7 @@ public class TradeCommandListener extends ListenerAdapter {
             
             // Update the main trade UI
             log.debug("Updating main trade UI...");
-            updateTradeUI(event.getChannel(), tradeId, event.getGuild());
+            updateTradeUI(event.getChannel(), tradeId, event.getGuild(), userId);
             log.debug("Main trade UI updated");
             
             // Close the selection UI
@@ -946,6 +946,10 @@ public class TradeCommandListener extends ListenerAdapter {
 
 
     private void updateTradeUI(MessageChannel channel, long tradeId, Guild guild) {
+        updateTradeUI(channel, tradeId, guild, null);
+    }
+    
+    private void updateTradeUI(MessageChannel channel, long tradeId, Guild guild, String currentUserId) {
         Trade trade = tradeService.getTradeDetails(tradeId);
         if (trade == null || trade.getStatus() != TradeStatus.PENDING) {
             log.warn("updateTradeUI called for non-pending or non-existent tradeId: {}", tradeId);
@@ -963,7 +967,7 @@ public class TradeCommandListener extends ListenerAdapter {
                 channel.retrieveMessageById(messageId).queue(message -> {
                     log.debug("Found message {} to update for tradeId: {}", messageId, tradeId);
                     message.editMessageEmbeds(buildTradeEmbed(trade, initiatorUser, receiverUser, guild))
-                           .setComponents(getTradeActionRows(trade))
+                           .setComponents(getTradeActionRows(trade, currentUserId))
                            .queue(
                                success -> log.info("Successfully updated UI for tradeId: {}", tradeId),
                                failure -> log.error(
@@ -1034,17 +1038,40 @@ public class TradeCommandListener extends ListenerAdapter {
     }
 
     private List<ActionRow> getTradeActionRows(Trade trade) {
+        return getTradeActionRows(trade, null);
+    }
+    
+    private List<ActionRow> getTradeActionRows(Trade trade, String currentUserId) {
         boolean bothLocked = trade.getInitiatorLocked() && trade.getReceiverLocked();
         boolean tradeComplete = trade.getStatus() != TradeStatus.PENDING;
+        
+        // Check if current user has already accepted (to disable their accept button)
+        boolean currentUserAccepted = false;
+        boolean currentUserLocked = false;
+        if (currentUserId != null) {
+            if (trade.getInitiator().getId().equals(currentUserId)) {
+                currentUserAccepted = trade.getInitiatorAccepted();
+                currentUserLocked = trade.getInitiatorLocked();
+            } else if (trade.getReceiver().getId().equals(currentUserId)) {
+                currentUserAccepted = trade.getReceiverAccepted();
+                currentUserLocked = trade.getReceiverLocked();
+            }
+        }
 
         List<Button> buttons = new ArrayList<>();
 
-        buttons.add(Button.primary("trade_add-items_" + trade.getId(), Emoji.fromUnicode("📝")).withDisabled(tradeComplete));
+        // Disable add-items if trade is complete or user has locked their offer
+        buttons.add(Button.primary("trade_add-items_" + trade.getId(), Emoji.fromUnicode("📝"))
+                .withDisabled(tradeComplete || currentUserLocked));
 
         if (bothLocked) {
-            buttons.add(Button.success("trade_accept-final_" + trade.getId(), Emoji.fromUnicode("✅")).withDisabled(tradeComplete));
+            // Disable accept button if trade is complete OR if current user has already accepted
+            buttons.add(Button.success("trade_accept-final_" + trade.getId(), Emoji.fromUnicode("✅"))
+                    .withDisabled(tradeComplete || currentUserAccepted));
         } else {
-            buttons.add(Button.secondary("trade_lock-offer_" + trade.getId(), Emoji.fromUnicode("🔒")).withDisabled(tradeComplete));
+            // Disable lock button if trade is complete or user has already locked
+            buttons.add(Button.secondary("trade_lock-offer_" + trade.getId(), Emoji.fromUnicode("🔒"))
+                    .withDisabled(tradeComplete || currentUserLocked));
         }
 
         buttons.add(Button.danger("trade_cancel_" + trade.getId(), Emoji.fromUnicode("❌")).withDisabled(tradeComplete));
