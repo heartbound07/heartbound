@@ -33,6 +33,7 @@ import com.app.heartbound.services.discord.TradeCommandListener;
 import com.app.heartbound.services.discord.GuildEventListener;
 import com.app.heartbound.services.discord.GrabCommandListener;
 import com.app.heartbound.services.discord.TermsOfServiceListener;
+import com.app.heartbound.services.discord.SlotsCommandListener;
 import jakarta.annotation.PreDestroy;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -171,6 +172,9 @@ public class DiscordConfig {
     @Autowired
     private MinesCommandListener minesCommandListener;
 
+    @Autowired
+    private SlotsCommandListener slotsCommandListener;
+
     @Bean
     public JDA jda() {
         if (discordToken == null || discordToken.isBlank() || discordToken.equals("${DISCORD_BOT_TOKEN}")) {
@@ -211,7 +215,7 @@ public class DiscordConfig {
                                       inventoryCommandListener, fishCommandListener, levelCardCommandListener,
                                       discordMessageListenerService, discordVoiceTimeTrackerService,
                                       userVoiceActivityService, prisonCommandListener, countingGameListener,
-                                      autoSlowmodeService, rolesCommandListener, verifyCommandListener, guildEventListener, grabCommandListener, minesCommandListener, termsOfServiceListener)
+                                      autoSlowmodeService, rolesCommandListener, verifyCommandListener, guildEventListener, grabCommandListener, minesCommandListener, termsOfServiceListener, slotsCommandListener)
                     .build();
 
             // Waits until JDA is fully connected and ready
@@ -314,6 +318,11 @@ public class DiscordConfig {
                     Commands.slash("blackjack", "Play a game of blackjack and bet credits")
                         .addOptions(
                             new OptionData(OptionType.INTEGER, "bet", "The amount of credits you want to bet", true)
+                                .setMinValue(1)
+                        ),
+                    Commands.slash("slots", "Play a slot machine and bet credits")
+                        .addOptions(
+                            new OptionData(OptionType.INTEGER, "bet", "Amount of credits to bet (minimum 1)", true)
                                 .setMinValue(1)
                         ),
                     Commands.slash("prison", "Removes all roles from a user and assigns the prison role, or releases them.")
