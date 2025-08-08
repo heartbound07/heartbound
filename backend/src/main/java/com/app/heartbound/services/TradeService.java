@@ -185,6 +185,17 @@ public class TradeService {
         for (UUID instanceId : uniqueItemIds) {
             ItemInstance instance = itemInstanceRepository.findByIdWithLock(instanceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item instance with id " + instanceId + " not found"));
+
+            // Pre-validation: ensure the item is not referenced by another trade (global unique constraint safety)
+            long pendingCount = tradeItemRepository.countByItemInstanceIdAndTradeStatus(instanceId, TradeStatus.PENDING);
+            if (pendingCount > 0) {
+                List<Long> pendingTrades = tradeItemRepository.findTradeIdsByItemInstanceIdAndTradeStatus(instanceId, TradeStatus.PENDING);
+                if (!(pendingTrades.size() == 1 && pendingTrades.get(0).equals(tradeId))) {
+                    throw new InvalidTradeActionException(
+                        "This item is already part of another pending trade (trade IDs: " + pendingTrades + "). Please cancel/complete that trade first.");
+                }
+            }
+
             instancesToAdd.add(instance);
         }
         log.debug("Instances to add ({}): {}", instancesToAdd.size(),
@@ -415,6 +426,10 @@ public class TradeService {
             throw new InvalidTradeActionException("This trade is no longer pending.");
         }
 
+        // Clear trade items to release any database-level constraints and avoid stale references
+        tradeItemRepository.deleteByTradeId(tradeId);
+        entityManager.flush();
+
         trade.setStatus(TradeStatus.DECLINED);
         return tradeRepository.save(trade);
     }
@@ -432,6 +447,10 @@ public class TradeService {
         if (trade.getStatus() != TradeStatus.PENDING) {
             throw new InvalidTradeActionException("This trade is no longer pending.");
         }
+
+        // Clear trade items to release any database-level constraints and avoid stale references
+        tradeItemRepository.deleteByTradeId(tradeId);
+        entityManager.flush();
 
         trade.setStatus(TradeStatus.CANCELLED);
         return tradeRepository.save(trade);
