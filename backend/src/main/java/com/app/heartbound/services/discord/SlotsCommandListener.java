@@ -198,7 +198,7 @@ public class SlotsCommandListener extends ListenerAdapter {
             };
 
             // Send initial message and animate
-            String initial = "🎰 Spinning... " + formatReel(randomIndices());
+            String initial = formatReelWithPipes(randomIndices());
             event.getHook().sendMessage(initial).queue(
                     (Message msg) -> {
                         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
@@ -250,7 +250,7 @@ public class SlotsCommandListener extends ListenerAdapter {
                                         }
                                         final int finalCredits = computedCredits;
 
-                                        // Build final embed and combined message (content + embed)
+                                        // Build final embed and combined message (embed only, clear text content)
                                         MessageEmbed embed = buildResultEmbed(
                                                 event.getUser().getEffectiveName(),
                                                 event.getUser().getEffectiveAvatarUrl(),
@@ -259,9 +259,8 @@ public class SlotsCommandListener extends ListenerAdapter {
                                                 netPayout,
                                                 betAmount,
                                                 finalCredits);
-                                        String finalReelText = "🎰 " + formatReel(finalIdx);
                                         MessageEditData finalMessage = new MessageEditBuilder()
-                                                .setContent(finalReelText)
+                                                .setContent("")
                                                 .setEmbeds(embed)
                                                 .build();
 
@@ -300,7 +299,7 @@ public class SlotsCommandListener extends ListenerAdapter {
                                         scheduler.shutdown();
                                     } else {
                                         // Interim update with random symbols
-                                        msg.editMessage("🎰 Spinning... " + formatReel(randomIndices()))
+                                        msg.editMessage(formatReelWithPipes(randomIndices()))
                                                 .queue(
                                                         success -> {},
                                                         error -> logger.warn("Interim edit failed for user {}: {}", userId, error.getMessage())
@@ -355,6 +354,10 @@ public class SlotsCommandListener extends ListenerAdapter {
 
     private String formatReel(int[] idx) {
         return "[" + REEL[idx[0]] + "] [" + REEL[idx[1]] + "] [" + REEL[idx[2]] + "]";
+    }
+
+    private String formatReelWithPipes(int[] idx) {
+        return "[" + REEL[idx[0]] + "] | [" + REEL[idx[1]] + "] | [" + REEL[idx[2]] + "]";
     }
 
     private int computeBaseMultiplier(int[] idx) {
