@@ -28,17 +28,7 @@ public interface TradeItemRepository extends JpaRepository<TradeItem, Long> {
     @Query("DELETE FROM TradeItem ti WHERE ti.trade.id = :tradeId")
     void deleteByTradeId(@Param("tradeId") Long tradeId);
 
-    // Debug helpers
-    @Query("SELECT COUNT(ti) FROM TradeItem ti WHERE ti.itemInstance.id = :instanceId")
-    long countByItemInstanceId(@Param("instanceId") UUID instanceId);
-
-    @Query("SELECT ti.trade.id FROM TradeItem ti WHERE ti.itemInstance.id = :instanceId")
-    List<Long> findTradeIdsByItemInstanceId(@Param("instanceId") UUID instanceId);
-
-    @Query("SELECT COUNT(ti) FROM TradeItem ti WHERE ti.trade.id = :tradeId AND ti.itemInstance.owner.id = :userId")
-    long countByTradeIdAndUserId(@Param("tradeId") Long tradeId, @Param("userId") String userId);
-
-    // Pending-only helpers for correctness
+    // Pending-only helpers for correctness used by TradeService
     @Query("SELECT COUNT(ti) FROM TradeItem ti WHERE ti.itemInstance.id = :instanceId AND ti.trade.status = :status")
     long countByItemInstanceIdAndTradeStatus(@Param("instanceId") UUID instanceId, @Param("status") TradeStatus status);
 

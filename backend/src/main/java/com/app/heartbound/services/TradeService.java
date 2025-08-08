@@ -159,7 +159,6 @@ public class TradeService {
 
         // Remove duplicates from input list to prevent constraint violations
         List<UUID> uniqueItemIds = new ArrayList<>(new HashSet<>(itemInstanceIds));
-        log.debug("Unique item ids for add: {}", uniqueItemIds);
         
         // Replace user's current offer (delete then re-add)
         clearUserItemsFromTrade(tradeId, userId);
@@ -167,8 +166,6 @@ public class TradeService {
         // Reload trade with remaining items to get current database state
         trade = tradeRepository.findByIdWithItems(tradeId)
                 .orElseThrow(() -> new TradeNotFoundException("Trade not found with id: " + tradeId));
-        log.debug("Post-clear current trade items ({}): {}", trade.getItems().size(),
-                trade.getItems().stream().map(ti -> ti.getItemInstance().getId()).toList());
 
         // Determine which fishing rods are being added (for part validation)
         Set<UUID> rodInstanceIdsBeingAdded = new HashSet<>();
@@ -178,7 +175,6 @@ public class TradeService {
                 rodInstanceIdsBeingAdded.add(instance.getId());
             }
         }
-        log.debug("Rod instance IDs being added: {}", rodInstanceIdsBeingAdded);
 
         // Load and validate instances for this user's new offer
         List<ItemInstance> instancesToAdd = new ArrayList<>();
@@ -186,7 +182,7 @@ public class TradeService {
             ItemInstance instance = itemInstanceRepository.findByIdWithLock(instanceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item instance with id " + instanceId + " not found"));
 
-            // Pre-validation: ensure the item is not referenced by another trade (global unique constraint safety)
+            // Pre-validation: ensure the item is not referenced by another pending trade
             long pendingCount = tradeItemRepository.countByItemInstanceIdAndTradeStatus(instanceId, TradeStatus.PENDING);
             if (pendingCount > 0) {
                 List<Long> pendingTrades = tradeItemRepository.findTradeIdsByItemInstanceIdAndTradeStatus(instanceId, TradeStatus.PENDING);
@@ -198,8 +194,6 @@ public class TradeService {
 
             instancesToAdd.add(instance);
         }
-        log.debug("Instances to add ({}): {}", instancesToAdd.size(),
-                instancesToAdd.stream().map(ii -> ii.getId().toString()).toList());
 
         // Validate all items for this user (ownership, tradability, equipped constraints)
         validateItemsForTrade(
@@ -213,32 +207,23 @@ public class TradeService {
 
         // Persist new selection
         for (ItemInstance instance : instancesToAdd) {
+            // Skip if this instance is already included (e.g., auto-added as an equipped part of a previously processed rod)
             boolean alreadyIncluded = trade.getItems().stream()
                     .anyMatch(ti -> ti.getItemInstance() != null
                             && ti.getItemInstance().getId() != null
                             && ti.getItemInstance().getId().equals(instance.getId()));
-            log.debug("Considering instance {} (category={}): alreadyIncludedInTradeList={}, globalCountForInstance={}, tradesForInstance={}",
-                    instance.getId(),
-                    instance.getBaseItem().getCategory(),
-                    alreadyIncluded,
-                    tradeItemRepository.countByItemInstanceId(instance.getId()),
-                    tradeItemRepository.findTradeIdsByItemInstanceId(instance.getId()));
             if (alreadyIncluded) {
-                log.warn("Skipping instance {} because it's already present in trade {} list", instance.getId(), tradeId);
                 continue;
             }
 
             addTradeItem(trade, instance);
-            log.debug("Added primary item {} to trade {}", instance.getId(), tradeId);
             if (instance.getBaseItem().getCategory() == ShopCategory.FISHING_ROD) {
                 addRodEquippedPartsToTrade(trade, instance);
             }
         }
 
-        log.debug("About to save trade {} with items ({}): {}", tradeId, trade.getItems().size(),
-                trade.getItems().stream().map(ti -> ti.getItemInstance().getId()).toList());
         Trade savedTrade = tradeRepository.save(trade);
-        log.debug("Successfully added items to trade {} for user {}. Persisted count now {}.", tradeId, userId, savedTrade.getItems().size());
+        log.debug("Successfully added {} items to trade {} for user {}", uniqueItemIds.size(), tradeId, userId);
         return savedTrade;
     }
 
@@ -510,13 +495,10 @@ public class TradeService {
 
     private void clearUserItemsFromTrade(Long tradeId, String userId) {
         log.debug("Deleting existing trade items for tradeId: {}, userId: {}", tradeId, userId);
-        long before = tradeItemRepository.countByTradeIdAndUserId(tradeId, userId);
-        log.debug("Existing items for user {} in trade {} before delete: {}", userId, tradeId, before);
         tradeItemRepository.deleteByTradeIdAndUserId(tradeId, userId);
         // Ensure deletes are applied before re-adding to avoid constraint issues
         entityManager.flush();
-        long after = tradeItemRepository.countByTradeIdAndUserId(tradeId, userId);
-        log.debug("Database delete operations flushed for tradeId: {}. Remaining items for user {}: {}", tradeId, userId, after);
+        log.debug("Database delete operations flushed for tradeId: {}", tradeId);
     }
 
     private void addTradeItem(Trade trade, ItemInstance instance) {
@@ -529,8 +511,6 @@ public class TradeService {
 
     private void addRodEquippedPartsToTrade(Trade trade, ItemInstance rodInstance) {
         List<ItemInstance> equippedParts = userInventoryService.getEquippedParts(rodInstance);
-        log.debug("Auto-including equipped parts for rod {}: {}", rodInstance.getId(),
-                equippedParts.stream().map(ii -> ii != null ? ii.getId() : null).toList());
 
         // Collect already-added item instance IDs to prevent duplicates
         Set<UUID> alreadyAddedInstanceIds = new HashSet<>();
@@ -539,15 +519,12 @@ public class TradeService {
                 alreadyAddedInstanceIds.add(existingItem.getItemInstance().getId());
             }
         }
-        log.debug("Existing instance IDs in trade before auto-including parts: {}", alreadyAddedInstanceIds);
 
         for (ItemInstance part : equippedParts) {
             if (part == null || part.getId() == null) {
-                log.warn("Skipping null equipped part for rod {}", rodInstance.getId());
                 continue;
             }
             if (alreadyAddedInstanceIds.contains(part.getId())) {
-                log.info("Skipping auto-include of part {} because it is already present in the trade list", part.getId());
                 continue;
             }
 
@@ -557,7 +534,6 @@ public class TradeService {
                     .build();
             trade.getItems().add(partTradeItem);
             alreadyAddedInstanceIds.add(part.getId());
-            log.debug("Auto-included equipped part {} for rod {}", part.getId(), rodInstance.getId());
         }
     }
 
