@@ -281,7 +281,18 @@ public class TradeService {
 
 
         // Atomically transfer items
-        for (TradeItem item : trade.getItems()) {
+        // Process parts and other items first, rods last to avoid duplicate transfers/uniqueness conflicts
+        List<TradeItem> orderedItems = new java.util.ArrayList<>(trade.getItems());
+        orderedItems.sort((a, b) -> {
+            ShopCategory ca = a.getItemInstance().getBaseItem().getCategory();
+            ShopCategory cb = b.getItemInstance().getBaseItem().getCategory();
+            boolean aRod = ca == ShopCategory.FISHING_ROD;
+            boolean bRod = cb == ShopCategory.FISHING_ROD;
+            if (aRod == bRod) return 0;
+            return aRod ? 1 : -1; // put rods after others
+        });
+
+        for (TradeItem item : orderedItems) {
             ItemInstance instance = item.getItemInstance();
             
             // Re-fetch and lock the item instance to ensure it hasn't been traded/sold
@@ -310,7 +321,31 @@ public class TradeService {
                 }
             } else if (category == ShopCategory.FISHING_ROD_PART) {
                 if (itemInstanceRepository.isPartAlreadyEquipped(instance.getId())) {
-                    throw new InvalidTradeActionException("Trade failed: The item '" + shopItem.getName() + "' is currently equipped on a rod by " + fromUser.getUsername() + " and cannot be traded.");
+                    // Allow trading an equipped part only if its rod is also part of this trade and goes to the same recipient
+                    java.util.List<ItemInstance> rodsWithPart = itemInstanceRepository.findRodsWithEquippedParts(java.util.Collections.singletonList(instance));
+                    boolean rodIncludedForSameRecipient = false;
+                    for (ItemInstance rod : rodsWithPart) {
+                        if (!rod.getOwner().getId().equals(fromUser.getId())) {
+                            continue;
+                        }
+                        for (TradeItem other : orderedItems) {
+                            ItemInstance otherInstance = other.getItemInstance();
+                            if (otherInstance.getId().equals(rod.getId()) &&
+                                otherInstance.getBaseItem().getCategory() == ShopCategory.FISHING_ROD) {
+                                User rodFromUser = rod.getOwner();
+                                User rodToUser = rodFromUser.getId().equals(initiator.getId()) ? receiver : initiator;
+                                if (rodToUser.getId().equals(toUser.getId())) {
+                                    rodIncludedForSameRecipient = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (rodIncludedForSameRecipient) break;
+                    }
+                    if (!rodIncludedForSameRecipient) {
+                        throw new InvalidTradeActionException("Trade failed: The item '" + shopItem.getName() + "' is currently equipped on a rod by " + fromUser.getUsername() + " and cannot be traded.");
+                    }
+                    // else, continue; this part will be transferred now, and the rod's helper will skip it later
                 }
             } else if (category.isEquippable()) {
                 UUID equippedItemId = fromUser.getEquippedItemIdByCategory(category);
@@ -356,8 +391,15 @@ public class TradeService {
                 ItemInstance lockedPart = itemInstanceRepository.findByIdWithLock(part.getId())
                     .orElseThrow(() -> new InvalidTradeActionException("Trade failed: An equipped part is no longer available."));
 
-                // Validate that the part is owned by the rod's current owner
-                if (!lockedPart.getOwner().getId().equals(fromUser.getId())) {
+                // Validate ownership relative to trade participants
+                String partOwnerId = lockedPart.getOwner().getId();
+                if (partOwnerId.equals(fromUser.getId())) {
+                    // proceed with transfer below
+                } else if (partOwnerId.equals(toUser.getId())) {
+                    // Part was already transferred earlier (e.g., explicitly included in trade); skip
+                    continue;
+                } else {
+                    // Neither participant owns this equipped part; abort
                     throw new InvalidTradeActionException("Trade failed: An equipped part is not owned by the current rod owner.");
                 }
 
